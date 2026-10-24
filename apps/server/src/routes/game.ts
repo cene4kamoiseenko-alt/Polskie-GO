@@ -15,6 +15,7 @@ import { activeSubscription } from '../services/premium';
 import { achievementMetrics } from '../services/achievements';
 import { answerMission, listMissions, missionHint, startMission } from '../services/missions';
 import { passport } from '../services/passport';
+import { SLANG, SLANG_GROUPS } from '../content/slang';
 import { AI_MODES, ROLEPLAYS, listConversations, sendMessage, type AiMode } from '../services/ai';
 
 export const gameRoutes = new Hono<AppEnv>();
@@ -40,6 +41,12 @@ r.post('/missions/runs/:id/answer', rateLimit(90, 60_000, 'mission'), async (c) 
 r.post('/missions/runs/:id/hint', rateLimit(60, 60_000, 'mission-hint'), async (c) => {
   const { step } = z.object({ step: z.number().int().min(0).max(30) }).parse(await body(c));
   return c.json(await missionHint(c.get('userId'), c.req.param('id'), step));
+});
+
+// ── Żywy polski: розмовник живої мови (статичний контент) ──
+r.get('/slang', (c) => {
+  c.header('cache-control', 'private, max-age=3600');
+  return c.json({ groups: SLANG_GROUPS, items: SLANG });
 });
 
 // ── Паспорт мандрівника ──

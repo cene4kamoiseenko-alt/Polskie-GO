@@ -172,11 +172,13 @@ describe('Уроки та нагороди', () => {
     const s = await call('POST', '/api/sessions', { lessonId: boss.id });
     expect(s.status).toBe(200);
     const fin = await playSession(call, s.body.sessionId);
-    expect(fin.body.cityCompleted.nextCity.slug).toBe('krakow');
+    expect(fin.body.cityCompleted.nextCity.slug).toBe('lodz');
     expect(fin.body.cityCompleted.rewards.map((r: { slug: string }) => r.slug)).toEqual(expect.arrayContaining(['souvenir-syrenka']));
     const p = await progress(user.id);
-    expect((await db.query.cities.findFirst({ where: eq(cities.id, p.currentCityId!) }))?.slug).toBe('krakow');
-    expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-1-rodzina') })).status).toBe(200);
+    expect((await db.query.cities.findFirst({ where: eq(cities.id, p.currentCityId!) }))?.slug).toBe('lodz');
+    expect((await call('POST', '/api/sessions', { lessonId: await lessonId('lodz-1-alfabet') })).status).toBe(200);
+    // Наступне місто після Лодзі ще закрите.
+    expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-1-rodzina') })).status).toBe(403);
     const ach = await db.select({ slug: achievements.slug }).from(userAchievements).innerJoin(achievements, eq(achievements.id, userAchievements.achievementId)).where(eq(userAchievements.userId, user.id));
     expect(ach.map((a) => a.slug)).toContain('city-1');
     // Паспорт: штамп Варшави з листівкою й нотаткою; наступні міста — без них.
@@ -195,11 +197,11 @@ describe('Уроки та нагороди', () => {
     const { call, user } = await login();
     const s = await call('POST', '/api/sessions', { lessonId: await lessonId('placement-test') });
     const fin = await playSession(call, s.body.sessionId);
-    expect(fin.body.placement).toMatchObject({ level: 'A1', unlocked: ['warszawa', 'krakow', 'wroclaw'] });
+    expect(fin.body.placement).toMatchObject({ level: 'A1', unlocked: ['warszawa', 'lodz', 'krakow'] });
     const p = await progress(user.id);
     expect(p.languageLevel).toBe('A0');
     // Уроки міста, відкритого тестом, доступні не по черзі.
-    expect((await call('POST', '/api/sessions', { lessonId: await lessonId('wro-4-restauracja') })).status).toBe(200);
+    expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-4-tydzien') })).status).toBe(200);
   });
 
   it('іспит A1 підтверджує рівень польської', async () => {

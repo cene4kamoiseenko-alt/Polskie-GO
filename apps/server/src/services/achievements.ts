@@ -148,6 +148,36 @@ async function resolveMetric(metric: Metric, userId: string, p: Progress, adjust
     // Слова, правильно згадані після призначеного інтервалу (щонайменше друге успішне повторення).
     case 'LONG_RECALL':
       return n(await db.select({ n: count() }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), gte(reviewSchedule.repetitions, 2))));
+    // Усі вказані уроки пройдено (кількість пройдених із переліку).
+    case 'LESSONS_DONE': {
+      const slugs = arg.split(',');
+      return n(
+        await db
+          .select({ n: count() })
+          .from(userLessonProgress)
+          .innerJoin(lessons, eq(lessons.id, userLessonProgress.lessonId))
+          .where(and(eq(userLessonProgress.userId, userId), inArray(lessons.slug, slugs), isNotNull(userLessonProgress.firstCompletedAt))),
+      );
+    }
+    // Різні завдання з навичкою (префікс skill), виконані правильно.
+    case 'SKILL_OK':
+      return n(
+        await db
+          .select({ n: sql<number>`count(distinct ${exerciseAttempts.itemKey})` })
+          .from(exerciseAttempts)
+          .where(and(eq(exerciseAttempts.userId, userId), sql`${exerciseAttempts.skill} like ${arg + '%'}`, eq(exerciseAttempts.isCorrect, true))),
+      );
+    // Різні завдання певного типу, виконані правильно.
+    case 'TYPE_OK':
+      return n(
+        await db
+          .select({ n: sql<number>`count(distinct ${exerciseAttempts.itemKey})` })
+          .from(exerciseAttempts)
+          .where(and(eq(exerciseAttempts.userId, userId), eq(exerciseAttempts.type, arg), eq(exerciseAttempts.isCorrect, true))),
+      );
+    // Слова зі статусом «вивчене» (після трьох успішних повторень поспіль).
+    case 'WORDS_LEARNED':
+      return n(await db.select({ n: count() }).from(userVocabulary).where(and(eq(userVocabulary.userId, userId), eq(userVocabulary.status, 'LEARNED'))));
     case 'GOAL_DAYS':
       return goalDays(userId, adjust.TODAY_XP ?? 0);
     case 'SECTIONS':

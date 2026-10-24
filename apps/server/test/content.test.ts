@@ -67,3 +67,21 @@ describe('Навчальний контент', () => {
     }
   });
 });
+
+import { SLANG } from '../src/content/slang';
+
+describe('Żywy polski', () => {
+  it('усі обовʼязкові вирази є, кожен має значення, реєстр, ситуацію, діалог і нейтральну альтернативу трьома мовами', () => {
+    const required = ['Siema!', 'Elo!', 'Nara!', 'Ziomek', 'Kumpel', 'Ale sztos!', 'Zarąbiście!', 'Masakra!', 'Ale beka!', 'Ale przypał!', 'Mam wywalone', 'Nie ogarniam', 'Ogarnij się!', 'Daj spokój', 'Nie spinaj się', 'Wyluzuj', 'Co ty gadasz?!', 'Serio?', 'Bez kitu!', 'Nie ma lipy', 'Spoko', 'Luz', 'Co tam?', 'Trzymaj się!', 'Lecę!', 'Ogarniesz to?'];
+    const pls = SLANG.map((x) => x.pl);
+    for (const r of required) expect(pls, r).toContain(r);
+    expect(new Set(SLANG.map((x) => x.id)).size).toBe(SLANG.length);
+    for (const x of SLANG) {
+      for (const f of [x.meaning, x.tone, x.when, x.dialogue.tr, x.neutral.tr]) expect(f.uk && f.ru && f.en, x.id).toBeTruthy();
+      expect(x.dialogue.a && x.dialogue.b && x.neutral.pl, x.id).toBeTruthy();
+      expect(['casual', 'slang', 'rude']).toContain(x.register);
+    }
+    // Грубі вирази позначені саме так.
+    expect(SLANG.find((x) => x.id === 'mam-wywalone')!.register).toBe('rude');
+  });
+});

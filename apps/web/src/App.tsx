@@ -33,6 +33,7 @@ const GrammarScreen = lazy(() => import('./screens/Grammar'));
 const MissionsScreen = lazy(() => import('./screens/Missions'));
 const MissionScreen = lazy(() => import('./screens/Mission'));
 const PassportScreen = lazy(() => import('./screens/Passport'));
+const SlangScreen = lazy(() => import('./screens/Slang'));
 
 const TAB_ROUTES = ['/', '/map', '/learn', '/quests', '/profile'];
 
@@ -146,6 +147,7 @@ export function App() {
                 <Route path="/life" element={<MissionsScreen />} />
                 <Route path="/life/:slug" element={<MissionScreen />} />
                 <Route path="/passport" element={<PassportScreen />} />
+                <Route path="/slang" element={<SlangScreen />} />
                 <Route path="*" element={<HomeScreen />} />
               </Routes>
             </Suspense>

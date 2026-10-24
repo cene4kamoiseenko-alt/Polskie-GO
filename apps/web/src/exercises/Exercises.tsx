@@ -438,51 +438,93 @@ function MatchExercise({ item, result, onChange }: ExProps) {
 }
 
 // ───────── Вимова ─────────
+const normWord = (w: string) => w.toLowerCase().replace(/[.,!?;:„”"«»…()]/g, '');
+const plain = (w: string) => normWord(w).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l');
+
+/** Порівняння слів цільової фрази з розпізнаним текстом: ok / без діакритики / не розпізнано. */
+function wordDiff(target: string, heard: string) {
+  const said = heard.split(/\s+/).filter(Boolean);
+  const used = new Set<number>();
+  return target.split(/\s+/).filter(Boolean).map((w) => {
+    const exact = said.findIndex((x, i) => !used.has(i) && normWord(x) === normWord(w));
+    if (exact >= 0) { used.add(exact); return { w, st: 'ok' as const }; }
+    const loose = said.findIndex((x, i) => !used.has(i) && plain(x) === plain(w));
+    if (loose >= 0) { used.add(loose); return { w, st: 'near' as const }; }
+    return { w, st: 'miss' as const };
+  });
+}
+
 function PronunciationExercise({ item, result, onSubmit }: ExProps) {
   const { t, tr } = useT();
   const data = d<{ text: string; translation: I18n; audioUrl?: string }>(item);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [heard, setHeard] = useState<string | null>(null);
   const available = useMemo(() => speechRecognitionAvailable(), []);
-  const start = async () => {
+  const record = async (practice: boolean) => {
     setError(null);
     setListening(true);
     haptic.tap();
     try {
       const { promise } = recognizePolish();
       const transcript = await promise;
-      onSubmit({ transcript });
+      setHeard(transcript);
+      // Перша спроба зараховується сервером; повтори — лише для тренування.
+      if (!practice) onSubmit({ transcript });
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setListening(false);
     }
   };
+  const diff = heard !== null ? wordDiff(data.text, heard) : null;
   return (
-    <div className="flex flex-col items-center gap-5 text-center">
-      <div className="card flex items-center gap-3 px-5 py-4">
-        <SpeakButton text={data.text} url={data.audioUrl} />
-        <div className="text-left">
-          <div className="text-2xl font-black">{data.text}</div>
-          <div className="muted font-bold">{tr(data.translation)}</div>
+    <div className="flex flex-col items-center gap-4 text-center">
+      <div className="flex w-full items-end gap-1">
+        <div className="shrink-0"><Beaver mood={listening ? 'mic' : result ? (result.correct ? 'cheer' : 'sad') : 'mic'} size={92} /></div>
+        <div className="card relative mb-8 flex min-w-0 flex-1 items-center gap-3 rounded-bl-md p-4 text-left">
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <SpeakButton text={data.text} url={data.audioUrl} />
+            <SpeakButton text={data.text} url={data.audioUrl} size="sm" slow />
+          </div>
+          <div className="min-w-0">
+            <div className="text-2xl font-black leading-tight">{data.text}</div>
+            <div className="muted font-bold">{tr(data.translation)}</div>
+          </div>
         </div>
       </div>
       {available ? (
-        <motion.button
-          whileTap={{ scale: 0.92 }}
-          disabled={listening || !!result}
-          onClick={start}
-          className={cx('grid h-28 w-28 place-items-center rounded-full text-5xl text-white', listening ? 'bg-coral' : 'bg-brand')}
-          style={{ boxShadow: `0 6px 0 ${listening ? 'var(--color-coral-dark)' : 'var(--color-brand-dark)'}` }}
-          animate={listening ? { scale: [1, 1.08, 1] } : undefined}
-          transition={{ repeat: Infinity, duration: 1 }}
-        >
-          🎤
-        </motion.button>
+        <div className="relative grid place-items-center">
+          {listening && [0, 1, 2].map((i) => (
+            <motion.span key={i} className="absolute h-28 w-28 rounded-full bg-coral/30" initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 1.9, opacity: 0 }} transition={{ repeat: Infinity, duration: 1.6, delay: i * 0.5 }} />
+          ))}
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            disabled={listening}
+            onClick={() => record(!!result)}
+            aria-label={t('ex_mic_start')}
+            className={cx('relative grid h-28 w-28 place-items-center rounded-full text-white', listening ? 'bg-coral' : 'bg-pl-red')}
+            style={{ boxShadow: `0 6px 0 var(--color-coral-dark)` }}
+          >
+            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" /></svg>
+          </motion.button>
+        </div>
       ) : (
         <p className="rounded-2xl bg-muted p-3 font-bold">{t('ex_mic_unavailable')}</p>
       )}
-      <div className="font-black">{listening ? t('ex_mic_listening') : available ? t('ex_mic_start') : ''}</div>
+      <div className="font-black">{listening ? t('ex_mic_listening') : available ? t(result ? 'ex_mic_again' : 'ex_mic_start') : ''}</div>
+      {diff && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="w-full rounded-2xl bg-muted p-3 text-left">
+          <div className="muted text-xs font-black uppercase tracking-wide">{t('ex_mic_heard')}</div>
+          <div className="mb-2 font-bold">„{heard || '…'}”</div>
+          <div className="flex flex-wrap gap-1.5">
+            {diff.map((x, i) => (
+              <span key={i} className={cx('rounded-lg px-2 py-0.5 font-black', x.st === 'ok' ? 'bg-brand/20 text-brand-dark' : x.st === 'near' ? 'bg-xp/30 text-xp-dark' : 'bg-coral/15 text-coral-dark line-through decoration-2')}>{x.w}</span>
+            ))}
+          </div>
+          <div className="muted mt-2 text-[11px] font-bold">{t('ex_mic_legend')}</div>
+        </motion.div>
+      )}
       {result && !result.skipped && result.similarity !== undefined && (
         <div className="font-bold">{t('ex_similarity', { n: Math.round(result.similarity * 100) })}</div>
       )}

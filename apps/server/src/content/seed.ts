@@ -11,11 +11,14 @@ import { VOCAB } from './vocab';
 import { WARSZAWA } from './warszawa';
 import { KRAKOW } from './krakow';
 import { WROCLAW } from './wroclaw';
+import { LODZ } from './lodz';
+import { KATOWICE } from './katowice';
+import { OPOLE } from './opole';
 import { PLACEMENT, EXAM_A1 } from './exams';
 import { ACHIEVEMENTS, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from './gamification';
 import type { CityContent, LessonSeed } from './types';
 
-export const CITY_CONTENT: CityContent[] = [WARSZAWA, KRAKOW, WROCLAW];
+export const CITY_CONTENT: CityContent[] = [WARSZAWA, LODZ, KRAKOW, KATOWICE, OPOLE, WROCLAW];
 
 type Value = string | number | boolean | null | undefined | object | Raw;
 class Raw {
