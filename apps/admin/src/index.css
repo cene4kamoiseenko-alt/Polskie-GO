@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+@layer components {
+  .inp { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100; }
+  .btn-p, .btn-s, .btn-d { @apply inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-50; }
+  .btn-p { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
+  .btn-s { @apply border border-slate-300 bg-white hover:bg-slate-100; }
+  .btn-d { @apply bg-rose-600 text-white hover:bg-rose-700; }
+  .panel { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
+  .th { @apply px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .td { @apply px-3 py-2 align-top text-sm; }
+}

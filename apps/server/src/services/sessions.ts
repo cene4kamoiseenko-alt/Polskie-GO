@@ -296,18 +296,17 @@ export async function answerItem(userId: string, sessionId: string, key: string,
     const firstDone = !retry && st.done;
     await tx.learningSession.update({ where: { id: s.id }, data: { state: json(state) } });
 
-    if (firstDone) {
+    // Пропущена вимова (немає мікрофона) не є помилкою і не потрапляє в статистику.
+    if (firstDone && !st.skipped) {
       await tx.exerciseAttempt.create({
         data: {
           userId, sessionId: s.id, exerciseId: item.exerciseId ?? null, itemKey: key, type: item.type, skill: item.skill,
           answer: json(answer), isCorrect: !!st.firstCorrect,
         },
       });
-      if (!st.skipped) {
-        await updateSkill(tx, userId, item.skill, !!st.firstCorrect);
-        if (item.vocabId) await updateReview(tx, userId, 'WORD', item.vocabId, !!st.firstCorrect, result.almost);
-        if (item.exerciseId) await updateReview(tx, userId, 'EXERCISE', item.exerciseId, !!st.firstCorrect, result.almost);
-      }
+      await updateSkill(tx, userId, item.skill, !!st.firstCorrect);
+      if (item.vocabId) await updateReview(tx, userId, 'WORD', item.vocabId, !!st.firstCorrect, result.almost);
+      if (item.exerciseId) await updateReview(tx, userId, 'EXERCISE', item.exerciseId, !!st.firstCorrect, result.almost);
       const events: QuestEvents = { PERFECT_STREAK: state.run };
       if ((item.type === 'LISTENING' || item.type === 'DICTATION') && st.firstCorrect) events.LISTENING = 1;
       await applyQuestEvents(tx, userId, events);
