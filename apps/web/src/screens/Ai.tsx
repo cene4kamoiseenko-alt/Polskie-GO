@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Icon } from '../components/Icon';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -214,7 +215,7 @@ export default function AiScreen() {
               {m.role === 'assistant' ? <RichText text={m.content} /> : m.content}
               {m.role === 'assistant' && (
                 <button className="mt-1 block text-xs font-black text-sky-dark" onClick={() => speak(m.content.split('✏️')[0])} aria-label="listen">
-                  🔊
+                  <Icon name="headphones" size={16} />
                 </button>
               )}
             </div>
@@ -278,7 +279,7 @@ export default function AiScreen() {
             </button>
           )}
           <button className="btn btn-primary min-h-[48px] px-4" disabled={!text.trim() || busy} onClick={send} aria-label={t('ai_send')}>
-            ➤
+            <Icon name="arrow-right" size={22} strokeWidth={2.6} />
           </button>
         </div>
         <p className="muted pt-1 text-center text-[10px] font-bold">{t('ai_disclaimer')}</p>
