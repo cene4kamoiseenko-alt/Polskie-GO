@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import type { AnswerResult, PublicItem } from '../lib/types';
+import { assetUrl } from '../lib/api';
 import { recognizePolish, sfx, speak, speechRecognitionAvailable } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
@@ -104,7 +105,7 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
       {item.type === 'PICTURE_WORD' && data.image && (
         <div className="grid place-items-center">
           {data.image.startsWith('/') || data.image.startsWith('http') ? (
-            <img src={data.image} alt="" className="h-40 w-40 rounded-3xl object-cover" />
+            <img src={assetUrl(data.image)} alt="" className="h-40 w-40 rounded-3xl object-cover" />
           ) : (
             <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="card grid h-40 w-40 place-items-center text-[96px]">
               {data.image}

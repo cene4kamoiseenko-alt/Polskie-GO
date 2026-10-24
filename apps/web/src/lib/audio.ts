@@ -1,3 +1,4 @@
+import { assetUrl } from './api';
 /** Озвучування польською (Web Speech API), звукові ефекти та розпізнавання мовлення. */
 let enabled = true;
 export function setSoundEnabled(v: boolean) {
@@ -20,7 +21,7 @@ export const ttsAvailable = () => typeof window !== 'undefined' && 'speechSynthe
 /** Озвучити польський текст. Якщо є записаний аудіофайл — використовується він. */
 export function speak(text: string, opts: { url?: string; slow?: boolean } = {}) {
   if (opts.url) {
-    void new Audio(opts.url).play().catch(() => speak(text, { slow: opts.slow }));
+    void new Audio(assetUrl(opts.url)).play().catch(() => speak(text, { slow: opts.slow }));
     return;
   }
   if (!ttsAvailable()) return;

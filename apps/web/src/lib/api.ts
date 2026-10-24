@@ -1,5 +1,8 @@
 import { tg, startParam } from './telegram';
 
+/** Адрес API. Пусто — тот же домен (один сервер). Для Cloudflare Pages задайте VITE_API_URL=https://api.ваш-домен */
+export const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
 let token: string | null = null;
 let authPromise: Promise<void> | null = null;
 
@@ -15,9 +18,9 @@ export class ApiError extends Error {
 
 async function authenticate() {
   const res = tg
-    ? await fetch('/api/auth/telegram', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData }) })
+    ? await fetch(`${API_BASE}/api/auth/telegram`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData }) })
     : // Поза Telegram — режим розробки (на сервері вмикається DEV_AUTH=true).
-      await fetch('/api/auth/dev', {
+      await fetch(`${API_BASE}/api/auth/dev`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id: Number(new URLSearchParams(location.search).get('devUser') ?? 100001), firstName: 'Podróżnik', startParam: startParam() }),
@@ -38,7 +41,7 @@ export function ensureAuth() {
 export async function api<T = unknown>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   await ensureAuth();
   const doFetch = () =>
-    fetch(`/api${path}`, {
+    fetch(`${API_BASE}/api${path}`, {
       method: opts.method ?? (opts.body !== undefined ? 'POST' : 'GET'),
       headers: { authorization: `Bearer ${token}`, ...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}) },
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -57,10 +60,13 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
 
 export async function downloadExport() {
   await ensureAuth();
-  const res = await fetch('/api/me/export', { headers: { authorization: `Bearer ${token}` } });
+  const res = await fetch(`${API_BASE}/api/me/export`, { headers: { authorization: `Bearer ${token}` } });
   const blob = await res.blob();
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'polski-go-data.json';
   a.click();
 }
+
+/** Полный адрес файла, загруженного в админке (/uploads/...), — он хранится на API-сервере. */
+export const assetUrl = (u: string) => (u.startsWith('/uploads/') ? `${API_BASE}${u}` : u);
