@@ -65,6 +65,21 @@ docker compose up -d --build     # PostgreSQL + приложение на :3000 
 Контейнер применяет миграции и добавляет отсутствующий контент при каждом старте.
 Один сервер отдаёт `/api`, `/telegram/webhook`, Mini App (`/`) и админку (`/admin/`).
 
+### Cloudflare Pages (только Mini App)
+
+Pages хостит статику, поэтому на нём размещается только фронтенд. API (Fastify + PostgreSQL)
+нужно запустить отдельно — Docker на любом VPS, Railway, Render, Fly.io и т. п.
+
+| Настройка Pages | Значение |
+|---|---|
+| Build command | `npm run build:web` |
+| Build output directory | `apps/web/dist` |
+| Root directory | *(пусто — корень репозитория)* |
+| Переменная `VITE_API_URL` | `https://api.ваш-домен` (адрес backend) |
+| Переменная `NODE_VERSION` | `22` |
+
+На backend добавьте домен Pages в `CORS_ORIGINS` и укажите его в `WEB_APP_URL`.
+
 ### Что нужно настроить владельцу
 
 1. **Бот** в [@BotFather](https://t.me/BotFather): создать бота, получить токен; `/newapp` — создать Mini App
