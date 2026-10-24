@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
@@ -16,6 +16,8 @@ const NO_RETRY = new Set(['DIALOGUE', 'SITUATION', 'PRONUNCIATION']);
 
 export default function LessonScreen() {
   const { lessonId, mode } = useParams();
+  const [search] = useSearchParams();
+  const topic = search.get('topic') ?? undefined;
   const { t, tr } = useT();
   const nav = useNavigate();
   const me = useMe().data;
@@ -39,7 +41,7 @@ export default function LessonScreen() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    api<SessionStart>('/sessions', { body: lessonId ? { lessonId } : { mode } })
+    api<SessionStart>('/sessions', { body: lessonId ? { lessonId } : { mode, topic } })
       .then((s) => {
         setSession(s);
         setQueue(s.items.map((i) => i.key));
@@ -130,10 +132,10 @@ export default function LessonScreen() {
   if (phase === 'loading') return <ScreenSkeleton />;
   if (phase === 'error') {
     const code = error instanceof ApiError ? error.code : '';
-    if (code === 'nothing_due' || code === 'no_mistakes' || code === 'nothing_to_practice')
+    if (code === 'nothing_due' || code === 'no_mistakes' || code === 'nothing_to_practice' || code === 'topic_locked')
       return (
         <div className="pt-16">
-          <EmptyState text={code === 'no_mistakes' ? t('no_mistakes') : t('nothing_due')} action={<button className="btn btn-primary" onClick={() => nav('/', { replace: true })}>{t('continue')}</button>} />
+          <EmptyState text={code === 'no_mistakes' ? t('no_mistakes') : code === 'topic_locked' ? t('grammar_locked') : t('nothing_due')} action={<button className="btn btn-primary" onClick={() => nav('/', { replace: true })}>{t('continue')}</button>} />
         </div>
       );
     if (code === 'premium_required') {

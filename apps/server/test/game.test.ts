@@ -72,6 +72,28 @@ describe('Квести', () => {
   });
 });
 
+describe('Граматика', () => {
+  it('теми з реальним прогресом; тренування теми нараховує XP і оновлює освоєння', async () => {
+    const { call } = await login();
+    const list = await call('GET', '/api/grammar');
+    expect(list.status).toBe(200);
+    expect(list.body.length).toBeGreaterThanOrEqual(10);
+    const byc = list.body.find((g: { slug: string }) => g.slug === 'byc');
+    expect(byc).toMatchObject({ state: 'new', mastery: 0 });
+    expect(byc.exercises).toBeGreaterThan(0);
+
+    const s = await call('POST', '/api/sessions', { mode: 'GRAMMAR', topic: 'byc' });
+    expect(s.status).toBe(200);
+    expect(s.body.items.every((i: { skill: string }) => i.skill === 'grammar.być')).toBe(true);
+    const fin = await playSession(call, s.body.sessionId);
+    expect(fin.body.xp).toBeGreaterThan(0);
+    const after = (await call('GET', '/api/grammar')).body.find((g: { slug: string }) => g.slug === 'byc');
+    expect(after.state).not.toBe('new');
+    expect(after.mastery).toBeGreaterThan(0);
+    expect((await call('POST', '/api/sessions', { mode: 'GRAMMAR', topic: 'nope' })).status).toBe(404);
+  });
+});
+
 describe('Магазин і гардероб', () => {
   it('покупка списує Złotki атомарно, предмет з’являється на бобрі', async () => {
     const { call, user } = await login();

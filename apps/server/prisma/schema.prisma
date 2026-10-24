@@ -41,6 +41,7 @@ enum SessionMode {
   SPEED
   EXAM
   PLACEMENT
+  GRAMMAR
 }
 
 enum SessionStatus {

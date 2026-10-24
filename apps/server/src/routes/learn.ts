@@ -9,6 +9,7 @@ import { notFound } from '../lib/errors';
 import { getJourney } from '../services/journey';
 import { answerItem, finishSession, startSession } from '../services/sessions';
 import { TOPICS } from '../content/vocab';
+import { GRAMMAR } from '../content/grammar';
 
 export const learnRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', requireUser);
@@ -17,7 +18,7 @@ export const learnRoutes: FastifyPluginAsync = async (app) => {
 
   app.post('/sessions', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) => {
     const body = z
-      .object({ lessonId: z.string().optional(), mode: z.enum(['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED']).optional() })
+      .object({ lessonId: z.string().optional(), mode: z.enum(['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR']).optional(), topic: z.string().max(40).optional() })
       .refine((b) => b.lessonId || b.mode, 'lessonId or mode required')
       .parse(req.body);
     return startSession(req.userId, body);
@@ -113,6 +114,27 @@ export const learnRoutes: FastifyPluginAsync = async (app) => {
     for (const c of day) h = (h * 31 + c.charCodeAt(0)) >>> 0;
     const [entry] = await prisma.vocabularyEntry.findMany({ where: { status: 'PUBLISHED', examples: { not: [] } }, orderBy: { id: 'asc' }, skip: h % count, take: 1 });
     return entry;
+  });
+
+  // ── Граматика ──
+  /** Теми з прогресом: освоєння = середня майстерність навичок теми; кількість вправ — з опублікованих уроків. */
+  app.get('/grammar', async (req) => {
+    const allSkills = GRAMMAR.flatMap((g) => g.skills);
+    const [skills, counts] = await Promise.all([
+      prisma.languageSkill.findMany({ where: { userId: req.userId, skill: { in: allSkills } } }),
+      prisma.exercise.groupBy({ by: ['skill'], where: { skill: { in: allSkills }, lesson: { status: 'PUBLISHED' } }, _count: true }),
+    ]);
+    return GRAMMAR.map((g) => {
+      const mine = skills.filter((s) => g.skills.includes(s.skill));
+      const attempts = mine.reduce((n, s) => n + s.attempts, 0);
+      const mastery = mine.length ? Math.round(mine.reduce((n, s) => n + s.mastery, 0) / g.skills.length) : 0;
+      const exercises = counts.filter((c) => g.skills.includes(c.skill)).reduce((n, c) => n + c._count, 0);
+      return {
+        slug: g.slug, title: g.title, subtitle: g.subtitle, cefr: g.cefr, difficulty: g.difficulty, color: g.color, glyph: g.glyph,
+        rule: g.rule, examples: g.examples, exercises, attempts, mastery,
+        state: attempts === 0 ? 'new' : mastery >= 80 ? 'mastered' : 'started',
+      };
+    });
   });
 
   // ── Іспити ──

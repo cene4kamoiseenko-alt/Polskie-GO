@@ -5,6 +5,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { tg, haptic } from '../lib/telegram';
 import { Beaver } from './Beaver';
+import { GameIcon, type IconName } from './GameIcon';
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ');
@@ -226,12 +227,12 @@ export function StatPill({ icon, value, color, onClick, label }: { icon: string;
 }
 
 // ───────── Нижня навігація ─────────
-const TABS: { to: string; icon: string; key: TKey }[] = [
-  { to: '/', icon: '🏠', key: 'nav_home' },
-  { to: '/map', icon: '🗺️', key: 'nav_map' },
-  { to: '/learn', icon: '📚', key: 'nav_learn' },
-  { to: '/quests', icon: '🎯', key: 'nav_quests' },
-  { to: '/profile', icon: '🦫', key: 'nav_profile' },
+const TABS: { to: string; icon: IconName; key: TKey }[] = [
+  { to: '/', icon: 'home', key: 'nav_home' },
+  { to: '/map', icon: 'map', key: 'nav_map' },
+  { to: '/learn', icon: 'lessons', key: 'nav_learn' },
+  { to: '/quests', icon: 'quests', key: 'nav_quests' },
+  { to: '/profile', icon: 'profile', key: 'nav_profile' },
 ];
 
 export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }) {
@@ -245,7 +246,9 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
           return (
             <NavLink key={tab.to} to={tab.to} onClick={() => haptic.select()} className="relative flex min-w-[60px] flex-col items-center gap-0.5 rounded-xl px-2 py-1">
               {active && <motion.div layoutId="navpill" className="absolute inset-0 rounded-xl" style={{ background: 'color-mix(in srgb, var(--color-pl-red) 12%, transparent)' }} />}
-              <span className={cx('relative text-[22px] leading-none transition-transform', active && 'scale-110')}>{tab.icon}</span>
+              <motion.span className="relative" animate={{ y: active ? -2 : 0, scale: active ? 1.08 : 1 }}>
+                <GameIcon name={tab.icon} size={30} inactive={!active} />
+              </motion.span>
               <span className={cx('relative text-[11px] font-extrabold', active ? 'text-pl-red' : 'muted')}>{t(tab.key)}</span>
               {!!badge?.[tab.to] && <span className="absolute right-2 top-0 h-2.5 w-2.5 rounded-full bg-pl-red" />}
             </NavLink>

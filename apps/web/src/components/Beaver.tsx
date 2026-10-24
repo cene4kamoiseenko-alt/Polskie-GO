@@ -101,10 +101,8 @@ function Jacket({ kind }: { kind?: string }) {
         <path d="M91 132 L88 152 M109 132 L112 152" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
         <circle cx="88" cy="154" r="2.6" fill="#fff" />
         <circle cx="112" cy="154" r="2.6" fill="#fff" />
-        {/* білий орел-емблема */}
-        <g transform="translate(100 160) scale(0.9)" fill="#fff">
-          <path d="M0 -14 l3 3 l3 -4 l1 5 l-3 3 l2 3 l9 -6 l7 -1 l-3 4 l5 0 l-4 4 l4 1 l-6 3 l-6 0 l-3 4 l3 6 l-4 -1 l-3 3 l-2 -4 l-2 4 l-3 -3 l-4 1 l3 -6 l-3 -4 l-6 0 l-6 -3 l4 -1 l-4 -4 l5 0 l-3 -4 l7 1 l9 6 l2 -3 l-3 -3 l1 -5 l3 4 z" />
-        </g>
+        {/* напис PL — як на фірмовому худі */}
+        <text x="100" y="172" textAnchor="middle" fontSize="24" fontWeight="900" fontFamily="Nunito, sans-serif" fill="#fff" stroke="#B3202C" strokeWidth="1" paintOrder="stroke">PL</text>
         <path d="M64 140 Q70 132 78 130" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity="0.35" fill="none" />
       </g>
     );

@@ -8,6 +8,7 @@ import { setSoundEnabled } from './lib/audio';
 import { ApiError } from './lib/api';
 import { BottomNav, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
+import { Logo, Skyline } from './components/Scenery';
 import { HomeScreen } from './screens/Home';
 
 const Onboarding = lazy(() => import('./screens/Onboarding'));
@@ -27,6 +28,7 @@ const SocialScreen = lazy(() => import('./screens/Social'));
 const PremiumScreen = lazy(() => import('./screens/Premium'));
 const SettingsScreen = lazy(() => import('./screens/Settings'));
 const AchievementsScreen = lazy(() => import('./screens/Achievements'));
+const GrammarScreen = lazy(() => import('./screens/Grammar'));
 
 const TAB_ROUTES = ['/', '/map', '/learn', '/quests', '/profile'];
 
@@ -52,12 +54,11 @@ function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
 
 function Splash() {
   return (
-    <div className="grid h-full place-items-center" style={{ background: 'linear-gradient(180deg,#dff6e8,#fff9ed)' }}>
-      <div className="flex flex-col items-center gap-2">
-        <Beaver mood="wave" size={150} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} />
-        <div className="text-4xl font-black tracking-tight">
-          <span className="text-pl-red">POLSKI</span> <span className="text-xp">GO</span>
-        </div>
+    <div className="relative grid h-full min-h-[100dvh] place-items-center overflow-hidden" style={{ background: 'linear-gradient(180deg, #7CC8F5 0%, #CDEBFF 60%, #FFF9F0 100%)' }}>
+      <Skyline className="absolute inset-x-0 bottom-0 w-full" height={240} sky={false} />
+      <div className="relative -mt-24 flex flex-col items-center gap-3">
+        <Logo size={46} />
+        <Beaver mood="wave" size={160} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} />
       </div>
     </div>
   );
@@ -125,6 +126,7 @@ export function App() {
                 <Route path="/dictionary" element={<DictionaryScreen />} />
                 <Route path="/ai" element={<AiScreen />} />
                 <Route path="/exams" element={<ExamsScreen />} />
+                <Route path="/grammar" element={<GrammarScreen />} />
                 <Route path="/social" element={<SocialScreen />} />
                 <Route path="/premium" element={<PremiumScreen />} />
                 <Route path="/settings" element={<SettingsScreen />} />

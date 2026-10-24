@@ -20,8 +20,9 @@ import { isPremium } from './premium';
 import { applyQuestEvents, type QuestEvents } from './quests';
 import { grantItem, grantXp, grantZlotki, touchActivity, userTimezone } from './rewards';
 import { CITY_REWARDS } from '../content/gamification';
+import { GRAMMAR } from '../content/grammar';
 
-type Mode = 'LESSON' | 'REVIEW' | 'MISTAKES' | 'FIVE_MIN' | 'SPEED' | 'EXAM' | 'PLACEMENT';
+type Mode = 'LESSON' | 'REVIEW' | 'MISTAKES' | 'FIVE_MIN' | 'SPEED' | 'EXAM' | 'PLACEMENT' | 'GRAMMAR';
 
 type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[] };
 type SessionState = { answers: Record<string, ItemState>; run: number };
@@ -88,8 +89,25 @@ async function vocabPool(tx: Tx, userId: string): Promise<VocabRow[]> {
   return [...rows, ...extra.filter((e) => !rows.some((r) => r.id === e.id))];
 }
 
-async function buildPracticeItems(tx: Tx, userId: string, mode: Mode, seed: number): Promise<ExerciseItem[]> {
+/** Граматичне тренування: вправи теми з уроків у відкритих користувачу містах. */
+async function buildGrammarItems(tx: Tx, userId: string, topicSlug: string | undefined, rnd: () => number): Promise<ExerciseItem[]> {
+  const topic = GRAMMAR.find((g) => g.slug === topicSlug);
+  if (!topic) throw notFound('topic_not_found');
+  const cities = await tx.userCity.findMany({ where: { userId }, select: { cityId: true } });
+  const exercises = await tx.exercise.findMany({
+    where: {
+      skill: { in: topic.skills },
+      lesson: { status: 'PUBLISHED', isPremium: false, OR: [{ route: { cityId: { in: cities.map((c) => c.cityId) } } }, { kind: 'EXAM' }] },
+    },
+    take: 60,
+  });
+  if (!exercises.length) throw badRequest('topic_locked', 'Вправи теми відкриються в наступних містах');
+  return shuffle(lessonToItems(exercises), rnd).slice(0, 10);
+}
+
+async function buildPracticeItems(tx: Tx, userId: string, mode: Mode, seed: number, topic?: string): Promise<ExerciseItem[]> {
   const rnd = seededRandom(seed);
+  if (mode === 'GRAMMAR') return buildGrammarItems(tx, userId, topic, rnd);
   const now = new Date();
   const pool = await vocabPool(tx, userId);
 
@@ -139,7 +157,7 @@ async function buildPracticeItems(tx: Tx, userId: string, mode: Mode, seed: numb
   return shuffle(items, rnd);
 }
 
-export async function startSession(userId: string, input: { lessonId?: string; mode?: Mode }) {
+export async function startSession(userId: string, input: { lessonId?: string; mode?: Mode; topic?: string }) {
   const mode: Mode = input.lessonId ? 'LESSON' : (input.mode ?? 'REVIEW');
   const seed = Math.floor(Math.random() * 2 ** 31);
   const rnd = seededRandom(seed);
@@ -164,7 +182,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
       const lw = await tx.lessonWord.findMany({ where: { lessonId: lesson.id }, include: { entry: true }, orderBy: { order: 'asc' } });
       words = lw.map((x) => ({ id: x.entry.id, pl: x.entry.pl, translations: x.entry.translations, pronunciation: x.entry.pronunciation, emoji: x.entry.emoji, audioUrl: x.entry.audioUrl }));
     } else {
-      items = await buildPracticeItems(tx, userId, mode, seed);
+      items = await buildPracticeItems(tx, userId, mode, seed, input.topic);
     }
     if (!items.length) throw badRequest('empty_session');
 
@@ -465,7 +483,7 @@ export async function finishSession(userId: string, sessionId: string) {
         newWords: newWords.length,
         reviews: events.REVIEWS ?? 0,
         seconds: Math.min(Math.round(elapsed / 1000), 3600),
-        practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED'].includes(s.mode) ? xpRes.granted : 0,
+        practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR'].includes(s.mode) ? xpRes.granted : 0,
       },
       now,
     );

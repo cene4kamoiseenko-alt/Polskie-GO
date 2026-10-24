@@ -11,6 +11,7 @@ import type { Me } from '../lib/types';
 import { Beaver } from '../components/Beaver';
 import { Progress, cx } from '../components/ui';
 import { PolandMap } from '../components/PolandMap';
+import { Logo, Skyline } from '../components/Scenery';
 
 const LANGS: { code: UiLang; flag: string; name: string }[] = [
   { code: 'uk', flag: '🇺🇦', name: 'Українська' },
@@ -85,18 +86,19 @@ export default function Onboarding() {
       <AnimatePresence mode="wait">
         <motion.div key={id} initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.22 }} className="flex flex-1 flex-col">
           {id === 'hello' && (
-            <div className="flex flex-1 flex-col items-center justify-center text-center">
-              <div className="text-5xl font-black tracking-tight">
-                <span className="text-pl-red">POLSKI</span> <span className="text-xp">GO</span>
-              </div>
-              <div className="muted mb-4 mt-1 font-black">{t('slogan')}</div>
-              <div className="relative mt-2">
-                <Beaver mood="wave" size={190} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel', ACCESSORY: 'map-paper' }} />
-              </div>
-              <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: 'spring' }} className="relative mt-3 max-w-xs rounded-3xl bg-white px-5 py-4 text-left font-bold text-ink shadow-lg">
-                <div className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
-                {t('ob_bubble')}
+            <div className="relative -mx-5 -mt-4 flex flex-1 flex-col items-center overflow-hidden pt-8 text-center" style={{ background: 'linear-gradient(180deg, #7CC8F5 0%, #CDEBFF 55%, #FFF9F0 100%)' }}>
+              <Skyline className="absolute inset-x-0 bottom-0 w-full" height={260} sky={false} />
+              <div className="absolute inset-x-0 bottom-0 h-24" style={{ background: 'linear-gradient(180deg, transparent, var(--bg))' }} />
+              <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative">
+                <Logo size={50} slogan={t('slogan')} />
               </motion.div>
+              <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.25, type: 'spring' }} className="relative mt-4 max-w-[270px] rounded-3xl bg-white px-5 py-3 text-left text-[15px] font-bold text-navy shadow-lg">
+                {t('ob_bubble')}
+                <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
+              </motion.div>
+              <div className="relative mt-1">
+                <Beaver mood="travel" size={210} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} />
+              </div>
             </div>
           )}
 
@@ -201,8 +203,8 @@ export default function Onboarding() {
             {placement ? `📝 ${t('ob_placement_yes')}` : `${t('ob_go')} · ${t('ob_first_lesson')}`}
           </button>
         ) : (
-          <button className="btn btn-primary w-full text-lg" onClick={() => { haptic.tap(); nextStep(); }}>
-            {step === 0 ? t('start') : t('continue')}
+          <button className={cx('btn w-full text-lg', step === 0 ? 'btn-red' : 'btn-primary')} onClick={() => { haptic.tap(); nextStep(); }}>
+            {step === 0 ? `${t('start')} →` : t('continue')}
           </button>
         )}
       </div>
