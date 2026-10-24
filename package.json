@@ -9,15 +9,20 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @polski-go/server & npm run dev -w @polski-go/web & npm run dev -w @polski-go/admin & wait",
-    "build": "npm run build -w @polski-go/web && npm run build -w @polski-go/admin && npm run build -w @polski-go/server",
+    "build": "npm run build -w @polski-go/web && npm run build -w @polski-go/admin",
+    "build:web": "npm run build -w @polski-go/web",
+    "build:cf": "npm run build && node scripts/build-cf.mjs && npm run seed:sql -w @polski-go/server",
+    "deploy:cf": "wrangler deploy && wrangler d1 migrations apply polski-go --remote && wrangler d1 execute polski-go --remote --file apps/server/seed.sql --yes",
     "test": "npm run test -w @polski-go/shared && npm run test -w @polski-go/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "db:migrate": "npm run db:migrate -w @polski-go/server",
-    "db:seed": "npm run db:seed -w @polski-go/server",
-    "e2e": "node scripts/e2e.cjs",
-    "build:web": "npm run build -w @polski-go/web"
+    "db:local": "npm run db:local -w @polski-go/server",
+    "e2e": "node scripts/e2e.cjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "drizzle-orm": "0.45.4"
   }
 }

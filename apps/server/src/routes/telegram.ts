@@ -1,8 +1,11 @@
 /** Webhook Telegram-бота: /start, платежі Stars. */
-import type { FastifyPluginAsync } from 'fastify';
+import { Hono } from 'hono';
 import { timingSafeEqual } from 'node:crypto';
-import { config } from '../config';
-import { prisma } from '../db';
+import { eq } from 'drizzle-orm';
+import { config } from '../env';
+import { db } from '../db';
+import { userSettings, users } from '../db/schema';
+import { body, type AppEnv } from '../hono';
 import { HttpError } from '../lib/errors';
 import { botApi } from '../lib/telegram';
 import { handlePreCheckout, handleRefund, handleSuccessfulPayment, type SuccessfulPayment } from '../services/payments';
@@ -32,48 +35,48 @@ function safeEqual(a: string, b: string) {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-export const telegramRoutes: FastifyPluginAsync = async (app) => {
-  app.post('/webhook', { config: { rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (req) => {
-    const secret = req.headers['x-telegram-bot-api-secret-token'];
-    if (!config.webhookSecret || typeof secret !== 'string' || !safeEqual(secret, config.webhookSecret)) {
-      throw new HttpError(401, 'unauthorized');
-    }
-    const update = req.body as Update;
+export const telegramRoutes = new Hono<AppEnv>();
 
-    if (update.pre_checkout_query) {
-      await handlePreCheckout(update.pre_checkout_query);
-      return { ok: true };
+telegramRoutes.post('/webhook', async (c) => {
+  const secret = c.req.header('x-telegram-bot-api-secret-token');
+  if (!config.webhookSecret || typeof secret !== 'string' || !safeEqual(secret, config.webhookSecret)) {
+    throw new HttpError(401, 'unauthorized');
+  }
+  const update = (await body(c)) as Update;
+
+  if (update.pre_checkout_query) {
+    await handlePreCheckout(update.pre_checkout_query);
+    return c.json({ ok: true });
+  }
+  const msg = update.message;
+  if (msg?.successful_payment && msg.from) {
+    const res = await handleSuccessfulPayment(msg.from.id, msg.successful_payment);
+    if (!res.duplicate && !('error' in res && res.error)) {
+      await botApi('sendMessage', { chat_id: msg.chat.id, text: '👑 Premium активовано! Dziękujemy! 🦫' }).catch(() => {});
     }
-    const msg = update.message;
-    if (msg?.successful_payment && msg.from) {
-      const res = await handleSuccessfulPayment(msg.from.id, msg.successful_payment);
-      if (!res.duplicate && !('error' in res && res.error)) {
-        await botApi('sendMessage', { chat_id: msg.chat.id, text: '👑 Premium активовано! Dziękujemy! 🦫' }).catch(() => {});
-      }
-      return { ok: true };
-    }
-    if (msg?.refunded_payment) {
-      await handleRefund(msg.refunded_payment.telegram_payment_charge_id);
-      return { ok: true };
-    }
-    if (msg?.text?.startsWith('/start')) {
-      const param = msg.text.split(' ')[1];
-      const lang = (msg.from?.language_code ?? 'uk').slice(0, 2);
-      const url = new URL(config.webAppUrl);
-      if (param) url.searchParams.set('startapp', param);
-      await botApi('sendMessage', {
-        chat_id: msg.chat.id,
-        text: WELCOME[lang] ?? WELCOME.uk,
-        reply_markup: { inline_keyboard: [[{ text: '🚀 POLSKI GO', web_app: { url: url.toString() } }]] },
-      });
-      return { ok: true };
-    }
-    if (msg?.text === '/stop' && msg.from) {
-      // Відмова від нагадувань.
-      const user = await prisma.user.findUnique({ where: { telegramId: BigInt(msg.from.id) } });
-      if (user) await prisma.userSettings.update({ where: { userId: user.id }, data: { notificationsEnabled: false } });
-      await botApi('sendMessage', { chat_id: msg.chat.id, text: '🔕 Нагадування вимкнено.' });
-    }
-    return { ok: true };
-  });
-};
+    return c.json({ ok: true });
+  }
+  if (msg?.refunded_payment) {
+    await handleRefund(msg.refunded_payment.telegram_payment_charge_id);
+    return c.json({ ok: true });
+  }
+  if (msg?.text?.startsWith('/start')) {
+    const param = msg.text.split(' ')[1];
+    const lang = (msg.from?.language_code ?? 'uk').slice(0, 2);
+    const url = new URL(config.webAppUrl);
+    if (param) url.searchParams.set('startapp', param);
+    await botApi('sendMessage', {
+      chat_id: msg.chat.id,
+      text: WELCOME[lang] ?? WELCOME.uk,
+      reply_markup: { inline_keyboard: [[{ text: '🚀 POLSKI GO', web_app: { url: url.toString() } }]] },
+    });
+    return c.json({ ok: true });
+  }
+  if (msg?.text === '/stop' && msg.from) {
+    // Відмова від нагадувань.
+    const user = await db.query.users.findFirst({ where: eq(users.telegramId, msg.from.id) });
+    if (user) await db.update(userSettings).set({ notificationsEnabled: false }).where(eq(userSettings.userId, user.id));
+    await botApi('sendMessage', { chat_id: msg.chat.id, text: '🔕 Нагадування вимкнено.' });
+  }
+  return c.json({ ok: true });
+});

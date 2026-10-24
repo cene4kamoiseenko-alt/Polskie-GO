@@ -5,9 +5,9 @@ dist
 !.env.example
 *.log
 coverage
-apps/server/uploads/*
-!apps/server/uploads/.gitkeep
-backups/
 .DS_Store
 test-results
 .wrangler
+dist-cf
+apps/server/seed.sql
+.dev.vars

@@ -4,9 +4,10 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { dayKey, tr, type UiLang } from '@polski-go/shared';
-import type { Prisma } from '@prisma/client';
-import { config } from '../config';
-import { prisma } from '../db';
+import { and, desc, eq, inArray, like, sql, sum } from 'drizzle-orm';
+import { config } from '../env';
+import { atomic, db } from '../db';
+import { aiConversations, aiUsage, playerProgress, userSettings, vocabularyEntries } from '../db/schema';
 import { HttpError, badRequest, forbidden, notFound } from '../lib/errors';
 import { getRewards } from './gameConfig';
 import { isPremium } from './premium';
@@ -75,12 +76,12 @@ function getClient() {
 
 async function monthlyOutputTokens(): Promise<number> {
   const month = dayKey(new Date()).slice(0, 7);
-  const rows = await prisma.aiUsage.aggregate({ where: { day: { startsWith: month } }, _sum: { tokensOut: true } });
-  return rows._sum.tokensOut ?? 0;
+  const [row] = await db.select({ n: sum(aiUsage.tokensOut) }).from(aiUsage).where(like(aiUsage.day, `${month}%`));
+  return Number(row?.n ?? 0);
 }
 
 export async function listConversations(userId: string) {
-  const rows = await prisma.aiConversation.findMany({ where: { userId }, orderBy: { updatedAt: 'desc' }, take: 20 });
+  const rows = await db.select().from(aiConversations).where(eq(aiConversations.userId, userId)).orderBy(desc(aiConversations.updatedAt)).limit(20);
   return rows.map((r) => ({ id: r.id, mode: r.mode, title: r.title, updatedAt: r.updatedAt, messages: r.messages }));
 }
 
@@ -91,20 +92,22 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
   const premium = await isPremium(userId);
   if (AI_MODES[mode].premium && !premium) throw forbidden('premium_required');
 
-  const [user, cfg] = await Promise.all([
-    prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { settings: true, progress: true } }),
+  const [[settings], [progress], cfg] = await Promise.all([
+    db.select().from(userSettings).where(eq(userSettings.userId, userId)),
+    db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
     getRewards(),
   ]);
+  const user = { settings, progress };
   const tz = user.settings?.timezone ?? 'Europe/Warsaw';
   const day = dayKey(new Date(), tz);
   const limit = premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay;
-  const usage = await prisma.aiUsage.findUnique({ where: { userId_day: { userId, day } } });
+  const usage = await db.query.aiUsage.findFirst({ where: and(eq(aiUsage.userId, userId), eq(aiUsage.day, day)) });
   if ((usage?.requests ?? 0) >= limit) throw new HttpError(429, 'ai_limit_reached', 'Денний ліміт AI-повідомлень вичерпано');
 
-  let conv = input.conversationId ? await prisma.aiConversation.findUnique({ where: { id: input.conversationId } }) : null;
+  let conv = input.conversationId ? await db.query.aiConversations.findFirst({ where: eq(aiConversations.id, input.conversationId) }) : null;
   if (conv && conv.userId !== userId) throw notFound();
   if (!conv) {
-    conv = await prisma.aiConversation.create({ data: { userId, mode: input.scene ? `${mode}:${input.scene}` : mode, title: text.slice(0, 60) } });
+    [conv] = await db.insert(aiConversations).values({ userId, mode: input.scene ? `${mode}:${input.scene}` : mode, title: text.slice(0, 60) }).returning();
   }
   const history = (conv.messages as unknown as StoredMessage[]) ?? [];
   const lang = (user.settings?.uiLanguage ?? 'uk') as UiLang;
@@ -153,16 +156,18 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
 
   const now = new Date().toISOString();
   const updated: StoredMessage[] = [...history, { role: 'user' as const, content: text, at: now }, { role: 'assistant' as const, content: reply, at: now }].slice(-60);
-  await prisma.$transaction([
-    prisma.aiConversation.update({
-      where: { id: conv.id },
-      data: { messages: updated as unknown as Prisma.InputJsonValue, tokensIn: { increment: tokensIn }, tokensOut: { increment: tokensOut } },
-    }),
-    prisma.aiUsage.upsert({
-      where: { userId_day: { userId, day } },
-      create: { userId, day, requests: 1, tokensIn, tokensOut },
-      update: { requests: { increment: 1 }, tokensIn: { increment: tokensIn }, tokensOut: { increment: tokensOut } },
-    }),
+  await atomic([
+    db
+      .update(aiConversations)
+      .set({ messages: updated, tokensIn: sql`${aiConversations.tokensIn} + ${tokensIn}`, tokensOut: sql`${aiConversations.tokensOut} + ${tokensOut}`, updatedAt: new Date() })
+      .where(eq(aiConversations.id, conv.id)),
+    db
+      .insert(aiUsage)
+      .values({ userId, day, requests: 1, tokensIn, tokensOut })
+      .onConflictDoUpdate({
+        target: [aiUsage.userId, aiUsage.day],
+        set: { requests: sql`${aiUsage.requests} + 1`, tokensIn: sql`${aiUsage.tokensIn} + ${tokensIn}`, tokensOut: sql`${aiUsage.tokensOut} + ${tokensOut}` },
+      }),
   ]);
 
   return { conversationId: conv.id, reply, offline, used: (usage?.requests ?? 0) + 1, limit };
@@ -171,7 +176,7 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
 /** Відповідь без LLM: чесно повідомляє про обмежений режим і шукає слова у словнику. */
 async function offlineReply(text: string, lang: UiLang, notConfigured: boolean): Promise<string> {
   const words = [...new Set(text.toLowerCase().match(/[a-ząćęłńóśźż]+/g) ?? [])].slice(0, 12);
-  const found = words.length ? await prisma.vocabularyEntry.findMany({ where: { pl: { in: words } }, take: 6 }) : [];
+  const found = words.length ? await db.select().from(vocabularyEntries).where(inArray(vocabularyEntries.pl, words)).limit(6) : [];
   const head = notConfigured
     ? tr({ uk: '🦫 AI-викладач зараз працює в обмеженому режимі (сервіс AI не підключено).', ru: '🦫 AI-преподаватель сейчас работает в ограниченном режиме (сервис AI не подключён).', en: '🦫 The AI tutor is in limited mode (the AI service is not connected).' }, lang)
     : tr({ uk: '🦫 Місячний ліміт AI вичерпано, тож я в обмеженому режимі.', ru: '🦫 Месячный лимит AI исчерпан, поэтому я в ограниченном режиме.', en: '🦫 The monthly AI budget is used up, so I\'m in limited mode.' }, lang);

@@ -1,11 +1,13 @@
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
-import { prisma } from '../src/db';
-import { getApp, lessonId, login, playSession } from './helpers';
+import { and, count, eq } from 'drizzle-orm';
+import { db } from '../src/db';
+import { cityRoutes, cosmeticItems, gameWallets, quests, subscriptions, userInventory, userQuests, users } from '../src/db/schema';
+import { disposeEnv, lessonId, login, playSession, request } from './helpers';
 
-afterAll(async () => {
-  await (await getApp()).close();
-  await prisma.$disconnect();
-});
+afterAll(disposeEnv);
+
+const balance = async (userId: string) => (await db.query.gameWallets.findFirst({ where: eq(gameWallets.userId, userId) }))!.balance;
+const setBalance = (userId: string, b: number) => db.update(gameWallets).set({ balance: b }).where(eq(gameWallets.userId, userId));
 afterEach(() => vi.restoreAllMocks());
 
 describe('Квести', () => {
@@ -20,17 +22,17 @@ describe('Квести', () => {
     const s = await call('POST', '/api/sessions', { lessonId: await lessonId('waw-1-czesc') });
     await playSession(call, s.body.sessionId);
     // Щоб гарантовано виконати квест на 1 урок, ставимо ціль 1.
-    const uq = await prisma.userQuest.findUniqueOrThrow({ where: { id: lessonQuest.id }, include: { quest: true } });
+    const uq = (await db.select({ id: userQuests.id, quest: quests }).from(userQuests).innerJoin(quests, eq(quests.id, userQuests.questId)).where(eq(userQuests.id, lessonQuest.id)))[0];
     if (uq.quest.target > 1) {
-      await prisma.userQuest.update({ where: { id: uq.id }, data: { progress: uq.quest.target, status: 'COMPLETED' } });
+      await db.update(userQuests).set({ progress: uq.quest.target, status: 'COMPLETED' }).where(eq(userQuests.id, uq.id));
     }
     const q1 = await call('GET', '/api/quests');
     expect(q1.body.daily.find((q: { id: string }) => q.id === lessonQuest.id).status).toBe('COMPLETED');
 
-    const before = (await prisma.gameWallet.findUniqueOrThrow({ where: { userId: user.id } })).balance;
+    const before = await balance(user.id);
     const claims = await Promise.all([call('POST', `/api/quests/${lessonQuest.id}/claim`), call('POST', `/api/quests/${lessonQuest.id}/claim`)]);
     expect(claims.map((c) => c.status).sort()).toEqual([200, 400]);
-    const after = (await prisma.gameWallet.findUniqueOrThrow({ where: { userId: user.id } })).balance;
+    const after = await balance(user.id);
     expect(after - before).toBe(uq.quest.zlotkiReward + claims.find((c) => c.status === 200)!.body.achievements.reduce((s: number, a: { zlotki: number }) => s + a.zlotki, 0));
   });
 
@@ -63,7 +65,8 @@ describe('Квести', () => {
     expect(claim.status).toBe(200);
     expect(claim.body.xp).toBe(50);
     expect(claim.body.item.slug).toBe('scarf-pl');
-    expect(await prisma.userInventory.count({ where: { userId: user.id, item: { slug: 'scarf-pl' } } })).toBe(1);
+    const scarf = await db.select({ n: count() }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(and(eq(userInventory.userId, user.id), eq(cosmeticItems.slug, 'scarf-pl')));
+    expect(scarf[0].n).toBe(1);
   });
 
   it('сюжет закритого міста недоступний', async () => {
@@ -101,12 +104,11 @@ describe('Магазин і гардероб', () => {
     const cap = shop.body.items.find((i: { slug: string }) => i.slug === 'cap-green');
     expect((await call('POST', '/api/shop/buy', { itemId: cap.id })).body.error).toBe('insufficient_funds');
 
-    await prisma.gameWallet.update({ where: { userId: user.id }, data: { balance: 50 } });
+    await setBalance(user.id, 50);
     const buys = await Promise.all([call('POST', '/api/shop/buy', { itemId: cap.id }), call('POST', '/api/shop/buy', { itemId: cap.id })]);
     expect(buys.filter((b) => b.status === 200)).toHaveLength(1);
-    const wallet = await prisma.gameWallet.findUniqueOrThrow({ where: { userId: user.id } });
     // 50 − 40 + 10 за досягнення «Модник».
-    expect(wallet.balance).toBe(20);
+    expect(await balance(user.id)).toBe(20);
 
     const eq = await call('POST', '/api/inventory/equip', { itemId: cap.id, equipped: true });
     expect(eq.body.wear.HAT).toBe('cap-green');
@@ -116,7 +118,7 @@ describe('Магазин і гардероб', () => {
 
   it('предмети-нагороди та Premium-предмети не продаються звичайним користувачам', async () => {
     const { call, user } = await login();
-    await prisma.gameWallet.update({ where: { userId: user.id }, data: { balance: 1000 } });
+    await setBalance(user.id, 1000);
     const shop = await call('GET', '/api/shop');
     const reward = shop.body.items.find((i: { slug: string }) => i.slug === 'hat-krasnal');
     const premium = shop.body.items.find((i: { slug: string }) => i.slug === 'crown-gold');
@@ -156,7 +158,9 @@ describe('Соціальне', () => {
 describe('Premium через Telegram Stars', () => {
   function mockBot() {
     const calls: { method: string; body: Record<string, unknown> }[] = [];
+    const realFetch = globalThis.fetch;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      if (!String(url).startsWith('https://api.telegram.org/')) return realFetch(url as never, init);
       const method = String(url).split('/').pop()!;
       const body = JSON.parse(String(init?.body ?? '{}'));
       calls.push({ method, body });
@@ -167,8 +171,8 @@ describe('Premium через Telegram Stars', () => {
   }
 
   async function webhook(payload: unknown, secret = 'hook-secret') {
-    const app = await getApp();
-    return app.inject({ method: 'POST', url: '/telegram/webhook', payload: payload as never, headers: { 'x-telegram-bot-api-secret-token': secret } });
+    const r = await request('POST', '/telegram/webhook', payload, { 'x-telegram-bot-api-secret-token': secret });
+    return { statusCode: r.status };
   }
 
   it('Premium активується лише після підтвердженого платежу, повторна доставка ігнорується', async () => {
@@ -201,12 +205,12 @@ describe('Premium через Telegram Stars', () => {
     };
     expect((await webhook(payment)).statusCode).toBe(200);
     expect((await webhook({ ...payment, update_id: 6 })).statusCode).toBe(200);
-    expect(await prisma.subscription.count({ where: { userId: user.id } })).toBe(1);
+    expect((await db.select({ n: count() }).from(subscriptions).where(eq(subscriptions.userId, user.id)))[0].n).toBe(1);
     const me = await call('GET', '/api/me');
     expect(me.body.premium).toMatchObject({ active: true, planCode: 'MONTH_1', recurring: true });
 
     // Premium-предмет тепер можна купити
-    await prisma.gameWallet.update({ where: { userId: user.id }, data: { balance: 500 } });
+    await setBalance(user.id, 500);
     const crown = (await call('GET', '/api/shop')).body.items.find((i: { slug: string }) => i.slug === 'crown-gold');
     expect((await call('POST', '/api/shop/buy', { itemId: crown.id })).status).toBe(200);
 
@@ -242,22 +246,17 @@ describe('Premium через Telegram Stars', () => {
 
 describe('Адмін-панель', () => {
   async function adminLogin(email = 'admin@test.dev', password = 'admin-password-123') {
-    const app = await getApp();
-    const res = await app.inject({ method: 'POST', url: '/api/admin/login', payload: { email, password } });
-    const token = res.json().token as string;
-    return async (method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', url: string, payload?: unknown) => {
-      const r = await app.inject({ method, url: `/api/admin${url}`, payload: payload as never, headers: { authorization: `Bearer ${token}` } });
-      return { status: r.statusCode, body: r.body ? r.json() : null };
-    };
+    const res = await request('POST', '/api/admin/login', { email, password });
+    const token = res.body.token as string;
+    return (method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', url: string, payload?: unknown) => request(method, `/api/admin${url}`, payload, { authorization: `Bearer ${token}` });
   }
 
   it('невірний пароль відхиляється; без токена доступу немає', async () => {
-    const app = await getApp();
-    expect((await app.inject({ method: 'POST', url: '/api/admin/login', payload: { email: 'admin@test.dev', password: 'nope' } })).statusCode).toBe(401);
-    expect((await app.inject({ method: 'GET', url: '/api/admin/dashboard' })).statusCode).toBe(401);
+    expect((await request('POST', '/api/admin/login', { email: 'admin@test.dev', password: 'nope' })).status).toBe(401);
+    expect((await request('GET', '/api/admin/dashboard')).status).toBe(401);
     // Токен користувача не підходить для адмінки
     const u = await login();
-    expect((await app.inject({ method: 'GET', url: '/api/admin/dashboard', headers: { authorization: `Bearer ${u.token}` } })).statusCode).toBe(401);
+    expect((await request('GET', '/api/admin/dashboard', undefined, { authorization: `Bearer ${u.token}` })).status).toBe(401);
   });
 
   it('адміністратор додає урок без зміни коду — він з’являється в грі', async () => {
@@ -266,7 +265,7 @@ describe('Адмін-панель', () => {
     expect(dash.status).toBe(200);
     expect(dash.body.users).toBeGreaterThan(0);
 
-    const route = await prisma.cityRoute.findUniqueOrThrow({ where: { slug: 'waw-liczby' } });
+    const route = (await db.query.cityRoutes.findFirst({ where: eq(cityRoutes.slug, 'waw-liczby') }))!;
     const lesson = await admin('POST', '/resources/lessons', {
       routeId: route.id, slug: 'waw-7-test', order: 10, kind: 'LESSON', title: { uk: 'Тестовий урок' }, topic: { uk: 'Тест' }, cefr: 'A0', difficulty: 1,
       explanation: { uk: 'Пояснення' }, examples: [], isPremium: false, status: 'PUBLISHED',
@@ -316,6 +315,6 @@ describe('Персональні дані', () => {
     expect(exp.status).toBe(200);
     expect(exp.body.id).toBe(user.id);
     expect((await call('DELETE', '/api/me', { confirm: 'DELETE' })).status).toBe(200);
-    expect(await prisma.user.count({ where: { id: user.id } })).toBe(0);
+    expect((await db.select({ n: count() }).from(users).where(eq(users.id, user.id)))[0].n).toBe(0);
   });
 });

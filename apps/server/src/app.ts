@@ -1,66 +1,66 @@
-import { existsSync } from 'node:fs';
-import Fastify, { type FastifyError } from 'fastify';
-import cors from '@fastify/cors';
-import rateLimit from '@fastify/rate-limit';
-import multipart from '@fastify/multipart';
-import fastifyStatic from '@fastify/static';
+/** HTTP-застосунок (Hono): API, webhook бота, завантажені файли. */
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { ZodError } from 'zod';
-import { config } from './config';
+import { bindDb, mapDbError } from './db';
+import { config, setEnv } from './env';
+import { requireUser } from './auth';
+import { rateLimit, type AppEnv } from './hono';
 import { HttpError } from './lib/errors';
-import { publicRoutes } from './routes/public';
+import { authRoutes, meRoutes } from './routes/public';
 import { learnRoutes } from './routes/learn';
 import { gameRoutes } from './routes/game';
 import { telegramRoutes } from './routes/telegram';
 import { adminRoutes } from './routes/admin';
 
-export async function buildApp() {
-  const app = Fastify({
-    logger: config.isTest ? false : { level: config.isProd ? 'info' : 'debug', redact: ['req.headers.authorization', 'req.headers["x-telegram-bot-api-secret-token"]'] },
-    trustProxy: true,
-    bodyLimit: 1_000_000,
+export function buildApp() {
+  const app = new Hono<AppEnv>();
+
+  app.use(async (c, next) => {
+    setEnv(c.env);
+    bindDb(c.env.DB);
+    await next();
   });
 
-  // BigInt (telegram_id) у JSON → рядок.
-  app.setReplySerializer((payload) => JSON.stringify(payload, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)));
+  app.use('/api/*', cors({ origin: (origin) => (!config.isProd || config.corsOrigins.includes(origin) ? origin : null), credentials: false }));
 
-  await app.register(cors, { origin: config.isProd ? config.corsOrigins : true, credentials: false });
-  await app.register(rateLimit, {
-    global: true,
-    max: 240,
-    timeWindow: '1 minute',
-    keyGenerator: (req) => (req.headers.authorization ?? req.ip).slice(-48),
-  });
-  await app.register(multipart, { limits: { fileSize: 8 * 1024 * 1024, files: 1 } });
-
-  app.setErrorHandler((err: FastifyError | HttpError | ZodError, req, reply) => {
-    if (err instanceof HttpError) return reply.status(err.status).send({ error: err.code, message: err.message });
-    if (err instanceof ZodError) return reply.status(400).send({ error: 'validation_error', issues: err.issues.slice(0, 5) });
-    const status = (err as FastifyError).statusCode ?? 500;
-    if (status >= 500) req.log.error(err);
-    return reply.status(status).send({ error: status === 429 ? 'rate_limited' : status >= 500 ? 'internal_error' : 'bad_request', message: status >= 500 ? 'Internal error' : err.message });
+  app.onError((err, c) => {
+    const e = mapDbError(err);
+    if (e instanceof HttpError) return c.json({ error: e.code, message: e.message }, e.status as never);
+    if (e instanceof ZodError) return c.json({ error: 'validation_error', issues: e.issues.slice(0, 5) }, 400);
+    console.error(err);
+    return c.json({ error: 'internal_error', message: 'Internal error' }, 500);
   });
 
-  app.get('/api/health', async () => ({ ok: true }));
-  await app.register(publicRoutes, { prefix: '/api' });
-  await app.register(learnRoutes, { prefix: '/api' });
-  await app.register(gameRoutes, { prefix: '/api' });
-  await app.register(telegramRoutes, { prefix: '/telegram' });
-  await app.register(adminRoutes, { prefix: '/api/admin' });
+  app.get('/api/health', (c) => c.json({ ok: true }));
 
-  // Завантажені адміністратором ассети (зображення, аудіо).
-  await app.register(fastifyStatic, { root: config.uploadsDir, prefix: '/uploads/', decorateReply: false });
+  // Порядок важливий: адмінка й webhook мають власну авторизацію, далі — вхід, потім маршрути користувача.
+  app.route('/api/admin', adminRoutes);
+  app.route('/telegram', telegramRoutes);
+  app.use('/api/*', rateLimit(240, 60_000));
+  app.route('/api', authRoutes);
+  app.use('/api/*', requireUser);
+  app.route('/api', meRoutes);
+  app.route('/api', learnRoutes);
+  app.route('/api', gameRoutes);
+  app.all('/api/*', (c) => c.json({ error: 'not_found' }, 404));
 
-  // У production той самий сервер віддає зібрані Mini App та адмінку.
-  if (existsSync(config.adminDist)) {
-    await app.register(fastifyStatic, { root: config.adminDist, prefix: '/admin/', decorateReply: false });
-  }
-  if (existsSync(config.webDist)) {
-    await app.register(fastifyStatic, { root: config.webDist, prefix: '/', wildcard: false });
-    app.setNotFoundHandler((req, reply) => {
-      if (req.url.startsWith('/api') || req.url.startsWith('/telegram')) return reply.status(404).send({ error: 'not_found' });
-      if (req.url.startsWith('/admin')) return reply.sendFile('index.html', config.adminDist);
-      return reply.sendFile('index.html');
-    });
-  }
+  // Завантажені адміністратором ассети (Cloudflare KV).
+  app.get('/uploads/:name', async (c) => {
+    const kv = c.env.UPLOADS;
+    if (!kv) return c.notFound();
+    const { value, metadata } = await kv.getWithMetadata<{ type?: string }>(c.req.param('name'), 'arrayBuffer');
+    if (!value) return c.notFound();
+    return c.body(value, 200, { 'content-type': metadata?.type ?? 'application/octet-stream', 'cache-control': 'public, max-age=31536000, immutable' });
+  });
+
+  // Адмінка — окремий SPA під /admin/ у тих самих статичних файлах.
+  app.get('/admin/*', async (c) => {
+    if (!c.env.ASSETS) return c.notFound();
+    const res = await c.env.ASSETS.fetch(c.req.raw);
+    if (res.status !== 404) return res;
+    return c.env.ASSETS.fetch(new Request(new URL('/admin/index.html', c.req.url)));
+  });
+
   return app;
 }

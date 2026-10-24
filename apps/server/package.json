@@ -4,35 +4,29 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
-    "start": "node --env-file-if-exists=.env dist/index.js",
-    "build": "tsup",
+    "dev": "wrangler dev -c ../../wrangler.jsonc --port 8787 --test-scheduled",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:migrate": "prisma migrate deploy",
-    "db:migrate:dev": "prisma migrate dev",
-    "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
-    "db:backup": "node --env-file-if-exists=.env scripts/backup.mjs",
-    "bot:setup": "node --env-file-if-exists=.env scripts/setup-bot.mjs",
-    "db:seed:force": "tsx --env-file-if-exists=.env prisma/seed.ts --force"
+    "db:generate": "drizzle-kit generate",
+    "seed:sql": "tsx scripts/build-seed.ts",
+    "seed:sql:force": "tsx scripts/build-seed.ts --force",
+    "db:local": "tsx scripts/build-seed.ts && wrangler d1 migrations apply polski-go --local -c ../../wrangler.jsonc && wrangler d1 execute polski-go --local -c ../../wrangler.jsonc --file seed.sql --yes",
+    "bot:setup": "node --env-file-if-exists=.env scripts/setup-bot.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
-    "@fastify/cors": "11.3.1",
-    "@fastify/multipart": "9.4.0",
-    "@fastify/rate-limit": "10.3.0",
-    "@fastify/static": "8.3.0",
     "@polski-go/shared": "0.1.0",
-    "@prisma/client": "6.19.3",
-    "fastify": "5.12.7",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.10.4",
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20261024.1",
     "@types/node": "22.20.5",
-    "prisma": "6.19.3",
-    "tsup": "8.5.1",
+    "miniflare": "4.20260730.0",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
-    "vitest": "3.2.7"
+    "vitest": "3.2.7",
+    "wrangler": "4.152.0"
   }
 }

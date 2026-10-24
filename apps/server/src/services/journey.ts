@@ -6,8 +6,9 @@
  *  • бос доступний після проходження `ticketLessons` звичайних уроків міста.
  */
 import type { Cefr } from '@polski-go/shared';
-import type { Tx } from '../db';
-import { prisma } from '../db';
+import { and, asc, count, eq, isNotNull } from 'drizzle-orm';
+import { db } from '../db';
+import { cities, cityRoutes, exercises, lessons, playerProgress, userCities, userLessonProgress } from '../db/schema';
 
 export type LessonState = 'locked' | 'available' | 'completed';
 
@@ -54,34 +55,29 @@ export type JourneyCity = {
   routes: { id: string; slug: string; title: unknown; description: unknown; icon: string; lessons: JourneyLesson[] }[];
 };
 
-export async function getJourney(userId: string, db: Tx = prisma) {
-  const [cities, userCities, lessonProgress, progress] = await Promise.all([
-    db.city.findMany({
-      where: { status: 'PUBLISHED' },
-      orderBy: { order: 'asc' },
-      include: {
-        routes: {
-          where: { status: 'PUBLISHED' },
-          orderBy: { order: 'asc' },
-          include: {
-            lessons: {
-              where: { status: 'PUBLISHED' },
-              orderBy: { order: 'asc' },
-              include: { _count: { select: { exercises: true } } },
-            },
-          },
-        },
-      },
-    }),
-    db.userCity.findMany({ where: { userId } }),
-    db.userLessonProgress.findMany({ where: { userId } }),
-    db.playerProgress.findUnique({ where: { userId } }),
+export async function getJourney(userId: string) {
+  const [cityRows, routeRows, lessonRows, exCounts, userCityRows, lessonProgress, progress] = await db.batch([
+    db.select().from(cities).where(eq(cities.status, 'PUBLISHED')).orderBy(asc(cities.order)),
+    db.select().from(cityRoutes).where(eq(cityRoutes.status, 'PUBLISHED')).orderBy(asc(cityRoutes.order)),
+    db.select().from(lessons).where(and(eq(lessons.status, 'PUBLISHED'), isNotNull(lessons.routeId))).orderBy(asc(lessons.order)),
+    db.select({ lessonId: exercises.lessonId, n: count() }).from(exercises).groupBy(exercises.lessonId),
+    db.select().from(userCities).where(eq(userCities.userId, userId)),
+    db.select().from(userLessonProgress).where(eq(userLessonProgress.userId, userId)),
+    db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
   ]);
+  const exN = new Map(exCounts.map((e) => [e.lessonId, e.n]));
+  const cityList = cityRows.map((city) => ({
+    ...city,
+    routes: routeRows
+      .filter((r) => r.cityId === city.id)
+      .map((r) => ({ ...r, lessons: lessonRows.filter((l) => l.routeId === r.id).map((l) => ({ ...l, _count: { exercises: exN.get(l.id) ?? 0 } })) })),
+  }));
+  const userCitiesList = userCityRows;
 
-  const uc = new Map(userCities.map((c) => [c.cityId, c]));
+  const uc = new Map(userCitiesList.map((c) => [c.cityId, c]));
   const lp = new Map(lessonProgress.map((l) => [l.lessonId, l]));
 
-  const result: JourneyCity[] = cities.map((city) => {
+  const result: JourneyCity[] = cityList.map((city) => {
     const visit = uc.get(city.id);
     const unlocked = !!visit;
     const openAll = visit?.source === 'placement';
@@ -153,7 +149,7 @@ export async function getJourney(userId: string, db: Tx = prisma) {
     };
   });
 
-  const current = result.find((c) => c.id === progress?.currentCityId) ?? result.find((c) => c.unlocked) ?? result[0];
+  const current = result.find((c) => c.id === progress[0]?.currentCityId) ?? result.find((c) => c.unlocked) ?? result[0];
   const next = current ? findNextLesson(current) : null;
   return { cities: result, currentCityId: current?.id ?? null, nextLesson: next };
 }
@@ -164,11 +160,11 @@ export function findNextLesson(city: JourneyCity): JourneyLesson | null {
 }
 
 /** Чи може користувач почати урок (доступний або вже пройдений — для повторення). */
-export async function lessonAccess(userId: string, lessonId: string, db: Tx = prisma): Promise<LessonState | 'exam' | 'not_found'> {
-  const lesson = await db.lesson.findUnique({ where: { id: lessonId }, select: { kind: true, status: true } });
+export async function lessonAccess(userId: string, lessonId: string): Promise<LessonState | 'exam' | 'not_found'> {
+  const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, lessonId), columns: { kind: true, status: true } });
   if (!lesson || lesson.status !== 'PUBLISHED') return 'not_found';
   if (lesson.kind === 'EXAM' || lesson.kind === 'PLACEMENT') return 'exam';
-  const j = await getJourney(userId, db);
+  const j = await getJourney(userId);
   for (const c of j.cities) for (const r of c.routes) for (const l of r.lessons) if (l.id === lessonId) return l.state;
   return 'not_found';
 }

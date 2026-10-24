@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { config } from '../config';
+import { config } from '../env';
 
 /** Компактний підписаний токен сесії (HMAC-SHA256). */
 export function signToken(payload: Record<string, unknown>, ttlSec: number): string {

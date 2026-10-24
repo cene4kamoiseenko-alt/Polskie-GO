@@ -7,7 +7,7 @@
 * **Идемпотентность.** Каждая награда имеет уникальный ключ (`xp_events.idempotency_key`,
   `wallet_transactions.idempotency_key`, `user_quests(user, quest, period)`, `payment_events.charge_id`) —
   повторный запрос ничего не начисляет.
-* **Модульный монолит, API-first.** Один Fastify-сервис с чёткими модулями (`services/*`), без
+* **Модульный монолит, API-first.** Один Cloudflare Worker (Hono) с чёткими модулями (`services/*`), без
   микросервисов. REST API готов для будущих клиентов iOS/Android/web.
 * **Контент — данные.** Города, маршруты, уроки, вправы, слова, квесты, предметы и тарифы лежат в БД и
   редактируются в админке без изменения кода. Исходный контент — типизированный DSL в `apps/server/src/content`.
@@ -22,12 +22,13 @@ packages/shared/src
   srs.ts          интервальное повторение (SM-2)
   progression.ts  XP, уровни 1–100+, серии, расчёт наград за урок
   dates.ts        день/неделя в часовом поясе пользователя
-apps/server
-  prisma/schema.prisma, migrations/   схема БД (30+ таблиц)
+apps/server       Cloudflare Worker
+  src/db/schema.ts, migrations/       схема D1 (Drizzle, 40 таблиц) и SQL-миграции + тригеры-охранники
+  src/worker.ts, src/app.ts           точка входа (fetch + cron), Hono-приложение
   src/content/    учебный контент: vocab, warszawa, krakow, wroclaw, exams, gamification, cities
   src/services/   journey, sessions, quests, achievements, rewards, shop, social, payments, ai, profile
   src/routes/     public (auth, профиль), learn, game, telegram (webhook), admin
-  test/           интеграционные тесты на PostgreSQL
+  test/           интеграционные тесты на локальной D1 (Miniflare)
 apps/web/src
   screens/        18 экранов
   exercises/      рендереры всех типов вправ
@@ -108,8 +109,11 @@ celebrate, sleep, travel, gift, cheer, surprised` (глаза, брови, ро�
 
 * Повтор пройденного урока: 25% XP, максимум 2 награждаемых повтора в сутки, без Złotki.
 * Тренировки: дневной лимит XP. Не пройденный урок (<50%) — 0 XP.
-* Сессия: только владелец, блокировка строки (`FOR UPDATE`), TTL 3 ч, нельзя завершить дважды,
+* Сессия: только владелец, оптимистическая блокировка (версия + тригер D1), TTL 3 ч, нельзя завершить дважды,
   неполностью или быстрее 1 с на вправу.
+* D1 не поддерживает интерактивные транзакции, поэтому все изменения одного действия собираются в один
+  атомарный пакет (`atomic`): падение любого запроса (тригер, CHECK баланса ≥ 0, UNIQUE ключа идемпотентности)
+  откатывает весь пакет. Повторный claim квеста, двойная покупка и повторная доставка платежа ничего не начисляют.
 * Rate limiting по токену/IP, валидация всех входов (Zod), лимиты размеров.
 
 ## 8. Схема базы данных
@@ -131,9 +135,9 @@ celebrate, sleep, travel, gift, cheer, surprised` (глаза, брови, ро�
 ## 9. Безопасность
 
 * Проверка подписи `initData` (HMAC-SHA256, `WebAppData`), срок жизни `auth_date`; сессионный токен HMAC.
-* Админка: scrypt-хэши паролей, роли `SUPERADMIN / EDITOR / SUPPORT`, журнал всех изменений.
+* Админка: PBKDF2-хэши паролей, роли `SUPERADMIN / EDITOR / SUPPORT`, журнал всех изменений.
 * Webhook бота защищён `X-Telegram-Bot-Api-Secret-Token`.
-* Секреты (бот, AI, сессии) — только на сервере. Dev-вход невозможен при `NODE_ENV=production`.
+* Секреты (бот, AI, сессии) — только на сервере. Dev-вход невозможен при `ENVIRONMENT=production`.
 * Пользователь может экспортировать все свои данные (JSON) и удалить аккаунт (каскадно; платёжный
   журнал обезличивается для бухгалтерии).
 

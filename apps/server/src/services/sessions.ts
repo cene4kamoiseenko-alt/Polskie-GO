@@ -1,28 +1,33 @@
 /**
- * Навчальні сесії: урок, повторення, «Мої помилки», «5 хвилин», швидкий раунд, іспити.
+ * Навчальні сесії: урок, повторення, «Мої помилки», «5 хвилин», швидкий раунд, граматика, іспити.
  * Сервер зберігає знімок вправ із відповідями; клієнт отримує лише публічну версію.
  * Відповідь перевіряється одразу; нагороди рахуються тільки при завершенні.
+ * Кожна зміна сесії — атомарний пакет із перевіркою версії (оптимістичне блокування).
  */
+import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, notInArray, or, sql, type AnyColumn } from 'drizzle-orm';
 import {
   BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO,
-  checkAnswer, dayKey, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
+  checkAnswer, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
   seededRandom, shuffle, toPublicItem,
   type AnswerPayload, type Cefr, type CheckResult, type ExerciseItem, type ExerciseType, type I18n,
 } from '@polski-go/shared';
-import type { Prisma } from '@prisma/client';
-import type { Tx } from '../db';
-import { prisma } from '../db';
+import { atomic, db, type Stmt } from '../db';
+import {
+  cities, cityRoutes, cosmeticItems, dailyActivity, exerciseAttempts, exercises, languageSkills, learningSessions, lessonWords, lessons,
+  newId, playerProgress, reviewSchedule, userCities, userInventory, userLessonProgress, userProfiles, userVocabulary, vocabularyEntries,
+} from '../db/schema';
 import { HttpError, badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { getRewards } from './gameConfig';
 import { getJourney, lessonAccess } from './journey';
 import { isPremium } from './premium';
 import { applyQuestEvents, type QuestEvents } from './quests';
-import { grantItem, grantXp, grantZlotki, touchActivity, userTimezone } from './rewards';
+import { grantItem, grantXp, grantZlotki, loadCtx, touchActivity } from './rewards';
 import { CITY_REWARDS } from '../content/gamification';
 import { GRAMMAR } from '../content/grammar';
 
-type Mode = 'LESSON' | 'REVIEW' | 'MISTAKES' | 'FIVE_MIN' | 'SPEED' | 'EXAM' | 'PLACEMENT' | 'GRAMMAR';
+type Mode = (typeof learningSessions.$inferSelect)['mode'];
+type SessionRow = typeof learningSessions.$inferSelect;
 
 type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[] };
 type SessionState = { answers: Record<string, ItemState>; run: number };
@@ -31,11 +36,11 @@ const SESSION_TTL_MS = 3 * 60 * 60 * 1000;
 /** Мінімальний час на одну вправу — захист від автоматичного проходження. */
 const MIN_MS_PER_ITEM = 1000;
 
-const json = (v: unknown) => v as Prisma.InputJsonValue;
+type ExerciseRow = typeof exercises.$inferSelect;
 
-function lessonToItems(exercises: { id: string; type: string; skill: string; data: unknown; explanation: unknown; audioUrl: string | null; imageUrl: string | null }[]): ExerciseItem[] {
-  return exercises.map((e) => {
-    const data = { ...(e.data as Record<string, unknown>) };
+function lessonToItems(rows: ExerciseRow[]): ExerciseItem[] {
+  return rows.map((e) => {
+    const data = { ...e.data };
     if (e.audioUrl) data.audioUrl = e.audioUrl;
     if (e.imageUrl) data.image = e.imageUrl;
     return {
@@ -49,21 +54,21 @@ function lessonToItems(exercises: { id: string; type: string; skill: string; dat
   });
 }
 
-type VocabRow = { id: string; pl: string; pos: string; translations: unknown; emoji: string | null; audioUrl: string | null };
+type VocabRow = { id: string; pl: string; pos: string; translations: I18n; emoji: string | null; audioUrl: string | null };
 
 /** Генерує вправу на слово для повторення. */
 function wordItem(w: VocabRow, pool: VocabRow[], rnd: () => number, variant: number): ExerciseItem {
   const others = shuffle(pool.filter((p) => p.id !== w.id), rnd);
   const samePos = others.filter((o) => o.pos === w.pos);
   const distract = [...samePos, ...others.filter((o) => o.pos !== w.pos)].slice(0, 2);
-  const tr = w.translations as I18n;
+  const tr = w.translations;
   const key = `w:${w.id}:${variant}`;
   const skill = 'review.vocab';
   const kind = variant % 4;
   if (kind === 0 || distract.length < 2) {
     return {
       key, type: 'WORD_TRANSLATION', skill, vocabId: w.id,
-      data: { pl: w.pl, audioText: w.pl, options: [{ id: 'c', text: tr }, ...distract.map((d, i) => ({ id: `d${i}`, text: d.translations as I18n }))], answer: 'c' },
+      data: { pl: w.pl, audioText: w.pl, options: [{ id: 'c', text: tr }, ...distract.map((d, i) => ({ id: `d${i}`, text: d.translations }))], answer: 'c' },
     };
   }
   if (kind === 1) {
@@ -81,77 +86,89 @@ function wordItem(w: VocabRow, pool: VocabRow[], rnd: () => number, variant: num
   return { key, type: 'DICTATION', skill: 'review.writing', vocabId: w.id, data: { audioText: w.pl, audioUrl: w.audioUrl ?? undefined, translation: tr, accepted: [w.pl] } };
 }
 
-async function vocabPool(tx: Tx, userId: string): Promise<VocabRow[]> {
-  const mine = await tx.userVocabulary.findMany({ where: { userId }, include: { entry: true }, take: 300 });
-  const rows = mine.map((m) => m.entry);
+const vocabCols = { id: vocabularyEntries.id, pl: vocabularyEntries.pl, pos: vocabularyEntries.pos, translations: vocabularyEntries.translations, emoji: vocabularyEntries.emoji, audioUrl: vocabularyEntries.audioUrl };
+
+async function vocabPool(userId: string): Promise<VocabRow[]> {
+  const rows = await db.select(vocabCols).from(userVocabulary).innerJoin(vocabularyEntries, eq(vocabularyEntries.id, userVocabulary.entryId)).where(eq(userVocabulary.userId, userId)).limit(300);
   if (rows.length >= 6) return rows;
-  const extra = await tx.vocabularyEntry.findMany({ where: { cefr: 'A0', status: 'PUBLISHED' }, take: 30 });
+  const extra = await db.select(vocabCols).from(vocabularyEntries).where(and(eq(vocabularyEntries.cefr, 'A0'), eq(vocabularyEntries.status, 'PUBLISHED'))).limit(30);
   return [...rows, ...extra.filter((e) => !rows.some((r) => r.id === e.id))];
 }
 
 /** Граматичне тренування: вправи теми з уроків у відкритих користувачу містах. */
-async function buildGrammarItems(tx: Tx, userId: string, topicSlug: string | undefined, rnd: () => number): Promise<ExerciseItem[]> {
+async function buildGrammarItems(userId: string, topicSlug: string | undefined, rnd: () => number): Promise<ExerciseItem[]> {
   const topic = GRAMMAR.find((g) => g.slug === topicSlug);
   if (!topic) throw notFound('topic_not_found');
-  const cities = await tx.userCity.findMany({ where: { userId }, select: { cityId: true } });
-  const exercises = await tx.exercise.findMany({
-    where: {
-      skill: { in: topic.skills },
-      lesson: { status: 'PUBLISHED', isPremium: false, OR: [{ route: { cityId: { in: cities.map((c) => c.cityId) } } }, { kind: 'EXAM' }] },
-    },
-    take: 60,
-  });
-  if (!exercises.length) throw badRequest('topic_locked', 'Вправи теми відкриються в наступних містах');
-  return shuffle(lessonToItems(exercises), rnd).slice(0, 10);
+  const myCities = db.select({ id: userCities.cityId }).from(userCities).where(eq(userCities.userId, userId));
+  const rows = await db
+    .select({ e: exercises })
+    .from(exercises)
+    .innerJoin(lessons, eq(lessons.id, exercises.lessonId))
+    .leftJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId))
+    .where(
+      and(
+        inArray(exercises.skill, topic.skills),
+        eq(lessons.status, 'PUBLISHED'),
+        eq(lessons.isPremium, false),
+        or(inArray(cityRoutes.cityId, myCities), eq(lessons.kind, 'EXAM')),
+      ),
+    )
+    .limit(60);
+  if (!rows.length) throw badRequest('topic_locked', 'Вправи теми відкриються в наступних містах');
+  return shuffle(lessonToItems(rows.map((r) => r.e)), rnd).slice(0, 10);
 }
 
-async function buildPracticeItems(tx: Tx, userId: string, mode: Mode, seed: number, topic?: string): Promise<ExerciseItem[]> {
+async function buildPracticeItems(userId: string, mode: Mode, seed: number, topic?: string): Promise<ExerciseItem[]> {
   const rnd = seededRandom(seed);
-  if (mode === 'GRAMMAR') return buildGrammarItems(tx, userId, topic, rnd);
+  if (mode === 'GRAMMAR') return buildGrammarItems(userId, topic, rnd);
   const now = new Date();
-  const pool = await vocabPool(tx, userId);
+  const pool = await vocabPool(userId);
+  const byId = (id: string) => pool.find((p) => p.id === id);
 
   if (mode === 'REVIEW' || mode === 'SPEED') {
-    const due = await tx.reviewSchedule.findMany({
-      where: { userId, itemType: 'WORD', ...(mode === 'REVIEW' ? { dueAt: { lte: now } } : {}) },
-      orderBy: { dueAt: 'asc' },
-      take: mode === 'SPEED' ? 15 : 12,
-    });
-    let words = due.map((d) => pool.find((p) => p.id === d.itemId)).filter(Boolean) as VocabRow[];
+    const due = await db
+      .select({ itemId: reviewSchedule.itemId })
+      .from(reviewSchedule)
+      .where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), mode === 'REVIEW' ? lte(reviewSchedule.dueAt, now) : undefined))
+      .orderBy(asc(reviewSchedule.dueAt))
+      .limit(mode === 'SPEED' ? 15 : 12);
+    let words = due.map((d) => byId(d.itemId)).filter(Boolean) as VocabRow[];
     if (mode === 'SPEED' && words.length < 8) words = shuffle(pool, rnd).slice(0, 15);
     if (!words.length) throw badRequest('nothing_due', 'Немає слів для повторення');
     // Швидкий раунд — лише вибір варіанту, без введення тексту.
-    return words.map((w, i) => wordItem(w, pool, rnd, mode === 'SPEED' ? (i % 2) : Math.floor(rnd() * 4)));
+    return words.map((w, i) => wordItem(w, pool, rnd, mode === 'SPEED' ? i % 2 : Math.floor(rnd() * 4)));
   }
 
   if (mode === 'MISTAKES') {
-    const dueEx = await tx.reviewSchedule.findMany({ where: { userId, itemType: 'EXERCISE' }, orderBy: [{ lapses: 'desc' }, { dueAt: 'asc' }], take: 8 });
-    const exercises = await tx.exercise.findMany({ where: { id: { in: dueEx.map((d) => d.itemId) } } });
-    const exItems = lessonToItems(exercises);
-    const weakWords = await tx.reviewSchedule.findMany({ where: { userId, itemType: 'WORD', lapses: { gt: 0 } }, orderBy: { lapses: 'desc' }, take: 6 });
+    const [dueEx, weakWords] = await db.batch([
+      db.select({ itemId: reviewSchedule.itemId }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'EXERCISE'))).orderBy(desc(reviewSchedule.lapses), asc(reviewSchedule.dueAt)).limit(8),
+      db.select({ itemId: reviewSchedule.itemId }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))).orderBy(desc(reviewSchedule.lapses)).limit(6),
+    ]);
+    const exRows = dueEx.length ? await db.select().from(exercises).where(inArray(exercises.id, dueEx.map((d) => d.itemId))) : [];
     const wordItems = weakWords
-      .map((d) => pool.find((p) => p.id === d.itemId))
+      .map((d) => byId(d.itemId))
       .filter(Boolean)
       .map((w, i) => wordItem(w as VocabRow, pool, rnd, i));
-    const items = [...exItems, ...wordItems];
+    const items = [...lessonToItems(exRows), ...wordItems];
     if (!items.length) throw badRequest('no_mistakes', 'Помилок для повторення немає');
     return shuffle(items, rnd).slice(0, 12);
   }
 
   // FIVE_MIN: до 5 слів на повторення + вправи з уже пройдених (або доступних) уроків.
-  const due = await tx.reviewSchedule.findMany({ where: { userId, itemType: 'WORD', dueAt: { lte: now } }, orderBy: { dueAt: 'asc' }, take: 5 });
-  const words = due.map((d) => pool.find((p) => p.id === d.itemId)).filter(Boolean) as VocabRow[];
-  const done = await tx.userLessonProgress.findMany({ where: { userId, firstCompletedAt: { not: null } }, select: { lessonId: true } });
+  const [due, done] = await db.batch([
+    db.select({ itemId: reviewSchedule.itemId }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), lte(reviewSchedule.dueAt, now))).orderBy(asc(reviewSchedule.dueAt)).limit(5),
+    db.select({ lessonId: userLessonProgress.lessonId }).from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), isNotNull(userLessonProgress.firstCompletedAt))),
+  ]);
+  const words = due.map((d) => byId(d.itemId)).filter(Boolean) as VocabRow[];
   let lessonIds = done.map((d) => d.lessonId);
   if (!lessonIds.length) {
-    const j = await getJourney(userId, tx);
+    const j = await getJourney(userId);
     lessonIds = j.cities.flatMap((c) => c.routes.flatMap((r) => r.lessons)).filter((l) => l.state === 'available').slice(0, 1).map((l) => l.id);
   }
-  const exercises = await tx.exercise.findMany({
-    where: { lessonId: { in: lessonIds }, type: { notIn: ['DIALOGUE', 'SITUATION', 'READING'] } },
-    take: 80,
-  });
-  const exItems = shuffle(lessonToItems(exercises), rnd).slice(0, 10 - words.length);
+  const exRows = lessonIds.length
+    ? await db.select().from(exercises).where(and(inArray(exercises.lessonId, lessonIds), notInArray(exercises.type, ['DIALOGUE', 'SITUATION', 'READING']))).limit(80)
+    : [];
+  const exItems = shuffle(lessonToItems(exRows), rnd).slice(0, 10 - words.length);
   const items = [...words.map((w, i) => wordItem(w, pool, rnd, i)), ...exItems];
   if (!items.length) throw badRequest('nothing_to_practice');
   return shuffle(items, rnd);
@@ -162,412 +179,489 @@ export async function startSession(userId: string, input: { lessonId?: string; m
   const seed = Math.floor(Math.random() * 2 ** 31);
   const rnd = seededRandom(seed);
 
-  return prisma.$transaction(async (tx) => {
-    let items: ExerciseItem[];
-    let lesson: Awaited<ReturnType<typeof tx.lesson.findUnique>> = null;
-    let realMode = mode;
-    let words: unknown[] = [];
+  let items: ExerciseItem[];
+  let lesson: typeof lessons.$inferSelect | undefined;
+  let realMode = mode;
+  let words: unknown[] = [];
 
-    if (input.lessonId) {
-      lesson = await tx.lesson.findUnique({ where: { id: input.lessonId } });
-      if (!lesson || lesson.status !== 'PUBLISHED') throw notFound('lesson_not_found');
-      if (lesson.isPremium && !(await isPremium(userId, tx))) throw forbidden('premium_required');
-      const access = await lessonAccess(userId, lesson.id, tx);
-      if (access === 'locked') throw forbidden('lesson_locked');
-      if (access === 'not_found') throw notFound('lesson_not_found');
-      if (lesson.kind === 'EXAM') realMode = 'EXAM';
-      if (lesson.kind === 'PLACEMENT') realMode = 'PLACEMENT';
-      const exercises = await tx.exercise.findMany({ where: { lessonId: lesson.id }, orderBy: { order: 'asc' } });
-      items = lessonToItems(exercises);
-      const lw = await tx.lessonWord.findMany({ where: { lessonId: lesson.id }, include: { entry: true }, orderBy: { order: 'asc' } });
-      words = lw.map((x) => ({ id: x.entry.id, pl: x.entry.pl, translations: x.entry.translations, pronunciation: x.entry.pronunciation, emoji: x.entry.emoji, audioUrl: x.entry.audioUrl }));
-    } else {
-      items = await buildPracticeItems(tx, userId, mode, seed, input.topic);
-    }
-    if (!items.length) throw badRequest('empty_session');
+  if (input.lessonId) {
+    lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, input.lessonId) });
+    if (!lesson || lesson.status !== 'PUBLISHED') throw notFound('lesson_not_found');
+    if (lesson.isPremium && !(await isPremium(userId))) throw forbidden('premium_required');
+    const access = await lessonAccess(userId, lesson.id);
+    if (access === 'locked') throw forbidden('lesson_locked');
+    if (access === 'not_found') throw notFound('lesson_not_found');
+    if (lesson.kind === 'EXAM') realMode = 'EXAM';
+    if (lesson.kind === 'PLACEMENT') realMode = 'PLACEMENT';
+    const [exRows, lw] = await Promise.all([
+      db.select().from(exercises).where(eq(exercises.lessonId, lesson.id)).orderBy(asc(exercises.order)),
+      db
+        .select({ id: vocabularyEntries.id, pl: vocabularyEntries.pl, translations: vocabularyEntries.translations, pronunciation: vocabularyEntries.pronunciation, emoji: vocabularyEntries.emoji, audioUrl: vocabularyEntries.audioUrl })
+        .from(lessonWords)
+        .innerJoin(vocabularyEntries, eq(vocabularyEntries.id, lessonWords.entryId))
+        .where(eq(lessonWords.lessonId, lesson.id))
+        .orderBy(asc(lessonWords.order)),
+    ]);
+    items = lessonToItems(exRows);
+    words = lw;
+  } else {
+    items = await buildPracticeItems(userId, mode, seed, input.topic);
+  }
+  if (!items.length) throw badRequest('empty_session');
 
+  const id = newId();
+  await atomic([
     // Не залишаємо «висячих» активних сесій того ж уроку.
-    await tx.learningSession.updateMany({
-      where: { userId, status: 'ACTIVE', lessonId: lesson?.id ?? null, mode: realMode },
-      data: { status: 'ABANDONED' },
-    });
+    db
+      .update(learningSessions)
+      .set({ status: 'ABANDONED' })
+      .where(and(eq(learningSessions.userId, userId), eq(learningSessions.status, 'ACTIVE'), lesson ? eq(learningSessions.lessonId, lesson.id) : isNull(learningSessions.lessonId), eq(learningSessions.mode, realMode))),
+    db.insert(learningSessions).values({ id, userId, lessonId: lesson?.id ?? null, mode: realMode, items, state: { answers: {}, run: 0 } satisfies SessionState, total: items.length }),
+  ]);
 
-    const session = await tx.learningSession.create({
-      data: {
-        userId,
-        lessonId: lesson?.id,
-        mode: realMode,
-        items: json(items),
-        state: json({ answers: {}, run: 0 } satisfies SessionState),
-        total: items.length,
-      },
-    });
-
-    return {
-      sessionId: session.id,
-      mode: realMode,
-      lesson: lesson
-        ? { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr }
-        : null,
-      words,
-      items: items.map((i) => toPublicItem(i, rnd)),
-      timeLimitSec: realMode === 'SPEED' ? 90 : null,
-    };
-  });
+  return {
+    sessionId: id,
+    mode: realMode,
+    lesson: lesson
+      ? { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr }
+      : null,
+    words,
+    items: items.map((i) => toPublicItem(i, rnd)),
+    timeLimitSec: realMode === 'SPEED' ? 90 : null,
+  };
 }
 
-async function lockSession(tx: Tx, userId: string, sessionId: string) {
-  await tx.$queryRaw`SELECT id FROM learning_sessions WHERE id = ${sessionId} FOR UPDATE`;
-  const s = await tx.learningSession.findUnique({ where: { id: sessionId } });
+async function loadSession(userId: string, sessionId: string): Promise<SessionRow> {
+  const s = await db.query.learningSessions.findFirst({ where: eq(learningSessions.id, sessionId) });
   if (!s || s.userId !== userId) throw notFound('session_not_found');
   if (s.status !== 'ACTIVE') throw badRequest('session_closed');
   if (Date.now() - s.startedAt.getTime() > SESSION_TTL_MS) throw new HttpError(410, 'session_expired');
   return s;
 }
 
-async function updateSkill(tx: Tx, userId: string, skill: string, correct: boolean) {
-  const existing = await tx.languageSkill.findUnique({ where: { userId_skill: { userId, skill } } });
+/** Зберегти стан сесії з перевіркою версії: паралельна зміна відкотить увесь пакет. */
+const saveSession = (s: SessionRow, data: Partial<SessionRow>) =>
+  db.update(learningSessions).set({ ...data, version: s.version + 1 }).where(eq(learningSessions.id, s.id));
+
+function skillStmt(userId: string, skill: string, existing: { mastery: number } | undefined, correct: boolean): Stmt {
   const mastery = Math.max(0, Math.min(100, (existing?.mastery ?? 0) + (correct ? 8 : -10)));
-  await tx.languageSkill.upsert({
-    where: { userId_skill: { userId, skill } },
-    create: { userId, skill, mastery, attempts: 1, correct: correct ? 1 : 0 },
-    update: { mastery, attempts: { increment: 1 }, correct: { increment: correct ? 1 : 0 } },
-  });
+  return db
+    .insert(languageSkills)
+    .values({ userId, skill, mastery, attempts: 1, correct: correct ? 1 : 0 })
+    .onConflictDoUpdate({
+      target: [languageSkills.userId, languageSkills.skill],
+      set: { mastery, attempts: sqlInc(languageSkills.attempts, 1), correct: sqlInc(languageSkills.correct, correct ? 1 : 0), updatedAt: new Date() },
+    });
 }
 
-async function updateReview(tx: Tx, userId: string, itemType: 'WORD' | 'EXERCISE', itemId: string, correct: boolean, almost = false) {
-  const existing = await tx.reviewSchedule.findUnique({ where: { userId_itemType_itemId: { userId, itemType, itemId } } });
-  if (!existing && correct) return; // вправи без помилок у розклад не додаємо
-  const next = nextReview(
-    existing ?? { ease: 2.5, intervalDays: 0, repetitions: 0, lapses: 0 },
-    qualityFrom(correct, almost),
-  );
-  const data = { ease: next.ease, intervalDays: next.intervalDays, repetitions: next.repetitions, lapses: next.lapses, dueAt: next.dueAt };
+const sqlInc = (col: AnyColumn, n: number) => sql`${col} + ${n}`;
+
+type ReviewRow = typeof reviewSchedule.$inferSelect;
+
+function reviewStmts(userId: string, itemType: 'WORD' | 'EXERCISE', itemId: string, existing: ReviewRow | undefined, correct: boolean, almost = false): Stmt[] {
+  if (!existing && correct && itemType === 'EXERCISE') return []; // вправи без помилок у розклад не додаємо
+  if (!existing && correct) return [];
+  const next = nextReview(existing ?? { ease: 2.5, intervalDays: 0, repetitions: 0, lapses: 0 }, qualityFrom(correct, almost));
+  const data = { ease: next.ease, intervalDays: next.intervalDays, repetitions: next.repetitions, lapses: next.lapses, dueAt: next.dueAt, updatedAt: new Date() };
   if (existing && itemType === 'EXERCISE' && correct && next.repetitions >= 2) {
     // Помилку виправлено двічі поспіль — прибираємо з «Моїх помилок».
-    await tx.reviewSchedule.delete({ where: { id: existing.id } });
-    return;
+    return [db.delete(reviewSchedule).where(eq(reviewSchedule.id, existing.id))];
   }
-  await tx.reviewSchedule.upsert({
-    where: { userId_itemType_itemId: { userId, itemType, itemId } },
-    create: { userId, itemType, itemId, ...data },
-    update: data,
-  });
+  const stmts: Stmt[] = [
+    db
+      .insert(reviewSchedule)
+      .values({ userId, itemType, itemId, ...data })
+      .onConflictDoUpdate({ target: [reviewSchedule.userId, reviewSchedule.itemType, reviewSchedule.itemId], set: data }),
+  ];
   if (itemType === 'WORD') {
-    await tx.userVocabulary.upsert({
-      where: { userId_entryId: { userId, entryId: itemId } },
-      create: { userId, entryId: itemId, status: 'LEARNING', timesSeen: 1, timesCorrect: correct ? 1 : 0, timesWrong: correct ? 0 : 1, lastSeenAt: new Date() },
-      update: {
-        timesSeen: { increment: 1 },
-        timesCorrect: { increment: correct ? 1 : 0 },
-        timesWrong: { increment: correct ? 0 : 1 },
-        lastSeenAt: new Date(),
-        status: isLearned(next) ? 'LEARNED' : 'LEARNING',
-      },
-    });
+    const now = new Date();
+    stmts.push(
+      db
+        .insert(userVocabulary)
+        .values({ userId, entryId: itemId, status: 'LEARNING', timesSeen: 1, timesCorrect: correct ? 1 : 0, timesWrong: correct ? 0 : 1, lastSeenAt: now })
+        .onConflictDoUpdate({
+          target: [userVocabulary.userId, userVocabulary.entryId],
+          set: {
+            timesSeen: sqlInc(userVocabulary.timesSeen, 1),
+            timesCorrect: sqlInc(userVocabulary.timesCorrect, correct ? 1 : 0),
+            timesWrong: sqlInc(userVocabulary.timesWrong, correct ? 0 : 1),
+            lastSeenAt: now,
+            status: isLearned(next) ? 'LEARNED' : 'LEARNING',
+          },
+        }),
+    );
   }
+  return stmts;
 }
 
 export async function answerItem(userId: string, sessionId: string, key: string, answer: AnswerPayload) {
-  return prisma.$transaction(async (tx) => {
-    const s = await lockSession(tx, userId, sessionId);
-    const items = s.items as unknown as ExerciseItem[];
-    const item = items.find((i) => i.key === key);
-    if (!item) throw badRequest('unknown_item');
-    const state = s.state as unknown as SessionState;
-    const st: ItemState = state.answers[key] ?? { firstCorrect: null, done: false, mistakes: 0 };
-    const isDialogue = item.type === 'DIALOGUE' || item.type === 'SITUATION';
-    const retry = st.done;
+  const s = await loadSession(userId, sessionId);
+  const items = s.items as ExerciseItem[];
+  const item = items.find((i) => i.key === key);
+  if (!item) throw badRequest('unknown_item');
+  const state = structuredClone(s.state) as unknown as SessionState;
+  const st: ItemState = state.answers[key] ?? { firstCorrect: null, done: false, mistakes: 0 };
+  const isDialogue = item.type === 'DIALOGUE' || item.type === 'SITUATION';
+  const retry = st.done;
 
-    if (isDialogue && !retry) {
-      const step = (answer as { step?: number }).step;
-      const answered = st.steps ?? [];
-      // Кроки діалогу проходяться по порядку.
-      const expected = (item.data as { steps: { options?: unknown[] }[] }).steps.findIndex((x, i) => x.options?.length && !answered.includes(i));
-      if (step !== expected) throw badRequest('wrong_step');
-    }
+  if (isDialogue && !retry) {
+    const step = (answer as { step?: number }).step;
+    const answered = st.steps ?? [];
+    // Кроки діалогу проходяться по порядку.
+    const expected = (item.data as { steps: { options?: unknown[] }[] }).steps.findIndex((x, i) => x.options?.length && !answered.includes(i));
+    if (step !== expected) throw badRequest('wrong_step');
+  }
 
-    const result: CheckResult = checkAnswer(item, answer);
+  const result: CheckResult = checkAnswer(item, answer);
 
-    if (isDialogue) {
-      if (!result.correct) st.mistakes += 1;
-      else st.steps = [...(st.steps ?? []), (answer as { step: number }).step];
-      if (result.done && !retry) {
-        st.done = true;
-        st.firstCorrect = st.mistakes === 0;
-      }
-    } else if (!retry) {
+  if (isDialogue) {
+    if (!result.correct) st.mistakes += 1;
+    else st.steps = [...(st.steps ?? []), (answer as { step: number }).step];
+    if (result.done && !retry) {
       st.done = true;
-      st.skipped = result.skipped;
-      st.firstCorrect = result.skipped ? null : result.correct;
-      if (!result.correct && !result.skipped) st.mistakes += 1;
-    } else if (result.correct) {
-      st.fixed = true;
+      st.firstCorrect = st.mistakes === 0;
     }
+  } else if (!retry) {
+    st.done = true;
+    st.skipped = result.skipped;
+    st.firstCorrect = result.skipped ? null : result.correct;
+    if (!result.correct && !result.skipped) st.mistakes += 1;
+  } else if (result.correct) {
+    st.fixed = true;
+  }
 
-    // Серія правильних відповідей поспіль (для квесту «без помилок»).
-    if (!result.skipped && (!isDialogue || result.done || !result.correct)) {
-      state.run = result.correct ? state.run + 1 : 0;
-    }
-    state.answers[key] = st;
+  // Серія правильних відповідей поспіль (для квесту «без помилок»).
+  if (!result.skipped && (!isDialogue || result.done || !result.correct)) {
+    state.run = result.correct ? state.run + 1 : 0;
+  }
+  state.answers[key] = st;
 
-    const firstDone = !retry && st.done;
-    await tx.learningSession.update({ where: { id: s.id }, data: { state: json(state) } });
+  const firstDone = !retry && st.done;
+  const stmts: Stmt[] = [saveSession(s, { state: state as unknown as Record<string, unknown> })];
 
-    // Пропущена вимова (немає мікрофона) не є помилкою і не потрапляє в статистику.
-    if (firstDone && !st.skipped) {
-      await tx.exerciseAttempt.create({
-        data: {
-          userId, sessionId: s.id, exerciseId: item.exerciseId ?? null, itemKey: key, type: item.type, skill: item.skill,
-          answer: json(answer), isCorrect: !!st.firstCorrect,
-        },
-      });
-      await updateSkill(tx, userId, item.skill, !!st.firstCorrect);
-      if (item.vocabId) await updateReview(tx, userId, 'WORD', item.vocabId, !!st.firstCorrect, result.almost);
-      if (item.exerciseId) await updateReview(tx, userId, 'EXERCISE', item.exerciseId, !!st.firstCorrect, result.almost);
-      const events: QuestEvents = { PERFECT_STREAK: state.run };
-      if ((item.type === 'LISTENING' || item.type === 'DICTATION') && st.firstCorrect) events.LISTENING = 1;
-      await applyQuestEvents(tx, userId, events);
-    }
+  // Пропущена вимова (немає мікрофона) не є помилкою і не потрапляє в статистику.
+  if (firstDone && !st.skipped) {
+    const ok = !!st.firstCorrect;
+    const [skillRow, wordRev, exRev] = await db.batch([
+      db.select({ mastery: languageSkills.mastery }).from(languageSkills).where(and(eq(languageSkills.userId, userId), eq(languageSkills.skill, item.skill))),
+      db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), eq(reviewSchedule.itemId, item.vocabId ?? ''))),
+      db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'EXERCISE'), eq(reviewSchedule.itemId, item.exerciseId ?? ''))),
+    ]);
+    stmts.push(
+      db.insert(exerciseAttempts).values({ userId, sessionId: s.id, exerciseId: item.exerciseId ?? null, itemKey: key, type: item.type, skill: item.skill, answer, isCorrect: ok }),
+      skillStmt(userId, item.skill, skillRow[0], ok),
+    );
+    if (item.vocabId) stmts.push(...reviewStmts(userId, 'WORD', item.vocabId, wordRev[0], ok, result.almost));
+    if (item.exerciseId) stmts.push(...reviewStmts(userId, 'EXERCISE', item.exerciseId, exRev[0], ok, result.almost));
+    const events: QuestEvents = { PERFECT_STREAK: state.run };
+    if ((item.type === 'LISTENING' || item.type === 'DICTATION') && st.firstCorrect) events.LISTENING = 1;
+    const ctx = await loadCtx(userId);
+    stmts.push(...(await applyQuestEvents(ctx, events)).stmts);
+  }
+  await atomic(stmts);
 
-    const answeredCount = Object.values(state.answers).filter((a) => a.done).length;
-    return { ...result, explanation: item.explanation ?? null, retry, answered: answeredCount, total: items.length };
-  });
+  const answeredCount = Object.values(state.answers).filter((a) => a.done).length;
+  return { ...result, explanation: item.explanation ?? null, retry, answered: answeredCount, total: items.length };
 }
 
 export async function finishSession(userId: string, sessionId: string) {
   const cfg = await getRewards();
-  return prisma.$transaction(async (tx) => {
-    const s = await lockSession(tx, userId, sessionId);
-    const items = s.items as unknown as ExerciseItem[];
-    const state = s.state as unknown as SessionState;
-    const elapsed = Date.now() - s.startedAt.getTime();
-    const isSpeed = s.mode === 'SPEED';
+  const s = await loadSession(userId, sessionId);
+  const items = s.items as ExerciseItem[];
+  const state = s.state as unknown as SessionState;
+  const elapsed = Date.now() - s.startedAt.getTime();
+  const isSpeed = s.mode === 'SPEED';
 
-    const answered = items.filter((i) => state.answers[i.key]?.done);
-    if (!isSpeed && answered.length < items.length) throw badRequest('not_finished', 'Не всі вправи виконано');
-    if (elapsed < answered.length * MIN_MS_PER_ITEM) throw badRequest('too_fast');
+  const answered = items.filter((i) => state.answers[i.key]?.done);
+  if (!isSpeed && answered.length < items.length) throw badRequest('not_finished', 'Не всі вправи виконано');
+  if (elapsed < answered.length * MIN_MS_PER_ITEM) throw badRequest('too_fast');
 
-    const counted = answered.filter((i) => !state.answers[i.key].skipped);
-    const total = isSpeed ? items.length : counted.length;
-    const correct = counted.filter((i) => state.answers[i.key].firstCorrect).length;
-    const accuracy = total ? correct / total : 0;
-    const now = new Date();
-    const tz = await userTimezone(tx, userId);
-    const today = dayKey(now, tz);
-    const key = `session:${s.id}`;
+  const counted = answered.filter((i) => !state.answers[i.key].skipped);
+  const total = isSpeed ? items.length : counted.length;
+  const correct = counted.filter((i) => state.answers[i.key].firstCorrect).length;
+  const accuracy = total ? correct / total : 0;
+  const ctx = await loadCtx(userId);
+  const { now } = ctx;
+  const p = ctx.progress;
+  const key = `session:${s.id}`;
+  const stmts: Stmt[] = [];
 
-    const events: QuestEvents = {};
-    let xp = 0;
-    let zlotki = 0;
-    let passed = true;
-    let perfect = false;
-    let newWords: { id: string; pl: string; translations: unknown }[] = [];
-    let cityCompleted: null | { cityId: string; nextCity: unknown; rewards: unknown[] } = null;
-    let levelConfirmed: Cefr | null = null;
-    let placement: null | { level: Cefr; unlocked: string[] } = null;
-    const progress = await tx.playerProgress.findUniqueOrThrow({ where: { userId } });
+  const events: QuestEvents = {};
+  let xp = 0;
+  let zlotki = 0;
+  let passed = true;
+  let perfect = false;
+  let newWords: { id: string; pl: string; translations: unknown }[] = [];
+  let cityCompleted: null | { cityId: string; nextCity: unknown; rewards: unknown[] } = null;
+  let levelConfirmed: Cefr | null = null;
+  let placement: null | { level: Cefr; unlocked: string[] } = null;
+  const adjust: { CITIES?: number } = {};
 
-    if (s.mode === 'LESSON' && s.lessonId) {
-      const lesson = await tx.lesson.findUniqueOrThrow({ where: { id: s.lessonId }, include: { route: true } });
-      const isBoss = lesson.kind === 'BOSS';
-      passed = accuracy >= (isBoss ? BOSS_PASS_RATIO : LESSON_PASS_RATIO);
-      const ulp = await tx.userLessonProgress.findUnique({ where: { userId_lessonId: { userId, lessonId: lesson.id } } });
-      const firstCompletion = !ulp?.firstCompletedAt;
-      const replaysToday = firstCompletion
-        ? 0
-        : await tx.learningSession.count({
-            where: {
-              userId, lessonId: lesson.id, status: 'FINISHED', xpAwarded: { gt: 0 },
-              // Повтори — це нагороджені проходження після першого, за останні 24 години.
-              finishedAt: { gte: new Date(now.getTime() - 24 * 3600_000), gt: ulp!.firstCompletedAt! },
-            },
-          });
-      const r = lessonReward({ cfg, correct, total, firstCompletion, replaysToday, isBoss, passed });
-      xp = r.xp;
-      zlotki = r.zlotki;
-      perfect = r.perfect;
+  if (s.mode === 'LESSON' && s.lessonId) {
+    const [lessonRow, ulpRow, lw] = await Promise.all([
+      db.select({ lesson: lessons, cityId: cityRoutes.cityId }).from(lessons).leftJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId)).where(eq(lessons.id, s.lessonId)),
+      db.select().from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, s.lessonId))),
+      db
+        .select({ entryId: lessonWords.entryId, pl: vocabularyEntries.pl, translations: vocabularyEntries.translations, mine: userVocabulary.entryId })
+        .from(lessonWords)
+        .innerJoin(vocabularyEntries, eq(vocabularyEntries.id, lessonWords.entryId))
+        .leftJoin(userVocabulary, and(eq(userVocabulary.entryId, lessonWords.entryId), eq(userVocabulary.userId, userId)))
+        .where(eq(lessonWords.lessonId, s.lessonId)),
+    ]);
+    const { lesson, cityId } = lessonRow[0];
+    const ulp = ulpRow[0];
+    const isBoss = lesson.kind === 'BOSS';
+    passed = accuracy >= (isBoss ? BOSS_PASS_RATIO : LESSON_PASS_RATIO);
+    const firstCompletion = !ulp?.firstCompletedAt;
+    const replaysToday = firstCompletion
+      ? 0
+      : ((
+          await db
+            .select({ n: count() })
+            .from(learningSessions)
+            .where(
+              and(
+                eq(learningSessions.userId, userId),
+                eq(learningSessions.lessonId, lesson.id),
+                eq(learningSessions.status, 'FINISHED'),
+                gt(learningSessions.xpAwarded, 0),
+                // Повтори — це нагороджені проходження після першого, за останні 24 години.
+                gte(learningSessions.finishedAt, new Date(now.getTime() - 24 * 3600_000)),
+                gt(learningSessions.finishedAt, ulp!.firstCompletedAt!),
+              ),
+            )
+        )[0]?.n ?? 0);
+    const r = lessonReward({ cfg, correct, total, firstCompletion, replaysToday, isBoss, passed });
+    xp = r.xp;
+    zlotki = r.zlotki;
+    perfect = r.perfect;
 
-      if (passed) {
-        const stars = accuracy === 1 ? 3 : accuracy >= 0.8 ? 2 : 1;
-        const score = Math.round(accuracy * 100);
-        await tx.userLessonProgress.upsert({
-          where: { userId_lessonId: { userId, lessonId: lesson.id } },
-          create: { userId, lessonId: lesson.id, completions: 1, bestScore: score, stars, firstCompletedAt: now, lastCompletedAt: now },
-          update: { completions: { increment: 1 }, bestScore: Math.max(ulp?.bestScore ?? 0, score), stars: Math.max(ulp?.stars ?? 0, stars), firstCompletedAt: ulp?.firstCompletedAt ?? now, lastCompletedAt: now },
-        });
-        const newPerfect = perfect && (ulp?.stars ?? 0) < 3;
-        await tx.playerProgress.update({
-          where: { userId },
-          data: {
-            lessonsCompleted: { increment: firstCompletion ? 1 : 0 },
-            perfectLessons: { increment: newPerfect ? 1 : 0 },
-            exercisesCorrect: { increment: correct },
-          },
-        });
-        events.LESSONS = 1;
-
-        // Нові слова уроку → словник користувача + розклад повторень.
-        const lw = await tx.lessonWord.findMany({ where: { lessonId: lesson.id }, include: { entry: true } });
-        const existing = await tx.userVocabulary.findMany({ where: { userId, entryId: { in: lw.map((x) => x.entryId) } }, select: { entryId: true } });
-        const have = new Set(existing.map((e) => e.entryId));
-        const fresh = lw.filter((x) => !have.has(x.entryId));
-        if (fresh.length) {
-          await tx.userVocabulary.createMany({ data: fresh.map((x) => ({ userId, entryId: x.entryId, status: 'LEARNING' as const, timesSeen: 1 })), skipDuplicates: true });
-          await tx.reviewSchedule.createMany({
-            data: fresh.map((x) => ({ userId, itemType: 'WORD', itemId: x.entryId, intervalDays: 1, repetitions: 1, dueAt: new Date(now.getTime() + 86_400_000) })),
-            skipDuplicates: true,
-          });
-          await tx.playerProgress.update({ where: { userId }, data: { wordsLearned: { increment: fresh.length } } });
-          newWords = fresh.map((x) => ({ id: x.entry.id, pl: x.entry.pl, translations: x.entry.translations }));
-          events.NEW_WORDS = fresh.length;
-        }
-
-        if (isBoss && lesson.route) {
-          cityCompleted = await completeCity(tx, userId, lesson.route.cityId, now);
-          if (cityCompleted) events.CITY_COMPLETED = 1;
-        }
-      }
-    } else if (s.mode === 'EXAM' && s.lessonId) {
-      const lesson = await tx.lesson.findUniqueOrThrow({ where: { id: s.lessonId } });
-      passed = accuracy >= EXAM_PASS_RATIO;
-      if (passed) {
-        const next = maxCefr(progress.languageLevel, lesson.cefr);
-        if (next !== progress.languageLevel) {
-          await tx.playerProgress.update({ where: { userId }, data: { languageLevel: next } });
-          levelConfirmed = next;
-        }
-        // Нагорода за іспит — лише за перше складання.
-        const firstPass = !(await tx.userLessonProgress.findUnique({ where: { userId_lessonId: { userId, lessonId: lesson.id } } }))?.firstCompletedAt;
-        if (firstPass) {
-          xp = cfg.cityExamXp;
-          zlotki = cfg.cityExamZlotki;
-        }
-      }
+    if (passed) {
+      const stars = accuracy === 1 ? 3 : accuracy >= 0.8 ? 2 : 1;
       const score = Math.round(accuracy * 100);
-      const prev = await tx.userLessonProgress.findUnique({ where: { userId_lessonId: { userId, lessonId: lesson.id } } });
-      await tx.userLessonProgress.upsert({
-        where: { userId_lessonId: { userId, lessonId: lesson.id } },
-        create: { userId, lessonId: lesson.id, completions: 1, bestScore: score, stars: passed ? 3 : 0, firstCompletedAt: passed ? now : null, lastCompletedAt: now },
-        update: {
-          completions: { increment: 1 },
-          bestScore: Math.max(prev?.bestScore ?? 0, score),
-          stars: passed ? 3 : prev?.stars ?? 0,
-          lastCompletedAt: now,
-          firstCompletedAt: prev?.firstCompletedAt ?? (passed ? now : null),
-        },
-      });
-    } else if (s.mode === 'PLACEMENT') {
-      placement = await applyPlacement(tx, userId, accuracy);
-    } else {
-      // Тренування: XP за правильні відповіді з денним лімітом.
-      const act = await tx.dailyActivity.findUnique({ where: { userId_day: { userId, day: today } } });
-      const left = Math.max(0, cfg.practiceXpDailyCap - (act?.practiceXp ?? 0));
-      xp = Math.min(left, correct * cfg.exerciseXp + (s.mode === 'FIVE_MIN' && total ? 5 : 0));
-      if (s.mode === 'REVIEW' || s.mode === 'MISTAKES' || s.mode === 'FIVE_MIN') events.REVIEWS = counted.filter((i) => i.vocabId || s.mode !== 'FIVE_MIN').length;
+      stmts.push(
+        db
+          .insert(userLessonProgress)
+          .values({ userId, lessonId: lesson.id, completions: 1, bestScore: score, stars, firstCompletedAt: now, lastCompletedAt: now })
+          .onConflictDoUpdate({
+            target: [userLessonProgress.userId, userLessonProgress.lessonId],
+            set: {
+              completions: sqlInc(userLessonProgress.completions, 1),
+              bestScore: Math.max(ulp?.bestScore ?? 0, score),
+              stars: Math.max(ulp?.stars ?? 0, stars),
+              firstCompletedAt: ulp?.firstCompletedAt ?? now,
+              lastCompletedAt: now,
+            },
+          }),
+      );
+      const newPerfect = perfect && (ulp?.stars ?? 0) < 3;
+      const fresh = lw.filter((x) => !x.mine);
+      stmts.push(
+        db
+          .update(playerProgress)
+          .set({
+            lessonsCompleted: sqlInc(playerProgress.lessonsCompleted, firstCompletion ? 1 : 0),
+            perfectLessons: sqlInc(playerProgress.perfectLessons, newPerfect ? 1 : 0),
+            exercisesCorrect: sqlInc(playerProgress.exercisesCorrect, correct),
+            wordsLearned: sqlInc(playerProgress.wordsLearned, fresh.length),
+          })
+          .where(eq(playerProgress.userId, userId)),
+      );
+      p.lessonsCompleted += firstCompletion ? 1 : 0;
+      p.perfectLessons += newPerfect ? 1 : 0;
+      p.exercisesCorrect += correct;
+      p.wordsLearned += fresh.length;
+      events.LESSONS = 1;
+
+      // Нові слова уроку → словник користувача + розклад повторень.
+      if (fresh.length) {
+        stmts.push(
+          db.insert(userVocabulary).values(fresh.map((x) => ({ userId, entryId: x.entryId, status: 'LEARNING' as const, timesSeen: 1 }))).onConflictDoNothing(),
+          db
+            .insert(reviewSchedule)
+            .values(fresh.map((x) => ({ userId, itemType: 'WORD', itemId: x.entryId, intervalDays: 1, repetitions: 1, dueAt: new Date(now.getTime() + 86_400_000) })))
+            .onConflictDoNothing(),
+        );
+        newWords = fresh.map((x) => ({ id: x.entryId, pl: x.pl, translations: x.translations }));
+        events.NEW_WORDS = fresh.length;
+      }
+
+      if (isBoss && cityId) {
+        const done = await completeCity(userId, cityId, now);
+        if (done) {
+          cityCompleted = done.result;
+          stmts.push(...done.stmts);
+          events.CITY_COMPLETED = 1;
+          adjust.CITIES = 1;
+          if (done.currentCityId) p.currentCityId = done.currentCityId;
+        }
+      }
     }
-
-    const dialogues = answered.filter((i) => (i.type === 'DIALOGUE' || i.type === 'SITUATION') && state.answers[i.key].done).length;
-    if (dialogues) events.DIALOGUES = dialogues;
-
-    const xpRes = await grantXp(tx, userId, xp, s.mode === 'LESSON' ? 'lesson' : s.mode.toLowerCase(), key, now);
-    const zl = await grantZlotki(tx, userId, zlotki, s.mode === 'LESSON' ? 'lesson' : s.mode.toLowerCase(), key);
-    if (xpRes.granted) events.XP = xpRes.granted;
-    const activity = await touchActivity(
-      tx,
-      userId,
-      {
-        lessons: s.mode === 'LESSON' && passed ? 1 : 0,
-        exercises: answered.length,
-        correct,
-        newWords: newWords.length,
-        reviews: events.REVIEWS ?? 0,
-        seconds: Math.min(Math.round(elapsed / 1000), 3600),
-        practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR'].includes(s.mode) ? xpRes.granted : 0,
-      },
-      now,
+  } else if (s.mode === 'EXAM' && s.lessonId) {
+    const [lessonRow, prevRow] = await db.batch([
+      db.select().from(lessons).where(eq(lessons.id, s.lessonId)),
+      db.select().from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, s.lessonId))),
+    ]);
+    const lesson = lessonRow[0];
+    const prev = prevRow[0];
+    passed = accuracy >= EXAM_PASS_RATIO;
+    if (passed) {
+      const next = maxCefr(p.languageLevel, lesson.cefr);
+      if (next !== p.languageLevel) {
+        stmts.push(db.update(playerProgress).set({ languageLevel: next }).where(eq(playerProgress.userId, userId)));
+        levelConfirmed = next;
+      }
+      // Нагорода за іспит — лише за перше складання.
+      if (!prev?.firstCompletedAt) {
+        xp = cfg.cityExamXp;
+        zlotki = cfg.cityExamZlotki;
+      }
+    }
+    const score = Math.round(accuracy * 100);
+    stmts.push(
+      db
+        .insert(userLessonProgress)
+        .values({ userId, lessonId: lesson.id, completions: 1, bestScore: score, stars: passed ? 3 : 0, firstCompletedAt: passed ? now : null, lastCompletedAt: now })
+        .onConflictDoUpdate({
+          target: [userLessonProgress.userId, userLessonProgress.lessonId],
+          set: {
+            completions: sqlInc(userLessonProgress.completions, 1),
+            bestScore: Math.max(prev?.bestScore ?? 0, score),
+            stars: passed ? 3 : (prev?.stars ?? 0),
+            lastCompletedAt: now,
+            firstCompletedAt: prev?.firstCompletedAt ?? (passed ? now : null),
+          },
+        }),
     );
+  } else if (s.mode === 'PLACEMENT') {
+    const res = await applyPlacement(userId, accuracy);
+    placement = res.result;
+    stmts.push(...res.stmts);
+  } else {
+    // Тренування: XP за правильні відповіді з денним лімітом.
+    const act = await db.query.dailyActivity.findFirst({ where: and(eq(dailyActivity.userId, userId), eq(dailyActivity.day, ctx.day)) });
+    const left = Math.max(0, cfg.practiceXpDailyCap - (act?.practiceXp ?? 0));
+    xp = Math.min(left, correct * cfg.exerciseXp + (s.mode === 'FIVE_MIN' && total ? 5 : 0));
+    if (s.mode === 'REVIEW' || s.mode === 'MISTAKES' || s.mode === 'FIVE_MIN') events.REVIEWS = counted.filter((i) => i.vocabId || s.mode !== 'FIVE_MIN').length;
+  }
 
-    const questsCompleted = await applyQuestEvents(tx, userId, events, now);
-    const achievements = await evaluateAchievements(tx, userId);
+  const dialogues = answered.filter((i) => (i.type === 'DIALOGUE' || i.type === 'SITUATION') && state.answers[i.key].done).length;
+  if (dialogues) events.DIALOGUES = dialogues;
 
-    await tx.learningSession.update({
-      where: { id: s.id },
-      data: { status: 'FINISHED', finishedAt: now, correct, total, xpAwarded: xpRes.granted, zlotkiAwarded: zl },
-    });
-
-    const mistakes = counted
-      .filter((i) => state.answers[i.key].firstCorrect === false)
-      .map((i) => ({ key: i.key, type: i.type, skill: i.skill }));
-
-    return {
-      mode: s.mode,
-      passed,
-      perfect,
-      correct,
-      total,
-      accuracy: Math.round(accuracy * 100),
-      mistakes,
-      xp: xpRes.granted,
-      zlotki: zl,
-      levelUp: xpRes.levelAfter > xpRes.levelBefore ? xpRes.levelAfter : null,
-      streak: activity.streak,
-      streakIncreased: activity.streakChanged,
-      newWords,
-      cityCompleted,
-      levelConfirmed,
-      placement,
-      questsCompleted,
-      achievements,
-      durationSec: Math.round(elapsed / 1000),
-    };
+  const reason = s.mode === 'LESSON' ? 'lesson' : s.mode.toLowerCase();
+  const xpRes = grantXp(ctx, xp, reason, key);
+  const zl = grantZlotki(userId, zlotki, reason, key, now);
+  if (xpRes.granted) events.XP = xpRes.granted;
+  const activity = touchActivity(ctx, {
+    lessons: s.mode === 'LESSON' && passed ? 1 : 0,
+    exercises: answered.length,
+    correct,
+    newWords: newWords.length,
+    reviews: events.REVIEWS ?? 0,
+    seconds: Math.min(Math.round(elapsed / 1000), 3600),
+    practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR'].includes(s.mode) ? xpRes.granted : 0,
   });
+
+  const quests = await applyQuestEvents(ctx, events);
+  const ach = await evaluateAchievements(userId, p, adjust);
+
+  await atomic([
+    // Першим — закриття сесії з перевіркою версії: повторне завершення відкотить увесь пакет.
+    saveSession(s, { status: 'FINISHED', finishedAt: now, correct, total, xpAwarded: xpRes.granted, zlotkiAwarded: zl.granted }),
+    ...stmts,
+    ...xpRes.stmts,
+    ...zl.stmts,
+    ...activity.stmts,
+    ...quests.stmts,
+    ...ach.stmts,
+  ]);
+
+  const mistakes = counted.filter((i) => state.answers[i.key].firstCorrect === false).map((i) => ({ key: i.key, type: i.type, skill: i.skill }));
+
+  return {
+    mode: s.mode,
+    passed,
+    perfect,
+    correct,
+    total,
+    accuracy: Math.round(accuracy * 100),
+    mistakes,
+    xp: xpRes.granted,
+    zlotki: zl.granted,
+    levelUp: xpRes.levelAfter > xpRes.levelBefore ? xpRes.levelAfter : null,
+    streak: activity.streak,
+    streakIncreased: activity.streakChanged,
+    newWords,
+    cityCompleted,
+    levelConfirmed,
+    placement,
+    questsCompleted: quests.completed,
+    achievements: ach.unlocked,
+    durationSec: Math.round(elapsed / 1000),
+  };
 }
 
 /** Іспит міста складено: квиток до наступного міста, сувеніри, подорож. */
-async function completeCity(tx: Tx, userId: string, cityId: string, now: Date) {
-  const visit = await tx.userCity.findUnique({ where: { userId_cityId: { userId, cityId } } });
-  if (visit?.bossPassedAt) return null;
-  await tx.userCity.upsert({
-    where: { userId_cityId: { userId, cityId } },
-    create: { userId, cityId, bossPassedAt: now, completedAt: now },
-    update: { bossPassedAt: now, completedAt: now },
-  });
-  const city = await tx.city.findUniqueOrThrow({ where: { id: cityId } });
+async function completeCity(userId: string, cityId: string, now: Date) {
+  const [visit, cityRow] = await db.batch([
+    db.select().from(userCities).where(and(eq(userCities.userId, userId), eq(userCities.cityId, cityId))),
+    db.select().from(cities).where(eq(cities.id, cityId)),
+  ]);
+  if (visit[0]?.bossPassedAt) return null;
+  const city = cityRow[0];
+  const rewardSlugs = CITY_REWARDS[city.slug] ?? [];
+  const [items, owned, nextRow] = await db.batch([
+    db.select().from(cosmeticItems).where(inArray(cosmeticItems.slug, rewardSlugs.length ? rewardSlugs : ['-'])),
+    db.select({ itemId: userInventory.itemId }).from(userInventory).where(eq(userInventory.userId, userId)),
+    db.select().from(cities).where(and(eq(cities.status, 'PUBLISHED'), gt(cities.order, city.order))).orderBy(asc(cities.order)).limit(1),
+  ]);
+  const have = new Set(owned.map((o) => o.itemId));
+  const stmts: Stmt[] = [
+    db
+      .insert(userCities)
+      .values({ userId, cityId, bossPassedAt: now, completedAt: now })
+      .onConflictDoUpdate({ target: [userCities.userId, userCities.cityId], set: { bossPassedAt: now, completedAt: now } }),
+  ];
   const rewards = [];
-  for (const slug of CITY_REWARDS[city.slug] ?? []) {
-    const item = await tx.cosmeticItem.findUnique({ where: { slug } });
-    if (item && (await grantItem(tx, userId, item.id, `city:${city.slug}`))) rewards.push({ slug: item.slug, name: item.name, slot: item.slot });
+  for (const item of items) {
+    if (have.has(item.id)) continue;
+    stmts.push(grantItem(userId, item.id, `city:${city.slug}`));
+    rewards.push({ slug: item.slug, name: item.name, slot: item.slot });
   }
-  const next = await tx.city.findFirst({ where: { status: 'PUBLISHED', order: { gt: city.order } }, orderBy: { order: 'asc' } });
+  const next = nextRow[0];
   let nextCity = null;
+  let currentCityId: string | null = null;
   if (next) {
-    await tx.userCity.createMany({ data: [{ userId, cityId: next.id, unlockedAt: now }], skipDuplicates: true });
-    const hasLessons = await tx.lesson.count({ where: { status: 'PUBLISHED', route: { cityId: next.id } } });
+    stmts.push(db.insert(userCities).values({ userId, cityId: next.id, unlockedAt: now }).onConflictDoNothing());
+    const [{ n: hasLessons }] = await db
+      .select({ n: count() })
+      .from(lessons)
+      .innerJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId))
+      .where(and(eq(lessons.status, 'PUBLISHED'), eq(cityRoutes.cityId, next.id)));
     // Переїжджаємо, лише якщо в наступному місті вже є уроки.
-    if (hasLessons) await tx.playerProgress.update({ where: { userId }, data: { currentCityId: next.id } });
+    if (hasLessons) {
+      stmts.push(db.update(playerProgress).set({ currentCityId: next.id }).where(eq(playerProgress.userId, userId)));
+      currentCityId = next.id;
+    }
     nextCity = { id: next.id, slug: next.slug, name: next.name, namePl: next.namePl, emoji: next.emoji, hasLessons: hasLessons > 0 };
   }
-  return { cityId, nextCity, rewards };
+  return { result: { cityId, nextCity, rewards }, stmts, currentCityId };
 }
 
 /** Результат вхідного тесту — рекомендація стартового міста (не підтверджений рівень). */
-async function applyPlacement(tx: Tx, userId: string, accuracy: number) {
+async function applyPlacement(userId: string, accuracy: number) {
   const level: Cefr = accuracy >= 0.8 ? 'A1' : 'A0';
-  await tx.userProfile.update({ where: { userId }, data: { placementLevel: level } });
-  const cities = await tx.city.findMany({ where: { status: 'PUBLISHED' }, orderBy: { order: 'asc' }, take: 3 });
+  const top = await db.select().from(cities).where(eq(cities.status, 'PUBLISHED')).orderBy(asc(cities.order)).limit(3);
   const openCount = accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1;
+  const stmts: Stmt[] = [db.update(userProfiles).set({ placementLevel: level }).where(eq(userProfiles.userId, userId))];
   const unlocked: string[] = [];
-  for (const [i, c] of cities.slice(0, openCount).entries()) {
-    await tx.userCity.upsert({
-      where: { userId_cityId: { userId, cityId: c.id } },
-      create: { userId, cityId: c.id, source: i === 0 ? 'journey' : 'placement' },
-      update: i === 0 ? {} : { source: 'placement' },
-    });
+  for (const [i, c] of top.slice(0, openCount).entries()) {
+    const ins = db.insert(userCities).values({ userId, cityId: c.id, source: i === 0 ? 'journey' : 'placement' });
+    stmts.push(i === 0 ? ins.onConflictDoNothing() : ins.onConflictDoUpdate({ target: [userCities.userId, userCities.cityId], set: { source: 'placement' } }));
     unlocked.push(c.slug);
   }
   // Рекомендоване стартове місто — останнє відкрите.
-  const start = cities[openCount - 1];
-  if (start) await tx.playerProgress.update({ where: { userId }, data: { currentCityId: start.id } });
-  return { level, unlocked };
+  const start = top[openCount - 1];
+  if (start) stmts.push(db.update(playerProgress).set({ currentCityId: start.id }).where(eq(playerProgress.userId, userId)));
+  return { result: { level, unlocked }, stmts };
 }

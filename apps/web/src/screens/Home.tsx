@@ -144,6 +144,18 @@ export function HomeScreen() {
     <div className="space-y-5 pb-4">
       <PlayerHeader />
 
+      {/* Мета дня */}
+      <div className="mx-4 flex items-center gap-3 rounded-3xl bg-elev px-4 py-3 shadow-[var(--shadow-card)]">
+        <GameIcon name={me.today.xp >= me.today.goalXp ? 'check' : 'timer'} size={40} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-black">{me.today.xp >= me.today.goalXp ? t('home_goal_done') : t('home_daily_goal')}</span>
+            <span className="whitespace-nowrap text-xs font-black text-xp-dark">{Math.min(me.today.xp, me.today.goalXp)}/{me.today.goalXp} XP</span>
+          </div>
+          <Progress value={me.today.xp} max={me.today.goalXp} height={9} color="var(--color-xp)" className="mt-1.5" />
+        </div>
+      </div>
+
       {/* Поточне місто — ілюстрована картка-локація */}
       <div className="px-4">
         {journey.isLoading ? (

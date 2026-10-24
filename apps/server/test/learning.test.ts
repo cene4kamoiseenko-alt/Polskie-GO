@@ -1,12 +1,15 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { prisma } from '../src/db';
+import { and, count, eq } from 'drizzle-orm';
+import { db } from '../src/db';
+import { cities, gameConfig, playerProgress, reviewSchedule, userAchievements, achievements } from '../src/db/schema';
 import { validateInitData, signInitData } from '../src/lib/telegram';
-import { getApp, lessonId, login, playSession } from './helpers';
+import { disposeEnv, lessonId, login, playSession, request, sessionItems } from './helpers';
 
-afterAll(async () => {
-  await (await getApp()).close();
-  await prisma.$disconnect();
-});
+afterAll(disposeEnv);
+
+const progress = async (userId: string) => (await db.query.playerProgress.findFirst({ where: eq(playerProgress.userId, userId) }))!;
+const reviews = async (userId: string, itemType: string) =>
+  (await db.select({ n: count() }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, itemType))))[0].n;
 
 describe('Telegram авторизація', () => {
   const token = '123456:TEST_TOKEN';
@@ -26,9 +29,8 @@ describe('Telegram авторизація', () => {
   });
 
   it('API вимагає токен; dev-вхід вимкнений', async () => {
-    const app = await getApp();
-    expect((await app.inject({ method: 'GET', url: '/api/me' })).statusCode).toBe(401);
-    expect((await app.inject({ method: 'POST', url: '/api/auth/dev', payload: {} })).statusCode).toBe(404);
+    expect((await request('GET', '/api/me')).status).toBe(401);
+    expect((await request('POST', '/api/auth/dev', {})).status).toBe(404);
   });
 
   it('новий користувач отримує стартові дані', async () => {
@@ -74,9 +76,9 @@ describe('Уроки та нагороди', () => {
     expect(fin.body.newWords).toHaveLength(6);
     expect(fin.body.achievements.map((a: { slug: string }) => a.slug)).toEqual(expect.arrayContaining(['first-lesson', 'perfect-1']));
 
-    const p = await prisma.playerProgress.findUniqueOrThrow({ where: { userId: user.id } });
+    const p = await progress(user.id);
     expect(p).toMatchObject({ xpTotal: fin.body.xp, lessonsCompleted: 1, wordsLearned: 6, streakCurrent: 1 });
-    expect(await prisma.reviewSchedule.count({ where: { userId: user.id, itemType: 'WORD' } })).toBe(6);
+    expect(await reviews(user.id, 'WORD')).toBe(6);
 
     const j = await call('GET', '/api/journey');
     const waw = j.body.cities[0];
@@ -96,7 +98,7 @@ describe('Уроки та нагороди', () => {
     }
     const first = xps[0];
     expect(xps).toEqual([first, Math.round(first * 0.25), Math.round(first * 0.25), 0]);
-    const p = await prisma.playerProgress.findUniqueOrThrow({ where: { userId: user.id } });
+    const p = await progress(user.id);
     expect(p.lessonsCompleted).toBe(1);
   });
 
@@ -111,7 +113,7 @@ describe('Уроки та нагороди', () => {
 
     // Надто швидке проходження (бот) — відхиляється.
     const s2 = await call('POST', '/api/sessions', { lessonId: lid });
-    const items = (await prisma.learningSession.findUniqueOrThrow({ where: { id: s2.body.sessionId } })).items as unknown as { key: string; type: string; data: unknown }[];
+    const items = await sessionItems(s2.body.sessionId);
     const { correctAnswers } = await import('./helpers');
     for (const it of items) for (const a of correctAnswers(it as never)) await call('POST', `/api/sessions/${s2.body.sessionId}/answer`, { key: it.key, answer: a });
     expect((await call('POST', `/api/sessions/${s2.body.sessionId}/finish`)).body.error).toBe('too_fast');
@@ -130,7 +132,7 @@ describe('Уроки та нагороди', () => {
     const fin = await playSession(call, s.body.sessionId, { wrong: 7 });
     expect(fin.body.passed).toBe(false);
     expect(fin.body.xp).toBe(0);
-    expect(await prisma.reviewSchedule.count({ where: { userId: user.id, itemType: 'EXERCISE' } })).toBe(7);
+    expect(await reviews(user.id, 'EXERCISE')).toBe(7);
     const mistakes = await call('POST', '/api/sessions', { mode: 'MISTAKES' });
     expect(mistakes.status).toBe(200);
     expect(mistakes.body.items.length).toBe(7);
@@ -151,11 +153,11 @@ describe('Уроки та нагороди', () => {
     const fin = await playSession(call, s.body.sessionId);
     expect(fin.body.cityCompleted.nextCity.slug).toBe('krakow');
     expect(fin.body.cityCompleted.rewards.map((r: { slug: string }) => r.slug)).toEqual(expect.arrayContaining(['souvenir-syrenka']));
-    const p = await prisma.playerProgress.findUniqueOrThrow({ where: { userId: user.id }, include: { currentCity: true } });
-    expect(p.currentCity?.slug).toBe('krakow');
+    const p = await progress(user.id);
+    expect((await db.query.cities.findFirst({ where: eq(cities.id, p.currentCityId!) }))?.slug).toBe('krakow');
     expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-1-rodzina') })).status).toBe(200);
-    const ach = await prisma.userAchievement.findMany({ where: { userId: user.id }, include: { achievement: true } });
-    expect(ach.map((a) => a.achievement.slug)).toContain('city-1');
+    const ach = await db.select({ slug: achievements.slug }).from(userAchievements).innerJoin(achievements, eq(achievements.id, userAchievements.achievementId)).where(eq(userAchievements.userId, user.id));
+    expect(ach.map((a) => a.slug)).toContain('city-1');
   });
 
   it('вхідний тест відкриває міста як рекомендацію, але не підтверджує рівень', async () => {
@@ -163,7 +165,7 @@ describe('Уроки та нагороди', () => {
     const s = await call('POST', '/api/sessions', { lessonId: await lessonId('placement-test') });
     const fin = await playSession(call, s.body.sessionId);
     expect(fin.body.placement).toMatchObject({ level: 'A1', unlocked: ['warszawa', 'krakow', 'wroclaw'] });
-    const p = await prisma.playerProgress.findUniqueOrThrow({ where: { userId: user.id } });
+    const p = await progress(user.id);
     expect(p.languageLevel).toBe('A0');
     // Уроки міста, відкритого тестом, доступні не по черзі.
     expect((await call('POST', '/api/sessions', { lessonId: await lessonId('wro-4-restauracja') })).status).toBe(200);
@@ -174,12 +176,12 @@ describe('Уроки та нагороди', () => {
     const s = await call('POST', '/api/sessions', { lessonId: await lessonId('exam-a1') });
     const fin = await playSession(call, s.body.sessionId);
     expect(fin.body).toMatchObject({ passed: true, levelConfirmed: 'A1' });
-    expect((await prisma.playerProgress.findUniqueOrThrow({ where: { userId: user.id } })).languageLevel).toBe('A1');
+    expect((await progress(user.id)).languageLevel).toBe('A1');
   });
 
   it('тренування мають денний ліміт XP', async () => {
     const { call, user } = await login();
-    await prisma.gameConfig.update({ where: { key: 'rewards' }, data: { value: { practiceXpDailyCap: 30 } } });
+    await db.update(gameConfig).set({ value: { practiceXpDailyCap: 30 } }).where(eq(gameConfig.key, 'rewards'));
     (await import('../src/services/gameConfig')).invalidateRewards();
     try {
       const s1 = await call('POST', '/api/sessions', { mode: 'FIVE_MIN' });
@@ -188,9 +190,9 @@ describe('Уроки та нагороди', () => {
       expect(f1.body.xp).toBe(30);
       const s2 = await call('POST', '/api/sessions', { mode: 'FIVE_MIN' });
       expect((await playSession(call, s2.body.sessionId)).body.xp).toBe(0);
-      expect((await prisma.playerProgress.findUniqueOrThrow({ where: { userId: user.id } })).xpTotal).toBe(30);
+      expect((await progress(user.id)).xpTotal).toBe(30);
     } finally {
-      await prisma.gameConfig.update({ where: { key: 'rewards' }, data: { value: {} } });
+      await db.update(gameConfig).set({ value: {} }).where(eq(gameConfig.key, 'rewards'));
       (await import('../src/services/gameConfig')).invalidateRewards();
     }
   });

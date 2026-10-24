@@ -1,11 +1,10 @@
 /**
- * Завантаження навчального контенту в БД.
+ * Навчальний контент → SQL для D1 (`wrangler d1 execute --file seed.sql`).
  * За замовчуванням додає лише відсутні записи (не перезаписує правки з адмінки).
  * З `force: true` оновлює існуючий контент з репозиторію.
+ * Зв'язки задаються підзапитами за slug, тож seed працює і з рядками, створеними в адмінці.
  */
-import type { Prisma, PrismaClient } from '@prisma/client';
 import { DEFAULT_REWARDS } from '@polski-go/shared';
-import { hashPassword } from '../lib/password';
 import { resetIds } from './builders';
 import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
@@ -18,152 +17,199 @@ import type { CityContent, LessonSeed } from './types';
 
 export const CITY_CONTENT: CityContent[] = [WARSZAWA, KRAKOW, WROCLAW];
 
-const json = (v: unknown) => v as Prisma.InputJsonValue;
+type Value = string | number | boolean | null | undefined | object | Raw;
+class Raw {
+  constructor(public sql: string) {}
+}
+const raw = (s: string) => new Raw(s);
 
-export async function seedContent(prisma: PrismaClient, opts: { force?: boolean; log?: (m: string) => void } = {}) {
-  const log = opts.log ?? (() => {});
+/** SQL-літерал (рядки екрануються, об'єкти — JSON). */
+export function lit(v: Value): string {
+  if (v instanceof Raw) return v.sql;
+  if (v === null || v === undefined) return 'NULL';
+  if (typeof v === 'boolean') return v ? '1' : '0';
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v)) throw new Error(`bad number ${v}`);
+    return String(v);
+  }
+  const s = typeof v === 'string' ? v : JSON.stringify(v);
+  return `'${s.replace(/'/g, "''")}'`;
+}
+
+function hash(s: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < s.length; i++) {
+    h1 = Math.imul(h1 ^ s.charCodeAt(i), 16777619);
+    h2 = Math.imul(h2 ^ s.charCodeAt(i), 2246822519);
+  }
+  return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+}
+
+const ref = (table: string, where: Record<string, Value>) =>
+  raw(`(SELECT id FROM ${table} WHERE ${Object.entries(where).map(([k, v]) => `${k} = ${lit(v)}`).join(' AND ')})`);
+
+/** INSERT з обробкою конфлікту: ігнорувати (за замовчуванням) або оновити (force). */
+function insert(table: string, row: Record<string, Value>, conflict: string[], force: boolean, keepOnUpdate: string[] = []) {
+  const cols = Object.keys(row);
+  const values = cols.map((c) => lit(row[c])).join(', ');
+  const head = `INSERT INTO ${table} (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${values})`;
+  if (!force) return `${head} ON CONFLICT DO NOTHING;`;
+  const updates = cols.filter((c) => c !== 'id' && !conflict.includes(c) && !keepOnUpdate.includes(c)).map((c) => `"${c}" = excluded."${c}"`);
+  return `${head} ON CONFLICT (${conflict.map((c) => `"${c}"`).join(', ')}) DO ${updates.length ? `UPDATE SET ${updates.join(', ')}` : 'NOTHING'};`;
+}
+
+export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   const force = !!opts.force;
+  const out: string[] = [];
   resetIds();
 
   // ── Налаштування гри та тарифи ──
-  await prisma.gameConfig.upsert({ where: { key: 'rewards' }, create: { key: 'rewards', value: json(DEFAULT_REWARDS) }, update: {} });
+  out.push(`INSERT INTO game_config (key, value) VALUES ('rewards', ${lit(DEFAULT_REWARDS)}) ON CONFLICT DO NOTHING;`);
   const plans = [
-    { code: 'MONTH_1', months: 1, priceStars: 250, recurring: true, order: 1, title: { uk: '1 місяць', ru: '1 месяц', en: '1 month', pl: '1 miesiąc' } },
-    { code: 'MONTH_3', months: 3, priceStars: 600, recurring: false, order: 2, title: { uk: '3 місяці', ru: '3 месяца', en: '3 months', pl: '3 miesiące' } },
-    { code: 'MONTH_12', months: 12, priceStars: 1800, recurring: false, order: 3, title: { uk: '12 місяців', ru: '12 месяцев', en: '12 months', pl: '12 miesięcy' } },
+    { code: 'MONTH_1', months: 1, price_stars: 250, recurring: true, order: 1, title: { uk: '1 місяць', ru: '1 месяц', en: '1 month', pl: '1 miesiąc' } },
+    { code: 'MONTH_3', months: 3, price_stars: 600, recurring: false, order: 2, title: { uk: '3 місяці', ru: '3 месяца', en: '3 months', pl: '3 miesiące' } },
+    { code: 'MONTH_12', months: 12, price_stars: 1800, recurring: false, order: 3, title: { uk: '12 місяців', ru: '12 месяцев', en: '12 months', pl: '12 miesięcy' } },
   ];
-  for (const p of plans) {
-    await prisma.subscriptionPlan.upsert({ where: { code: p.code }, create: p, update: force ? p : {} });
-  }
+  for (const p of plans) out.push(insert('subscription_plans', p, ['code'], force));
 
   // ── Словник ──
-  const vocabIds = new Map<string, string>();
+  const vocabKey = new Map<string, { pl: string; pos: string }>();
   for (const w of VOCAB) {
-    const data = {
-      pl: w.pl, pos: w.pos, translations: json(w.tr), pronunciation: w.pron, cefr: w.cefr, topics: w.topics,
-      emoji: w.emoji ?? null, forms: json(w.forms ?? {}), examples: json(w.examples ?? []),
-    };
-    const e = await prisma.vocabularyEntry.upsert({ where: { pl_pos: { pl: w.pl, pos: w.pos } }, create: data, update: force ? data : {} });
-    vocabIds.set(w.pl, e.id);
+    vocabKey.set(w.pl, { pl: w.pl, pos: w.pos });
+    out.push(
+      insert(
+        'vocabulary_entries',
+        {
+          id: `v_${hash(`${w.pl}|${w.pos}`)}`, pl: w.pl, pos: w.pos, translations: w.tr, pronunciation: w.pron ?? null, cefr: w.cefr,
+          topics: w.topics, emoji: w.emoji ?? null, forms: w.forms ?? {}, examples: w.examples ?? [], status: 'PUBLISHED',
+        },
+        ['pl', 'pos'],
+        force,
+      ),
+    );
   }
-  log(`Словник: ${VOCAB.length} слів`);
 
   // ── Міста ──
   // Прибрані з маршруту міста: архів і звільнення номера порядку (рядки й прогрес не видаляються).
-  const removed = await prisma.city.findMany({ where: { slug: { in: REMOVED_CITIES } } });
-  for (const c of removed) {
-    const order = 1000 + REMOVED_CITIES.indexOf(c.slug);
-    if (c.order !== order || c.status !== 'ARCHIVED') await prisma.city.update({ where: { id: c.id }, data: { status: 'ARCHIVED', order } });
+  for (const [i, slug] of REMOVED_CITIES.entries()) {
+    out.push(`UPDATE cities SET status = 'ARCHIVED', "order" = ${1000 + i} WHERE slug = ${lit(slug)};`);
   }
-  const cityIds = new Map<string, string>();
   for (const [i, c] of CITIES.entries()) {
     const { x, y } = project(c.lon, c.lat);
-    const data = {
-      slug: c.slug, order: i + 1, namePl: c.namePl, name: json(c.name), theme: json(c.theme), description: json(c.description),
-      cefr: c.cefr, mapX: x + (c.dx ?? 0), mapY: y + (c.dy ?? 0), emoji: c.emoji, color: c.color, status: 'PUBLISHED' as const,
-    };
-    const city = await prisma.city.upsert({ where: { slug: c.slug }, create: data, update: force ? data : {} });
-    cityIds.set(c.slug, city.id);
+    out.push(
+      insert(
+        'cities',
+        {
+          id: `c_${c.slug}`, slug: c.slug, order: i + 1, name_pl: c.namePl, name: c.name, theme: c.theme, description: c.description,
+          cefr: c.cefr, map_x: x + (c.dx ?? 0), map_y: y + (c.dy ?? 0), emoji: c.emoji, color: c.color, status: 'PUBLISHED',
+        },
+        ['slug'],
+        force,
+      ),
+    );
   }
-  log(`Міста: ${CITIES.length}`);
 
   // ── Уроки ──
-  let lessonCount = 0;
-  let exerciseCount = 0;
-  const upsertLesson = async (l: LessonSeed, order: number, routeId: string | null) => {
-    const data = {
-      slug: l.slug, order, kind: l.kind ?? 'LESSON', title: json(l.title), topic: json(l.topic), cefr: l.cefr, difficulty: l.difficulty,
-      explanation: json(l.explanation), examples: json(l.examples), status: 'PUBLISHED' as const, routeId,
-    };
-    const existing = await prisma.lesson.findUnique({ where: { slug: l.slug } });
-    if (existing && !force) return existing;
-    const lesson = await prisma.lesson.upsert({ where: { slug: l.slug }, create: data, update: data });
+  const lessonSql = (l: LessonSeed, order: number, routeSlug: string | null) => {
+    out.push(
+      insert(
+        'lessons',
+        {
+          id: `l_${l.slug}`, slug: l.slug, order, kind: l.kind ?? 'LESSON', title: l.title, topic: l.topic, cefr: l.cefr, difficulty: l.difficulty,
+          explanation: l.explanation, examples: l.examples, status: 'PUBLISHED', route_id: routeSlug ? ref('city_routes', { slug: routeSlug }) : null,
+        },
+        ['slug'],
+        force,
+      ),
+    );
+    const lessonId = ref('lessons', { slug: l.slug });
     for (const [i, ex] of l.exercises.entries()) {
-      const exData = { type: ex.type, skill: ex.skill, data: json(ex.data), explanation: ex.explanation ? json(ex.explanation) : undefined };
-      await prisma.exercise.upsert({
-        where: { lessonId_order: { lessonId: lesson.id, order: i } },
-        create: { lessonId: lesson.id, order: i, ...exData },
-        update: exData,
-      });
+      out.push(
+        insert(
+          'exercises',
+          { id: `e_${hash(l.slug)}_${i}`, lesson_id: lessonId, order: i, type: ex.type, skill: ex.skill, data: ex.data, explanation: ex.explanation ?? null },
+          ['lesson_id', 'order'],
+          force,
+        ),
+      );
     }
-    await prisma.exercise.deleteMany({ where: { lessonId: lesson.id, order: { gte: l.exercises.length } } });
-    await prisma.lessonWord.deleteMany({ where: { lessonId: lesson.id } });
+    if (force) {
+      out.push(`DELETE FROM exercises WHERE lesson_id = ${lessonId.sql} AND "order" >= ${l.exercises.length};`);
+      out.push(`DELETE FROM lesson_words WHERE lesson_id = ${lessonId.sql};`);
+    }
     for (const [i, w] of l.words.entries()) {
-      const entryId = vocabIds.get(w);
-      if (!entryId) throw new Error(`Слово "${w}" з уроку ${l.slug} відсутнє у словнику`);
-      await prisma.lessonWord.create({ data: { lessonId: lesson.id, entryId, order: i } });
+      const key = vocabKey.get(w);
+      if (!key) throw new Error(`Слово "${w}" з уроку ${l.slug} відсутнє у словнику`);
+      out.push(insert('lesson_words', { lesson_id: lessonId, entry_id: ref('vocabulary_entries', key), order: i }, ['lesson_id', 'entry_id'], force));
     }
-    lessonCount++;
-    exerciseCount += l.exercises.length;
-    return lesson;
   };
 
   for (const content of CITY_CONTENT) {
-    const cityId = cityIds.get(content.city)!;
+    const cityId = ref('cities', { slug: content.city });
     let regular = 0;
     for (const [ri, r] of content.routes.entries()) {
-      const rData = { cityId, slug: r.slug, order: ri + 1, title: json(r.title), description: json(r.description), icon: r.icon, status: 'PUBLISHED' as const };
-      const route = await prisma.cityRoute.upsert({ where: { slug: r.slug }, create: rData, update: force ? rData : {} });
+      out.push(
+        insert('city_routes', { id: `r_${r.slug}`, city_id: cityId, slug: r.slug, order: ri + 1, title: r.title, description: r.description, icon: r.icon, status: 'PUBLISHED' }, ['slug'], force),
+      );
       for (const [li, l] of r.lessons.entries()) {
-        await upsertLesson(l, li + 1, route.id);
+        lessonSql(l, li + 1, r.slug);
         if ((l.kind ?? 'LESSON') === 'LESSON') regular++;
       }
     }
     // Квиток до наступного міста: пройти всі звичайні уроки міста + іспит.
-    const city = await prisma.city.findUnique({ where: { id: cityId } });
-    if (city && (force || city.ticketLessons === 0)) await prisma.city.update({ where: { id: cityId }, data: { ticketLessons: regular } });
+    out.push(`UPDATE cities SET ticket_lessons = ${regular} WHERE slug = ${lit(content.city)}${force ? '' : ' AND ticket_lessons = 0'};`);
   }
-  await upsertLesson(PLACEMENT, 0, null);
-  await upsertLesson(EXAM_A1, 0, null);
-  log(`Уроки: ${lessonCount} (вправ: ${exerciseCount})`);
+  lessonSql(PLACEMENT, 0, null);
+  lessonSql(EXAM_A1, 0, null);
 
   // ── Косметика ──
-  const itemIds = new Map<string, string>();
   for (const [i, item] of ITEMS.entries()) {
-    const data = {
-      slug: item.slug, slot: item.slot, name: json(item.name), assetKey: item.slug, price: item.price, rarity: item.rarity ?? 'common',
-      isPremium: !!item.premium, rewardOnly: !!item.rewardOnly, cityId: item.city ? cityIds.get(item.city) : null, order: i,
-    };
-    const row = await prisma.cosmeticItem.upsert({ where: { slug: item.slug }, create: data, update: force ? data : {} });
-    itemIds.set(item.slug, row.id);
+    out.push(
+      insert(
+        'cosmetic_items',
+        {
+          id: `i_${item.slug}`, slug: item.slug, slot: item.slot, name: item.name, asset_key: item.slug, price: item.price, rarity: item.rarity ?? 'common',
+          is_premium: !!item.premium, reward_only: !!item.rewardOnly, city_id: item.city ? ref('cities', { slug: item.city }) : null, order: i,
+        },
+        ['slug'],
+        force,
+      ),
+    );
   }
-  log(`Предмети: ${ITEMS.length}`);
 
   // ── Квести ──
   for (const [i, q] of [...DAILY_QUESTS, ...WEEKLY_QUESTS, ...STORY_QUESTS].entries()) {
-    const data = {
-      slug: q.slug, kind: q.kind, title: json(q.title), description: json(q.description), metric: q.metric, target: q.target,
-      xpReward: q.xp, zlotkiReward: q.zlotki, icon: q.icon, cityId: q.city ? cityIds.get(q.city) : null,
-      rewardItemId: q.rewardItem ? itemIds.get(q.rewardItem) : null, order: q.order ?? i,
-    };
-    const existing = await prisma.quest.findUnique({ where: { slug: q.slug } });
-    if (existing && !force) continue;
-    const quest = await prisma.quest.upsert({ where: { slug: q.slug }, create: data, update: data });
-    if (q.stages) {
-      for (const [si, st] of q.stages.entries()) {
-        await prisma.questStep.upsert({
-          where: { questId_order: { questId: quest.id, order: si } },
-          create: { questId: quest.id, order: si, data: json(st) },
-          update: { data: json(st) },
-        });
-      }
+    out.push(
+      insert(
+        'quests',
+        {
+          id: `q_${q.slug}`, slug: q.slug, kind: q.kind, title: q.title, description: q.description, metric: q.metric, target: q.target,
+          xp_reward: q.xp, zlotki_reward: q.zlotki, icon: q.icon, city_id: q.city ? ref('cities', { slug: q.city }) : null,
+          reward_item_id: q.rewardItem ? ref('cosmetic_items', { slug: q.rewardItem }) : null, order: q.order ?? i,
+        },
+        ['slug'],
+        force,
+      ),
+    );
+    for (const [si, st] of (q.stages ?? []).entries()) {
+      out.push(insert('quest_steps', { id: `qs_${hash(q.slug)}_${si}`, quest_id: ref('quests', { slug: q.slug }), order: si, data: st }, ['quest_id', 'order'], force));
     }
   }
 
   // ── Досягнення ──
   for (const [i, a] of ACHIEVEMENTS.entries()) {
-    const data = {
-      slug: a.slug, title: json(a.title), description: json(a.description), icon: a.icon, metric: a.metric, threshold: a.threshold,
-      zlotkiReward: a.zlotki, rewardItemId: a.rewardItem ? itemIds.get(a.rewardItem) : null, order: i,
-    };
-    await prisma.achievement.upsert({ where: { slug: a.slug }, create: data, update: force ? data : {} });
+    out.push(
+      insert(
+        'achievements',
+        {
+          id: `a_${a.slug}`, slug: a.slug, title: a.title, description: a.description, icon: a.icon, metric: a.metric, threshold: a.threshold,
+          zlotki_reward: a.zlotki, reward_item_id: a.rewardItem ? ref('cosmetic_items', { slug: a.rewardItem }) : null, order: i,
+        },
+        ['slug'],
+        force,
+      ),
+    );
   }
-  log('Квести та досягнення готові');
-}
-
-export async function seedAdmin(prisma: PrismaClient, email?: string, password?: string) {
-  if (!email || !password) return;
-  const exists = await prisma.adminUser.findUnique({ where: { email } });
-  if (exists) return;
-  await prisma.adminUser.create({ data: { email, name: 'Super Admin', role: 'SUPERADMIN', passwordHash: await hashPassword(password) } });
+  return out;
 }

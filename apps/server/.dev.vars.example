@@ -1,0 +1,10 @@
+# Локальні змінні для `wrangler dev` (скопіюйте у .dev.vars у корені репозиторію).
+ENVIRONMENT=development
+DEV_AUTH=true
+SESSION_SECRET=dev-secret-dev-secret-dev-secret-12345
+WEB_APP_URL=http://localhost:5173
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+ANTHROPIC_API_KEY=
+ADMIN_EMAIL=admin@polski.go
+ADMIN_PASSWORD=change-me-please

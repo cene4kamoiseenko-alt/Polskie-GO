@@ -1,6 +1,11 @@
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
 import { dayKey, effectiveStreak, levelFromXp, type Cefr } from '@polski-go/shared';
-import { prisma } from '../db';
+import { and, count, desc, eq, gt, inArray, isNotNull, lte, or } from 'drizzle-orm';
+import { db } from '../db';
+import {
+  aiUsage, cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
+  quests, reviewSchedule, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
+} from '../db/schema';
 import { getRewards } from './gameConfig';
 import { activeSubscription } from './premium';
 import { outfit } from './shop';
@@ -9,22 +14,33 @@ const GOAL_XP: Record<number, number> = { 5: 30, 10: 50, 15: 80, 20: 120 };
 export const goalXp = (minutes: number) => GOAL_XP[minutes] ?? Math.max(20, minutes * 5);
 
 export async function getMe(userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    include: { settings: true, profile: true, progress: { include: { currentCity: true } }, wallet: true },
-  });
-  const tz = user.settings?.timezone ?? 'Europe/Warsaw';
-  const today = dayKey(new Date(), tz);
-  const [todayAct, sub, look, dueReviews, mistakes, unseenAch, cfg, usage] = await Promise.all([
-    prisma.dailyActivity.findUnique({ where: { userId_day: { userId, day: today } } }),
-    activeSubscription(userId),
-    outfit(userId),
-    prisma.reviewSchedule.count({ where: { userId, itemType: 'WORD', dueAt: { lte: new Date() } } }),
-    prisma.reviewSchedule.count({ where: { userId, OR: [{ itemType: 'EXERCISE' }, { itemType: 'WORD', lapses: { gt: 0 } }] } }),
-    prisma.userAchievement.count({ where: { userId, seen: false } }),
-    getRewards(),
-    prisma.aiUsage.findUnique({ where: { userId_day: { userId, day: today } } }),
+  const [userRow, settingsRow, profileRow, progressRow, walletRow] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)),
+    db.select().from(userSettings).where(eq(userSettings.userId, userId)),
+    db.select().from(userProfiles).where(eq(userProfiles.userId, userId)),
+    db.select({ p: playerProgress, city: cities }).from(playerProgress).leftJoin(cities, eq(cities.id, playerProgress.currentCityId)).where(eq(playerProgress.userId, userId)),
+    db.select().from(gameWallets).where(eq(gameWallets.userId, userId)),
   ]);
+  const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0].p, currentCity: progressRow[0].city } };
+  const tz = user.settings?.timezone ?? 'Europe/Warsaw';
+  const now = new Date();
+  const today = dayKey(now, tz);
+  const [todayRow, dueRow, mistakesRow, unseenRow, usageRow] = await db.batch([
+    db.select().from(dailyActivity).where(and(eq(dailyActivity.userId, userId), eq(dailyActivity.day, today))),
+    db.select({ n: count() }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), lte(reviewSchedule.dueAt, now))),
+    db
+      .select({ n: count() })
+      .from(reviewSchedule)
+      .where(and(eq(reviewSchedule.userId, userId), or(eq(reviewSchedule.itemType, 'EXERCISE'), and(eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))))),
+    db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
+    db.select().from(aiUsage).where(and(eq(aiUsage.userId, userId), eq(aiUsage.day, today))),
+  ]);
+  const [sub, look, cfg] = await Promise.all([activeSubscription(userId), outfit(userId), getRewards()]);
+  const todayAct = todayRow[0];
+  const usage = usageRow[0];
+  const dueReviews = dueRow[0]?.n ?? 0;
+  const mistakes = mistakesRow[0]?.n ?? 0;
+  const unseenAch = unseenRow[0]?.n ?? 0;
   const p = user.progress!;
   const lvl = levelFromXp(p.xpTotal);
   const premium = !!sub;
@@ -70,16 +86,22 @@ export async function getMe(userId: string) {
 }
 
 export async function getStats(userId: string, days: number) {
-  const settings = await prisma.userSettings.findUnique({ where: { userId } });
+  const settings = await db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) });
   const tz = settings?.timezone ?? 'Europe/Warsaw';
   const keys: string[] = [];
   const now = Date.now();
   for (let i = days - 1; i >= 0; i--) keys.push(dayKey(new Date(now - i * 86_400_000), tz));
   const [rows, skills, vocab, sessions] = await Promise.all([
-    prisma.dailyActivity.findMany({ where: { userId, day: { in: keys } } }),
-    prisma.languageSkill.findMany({ where: { userId }, orderBy: { mastery: 'desc' } }),
-    prisma.userVocabulary.groupBy({ by: ['status'], where: { userId }, _count: true }),
-    prisma.learningSession.findMany({ where: { userId, status: 'FINISHED' }, orderBy: { finishedAt: 'desc' }, take: 20, include: { lesson: { select: { title: true, kind: true } } } }),
+    db.select().from(dailyActivity).where(and(eq(dailyActivity.userId, userId), inArray(dailyActivity.day, keys))),
+    db.select().from(languageSkills).where(eq(languageSkills.userId, userId)).orderBy(desc(languageSkills.mastery)),
+    db.select({ status: userVocabulary.status, _count: count() }).from(userVocabulary).where(eq(userVocabulary.userId, userId)).groupBy(userVocabulary.status),
+    db
+      .select({ s: learningSessions, title: lessons.title, kind: lessons.kind })
+      .from(learningSessions)
+      .leftJoin(lessons, eq(lessons.id, learningSessions.lessonId))
+      .where(and(eq(learningSessions.userId, userId), eq(learningSessions.status, 'FINISHED')))
+      .orderBy(desc(learningSessions.finishedAt))
+      .limit(20),
   ]);
   const byDay = new Map(rows.map((r) => [r.day, r]));
   return {
@@ -95,31 +117,47 @@ export async function getStats(userId: string, days: number) {
     },
     skills: skills.map((s) => ({ skill: s.skill, mastery: s.mastery, attempts: s.attempts, accuracy: s.attempts ? Math.round((s.correct / s.attempts) * 100) : 0 })),
     vocabulary: Object.fromEntries(vocab.map((v) => [v.status, v._count])),
-    history: sessions.map((s) => ({ id: s.id, mode: s.mode, lesson: s.lesson, correct: s.correct, total: s.total, xp: s.xpAwarded, finishedAt: s.finishedAt })),
+    history: sessions.map(({ s, title, kind }) => ({ id: s.id, mode: s.mode, lesson: title ? { title, kind } : null, correct: s.correct, total: s.total, xp: s.xpAwarded, finishedAt: s.finishedAt })),
   };
 }
 
 export async function getDiary(userId: string) {
-  const visits = await prisma.userCity.findMany({ where: { userId }, include: { city: true }, orderBy: { unlockedAt: 'asc' } });
-  const [lp, quests, items] = await Promise.all([
-    prisma.userLessonProgress.findMany({ where: { userId, firstCompletedAt: { not: null } }, include: { lesson: { include: { route: true } } } }),
-    prisma.userQuest.findMany({ where: { userId, periodKey: 'story', status: { in: ['COMPLETED', 'CLAIMED'] } }, include: { quest: true } }),
-    prisma.userInventory.findMany({ where: { userId, item: { cityId: { not: null } } }, include: { item: true } }),
+  const [visits, lp, questRows, items, totals] = await Promise.all([
+    db.select({ v: userCities, city: cities }).from(userCities).innerJoin(cities, eq(cities.id, userCities.cityId)).where(eq(userCities.userId, userId)).orderBy(userCities.unlockedAt),
+    db
+      .select({ topic: lessons.topic, cityId: cityRoutes.cityId })
+      .from(userLessonProgress)
+      .innerJoin(lessons, eq(lessons.id, userLessonProgress.lessonId))
+      .leftJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId))
+      .where(and(eq(userLessonProgress.userId, userId), isNotNull(userLessonProgress.firstCompletedAt))),
+    db
+      .select({ slug: quests.slug, title: quests.title, icon: quests.icon, cityId: quests.cityId })
+      .from(userQuests)
+      .innerJoin(quests, eq(quests.id, userQuests.questId))
+      .where(and(eq(userQuests.userId, userId), eq(userQuests.periodKey, 'story'), inArray(userQuests.status, ['COMPLETED', 'CLAIMED']))),
+    db
+      .select({ slug: cosmeticItems.slug, name: cosmeticItems.name, slot: cosmeticItems.slot, cityId: cosmeticItems.cityId })
+      .from(userInventory)
+      .innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId))
+      .where(and(eq(userInventory.userId, userId), isNotNull(cosmeticItems.cityId))),
+    db
+      .select({ cityId: cityRoutes.cityId, n: count() })
+      .from(lessons)
+      .innerJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId))
+      .where(and(eq(lessons.status, 'PUBLISHED'), eq(cityRoutes.status, 'PUBLISHED')))
+      .groupBy(cityRoutes.cityId),
   ]);
-  const totals = await prisma.lesson.groupBy({ by: ['routeId'], where: { status: 'PUBLISHED', routeId: { not: null } }, _count: true });
-  const routes = await prisma.cityRoute.findMany({ where: { status: 'PUBLISHED' } });
-  return visits.map((v) => {
-    const cityRoutes = routes.filter((r) => r.cityId === v.cityId);
-    const total = totals.filter((t) => cityRoutes.some((r) => r.id === t.routeId)).reduce((s, t) => s + t._count, 0);
-    const done = lp.filter((l) => l.lesson.route?.cityId === v.cityId);
+  return visits.map(({ v, city }) => {
+    const total = totals.find((t) => t.cityId === v.cityId)?.n ?? 0;
+    const done = lp.filter((l) => l.cityId === v.cityId);
     return {
-      city: { id: v.city.id, slug: v.city.slug, namePl: v.city.namePl, name: v.city.name, emoji: v.city.emoji, color: v.city.color, theme: v.city.theme },
+      city: { id: city.id, slug: city.slug, namePl: city.namePl, name: city.name, emoji: city.emoji, color: city.color, theme: city.theme },
       unlockedAt: v.unlockedAt,
       completedAt: v.bossPassedAt,
       progress: total ? Math.round((done.length / total) * 100) : 0,
-      topics: [...new Set(done.map((d) => JSON.stringify(d.lesson.topic)))].map((s) => JSON.parse(s)),
-      quests: quests.filter((q) => q.quest.cityId === v.cityId).map((q) => ({ slug: q.quest.slug, title: q.quest.title, icon: q.quest.icon })),
-      souvenirs: items.filter((i) => i.item.cityId === v.cityId).map((i) => ({ slug: i.item.slug, name: i.item.name, slot: i.item.slot })),
+      topics: [...new Set(done.map((d) => JSON.stringify(d.topic)))].map((x) => JSON.parse(x)),
+      quests: questRows.filter((q) => q.cityId === v.cityId).map((q) => ({ slug: q.slug, title: q.title, icon: q.icon })),
+      souvenirs: items.filter((i) => i.cityId === v.cityId).map((i) => ({ slug: i.slug, name: i.name, slot: i.slot })),
     };
   });
 }

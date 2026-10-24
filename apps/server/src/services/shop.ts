@@ -1,24 +1,32 @@
 /** Магазин косметики за Złotki та гардероб/домик бобра. */
-import { prisma } from '../db';
+import { and, asc, eq, inArray } from 'drizzle-orm';
+import { atomic, db, isUniqueViolation } from '../db';
+import { cities, cosmeticItems, gameWallets, playerProgress, userInventory } from '../db/schema';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { isPremium } from './premium';
+import { spendZlotki } from './rewards';
 
 /** Слоти, де одночасно може бути вдягнений лише один предмет. */
 const EXCLUSIVE = new Set(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME']);
 
 export async function listShop(userId: string) {
-  const [items, inv, wallet, premium] = await Promise.all([
-    prisma.cosmeticItem.findMany({ where: { isActive: true }, orderBy: [{ slot: 'asc' }, { order: 'asc' }], include: { city: { select: { slug: true, name: true } } } }),
-    prisma.userInventory.findMany({ where: { userId } }),
-    prisma.gameWallet.findUnique({ where: { userId } }),
-    isPremium(userId),
+  const [items, inv, wallet] = await Promise.all([
+    db
+      .select({ item: cosmeticItems, citySlug: cities.slug, cityName: cities.name })
+      .from(cosmeticItems)
+      .leftJoin(cities, eq(cities.id, cosmeticItems.cityId))
+      .where(eq(cosmeticItems.isActive, true))
+      .orderBy(asc(cosmeticItems.slot), asc(cosmeticItems.order)),
+    db.select().from(userInventory).where(eq(userInventory.userId, userId)),
+    db.select().from(gameWallets).where(eq(gameWallets.userId, userId)),
   ]);
+  const premium = await isPremium(userId);
   const owned = new Map(inv.map((i) => [i.itemId, i]));
   return {
-    balance: wallet?.balance ?? 0,
+    balance: wallet[0]?.balance ?? 0,
     premium,
-    items: items.map((i) => ({
+    items: items.map(({ item: i, citySlug, cityName }) => ({
       id: i.id,
       slug: i.slug,
       slot: i.slot,
@@ -28,7 +36,7 @@ export async function listShop(userId: string) {
       rarity: i.rarity,
       isPremium: i.isPremium,
       rewardOnly: i.rewardOnly,
-      city: i.city,
+      city: citySlug ? { slug: citySlug, name: cityName } : null,
       owned: owned.has(i.id),
       equipped: owned.get(i.id)?.equipped ?? false,
     })),
@@ -36,44 +44,62 @@ export async function listShop(userId: string) {
 }
 
 export async function buyItem(userId: string, itemId: string) {
-  return prisma.$transaction(async (tx) => {
-    const item = await tx.cosmeticItem.findUnique({ where: { id: itemId } });
-    if (!item || !item.isActive) throw notFound('item_not_found');
-    if (item.rewardOnly) throw badRequest('reward_only', 'Цей предмет можна лише заробити');
-    if (item.isPremium && !(await isPremium(userId, tx))) throw forbidden('premium_required');
-    const have = await tx.userInventory.findUnique({ where: { userId_itemId: { userId, itemId } } });
-    if (have) throw badRequest('already_owned');
-    // Атомарне списання: не дозволяє піти в мінус навіть при паралельних запитах.
-    const spent = await tx.gameWallet.updateMany({ where: { userId, balance: { gte: item.price } }, data: { balance: { decrement: item.price } } });
-    if (spent.count === 0) throw badRequest('insufficient_funds', 'Недостатньо Złotki');
-    await tx.walletTransaction.create({ data: { userId, amount: -item.price, reason: `buy:${item.slug}`, idempotencyKey: `buy:${userId}:${itemId}` } });
-    await tx.userInventory.create({ data: { userId, itemId, source: 'shop' } });
-    const achievements = await evaluateAchievements(tx, userId);
-    const wallet = await tx.gameWallet.findUniqueOrThrow({ where: { userId } });
-    return { balance: wallet.balance, achievements };
-  });
+  const [itemRow, have, progress] = await db.batch([
+    db.select().from(cosmeticItems).where(eq(cosmeticItems.id, itemId)),
+    db.select().from(userInventory).where(and(eq(userInventory.userId, userId), eq(userInventory.itemId, itemId))),
+    db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
+  ]);
+  const item = itemRow[0];
+  if (!item || !item.isActive) throw notFound('item_not_found');
+  if (item.rewardOnly) throw badRequest('reward_only', 'Цей предмет можна лише заробити');
+  if (item.isPremium && !(await isPremium(userId))) throw forbidden('premium_required');
+  if (have.length) throw badRequest('already_owned');
+  const ach = await evaluateAchievements(userId, progress[0], { PURCHASES: 1 });
+  try {
+    // Списання й видача в одному пакеті: CHECK balance >= 0 і унікальний ключ покупки відкотять усе разом.
+    await atomic([
+      ...spendZlotki(userId, item.price, `buy:${item.slug}`, `buy:${userId}:${itemId}`),
+      db.insert(userInventory).values({ userId, itemId, source: 'shop' }),
+      ...ach.stmts,
+    ]);
+  } catch (e) {
+    if (isUniqueViolation(e)) throw badRequest('already_owned');
+    throw e;
+  }
+  const wallet = await db.query.gameWallets.findFirst({ where: eq(gameWallets.userId, userId) });
+  return { balance: wallet?.balance ?? 0, achievements: ach.unlocked };
 }
 
 export async function equipItem(userId: string, itemId: string, equipped: boolean) {
-  return prisma.$transaction(async (tx) => {
-    const inv = await tx.userInventory.findUnique({ where: { userId_itemId: { userId, itemId } }, include: { item: true } });
-    if (!inv) throw forbidden('not_owned');
-    if (equipped && EXCLUSIVE.has(inv.item.slot)) {
-      await tx.userInventory.updateMany({ where: { userId, equipped: true, item: { slot: inv.item.slot } }, data: { equipped: false } });
-    }
-    await tx.userInventory.update({ where: { userId_itemId: { userId, itemId } }, data: { equipped } });
-    return outfit(userId, tx);
-  });
+  const inv = await db
+    .select({ inv: userInventory, slot: cosmeticItems.slot })
+    .from(userInventory)
+    .innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId))
+    .where(and(eq(userInventory.userId, userId), eq(userInventory.itemId, itemId)))
+    .get();
+  if (!inv) throw forbidden('not_owned');
+  const stmts = [];
+  if (equipped && EXCLUSIVE.has(inv.slot)) {
+    const sameSlot = db.select({ id: cosmeticItems.id }).from(cosmeticItems).where(eq(cosmeticItems.slot, inv.slot));
+    stmts.push(db.update(userInventory).set({ equipped: false }).where(and(eq(userInventory.userId, userId), eq(userInventory.equipped, true), inArray(userInventory.itemId, sameSlot))));
+  }
+  stmts.push(db.update(userInventory).set({ equipped }).where(and(eq(userInventory.userId, userId), eq(userInventory.itemId, itemId))));
+  await atomic(stmts);
+  return outfit(userId);
 }
 
 /** Вдягнені предмети: { HAT: 'cap-green', ... } та розставлені в домику. */
-export async function outfit(userId: string, db: Pick<typeof prisma, 'userInventory'> = prisma) {
-  const rows = await db.userInventory.findMany({ where: { userId, equipped: true }, include: { item: true } });
+export async function outfit(userId: string) {
+  const rows = await db
+    .select({ slot: cosmeticItems.slot, assetKey: cosmeticItems.assetKey })
+    .from(userInventory)
+    .innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId))
+    .where(and(eq(userInventory.userId, userId), eq(userInventory.equipped, true)));
   const wear: Record<string, string> = {};
   const house: string[] = [];
   for (const r of rows) {
-    if (EXCLUSIVE.has(r.item.slot)) wear[r.item.slot] = r.item.assetKey;
-    else house.push(r.item.assetKey);
+    if (EXCLUSIVE.has(r.slot)) wear[r.slot] = r.assetKey;
+    else house.push(r.assetKey);
   }
   return { wear, house };
 }

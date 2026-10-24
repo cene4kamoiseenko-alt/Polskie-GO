@@ -9,11 +9,12 @@ Telegram Mini App — образовательная игра для изуче�
 | | |
 |---|---|
 | Mini App | React 18 · TypeScript · Vite · Tailwind CSS 4 · Framer Motion · Telegram Mini Apps SDK |
-| Backend | Node.js 22 · Fastify 5 · Prisma 6 · PostgreSQL 16 · Zod |
+| Backend | Cloudflare Workers · Hono · Drizzle ORM · Cloudflare D1 (SQLite) · Zod |
 | Админ-панель | отдельное React-приложение (`/admin/`) |
 | AI | Anthropic Claude через серверный API (ключ только на сервере) |
 | Платежи | Telegram Stars (подписка + разовые тарифы) |
-| Тесты | Vitest (модульные + интеграционные на реальной PostgreSQL), Playwright E2E |
+| Хостинг | один бесплатный Cloudflare Worker: API + Mini App + админка, D1, KV, Cron |
+| Тесты | Vitest (модульные + интеграционные на локальной D1 через Miniflare), Playwright E2E |
 
 Подробности: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Статус этапов: [docs/STATUS.md](docs/STATUS.md)
 
@@ -21,81 +22,103 @@ Telegram Mini App — образовательная игра для изуче�
 
 ```
 packages/shared   общая игровая логика: проверка ответов, SM-2, XP/уровни, серии, даты
-apps/server       Fastify API, Prisma-схема и миграции, учебный контент, seed, тесты
+apps/server       Worker (Hono API), схема Drizzle и миграции D1, учебный контент, seed, тесты
 apps/web          Telegram Mini App (игра)
 apps/admin        веб-панель администратора
-scripts/e2e.cjs   E2E-сценарий в браузере
+scripts/          сборка для Cloudflare, E2E-сценарий в браузере
+wrangler.jsonc    конфигурация Cloudflare Worker
 docs/             архитектура и статус
 ```
 
 ## Быстрый старт (локально)
 
-Требуется Node.js ≥ 20 и PostgreSQL 16.
+Требуется только Node.js ≥ 20 — база D1 и Worker запускаются локально через `wrangler`.
 
 ```bash
 npm install
-cp apps/server/.env.example apps/server/.env      # проверьте DATABASE_URL
-createdb polskigo                                 # или через psql
-npm run db:migrate                                # миграции
-npm run db:seed                                   # контент A0–A1, тарифы, первый админ
-npm run dev                                       # API :3000, Mini App :5173, админка :5174/admin/
+cp apps/server/.dev.vars.example .dev.vars        # локальные переменные Worker
+npm run db:local                                  # миграции + контент в локальную D1
+npm run dev                                       # Worker :8787, Mini App :5173, админка :5174/admin/
 ```
 
 * Mini App в браузере: <http://localhost:5173> — вне Telegram работает dev-вход
   (`DEV_AUTH=true`, в production всегда выключен). Другой тестовый пользователь: `?devUser=123`.
-* Админка: <http://localhost:5174/admin/> — логин/пароль из `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+* Админка: <http://localhost:5174/admin/> — первый вход по `ADMIN_EMAIL` / `ADMIN_PASSWORD` создаёт суперадмина.
 
 ## Тесты
 
 ```bash
-npm test          # shared (12) + server (35): авторизация, уроки, анти-накрутка, квесты,
+npm test          # shared (12) + server (36): авторизация, уроки, анти-накрутка, квесты,
                   # магазин, Stars-платежи, админка, валидность всего контента
 npm run e2e       # браузерный сценарий (нужен запущенный npm run dev)
 npm run typecheck
 ```
 
-Серверные тесты создают отдельную временную схему в `TEST_DATABASE_URL` и удаляют её после прогона.
+Серверные тесты поднимают для каждого файла свою локальную D1 (Miniflare — тот же движок, что в Cloudflare).
 
-## Production
+## Деплой на Cloudflare (бесплатно)
 
-```bash
-docker compose up -d --build     # PostgreSQL + приложение на :3000 (API + Mini App + /admin/)
-```
+Всё приложение — **один Cloudflare Worker** на бесплатном плане:
+API (`/api`), webhook бота (`/telegram/webhook`), Mini App (`/`), админка (`/admin/`),
+база **D1**, файлы админки в **KV**, напоминания по **Cron** каждые 15 минут.
+База и KV создаются автоматически при первом деплое.
 
-Контейнер применяет миграции и добавляет отсутствующий контент при каждом старте.
-Один сервер отдаёт `/api`, `/telegram/webhook`, Mini App (`/`) и админку (`/admin/`).
+### 1. Подключить репозиторий
 
-### Cloudflare Pages (только Mini App)
+Cloudflare → **Workers & Pages → Create → Import a repository** → выбрать репозиторий.
 
-Pages хостит статику, поэтому на нём размещается только фронтенд. API (Fastify + PostgreSQL)
-нужно запустить отдельно — Docker на любом VPS, Railway, Render, Fly.io и т. п.
-
-| Настройка Pages | Значение |
+| Настройка | Значение |
 |---|---|
-| Build command | `npm run build:web` |
-| Build output directory | `apps/web/dist` |
+| Project name | `polski-go` |
 | Root directory | *(пусто — корень репозитория)* |
-| Переменная `VITE_API_URL` | `https://api.ваш-домен` (адрес backend) |
-| Переменная `NODE_VERSION` | `22` |
+| Build command | `npm run build:cf` |
+| Deploy command | `npm run deploy:cf` |
+| Production branch | ветка с этим кодом |
 
-На backend добавьте домен Pages в `CORS_ORIGINS` и укажите его в `WEB_APP_URL`.
+Деплой-команда выкладывает Worker, применяет миграции D1 и добавляет недостающий учебный контент
+(существующие правки из админки не перезаписываются). Каждый push запускает сборку заново.
 
-### Что нужно настроить владельцу
+### 2. Секреты Worker
 
-1. **Бот** в [@BotFather](https://t.me/BotFather): создать бота, получить токен; `/newapp` — создать Mini App
-   с URL вашего домена (HTTPS) и коротким именем (например `app`).
-2. **Переменные** в `apps/server/.env`:
-   `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_APP_SHORT_NAME`,
-   `TELEGRAM_WEBHOOK_SECRET` (случайная строка), `WEB_APP_URL`, `SESSION_SECRET` (≥ 32 символа),
-   `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `DEV_AUTH=false`, `NODE_ENV=production`.
-3. **Webhook и меню бота**: `PUBLIC_URL=https://ваш-домен npm run bot:setup -w @polski-go/server`.
-4. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`. Цены тарифов — в админке.
-5. **AI-преподаватель**: `ANTHROPIC_API_KEY` (без ключа вкладка работает в честно помеченном ограниченном режиме),
-   `AI_MONTHLY_OUTPUT_TOKENS` — месячный бюджет.
-6. **Напоминания**: `JOBS_ENABLED=true` (отправляются только согласившимся, не чаще раза в день).
-7. **Бэкапы**: `npm run db:backup -w @polski-go/server` по cron (pg_dump, хранится 14 копий).
-8. **Озвучка**: сейчас используется синтез речи устройства (Web Speech API). Для стабильного звука
-   загрузите аудиофайлы к словам и упражнениям в админке (поля «Аудио»).
+Worker `polski-go` → **Settings → Variables and Secrets** (тип *Secret*):
+
+| Имя | Значение |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | токен от @BotFather |
+| `TELEGRAM_BOT_USERNAME` | имя бота без @ |
+| `TELEGRAM_APP_SHORT_NAME` | короткое имя Mini App из `/newapp` (например `app`) |
+| `TELEGRAM_WEBHOOK_SECRET` | случайная строка |
+| `SESSION_SECRET` | случайная строка ≥ 32 символов |
+| `WEB_APP_URL` | `https://polski-go.<аккаунт>.workers.dev` (или свой домен) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | первый вход в `/admin/` |
+| `ANTHROPIC_API_KEY` | необязательно; без ключа AI честно работает в ограниченном режиме |
+
+Проверка: `https://polski-go.<аккаунт>.workers.dev/api/health` → `{"ok":true}`.
+
+### 3. Бот
+
+1. В [@BotFather](https://t.me/BotFather): `/newapp` → URL `https://polski-go.<аккаунт>.workers.dev`.
+2. Webhook (бот, Stars, `/start`): открыть в браузере
+   `https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=https://polski-go.<аккаунт>.workers.dev/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>&allowed_updates=["message","pre_checkout_query"]`
+   или локально: `PUBLIC_URL=… WEB_APP_URL=… TELEGRAM_BOT_TOKEN=… TELEGRAM_WEBHOOK_SECRET=… npm run bot:setup -w @polski-go/server`.
+3. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`, цены тарифов — в админке.
+
+### Лимиты бесплатного плана
+
+* Worker: 100 000 запросов в сутки, 10 мс CPU на запрос (тяжёлые операции сгруппированы в пакеты D1).
+* D1: 5 млн чтений и 100 000 записей в сутки, 5 ГБ. Хватает примерно на несколько сотен активных учеников в день;
+  дальше — Workers Paid ($5/мес) без изменений в коде.
+* Резервные копии: встроенный Time Travel D1 (восстановление на любую минуту за 30 дней).
+
+### Если Mini App остаётся на Cloudflare Pages
+
+Можно оставить старый проект Pages для фронтенда: переменная `VITE_API_URL` = адрес Worker,
+а в секретах Worker — `CORS_ORIGINS` = адрес Pages. Но проще открывать Mini App прямо с Worker.
+
+### Озвучка
+
+Сейчас используется синтез речи устройства (Web Speech API). Для стабильного звука загрузите
+аудиофайлы к словам и упражнениям в админке (поля «Аудио»).
 
 ## Лицензии и ассеты
 

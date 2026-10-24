@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    proxy: { '/api': 'http://localhost:3000', '/uploads': 'http://localhost:3000' },
+    proxy: { '/api': 'http://localhost:8787', '/uploads': 'http://localhost:8787' },
   },
   build: { target: 'es2020', chunkSizeWarningLimit: 900 },
 });
