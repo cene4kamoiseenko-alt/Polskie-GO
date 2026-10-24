@@ -1,0 +1,168 @@
+import type { Cefr, CheckResult, I18n, UiLang } from '@polski-go/shared';
+
+export type Outfit = { wear: Partial<Record<string, string>>; house: string[] };
+
+export type Me = {
+  id: string;
+  firstName: string;
+  username: string | null;
+  photoUrl: string | null;
+  referralCode: string;
+  onboarded: boolean;
+  createdAt: string;
+  settings: {
+    uiLanguage: UiLang;
+    theme: 'auto' | 'light' | 'dark';
+    timezone: string;
+    learningGoal: string | null;
+    dailyGoalMinutes: number;
+    reminderHour: number | null;
+    notificationsEnabled: boolean;
+    soundEnabled: boolean;
+    reducedMotion: boolean;
+    publicProfile: boolean;
+    showInLeaderboard: boolean;
+  };
+  profile: { displayName: string | null; beaverName: string; bio: string | null; selfLevel: Cefr | null; placementLevel: Cefr | null };
+  progress: {
+    xpTotal: number;
+    level: number;
+    levelXp: number;
+    levelXpNeeded: number;
+    languageLevel: Cefr;
+    streak: number;
+    streakBest: number;
+    activeToday: boolean;
+    lessonsCompleted: number;
+    perfectLessons: number;
+    wordsLearned: number;
+    currentCity: { id: string; slug: string; namePl: string; name: I18n; emoji: string } | null;
+  };
+  today: { xp: number; goalXp: number; lessons: number; seconds: number };
+  zlotki: number;
+  premium: { active: boolean; expiresAt?: string; planCode?: string; recurring?: boolean; cancelled?: boolean };
+  outfit: Outfit;
+  counters: { dueReviews: number; mistakes: number; unseenAchievements: number };
+  ai: { used: number; limit: number };
+};
+
+export type LessonState = 'locked' | 'available' | 'completed';
+export type JourneyLesson = {
+  id: string;
+  slug: string;
+  kind: 'LESSON' | 'BOSS';
+  title: I18n;
+  topic: I18n;
+  cefr: Cefr;
+  difficulty: number;
+  isPremium: boolean;
+  exerciseCount: number;
+  state: LessonState;
+  stars: number;
+  bestScore: number;
+};
+export type JourneyCity = {
+  id: string;
+  slug: string;
+  order: number;
+  namePl: string;
+  name: I18n;
+  theme: I18n;
+  description: I18n;
+  cefr: Cefr;
+  mapX: number;
+  mapY: number;
+  emoji: string;
+  color: string;
+  hasContent: boolean;
+  unlocked: boolean;
+  completed: boolean;
+  bossAvailable: boolean;
+  lessonsTotal: number;
+  lessonsDone: number;
+  progress: number;
+  routes: { id: string; slug: string; title: I18n; description: I18n; icon: string; lessons: JourneyLesson[] }[];
+};
+export type Journey = { cities: JourneyCity[]; currentCityId: string | null; nextLesson: JourneyLesson | null };
+
+export type PublicItem = { key: string; type: string; skill: string; data: Record<string, unknown>; explanation?: I18n };
+
+export type SessionStart = {
+  sessionId: string;
+  mode: string;
+  lesson: null | { id: string; slug: string; kind: string; title: I18n; topic: I18n; explanation: I18n; examples: { pl: string; tr: I18n }[]; cefr: Cefr };
+  words: { id: string; pl: string; translations: I18n; pronunciation: string | null; emoji: string | null; audioUrl: string | null }[];
+  items: PublicItem[];
+  timeLimitSec: number | null;
+};
+
+export type AnswerResult = CheckResult & { explanation: I18n | null; retry: boolean; answered: number; total: number };
+
+export type FinishResult = {
+  mode: string;
+  passed: boolean;
+  perfect: boolean;
+  correct: number;
+  total: number;
+  accuracy: number;
+  mistakes: { key: string; type: string; skill: string }[];
+  xp: number;
+  zlotki: number;
+  levelUp: number | null;
+  streak: number;
+  streakIncreased: boolean;
+  newWords: { id: string; pl: string; translations: I18n }[];
+  cityCompleted: null | { cityId: string; nextCity: null | { id: string; slug: string; name: I18n; namePl: string; emoji: string; hasLessons: boolean }; rewards: { slug: string; name: I18n; slot: string }[] };
+  levelConfirmed: Cefr | null;
+  placement: null | { level: Cefr; unlocked: string[] };
+  questsCompleted: { id: string; title: I18n; icon: string }[];
+  achievements: { slug: string; title: I18n; icon: string; zlotki: number }[];
+  durationSec: number;
+};
+
+export type Quest = {
+  id: string | null;
+  slug: string;
+  kind: 'DAILY' | 'WEEKLY' | 'STORY';
+  title: I18n;
+  description: I18n;
+  icon: string;
+  progress: number;
+  target: number;
+  status: 'NEW' | 'ACTIVE' | 'COMPLETED' | 'CLAIMED';
+  xp: number;
+  zlotki: number;
+  available?: boolean;
+  stage?: number;
+  stages?: number;
+};
+
+export type ShopItem = {
+  id: string;
+  slug: string;
+  slot: string;
+  name: I18n;
+  assetKey: string;
+  price: number;
+  rarity: string;
+  isPremium: boolean;
+  rewardOnly: boolean;
+  city: { slug: string; name: I18n } | null;
+  owned: boolean;
+  equipped: boolean;
+};
+
+export type VocabEntry = {
+  id: string;
+  pl: string;
+  pos: string;
+  translations: I18n;
+  pronunciation: string | null;
+  forms: Record<string, string>;
+  examples: { pl: string; tr: I18n }[];
+  cefr: Cefr;
+  topics: string[];
+  emoji: string | null;
+  audioUrl: string | null;
+  mine: null | { status: 'NEW' | 'LEARNING' | 'LEARNED'; favorite: boolean; timesCorrect: number; timesWrong: number };
+};

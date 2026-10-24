@@ -1,0 +1,204 @@
+@import 'tailwindcss';
+
+/* ───────── Дизайн-система POLSKI GO ───────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-brand: #45c486;
+  --color-brand-dark: #2fa56c;
+  --color-brand-light: #dff6e8;
+  --color-cream: #fff9ed;
+  --color-xp: #ffc857;
+  --color-xp-dark: #e8a82a;
+  --color-sky: #69c7f4;
+  --color-sky-dark: #3aa6dc;
+  --color-ink: #243746;
+  --color-coral: #ff6b6b;
+  --color-coral-dark: #e04848;
+  --color-grape: #9b6bff;
+  --color-pl-red: #e5484d;
+
+  --radius-card: 22px;
+  --shadow-card: 0 6px 18px -6px rgb(36 55 70 / 0.18);
+}
+
+:root {
+  --bg: #fff9ed;
+  --bg-elev: #ffffff;
+  --bg-muted: #f3eee2;
+  --text: #243746;
+  --text-muted: #6b7c89;
+  --border: #ece4d3;
+  --track: #ece4d3;
+  --map-land: #bfe8a9;
+  --map-land-2: #a6dc8c;
+  --map-sea: #8fd3f5;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #13202b;
+  --bg-elev: #1d2d3a;
+  --bg-muted: #243746;
+  --text: #f1f5f8;
+  --text-muted: #9fb2c0;
+  --border: #2c4050;
+  --track: #2c4050;
+  --map-land: #3f7a4f;
+  --map-land-2: #356a44;
+  --map-sea: #1f5a7a;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+/* Безпечні зони Telegram (Bot API 8.0+) з запасними значеннями браузера */
+.safe-top {
+  padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));
+}
+.safe-bottom {
+  padding-bottom: calc(var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 8px);
+}
+
+@layer components {
+  .card {
+    background: var(--bg-elev);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+  }
+  .muted {
+    color: var(--text-muted);
+  }
+  .bg-elev {
+    background: var(--bg-elev);
+  }
+  .bg-muted {
+    background: var(--bg-muted);
+  }
+  .border-soft {
+    border-color: var(--border);
+  }
+  /* Ігрова «3D» кнопка */
+  .btn {
+    @apply relative inline-flex select-none items-center justify-center gap-2 rounded-2xl px-5 font-extrabold tracking-wide transition-transform;
+    min-height: 52px;
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(3px);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+  }
+  .btn-primary {
+    background: var(--color-brand);
+    color: white;
+    box-shadow: 0 4px 0 var(--color-brand-dark);
+  }
+  .btn-primary:active:not(:disabled) {
+    box-shadow: 0 1px 0 var(--color-brand-dark);
+  }
+  .btn-red {
+    background: var(--color-pl-red);
+    color: white;
+    box-shadow: 0 4px 0 #b8323a;
+  }
+  .btn-red:active:not(:disabled) {
+    box-shadow: 0 1px 0 #b8323a;
+  }
+  .btn-xp {
+    background: var(--color-xp);
+    color: #5a3d00;
+    box-shadow: 0 4px 0 var(--color-xp-dark);
+  }
+  .btn-sky {
+    background: var(--color-sky);
+    color: white;
+    box-shadow: 0 4px 0 var(--color-sky-dark);
+  }
+  .btn-ghost {
+    background: var(--bg-elev);
+    color: var(--text);
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 0 var(--border);
+  }
+  .btn-ghost:active:not(:disabled) {
+    box-shadow: 0 1px 0 var(--border);
+  }
+  .option {
+    @apply w-full rounded-2xl border-2 px-4 py-3 text-left text-[17px] font-bold transition-colors;
+    min-height: 56px;
+    background: var(--bg-elev);
+    border-color: var(--border);
+    box-shadow: 0 3px 0 var(--border);
+  }
+  .option[data-state='selected'] {
+    border-color: var(--color-sky);
+    background: color-mix(in srgb, var(--color-sky) 14%, var(--bg-elev));
+    box-shadow: 0 3px 0 var(--color-sky-dark);
+  }
+  .option[data-state='correct'] {
+    border-color: var(--color-brand);
+    background: color-mix(in srgb, var(--color-brand) 18%, var(--bg-elev));
+    box-shadow: 0 3px 0 var(--color-brand-dark);
+  }
+  .option[data-state='wrong'] {
+    border-color: var(--color-coral);
+    background: color-mix(in srgb, var(--color-coral) 16%, var(--bg-elev));
+    box-shadow: 0 3px 0 var(--color-coral-dark);
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold;
+    background: var(--bg-muted);
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--bg-muted) 25%, var(--border) 37%, var(--bg-muted) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+    border-radius: 16px;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
