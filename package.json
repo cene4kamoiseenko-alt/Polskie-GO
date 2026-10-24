@@ -9,9 +9,9 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @polski-go/server & npm run dev -w @polski-go/web & npm run dev -w @polski-go/admin & wait",
-    "build": "npm run build -w @polski-go/web && npm run build -w @polski-go/admin",
+    "build": "npm run build -w @polski-go/web && npm run build -w @polski-go/admin && node scripts/build-cf.mjs && npm run seed:sql -w @polski-go/server",
     "build:web": "npm run build -w @polski-go/web",
-    "build:cf": "npm run build && node scripts/build-cf.mjs && npm run seed:sql -w @polski-go/server",
+    "build:cf": "npm run build",
     "deploy:cf": "wrangler deploy && wrangler d1 migrations apply polski-go --remote && wrangler d1 execute polski-go --remote --file apps/server/seed.sql --yes",
     "test": "npm run test -w @polski-go/shared && npm run test -w @polski-go/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
