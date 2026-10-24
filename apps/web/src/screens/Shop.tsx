@@ -7,10 +7,11 @@ import { useMe, useRefreshAll, useShop } from '../lib/queries';
 import type { ShopItem } from '../lib/types';
 import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { Beaver, ITEM_ICONS } from '../components/Beaver';
+import { Beaver } from '../components/Beaver';
+import { ItemPreview, WEAR_SLOTS } from '../components/ItemPreview';
+import { Icon } from '../components/Icon';
 import { ErrorState, ScreenHeader, ScreenSkeleton, Sheet, cx, useToast } from '../components/ui';
 
-const WEAR_SLOTS = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME'];
 const ALL_SLOTS = [...WEAR_SLOTS, 'FURNITURE', 'DECOR', 'SOUVENIR'];
 const RARITY: Record<string, string> = { common: '#B9C3CB', rare: '#69C7F4', epic: '#9B6BFF', legendary: '#FFC857' };
 
@@ -81,12 +82,18 @@ export default function ShopScreen() {
             className={cx('card relative flex flex-col items-center gap-1 p-3', i.equipped && 'ring-4 ring-brand')}
             style={{ borderTop: `4px solid ${RARITY[i.rarity] ?? RARITY.common}` }}
           >
-            <span className="text-4xl">{ITEM_ICONS[i.assetKey] ?? '🎁'}</span>
+            <ItemPreview slot={i.slot} assetKey={i.assetKey} />
             <span className="line-clamp-2 text-center text-xs font-black leading-tight">{tr(i.name)}</span>
             <span className="text-xs font-black">
-              {i.owned ? (i.equipped ? '✅' : `✓ ${t('shop_owned')}`) : i.rewardOnly ? '🏅' : `🪙 ${i.price}`}
+              {i.owned ? (
+                <span className="inline-flex items-center gap-0.5 text-brand-dark"><Icon name="check" size={14} strokeWidth={3} /> {t(i.equipped ? 'shop_wearing' : 'shop_owned')}</span>
+              ) : i.rewardOnly ? (
+                <span className="inline-flex items-center gap-0.5 text-grape"><Icon name="trophy" size={14} /> {t('shop_reward_only')}</span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 text-[#B26A12]"><Icon name="coin" size={14} /> {i.price}</span>
+              )}
             </span>
-            {i.isPremium && <span className="absolute right-1 top-1 text-sm">👑</span>}
+            {i.isPremium && <span className="absolute right-1.5 top-1.5 text-xp-dark"><Icon name="crown" size={16} filled /></span>}
           </motion.button>
         ))}
       </div>
@@ -95,7 +102,7 @@ export default function ShopScreen() {
       <Sheet open={!!picked} onClose={() => setPicked(null)}>
         {picked && (
           <div className="space-y-4 text-center">
-            <div className="text-6xl">{ITEM_ICONS[picked.assetKey] ?? '🎁'}</div>
+            <div className="flex justify-center"><ItemPreview slot={picked.slot} assetKey={picked.assetKey} size={110} /></div>
             <h2 className="text-2xl font-black">{tr(picked.name)}</h2>
             <div className="flex justify-center gap-2">
               <span className="chip capitalize" style={{ color: RARITY[picked.rarity] }}>● {picked.rarity}</span>
@@ -120,3 +127,4 @@ export default function ShopScreen() {
     </div>
   );
 }
+

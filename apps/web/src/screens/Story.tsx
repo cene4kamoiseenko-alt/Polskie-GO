@@ -1,4 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { Scene, type SceneName } from '../components/Illustrations';
+import { SceneAvatar, type SceneKey } from '../components/SceneAvatar';
+import { Icon } from '../components/Icon';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { I18n } from '@polski-go/shared';
@@ -11,6 +14,10 @@ import { Beaver } from '../components/Beaver';
 import { Confetti, ErrorState, Progress, RichText, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
 
 type Node = { speaker: 'npc' | 'beaver' | 'narrator'; name?: string; emoji?: string; pl: string; tr: I18n; choices?: { pl: string; tr: I18n }[]; end: boolean };
+/** Ілюстрація сцени та співрозмовник для кожного сюжетного квесту. */
+const STORY_SCENE: Record<string, SceneName> = { 's-warszawa-dworzec': 'train-station', 's-krakow-mieszkanie': 'flat', 's-wroclaw-zgubiony': 'tram-stop' };
+const STORY_NPC: Record<string, SceneKey> = { 's-warszawa-dworzec': 'train', 's-krakow-mieszkanie': 'landlord', 's-wroclaw-zgubiony': 'meeting' };
+
 type State = { id: string; slug: string; title: I18n; status: string; stage: number; stages: number; stageTitle?: I18n; mistakes: number; node: Node | null; result?: { ok: boolean; feedback?: I18n } | null };
 
 export default function StoryScreen() {
@@ -77,11 +84,9 @@ export default function StoryScreen() {
       </div>
       <div className="flex flex-1 flex-col gap-4 px-4 pb-6 pt-4">
         {!done && (
-          <div className="relative grid h-44 place-items-center overflow-hidden rounded-[28px]" style={{ background: 'linear-gradient(180deg,#BFE8F8 0%,#DFF6E8 70%,#A6DC8C 70%)' }}>
-            <div className="absolute left-4 top-3 text-4xl">☁️</div>
-            <div className="absolute right-6 top-6 text-3xl">☁️</div>
-            <div className="absolute bottom-3 left-5 text-6xl">{node?.speaker === 'npc' ? node.emoji : '🏙️'}</div>
-            <div className="absolute bottom-0 right-6">
+          <div className="relative h-44 overflow-hidden rounded-[28px] shadow-[var(--shadow-card)]">
+            <Scene name={STORY_SCENE[st.slug] ?? 'tram-stop'} className="absolute inset-0 h-full w-full" />
+            <div className="absolute bottom-0 right-4">
               <Beaver size={110} outfit={me?.outfit.wear} mood={st.result && !st.result.ok ? 'sad' : 'travel'} />
             </div>
           </div>
@@ -93,14 +98,20 @@ export default function StoryScreen() {
             <h2 className="text-3xl font-black text-brand-dark">{t('story_complete')}</h2>
             <p className="muted font-bold">{t('story_mistakes', { n: st.mistakes })}</p>
             <button className="btn btn-xp w-full" onClick={() => nav('/quests', { replace: true })}>
-              🎁 {t('quests_claim')}
+              <Icon name="gift" size={20} /> {t('quests_claim')}
             </button>
           </div>
         ) : node ? (
           <AnimatePresence mode="wait">
             <motion.div key={node.pl} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div className="flex items-end gap-3">
-                {node.speaker === 'beaver' ? <Beaver mood="happy" size={110} outfit={me?.outfit.wear} /> : node.speaker === 'npc' ? <div className="text-7xl">{node.emoji}</div> : <div className="text-6xl">📖</div>}
+                {node.speaker === 'beaver' ? (
+                  <Beaver mood="happy" size={96} outfit={me?.outfit.wear} />
+                ) : node.speaker === 'npc' ? (
+                  <SceneAvatar scene={STORY_NPC[st.slug] ?? 'meeting'} size={76} />
+                ) : (
+                  <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-sky/20 text-sky-dark"><Icon name="book" size={30} /></span>
+                )}
                 <button onClick={() => speak(node.pl)} className={cx('card flex-1 p-4 text-left', node.speaker === 'narrator' && 'italic')}>
                   {node.name && <div className="text-xs font-black uppercase text-pl-red">{node.name}</div>}
                   <div className="text-xl font-black">{node.pl}</div>
@@ -109,7 +120,7 @@ export default function StoryScreen() {
               </div>
               {feedback && (
                 <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-start gap-2 rounded-2xl bg-xp/25 p-3 font-bold">
-                  🦫 <RichText text={tr(feedback)} />
+                  <span className="-my-1 shrink-0"><Beaver mood="sad" size={44} animate={false} /></span> <RichText text={tr(feedback)} />
                 </motion.div>
               )}
               {node.choices ? (

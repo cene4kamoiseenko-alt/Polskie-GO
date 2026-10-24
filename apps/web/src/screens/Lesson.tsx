@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { WordTile } from '../components/Illustrations';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
@@ -170,7 +171,7 @@ export default function LessonScreen() {
           <div className="flex items-center gap-3">
             <Beaver mood="think" size={96} outfit={{ ...me?.outfit.wear, GLASSES: 'glasses-round' }} />
             <div>
-              <div className="chip mb-1 text-xs">{l.cefr} · {l.kind === 'BOSS' ? '🏆' : '📘'}</div>
+              <div className="chip mb-1 text-xs">{l.cefr} · <Icon name={l.kind === 'BOSS' ? 'trophy' : 'book'} size={14} /></div>
               <h1 className="text-2xl font-black leading-tight">{tr(l.title)}</h1>
               <p className="muted font-bold">{tr(l.topic)}</p>
             </div>
@@ -184,7 +185,7 @@ export default function LessonScreen() {
               <div className="grid grid-cols-1 gap-2">
                 {session.words.map((w) => (
                   <div key={w.id} className="card flex items-center gap-3 px-3 py-2">
-                    <span className="text-2xl">{w.emoji ?? '📝'}</span>
+                    <WordTile pl={w.pl} size={40} />
                     <div className="min-w-0 flex-1">
                       <div className="font-black">{w.pl}</div>
                       <div className="muted truncate text-sm font-bold">
@@ -249,11 +250,11 @@ export default function LessonScreen() {
           ✕
         </button>
         <Progress value={firstDone} max={session.items.length} height={14} />
-        {timeLeft !== null ? <span className="chip font-black">⏱ {timeLeft}</span> : <span className="text-sm font-black muted">{Math.min(firstDone + 1, session.items.length)}/{session.items.length}</span>}
+        {timeLeft !== null ? <span className="chip font-black"><Icon name="clock" size={16} /> {timeLeft}</span> : <span className="text-sm font-black muted">{Math.min(firstDone + 1, session.items.length)}/{session.items.length}</span>}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-48 pt-4">
-        {isRetry && <div className="mb-2 text-center text-sm font-black text-coral">🔁 {t('lesson_retry_round')}</div>}
+        {isRetry && <div className="mb-2 text-center text-sm font-black text-coral"><Icon name="refresh" size={16} className="mr-1 inline" />{t('lesson_retry_round')}</div>}
         <AnimatePresence mode="wait">
           <motion.div key={`${item.key}-${pos}`} initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.2 }}>
             <h2 className="mb-4 text-xl font-black">{t(instructionKey(item))}</h2>

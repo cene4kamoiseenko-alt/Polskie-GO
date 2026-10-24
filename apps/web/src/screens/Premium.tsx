@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Icon } from '../components/Icon';
 import { useState } from 'react';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
@@ -76,20 +77,20 @@ export default function PremiumScreen() {
       <Card className="mx-4 space-y-2 p-4">
         {(['prem_f1', 'prem_f2', 'prem_f3', 'prem_f4', 'prem_f5', 'prem_f6'] as const).map((k) => (
           <div key={k} className="flex items-start gap-2 font-bold">
-            <span className="text-brand">✔</span>
+            <span className="text-brand"><Icon name="check" size={18} strokeWidth={3} /></span>
             {t(k)}
           </div>
         ))}
-        <p className="muted pt-2 text-xs font-bold">💚 {t('prem_free_note')}</p>
+        <p className="muted pt-2 text-xs font-bold">{t('prem_free_note')}</p>
       </Card>
 
-      {status === 'waiting' && <div className="mx-4 rounded-2xl bg-sky/20 p-3 text-center font-black">⏳ {t('prem_waiting')}</div>}
+      {status === 'waiting' && <div className="mx-4 rounded-2xl bg-sky/20 p-3 text-center font-black"><span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-sky-dark/30 border-t-sky-dark align-middle" />{t('prem_waiting')}</div>}
       {status === 'paid' && <div className="mx-4 rounded-2xl bg-brand/20 p-3 text-center font-black">{t('prem_paid')}</div>}
       {status === 'failed' && <div className="mx-4 rounded-2xl bg-coral/20 p-3 text-center font-black">{t('prem_failed')}</div>}
 
       {sub ? (
         <Card className="mx-4 space-y-3 p-4 text-center">
-          <div className="text-lg font-black">👑 {sub.cancelled ? t('prem_cancelled', { date: date(sub.expiresAt) }) : t('prem_active', { date: date(sub.expiresAt) })}</div>
+          <div className="flex items-center gap-2 text-lg font-black"><Icon name="crown" size={22} className="text-xp-dark" filled /> {sub.cancelled ? t('prem_cancelled', { date: date(sub.expiresAt) }) : t('prem_active', { date: date(sub.expiresAt) })}</div>
           {sub.recurring && !sub.cancelled && (
             <button className="w-full py-2 font-black text-coral" onClick={cancel}>
               {t('prem_cancel')}
@@ -108,8 +109,8 @@ export default function PremiumScreen() {
                   </span>
                   {save > 0 && <span className="absolute -top-2 rounded-full bg-pl-red px-2 text-[11px] font-black text-white">-{save}%</span>}
                   <span className="text-sm font-black">{tr(p.title)}</span>
-                  <span className="text-xl font-black">⭐ {p.priceStars}</span>
-                  <span className="muted text-[11px] font-bold">≈ ⭐ {monthly(p)}{t('prem_month')}</span>
+                  <span className="flex items-center gap-1 text-xl font-black"><Icon name="star" size={18} className="text-xp-dark" /> {p.priceStars}</span>
+                  <span className="muted text-[11px] font-bold">≈ {monthly(p)} Stars{t('prem_month')}</span>
                   <span className="muted text-center text-[10px] font-bold leading-tight">{p.recurring ? t('prem_recurring') : t('prem_once')}</span>
                 </button>
               );
@@ -117,7 +118,7 @@ export default function PremiumScreen() {
           </div>
           <div className="px-4">
             <button className="btn btn-xp w-full text-lg" disabled={!data.paymentsConfigured || status === 'waiting'} onClick={buy}>
-              👑{' '}
+              <Icon name="crown" size={20} filled />{' '}
               {data.paymentsConfigured ? t('prem_buy', { n: data.plans.find((p) => p.code === plan)?.priceStars ?? '' }) : t('prem_not_configured')}
             </button>
             <p className="muted mt-2 text-center text-xs font-bold">{t('prem_stars_note')}</p>

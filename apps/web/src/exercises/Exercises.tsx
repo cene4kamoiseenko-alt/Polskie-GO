@@ -3,7 +3,7 @@
  * і показують результат перевірки.
  */
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import type { AnswerResult, PublicItem } from '../lib/types';
@@ -11,6 +11,7 @@ import { assetUrl } from '../lib/api';
 import { recognizePolish, sfx, speak, speechRecognitionAvailable } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
+import { Icon } from '../components/Icon';
 import { SpeakButton, cx } from '../components/ui';
 
 export type Payload = Record<string, unknown>;
@@ -61,6 +62,27 @@ function Highlight({ text }: { text: string }) {
 }
 
 // ───────── Вибір варіанту ─────────
+/** Відгук варіанта: вибір — легке збільшення, помилка — похитування, правильна — «пульс». */
+function optionMotion(st: string | undefined) {
+  if (st === 'wrong') return { x: [0, -8, 8, -5, 5, 0], scale: 1 };
+  if (st === 'correct') return { scale: [1, 1.04, 1], x: 0 };
+  if (st === 'selected') return { scale: 1.02, x: 0 };
+  return { scale: 1, x: 0 };
+}
+
+/** Бобек «каже» завдання: репліка-бульбашка поруч із маскотом, настрій реагує на відповідь. */
+function BeaverSays({ mood, children }: { mood: 'think' | 'cheer' | 'sad'; children: ReactNode }) {
+  return (
+    <div className="flex items-end gap-1">
+      <div className="shrink-0"><Beaver mood={mood} size={92} /></div>
+      <div className="card relative mb-8 flex min-w-0 flex-1 flex-wrap items-center gap-3 rounded-bl-md p-4">
+        <span className="absolute -left-2 bottom-3 h-4 w-4 rotate-45 border-b border-l border-[var(--border)] bg-elev" aria-hidden />
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function ChoiceExercise({ item, result, onChange }: ExProps) {
   const { tr } = useT();
   const data = d<{ pl?: string; translation?: I18n; passage?: string; question?: I18n; audioText?: string; audioUrl?: string; image?: string; options: Opt[] }>(item);
@@ -77,6 +99,7 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
     onChange({ optionId: id });
     if (typeof text === 'string' && item.type !== 'FIND_ERROR' && item.type !== 'READING') speak(text);
   };
+  const mood = result ? (result.correct ? 'cheer' : 'sad') : 'think';
   const state = (id: string) => {
     if (!result) return sel === id ? 'selected' : undefined;
     if (id === result.correctAnswer) return 'correct';
@@ -123,7 +146,7 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
                 onClick={() => pick(o.id, o.text)}
                 className="option relative flex flex-col items-center gap-1 px-2 py-4"
               >
-                {st === 'correct' && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-brand text-xs text-white">✓</span>}
+                {st === 'correct' && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-brand text-white"><Icon name="check" size={14} strokeWidth={3} /></span>}
                 {o.image!.startsWith('/') || o.image!.startsWith('http') ? (
                   <img src={assetUrl(o.image!)} alt="" className="h-20 w-20 rounded-2xl object-cover" />
                 ) : (
@@ -153,10 +176,10 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
         </div>
       )}
       {item.type === 'LISTENING' && data.audioText && (
-        <div className="flex justify-center gap-3">
+        <BeaverSays mood={mood}>
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" />
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
-        </div>
+        </BeaverSays>
       )}
       {item.type === 'READING' && data.passage && (
         <div className="card p-4 text-[17px] font-semibold leading-relaxed">
@@ -168,12 +191,16 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
       )}
       {data.question && <p className="text-center text-lg font-black">{tr(data.question)}</p>}
       {data.pl && item.type === 'WORD_TRANSLATION' && (
-        <div className="flex items-center justify-center gap-3">
+        <BeaverSays mood={mood}>
           <SpeakButton text={data.audioText ?? data.pl} url={data.audioUrl} />
-          <span className="text-3xl font-black">{data.pl}</span>
-        </div>
+          <span className="text-[28px] font-black leading-tight">{data.pl}</span>
+        </BeaverSays>
       )}
-      {!data.pl && item.type === 'WORD_TRANSLATION' && data.translation && <p className="text-center text-3xl font-black">{tr(data.translation)}</p>}
+      {!data.pl && item.type === 'WORD_TRANSLATION' && data.translation && (
+        <BeaverSays mood={mood}>
+          <span className="text-[26px] font-black leading-tight">{tr(data.translation)}</span>
+        </BeaverSays>
+      )}
       {item.type === 'FILL_GAP' && data.pl && (
         <div className="card p-4 text-center">
           <p className="text-2xl font-black leading-snug">
@@ -187,8 +214,8 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
           <motion.button
             key={o.id}
             initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
+            animate={{ opacity: 1, y: 0, ...optionMotion(state(o.id)) }}
+            transition={{ delay: result || sel ? 0 : i * 0.04, duration: state(o.id) === 'wrong' ? 0.35 : 0.2 }}
             whileTap={{ scale: 0.97 }}
             data-state={state(o.id)}
             onClick={() => pick(o.id, o.text)}
@@ -536,7 +563,7 @@ function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
   const current = data.steps[step];
   return (
     <div className="space-y-3">
-      {data.scene && <div className="rounded-2xl bg-muted px-4 py-2 text-center text-sm font-bold">🎬 {tr(data.scene)}</div>}
+      {data.scene && <div className="rounded-2xl bg-muted px-4 py-2 text-center text-sm font-bold">{tr(data.scene)}</div>}
       <div className="flex items-center gap-2">
         <span className="text-4xl">{data.npc.emoji}</span>
         <div>
@@ -581,7 +608,7 @@ function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
           ))}
         </div>
       )}
-      {finished && <div className="text-center font-black text-brand-dark">🎉 {t('ex_dialog_done')}</div>}
+      {finished && <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center font-black text-brand-dark">{t('ex_dialog_done')}</motion.div>}
       <div ref={endRef} />
     </div>
   );

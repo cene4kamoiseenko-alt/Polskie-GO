@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Icon } from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
@@ -34,24 +35,24 @@ export default function ExamsScreen() {
               <div className="font-black">{tr(e.title)}</div>
               <div className="muted text-xs font-bold">{tr(e.topic)}</div>
               <div className="mt-1 text-xs font-black">
-                {e.passed && e.kind === 'EXAM' && <span className="text-brand-dark">✅ {t('exams_passed')} · </span>}
+                {e.passed && e.kind === 'EXAM' && <span className="text-brand-dark">{t('exams_passed')} · </span>}
                 {e.bestScore !== null && t('exams_best', { n: e.bestScore })}
               </div>
             </div>
             <button className="btn btn-primary min-h-0 px-4 py-2 text-sm" onClick={() => (e.isPremium && !me.premium.active ? nav('/premium') : nav(`/lesson/${e.id}`))}>
-              {e.isPremium && !me.premium.active ? '👑' : t('exams_start')}
+              {e.isPremium && !me.premium.active ? <Icon name="crown" size={18} filled /> : t('exams_start')}
             </button>
           </Card>
         ))}
       </div>
-      <Section title={`🏛️ ${t('exams_state_title')}`}>
+      <Section title={t('exams_state_title')}>
         <Card className="space-y-2 p-4 text-sm font-semibold">
           <p>{t('exams_state_text')}</p>
           <p className="font-black text-sky-dark">{t('exams_sections')}</p>
           {!me.premium.active ? (
-            <button className="btn btn-xp w-full" onClick={() => nav('/premium')}>👑 {t('prem_f3')}</button>
+            <button className="btn btn-xp w-full" onClick={() => nav('/premium')}><Icon name="crown" size={20} filled /> {t('prem_f3')}</button>
           ) : (
-            <button className="btn btn-sky w-full" onClick={() => nav('/ai')}>🤖 {t('prem_f3')}</button>
+            <button className="btn btn-sky w-full" onClick={() => nav('/ai')}><Icon name="chat" size={20} /> {t('prem_f3')}</button>
           )}
         </Card>
       </Section>

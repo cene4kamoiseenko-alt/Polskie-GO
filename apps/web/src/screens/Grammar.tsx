@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Icon } from '../components/Icon';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -113,7 +114,7 @@ export default function GrammarScreen() {
               <span className={cx('chip', open.state === 'mastered' && 'text-brand-dark')}>{t(`grammar_state_${open.state}` as TKey)} · {t('grammar_mastery', { n: open.mastery })}</span>
             </div>
             <div className="card p-4">
-              <div className="mb-2 font-black">📐 {t('grammar_rule')}</div>
+              <div className="mb-2 flex items-center gap-1.5 font-black"><Icon name="book" size={18} className="text-sky-dark" /> {t('grammar_rule')}</div>
               <RichText text={tr(open.rule)} className="font-semibold leading-relaxed" />
             </div>
             <div className="space-y-2">

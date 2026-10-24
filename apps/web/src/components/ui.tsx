@@ -208,7 +208,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div key={t.id} initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="card flex items-center gap-2 px-4 py-3 font-bold">
-              {t.icon && <span className="text-xl">{t.icon}</span>}
+              {t.icon && <ToastIcon icon={t.icon} />}
               {t.text}
             </motion.div>
           ))}
@@ -216,6 +216,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastCtx.Provider>
   );
+}
+
+const TOAST_ICONS: Record<string, [LineIconName, string]> = {
+  '⚠️': ['alert', '#F45159'], '✅': ['check', '#35C88A'], 'ℹ️': ['alert', '#55BDF4'], '✨': ['star', '#FFBD42'],
+  '👋': ['user', '#9568F5'], '🔇': ['headphones', '#F45159'], '🤝': ['user', '#35C88A'],
+};
+function ToastIcon({ icon }: { icon: string }) {
+  const m = TOAST_ICONS[icon];
+  if (!m) return <span className="text-xl">{icon}</span>;
+  return <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ background: m[1] }}><Icon name={m[0]} size={16} strokeWidth={2.6} /></span>;
 }
 
 // ───────── Верхня панель статистики ─────────
@@ -278,11 +288,11 @@ export function Section({ title, action, children, className }: { title: string;
   );
 }
 
-export function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
+export function Toggle({ checked, onChange, label, description, icon }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string; icon?: LineIconName }) {
   return (
     <button className="flex w-full items-center gap-3 py-3 text-left" onClick={() => { haptic.select(); onChange(!checked); }} role="switch" aria-checked={checked}>
       <div className="flex-1">
-        <div className="font-bold">{label}</div>
+        <div className="flex items-center gap-2 font-bold">{icon && <Icon name={icon} size={20} className="text-sky-dark" />}{label}</div>
         {description && <div className="muted text-sm font-semibold">{description}</div>}
       </div>
       <div className={cx('relative h-8 w-14 rounded-full transition-colors')} style={{ background: checked ? 'var(--color-brand)' : 'var(--track)' }}>

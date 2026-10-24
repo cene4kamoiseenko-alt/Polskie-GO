@@ -182,7 +182,7 @@ export const uk = {
   lesson_correct: 'Чудово!',
   lesson_correct_alt: ['Świetnie!', 'Super!', 'Brawo!', 'Dobrze!', 'Ekstra!'].join('|'),
   lesson_almost: 'Майже! Зверни увагу на написання',
-  lesson_wrong: 'Неправильно',
+  lesson_wrong: 'Не зовсім',
   lesson_correct_answer: 'Правильна відповідь:',
   lesson_skip_mic: 'Не можу зараз говорити',
   lesson_quit: 'Вийти з уроку?',
@@ -355,6 +355,8 @@ export const uk = {
 
   achievements_title: 'Досягнення',
   achievements_unlocked: '{n} з {total} відкрито',
+  shop_wearing: "Вдягнено",
+  learn_start_here: "Почни тут",
   map_skip: "Пропустити",
   passport_new_stamp: "Новий штамп у паспорті!",
   passport_open: "Відкрити паспорт",

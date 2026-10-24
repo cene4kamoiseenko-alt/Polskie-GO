@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Icon } from '../components/Icon';
 import type { UiLang } from '@polski-go/shared';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
@@ -69,7 +70,7 @@ export default function SettingsScreen() {
         <div className="font-black">{t('set_language')}</div>
         <Seg value={s.uiLanguage} options={LANGS} onChange={(v) => set({ uiLanguage: v })} />
         <div className="pt-2 font-black">{t('set_theme')}</div>
-        <Seg value={s.theme} options={[['auto', t('theme_auto')], ['light', `☀️ ${t('theme_light')}`], ['dark', `🌙 ${t('theme_dark')}`]]} onChange={(v) => set({ theme: v })} />
+        <Seg value={s.theme} options={[['auto', t('theme_auto')], ['light', t('theme_light')], ['dark', t('theme_dark')]]} onChange={(v) => set({ theme: v })} />
         <div className="pt-2 font-black">{t('set_goal')}</div>
         <Seg value={s.dailyGoalMinutes} options={[[5, '5 min'], [10, '10 min'], [15, '15 min'], [20, '20 min']]} onChange={(v) => set({ dailyGoalMinutes: v })} />
       </Card>
@@ -81,16 +82,16 @@ export default function SettingsScreen() {
         <button className="btn btn-primary mt-2 w-full" onClick={saveProfile}>{t('save')}</button>
       </Card>
       <Card className="divide-y divide-[var(--border)] px-4">
-        <Toggle label={`🔔 ${t('set_notifications')}`} checked={s.notificationsEnabled} onChange={(v) => set({ notificationsEnabled: v, reminderHour: s.reminderHour ?? 19 })} />
+        <Toggle icon="clock" label={t('set_notifications')} checked={s.notificationsEnabled} onChange={(v) => set({ notificationsEnabled: v, reminderHour: s.reminderHour ?? 19 })} />
         {s.notificationsEnabled && (
           <div className="py-3">
             <div className="mb-2 text-sm font-black">{t('set_reminder_hour')}</div>
             <Seg value={s.reminderHour ?? 19} options={[8, 12, 18, 19, 20, 21].map((h) => [h, `${h}:00`] as [number, string])} onChange={(v) => set({ reminderHour: v })} />
           </div>
         )}
-        <Toggle label={`🔊 ${t('set_sound')}`} checked={s.soundEnabled} onChange={(v) => set({ soundEnabled: v })} />
+        <Toggle icon="headphones" label={t('set_sound')} checked={s.soundEnabled} onChange={(v) => set({ soundEnabled: v })} />
         <AudioDiagnostics server={!!me.audio?.server} provider={me.audio?.provider ? `${me.audio.provider} · ${me.audio.voice}` : null} />
-        <Toggle label={`🐢 ${t('set_motion')}`} checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />
+        <Toggle icon="layers" label={t('set_motion')} checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />
       </Card>
       <Card className="divide-y divide-[var(--border)] px-4">
         <div className="pt-3 font-black">{t('set_privacy')}</div>
@@ -99,13 +100,13 @@ export default function SettingsScreen() {
       </Card>
       <Card className="space-y-2 p-4">
         <div className="font-black">{t('set_data')}</div>
-        <button className="btn btn-ghost w-full" onClick={() => nav('/premium')}>👑 {t('set_premium')}</button>
-        <button className="btn btn-ghost w-full" onClick={() => downloadExport()}>📦 {t('set_export')}</button>
-        <button className="w-full py-2 font-black text-coral" onClick={() => setDel(true)}>🗑 {t('set_delete')}</button>
+        <button className="btn btn-ghost w-full" onClick={() => nav('/premium')}><Icon name="crown" size={20} className="text-xp-dark" /> {t('set_premium')}</button>
+        <button className="btn btn-ghost w-full" onClick={() => downloadExport()}><Icon name="arrow-right" size={20} className="rotate-90" /> {t('set_export')}</button>
+        <button className="w-full py-2 font-black text-coral" onClick={() => setDel(true)}>{t('set_delete')}</button>
       </Card>
       <p className="muted text-center text-xs font-bold">POLSKI GO · {t('set_version', { v: '0.1.0' })}</p>
       <Modal open={del} onClose={() => setDel(false)}>
-        <div className="text-5xl">⚠️</div>
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-coral/15 text-coral"><Icon name="alert" size={36} /></div>
         <p className="mt-2 font-bold">{t('set_delete_confirm')}</p>
         <div className="mt-4 space-y-2">
           <button className="btn btn-ghost w-full" onClick={() => setDel(false)}>{t('cancel')}</button>

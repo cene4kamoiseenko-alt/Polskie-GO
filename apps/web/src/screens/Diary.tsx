@@ -35,7 +35,7 @@ export default function DiaryScreen() {
               {e.completedAt && <span className="rotate-12 rounded-lg border-2 border-white px-2 py-1 text-xs font-black">✓ 100%</span>}
             </div>
             <div className="space-y-2 p-4 text-sm">
-              <div className="muted font-bold">📅 {t('diary_opened', { date: date(e.unlockedAt) })}{e.completedAt && ` · 🏆 ${t('diary_completed', { date: date(e.completedAt) })}`}</div>
+              <div className="muted font-bold">{t('diary_opened', { date: date(e.unlockedAt) })}{e.completedAt && ` · ${t('diary_completed', { date: date(e.completedAt) })}`}</div>
               <Progress value={e.progress} height={8} />
               {e.topics.length > 0 && (
                 <div>

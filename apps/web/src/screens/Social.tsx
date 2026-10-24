@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Icon } from '../components/Icon';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
@@ -45,7 +46,7 @@ export default function SocialScreen() {
       <div className="mx-4 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
         {['league', 'friends'].map((k) => (
           <button key={k} onClick={() => setParams({ tab: k })} className={cx('rounded-xl py-2 font-black', tab === k && 'bg-elev shadow')}>
-            {k === 'league' ? `🏆 ${t('lb_league')}` : `👥 ${t('lb_friends')}`}
+            {k === 'league' ? t('lb_league') : t('lb_friends')}
           </button>
         ))}
       </div>
@@ -59,7 +60,7 @@ export default function SocialScreen() {
           <Card className="divide-y divide-[var(--border)]">
             {lb.data.rows.map((r) => (
               <div key={r.userId} className={cx('flex items-center gap-3 px-3 py-2.5', r.isMe && 'bg-xp/20')}>
-                <span className="w-7 text-center font-black">{r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : r.rank || '—'}</span>
+                <span className="w-7 text-center font-black">{r.rank && r.rank <= 3 ? <span className="mx-auto grid h-7 w-7 place-items-center rounded-full text-sm text-white" style={{ background: ['#E3A514', '#9AA8B6', '#C98A4A'][r.rank - 1] }}>{r.rank}</span> : r.rank || '—'}</span>
                 <Avatar url={r.photoUrl} name={r.name} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-black">{r.isMe ? `${r.name} (${t('lb_you')})` : r.name}</div>
@@ -77,7 +78,7 @@ export default function SocialScreen() {
           <Card className="space-y-3 p-4">
             <div className="font-black">{t('friends_invite')}</div>
             <button className="btn btn-sky w-full" onClick={() => share(friends.data!.inviteLink, t('friends_invite_text'))}>
-              📨 {t('friends_invite')}
+              <Icon name="chat" size={20} /> {t('friends_invite')}
             </button>
             <div className="text-sm font-bold">
               {t('friends_code')}: <span className="select-all rounded-lg bg-muted px-2 py-1 font-black">{friends.data.referralCode}</span>
@@ -99,13 +100,13 @@ export default function SocialScreen() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-black">{f.user.name}</div>
                     <div className="muted text-xs font-bold">
-                      {f.user.level !== null ? `${t('level')} ${f.user.level} · 🔥 ${f.user.streak} · ${f.user.languageLevel}` : t('friends_hidden')}
+                      {f.user.level !== null ? `${t('level')} ${f.user.level} · ${t('profile_streak')} ${f.user.streak} · ${f.user.languageLevel}` : t('friends_hidden')}
                     </div>
                   </div>
                   {f.incoming ? (
                     <div className="flex gap-1">
                       <button className="btn btn-primary min-h-0 px-3 py-1.5 text-xs" onClick={() => respond(f.id, true)}>{t('friends_accept')}</button>
-                      <button className="btn btn-ghost min-h-0 px-3 py-1.5 text-xs" onClick={() => respond(f.id, false)}>✕</button>
+                      <button className="btn btn-ghost min-h-0 px-3 py-1.5 text-xs" onClick={() => respond(f.id, false)} aria-label="decline"><Icon name="x" size={16} /></button>
                     </div>
                   ) : f.status === 'PENDING' ? (
                     <span className="muted text-xs font-black">{t('friends_pending')}</span>

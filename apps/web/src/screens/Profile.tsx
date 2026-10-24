@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ItemPreview } from '../components/ItemPreview';
 import { Badge } from '../components/Illustrations';
 import { Icon, type LineIconName } from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
@@ -111,8 +112,8 @@ export default function ProfileScreen() {
       <Section title={t('profile_my_wardrobe')} action={<button className="text-sm font-black text-sky-dark" onClick={() => nav('/shop')}>{t('home_see_all')} →</button>}>
         <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
           {wardrobe.map((i) => (
-            <button key={i.id} onClick={() => nav('/shop')} className={cx('card grid h-20 w-20 shrink-0 place-items-center text-4xl', i.equipped && 'ring-4 ring-brand')}>
-              {ITEM_ICONS[i.assetKey] ?? '🎁'}
+            <button key={i.id} onClick={() => nav('/shop')} className={cx('card grid h-20 w-20 shrink-0 place-items-center', i.equipped && 'ring-4 ring-brand')}>
+              <ItemPreview slot={i.slot} assetKey={i.assetKey} size={68} />
             </button>
           ))}
           <button onClick={() => nav('/shop')} className="grid h-20 w-20 shrink-0 place-items-center rounded-[22px] border-2 border-dashed border-soft text-3xl muted">+</button>

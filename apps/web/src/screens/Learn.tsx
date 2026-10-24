@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
 import { useJourney, useMe } from '../lib/queries';
 import type { JourneyLesson } from '../lib/types';
-import { Beaver } from '../components/Beaver';
+import { Beaver, type BeaverOutfit } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { CityBanner } from '../components/Scenery';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, Sheet, cx } from '../components/ui';
@@ -15,19 +15,44 @@ import { haptic } from '../lib/telegram';
 const OFFSETS = [0, 52, 76, 52, 0, -52, -76, -52];
 const ROUTE_ICONS: IconName[] = ['lessons', 'dictionary', 'grammar', 'ai', 'review', 'story'];
 
-function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson; index: number; onClick: () => void; isNext: boolean }) {
-  const { tr } = useT();
+/** З'єднання між вузлами стежки: пройдена ділянка — суцільна, майбутня — пунктир. */
+function Connector({ from, to, done }: { from: number; to: number; done: boolean }) {
+  const x1 = 110 + OFFSETS[from % OFFSETS.length];
+  const x2 = 110 + OFFSETS[to % OFFSETS.length];
+  return (
+    <svg width="220" height="36" viewBox="0 0 220 36" className="-my-1 block" aria-hidden>
+      <path d={`M${x1} 0 C${x1} 22 ${x2} 14 ${x2} 36`} fill="none" stroke={done ? 'var(--color-brand)' : 'var(--track)'} strokeWidth="7" strokeLinecap="round" strokeDasharray={done ? undefined : '2 12'} />
+    </svg>
+  );
+}
+
+function LessonNode({ lesson, index, onClick, isNext, outfit }: { lesson: JourneyLesson; index: number; onClick: () => void; isNext: boolean; outfit?: BeaverOutfit }) {
+  const { t, tr } = useT();
   const boss = lesson.kind === 'BOSS';
   const locked = lesson.state === 'locked';
   const done = lesson.state === 'completed';
   const size = boss ? 96 : 78;
   const color = done ? '#FFBD42' : boss ? '#F45159' : '#35C88A';
+  const off = OFFSETS[index % OFFSETS.length];
   return (
-    <div className="relative flex flex-col items-center" style={{ transform: `translateX(${OFFSETS[index % OFFSETS.length]}px)` }}>
+    <motion.div
+      className="relative flex flex-col items-center"
+      style={{ x: off }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+    >
       {isNext && (
-        <motion.div className="absolute -top-10 z-10 rounded-xl bg-elev px-3 py-1 text-xs font-black text-brand-dark shadow" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}>
-          START
-        </motion.div>
+        <>
+          <motion.div className="absolute -top-10 z-10 whitespace-nowrap rounded-xl bg-elev px-3 py-1 text-xs font-black uppercase text-brand-dark shadow" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}>
+            {t('learn_start_here')}
+          </motion.div>
+          {/* Бобек стоїть поруч із наступним уроком — з протилежного від вигину боку. */}
+          <div className="pointer-events-none absolute top-0" style={off >= 0 ? { right: '100%', marginRight: 6 } : { left: '100%', marginLeft: 6 }}>
+            <Beaver mood="wave" size={64} outfit={outfit} />
+          </div>
+        </>
       )}
       <motion.button whileTap={{ scale: 0.92, y: 4 }} onClick={onClick} className="relative" aria-label={lesson.slug}>
         {isNext && <motion.span className="absolute inset-[-7px] rounded-[30px] border-4 border-brand" animate={{ opacity: [1, 0.2, 1] }} transition={{ repeat: Infinity, duration: 1.6 }} />}
@@ -45,7 +70,7 @@ function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson;
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -92,17 +117,17 @@ export default function LearnScreen() {
       </div>
 
       {/* Герой міста */}
-      <CityBanner slug={city.slug} color={city.color} height={170} className="mx-4 rounded-[28px] shadow-[var(--shadow-card)]">
-        <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-black drop-shadow">{city.namePl}</span>
-            <span className="rounded-lg bg-white/90 px-2 py-0.5 text-xs font-black" style={{ color: city.color }}>{city.cefr}</span>
+      <CityBanner slug={city.slug} color={city.color} height={170} shade={false} className="mx-4 rounded-[28px] shadow-[var(--shadow-card)]">
+        <div className="absolute left-3 top-3 rounded-2xl bg-white/95 px-3 py-1.5 shadow-sm">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[22px] font-black text-navy">{city.namePl}</span>
+            <span className="rounded-lg px-1.5 py-0.5 text-[11px] font-black text-white" style={{ background: city.color }}>{city.cefr}</span>
           </div>
-          <div className="truncate text-sm font-bold opacity-95 drop-shadow">{tr(city.theme)}</div>
-          <div className="mt-2 flex items-center gap-2">
-            <Progress value={city.progress} height={9} color="var(--color-xp)" />
-            <span className="whitespace-nowrap text-xs font-black">{t('learn_city_progress', { n: doneCount, total: allLessons.length })}</span>
-          </div>
+          <div className="max-w-[220px] truncate text-xs font-bold text-[#6B7A8A]">{tr(city.theme)}</div>
+        </div>
+        <div className="absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-2xl bg-white/95 px-3 py-2 shadow-sm">
+          <Progress value={city.progress} height={9} color="var(--color-xp)" />
+          <span className="whitespace-nowrap text-xs font-black text-navy">{t('learn_city_progress', { n: doneCount, total: allLessons.length })}</span>
         </div>
       </CityBanner>
 
@@ -116,12 +141,13 @@ export default function LearnScreen() {
               <div className="muted truncate text-xs font-bold">{tr(r.description)}</div>
             </div>
           </div>
-          <div className="flex flex-col items-center gap-8">
-            {r.lessons.map((l) => {
+          <div className={cx('flex flex-col items-center', r.lessons[0]?.id === nextId && 'pt-8')}>
+            {r.lessons.map((l, li) => {
               const i = idx++;
               return (
-                <div key={l.id} ref={l.id === nextId ? nextRef : undefined}>
-                  <LessonNode lesson={l} index={i} isNext={l.id === nextId} onClick={() => { haptic.tap(); setPicked(l); }} />
+                <div key={l.id} ref={l.id === nextId ? nextRef : undefined} className="flex flex-col items-center">
+                  {li > 0 && <Connector from={i - 1} to={i} done={r.lessons[li - 1].state === 'completed'} />}
+                  <LessonNode lesson={l} index={i} isNext={l.id === nextId} outfit={me?.outfit.wear} onClick={() => { haptic.tap(); setPicked(l); }} />
                 </div>
               );
             })}
@@ -143,7 +169,9 @@ export default function LearnScreen() {
             <div className="flex justify-center gap-2">
               <span className="chip">{picked.cefr}</span>
               <span className="chip">{t('learn_exercises', { n: picked.exerciseCount })}</span>
-              <span className="chip">{'●'.repeat(picked.difficulty)}{'○'.repeat(Math.max(0, 5 - picked.difficulty))}</span>
+              <span className="chip" aria-label={`${picked.difficulty}/5`}>
+                {[1, 2, 3, 4, 5].map((n) => <span key={n} className={cx('h-2 w-2 rounded-full', n <= picked.difficulty ? 'bg-pl-red' : 'bg-[var(--track)]')} />)}
+              </span>
             </div>
             {picked.state === 'locked' ? (
               <div className="flex items-center justify-center gap-2 rounded-2xl bg-muted p-3 font-bold"><GameIcon name="lock" size={24} /> {picked.kind === 'BOSS' ? t('learn_boss_locked') : t('learn_lesson_locked')}</div>
