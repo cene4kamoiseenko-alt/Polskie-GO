@@ -44,6 +44,8 @@ export type JourneyCity = {
   hasContent: boolean;
   unlocked: boolean;
   completed: boolean;
+  /** Іспит складено і всі уроки пройдено на 3 зірки. */
+  perfect: boolean;
   unlockedAt: Date | null;
   bossAvailable: boolean;
   lessonsTotal: number;
@@ -119,6 +121,7 @@ export async function getJourney(userId: string, db: Tx = prisma) {
       hasContent: all.length > 0,
       unlocked,
       completed: !!visit?.bossPassedAt,
+      perfect: !!visit?.bossPassedAt && all.length > 0 && all.every((l) => (lp.get(l.id)?.stars ?? 0) >= 3),
       unlockedAt: visit?.unlockedAt ?? null,
       bossAvailable,
       lessonsTotal: all.length,

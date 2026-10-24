@@ -7,7 +7,7 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 import { DEFAULT_REWARDS } from '@polski-go/shared';
 import { hashPassword } from '../lib/password';
 import { resetIds } from './builders';
-import { CITIES, project } from './cities';
+import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
 import { WARSZAWA } from './warszawa';
 import { KRAKOW } from './krakow';
@@ -49,6 +49,12 @@ export async function seedContent(prisma: PrismaClient, opts: { force?: boolean;
   log(`Словник: ${VOCAB.length} слів`);
 
   // ── Міста ──
+  // Прибрані з маршруту міста: архів і звільнення номера порядку (рядки й прогрес не видаляються).
+  const removed = await prisma.city.findMany({ where: { slug: { in: REMOVED_CITIES } } });
+  for (const c of removed) {
+    const order = 1000 + REMOVED_CITIES.indexOf(c.slug);
+    if (c.order !== order || c.status !== 'ARCHIVED') await prisma.city.update({ where: { id: c.id }, data: { status: 'ARCHIVED', order } });
+  }
   const cityIds = new Map<string, string>();
   for (const [i, c] of CITIES.entries()) {
     const { x, y } = project(c.lon, c.lat);

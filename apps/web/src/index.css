@@ -4,34 +4,36 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --color-lavender: #9568f5;
+  --color-navy: #22364a;
   --font-sans: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-brand: #45c486;
-  --color-brand-dark: #2fa56c;
-  --color-brand-light: #dff6e8;
-  --color-cream: #fff9ed;
-  --color-xp: #ffc857;
-  --color-xp-dark: #e8a82a;
-  --color-sky: #69c7f4;
-  --color-sky-dark: #3aa6dc;
-  --color-ink: #243746;
-  --color-coral: #ff6b6b;
-  --color-coral-dark: #e04848;
-  --color-grape: #9b6bff;
-  --color-pl-red: #e5484d;
+  --color-brand: #35c88a;
+  --color-brand-dark: #22a06b;
+  --color-brand-light: #dcf6ea;
+  --color-cream: #fff9f0;
+  --color-xp: #ffbd42;
+  --color-xp-dark: #e39a14;
+  --color-sky: #55bdf4;
+  --color-sky-dark: #2c9ad6;
+  --color-ink: #22364a;
+  --color-coral: #f45159;
+  --color-coral-dark: #d23540;
+  --color-grape: #9568f5;
+  --color-pl-red: #f45159;
 
   --radius-card: 22px;
-  --shadow-card: 0 6px 18px -6px rgb(36 55 70 / 0.18);
+  --shadow-card: 0 8px 22px -8px rgb(31 51 70 / 0.22), 0 2px 4px rgb(31 51 70 / 0.05);
 }
 
 :root {
-  --bg: #fff9ed;
+  --bg: #fff9f0;
   --bg-elev: #ffffff;
-  --bg-muted: #f3eee2;
-  --text: #243746;
-  --text-muted: #6b7c89;
-  --border: #ece4d3;
-  --track: #ece4d3;
+  --bg-muted: #f6efe3;
+  --text: #22364a;
+  --text-muted: #6d7f8f;
+  --border: #efe6d6;
+  --track: #f0e7d8;
   --map-land: #bfe8a9;
   --map-land-2: #a6dc8c;
   --map-sea: #8fd3f5;
@@ -113,30 +115,32 @@ textarea {
     opacity: 0.5;
   }
   .btn-primary {
-    background: var(--color-brand);
+    background: linear-gradient(180deg, #5fdc9f 0%, #36bd78 55%, #2aa865 100%);
     color: white;
-    box-shadow: 0 4px 0 var(--color-brand-dark);
+    box-shadow: 0 5px 0 #1e8a50, inset 0 2px 0 rgb(255 255 255 / 0.45);
+    text-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
   }
   .btn-primary:active:not(:disabled) {
-    box-shadow: 0 1px 0 var(--color-brand-dark);
+    box-shadow: 0 2px 0 #1e8a50, inset 0 2px 0 rgb(255 255 255 / 0.45);
   }
   .btn-red {
-    background: var(--color-pl-red);
+    background: linear-gradient(180deg, #ff6b70 0%, #ea4049 55%, #d12f3a 100%);
     color: white;
-    box-shadow: 0 4px 0 #b8323a;
+    box-shadow: 0 5px 0 #a3222c, inset 0 2px 0 rgb(255 255 255 / 0.4);
+    text-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
   }
   .btn-red:active:not(:disabled) {
-    box-shadow: 0 1px 0 #b8323a;
+    box-shadow: 0 2px 0 #a3222c, inset 0 2px 0 rgb(255 255 255 / 0.4);
   }
   .btn-xp {
-    background: var(--color-xp);
-    color: #5a3d00;
-    box-shadow: 0 4px 0 var(--color-xp-dark);
+    background: linear-gradient(180deg, #ffe07a 0%, #ffc232 60%, #f5a90f 100%);
+    color: #6b3f00;
+    box-shadow: 0 5px 0 #c98307, inset 0 2px 0 rgb(255 255 255 / 0.55);
   }
   .btn-sky {
-    background: var(--color-sky);
+    background: linear-gradient(180deg, #8fd8ff 0%, #4fb4ec 60%, #3a9fdb 100%);
     color: white;
-    box-shadow: 0 4px 0 var(--color-sky-dark);
+    box-shadow: 0 5px 0 #2a7fb5, inset 0 2px 0 rgb(255 255 255 / 0.45);
   }
   .btn-ghost {
     background: var(--bg-elev);
@@ -152,7 +156,7 @@ textarea {
     min-height: 56px;
     background: var(--bg-elev);
     border-color: var(--border);
-    box-shadow: 0 3px 0 var(--border);
+    box-shadow: 0 4px 0 var(--border), 0 6px 14px -8px rgb(31 51 70 / 0.25);
   }
   .option[data-state='selected'] {
     border-color: var(--color-sky);
@@ -171,7 +175,15 @@ textarea {
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold;
-    background: var(--bg-muted);
+    background: var(--bg-elev);
+    box-shadow: 0 2px 6px -2px rgb(31 51 70 / 0.2);
+  }
+  /* Кольорова плитка-іконка, як у референсі */
+  .icon-tile {
+    @apply grid shrink-0 place-items-center rounded-2xl text-2xl;
+    width: 48px;
+    height: 48px;
+    box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.12), inset 0 2px 0 rgb(255 255 255 / 0.35);
   }
   .skeleton {
     background: linear-gradient(90deg, var(--bg-muted) 25%, var(--border) 37%, var(--bg-muted) 63%);

@@ -79,6 +79,7 @@ export type JourneyCity = {
   hasContent: boolean;
   unlocked: boolean;
   completed: boolean;
+  perfect: boolean;
   bossAvailable: boolean;
   lessonsTotal: number;
   lessonsDone: number;

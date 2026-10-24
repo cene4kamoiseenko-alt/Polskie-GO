@@ -5,6 +5,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { memo, useMemo } from 'react';
 import type { JourneyCity } from '../lib/types';
+import { CITY_LANDMARKS, Cloud, Landmark } from './Scenery';
 
 const W = 1000;
 const H = 950;
@@ -80,6 +81,18 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
           <path d="M80 60 q15 -10 30 0 t30 0 M480 40 q15 -10 30 0 t30 0 M760 70 q15 -10 30 0 t30 0" stroke="#fff" strokeWidth="4" fill="none" />
         </g>
       )}
+      {!compact && (
+        <g>
+          <Cloud x={820} y={120} s={1.6} opacity={0.8} />
+          <Cloud x={120} y={880} s={1.4} opacity={0.75} />
+          <g transform="translate(880 330)">
+            <path d="M0 -40 C 22 -40, 28 -14, 10 4 L4 14 L-4 14 L-10 4 C -28 -14, -22 -40, 0 -40 Z" fill="#F45159" stroke="#5A3A22" strokeWidth="2.5" />
+            <path d="M0 -40 C 8 -30, 8 -6, 4 14 M0 -40 C -8 -30, -8 -6, -4 14" stroke="#FFBD42" strokeWidth="5" fill="none" />
+            <rect x="-6" y="20" width="12" height="9" rx="2" fill="#B07A4A" stroke="#5A3A22" strokeWidth="2" />
+            <path d="M-4 14 L-5 20 M4 14 L5 20" stroke="#5A3A22" strokeWidth="1.5" />
+          </g>
+        </g>
+      )}
       {/* Суша */}
       <path d={outline} fill="url(#land)" stroke="#fff" strokeWidth="10" strokeLinejoin="round" filter="url(#soft)" />
       <path d={outline} fill="none" stroke="#2FA56C" strokeWidth="3" strokeLinejoin="round" opacity="0.5" />
@@ -113,92 +126,94 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
           );
         })}
 
-      {/* Маршрут подорожі */}
+      {/* Дороги-маршрут: пройдене — суцільна червона, наступне — пунктир */}
       {sorted.slice(1).map((c, i) => {
         const a = sorted[i];
-        const done = a.completed;
-        // Показуємо лише пройдений шлях і наступний відрізок — без «павутини» по всій країні.
         if (!a.unlocked) return null;
+        const mx = (a.mapX + c.mapX) / 2 + (c.mapY - a.mapY) * 0.15;
+        const my = (a.mapY + c.mapY) / 2 - (c.mapX - a.mapX) * 0.15;
+        const d = `M${a.mapX},${a.mapY} Q${mx},${my} ${c.mapX},${c.mapY}`;
         return (
-          <line
-            key={c.id}
-            x1={a.mapX}
-            y1={a.mapY}
-            x2={c.mapX}
-            y2={c.mapY}
-            stroke={done ? '#E5484D' : '#ffffff'}
-            strokeWidth={done ? 7 : 5}
-            strokeDasharray={done ? undefined : '2 14'}
-            strokeLinecap="round"
-            opacity={done ? 0.9 : 0.85}
-          />
+          <g key={c.id}>
+            <path d={d} fill="none" stroke="#F3E3C3" strokeWidth="16" strokeLinecap="round" opacity="0.9" />
+            <path d={d} fill="none" stroke={a.completed ? '#F45159' : '#fff'} strokeWidth="6" strokeDasharray={a.completed ? undefined : '3 14'} strokeLinecap="round" />
+          </g>
         );
       })}
 
-      {/* Міста */}
+      {/* Міста з пам'ятками */}
       {sorted.map((c) => {
         const isCurrent = c.id === currentCityId && !travel;
-        const r = compact ? 30 : 36;
+        const state = !c.unlocked ? 'locked' : c.perfect ? 'perfect' : c.completed ? 'completed' : c.lessonsDone > 0 ? 'progress' : 'available';
+        const s = compact ? 0.8 : 1;
         return (
           <g
             key={c.id}
-            transform={`translate(${c.mapX} ${c.mapY})`}
+            transform={`translate(${c.mapX} ${c.mapY}) scale(${s})`}
             onClick={() => onCityClick?.(c)}
             style={{ cursor: onCityClick ? 'pointer' : 'default' }}
             role={onCityClick ? 'button' : undefined}
             aria-label={c.namePl}
           >
             {isCurrent && !reduce && (
-              <motion.circle r={r} fill="none" stroke="#E5484D" strokeWidth="5" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} animate={{ scale: [1, 1.6], opacity: [0.8, 0] }} transition={{ repeat: Infinity, duration: 1.6 }} />
+              <motion.ellipse rx="44" ry="14" cy="2" fill="none" stroke="#F45159" strokeWidth="4" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} animate={{ scale: [1, 1.5], opacity: [0.9, 0] }} transition={{ repeat: Infinity, duration: 1.6 }} />
             )}
-            <circle r={r + 4} fill="#fff" />
-            <circle r={r} fill={c.unlocked ? c.color : '#C9D3DA'} />
-            <text textAnchor="middle" dominantBaseline="central" fontSize={compact ? 32 : 38} style={{ filter: c.unlocked ? undefined : 'grayscale(1)', opacity: c.unlocked ? 1 : 0.6 }}>
-              {c.emoji}
-            </text>
-            {c.completed && (
-              <g transform={`translate(${r - 4} ${-r + 4})`}>
-                <circle r="13" fill="#45C486" stroke="#fff" strokeWidth="3" />
-                <path d="M-6 0 L-1 5 L7 -5" stroke="#fff" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+            <g transform="scale(1.15)">
+              <Landmark kind={CITY_LANDMARKS[c.slug] ?? 'townhall'} color={c.color} muted={state === 'locked'} />
+            </g>
+            {/* кільце прогресу для міста в процесі */}
+            {state === 'progress' && (
+              <g transform="translate(40 -70)">
+                <circle r="17" fill="#fff" stroke="#F0E7D8" strokeWidth="4" />
+                <circle r="17" fill="none" stroke="#35C88A" strokeWidth="4" strokeDasharray={`${(c.progress / 100) * 107} 107`} transform="rotate(-90)" strokeLinecap="round" />
+                <text textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="900" fontFamily="Nunito" fill="#22364A">{c.progress}%</text>
+              </g>
+            )}
+            {(state === 'completed' || state === 'perfect') && (
+              <g transform="translate(40 -70)">
+                <circle r="17" fill={state === 'perfect' ? '#FFBD42' : '#35C88A'} stroke="#fff" strokeWidth="4" />
+                {state === 'perfect' ? (
+                  <path d="M0 -9 L2.6 -3 L9 -2.6 L4 1.6 L5.6 8 L0 4.6 L-5.6 8 L-4 1.6 L-9 -2.6 L-2.6 -3 Z" fill="#fff" />
+                ) : (
+                  <path d="M-7 0 L-2 5 L8 -6" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" />
+                )}
               </g>
             )}
             {!compact && (() => {
-              // Підпис міста — «таблетка»; у закритих міст — замок, у поточного — червона з другим рядком.
-              const label = c.unlocked ? c.namePl : `🔒 ${c.namePl}`;
-              const w = label.length * 19 + 28;
-              const h = isCurrent && hereLabel ? 64 : 40;
+              // Довгі назви скорочуємо на карті (повна назва — у картці міста).
+              const label = c.namePl.length > 13 ? c.namePl.split(' ')[0] : c.namePl;
+              const w = label.length * 15 + (state === 'locked' ? 48 : 32);
+              const h = isCurrent && hereLabel ? 56 : 36;
               return (
-                <g transform={`translate(0 ${r + 28})`}>
-                  <rect x={-w / 2} y="-20" width={w} height={h} rx="20" fill={isCurrent ? '#E5484D' : 'var(--bg-elev)'} stroke={isCurrent ? '#fff' : 'var(--border)'} strokeWidth="3" />
-                  <text textAnchor="middle" dominantBaseline="central" fontSize="28" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#fff' : c.unlocked ? 'var(--text)' : 'var(--text-muted)'}>
+                <g transform="translate(0 26)">
+                  <rect x={-w / 2} y="-18" width={w} height={h} rx="18" fill={isCurrent ? '#F45159' : '#fff'} stroke={isCurrent ? '#fff' : '#E6DCCB'} strokeWidth="3" />
+                  {state === 'locked' && (
+                    <g transform={`translate(${-w / 2 + 20} 0)`}>
+                      <rect x="-7" y="-2" width="14" height="11" rx="2.5" fill="#22364A" />
+                      <path d="M-4 -2 L-4 -6 Q0 -11 4 -6 L4 -2" stroke="#22364A" strokeWidth="2.5" fill="none" />
+                    </g>
+                  )}
+                  <text x={state === 'locked' ? 10 : 0} textAnchor="middle" dominantBaseline="central" fontSize="22" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#fff' : state === 'locked' ? '#7A8B99' : '#22364A'}>
                     {label}
                   </text>
                   {isCurrent && hereLabel && (
-                    <text y="26" textAnchor="middle" dominantBaseline="central" fontSize="20" fontWeight="800" fontFamily="Nunito" fill="#FFE3E3">
+                    <text y="22" textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="800" fontFamily="Nunito" fill="#FFE3E3">
                       {hereLabel}
                     </text>
                   )}
                 </g>
               );
             })()}
-            {c.unlocked && !c.completed && !compact && c.hasContent && (
-              <g transform={`translate(${-r + 2} ${-r + 2})`}>
-                <circle r="14" fill="#FFC857" stroke="#fff" strokeWidth="3" />
-                <text textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="900" fill="#5a3d00">
-                  {c.progress}%
-                </text>
-              </g>
-            )}
           </g>
         );
       })}
 
       {/* Бобер на карті */}
-      {current && !travel && <BeaverPin x={current.mapX} y={current.mapY - (compact ? 60 : 70)} />}
+      {current && !travel && <BeaverPin x={current.mapX - 46} y={current.mapY - (compact ? 90 : 112)} />}
       {travel && (
         <motion.g
-          initial={{ x: travel.from.mapX, y: travel.from.mapY - 70 }}
-          animate={{ x: travel.to.mapX, y: travel.to.mapY - 70 }}
+          initial={{ x: travel.from.mapX - 46, y: travel.from.mapY - 112 }}
+          animate={{ x: travel.to.mapX - 46, y: travel.to.mapY - 112 }}
           transition={{ duration: reduce ? 0 : 2.6, ease: 'easeInOut' }}
         >
           <BeaverPin x={0} y={0} vehicle />

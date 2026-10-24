@@ -46,7 +46,7 @@ function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
   const dark = pref === 'dark' || ((pref ?? 'auto') === 'auto' && systemDark);
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
-    setTelegramColors(dark ? '#13202b' : '#fff9ed');
+    setTelegramColors(dark ? '#13202b' : '#fff9f0');
   }, [dark]);
 }
 
