@@ -26,8 +26,25 @@ const OUTLINE: [number, number][] = [
 const VISTULA: [number, number][] = [[18.9, 49.65], [19.4, 50.0], [19.94, 50.06], [20.8, 50.25], [21.7, 50.68], [21.95, 51.4], [21.4, 51.95], [21.03, 52.23], [20.3, 52.4], [19.7, 52.55], [18.6, 53.01], [18.45, 53.4], [18.75, 53.48], [18.78, 54.09], [18.9, 54.35]];
 const ODRA: [number, number][] = [[18.2, 49.95], [17.93, 50.67], [17.04, 51.11], [16.1, 51.66], [15.5, 51.95], [14.9, 52.1], [14.55, 52.35], [14.62, 52.58], [14.4, 52.95], [14.55, 53.43], [14.3, 53.75]];
 const LAKES: [number, number, number][] = [[21.5, 53.8, 14], [21.75, 53.95, 10], [21.2, 53.62, 9], [22.0, 53.75, 8]];
-const TREES: [number, number][] = [[23.7, 52.75], [23.4, 53.0], [16.0, 53.3], [15.4, 53.0], [17.6, 53.6], [16.4, 52.2], [22.6, 50.6], [20.2, 51.2], [15.6, 51.2], [21.0, 53.2], [22.6, 53.4], [17.3, 52.9], [19.0, 51.0]];
-const MOUNTAINS: [number, number, number][] = [[19.85, 49.45, 1.3], [20.15, 49.42, 1], [19.55, 49.6, 0.8], [22.5, 49.2, 0.9], [22.2, 49.3, 0.7], [16.6, 50.55, 0.8], [15.8, 50.85, 0.9], [21.1, 49.55, 0.7]];
+/** Детермінований «випадковий» генератор для декору (однаковий при кожному рендері). */
+const rand = (seed: number) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+/** Ліси реальних регіонів: Біловезька пуща, Бори Тухольські, Кампінос, Помор'я, Нижня Сілезія, Розточчя, Мазури, Свєнтокшиські. */
+const FOREST_AREAS: [number, number, number][] = [[23.75, 52.7, 12], [17.9, 53.65, 12], [20.45, 52.32, 7], [16.4, 53.9, 9], [15.5, 51.55, 10], [23.0, 50.55, 8], [21.6, 53.55, 9], [20.9, 50.95, 8], [18.6, 51.3, 6], [22.6, 51.9, 6], [16.1, 52.6, 7], [19.4, 53.3, 6]];
+const TREES: [number, number, number][] = FOREST_AREAS.flatMap(([lon, lat, n], k) => {
+  const r = rand(k * 97 + 13);
+  return Array.from({ length: n }, () => [lon + (r() - 0.5) * 0.9, lat + (r() - 0.5) * 0.45, r() > 0.45 ? 1 : 0] as [number, number, number]);
+}).sort((a, b) => b[1] - a[1]);
+/** Гірські пасма вздовж південного кордону: Судети, Бескиди, Татри, Бещади. */
+const RANGES: [number, number, number, number, number][] = [
+  [15.4, 50.85, 17.0, 50.4, 6], [18.9, 49.65, 19.6, 49.55, 4], [19.7, 49.3, 20.3, 49.25, 5], [20.5, 49.45, 21.6, 49.45, 5], [21.9, 49.35, 22.8, 49.1, 5],
+];
+const MOUNTAINS: [number, number, number][] = RANGES.flatMap(([lon1, lat1, lon2, lat2, n], k) =>
+  Array.from({ length: n }, (_, i) => {
+    const t = n === 1 ? 0.5 : i / (n - 1);
+    const big = k === 2 ? 1.35 : 0.85 + ((i * 37) % 5) * 0.08; // Татри — найвищі
+    return [lon1 + (lon2 - lon1) * t, lat1 + (lat2 - lat1) * t, big] as [number, number, number];
+  }),
+);
 
 const path = (pts: [number, number][], close = false) => {
   const xy = pts.map(([lon, lat]) => P(lon, lat));
@@ -82,41 +99,53 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
     <svg viewBox={`-20 -60 ${W + 40} ${H + 90}`} className="block h-auto w-full" role="img" aria-label="Mapa Polski">
       <defs>
         <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--map-sea)" />
-          <stop offset="1" stopColor="var(--map-sea)" stopOpacity="0.35" />
+          <stop offset="0" stopColor="#1F6FB0" />
+          <stop offset="1" stopColor="#3F9FD8" />
         </linearGradient>
         <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="var(--map-land)" />
           <stop offset="1" stopColor="var(--map-land-2)" />
         </linearGradient>
+        <clipPath id="poland">
+          <path d={outline} />
+        </clipPath>
         <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
           <feDropShadow dx="0" dy="10" stdDeviation="8" floodColor="#1d4b2c" floodOpacity="0.25" />
         </filter>
       </defs>
-      {/* Балтійське море */}
-      <rect x="-20" y="-60" width={W + 40} height="210" fill="url(#sea)" rx="30" />
-      {!compact && (
-        <g fill="#fff" opacity="0.7" fontSize="22" fontWeight="900" fontFamily="Nunito">
-          <text x="120" y="20">Morze Bałtyckie</text>
-          <text x="620" y="-10" fontSize="34">⛵</text>
-          <path d="M80 60 q15 -10 30 0 t30 0 M480 40 q15 -10 30 0 t30 0 M760 70 q15 -10 30 0 t30 0" stroke="#fff" strokeWidth="4" fill="none" />
-        </g>
-      )}
+      {/* Балтійське море: хвилі й вітрильник */}
+      <rect x="-20" y="-60" width={W + 40} height="240" fill="url(#sea)" rx="30" />
       {!compact && (
         <g>
-          <Cloud x={820} y={120} s={1.6} opacity={0.8} />
-          <Cloud x={120} y={880} s={1.4} opacity={0.75} />
+          <text x="110" y="24" fill="#fff" opacity="0.8" fontSize="24" fontWeight="900" fontFamily="Nunito" letterSpacing="1">Morze Bałtyckie</text>
+          <g stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.55">
+            {[[70, 70], [300, 40], [480, 70], [760, 60], [880, 20], [200, 120]].map(([x, y]) => <path key={x} d={`M${x} ${y} q15 -10 30 0 t30 0`} />)}
+          </g>
+          <g transform="translate(640 6)" stroke="#5A3A22" strokeWidth="2.5" strokeLinejoin="round">
+            <path d="M-34 22 L34 22 L24 38 L-24 38 Z" fill="#C9614A" />
+            <path d="M0 -40 L0 22" />
+            <path d="M3 -36 L30 14 L3 14 Z" fill="#fff" />
+            <path d="M-3 -26 L-26 14 L-3 14 Z" fill="#F6E7C8" />
+            <path d="M0 -40 L14 -34 L0 -30" fill="#FF4E5B" />
+          </g>
           <g transform="translate(880 330)">
             <path d="M0 -40 C 22 -40, 28 -14, 10 4 L4 14 L-4 14 L-10 4 C -28 -14, -22 -40, 0 -40 Z" fill="#F45159" stroke="#5A3A22" strokeWidth="2.5" />
             <path d="M0 -40 C 8 -30, 8 -6, 4 14 M0 -40 C -8 -30, -8 -6, -4 14" stroke="#FFBD42" strokeWidth="5" fill="none" />
             <rect x="-6" y="20" width="12" height="9" rx="2" fill="#B07A4A" stroke="#5A3A22" strokeWidth="2" />
-            <path d="M-4 14 L-5 20 M4 14 L5 20" stroke="#5A3A22" strokeWidth="1.5" />
           </g>
+          <Cloud x={820} y={120} s={1.6} opacity={0.8} />
+          <Cloud x={120} y={880} s={1.4} opacity={0.75} />
         </g>
       )}
       {/* Суша */}
-      <path d={outline} fill="url(#land)" stroke="#fff" strokeWidth="10" strokeLinejoin="round" filter="url(#soft)" />
-      <path d={outline} fill="none" stroke="#2FA56C" strokeWidth="3" strokeLinejoin="round" opacity="0.5" />
+      <path d={outline} fill="#F3DFA6" stroke="#F3DFA6" strokeWidth="22" strokeLinejoin="round" filter="url(#soft)" />
+      <path d={outline} fill="url(#land)" stroke="#fff" strokeWidth="5" strokeLinejoin="round" />
+      {/* Рельєф: мʼякі пагорби (світлі) і низини (темні), обрізані контуром країни */}
+      <g clipPath="url(#poland)" opacity="0.55">
+        {[[260, 300, 170, '#B5E58F'], [620, 520, 210, '#B5E58F'], [420, 700, 150, '#5FAE48'], [760, 300, 160, '#5FAE48'], [200, 620, 140, '#B5E58F'], [560, 820, 170, '#7FC35E']].map(([x, y, r, c]) => (
+          <ellipse key={`${x}${y}`} cx={x} cy={y} rx={Number(r) * 1.3} ry={r} fill={String(c)} />
+        ))}
+      </g>
       {/* Річки та озера */}
       <path d={path(VISTULA)} fill="none" stroke="#69C7F4" strokeWidth="7" strokeLinecap="round" opacity="0.9" />
       <path d={path(ODRA)} fill="none" stroke="#69C7F4" strokeWidth="6" strokeLinecap="round" opacity="0.9" />
@@ -128,21 +157,29 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
       {MOUNTAINS.map(([lon, lat, s]) => {
         const [x, y] = P(lon, lat);
         return (
-          <g key={`${lon}${lat}`} transform={`translate(${x} ${y}) scale(${s})`}>
-            <path d="M-30 18 L0 -26 L30 18 Z" fill="#8A9BA8" />
-            <path d="M-10 -11 L0 -26 L10 -11 L4 -7 L0 -12 L-4 -7 Z" fill="#fff" />
+          <g key={`${lon}${lat}`} transform={`translate(${x} ${y}) scale(${s})`} stroke="#5A6B78" strokeWidth="2" strokeLinejoin="round">
+            <path d="M-34 18 L0 -30 L34 18 Z" fill="#9AABB8" />
+            <path d="M0 -30 L34 18 L6 18 Z" fill="#7D8F9D" stroke="none" />
+            <path d="M-12 -13 L0 -30 L12 -13 L5 -9 L0 -15 L-5 -9 Z" fill="#fff" />
           </g>
         );
       })}
       {/* Ліси */}
       {!compact &&
-        TREES.map(([lon, lat]) => {
+        TREES.map(([lon, lat, kind]) => {
           const [x, y] = P(lon, lat);
-          return (
-            <g key={`${lon}${lat}`} transform={`translate(${x} ${y})`} opacity="0.85">
-              <path d="M0 -22 L14 4 L-14 4 Z" fill="#2FA56C" />
-              <path d="M0 -12 L16 14 L-16 14 Z" fill="#279058" />
-              <rect x="-3" y="14" width="6" height="8" fill="#8A552D" />
+          return kind ? (
+            <g key={`${lon}${lat}`} transform={`translate(${x} ${y})`}>
+              <ellipse cx="0" cy="16" rx="12" ry="4" fill="#000" opacity="0.15" />
+              <rect x="-2.5" y="4" width="5" height="12" fill="#8A552D" />
+              <circle cx="0" cy="-4" r="13" fill="#3DAA5C" stroke="#25804A" strokeWidth="2" />
+              <circle cx="-4" cy="-8" r="5" fill="#6FCB7E" />
+            </g>
+          ) : (
+            <g key={`${lon}${lat}`} transform={`translate(${x} ${y})`}>
+              <ellipse cx="0" cy="16" rx="12" ry="4" fill="#000" opacity="0.15" />
+              <path d="M0 -24 L13 0 L-13 0 Z M0 -14 L16 12 L-16 12 Z" fill="#23864E" stroke="#1B6A3D" strokeWidth="2" strokeLinejoin="round" />
+              <rect x="-2.5" y="12" width="5" height="5" fill="#8A552D" />
             </g>
           );
         })}

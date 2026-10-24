@@ -49,13 +49,13 @@ function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
     mq.addEventListener('change', h);
     return () => mq.removeEventListener('change', h);
   }, []);
-  // Основна тема POLSKI GO — ігрова темно-синя; світла лише за явним вибором.
+  // Основна тема POLSKI GO — світла яскрава; темна лише за явним вибором.
   void systemDark;
-  const dark = pref !== 'light';
+  const dark = pref === 'dark';
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.classList.toggle('light', !dark);
-    setTelegramColors(dark ? '#0c1b29' : '#fff9f0');
+    setTelegramColors(dark ? '#0c1b29' : '#fff7ec');
   }, [dark]);
 }
 

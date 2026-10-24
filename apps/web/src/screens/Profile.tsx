@@ -51,7 +51,7 @@ export default function ProfileScreen() {
 
   return (
     <div className="space-y-5 pb-4">
-      <TopStats />
+      <TopStats compact />
       <div className="mx-4 flex items-center gap-4 rounded-[28px] p-4" style={{ background: 'linear-gradient(135deg,#FFE3E3,#FFF4D6)' }}>
         <div className="relative">
           {me.photoUrl ? (

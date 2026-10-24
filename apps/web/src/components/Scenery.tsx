@@ -155,14 +155,15 @@ export function Logo({ size = 44, slogan }: { size?: number; slogan?: string }) 
 }
 
 // ───────── Пам'ятки міст для карти ─────────
-export type LandmarkKind = 'palace' | 'castle' | 'townhall' | 'crane' | 'factory' | 'ship' | 'saucer' | 'church' | 'mountains' | 'grapes' | 'bridge' | 'granary' | 'tower' | 'lakecastle';
+export type LandmarkKind = 'palace' | 'castle' | 'townhall' | 'crane' | 'factory' | 'ship' | 'saucer' | 'church' | 'mountains' | 'grapes' | 'bridge' | 'granary' | 'tower' | 'lakecastle' | 'spire' | 'clock' | 'gate' | 'roundtower' | 'rock' | 'sailship';
 
 /** Відповідність міста і впізнаваної пам'ятки. */
 export const CITY_LANDMARKS: Record<string, LandmarkKind> = {
-  warszawa: 'palace', krakow: 'castle', wroclaw: 'townhall', gdansk: 'crane', poznan: 'townhall', lodz: 'factory',
-  katowice: 'saucer', lublin: 'castle', szczecin: 'ship', torun: 'church', bydgoszcz: 'granary', rzeszow: 'tower',
-  bialystok: 'palace', olsztyn: 'lakecastle', opole: 'tower', kielce: 'mountains', zakopane: 'mountains',
-  'zielona-gora': 'grapes', gdynia: 'ship', gorzow: 'bridge',
+  // Кожне місто — своя пам'ятка (стилізовано).
+  warszawa: 'spire', krakow: 'castle', wroclaw: 'townhall', gdansk: 'crane', poznan: 'clock', lodz: 'factory',
+  katowice: 'saucer', lublin: 'gate', szczecin: 'ship', torun: 'church', bydgoszcz: 'granary', rzeszow: 'tower',
+  bialystok: 'palace', olsztyn: 'lakecastle', opole: 'roundtower', kielce: 'rock', zakopane: 'mountains',
+  'zielona-gora': 'grapes', gdynia: 'sailship', gorzow: 'bridge',
 };
 
 const L = '#5A3A22';
@@ -178,6 +179,76 @@ export function Landmark({ kind, color, muted }: { kind: LandmarkKind; color: st
     </g>
   );
   switch (kind) {
+    // Висотка зі шпилем (Варшава)
+    case 'spire':
+      return g(
+        <>
+          <rect x="-24" y="-20" width="48" height="20" fill={wall} />
+          <rect x="-15" y="-40" width="30" height="20" fill={wall} />
+          <rect x="-9" y="-58" width="18" height="18" fill={wall} />
+          <rect x="-5" y="-70" width="10" height="12" fill={wall} />
+          <path d="M-2 -70 L0 -92 L2 -70 Z" fill={roof} />
+          {[-17, -8, 3, 12].map((x) => <rect key={x} x={x} y="-15" width="5" height="9" rx="1.5" fill="#7FC8F8" strokeWidth="1.2" />)}
+          {[-9, 4].map((x) => <rect key={x} x={x} y="-35" width="5" height="9" rx="1.5" fill="#7FC8F8" strokeWidth="1.2" />)}
+        </>,
+      );
+    // Ратуша з годинником і козликами (Познань)
+    case 'clock':
+      return g(
+        <>
+          <rect x="-28" y="-24" width="56" height="24" fill="#FFE29A" />
+          <path d="M-30 -24 L30 -24 L24 -32 L-24 -32 Z" fill={roof} />
+          <rect x="-8" y="-60" width="16" height="36" fill="#FFE29A" />
+          <path d="M-10 -60 L0 -80 L10 -60 Z" fill={roof} />
+          <circle cx="0" cy="-46" r="6" fill="#fff" strokeWidth="1.5" />
+          <path d="M0 -46 L0 -50 M0 -46 L3 -44" strokeWidth="1.4" />
+          <path d="M-20 -36 l4 -5 l2 4 M20 -36 l-4 -5 l-2 4" strokeWidth="1.6" />
+        </>,
+      );
+    // Міська брама (Люблін)
+    case 'gate':
+      return g(
+        <>
+          <rect x="-24" y="-34" width="48" height="34" fill={wall} />
+          <path d="M-8 0 L-8 -16 Q0 -26 8 -16 L8 0 Z" fill={L} />
+          <rect x="-12" y="-58" width="24" height="24" fill={wall} />
+          <path d="M-14 -58 Q0 -80 14 -58 Z" fill={roof} />
+          <path d="M0 -76 L0 -84" />
+          <circle cx="0" cy="-46" r="4" fill="#fff" strokeWidth="1.2" />
+        </>,
+      );
+    // Кругла башта (Ополе)
+    case 'roundtower':
+      return g(
+        <>
+          <path d="M-14 0 L-14 -54 Q0 -60 14 -54 L14 0 Z" fill={wall} />
+          <path d="M-18 -54 L0 -78 L18 -54 Z" fill={roof} />
+          {[-28, -42].map((y) => <rect key={y} x="-3" y={y} width="6" height="9" rx="3" fill="#7FC8F8" strokeWidth="1.2" />)}
+          <rect x="-30" y="-16" width="16" height="16" fill={wall} />
+          <path d="M-32 -16 L-22 -26 L-12 -16 Z" fill={roof} />
+        </>,
+      );
+    // Скеля з амфітеатром (Кельце, Кадзельня)
+    case 'rock':
+      return g(
+        <>
+          <path d="M-34 0 L-26 -30 L-10 -44 L6 -40 L22 -52 L34 -20 L34 0 Z" fill="#E6DCC4" />
+          <path d="M-10 -44 L-4 -20 M22 -52 L14 -24" strokeWidth="1.6" />
+          <path d="M-22 0 Q0 -14 22 0" fill="#BFD7A0" />
+          <path d="M-16 -4 Q0 -12 16 -4" fill="none" strokeWidth="1.4" />
+        </>,
+      );
+    // Вітрильник (Гдиня, «Дар Помор'я»)
+    case 'sailship':
+      return g(
+        <>
+          <path d="M-34 -6 L34 -6 L26 6 L-26 6 Z" fill="#fff" />
+          <path d="M-12 -6 L-12 -66 M10 -6 L10 -60" />
+          {[-60, -44, -28].map((y) => <path key={y} d={`M-24 ${y} Q-12 ${y - 4} 0 ${y} L0 ${y + 12} Q-12 ${y + 8} -24 ${y + 12} Z`} fill="#F6F1E4" strokeWidth="1.6" />)}
+          {[-54, -38, -22].map((y) => <path key={y} d={`M0 ${y} Q10 ${y - 4} 22 ${y} L22 ${y + 12} Q10 ${y + 8} 0 ${y + 12} Z`} fill="#F6F1E4" strokeWidth="1.6" />)}
+          <path d="M-12 -66 L-2 -62 L-12 -58" fill={roof} />
+        </>,
+      );
     case 'palace':
       return g(
         <>

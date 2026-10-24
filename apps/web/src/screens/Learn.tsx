@@ -101,7 +101,7 @@ export default function LearnScreen() {
   let idx = 0;
   return (
     <div className="space-y-4">
-      <TopStats />
+      <TopStats compact />
       <div className="px-4">
         <h1 className="text-2xl font-black">{t('learn_title')}</h1>
         <p className="muted text-sm font-bold">{t('learn_subtitle')}</p>

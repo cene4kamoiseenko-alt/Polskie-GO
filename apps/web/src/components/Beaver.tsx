@@ -67,8 +67,8 @@ function Defs() {
         <stop offset="1" stopColor="#E23A48" />
       </linearGradient>
       <linearGradient id="bv-pack" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#5AA8FF" />
-        <stop offset="1" stopColor="#2A62C9" />
+        <stop offset="0" stopColor="#3FC79A" />
+        <stop offset="1" stopColor="#1F8F6E" />
       </linearGradient>
       <radialGradient id="bv-iris" cx="40%" cy="35%" r="70%">
         <stop offset="0" stopColor="#6A4026" />
@@ -108,7 +108,7 @@ function Backpack({ kind, front }: { kind?: string; front?: boolean }) {
   if (kind === 'none') return null;
   const map = kind === 'backpack-map';
   const fill = map ? '#F2994A' : 'url(#bv-pack)';
-  const dark = map ? '#C8742E' : '#1E4E9E';
+  const dark = map ? '#C8742E' : '#1C7F62';
   if (front) {
     return (
       <g>
@@ -766,7 +766,8 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
     );
   }
   const costume = outfit.COSTUME;
-  const jacket = costume ? undefined : outfit.JACKET;
+  // Фірмовий образ Бобека — червона худі «PL» (якщо інший одяг не вибрано).
+  const jacket = costume ? undefined : (outfit.JACKET ?? 'hoodie-red');
   const sleeve = jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : costume === 'costume-dragon' ? '#3DBE6A' : C.fur;
   const [leftPose, rightPose] = armPose(mood);
   const backpack = mood === 'royal' ? 'none' : outfit.BACKPACK;
@@ -814,7 +815,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       {RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
       <CostumeHead kind={costume} />
       <Glasses kind={outfit.GLASSES} />
-      {!costume && <Hat kind={mood === 'royal' ? 'crown-gold' : mood === 'music' ? 'headphones' : outfit.HAT ?? (mood === 'sleep' ? undefined : 'cap-signature')} />}
+      {!costume && <Hat kind={mood === 'royal' ? 'crown-gold' : mood === 'music' ? 'headphones' : outfit.HAT} />}
       </g>
       <Effects mood={mood} />
     </svg>

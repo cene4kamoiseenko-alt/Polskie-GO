@@ -26,9 +26,31 @@
   --shadow-card: 0 10px 24px -12px rgb(0 0 0 / 0.7);
 }
 
+/* POLSKI GO — основна світла яскрава тема (кремовий фон, білі картки, пастельні плитки) */
 :root,
+.light {
+  --bg: #fff7ec;
+  --bg-2: #ffefd9;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #fffaf3;
+  --bg-muted: #f6efe3;
+  --text: #22364a;
+  --text-muted: #6d7f8f;
+  --border: #efe6d6;
+  --track: #f0e7d8;
+  --cream: #fff6e6;
+  --cream-2: #ffeccc;
+  --on-cream: #22364a;
+  --on-cream-muted: #6d7f8f;
+  --map-land: #bfe8a9;
+  --map-land-2: #a6dc8c;
+  --map-sea: #8fd3f5;
+  --shadow-deep: 0 8px 22px -8px rgb(31 51 70 / 0.22), 0 2px 4px rgb(31 51 70 / 0.05);
+  color-scheme: light;
+}
+
 .dark {
-  /* POLSKI GO 3.0 — ігрова темно-синя палітра (основна тема) */
+  /* Темна тема — за вибором у налаштуваннях */
   --bg: #0c1b29;
   --bg-2: #10263a;
   --bg-elev: #162b3b;
@@ -47,28 +69,6 @@
   --map-sea: #3f9fd8;
   --shadow-deep: 0 10px 24px -12px rgb(0 0 0 / 0.7), 0 2px 0 rgb(255 255 255 / 0.04) inset;
   color-scheme: dark;
-}
-
-/* Світла тема — за вибором у налаштуваннях */
-.light {
-  --bg: #fff9f0;
-  --bg-2: #fff3e2;
-  --bg-elev: #ffffff;
-  --bg-elev-2: #fffaf3;
-  --bg-muted: #f6efe3;
-  --text: #22364a;
-  --text-muted: #6d7f8f;
-  --border: #efe6d6;
-  --track: #f0e7d8;
-  --cream: #fff6e6;
-  --cream-2: #ffeccc;
-  --on-cream: #22364a;
-  --on-cream-muted: #6d7f8f;
-  --map-land: #bfe8a9;
-  --map-land-2: #a6dc8c;
-  --map-sea: #8fd3f5;
-  --shadow-deep: 0 8px 22px -8px rgb(31 51 70 / 0.22), 0 2px 4px rgb(31 51 70 / 0.05);
-  color-scheme: light;
 }
 
 html,

@@ -123,7 +123,7 @@ export default function QuestsScreen() {
 
   return (
     <div className="space-y-4 pb-4">
-      <TopStats />
+      <TopStats compact />
 
       {/* Герой-сцена */}
       <div className="relative mx-4 h-40 overflow-hidden rounded-[28px] shadow-[var(--shadow-card)]" style={{ background: `linear-gradient(180deg, #8ED3F7 0%, #DDF2FF 60%, ${active.color}66 100%)` }}>

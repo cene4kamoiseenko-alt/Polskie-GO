@@ -28,6 +28,19 @@ export default function MapScreen() {
   const [level, setLevel] = useState<string | null>(null);
   const [travel, setTravel] = useState<{ from: JourneyCity; to: JourneyCity } | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  // Масштаб двома пальцями: розведення — ближче, зведення — далі (кроками, панорамування — нативний скрол).
+  const pinch = useRef<number | null>(null);
+  const dist = (e: React.TouchEvent) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  const pinchStart = (e: React.TouchEvent) => { pinch.current = e.touches.length === 2 ? dist(e) : null; };
+  const pinchMove = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2 || !pinch.current) return;
+    const ratio = dist(e) / pinch.current;
+    if (ratio > 1.25 || ratio < 0.8) {
+      setZoom((z) => Math.max(0, Math.min(ZOOMS.length - 1, z + (ratio > 1 ? 1 : -1))));
+      pinch.current = dist(e);
+      haptic.select();
+    }
+  };
 
   // Анімація подорожі після складеного іспиту міста: /map?travel=<fromId>,<toId>
   useEffect(() => {
@@ -75,7 +88,7 @@ export default function MapScreen() {
 
   return (
     <div className="space-y-3">
-      <TopStats />
+      <TopStats compact />
       <div className="px-4">
         <h1 className="text-[26px] font-black leading-tight">{t('map_journey')}</h1>
         <p className="text-sm font-bold text-[#6B7A8A]">{t('map_journey_d', { done: completedCount, total: j.cities.length })}</p>
@@ -116,7 +129,14 @@ export default function MapScreen() {
       )}
 
       <div className="relative mx-3">
-        <div ref={box} className="no-scrollbar max-h-[64vh] overflow-auto rounded-[28px] border-4 border-white shadow-[var(--shadow-card)]" style={{ background: 'var(--map-sea)', height: zoom === 0 ? 'auto' : '64vh' }}>
+        <div
+          ref={box}
+          className="no-scrollbar max-h-[64vh] touch-pan-x touch-pan-y overflow-auto rounded-[28px] border-[3px] border-white/15 shadow-[var(--shadow-card)]"
+          style={{ background: '#1F6FB0', height: zoom === 0 ? 'auto' : '64vh' }}
+          onTouchStart={pinchStart}
+          onTouchMove={pinchMove}
+          onWheel={(e) => { if (e.ctrlKey) { e.preventDefault(); setZoom((z) => Math.max(0, Math.min(ZOOMS.length - 1, z + (e.deltaY < 0 ? 1 : -1)))); } }}
+        >
           <div style={{ width: `${ZOOMS[zoom] * 100}%` }}>
             <PolandMap cities={j.cities} currentCityId={j.currentCityId} travel={travel} hereLabel={t('map_you_are_here')} soonLabel={t('map_soon')} level={level} onCityClick={(c) => { haptic.tap(); setSelected(c); }} />
           </div>
@@ -127,11 +147,20 @@ export default function MapScreen() {
             ['+', () => setZoom((z) => Math.min(ZOOMS.length - 1, z + 1)), zoom === ZOOMS.length - 1],
             ['−', () => setZoom((z) => Math.max(0, z - 1)), zoom === 0],
           ].map(([label, fn, disabled]) => (
-            <button key={label as string} onClick={fn as () => void} disabled={disabled as boolean} aria-label={`${t('map_zoom')} ${label}`} className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-2xl font-black text-ink shadow-md disabled:opacity-40">
+            <button key={label as string} onClick={fn as () => void} disabled={disabled as boolean} aria-label={`${t('map_zoom')} ${label}`} className="grid h-11 w-11 place-items-center rounded-2xl bg-[#162B3B]/90 text-2xl font-black text-white shadow-md ring-1 ring-white/15 active:scale-95 disabled:opacity-40">
               {label as string}
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Прогрес подорожі Польщею */}
+      <div className="card mx-4 flex items-center gap-3 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-black">{t('map_poland_progress', { n: j.cities.filter((c) => c.completed).length, total: j.cities.length })}</div>
+          <Progress value={j.cities.filter((c) => c.completed).length} max={j.cities.length} height={8} color="var(--color-pl-red)" className="mt-1.5" />
+        </div>
+        <span className="text-lg font-black text-pl-red">{Math.round((j.cities.filter((c) => c.completed).length / Math.max(1, j.cities.length)) * 100)}%</span>
       </div>
 
       {current && (
