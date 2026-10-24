@@ -80,6 +80,14 @@ textarea {
 .safe-top {
   padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));
 }
+:root {
+  /* Висота нижньої навігації без safe area — вміст не ховається під неї. */
+  --nav-h: 76px;
+  --safe-b: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+.nav-pad {
+  padding-bottom: calc(var(--nav-h) + var(--safe-b) + 20px);
+}
 .safe-bottom {
   padding-bottom: calc(var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 8px);
 }

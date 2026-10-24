@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import type { Journey, Me, Quest, ShopItem } from './types';
 
-export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/me'), staleTime: 10_000 });
+export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/me') });
 export const useJourney = () => useQuery({ queryKey: ['journey'], queryFn: () => api<Journey>('/journey') });
 export const useQuests = () =>
   useQuery({ queryKey: ['quests'], queryFn: () => api<{ daily: Quest[]; weekly: Quest[]; story: Quest[]; resetsAt: string }>('/quests') });

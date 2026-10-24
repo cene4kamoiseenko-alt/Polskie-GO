@@ -10,6 +10,7 @@ import {
   userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions,
 } from '../db/schema';
 import { body, query, rateLimit, type AppEnv } from '../hono';
+import { forgetUser } from '../auth';
 import { HttpError, badRequest } from '../lib/errors';
 import { validateInitData } from '../lib/telegram';
 import { signToken } from '../lib/token';
@@ -166,6 +167,7 @@ me.delete('/me', async (c) => {
     db.delete(notificationLog).where(eq(notificationLog.userId, id)),
     db.delete(users).where(eq(users.id, id)),
   ]);
+  forgetUser(id);
   return c.json({ deleted: true });
 });
 

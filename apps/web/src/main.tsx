@@ -9,7 +9,8 @@ import './index.css';
 initTelegram();
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+  // Дані кешуються на хвилину; після навчальних подій потрібні ключі інвалідовуються явно.
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 60_000 } },
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

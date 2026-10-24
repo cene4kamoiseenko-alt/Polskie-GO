@@ -15,12 +15,16 @@ const GOAL_XP: Record<number, number> = { 5: 30, 10: 50, 15: 80, 20: 120 };
 export const goalXp = (minutes: number) => GOAL_XP[minutes] ?? Math.max(20, minutes * 5);
 
 export async function getMe(userId: string) {
-  const [userRow, settingsRow, profileRow, progressRow, walletRow] = await Promise.all([
+  // Незалежні дані — паралельно; залежне від часового поясу (сьогоднішній день) — другим кроком.
+  const [userRow, settingsRow, profileRow, progressRow, walletRow, sub, look, cfg] = await Promise.all([
     db.select().from(users).where(eq(users.id, userId)),
     db.select().from(userSettings).where(eq(userSettings.userId, userId)),
     db.select().from(userProfiles).where(eq(userProfiles.userId, userId)),
     db.select({ p: playerProgress, city: cities }).from(playerProgress).leftJoin(cities, eq(cities.id, playerProgress.currentCityId)).where(eq(playerProgress.userId, userId)),
     db.select().from(gameWallets).where(eq(gameWallets.userId, userId)),
+    activeSubscription(userId),
+    outfit(userId),
+    getRewards(),
   ]);
   const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0].p, currentCity: progressRow[0].city } };
   const tz = user.settings?.timezone ?? 'Europe/Warsaw';
@@ -36,7 +40,6 @@ export async function getMe(userId: string) {
     db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
     db.select().from(aiUsage).where(and(eq(aiUsage.userId, userId), eq(aiUsage.day, today))),
   ]);
-  const [sub, look, cfg] = await Promise.all([activeSubscription(userId), outfit(userId), getRewards()]);
   const todayAct = todayRow[0];
   const usage = usageRow[0];
   const dueReviews = dueRow[0]?.n ?? 0;

@@ -11,7 +11,7 @@ import { CEFR_LEVELS, EXERCISE_TYPES, DEFAULT_REWARDS } from '@polski-go/shared'
 import { getBindings } from '../env';
 import { atomic, db, isUniqueViolation } from '../db';
 import * as t from '../db/schema';
-import { requireAdmin } from '../auth';
+import { forgetUser, requireAdmin } from '../auth';
 import { body, query, rateLimit, type AppEnv } from '../hono';
 import { HttpError, badRequest, notFound } from '../lib/errors';
 import { hashPassword, verifyPassword } from '../lib/password';
@@ -376,6 +376,7 @@ a.post('/users/:id/ban', async (c) => {
   const id = c.req.param('id');
   const { banned, reason } = z.object({ banned: z.boolean(), reason: z.string().max(200).optional() }).parse(await body(c));
   await db.update(t.users).set({ isBanned: banned, banReason: banned ? (reason ?? null) : null }).where(eq(t.users.id, id));
+  forgetUser(id);
   await audit(c, banned ? 'ban' : 'unban', 'user', id, { reason });
   return c.json({ ok: true });
 });

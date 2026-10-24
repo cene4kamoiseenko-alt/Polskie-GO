@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
+import { MotionConfig, motion } from 'framer-motion';
 import { I18nProvider, guessLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
 import { useMe } from './lib/queries';
@@ -64,6 +64,16 @@ function Splash() {
   );
 }
 
+/** Після старту у вільний час підвантажуємо екрани вкладок — перший перехід без очікування. */
+function prefetchScreens() {
+  const load = () => {
+    for (const f of [() => import('./screens/Map'), () => import('./screens/Learn'), () => import('./screens/Lesson'), () => import('./screens/Quests'), () => import('./screens/Profile'), () => import('./screens/Dictionary')]) void f();
+  };
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void };
+  if (w.requestIdleCallback) w.requestIdleCallback(load, { timeout: 2500 });
+  else setTimeout(load, 1200);
+}
+
 export function App() {
   const me = useMe();
   const loc = useLocation();
@@ -83,6 +93,10 @@ export function App() {
     else if (p.startsWith('story_')) nav(`/story/${p.slice(6)}`);
   }, [me.data?.onboarded, nav]);
 
+  useEffect(() => {
+    if (me.data?.onboarded) prefetchScreens();
+  }, [me.data?.onboarded]);
+
   const showNav = TAB_ROUTES.includes(loc.pathname);
   const reduced = me.data?.settings.reducedMotion;
   const badges = useMemo(() => ({ '/quests': 0, '/profile': me.data?.counters.unseenAchievements ?? 0 }), [me.data]);
@@ -101,14 +115,13 @@ export function App() {
   } else {
     body = (
       <>
-        <AnimatePresence mode="wait">
-          <motion.main
+        {/* Новий екран з'являється одразу (без очікування анімації виходу попереднього). */}
+        <motion.main
             key={loc.pathname}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className={showNav ? 'pb-24' : ''}
+            initial={{ opacity: 0.4 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.12 }}
+            className={showNav ? 'nav-pad' : ''}
           >
             <Suspense fallback={<ScreenSkeleton />}>
               <Routes location={loc}>
@@ -135,7 +148,6 @@ export function App() {
               </Routes>
             </Suspense>
           </motion.main>
-        </AnimatePresence>
         {showNav && <BottomNav badge={badges} />}
       </>
     );

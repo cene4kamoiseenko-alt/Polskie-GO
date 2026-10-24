@@ -295,7 +295,8 @@ function reviewStmts(userId: string, itemType: 'WORD' | 'EXERCISE', itemId: stri
 }
 
 export async function answerItem(userId: string, sessionId: string, key: string, answer: AnswerPayload) {
-  const s = await loadSession(userId, sessionId);
+  // Сесія і контекст користувача читаються паралельно — менше послідовних звернень до D1.
+  const [s, ctx] = await Promise.all([loadSession(userId, sessionId), loadCtx(userId)]);
   const items = s.items as ExerciseItem[];
   const item = items.find((i) => i.key === key);
   if (!item) throw badRequest('unknown_item');
@@ -342,21 +343,20 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   // Пропущена вимова (немає мікрофона) не є помилкою і не потрапляє в статистику.
   if (firstDone && !st.skipped) {
     const ok = !!st.firstCorrect;
-    const [skillRow, wordRev, exRev] = await db.batch([
+    const events: QuestEvents = { PERFECT_STREAK: state.run };
+    if ((item.type === 'LISTENING' || item.type === 'DICTATION') && st.firstCorrect) events.LISTENING = 1;
+    const [[skillRow, wordRev, exRev], quests] = await Promise.all([db.batch([
       db.select({ mastery: languageSkills.mastery }).from(languageSkills).where(and(eq(languageSkills.userId, userId), eq(languageSkills.skill, item.skill))),
       db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), eq(reviewSchedule.itemId, item.vocabId ?? ''))),
       db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'EXERCISE'), eq(reviewSchedule.itemId, item.exerciseId ?? ''))),
-    ]);
+    ]), applyQuestEvents(ctx, events)]);
     stmts.push(
       db.insert(exerciseAttempts).values({ userId, sessionId: s.id, exerciseId: item.exerciseId ?? null, itemKey: key, type: item.type, skill: item.skill, answer, isCorrect: ok }),
       skillStmt(userId, item.skill, skillRow[0], ok),
     );
     if (item.vocabId) stmts.push(...reviewStmts(userId, 'WORD', item.vocabId, wordRev[0], ok, result.almost));
     if (item.exerciseId) stmts.push(...reviewStmts(userId, 'EXERCISE', item.exerciseId, exRev[0], ok, result.almost));
-    const events: QuestEvents = { PERFECT_STREAK: state.run };
-    if ((item.type === 'LISTENING' || item.type === 'DICTATION') && st.firstCorrect) events.LISTENING = 1;
-    const ctx = await loadCtx(userId);
-    stmts.push(...(await applyQuestEvents(ctx, events)).stmts);
+    stmts.push(...quests.stmts);
   }
   await atomic(stmts);
 
@@ -365,8 +365,7 @@ export async function answerItem(userId: string, sessionId: string, key: string,
 }
 
 export async function finishSession(userId: string, sessionId: string) {
-  const cfg = await getRewards();
-  const s = await loadSession(userId, sessionId);
+  const [cfg, s, ctx] = await Promise.all([getRewards(), loadSession(userId, sessionId), loadCtx(userId)]);
   const items = s.items as ExerciseItem[];
   const state = s.state as unknown as SessionState;
   const elapsed = Date.now() - s.startedAt.getTime();
@@ -380,7 +379,6 @@ export async function finishSession(userId: string, sessionId: string) {
   const total = isSpeed ? items.length : counted.length;
   const correct = counted.filter((i) => state.answers[i.key].firstCorrect).length;
   const accuracy = total ? correct / total : 0;
-  const ctx = await loadCtx(userId);
   const { now } = ctx;
   const p = ctx.progress;
   const key = `session:${s.id}`;
@@ -562,8 +560,7 @@ export async function finishSession(userId: string, sessionId: string) {
     practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR'].includes(s.mode) ? xpRes.granted : 0,
   });
 
-  const quests = await applyQuestEvents(ctx, events);
-  const ach = await evaluateAchievements(userId, p, adjust);
+  const [quests, ach] = await Promise.all([applyQuestEvents(ctx, events), evaluateAchievements(userId, p, adjust)]);
 
   await atomic([
     // Першим — закриття сесії з перевіркою версії: повторне завершення відкотить увесь пакет.

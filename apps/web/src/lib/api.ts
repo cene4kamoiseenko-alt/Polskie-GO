@@ -16,6 +16,28 @@ export class ApiError extends Error {
   }
 }
 
+/** Токен зберігається між запусками (7 днів) і прив'язаний до користувача Telegram — повторний вхід без зайвого запиту. */
+const AUTH_KEY = 'pg_auth';
+const authOwner = () => String(tg?.initDataUnsafe.user?.id ?? `dev:${new URLSearchParams(location.search).get('devUser') ?? 100001}`);
+function savedToken(): string | null {
+  try {
+    const s = JSON.parse(localStorage.getItem(AUTH_KEY) ?? 'null') as { token: string; owner: string; exp: number } | null;
+    if (s && s.owner === authOwner() && s.exp > Date.now() + 3600_000) return s.token;
+  } catch {
+    /* сховище недоступне */
+  }
+  return null;
+}
+function saveToken(t: string) {
+  try {
+    localStorage.setItem(AUTH_KEY, JSON.stringify({ token: t, owner: authOwner(), exp: Date.now() + 6.5 * 86_400_000 }));
+  } catch {
+    /* сховище недоступне */
+  }
+}
+token = typeof window !== 'undefined' ? savedToken() : null;
+if (token) authPromise = Promise.resolve();
+
 async function authenticate() {
   const res = tg
     ? await fetch(`${API_BASE}/api/auth/telegram`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData }) })
@@ -28,6 +50,7 @@ async function authenticate() {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, body.error ?? 'auth_failed', body.message);
   token = body.token;
+  saveToken(body.token);
 }
 
 export function ensureAuth() {

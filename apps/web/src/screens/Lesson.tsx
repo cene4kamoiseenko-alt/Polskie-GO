@@ -306,8 +306,8 @@ export default function LessonScreen() {
               </button>
             )
           ) : item.type === 'PRONUNCIATION' ? null : (
-            <button className="btn btn-primary w-full text-lg" disabled={!payload || checking} onClick={() => check()}>
-              {t('lesson_check')}
+            <button className="btn btn-primary w-full text-lg" disabled={!payload || checking} aria-busy={checking} onClick={() => check()}>
+              {checking ? <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[3px] border-white border-t-transparent" /> : t('lesson_check')}
             </button>
           )}
         </div>
