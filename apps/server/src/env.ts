@@ -57,7 +57,7 @@ export const config = {
     return str(env.TELEGRAM_BOT_TOKEN);
   },
   get botUsername() {
-    return str(env.TELEGRAM_BOT_USERNAME) || 'polski_go_bot';
+    return str(env.TELEGRAM_BOT_USERNAME).replace(/^@/, '') || 'polski_go_bot';
   },
   get appShortName() {
     return str(env.TELEGRAM_APP_SHORT_NAME) || 'app';
