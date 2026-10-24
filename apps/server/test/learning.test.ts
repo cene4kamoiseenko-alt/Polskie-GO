@@ -159,6 +159,16 @@ describe('Уроки та нагороди', () => {
     expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-1-rodzina') })).status).toBe(200);
     const ach = await db.select({ slug: achievements.slug }).from(userAchievements).innerJoin(achievements, eq(achievements.id, userAchievements.achievementId)).where(eq(userAchievements.userId, user.id));
     expect(ach.map((a) => a.slug)).toContain('city-1');
+    // Паспорт: штамп Варшави з листівкою й нотаткою; наступні міста — без них.
+    const pass = await call('GET', '/api/passport');
+    expect(pass.body.stamps).toBe(1);
+    const [waw, next] = pass.body.cities;
+    expect(waw).toMatchObject({ slug: 'warszawa', stop: 1 });
+    expect(waw.stampedAt).toBeTruthy();
+    expect(waw.postcard.pl).toContain('Warszawie');
+    expect(waw.note.uk).toContain('ЮНЕСКО');
+    expect(next.stampedAt).toBeNull();
+    expect(next.note).toBeNull();
   });
 
   it('вхідний тест відкриває міста як рекомендацію, але не підтверджує рівень', async () => {

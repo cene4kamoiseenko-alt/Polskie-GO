@@ -123,7 +123,7 @@ export async function respondFriend(userId: string, friendshipId: string, accept
   const progress = await db.select().from(playerProgress).where(inArray(playerProgress.userId, [userId, f.requesterId]));
   const stmts = [db.update(friendships).set({ status: 'ACCEPTED' }).where(eq(friendships.id, f.id))];
   for (const p of progress) {
-    const adj = f.status === 'ACCEPTED' ? {} : { FRIENDS: 1 };
+    const adj: Record<string, number> = f.status === 'ACCEPTED' ? {} : { FRIENDS: 1 };
     stmts.push(...((await evaluateAchievements(p.userId, p, adj)).stmts as never[]));
   }
   await atomic(stmts);

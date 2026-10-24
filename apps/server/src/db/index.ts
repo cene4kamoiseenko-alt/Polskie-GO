@@ -79,3 +79,10 @@ export async function atomic(stmts: (Stmt | null | undefined | false)[]) {
 }
 
 export { schema };
+
+/** Розбити рядки на частини для багаторядкових INSERT (D1: не більше 100 параметрів на запит). */
+export function chunks<T>(rows: T[], size = 6): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < rows.length; i += size) out.push(rows.slice(i, i + size));
+  return out;
+}

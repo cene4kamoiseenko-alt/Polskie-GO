@@ -4,6 +4,7 @@
  */
 import type { Cefr, I18n } from '@polski-go/shared';
 import { t } from './builders';
+import { LIFE_VOCAB } from './vocab-life';
 
 export type VocabSeed = {
   pl: string;
@@ -54,6 +55,11 @@ export const TOPICS: Record<string, I18n> = {
   bank: t('Банк', 'Банк', 'Bank'),
   slang: t('Польський сленг', 'Польский сленг', 'Polish slang'),
   exam_b1: t('Іспит B1', 'Экзамен B1', 'B1 exam'),
+  dishes: t('Польські страви', 'Польские блюда', 'Polish dishes'),
+  pierogi: t('Pierogi', 'Pierogi', 'Pierogi'),
+  road: t('Дорога і заправка', 'Дорога и заправка', 'Road & petrol station'),
+  parcel: t('Посилки', 'Посылки', 'Parcels'),
+  city: t('Місто', 'Город', 'City'),
   grammar: t('Граматика', 'Грамматика', 'Grammar'),
 };
 
@@ -319,4 +325,5 @@ export const VOCAB: VocabSeed[] = [
   // ── Іспит ──
   v('egzamin', 'noun', t('іспит', 'экзамен', 'exam'), 'еґзамін', 'A1', ['exam_b1'], '📚'),
   v('certyfikat', 'noun', t('сертифікат', 'сертификат', 'certificate'), 'цертифікат', 'B1', ['exam_b1', 'documents'], '🎓'),
+  ...LIFE_VOCAB,
 ];

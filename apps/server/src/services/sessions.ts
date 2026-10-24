@@ -7,11 +7,11 @@
 import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, notInArray, or, sql, type AnyColumn } from 'drizzle-orm';
 import {
   BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO,
-  checkAnswer, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
+  checkAnswer, dayDiff, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
   seededRandom, shuffle, toPublicItem,
   type AnswerPayload, type Cefr, type CheckResult, type ExerciseItem, type ExerciseType, type I18n,
 } from '@polski-go/shared';
-import { atomic, db, type Stmt } from '../db';
+import { atomic, chunks, db, type Stmt } from '../db';
 import {
   cities, cityRoutes, cosmeticItems, dailyActivity, exerciseAttempts, exercises, languageSkills, learningSessions, lessonWords, lessons,
   newId, playerProgress, reviewSchedule, userCities, userInventory, userLessonProgress, userProfiles, userVocabulary, vocabularyEntries,
@@ -370,6 +370,8 @@ export async function finishSession(userId: string, sessionId: string) {
   const state = s.state as unknown as SessionState;
   const elapsed = Date.now() - s.startedAt.getTime();
   const isSpeed = s.mode === 'SPEED';
+  // День останньої активності до цього уроку (для досягнення «Повернення в дорогу»).
+  const prevActiveDay = ctx.progress.lastActiveDay;
 
   const answered = items.filter((i) => state.answers[i.key]?.done);
   if (!isSpeed && answered.length < items.length) throw badRequest('not_finished', 'Не всі вправи виконано');
@@ -393,7 +395,6 @@ export async function finishSession(userId: string, sessionId: string) {
   let cityCompleted: null | { cityId: string; nextCity: unknown; rewards: unknown[] } = null;
   let levelConfirmed: Cefr | null = null;
   let placement: null | { level: Cefr; unlocked: string[] } = null;
-  const adjust: { CITIES?: number } = {};
 
   if (s.mode === 'LESSON' && s.lessonId) {
     const [lessonRow, ulpRow, lw] = await Promise.all([
@@ -473,13 +474,15 @@ export async function finishSession(userId: string, sessionId: string) {
 
       // Нові слова уроку → словник користувача + розклад повторень.
       if (fresh.length) {
-        stmts.push(
-          db.insert(userVocabulary).values(fresh.map((x) => ({ userId, entryId: x.entryId, status: 'LEARNING' as const, timesSeen: 1 }))).onConflictDoNothing(),
-          db
-            .insert(reviewSchedule)
-            .values(fresh.map((x) => ({ userId, itemType: 'WORD', itemId: x.entryId, intervalDays: 1, repetitions: 1, dueAt: new Date(now.getTime() + 86_400_000) })))
-            .onConflictDoNothing(),
-        );
+        for (const part of chunks(fresh)) {
+          stmts.push(
+            db.insert(userVocabulary).values(part.map((x) => ({ userId, entryId: x.entryId, status: 'LEARNING' as const, timesSeen: 1 }))).onConflictDoNothing(),
+            db
+              .insert(reviewSchedule)
+              .values(part.map((x) => ({ userId, itemType: 'WORD', itemId: x.entryId, intervalDays: 1, repetitions: 1, dueAt: new Date(now.getTime() + 86_400_000) })))
+              .onConflictDoNothing(),
+          );
+        }
         newWords = fresh.map((x) => ({ id: x.entryId, pl: x.pl, translations: x.translations }));
         events.NEW_WORDS = fresh.length;
       }
@@ -490,7 +493,6 @@ export async function finishSession(userId: string, sessionId: string) {
           cityCompleted = done.result;
           stmts.push(...done.stmts);
           events.CITY_COMPLETED = 1;
-          adjust.CITIES = 1;
           if (done.currentCityId) p.currentCityId = done.currentCityId;
         }
       }
@@ -560,7 +562,7 @@ export async function finishSession(userId: string, sessionId: string) {
     practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR'].includes(s.mode) ? xpRes.granted : 0,
   });
 
-  const [quests, ach] = await Promise.all([applyQuestEvents(ctx, events), evaluateAchievements(userId, p, adjust)]);
+  const quests = await applyQuestEvents(ctx, events);
 
   await atomic([
     // Першим — закриття сесії з перевіркою версії: повторне завершення відкотить увесь пакет.
@@ -570,8 +572,12 @@ export async function finishSession(userId: string, sessionId: string) {
     ...zl.stmts,
     ...activity.stmts,
     ...quests.stmts,
-    ...ach.stmts,
   ]);
+
+  // Досягнення — після запису: метрики (уроки, розділи міст, повторення) уже враховують цей урок.
+  const returned = s.mode === 'LESSON' && passed && !!prevActiveDay && dayDiff(prevActiveDay, ctx.day) >= 7;
+  const ach = await evaluateAchievements(userId, null, returned ? { RETURN: 1 } : {});
+  if (ach.stmts.length) await atomic(ach.stmts);
 
   const mistakes = counted.filter((i) => state.answers[i.key].firstCorrect === false).map((i) => ({ key: i.key, type: i.type, skill: i.skill }));
 

@@ -13,6 +13,8 @@ import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../ser
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
 import { achievementMetrics } from '../services/achievements';
+import { answerMission, listMissions, missionHint, startMission } from '../services/missions';
+import { passport } from '../services/passport';
 import { AI_MODES, ROLEPLAYS, listConversations, sendMessage, type AiMode } from '../services/ai';
 
 export const gameRoutes = new Hono<AppEnv>();
@@ -28,6 +30,21 @@ r.post('/story/:slug/advance', async (c) => {
   return c.json(await advanceStory(c.get('userId'), c.req.param('slug'), choice));
 });
 
+// ── Місії «Польська в житті» ──
+r.get('/missions', async (c) => c.json(await listMissions(c.get('userId'))));
+r.post('/missions/:slug/start', async (c) => c.json(await startMission(c.get('userId'), c.req.param('slug'))));
+r.post('/missions/runs/:id/answer', rateLimit(90, 60_000, 'mission'), async (c) => {
+  const b = z.object({ step: z.number().int().min(0).max(30), option: z.number().int().min(0).max(10).optional(), text: z.string().max(300).optional() }).parse(await body(c));
+  return c.json(await answerMission(c.get('userId'), c.req.param('id'), b.step, b));
+});
+r.post('/missions/runs/:id/hint', rateLimit(60, 60_000, 'mission-hint'), async (c) => {
+  const { step } = z.object({ step: z.number().int().min(0).max(30) }).parse(await body(c));
+  return c.json(await missionHint(c.get('userId'), c.req.param('id'), step));
+});
+
+// ── Паспорт мандрівника ──
+r.get('/passport', async (c) => c.json(await passport(c.get('userId'))));
+
 // ── Досягнення ──
 r.get('/achievements', async (c) => {
   const userId = c.get('userId');
@@ -36,14 +53,15 @@ r.get('/achievements', async (c) => {
     db.select().from(userAchievements).where(eq(userAchievements.userId, userId)),
     db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
   ]);
-  const metrics = await achievementMetrics(userId, progress[0]);
+  const owned = new Set(mine.map((m) => m.achievementId));
+  const metrics = await achievementMetrics(userId, progress[0], all.filter((a) => !owned.has(a.id)).map((a) => a.metric));
   await db.update(userAchievements).set({ seen: true }).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false)));
   return c.json(
     all.map((a) => {
       const m = mine.find((x) => x.achievementId === a.id);
       return {
         slug: a.slug, title: a.title, description: a.description, icon: a.icon, threshold: a.threshold,
-        progress: Math.min(metrics[a.metric] ?? 0, a.threshold), unlockedAt: m?.unlockedAt ?? null, isNew: m ? !m.seen : false, zlotki: a.zlotkiReward,
+        metric: a.metric, progress: m ? a.threshold : Math.min(metrics[a.metric] ?? 0, a.threshold), unlockedAt: m?.unlockedAt ?? null, isNew: m ? !m.seen : false, zlotki: a.zlotkiReward,
       };
     }),
   );

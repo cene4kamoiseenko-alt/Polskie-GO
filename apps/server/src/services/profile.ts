@@ -11,8 +11,8 @@ import { ttsConfigured, ttsStatus } from './tts';
 import { activeSubscription } from './premium';
 import { outfit } from './shop';
 
-const GOAL_XP: Record<number, number> = { 5: 30, 10: 50, 15: 80, 20: 120 };
-export const goalXp = (minutes: number) => GOAL_XP[minutes] ?? Math.max(20, minutes * 5);
+export { goalXpFor as goalXp } from './goal';
+import { goalXpFor as goalXp } from './goal';
 
 export async function getMe(userId: string) {
   // Незалежні дані — паралельно; залежне від часового поясу (сьогоднішній день) — другим кроком.

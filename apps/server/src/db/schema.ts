@@ -695,6 +695,57 @@ export const notificationLog = sqliteTable(
   (t) => [uniqueIndex('notification_log_unique').on(t.userId, t.kind, t.day)],
 );
 
+// ───────────────────────── Місії «Польська в житті» ─────────────────────────
+
+/** Проходження місії. Відповіді перевіряє сервер; version захищає від паралельних запитів. */
+export const missionRuns = sqliteTable(
+  'mission_runs',
+  {
+    id: id(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    missionSlug: text('mission_slug').notNull(),
+    step: integer('step').notNull().default(0),
+    /** Помилки та підказки за все проходження. */
+    mistakes: integer('mistakes').notNull().default(0),
+    hints: integer('hints').notNull().default(0),
+    /** Поточний крок уже мав помилку чи підказку (тоді він не «з першої спроби»). */
+    stepFailed: bool('step_failed').notNull().default(false),
+    status: text('status', { enum: SESSION_STATUS }).notNull().default('ACTIVE'),
+    version: integer('version').notNull().default(0),
+    startedAt: createdAt('started_at'),
+    finishedAt: ts('finished_at'),
+  },
+  (t) => [index('mission_runs_user_idx').on(t.userId, t.missionSlug, t.status)],
+);
+
+/** Підсумок місій користувача: скільки разів пройдено, скільки — без помилок і підказок. */
+export const userMissions = sqliteTable(
+  'user_missions',
+  {
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    missionSlug: text('mission_slug').notNull(),
+    completions: integer('completions').notNull().default(0),
+    flawless: integer('flawless').notNull().default(0),
+    bestMistakes: integer('best_mistakes').notNull().default(0),
+    firstCompletedAt: ts('first_completed_at'),
+    lastCompletedAt: ts('last_completed_at'),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.missionSlug] })],
+);
+
+/** Розв'язані кроки місій («ситуації») — для досягнень на кшталт «5 різних ситуацій у транспорті». */
+export const userMissionSteps = sqliteTable(
+  'user_mission_steps',
+  {
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    /** slug місії:id кроку */
+    stepKey: text('step_key').notNull(),
+    firstTry: bool('first_try').notNull().default(false),
+    solvedAt: createdAt('solved_at'),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.stepKey] })],
+);
+
 // ───────────────────────── Зв'язки (для db.query) ─────────────────────────
 
 export const usersRelations = relations(users, ({ one, many }) => ({
