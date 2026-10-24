@@ -94,11 +94,34 @@ function assert(cond, msg) {
     ['/profile', 'Рівень польської'],
     ['/dictionary', 'Польсько-український словник'],
     ['/shop', 'Гардероб'],
+    ['/life', 'Польська в житті'],
+    ['/achievements', 'Досягнення'],
+    ['/passport', 'Паспорт мандрівника'],
   ]) {
     await page.goto(`${BASE}${path}?devUser=${user}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
     assert(await page.isVisible(`text=${text}`), `екран ${path}`);
   }
+  await page.goto(`${BASE}/life/zabka-first-order?devUser=${user}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(700);
+  assert(await page.isVisible('text=Перше замовлення в Żabce'), 'вступ місії');
+  await click('button:has-text("Почати місію")');
+  const mopts = page.locator('button.option');
+  const total = await mopts.count();
+  let solved = false;
+  for (let k = 0; k < total && !solved; k++) {
+    await mopts.nth(k).click();
+    await click('button:has-text("Перевірити")', 5000);
+    await page.waitForTimeout(500);
+    if (await page.isVisible('text=Правильно!')) solved = true;
+    else {
+      assert(await page.isVisible('text=Не зовсім'), 'помилка в місії пояснюється');
+      await click('button:has-text("Спробувати ще")');
+    }
+  }
+  assert(solved, 'крок місії зараховано після повторної спроби');
+  await click('button:has-text("Далі")');
+  assert(await page.isVisible('text=Натискай на слова'), 'наступний крок: збирання фрази');
   assert(errors.length === 0, `без JS-помилок${errors.length ? ': ' + errors.join('; ') : ''}`);
   await browser.close();
   console.log('E2E OK');

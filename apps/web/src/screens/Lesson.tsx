@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
 import { api, ApiError } from '../lib/api';
@@ -8,6 +8,9 @@ import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
 import { prefetchSpeech, sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
+import { Icon, type LineIconName } from '../components/Icon';
+import { Badge, Stamp } from '../components/Illustrations';
+import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
 import { ExerciseView, correctAnswerText, instructionKey, type Payload } from '../exercises/Exercises';
 
@@ -358,14 +361,14 @@ function QuitModal({ open, onStay, onQuit }: { open: boolean; onStay: () => void
   );
 }
 
-function Stat({ icon, label, value, color }: { icon: string; label: string; value: string | number; color: string }) {
+function Stat({ icon, label, value, color, delay = 0 }: { icon: LineIconName; label: string; value: ReactNode; color: string; delay?: number }) {
   return (
-    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="overflow-hidden rounded-2xl border-2 text-center" style={{ borderColor: color }}>
+    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay, type: 'spring', stiffness: 300, damping: 18 }} className="overflow-hidden rounded-2xl border-2 text-center" style={{ borderColor: color }}>
       <div className="py-1 text-xs font-black text-white" style={{ background: color }}>
         {label}
       </div>
-      <div className="py-2 text-xl font-black">
-        {icon} {value}
+      <div className="flex items-center justify-center gap-1 py-2 text-xl font-black">
+        <Icon name={icon} size={18} style={{ color }} /> {value}
       </div>
     </motion.div>
   );
@@ -385,26 +388,57 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
   const nextLesson = journey.data?.nextLesson;
   const cityFrom = r.cityCompleted?.cityId;
   const cityTo = r.cityCompleted?.nextCity;
+  const stampCity = r.cityCompleted ? journey.data?.cities.find((c) => c.id === r.cityCompleted!.cityId) : undefined;
+  const beaverRef = useRef<HTMLDivElement>(null);
+  const xpRef = useRef<HTMLDivElement>(null);
+  const [burst, setBurst] = useState(false);
+  const [pulse, setPulse] = useState(0);
+  const [showAch, setShowAch] = useState(false);
+  useEffect(() => {
+    const a = setTimeout(() => setBurst(true), 500);
+    const b = setTimeout(() => setShowAch(true), 1600);
+    return () => { clearTimeout(a); clearTimeout(b); };
+  }, []);
 
   return (
     <div className="flex min-h-[100dvh] flex-col px-5 pb-6 pt-6">
       <Confetti run={r.passed} />
+      <XpBurst from={beaverRef} target={xpRef} run={burst && r.xp > 0} onArrive={() => setPulse((p) => p + 1)} />
       <div className="flex flex-1 flex-col items-center gap-4 text-center">
-        <Beaver mood={r.passed ? 'celebrate' : 'sad'} size={170} outfit={me?.outfit.wear} />
+        <div ref={beaverRef}>
+          <Beaver mood={r.passed ? 'celebrate' : 'sad'} size={170} outfit={me?.outfit.wear} />
+        </div>
         <h1 className={cx('text-3xl font-black', r.passed ? 'text-brand-dark' : 'text-coral-dark')}>{title}</h1>
         {!r.passed && <p className="muted font-semibold">{t('res_fail_text', { n: passRatio })}</p>}
 
         <div className="grid w-full grid-cols-3 gap-2">
-          <Stat icon="⭐" label={t('res_xp')} value={`+${r.xp}`} color="#E8A82A" />
-          <Stat icon="🎯" label={t('res_accuracy')} value={`${r.accuracy}%`} color="#45C486" />
-          <Stat icon="⏱" label={t('res_time')} value={`${mins}:${secs}`} color="#69C7F4" />
+          <div ref={xpRef}>
+            <Stat icon="star" label={t('res_xp')} value={<Pulse pulse={pulse}>+<CountUp to={r.xp} delay={0.4} /></Pulse>} color="#E8A82A" />
+          </div>
+          <Stat icon="target" label={t('res_accuracy')} value={<><CountUp to={r.accuracy} delay={0.2} />%</>} color="#45C486" delay={0.08} />
+          <Stat icon="clock" label={t('res_time')} value={`${mins}:${secs}`} color="#69C7F4" delay={0.16} />
         </div>
-        {r.zlotki > 0 && <div className="chip text-base">🪙 +{r.zlotki} Złotki</div>}
+        {r.zlotki > 0 && <div className="chip text-base"><Icon name="coin" size={18} className="text-[#B26A12]" /> +{r.zlotki} Złotki</div>}
         {r.streakIncreased && <div className="chip text-base">{t('res_streak', { n: r.streak })}</div>}
 
+        {r.cityCompleted && stampCity && (
+          <motion.button
+            className="card flex w-full items-center gap-3 p-3 text-left"
+            initial={{ scale: 1.4, opacity: 0, rotate: -6 }}
+            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            transition={{ delay: 0.9, type: 'spring', stiffness: 260, damping: 14 }}
+            onClick={() => nav('/passport')}
+          >
+            <Stamp slug={stampCity.slug} name={stampCity.namePl} stamped size={72} />
+            <div className="min-w-0 flex-1">
+              <div className="font-black">{t('passport_new_stamp')}</div>
+              <div className="text-sm font-bold text-pl-red">{t('passport_open')} →</div>
+            </div>
+          </motion.button>
+        )}
         {r.cityCompleted && (
           <div className="card w-full p-4">
-            <div className="text-xl font-black">🏆 {t('res_city_done')}</div>
+            <div className="flex items-center justify-center gap-2 text-xl font-black"><Icon name="trophy" size={22} className="text-xp-dark" /> {t('res_city_done')}</div>
             {cityTo && <div className="mt-1 font-black text-pl-red">{cityTo.hasLessons ? t('res_ticket', { city: cityTo.namePl }) : t('res_ticket_soon', { city: cityTo.namePl })}</div>}
             {r.cityCompleted.rewards.length > 0 && (
               <div className="mt-2 text-sm font-bold">
@@ -433,18 +467,25 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
             </div>
           </div>
         )}
-        {[...r.questsCompleted.map((q) => ({ icon: q.icon, text: `${t('res_quests_done')}: ${tr(q.title)}` })), ...r.achievements.map((a) => ({ icon: a.icon, text: `${t('res_achievement')} ${tr(a.title)}` }))].map((x, i) => (
-          <motion.div key={i} initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 + i * 0.15 }} className="card flex w-full items-center gap-3 p-3 text-left font-bold">
-            <span className="text-3xl">{x.icon}</span>
-            {x.text}
+        {r.questsCompleted.map((q, i) => (
+          <motion.div key={q.id ?? i} initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 + i * 0.15 }} className="card flex w-full items-center gap-3 p-3 text-left font-bold">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/15 text-brand-dark"><Icon name="gift" size={22} /></span>
+            {t('res_quests_done')}: {tr(q.title)}
           </motion.div>
         ))}
+        {r.achievements.map((a, i) => (
+          <motion.div key={a.slug} initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 + i * 0.15 }} className="card flex w-full items-center gap-3 p-3 text-left font-bold">
+            <Badge icon={a.icon} unlocked size={44} />
+            {t('res_achievement')} {tr(a.title)}
+          </motion.div>
+        ))}
+        {showAch && <AchievementQueue items={r.achievements as never} />}
       </div>
 
       <div className="mt-6 space-y-3">
         {cityFrom && cityTo ? (
           <button className="btn btn-red w-full text-lg" onClick={() => nav(`/map?travel=${cityFrom},${cityTo.id}`, { replace: true })}>
-            🚆 {t('res_to_map')}
+            {t('res_to_map')} <Icon name="map" size={20} />
           </button>
         ) : r.passed && nextLesson && session.lesson ? (
           <button className="btn btn-primary w-full text-lg" onClick={() => nav(`/lesson/${nextLesson.id}`, { replace: true })}>
@@ -452,7 +493,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
           </button>
         ) : !r.passed && session.lesson ? (
           <button className="btn btn-primary w-full text-lg" onClick={() => window.location.reload()}>
-            🔁 {t('res_again')}
+            <Icon name="refresh" size={20} /> {t('res_again')}
           </button>
         ) : null}
         <button className="btn btn-ghost w-full" onClick={() => nav('/', { replace: true })}>

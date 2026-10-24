@@ -121,7 +121,7 @@ export type FinishResult = {
   levelConfirmed: Cefr | null;
   placement: null | { level: Cefr; unlocked: string[] };
   questsCompleted: { id: string; title: I18n; icon: string }[];
-  achievements: { slug: string; title: I18n; icon: string; zlotki: number }[];
+  achievements: { slug: string; title: I18n; description?: I18n; icon: string; zlotki: number }[];
   durationSec: number;
 };
 
@@ -171,3 +171,31 @@ export type VocabEntry = {
   audioUrl: string | null;
   mine: null | { status: 'NEW' | 'LEARNING' | 'LEARNED'; favorite: boolean; timesCorrect: number; timesWrong: number };
 };
+
+// ── Місії «Польська в житті» ──
+export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean };
+export type MissionStepPublic = {
+  id: string;
+  kind: 'listen' | 'choice' | 'build';
+  line: MissionLine | null;
+  task: I18n;
+  options?: { id: number; pl: string | null; text: I18n | null }[];
+  tokens?: string[];
+};
+export type MissionSummary = {
+  slug: string; category: string; tags: string[]; city: string; scene: string; title: I18n; goal: I18n;
+  minutes: number; xp: number; zlotki: number; steps: number;
+};
+export type MissionListItem = MissionSummary & { completions: number; flawless: boolean; inProgress: number | null };
+export type MissionRun = {
+  runId: string; step: number; mistakes: number; hints: number;
+  mission: MissionSummary & { intro: I18n; note: I18n | null; npc: { name: string; role: I18n }; steps: MissionStepPublic[] };
+};
+export type MissionFinish = {
+  first: boolean; flawless: boolean; mistakes: number; hints: number; xp: number; zlotki: number; levelUp: number | null; streak: number; streakIncreased: boolean;
+  phrases: { pl: string; tr: I18n }[]; newWords: { id: string; pl: string; translations: I18n }[];
+  achievements: { slug: string; title: never; description: never; icon: string; zlotki: number }[];
+};
+export type MissionAnswer =
+  | { correct: true; firstTry: boolean; line: MissionLine | null; explain: I18n; next: number | null; finished?: MissionFinish }
+  | { correct: false; why: I18n; mistakes: number };

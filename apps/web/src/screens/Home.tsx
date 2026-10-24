@@ -10,6 +10,8 @@ import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon, type LineIconName } from '../components/Icon';
 import { Progress, Ring, Section, Skeleton, SpeakButton, cx } from '../components/ui';
 import { haptic } from '../lib/telegram';
+import { MissionCard, missionsQuery } from './Missions';
+import { Badge, Item } from '../components/Illustrations';
 
 export const RANKS: [number, string][] = [
   [40, 'Mistrz polszczyzny'],
@@ -166,6 +168,9 @@ export function HomeScreen() {
         </div>
       </div>
 
+      {/* 4: місія дня з розділу «Польська в житті» (3–5 хв) */}
+      <DailyMission />
+
       {/* 5: швидкий доступ до помилок і слів */}
       <div className="grid grid-cols-2 gap-3 px-4">
         <QuickTile icon="alert" color="#F45159" title={t('home_fix_mistakes')} sub={me.counters.mistakes ? t('home_mistakes_n', { n: me.counters.mistakes }) : t('home_nothing')} badge={me.counters.mistakes} onClick={() => nav('/practice/MISTAKES')} />
@@ -234,6 +239,31 @@ export function HomeScreen() {
         </div>
       </Section>
     </div>
+  );
+}
+
+/** Місія дня: перша ще не пройдена місія (або по черзі, якщо пройдено всі) + паспорт і досягнення. */
+function DailyMission() {
+  const { t } = useT();
+  const nav = useNavigate();
+  const q = useQuery(missionsQuery);
+  const list = q.data?.missions ?? [];
+  const day = Math.floor(Date.now() / 86_400_000);
+  const pick = list.find((m) => m.inProgress !== null) ?? list.find((m) => !m.completions) ?? list[day % Math.max(1, list.length)];
+  return (
+    <Section title={t('life_daily')} action={<button className="text-sm font-black text-pl-red" onClick={() => nav('/life')}>{t('home_all_missions')}</button>}>
+      {pick ? <MissionCard m={pick} compact onOpen={() => nav(`/life/${pick.slug}`)} /> : <Skeleton className="h-40" />}
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <button onClick={() => { haptic.tap(); nav('/passport'); }} className="card flex items-center gap-2.5 p-3 text-left active:scale-[0.98]">
+          <Item name="map" size={40} />
+          <span className="text-sm font-black leading-tight">{t('home_passport')}</span>
+        </button>
+        <button onClick={() => { haptic.tap(); nav('/achievements'); }} className="card flex items-center gap-2.5 p-3 text-left active:scale-[0.98]">
+          <Badge icon="snack-bag" unlocked size={40} />
+          <span className="text-sm font-black leading-tight">{t('home_achievements')}</span>
+        </button>
+      </div>
+    </Section>
   );
 }
 

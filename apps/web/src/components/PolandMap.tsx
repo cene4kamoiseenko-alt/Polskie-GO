@@ -2,11 +2,12 @@
  * Ілюстрована карта Польщі (SVG). Контур, річки й міста — за реальними координатами
  * (та сама проєкція, що й на сервері: 1000×950).
  */
-import { motion, useReducedMotion } from 'framer-motion';
-import { memo, useMemo } from 'react';
+import { animate, motion, useReducedMotion } from 'framer-motion';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { JourneyCity } from '../lib/types';
 import { CITY_LANDMARKS, Cloud, Landmark } from './Scenery';
 import { Beaver } from './Beaver';
+import { Stamp } from './Illustrations';
 
 const W = 1000;
 const H = 950;
@@ -247,18 +248,57 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
 
       {/* Бобер на карті */}
       {current && !travel && <BeaverPin x={current.mapX - 46} y={current.mapY - (compact ? 90 : 112)} />}
-      {travel && (
-        <motion.g
-          initial={{ x: travel.from.mapX - 46, y: travel.from.mapY - 112 }}
-          animate={{ x: travel.to.mapX - 46, y: travel.to.mapY - 112 }}
-          transition={{ duration: reduce ? 0 : 2.6, ease: 'easeInOut' }}
-        >
-          <BeaverPin x={0} y={0} vehicle />
-        </motion.g>
-      )}
+      {travel && <TravelPin route={sorted} from={travel.from} to={travel.to} />}
     </svg>
   );
 });
+
+/** Подорож: бобер іде ділянкою маршруту (через усі проміжні міста), у кінці з'являється штамп міста. */
+function TravelPin({ route, from, to }: { route: JourneyCity[]; from: JourneyCity; to: JourneyCity }) {
+  const reduce = useReducedMotion();
+  const pathRef = useRef<SVGPathElement>(null);
+  const [pt, setPt] = useState({ x: from.mapX, y: from.mapY });
+  const [arrived, setArrived] = useState(false);
+  const a = route.findIndex((c) => c.id === from.id);
+  const b = route.findIndex((c) => c.id === to.id);
+  const d = a >= 0 && b > a ? Array.from({ length: b - a }, (_, k) => segment(route, a + k)).join(' ') : `M${from.mapX},${from.mapY} L${to.mapX},${to.mapY}`;
+  useEffect(() => {
+    const el = pathRef.current;
+    if (!el) return;
+    const len = el.getTotalLength();
+    if (reduce) {
+      setPt({ x: to.mapX, y: to.mapY });
+      setArrived(true);
+      return;
+    }
+    const c = animate(0, 1, {
+      duration: Math.min(2.6, 1.2 + (b - a) * 0.5),
+      ease: 'easeInOut',
+      onUpdate: (v) => {
+        const p = el.getPointAtLength(v * len);
+        setPt({ x: p.x, y: p.y });
+      },
+      onComplete: () => setArrived(true),
+    });
+    return () => c.stop();
+  }, [d, reduce, to, a, b]);
+  return (
+    <g>
+      <path ref={pathRef} d={d} fill="none" stroke="#F45159" strokeWidth="7" strokeLinecap="round" opacity="0.9" />
+      {arrived && (
+        <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 14 }} style={{ originX: `${to.mapX}px`, originY: `${to.mapY - 150}px` }}>
+          <g transform={`translate(${to.mapX - 45} ${to.mapY - 200})`}>
+            <circle cx="45" cy="45" r="44" fill="#FFF9F0" stroke="#fff" strokeWidth="4" />
+            <Stamp slug={to.slug} name={to.namePl} stamped size={90} />
+          </g>
+        </motion.g>
+      )}
+      <g transform={`translate(${pt.x - 46} ${pt.y - 112})`}>
+        <BeaverPin x={0} y={0} vehicle />
+      </g>
+    </g>
+  );
+}
 
 /** Бобер на поточному етапі: стоїть на кораловій «платформі» над містом. */
 function BeaverPin({ x, y, vehicle }: { x: number; y: number; vehicle?: boolean }) {

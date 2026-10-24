@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Badge } from '../components/Illustrations';
+import { Icon, type LineIconName } from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT } from '../i18n';
@@ -89,14 +91,16 @@ export default function ProfileScreen() {
       </Card>
 
       <div className="grid grid-cols-4 gap-2 px-4">
-        {[
-          ['🔥', me.progress.streak, t('profile_streak')],
-          ['📘', me.progress.lessonsCompleted, t('profile_lessons')],
-          ['⭐', me.progress.wordsLearned, t('profile_words')],
-          ['🏆', citiesDone, t('profile_cities')],
-        ].map(([icon, v, l]) => (
+        {(
+          [
+            ['flame', '#E2701F', me.progress.streak, t('profile_streak')],
+            ['book', '#35C88A', me.progress.lessonsCompleted, t('profile_lessons')],
+            ['star', '#E39A14', me.progress.wordsLearned, t('profile_words')],
+            ['trophy', '#F45159', citiesDone, t('profile_cities')],
+          ] as [LineIconName, string, number, string][]
+        ).map(([icon, color, v, l]) => (
           <Card key={String(l)} className="px-1 py-3 text-center">
-            <div className="text-xl">{icon}</div>
+            <div className="flex justify-center" style={{ color }}><Icon name={icon} size={22} /></div>
             <div className="text-lg font-black">{v}</div>
             <div className="muted text-[10px] font-bold leading-tight">{l}</div>
           </Card>
@@ -119,12 +123,21 @@ export default function ProfileScreen() {
       <div className="mx-4 flex items-center gap-3">
         <Card className="grid flex-1 place-items-center py-2" onClick={() => nav('/shop')}>
           <Beaver size={120} outfit={me.outfit.wear} mood="happy" />
-          <div className="pb-1 font-black">👕 {t('profile_wardrobe')}</div>
+          <div className="pb-1 font-black">{t('profile_wardrobe')}</div>
         </Card>
-        <div className="flex flex-1 flex-col gap-3">
-          <Card className="p-3 font-black" onClick={() => nav('/house')}>🏡 {t('profile_house')}</Card>
-          <Card className="p-3 font-black" onClick={() => nav('/diary')}>📔 {t('profile_diary')}</Card>
-          <Card className="p-3 font-black" onClick={() => nav('/social')}>🏆 {t('home_leaderboard')}</Card>
+        <div className="flex flex-1 flex-col gap-2">
+          {(
+            [
+              ['map', '/passport', t('passport_title')],
+              ['home', '/house', t('profile_house')],
+              ['book', '/diary', t('profile_diary')],
+              ['trophy', '/social', t('home_leaderboard')],
+            ] as [LineIconName, string, string][]
+          ).map(([icon, to, label]) => (
+            <Card key={to} className="flex items-center gap-2 px-3 py-2.5 text-sm font-black" onClick={() => nav(to)}>
+              <Icon name={icon} size={18} className="shrink-0 text-sky-dark" /> {label}
+            </Card>
+          ))}
         </div>
       </div>
 
@@ -134,14 +147,14 @@ export default function ProfileScreen() {
           <Skeleton className="h-24" />
         ) : (
           <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-            {ach.data?.map((a) => (
-              <div key={a.slug} className={cx('flex w-20 shrink-0 flex-col items-center gap-1 text-center', !a.unlockedAt && 'opacity-35 grayscale')}>
-                <div className="relative grid h-16 w-16 place-items-center rounded-full text-3xl" style={{ background: a.unlockedAt ? 'radial-gradient(circle,#FFE8A3,#FFC857)' : 'var(--bg-muted)' }}>
-                  {a.icon}
+            {[...(ach.data ?? [])].sort((a, b) => Number(!!b.unlockedAt) - Number(!!a.unlockedAt)).map((a) => (
+              <button key={a.slug} onClick={() => nav('/achievements')} className="flex w-20 shrink-0 flex-col items-center gap-1 text-center">
+                <div className="relative">
+                  <Badge icon={a.icon} unlocked={!!a.unlockedAt} size={64} />
                   {a.isNew && <span className="absolute -right-1 -top-1 rounded-full bg-pl-red px-1.5 text-[10px] font-black text-white">{t('new')}</span>}
                 </div>
                 <div className="text-[11px] font-black leading-tight">{tr(a.title)}</div>
-              </div>
+              </button>
             ))}
           </div>
         )}

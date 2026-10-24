@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { WordTile } from '../components/Illustrations';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
@@ -71,7 +72,7 @@ export default function DictionaryScreen() {
         <div className="space-y-2">
           {items.map((w) => (
             <Card key={w.id} className="flex items-center gap-3 px-3 py-2.5" onClick={() => setOpen(w)}>
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-muted text-2xl">{w.emoji ?? '📝'}</span>
+              <WordTile pl={w.pl} />
               <div className="min-w-0 flex-1">
                 <div className="font-black">
                   {w.pl} {w.mine?.status === 'LEARNED' && <span className="text-brand">✓</span>}
@@ -102,7 +103,7 @@ export default function DictionaryScreen() {
         {open && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <span className="text-5xl">{open.emoji ?? '📝'}</span>
+              <WordTile pl={open.pl} size={64} />
               <div className="flex-1">
                 <h2 className="text-3xl font-black">{open.pl}</h2>
                 <div className="muted font-bold">

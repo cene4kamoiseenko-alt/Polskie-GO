@@ -1,39 +1,98 @@
+/** Галерея досягнень: унікальні значки, точні умови, прогрес і дата отримання. */
 import { useQuery } from '@tanstack/react-query';
-import { useT } from '../i18n';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { Card, ErrorState, Progress, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
+import { haptic } from '../lib/telegram';
+import { ErrorState, Progress, ScreenHeader, ScreenSkeleton, Sheet, cx } from '../components/ui';
+import { Badge } from '../components/Illustrations';
+import { Icon } from '../components/Icon';
 
-type Ach = { slug: string; title: never; description: never; icon: string; threshold: number; progress: number; unlockedAt: string | null; zlotki: number };
+type Ach = { slug: string; title: never; description: never; icon: string; metric: string; threshold: number; progress: number; unlockedAt: string | null; isNew: boolean; zlotki: number };
+
+const LIFE = /^(MISSION|MISSIONS_TAG|FLAWLESS_TAG|STEPS_TAG|DISHES|PIEROGI|DIALOGS)/;
+const TRAVEL = /^(SECTIONS|CITIES|STORY_QUESTS)/;
+const groupOf = (a: Ach): 'life' | 'travel' | 'learning' => (LIFE.test(a.metric) ? 'life' : TRAVEL.test(a.metric) ? 'travel' : 'learning');
+const GROUPS: { id: 'life' | 'learning' | 'travel'; key: TKey }[] = [
+  { id: 'life', key: 'ach_group_life' },
+  { id: 'learning', key: 'ach_group_learning' },
+  { id: 'travel', key: 'ach_group_travel' },
+];
 
 export default function AchievementsScreen() {
   const { t, tr, date } = useT();
   const q = useQuery({ queryKey: ['achievements'], queryFn: () => api<Ach[]>('/achievements') });
+  const [open, setOpen] = useState<Ach | null>(null);
   if (q.isLoading) return <ScreenSkeleton />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const list = q.data!;
   return (
-    <div className="pb-6">
+    <div className="pb-8">
       <ScreenHeader title={t('achievements_title')} subtitle={t('achievements_unlocked', { n: list.filter((a) => a.unlockedAt).length, total: list.length })} />
-      <div className="grid grid-cols-2 gap-3 px-4">
-        {list.map((a) => (
-          <Card key={a.slug} className={cx('flex flex-col items-center gap-1 p-4 text-center', !a.unlockedAt && 'opacity-70')}>
-            <div className={cx('grid h-16 w-16 place-items-center rounded-full text-3xl', !a.unlockedAt && 'grayscale')} style={{ background: a.unlockedAt ? 'radial-gradient(circle,#FFE8A3,#FFC857)' : 'var(--bg-muted)' }}>
-              {a.icon}
+      {GROUPS.map((g) => {
+        const items = list.filter((a) => groupOf(a) === g.id).sort((a, b) => Number(!!b.unlockedAt) - Number(!!a.unlockedAt));
+        if (!items.length) return null;
+        return (
+          <section key={g.id} className="mt-3 px-4">
+            <h2 className="mb-2 flex items-baseline justify-between text-lg font-black">
+              {t(g.key)} <span className="muted text-sm font-bold">{items.filter((a) => a.unlockedAt).length}/{items.length}</span>
+            </h2>
+            <div className="grid grid-cols-3 gap-2.5">
+              {items.map((a, i) => (
+                <motion.button
+                  key={a.slug}
+                  className={cx('card relative flex flex-col items-center gap-1 px-1.5 pb-2.5 pt-3 text-center', a.isNew && 'ring-2 ring-xp')}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i, 9) * 0.03 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => { haptic.tap(); setOpen(a); }}
+                >
+                  <Badge icon={a.icon} unlocked={!!a.unlockedAt} size={64} />
+                  <div className="line-clamp-2 text-[13px] font-black leading-tight">{tr(a.title)}</div>
+                  {a.unlockedAt ? (
+                    <div className="text-[11px] font-black text-brand-dark">{date(a.unlockedAt)}</div>
+                  ) : (
+                    <div className="w-full px-1">
+                      <Progress value={a.progress} max={a.threshold} height={6} />
+                      <div className="muted mt-0.5 text-[11px] font-black">{a.progress}/{a.threshold}</div>
+                    </div>
+                  )}
+                  {a.isNew && <span className="absolute right-1.5 top-1.5 rounded-full bg-xp px-1.5 text-[10px] font-black text-[#6b3f00]">{t('new')}</span>}
+                </motion.button>
+              ))}
             </div>
-            <div className="font-black leading-tight">{tr(a.title)}</div>
-            <div className="muted text-xs font-semibold">{tr(a.description)}</div>
-            {a.unlockedAt ? (
-              <div className="text-xs font-black text-brand-dark">✓ {date(a.unlockedAt)}</div>
-            ) : (
-              <div className="w-full">
-                <Progress value={a.progress} max={a.threshold} height={6} />
-                <div className="mt-0.5 text-[11px] font-black">{a.progress}/{a.threshold}</div>
-              </div>
-            )}
-            {a.zlotki > 0 && <div className="text-xs font-black text-[#C8742E]">+{a.zlotki} 🪙</div>}
-          </Card>
-        ))}
-      </div>
+          </section>
+        );
+      })}
+      <Sheet open={!!open} onClose={() => setOpen(null)}>
+        {open && (
+          <div className="flex flex-col items-center pb-4 text-center">
+            <Badge icon={open.icon} unlocked={!!open.unlockedAt} size={120} />
+            <h2 className="mt-2 text-2xl font-black leading-tight">{tr(open.title)}</h2>
+            <div className="card mt-4 w-full p-4 text-left">
+              <div className="muted text-xs font-black uppercase tracking-wide">{t('ach_condition')}</div>
+              <p className="mt-0.5 font-bold leading-snug">{tr(open.description)}</p>
+              <div className="muted mt-3 text-xs font-black uppercase tracking-wide">{t('ach_progress')}</div>
+              {open.unlockedAt ? (
+                <p className="mt-0.5 flex items-center gap-1.5 font-black text-brand-dark"><Icon name="check" size={18} strokeWidth={3} /> {t('ach_received', { date: date(open.unlockedAt) })}</p>
+              ) : (
+                <div className="mt-1">
+                  <Progress value={open.progress} max={open.threshold} height={10} />
+                  <div className="mt-1 text-sm font-black">{open.progress} / {open.threshold}</div>
+                </div>
+              )}
+              {open.zlotki > 0 && (
+                <>
+                  <div className="muted mt-3 text-xs font-black uppercase tracking-wide">{t('ach_reward')}</div>
+                  <p className="mt-0.5 font-black text-[#B26A12]">+{open.zlotki} Złotki</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </Sheet>
     </div>
   );
 }

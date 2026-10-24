@@ -29,6 +29,9 @@ const PremiumScreen = lazy(() => import('./screens/Premium'));
 const SettingsScreen = lazy(() => import('./screens/Settings'));
 const AchievementsScreen = lazy(() => import('./screens/Achievements'));
 const GrammarScreen = lazy(() => import('./screens/Grammar'));
+const MissionsScreen = lazy(() => import('./screens/Missions'));
+const MissionScreen = lazy(() => import('./screens/Mission'));
+const PassportScreen = lazy(() => import('./screens/Passport'));
 
 const TAB_ROUTES = ['/', '/map', '/learn', '/quests', '/profile'];
 
@@ -67,7 +70,7 @@ function Splash() {
 /** Після старту у вільний час підвантажуємо екрани вкладок — перший перехід без очікування. */
 function prefetchScreens() {
   const load = () => {
-    for (const f of [() => import('./screens/Map'), () => import('./screens/Learn'), () => import('./screens/Lesson'), () => import('./screens/Quests'), () => import('./screens/Profile'), () => import('./screens/Dictionary')]) void f();
+    for (const f of [() => import('./screens/Map'), () => import('./screens/Learn'), () => import('./screens/Lesson'), () => import('./screens/Quests'), () => import('./screens/Profile'), () => import('./screens/Dictionary'), () => import('./screens/Missions'), () => import('./screens/Mission')]) void f();
   };
   const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void };
   if (w.requestIdleCallback) w.requestIdleCallback(load, { timeout: 2500 });
@@ -144,6 +147,9 @@ export function App() {
                 <Route path="/social" element={<SocialScreen />} />
                 <Route path="/premium" element={<PremiumScreen />} />
                 <Route path="/settings" element={<SettingsScreen />} />
+                <Route path="/life" element={<MissionsScreen />} />
+                <Route path="/life/:slug" element={<MissionScreen />} />
+                <Route path="/passport" element={<PassportScreen />} />
                 <Route path="*" element={<HomeScreen />} />
               </Routes>
             </Suspense>

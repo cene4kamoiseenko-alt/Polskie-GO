@@ -39,14 +39,19 @@ export default function MapScreen() {
     if (from && to) {
       setTravel({ from, to });
       sfx.win();
-      const tm = setTimeout(() => {
-        setTravel(null);
-        setParams({}, { replace: true });
-        setSelected(to);
-      }, 3000);
+      haptic.success();
+      const tm = setTimeout(() => finishTravel(to), 4200);
       return () => clearTimeout(tm);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, journey.data, setParams]);
+
+  const finishTravel = (to: JourneyCity) => {
+    setTravel(null);
+    setParams({}, { replace: true });
+    setSelected(to);
+  };
+  const skipTravel = () => travel && finishTravel(travel.to);
 
   // Центруємо видиму область на поточному місті (нативний скрол — швидко навіть на слабких телефонах).
   const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
@@ -99,9 +104,15 @@ export default function MapScreen() {
       )}
 
       {travel && (
-        <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mx-4 rounded-2xl bg-pl-red px-4 py-2 text-center font-black text-white">
-          {t('map_travel', { city: travel.to.namePl })}
-        </motion.div>
+        <motion.button
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="mx-4 flex w-[calc(100%-2rem)] items-center justify-between gap-2 rounded-2xl bg-pl-red px-4 py-2 font-black text-white"
+          onClick={skipTravel}
+        >
+          <span>{t('map_travel', { city: travel.to.namePl })}</span>
+          <span className="text-sm opacity-80">{t('map_skip')}</span>
+        </motion.button>
       )}
 
       <div className="relative mx-3">

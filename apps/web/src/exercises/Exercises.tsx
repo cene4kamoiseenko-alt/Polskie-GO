@@ -2,7 +2,7 @@
  * Рендерери вправ. Відповіді перевіряє сервер; компоненти лише збирають відповідь користувача
  * і показують результат перевірки.
  */
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
@@ -286,6 +286,7 @@ function OrderExercise({ item, result, onChange }: ExProps) {
   const { t, tr } = useT();
   const data = d<{ tokens: string[]; translation?: I18n }>(item);
   const [picked, setPicked] = useState<number[]>([]);
+  const reduced = useReducedMotion();
   const update = (next: number[]) => {
     setPicked(next);
     onChange(next.length ? { tokens: next.map((i) => data.tokens[i]) } : null);
@@ -298,45 +299,47 @@ function OrderExercise({ item, result, onChange }: ExProps) {
           <div className="card flex-1 p-4 text-xl font-black">{tr(data.translation)}</div>
         </div>
       )}
-      <div className={cx('flex min-h-[112px] flex-wrap content-start gap-2 rounded-2xl border-2 border-dashed p-3', result ? (result.correct ? 'border-brand' : 'border-coral') : 'border-soft')}>
-        {!picked.length && <span className="muted m-auto text-sm font-bold">{t('ex_tap_words')}</span>}
-        <AnimatePresence>
+      {/* Спільний layoutId: слово плавно переїжджає з банку в речення і назад. */}
+      <LayoutGroup id={item.key}>
+        <div className={cx('flex min-h-[112px] flex-wrap content-start gap-2 rounded-2xl border-2 border-dashed p-3', result ? (result.correct ? 'border-brand' : 'border-coral') : 'border-soft')}>
+          {!picked.length && <span className="muted m-auto text-sm font-bold">{t('ex_tap_words')}</span>}
           {picked.map((ti, pos) => (
             <motion.button
-              layout
+              layoutId={reduced ? undefined : `w-${item.key}-${ti}`}
               key={`${ti}`}
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.6, opacity: 0 }}
               onClick={() => !result && update(picked.filter((_, i) => i !== pos))}
               className="rounded-xl border-2 border-soft bg-elev px-3 py-2 text-lg font-bold shadow-[0_3px_0_var(--border)]"
             >
               {data.tokens[ti]}
             </motion.button>
           ))}
-        </AnimatePresence>
-      </div>
-      <div className="flex flex-wrap justify-center gap-2">
-        {data.tokens.map((tok, i) => {
-          const used = picked.includes(i);
-          return (
-            <motion.button
-              key={i}
-              whileTap={{ scale: 0.92 }}
-              disabled={used || !!result}
-              onClick={() => {
-                haptic.select();
-                sfx.tap();
-                speak(tok);
-                update([...picked, i]);
-              }}
-              className={cx('rounded-xl border-2 px-3 py-2 text-lg font-bold', used ? 'border-transparent bg-muted text-transparent' : 'border-soft bg-elev shadow-[0_3px_0_var(--border)]')}
-            >
-              {tok}
-            </motion.button>
-          );
-        })}
-      </div>
+        </div>
+        <div className="flex flex-wrap justify-center gap-2">
+          {data.tokens.map((tok, i) =>
+            picked.includes(i) ? (
+              <span key={i} className="rounded-xl border-2 border-transparent bg-muted px-3 py-2 text-lg font-bold text-transparent" aria-hidden>
+                {tok}
+              </span>
+            ) : (
+              <motion.button
+                key={i}
+                layoutId={reduced ? undefined : `w-${item.key}-${i}`}
+                whileTap={{ scale: 0.92 }}
+                disabled={!!result}
+                onClick={() => {
+                  haptic.select();
+                  sfx.tap();
+                  speak(tok);
+                  update([...picked, i]);
+                }}
+                className="rounded-xl border-2 border-soft bg-elev px-3 py-2 text-lg font-bold shadow-[0_3px_0_var(--border)]"
+              >
+                {tok}
+              </motion.button>
+            ),
+          )}
+        </div>
+      </LayoutGroup>
     </div>
   );
 }

@@ -40,10 +40,10 @@ const P: Record<LineIconName, ReactNode> = {
 
 const FILLED = new Set<LineIconName>(['play', 'star', 'flame', 'bolt']);
 
-export const Icon = memo(function Icon({ name, size = 22, className, filled, strokeWidth = 2 }: { name: LineIconName; size?: number; className?: string; filled?: boolean; strokeWidth?: number }) {
+export const Icon = memo(function Icon({ name, size = 22, className, filled, strokeWidth = 2, style }: { name: LineIconName; size?: number; className?: string; filled?: boolean; strokeWidth?: number; style?: React.CSSProperties }) {
   const fill = filled ?? FILLED.has(name);
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style} aria-hidden>
       {P[name]}
     </svg>
   );
