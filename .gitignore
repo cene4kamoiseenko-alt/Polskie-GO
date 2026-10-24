@@ -10,3 +10,4 @@ apps/server/uploads/*
 backups/
 .DS_Store
 test-results
+.wrangler

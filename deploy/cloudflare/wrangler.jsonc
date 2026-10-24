@@ -1,0 +1,27 @@
+// POLSKI GO API на Cloudflare Containers: Worker приймає запити й передає їх
+// у контейнер із нашим Dockerfile (Fastify + Prisma). База — зовнішній PostgreSQL (напр. Neon).
+{
+  "name": "polski-go-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "containers": [
+    {
+      "class_name": "ApiContainer",
+      "image": "../../Dockerfile",
+      "image_build_context": "../..",
+      "instance_type": "basic",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "class_name": "ApiContainer", "name": "API" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ApiContainer"] }],
+  // Решта змінних (WEB_APP_URL, CORS_ORIGINS, DATABASE_URL, токени) задається в панелі Cloudflare
+  // і не перезаписується при деплої.
+  "keep_vars": true,
+  "vars": {
+    "JOBS_ENABLED": "true"
+  }
+}

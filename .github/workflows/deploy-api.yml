@@ -1,0 +1,33 @@
+# Деплой API на Cloudflare Containers (образ збирається тут, Docker на GitHub-раннері).
+# Потрібні секрети репозиторію: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+name: Deploy API (Cloudflare)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/polski-go-telegram-app-r8helf, main]
+    paths:
+      - 'apps/server/**'
+      - 'apps/web/**'
+      - 'apps/admin/**'
+      - 'packages/**'
+      - 'Dockerfile'
+      - 'deploy/cloudflare/**'
+
+concurrency: deploy-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: deploy/cloudflare
+      - run: npx wrangler deploy
+        working-directory: deploy/cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
