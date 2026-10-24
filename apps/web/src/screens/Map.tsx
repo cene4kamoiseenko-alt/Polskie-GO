@@ -6,13 +6,14 @@ import { useJourney } from '../lib/queries';
 import type { JourneyCity } from '../lib/types';
 import { PolandMap } from '../components/PolandMap';
 import { CityBanner } from '../components/Scenery';
-import { GameIcon } from '../components/GameIcon';
+import { Icon } from '../components/Icon';
 import { ErrorState, Progress, ScreenSkeleton, Sheet, cx } from '../components/ui';
 import { TopStats } from './Home';
 import { haptic } from '../lib/telegram';
 import { sfx } from '../lib/audio';
 
 const ZOOMS = [1, 1.7, 2.6];
+const LEVELS = ['A1', 'A2', 'B1', 'B2'];
 /** Ширина полотна карти в SVG-одиницях (viewBox з відступами). */
 const VB_W = 1040;
 const VB_H = 1040;
@@ -24,6 +25,7 @@ export default function MapScreen() {
   const journey = useJourney();
   const [selected, setSelected] = useState<JourneyCity | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [level, setLevel] = useState<string | null>(null);
   const [travel, setTravel] = useState<{ from: JourneyCity; to: JourneyCity } | null>(null);
   const box = useRef<HTMLDivElement>(null);
 
@@ -62,31 +64,50 @@ export default function MapScreen() {
   if (journey.isLoading) return <ScreenSkeleton />;
   if (journey.error) return <ErrorState error={journey.error} onRetry={() => journey.refetch()} />;
   const j = journey.data!;
-  const unlocked = j.cities.filter((c) => c.unlocked).length;
+  const completedCount = j.cities.filter((c) => c.completed).length;
+  const sorted = [...j.cities].sort((a, b) => a.order - b.order);
+  const prevOf = (c: JourneyCity) => sorted[sorted.findIndex((x) => x.id === c.id) - 1];
 
   return (
     <div className="space-y-3">
       <TopStats />
-      <div className="mx-4 flex items-center gap-3 rounded-3xl bg-elev p-3 shadow-[var(--shadow-card)]">
-        <GameIcon name="map" size={44} />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-black leading-tight">{t('map_title')}</h1>
-          <p className="muted text-xs font-bold">
-            {t('map_subtitle')} · {unlocked}/{j.cities.length}
-          </p>
-        </div>
+      <div className="px-4">
+        <h1 className="text-[26px] font-black leading-tight">{t('map_journey')}</h1>
+        <p className="text-sm font-bold text-[#6B7A8A]">{t('map_journey_d', { done: completedCount, total: j.cities.length })}</p>
       </div>
+
+      {/* Фільтр рівнів: показує, які рівні вже мають уроки, а які ще готуються */}
+      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4">
+        {[null, ...LEVELS].map((lv) => {
+          const ready = lv ? j.cities.filter((c) => c.cefr === lv && c.hasContent).length : null;
+          return (
+            <button
+              key={lv ?? 'all'}
+              onClick={() => { haptic.select(); setLevel(lv); }}
+              className={cx('flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition', level === lv ? 'bg-pl-red text-white shadow-[0_3px_0_#C0353D]' : 'bg-elev shadow-[var(--shadow-card)]')}
+            >
+              {lv ?? t('map_all')}
+              {lv && ready === 0 && <span className={cx('text-[10px] font-extrabold', level === lv ? 'text-white/80' : 'text-[#9AA6B2]')}>{t('map_soon')}</span>}
+            </button>
+          );
+        })}
+      </div>
+      {level && (
+        <p className="px-5 text-xs font-bold text-[#6B7A8A]">
+          {j.cities.some((c) => c.cefr === level && c.hasContent) ? t('map_level_ready', { n: j.cities.filter((c) => c.cefr === level && c.hasContent).length }) : t('map_level_soon', { level })}
+        </p>
+      )}
 
       {travel && (
         <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mx-4 rounded-2xl bg-pl-red px-4 py-2 text-center font-black text-white">
-          🚆 {t('map_travel', { city: travel.to.namePl })}
+          {t('map_travel', { city: travel.to.namePl })}
         </motion.div>
       )}
 
       <div className="relative mx-3">
-        <div ref={box} className="no-scrollbar h-[64vh] overflow-auto rounded-[28px] border-4 border-white shadow-[var(--shadow-card)]" style={{ background: 'var(--map-sea)' }}>
+        <div ref={box} className="no-scrollbar max-h-[64vh] overflow-auto rounded-[28px] border-4 border-white shadow-[var(--shadow-card)]" style={{ background: 'var(--map-sea)', height: zoom === 0 ? 'auto' : '64vh' }}>
           <div style={{ width: `${ZOOMS[zoom] * 100}%` }}>
-            <PolandMap cities={j.cities} currentCityId={j.currentCityId} travel={travel} hereLabel={t('map_you_are_here')} onCityClick={(c) => { haptic.tap(); setSelected(c); }} />
+            <PolandMap cities={j.cities} currentCityId={j.currentCityId} travel={travel} hereLabel={t('map_you_are_here')} soonLabel={t('map_soon')} level={level} onCityClick={(c) => { haptic.tap(); setSelected(c); }} />
           </div>
         </div>
         {/* Масштаб */}
@@ -110,24 +131,31 @@ export default function MapScreen() {
             <div className="muted mb-1 text-xs font-bold">{t('map_lessons', { done: current.lessonsDone, total: current.lessonsTotal })}</div>
             <Progress value={current.progress} height={8} />
           </div>
-          <span className="btn btn-primary min-h-0 px-3 py-2 text-sm">{t('map_go_learn')}</span>
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-pl-red text-white"><Icon name="arrow-right" size={20} strokeWidth={2.6} /></span>
         </button>
       )}
 
       <Sheet open={!!selected} onClose={() => setSelected(null)}>
         {selected && (
           <div className="space-y-4">
-            <CityBanner slug={selected.slug} color={selected.color} height={150} className="-mx-1 rounded-3xl">
-              <div className="absolute bottom-3 left-4 right-4 text-white">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-lg px-2 py-0.5 text-xs font-black" style={{ background: selected.color }}>{selected.cefr}</span>
-                  {selected.id === j.currentCityId && <span className="rounded-lg bg-pl-red px-2 py-0.5 text-xs font-black">📍 {t('map_you_are_here')}</span>}
-                </div>
-                <h2 className="text-3xl font-black drop-shadow">{selected.namePl}</h2>
-                <div className="text-sm font-bold drop-shadow">{tr(selected.theme)}</div>
+            <CityBanner slug={selected.slug} color={selected.color} height={140} shade={false} className="-mx-1 rounded-3xl">
+              <div className="absolute left-3 top-3 flex gap-1.5">
+                <span className="rounded-lg bg-white/95 px-2 py-0.5 text-xs font-black text-navy">{t('map_stage', { n: selected.order })}</span>
+                <span className="rounded-lg bg-pl-red px-2 py-0.5 text-xs font-black text-white">{selected.cefr}</span>
               </div>
             </CityBanner>
-            <p className="muted font-semibold">{tr(selected.description)}</p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[28px] font-black leading-tight">{selected.namePl}</h2>
+                {selected.id === j.currentCityId && (
+                  <span className="flex items-center gap-1 rounded-full bg-pl-red/10 px-2 py-0.5 text-xs font-black text-pl-red">
+                    <Icon name="pin" size={13} /> {t('map_you_are_here')}
+                  </span>
+                )}
+              </div>
+              <div className="font-black text-[#6B7A8A]">{tr(selected.theme)}</div>
+              <p className="mt-1 text-sm font-semibold text-[#6B7A8A]">{tr(selected.description)}</p>
+            </div>
             {selected.hasContent && (
               <div>
                 <div className="mb-1 flex justify-between text-sm font-black">
@@ -138,32 +166,45 @@ export default function MapScreen() {
               </div>
             )}
             {selected.hasContent && (
-              <div className="space-y-2">
-                {selected.routes.map((r) => {
-                  const done = r.lessons.filter((l) => l.state === 'completed').length;
-                  return (
-                    <div key={r.id} className={cx('card flex items-center gap-3 px-3 py-2', !selected.unlocked && 'opacity-60')}>
-                      <span className="icon-tile text-2xl" style={{ background: `${selected.color}22` }}>{r.icon}</span>
-                      <span className="flex-1 font-bold">{tr(r.title)}</span>
-                      <span className="muted text-sm font-black">{done}/{r.lessons.length}</span>
-                    </div>
-                  );
-                })}
+              <div>
+                <h3 className="mb-2 text-sm font-black uppercase tracking-wide text-[#6B7A8A]">{t('map_topics')}</h3>
+                <div className="space-y-2">
+                  {selected.routes.map((r, i) => {
+                    const done = r.lessons.filter((l) => l.state === 'completed').length;
+                    const full = done === r.lessons.length;
+                    return (
+                      <div key={r.id} className={cx('card flex items-center gap-3 px-3 py-2.5', !selected.unlocked && 'opacity-60')}>
+                        <span className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-black', full ? 'bg-brand text-white' : 'bg-[var(--bg)] text-navy')}>
+                          {full ? <Icon name="check" size={18} strokeWidth={3} /> : i + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-black">{tr(r.title)}</span>
+                          <span className="block truncate text-xs font-bold text-[#6B7A8A]">{tr(r.description)}</span>
+                        </span>
+                        <span className="text-sm font-black text-[#6B7A8A]">{done}/{r.lessons.length}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {!selected.unlocked ? (
-              <div className="flex items-center gap-3 rounded-2xl bg-muted p-3 font-bold">
-                <GameIcon name="lock" size={36} />
-                {t('map_locked_hint')}
+              <div className="flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-3 font-bold">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E9E1D3] text-[#7A8B99]">
+                  <Icon name="lock" size={20} />
+                </span>
+                {prevOf(selected) ? t('map_unlock_after', { city: prevOf(selected)!.namePl }) : t('map_locked_hint')}
               </div>
             ) : !selected.hasContent ? (
-              <div className="rounded-2xl bg-muted p-3 text-center font-bold">{t('map_soon_hint')}</div>
+              <div className="rounded-2xl bg-[var(--bg)] p-3 text-center text-sm font-bold">{t('map_soon_full')}</div>
             ) : (
-              <button className="btn btn-primary w-full text-lg" onClick={() => nav(`/learn?city=${selected.id}`)}>
-                {selected.completed ? `✓ ${t('map_completed')} · ` : ''}
-                {t('map_go_learn')} →
+              <button className="btn btn-red w-full text-lg" onClick={() => nav(`/learn?city=${selected.id}`)}>
+                {selected.completed ? `${t('map_completed')} · ` : ''}
+                {t('map_go_learn')}
+                <Icon name="arrow-right" size={22} strokeWidth={2.6} />
               </button>
             )}
+            {!selected.hasContent && !selected.unlocked && <p className="text-center text-xs font-bold text-[#9AA6B2]">{t('map_soon_full')}</p>}
           </div>
         )}
       </Sheet>

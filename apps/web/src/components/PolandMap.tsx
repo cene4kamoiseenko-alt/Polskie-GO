@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { memo, useMemo } from 'react';
 import type { JourneyCity } from '../lib/types';
 import { CITY_LANDMARKS, Cloud, Landmark } from './Scenery';
+import { Beaver } from './Beaver';
 
 const W = 1000;
 const H = 950;
@@ -41,6 +42,20 @@ const path = (pts: [number, number][], close = false) => {
   return close ? d + ' Z' : d;
 };
 
+/** Плавний перегін між етапами i → i+1 (Catmull-Rom через сусідні міста). */
+function segment(list: JourneyCity[], i: number) {
+  const p0 = list[Math.max(0, i - 1)];
+  const p1 = list[i];
+  const p2 = list[i + 1];
+  const p3 = list[Math.min(list.length - 1, i + 2)];
+  const k = 6;
+  const c1x = p1.mapX + (p2.mapX - p0.mapX) / k;
+  const c1y = p1.mapY + (p2.mapY - p0.mapY) / k;
+  const c2x = p2.mapX - (p3.mapX - p1.mapX) / k;
+  const c2y = p2.mapY - (p3.mapY - p1.mapY) / k;
+  return `M${p1.mapX},${p1.mapY} C${c1x},${c1y} ${c2x},${c2y} ${p2.mapX},${p2.mapY}`;
+}
+
 type Props = {
   cities: JourneyCity[];
   currentCityId: string | null;
@@ -49,13 +64,18 @@ type Props = {
   travel?: { from: JourneyCity; to: JourneyCity } | null;
   /** Підпис під поточним містом («Ти тут»). */
   hereLabel?: string;
+  /** Підпис для міст без уроків. */
+  soonLabel?: string;
+  /** Підсвітити міста одного рівня (інші приглушені). */
+  level?: string | null;
 };
 
-export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel, hereLabel }: Props) {
+export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel, hereLabel, soonLabel, level }: Props) {
   const reduce = useReducedMotion();
   const outline = useMemo(() => path(OUTLINE, true), []);
   const sorted = useMemo(() => [...cities].sort((a, b) => a.order - b.order), [cities]);
   const current = cities.find((c) => c.id === currentCityId);
+  const dim = (c: JourneyCity) => !!level && c.cefr !== level;
 
   return (
     <svg viewBox={`-20 -60 ${W + 40} ${H + 90}`} className="block h-auto w-full" role="img" aria-label="Mapa Polski">
@@ -126,17 +146,24 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
           );
         })}
 
-      {/* Дороги-маршрут: пройдене — суцільна червона, наступне — пунктир */}
+      {/* Маршрут через усі етапи: пройдене — суцільна коралова, поточний перегін — коралова пунктирна, далі — світла пунктирна */}
       {sorted.slice(1).map((c, i) => {
         const a = sorted[i];
-        if (!a.unlocked) return null;
-        const mx = (a.mapX + c.mapX) / 2 + (c.mapY - a.mapY) * 0.15;
-        const my = (a.mapY + c.mapY) / 2 - (c.mapX - a.mapX) * 0.15;
-        const d = `M${a.mapX},${a.mapY} Q${mx},${my} ${c.mapX},${c.mapY}`;
+        const d = segment(sorted, i);
+        const done = a.completed;
+        const next = a.unlocked && !a.completed;
         return (
           <g key={c.id}>
-            <path d={d} fill="none" stroke="#F3E3C3" strokeWidth="16" strokeLinecap="round" opacity="0.9" />
-            <path d={d} fill="none" stroke={a.completed ? '#F45159' : '#fff'} strokeWidth="6" strokeDasharray={a.completed ? undefined : '3 14'} strokeLinecap="round" />
+            <path d={d} fill="none" stroke="#F6E7C8" strokeWidth="18" strokeLinecap="round" opacity={dim(a) && dim(c) ? 0.35 : 0.95} />
+            <path
+              d={d}
+              fill="none"
+              stroke={done ? '#F45159' : next ? '#F45159' : '#FFFFFF'}
+              strokeWidth={done ? 7 : 6}
+              strokeDasharray={done ? undefined : next ? '2 13' : '1 14'}
+              strokeLinecap="round"
+              opacity={dim(a) && dim(c) ? 0.35 : 1}
+            />
           </g>
         );
       })}
@@ -149,6 +176,7 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
         return (
           <g
             key={c.id}
+            opacity={dim(c) ? 0.35 : 1}
             transform={`translate(${c.mapX} ${c.mapY}) scale(${s})`}
             onClick={() => onCityClick?.(c)}
             style={{ cursor: onCityClick ? 'pointer' : 'default' }}
@@ -182,23 +210,32 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
             {!compact && (() => {
               // Довгі назви скорочуємо на карті (повна назва — у картці міста).
               const label = c.namePl.length > 13 ? c.namePl.split(' ')[0] : c.namePl;
-              const w = label.length * 15 + (state === 'locked' ? 48 : 32);
-              const h = isCurrent && hereLabel ? 56 : 36;
+              const locked = state === 'locked';
+              const w = label.length * 14 + 50 + (locked ? 22 : 0);
+              const sub = isCurrent && hereLabel ? hereLabel : !c.hasContent && soonLabel ? soonLabel : null;
+              const h = sub ? 54 : 36;
+              const fill = isCurrent ? '#F45159' : c.completed ? '#35C88A' : '#fff';
+              const ink = isCurrent || c.completed ? '#fff' : locked ? '#7A8B99' : '#22364A';
               return (
-                <g transform="translate(0 26)">
-                  <rect x={-w / 2} y="-18" width={w} height={h} rx="18" fill={isCurrent ? '#F45159' : '#fff'} stroke={isCurrent ? '#fff' : '#E6DCCB'} strokeWidth="3" />
-                  {state === 'locked' && (
-                    <g transform={`translate(${-w / 2 + 20} 0)`}>
-                      <rect x="-7" y="-2" width="14" height="11" rx="2.5" fill="#22364A" />
-                      <path d="M-4 -2 L-4 -6 Q0 -11 4 -6 L4 -2" stroke="#22364A" strokeWidth="2.5" fill="none" />
+                <g transform="translate(0 28)">
+                  <rect x={-w / 2} y="-18" width={w} height={h} rx="18" fill={fill} stroke={isCurrent || c.completed ? '#fff' : '#E6DCCB'} strokeWidth="3" />
+                  {/* номер етапу маршруту */}
+                  <circle cx={-w / 2 + 20} cy="0" r="12" fill={isCurrent || c.completed ? '#fff' : locked ? '#E9E1D3' : '#22364A'} />
+                  <text x={-w / 2 + 20} y="1" textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#F45159' : c.completed ? '#1F9A67' : locked ? '#8D98A5' : '#fff'}>
+                    {c.order}
+                  </text>
+                  {locked && (
+                    <g transform={`translate(${-w / 2 + 44} 0)`}>
+                      <rect x="-7" y="-2" width="14" height="11" rx="2.5" fill="#8D98A5" />
+                      <path d="M-4 -2 L-4 -6 Q0 -11 4 -6 L4 -2" stroke="#8D98A5" strokeWidth="2.5" fill="none" />
                     </g>
                   )}
-                  <text x={state === 'locked' ? 10 : 0} textAnchor="middle" dominantBaseline="central" fontSize="22" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#fff' : state === 'locked' ? '#7A8B99' : '#22364A'}>
+                  <text x={(locked ? 22 : 12) + 2} textAnchor="middle" dominantBaseline="central" fontSize="21" fontWeight="900" fontFamily="Nunito" fill={ink}>
                     {label}
                   </text>
-                  {isCurrent && hereLabel && (
-                    <text y="22" textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="800" fontFamily="Nunito" fill="#FFE3E3">
-                      {hereLabel}
+                  {sub && (
+                    <text x="12" y="21" textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="800" fontFamily="Nunito" fill={isCurrent ? '#FFE3E3' : '#9AA6B2'}>
+                      {sub}
                     </text>
                   )}
                 </g>
@@ -223,23 +260,18 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
   );
 });
 
+/** Бобер на поточному етапі: стоїть на кораловій «платформі» над містом. */
 function BeaverPin({ x, y, vehicle }: { x: number; y: number; vehicle?: boolean }) {
   const reduce = useReducedMotion();
   return (
-    <g transform={`translate(${x} ${y})`}>
-    <motion.g animate={reduce ? undefined : { y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 1.2 }}>
-      <path d="M0 40 L-12 18 L12 18 Z" fill="#E5484D" />
-      <circle r="30" fill="#fff" stroke="#E5484D" strokeWidth="5" />
-      <circle cx="-17" cy="-17" r="8" fill="#A86B3C" />
-      <circle cx="17" cy="-17" r="8" fill="#A86B3C" />
-      <circle r="22" fill="#A86B3C" />
-      <ellipse cy="8" rx="13" ry="9" fill="#F3D9B5" />
-      <circle cx="-8" cy="-4" r="4" fill="#2B1A10" />
-      <circle cx="8" cy="-4" r="4" fill="#2B1A10" />
-      <ellipse cy="3" rx="5" ry="3.5" fill="#3B2416" />
-      <rect x="-3.5" y="9" width="7" height="6" rx="1.5" fill="#fff" />
-      {vehicle && <text x="26" y="34" fontSize="34">🚆</text>}
-    </motion.g>
+    <g transform={`translate(${x - 4} ${y - 18})`} style={{ pointerEvents: 'none' }}>
+      <motion.g animate={reduce ? undefined : { y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}>
+        <ellipse cx="50" cy="118" rx="38" ry="11" fill="#F45159" stroke="#fff" strokeWidth="4" />
+        <ellipse cx="50" cy="114" rx="26" ry="6" fill="#FF7B80" />
+        <g transform="translate(6 0)">
+          <Beaver mood={vehicle ? 'travel' : 'wave'} size={88} animate={false} vectorOnly />
+        </g>
+      </motion.g>
     </g>
   );
 }

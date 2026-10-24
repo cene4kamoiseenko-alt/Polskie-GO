@@ -7,7 +7,7 @@ import {
   quests, reviewSchedule, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
 } from '../db/schema';
 import { getRewards } from './gameConfig';
-import { ttsConfigured } from './tts';
+import { ttsConfigured, ttsStatus } from './tts';
 import { activeSubscription } from './premium';
 import { outfit } from './shop';
 
@@ -87,7 +87,7 @@ export async function getMe(userId: string) {
     ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay },
     rewards: { exerciseXp: cfg.exerciseXp },
     /** Чи доступна серверна польська озвучка (інакше — лише польський голос пристрою). */
-    audio: { server: ttsConfigured() },
+    audio: { server: ttsConfigured(), ...ttsStatus() },
   };
 }
 

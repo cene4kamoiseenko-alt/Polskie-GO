@@ -11,7 +11,7 @@ import { ttsCache } from '../db/schema';
 import { getBindings } from '../env';
 import { HttpError } from '../lib/errors';
 
-type Provider = { id: 'google' | 'azure'; voice: string; synth: (text: string, rate: SpeechRate) => Promise<ArrayBuffer> };
+type Provider = { id: 'google' | 'azure' | 'elevenlabs'; voice: string; synth: (text: string, rate: SpeechRate) => Promise<ArrayBuffer> };
 
 export function ttsProvider(): Provider | null {
   const env = getBindings();
@@ -56,7 +56,30 @@ export function ttsProvider(): Provider | null {
       },
     };
   }
+  if (env.ELEVENLABS_API_KEY) {
+    const voice = env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+    const model = env.ELEVENLABS_MODEL || 'eleven_multilingual_v2';
+    return {
+      id: 'elevenlabs',
+      voice: `${voice}/${model}`,
+      synth: async (text, rate) => {
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_64`, {
+          method: 'POST',
+          headers: { 'xi-api-key': env.ELEVENLABS_API_KEY!, 'content-type': 'application/json', accept: 'audio/mpeg' },
+          body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.55, similarity_boost: 0.8, speed: rate === 'slow' ? 0.8 : 1 } }),
+        });
+        if (!res.ok) throw new HttpError(502, 'tts_failed', `ElevenLabs ${res.status}`);
+        return res.arrayBuffer();
+      },
+    };
+  }
   return null;
+}
+
+/** Що реально підключено (без ключів) — для діагностики в налаштуваннях і адмінці. */
+export function ttsStatus() {
+  const p = ttsProvider();
+  return p ? { configured: true, provider: p.id, voice: p.voice } : { configured: false, provider: null, voice: null };
 }
 
 export const ttsConfigured = () => !!ttsProvider();

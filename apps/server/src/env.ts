@@ -26,6 +26,9 @@ export type Bindings = {
   AZURE_SPEECH_KEY?: string;
   AZURE_SPEECH_REGION?: string;
   AZURE_SPEECH_VOICE?: string;
+  ELEVENLABS_API_KEY?: string;
+  ELEVENLABS_VOICE_ID?: string;
+  ELEVENLABS_MODEL?: string;
   ADMIN_PASSWORD?: string;
 };
 

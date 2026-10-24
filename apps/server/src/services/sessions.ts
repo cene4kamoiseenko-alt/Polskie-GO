@@ -607,10 +607,10 @@ async function completeCity(userId: string, cityId: string, now: Date) {
   if (visit[0]?.bossPassedAt) return null;
   const city = cityRow[0];
   const rewardSlugs = CITY_REWARDS[city.slug] ?? [];
-  const [items, owned, nextRow] = await db.batch([
+  const [items, owned, ahead] = await db.batch([
     db.select().from(cosmeticItems).where(inArray(cosmeticItems.slug, rewardSlugs.length ? rewardSlugs : ['-'])),
     db.select({ itemId: userInventory.itemId }).from(userInventory).where(eq(userInventory.userId, userId)),
-    db.select().from(cities).where(and(eq(cities.status, 'PUBLISHED'), gt(cities.order, city.order))).orderBy(asc(cities.order)).limit(1),
+    db.select().from(cities).where(and(eq(cities.status, 'PUBLISHED'), gt(cities.order, city.order))).orderBy(asc(cities.order)),
   ]);
   const have = new Set(owned.map((o) => o.itemId));
   const stmts: Stmt[] = [
@@ -625,22 +625,30 @@ async function completeCity(userId: string, cityId: string, now: Date) {
     stmts.push(grantItem(userId, item.id, `city:${city.slug}`));
     rewards.push({ slug: item.slug, name: item.name, slot: item.slot });
   }
-  const next = nextRow[0];
   let nextCity = null;
   let currentCityId: string | null = null;
-  if (next) {
-    stmts.push(db.insert(userCities).values({ userId, cityId: next.id, unlockedAt: now }).onConflictDoNothing());
-    const [{ n: hasLessons }] = await db
-      .select({ n: count() })
-      .from(lessons)
-      .innerJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId))
-      .where(and(eq(lessons.status, 'PUBLISHED'), eq(cityRoutes.cityId, next.id)));
-    // Переїжджаємо, лише якщо в наступному місті вже є уроки.
+  if (ahead.length) {
+    const withLessons = new Set(
+      (
+        await db
+          .selectDistinct({ cityId: cityRoutes.cityId })
+          .from(lessons)
+          .innerJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId))
+          .where(and(eq(lessons.status, 'PUBLISHED'), inArray(cityRoutes.cityId, ahead.map((c) => c.id))))
+      ).map((r) => r.cityId),
+    );
+    // Наступна зупинка — найближче місто з уроками; міста без контенту дорогою відкриваються як «скоро»
+    // і не блокують маршрут. Якщо уроків попереду немає взагалі — відкриваємо лише найближче.
+    const targetIdx = ahead.findIndex((c) => withLessons.has(c.id));
+    const opened = targetIdx < 0 ? ahead.slice(0, 1) : ahead.slice(0, targetIdx + 1);
+    for (const c of opened) stmts.push(db.insert(userCities).values({ userId, cityId: c.id, unlockedAt: now }).onConflictDoNothing());
+    const next = targetIdx < 0 ? ahead[0] : ahead[targetIdx];
+    const hasLessons = targetIdx >= 0;
     if (hasLessons) {
       stmts.push(db.update(playerProgress).set({ currentCityId: next.id }).where(eq(playerProgress.userId, userId)));
       currentCityId = next.id;
     }
-    nextCity = { id: next.id, slug: next.slug, name: next.name, namePl: next.namePl, emoji: next.emoji, hasLessons: hasLessons > 0 };
+    nextCity = { id: next.id, slug: next.slug, name: next.name, namePl: next.namePl, emoji: next.emoji, hasLessons };
   }
   return { result: { cityId, nextCity, rewards }, stmts, currentCityId };
 }
@@ -648,7 +656,15 @@ async function completeCity(userId: string, cityId: string, now: Date) {
 /** Результат вхідного тесту — рекомендація стартового міста (не підтверджений рівень). */
 async function applyPlacement(userId: string, accuracy: number) {
   const level: Cefr = accuracy >= 0.8 ? 'A1' : 'A0';
-  const top = await db.select().from(cities).where(eq(cities.status, 'PUBLISHED')).orderBy(asc(cities.order)).limit(3);
+  // Рекомендуємо лише міста, де вже є уроки (порожні зупинки маршруту не можуть бути стартом).
+  const top = await db
+    .selectDistinct({ id: cities.id, slug: cities.slug, order: cities.order })
+    .from(cities)
+    .innerJoin(cityRoutes, eq(cityRoutes.cityId, cities.id))
+    .innerJoin(lessons, and(eq(lessons.routeId, cityRoutes.id), eq(lessons.status, 'PUBLISHED')))
+    .where(eq(cities.status, 'PUBLISHED'))
+    .orderBy(asc(cities.order))
+    .limit(3);
   const openCount = accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1;
   const stmts: Stmt[] = [db.update(userProfiles).set({ placementLevel: level }).where(eq(userProfiles.userId, userId))];
   const unlocked: string[] = [];

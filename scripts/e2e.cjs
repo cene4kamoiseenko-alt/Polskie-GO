@@ -89,7 +89,7 @@ function assert(cond, msg) {
   await page.waitForTimeout(1200);
   assert(await page.isVisible('text=Мета дня'), 'головний екран після уроку');
   for (const [path, text] of [
-    ['/map', 'Подорож Польщею'],
+    ['/map', 'Твоя подорож'],
     ['/quests', 'Щоденні'],
     ['/profile', 'Рівень польської'],
     ['/dictionary', 'Польсько-український словник'],

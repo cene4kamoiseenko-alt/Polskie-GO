@@ -92,7 +92,17 @@ function playElement(src: string, rate: number, onStart: () => void): Promise<vo
 
 export const ttsAvailable = () => typeof window !== 'undefined' && 'speechSynthesis' in window;
 
-/** Голоси пристрою завантажуються асинхронно — чекаємо подію voiceschanged (до 1,5 с). */
+// Список голосів починаємо завантажувати одразу при старті — до першого натискання.
+if (ttsAvailable()) {
+  try {
+    speechSynthesis.getVoices();
+    speechSynthesis.addEventListener?.('voiceschanged', () => speechSynthesis.getVoices());
+  } catch {
+    /* немає підтримки */
+  }
+}
+
+/** Голоси пристрою завантажуються асинхронно — чекаємо подію voiceschanged (до 600 мс, щоб не втратити жест). */
 function deviceVoices(): Promise<SpeechSynthesisVoice[]> {
   if (!ttsAvailable()) return Promise.resolve([]);
   const now = speechSynthesis.getVoices();
@@ -100,7 +110,7 @@ function deviceVoices(): Promise<SpeechSynthesisVoice[]> {
   return new Promise((resolve) => {
     const done = () => resolve(speechSynthesis.getVoices());
     speechSynthesis.addEventListener('voiceschanged', done, { once: true });
-    setTimeout(done, 1500);
+    setTimeout(done, 600);
   });
 }
 
@@ -110,19 +120,29 @@ export async function devicePolishVoice() {
 }
 
 async function speakDevice(text: string, slow: boolean, onStart: () => void): Promise<void> {
-  const voice = pickPolishVoice(await deviceVoices());
-  if (!voice) throw new Error('no_polish_voice');
+  if (!ttsAvailable()) throw new Error('no_polish_voice');
+  const voices = await deviceVoices();
+  const voice = pickPolishVoice(voices);
+  // Список голосів не порожній, але польського немає — не читаємо чужим голосом.
+  // Порожній список (iOS WebView не завжди його віддає) — просимо систему саме pl-PL.
+  if (!voice && voices.length) throw new Error('no_polish_voice');
   return new Promise((resolve, reject) => {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(speechText(text));
-    u.voice = voice;
-    u.lang = voice.lang;
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang ?? 'pl-PL';
     u.rate = slow ? 0.7 : 0.95;
     u.onstart = onStart;
     u.onend = () => resolve();
     u.onerror = (e) => (e.error === 'interrupted' || e.error === 'canceled' ? resolve() : reject(new Error('playback')));
     speechSynthesis.speak(u);
   });
+}
+
+/** Попереднє завантаження озвучки найближчих фраз (лише серверний синтез; помилки ігноруються). */
+export function prefetchSpeech(texts: (string | null | undefined)[]) {
+  if (!serverTts) return;
+  for (const t of texts.slice(0, 6)) if (t && speechText(t)) void serverAudio(t, false).catch(() => {});
 }
 
 let seq = 0;

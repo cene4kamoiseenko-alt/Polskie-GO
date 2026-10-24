@@ -143,6 +143,16 @@ export const uk = {
 
   // Карта
   map_title: 'Подорож Польщею',
+  map_journey: "Твоя подорож",
+  map_journey_d: "Пройдено міст: {done} з {total}",
+  map_all: "Усі",
+  map_soon: "скоро",
+  map_level_ready: "{n} міст з уроками",
+  map_level_soon: "Рівень {level} у підготовці",
+  map_unlock_after: "Відкриється після іспиту міста {city}",
+  map_stage: "Етап {n}",
+  map_topics: "Теми міста",
+  map_soon_full: "Уроки цього міста ще готуються. Ми не відкриваємо порожні розділи.",
   map_subtitle: 'Відкривай міста і вчи польську!',
   map_you_are_here: 'Ти тут',
   map_lessons: '{done}/{total} уроків',

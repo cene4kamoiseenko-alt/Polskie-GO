@@ -9,7 +9,7 @@ import { body, query, rateLimit, type AppEnv } from '../hono';
 import { notFound } from '../lib/errors';
 import { getJourney } from '../services/journey';
 import { answerItem, finishSession, startSession } from '../services/sessions';
-import { synthesize } from '../services/tts';
+import { synthesize, ttsStatus } from '../services/tts';
 import { TOPICS } from '../content/vocab';
 import { GRAMMAR } from '../content/grammar';
 
@@ -47,6 +47,7 @@ r.post('/sessions/:id/answer', async (c) => {
 r.post('/sessions/:id/finish', async (c) => c.json(await finishSession(c.get('userId'), c.req.param('id'))));
 
 // ── Озвучка (серверний синтез pl-PL, кеш у D1) ──
+r.get('/tts/status', (c) => c.json(ttsStatus()));
 r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {
   const q = z.object({ text: z.string().min(1).max(300), rate: z.enum(['normal', 'slow']).default('normal') }).parse(query(c));
   const audio = await synthesize(q.text, q.rate);

@@ -67,4 +67,30 @@ describe('Серверна польська озвучка', () => {
       delete env.GOOGLE_TTS_API_KEY;
     }
   });
+
+  it('ElevenLabs: польський текст іде в сервіс без змін, статус показує провайдера і голос', async () => {
+    const { env, app } = await getEnv();
+    env.ELEVENLABS_API_KEY = 'el-key';
+    env.ELEVENLABS_VOICE_ID = 'voice123';
+    const sent: { url: string; text: string; speed: number }[] = [];
+    const realFetch = globalThis.fetch;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      if (!String(url).startsWith('https://api.elevenlabs.io/')) return realFetch(url as never, init);
+      const b = JSON.parse(String(init?.body));
+      sent.push({ url: String(url), text: b.text, speed: b.voice_settings.speed });
+      return new Response('ID3fake', { status: 200, headers: { 'content-type': 'audio/mpeg' } });
+    });
+    try {
+      const { call, token } = await login();
+      const st = await call('GET', '/api/tts/status');
+      expect(st.body).toEqual({ configured: true, provider: 'elevenlabs', voice: 'voice123/eleven_multilingual_v2' });
+      const res = await app.request(`/api/tts?text=${encodeURIComponent('Byłem we Wrocławiu.')}&rate=slow`, { headers: { authorization: `Bearer ${token}` } }, env);
+      expect(res.status).toBe(200);
+      expect(sent[0]).toMatchObject({ text: 'Byłem we Wrocławiu.', speed: 0.8 });
+      expect(sent[0].url).toContain('/v1/text-to-speech/voice123');
+    } finally {
+      delete env.ELEVENLABS_API_KEY;
+      delete env.ELEVENLABS_VOICE_ID;
+    }
+  });
 });

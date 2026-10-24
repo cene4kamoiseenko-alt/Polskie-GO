@@ -5,7 +5,7 @@ import { useT } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
-import { sfx } from '../lib/audio';
+import { prefetchSpeech, sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
@@ -59,6 +59,18 @@ export default function LessonScreen() {
   const item = key ? items.get(key) : undefined;
   const isRetry = item ? pos >= (session?.items.length ?? 0) : false;
   const speed = session?.mode === 'SPEED';
+
+  // Озвучка поточного й наступного завдання завантажується заздалегідь.
+  useEffect(() => {
+    const nextItem = queue[pos + 1] ? items.get(queue[pos + 1]) : undefined;
+    const texts = [item, nextItem].flatMap((it) => {
+      if (!it) return [];
+      const d = it.data as unknown as Record<string, unknown>;
+      const opts = ((d.options as { text: unknown }[] | undefined) ?? []).map((o) => (typeof o.text === 'string' ? o.text : null));
+      return [d.audioText as string, d.text as string, ...opts];
+    });
+    prefetchSpeech(texts);
+  }, [item, pos, queue, items]);
 
   const doFinish = useCallback(async () => {
     if (!session) return;

@@ -11,13 +11,13 @@ import { Card, Modal, ScreenHeader, SpeakButton, Toggle, cx, useToast } from '..
 import { devicePolishVoice } from '../lib/audio';
 
 /** Звідки береться польська озвучка на цьому пристрої + перевірка на слух. */
-function AudioDiagnostics({ server }: { server: boolean }) {
+function AudioDiagnostics({ server, provider }: { server: boolean; provider: string | null }) {
   const { t } = useT();
   const [voice, setVoice] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     void devicePolishVoice().then((v) => setVoice(v ? `${v.name} (${v.lang})` : null));
   }, []);
-  const label = server ? t('audio_source_server') : voice ? t('audio_source_device', { name: voice }) : voice === null ? t('audio_source_none') : '…';
+  const label = server ? `${t('audio_source_server')}: ${provider ?? ''}` : voice ? t('audio_source_device', { name: voice }) : voice === null ? t('audio_source_none') : '…';
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="min-w-0 flex-1">
@@ -89,7 +89,7 @@ export default function SettingsScreen() {
           </div>
         )}
         <Toggle label={`🔊 ${t('set_sound')}`} checked={s.soundEnabled} onChange={(v) => set({ soundEnabled: v })} />
-        <AudioDiagnostics server={!!me.audio?.server} />
+        <AudioDiagnostics server={!!me.audio?.server} provider={me.audio?.provider ? `${me.audio.provider} · ${me.audio.voice}` : null} />
         <Toggle label={`🐢 ${t('set_motion')}`} checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />
       </Card>
       <Card className="divide-y divide-[var(--border)] px-4">

@@ -95,19 +95,16 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   for (const [i, slug] of REMOVED_CITIES.entries()) {
     out.push(`UPDATE cities SET status = 'ARCHIVED', "order" = ${1000 + i} WHERE slug = ${lit(slug)};`);
   }
+  // Маршрут визначається кодом: порядок, рівень, тема й координати оновлюються при кожному seed.
+  // Спершу тимчасово зсуваємо порядок (унікальний індекс), потім ставимо остаточний.
+  out.push(`UPDATE cities SET "order" = "order" + 2000 WHERE slug IN (${CITIES.map((c) => lit(c.slug)).join(', ')});`);
   for (const [i, c] of CITIES.entries()) {
     const { x, y } = project(c.lon, c.lat);
-    out.push(
-      insert(
-        'cities',
-        {
-          id: `c_${c.slug}`, slug: c.slug, order: i + 1, name_pl: c.namePl, name: c.name, theme: c.theme, description: c.description,
-          cefr: c.cefr, map_x: x + (c.dx ?? 0), map_y: y + (c.dy ?? 0), emoji: c.emoji, color: c.color, status: 'PUBLISHED',
-        },
-        ['slug'],
-        force,
-      ),
-    );
+    const row = {
+      id: `c_${c.slug}`, slug: c.slug, order: i + 1, name_pl: c.namePl, name: c.name, theme: c.theme, description: c.description,
+      cefr: c.cefr, map_x: x + (c.dx ?? 0), map_y: y + (c.dy ?? 0), emoji: c.emoji, color: c.color, status: 'PUBLISHED',
+    };
+    out.push(insert('cities', row, ['slug'], true, force ? [] : ['emoji', 'color', 'status']));
   }
 
   // ── Уроки ──

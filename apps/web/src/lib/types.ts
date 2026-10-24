@@ -47,7 +47,7 @@ export type Me = {
   /** Може бути відсутнім, якщо сервер старіший за клієнт. */
   rewards?: { exerciseXp: number };
   /** server — серверна польська озвучка доступна. */
-  audio?: { server: boolean };
+  audio?: { server: boolean; provider?: string | null; voice?: string | null };
 };
 
 export type LessonState = 'locked' | 'available' | 'completed';
