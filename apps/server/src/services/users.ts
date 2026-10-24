@@ -58,7 +58,8 @@ export async function upsertTelegramUser(tg: TelegramUser, startParam?: string):
       db.insert(playerProgress).values({ userId: id, currentCityId: cityId }),
       db.insert(gameWallets).values({ userId: id, balance: 0 }),
       cityId ? db.insert(userCities).values({ userId: id, cityId }) : null,
-      ...starterItems.map((item) => db.insert(userInventory).values({ userId: id, itemId: item.id, equipped: true, source: 'starter' })),
+      // Худі — у гардеробі, але не вдягнене: фірмовий вигляд бобра — шарф і рюкзак.
+      ...starterItems.map((item) => db.insert(userInventory).values({ userId: id, itemId: item.id, equipped: item.slug !== 'hoodie-red', source: 'starter' })),
       // Запрошений і запрошувач стають друзями автоматично.
       referredById ? db.insert(friendships).values({ requesterId: referredById, addresseeId: id, status: 'ACCEPTED' }) : null,
     ]);

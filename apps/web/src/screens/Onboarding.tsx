@@ -97,7 +97,7 @@ export default function Onboarding() {
                 <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
               </motion.div>
               <div className="relative mt-1">
-                <Beaver mood="travel" size={210} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} />
+                <Beaver mood="travel" size={210} outfit={{}} />
               </div>
             </div>
           )}
@@ -134,7 +134,7 @@ export default function Onboarding() {
 
           {id === 'placement' && (
             <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-              <Beaver mood="think" size={150} outfit={{ GLASSES: 'glasses-round', JACKET: 'hoodie-red' }} />
+              <Beaver mood="think" size={150} outfit={{ GLASSES: 'glasses-round' }} />
               <h2 className="text-2xl font-black">{t('ob_placement_q')}</h2>
               <p className="muted font-semibold">{t('ob_placement_text')}</p>
               <div className="w-full space-y-3">
@@ -215,7 +215,7 @@ export default function Onboarding() {
 function Header({ title, mood }: { title: string; mood: 'happy' | 'think' | 'sleep' }) {
   return (
     <div className="mb-4 flex items-center gap-3">
-      <Beaver mood={mood} size={84} outfit={{ JACKET: 'hoodie-red' }} />
+      <Beaver mood={mood} size={84} outfit={{}} />
       <h2 className="flex-1 text-2xl font-black leading-tight">{title}</h2>
     </div>
   );

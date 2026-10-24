@@ -326,7 +326,7 @@ export function Landmark({ kind, color, muted }: { kind: LandmarkKind; color: st
  * Банер міста: растрова панорама (src/assets/cities/<slug>.webp), якщо є,
  * інакше — ілюстрована сцена з небом, старим містом і пам'яткою в кольорі міста.
  */
-export function CityBanner({ slug, color, height = 150, className, children }: { slug: string; color: string; height?: number; className?: string; children?: React.ReactNode }) {
+export function CityBanner({ slug, color, height = 150, className, children, shade = true }: { slug: string; color: string; height?: number; className?: string; children?: React.ReactNode; shade?: boolean }) {
   const img = cityAsset(slug);
   return (
     <div className={`relative overflow-hidden ${className ?? ''}`} style={{ height }}>
@@ -341,7 +341,7 @@ export function CityBanner({ slug, color, height = 150, className, children }: {
           </svg>
         </>
       )}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 45%, rgba(20,35,50,0.45) 100%)' }} />
+      {shade && <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 45%, rgba(20,35,50,0.45) 100%)' }} />}
       {children}
     </div>
   );

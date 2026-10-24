@@ -58,7 +58,7 @@ function Splash() {
       <Skyline className="absolute inset-x-0 bottom-0 w-full" height={240} sky={false} />
       <div className="relative -mt-24 flex flex-col items-center gap-3">
         <Logo size={46} />
-        <Beaver mood="wave" size={160} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} />
+        <Beaver mood="wave" size={160} outfit={{}} />
       </div>
     </div>
   );

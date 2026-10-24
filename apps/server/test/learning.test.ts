@@ -38,7 +38,8 @@ describe('Telegram авторизація', () => {
     const me = await call('GET', '/api/me');
     expect(me.status).toBe(200);
     expect(me.body.progress).toMatchObject({ xpTotal: 0, level: 1, languageLevel: 'A0' });
-    expect(me.body.outfit.wear.JACKET).toBe('hoodie-red');
+    expect(me.body.outfit.wear.BACKPACK).toBe('backpack-travel');
+    expect(me.body.outfit.wear.JACKET).toBeUndefined();
     expect(me.body.onboarded).toBe(false);
   });
 });

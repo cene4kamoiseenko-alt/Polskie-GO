@@ -1,87 +1,183 @@
 /**
- * Бобек — оригінальний маскот POLSKI GO (векторний SVG).
- * Шари: хвіст → тіло → одяг → голова → обличчя → головний убір → аксесуари.
- * Щоб замінити на Lottie/Rive, достатньо реалізувати той самий інтерфейс <Beaver mood outfit size />.
+ * Бобек — маскот POLSKI GO (векторний SVG, 2.5D-стиль).
+ * Фірмові деталі: кораловий шарф і бірюзово-зелений рюкзак мандрівника.
+ * Усі стани мають однакові пропорції: змінюються лише вираз обличчя, лапи та ефекти.
+ * Шари: рюкзак → хвіст → тіло → одяг → шарф → лапи → голова → обличчя → головний убір.
+ * Растровий ассет (src/assets/beaver/<mood>.webp), якщо є, має пріоритет.
  */
 import { motion, useReducedMotion } from 'framer-motion';
 import { memo } from 'react';
 import { beaverAsset } from '../lib/assets';
 
 /**
- * 14 станів: привітання (wave), радість (happy/cheer), перемога (celebrate), підтримка після помилки (sad),
- * здивування (surprised), читання (read), подорож з картою (travel), сон (sleep), навчання (learn),
- * нагорода (gift), королівський Premium (royal), очікування уроку (wait), роздуми (think).
+ * Стани: привітання (wave), правильна відповідь (cheer), підтримка після помилки (sad),
+ * роздуми (think), урок пройдено (celebrate), нове місто (travel) та додаткові:
+ * happy, surprised, read, learn, gift, royal, wait, sleep.
  */
 export type BeaverMood = 'happy' | 'wave' | 'sad' | 'think' | 'celebrate' | 'sleep' | 'travel' | 'gift' | 'cheer' | 'surprised' | 'read' | 'learn' | 'royal' | 'wait';
 export type BeaverOutfit = Partial<Record<'HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME' | 'FRAME', string>>;
 
 const C = {
   fur: 'url(#bv-fur)',
-  furFlat: '#A9683A',
-  furDark: '#7E4A26',
+  furFlat: '#B57444',
+  furDark: '#8A532C',
   belly: 'url(#bv-belly)',
   muzzle: 'url(#bv-muzzle)',
-  nose: '#2E1A0E',
+  nose: '#3A2214',
   tail: 'url(#bv-tail)',
-  tailLine: '#4A2C17',
-  ear: '#F0A98F',
-  pupil: '#1F120A',
-  /** Мультяшний контур, як у 3D-ілюстраціях: темно-коричневий, не чорний. */
-  line: '#4A2A14',
+  tailLine: '#3E2414',
+  ear: '#F2A38C',
+  paw: '#9A5D33',
+  /** М'який контур темно-коричневого кольору (не чорний). */
+  line: '#5A321A',
 };
-const LW = 3;
+const LW = 2.6;
 
-/** Градієнти «об'ємного» стилю. Ідентифікатори однакові в усіх екземплярах — вміст ідентичний. */
+/** Градієнти. Ідентифікатори однакові в усіх екземплярах — вміст ідентичний. */
 function Defs() {
   return (
     <defs>
-      <radialGradient id="bv-fur" cx="40%" cy="30%" r="75%">
-        <stop offset="0" stopColor="#D49563" />
-        <stop offset="0.55" stopColor="#A9683A" />
-        <stop offset="1" stopColor="#7E4A26" />
+      <radialGradient id="bv-fur" cx="38%" cy="28%" r="80%">
+        <stop offset="0" stopColor="#DDA26F" />
+        <stop offset="0.5" stopColor="#B87747" />
+        <stop offset="1" stopColor="#8A532C" />
       </radialGradient>
       <radialGradient id="bv-belly" cx="45%" cy="30%" r="80%">
-        <stop offset="0" stopColor="#FFF1DC" />
-        <stop offset="1" stopColor="#E7BE8E" />
+        <stop offset="0" stopColor="#FFF4E2" />
+        <stop offset="1" stopColor="#EBC596" />
       </radialGradient>
-      <radialGradient id="bv-muzzle" cx="50%" cy="25%" r="80%">
-        <stop offset="0" stopColor="#FFF4E3" />
-        <stop offset="1" stopColor="#EBC79B" />
+      <radialGradient id="bv-muzzle" cx="50%" cy="25%" r="85%">
+        <stop offset="0" stopColor="#FFF7EA" />
+        <stop offset="1" stopColor="#EECBA0" />
       </radialGradient>
       <linearGradient id="bv-tail" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#8A5530" />
-        <stop offset="1" stopColor="#4F2E17" />
+        <stop offset="0" stopColor="#7A4726" />
+        <stop offset="1" stopColor="#4A2A15" />
       </linearGradient>
       <linearGradient id="bv-hoodie" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#FF5F66" />
-        <stop offset="1" stopColor="#C42A36" />
+        <stop offset="0" stopColor="#FF6B70" />
+        <stop offset="1" stopColor="#D83A44" />
       </linearGradient>
-      <radialGradient id="bv-iris" cx="45%" cy="40%" r="60%">
-        <stop offset="0" stopColor="#8C5A2E" />
-        <stop offset="1" stopColor="#3A2210" />
+      <linearGradient id="bv-scarf" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#FF7468" />
+        <stop offset="1" stopColor="#E2433F" />
+      </linearGradient>
+      <linearGradient id="bv-pack" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#3FC79A" />
+        <stop offset="1" stopColor="#1F8F6E" />
+      </linearGradient>
+      <radialGradient id="bv-iris" cx="40%" cy="35%" r="70%">
+        <stop offset="0" stopColor="#6A4026" />
+        <stop offset="1" stopColor="#24140A" />
       </radialGradient>
       <radialGradient id="bv-shadow" cx="50%" cy="50%" r="50%">
-        <stop offset="0" stopColor="#000" stopOpacity="0.28" />
-        <stop offset="1" stopColor="#000" stopOpacity="0" />
+        <stop offset="0" stopColor="#5A321A" stopOpacity="0.25" />
+        <stop offset="1" stopColor="#5A321A" stopOpacity="0" />
       </radialGradient>
     </defs>
   );
 }
 
+/** Пласкій хвіст-весло з лусочками — позаду ліворуч. */
 function Tail({ mermaid }: { mermaid?: boolean }) {
   if (mermaid) {
     return (
       <g>
-        <path d="M128 176 C 160 170, 178 186, 172 204 C 186 196, 196 206, 192 214 C 178 214, 168 212, 160 206 C 150 204, 136 196, 128 176 Z" fill="#2EC4B6" />
-        <path d="M140 186 q8 4 14 12 M150 184 q8 6 12 14" stroke="#1E9E92" strokeWidth="2" fill="none" />
+        <path d="M70 186 C 40 178, 18 190, 22 208 C 8 202, -2 210, 2 218 C 18 218, 30 214, 40 208 C 52 206, 64 200, 70 186 Z" fill="#2EC4B6" stroke={C.line} strokeWidth={LW} />
       </g>
     );
   }
   return (
-    <g transform="rotate(-28 150 188)">
-      <ellipse cx="160" cy="190" rx="36" ry="18" fill={C.tail} stroke={C.line} strokeWidth={LW} />
-      <path d="M132 184 L186 184 M130 192 L188 192 M136 199 L182 199 M146 176 L148 205 M160 173 L160 207 M174 176 L172 205" stroke={C.tailLine} strokeWidth="1.8" opacity="0.6" />
-      <ellipse cx="150" cy="182" rx="14" ry="4" fill="#fff" opacity="0.18" />
+    <g transform="rotate(24 34 188)">
+      <ellipse cx="34" cy="188" rx="32" ry="17" fill={C.tail} stroke={C.line} strokeWidth={LW} />
+      <g stroke={C.tailLine} strokeWidth="1.6" opacity="0.55" fill="none">
+        <path d="M8 182 L60 182 M5 190 L63 190 M10 198 L58 198" />
+        <path d="M20 173 L20 204 M34 171 L34 205 M48 173 L48 204" />
+      </g>
+      <ellipse cx="26" cy="180" rx="12" ry="3.5" fill="#fff" opacity="0.2" />
+    </g>
+  );
+}
+
+/** Рюкзак мандрівника (фірмовий бірюзовий або з гардероба): корпус позаду, лямки спереду. */
+function Backpack({ kind, front }: { kind?: string; front?: boolean }) {
+  if (kind === 'none') return null;
+  const map = kind === 'backpack-map';
+  const fill = map ? '#F2994A' : 'url(#bv-pack)';
+  const dark = map ? '#C8742E' : '#1C7F62';
+  if (front) {
+    return (
+      <g>
+        <path d="M70 122 Q62 150 68 184" stroke={dark} strokeWidth="7" strokeLinecap="round" fill="none" />
+        <path d="M130 122 Q138 150 132 184" stroke={dark} strokeWidth="7" strokeLinecap="round" fill="none" />
+        <rect x="63" y="150" width="11" height="8" rx="2.5" fill="#FFD27A" stroke={C.line} strokeWidth="1.5" />
+        <rect x="126" y="150" width="11" height="8" rx="2.5" fill="#FFD27A" stroke={C.line} strokeWidth="1.5" />
+      </g>
+    );
+  }
+  return (
+    <g>
+      <rect x="112" y="112" width="58" height="80" rx="20" fill={fill} stroke={C.line} strokeWidth={LW} />
+      <rect x="146" y="140" width="22" height="34" rx="9" fill={dark} opacity="0.55" />
+      <path d="M118 124 Q141 112 164 124 L164 136 Q141 128 118 136 Z" fill={dark} opacity="0.5" />
+      {map && <rect x="150" y="90" width="13" height="36" rx="5" fill="#FFF2C8" stroke="#E0A42F" strokeWidth="2" transform="rotate(14 156 108)" />}
+    </g>
+  );
+}
+
+/** Шарф: фірмовий кораловий за замовчуванням або предмет з гардероба. Кінець звисає праворуч. */
+function Scarf({ kind }: { kind?: string }) {
+  const colors: Record<string, [string, string]> = {
+    'scarf-pl': ['#FFFFFF', '#E5484D'],
+    'scarf-ua': ['#3A7BD5', '#FFD43B'],
+    'scarf-green': ['#45C486', '#2FA56C'],
+  };
+  if (!kind) {
+    return (
+      <g>
+        <path d="M112 132 Q124 140 126 170 L112 172 Q108 150 104 138 Z" fill="url(#bv-scarf)" stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
+        <path d="M112 166 L113 176 M117 165 L118 176 M122 165 L123 175" stroke="#E2433F" strokeWidth="2.6" strokeLinecap="round" />
+        <path d="M58 118 Q100 142 142 118 L145 132 Q100 158 55 132 Z" fill="url(#bv-scarf)" stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
+        <path d="M60 126 Q100 148 140 126" stroke="#FFFFFF" strokeOpacity="0.35" strokeWidth="2.5" fill="none" />
+        <ellipse cx="112" cy="138" rx="10" ry="8" fill="url(#bv-scarf)" stroke={C.line} strokeWidth="2" />
+      </g>
+    );
+  }
+  const [a, b] = colors[kind] ?? ['#45C486', '#2FA56C'];
+  return (
+    <g>
+      <path d="M112 132 Q122 140 124 170 L110 172 Q106 150 102 138 Z" fill={a} stroke={C.line} strokeWidth="2" />
+      <path d="M106 154 L122 154 L123 162 L108 163 Z" fill={b} />
+      <path d="M58 118 Q100 142 142 118 L145 132 Q100 158 55 132 Z" fill={a} stroke={C.line} strokeWidth="2" />
+      <path d="M57 125 Q100 150 143 125 L145 132 Q100 158 55 132 Z" fill={b} />
+    </g>
+  );
+}
+
+function Shoes({ kind }: { kind?: string }) {
+  if (kind === 'sneakers-white') {
+    return (
+      <g>
+        <path d="M62 204 Q62 194 78 194 L94 198 Q98 208 90 212 L66 212 Q60 212 62 204 Z" fill="#fff" stroke="#C9D0D8" strokeWidth="2" />
+        <path d="M138 204 Q138 194 122 194 L106 198 Q102 208 110 212 L134 212 Q140 212 138 204 Z" fill="#fff" stroke="#C9D0D8" strokeWidth="2" />
+        <path d="M68 205 L90 205 M132 205 L110 205" stroke="#35C88A" strokeWidth="3" />
+      </g>
+    );
+  }
+  if (kind === 'boots-mountain') {
+    return (
+      <g>
+        <path d="M64 190 L86 190 L92 202 Q96 212 86 213 L64 213 Q58 211 60 202 Z" fill="#7A4A2A" />
+        <path d="M136 190 L114 190 L108 202 Q104 212 114 213 L136 213 Q142 211 140 202 Z" fill="#7A4A2A" />
+        <path d="M62 209 L92 209 M138 209 L108 209" stroke="#3B2416" strokeWidth="4" />
+      </g>
+    );
+  }
+  return (
+    <g stroke={C.line} strokeWidth={LW}>
+      <ellipse cx="80" cy="206" rx="16" ry="9" fill={C.paw} />
+      <ellipse cx="120" cy="206" rx="16" ry="9" fill={C.paw} />
+      <path d="M72 208 l0 4 M80 209 l0 4 M120 209 l0 4 M128 208 l0 4" strokeWidth="1.8" />
     </g>
   );
 }
@@ -292,78 +388,6 @@ function Glasses({ kind }: { kind?: string }) {
   return null;
 }
 
-function Scarf({ kind }: { kind?: string }) {
-  if (!kind) return null;
-  const colors: Record<string, [string, string]> = {
-    'scarf-pl': ['#FFFFFF', '#E5484D'],
-    'scarf-ua': ['#3A7BD5', '#FFD43B'],
-    'scarf-green': ['#45C486', '#2FA56C'],
-  };
-  const [a, b] = colors[kind] ?? ['#45C486', '#2FA56C'];
-  return (
-    <g>
-      <path d="M62 120 Q100 138 138 120 L140 132 Q100 150 60 132 Z" fill={a} stroke="#00000014" />
-      <path d="M61 126 Q100 144 139 126 L140 132 Q100 150 60 132 Z" fill={b} />
-      <path d="M118 132 L124 170 L110 170 L108 136 Z" fill={a} stroke="#00000014" />
-      <path d="M109 152 L123 152 L124 162 L110 162 Z" fill={b} />
-    </g>
-  );
-}
-
-function Backpack({ kind, front }: { kind?: string; front?: boolean }) {
-  if (!kind) return null;
-  const color = kind === 'backpack-map' ? '#F2994A' : '#45C486';
-  const dark = kind === 'backpack-map' ? '#C8742E' : '#2FA56C';
-  if (front) {
-    return (
-      <g stroke={dark} strokeWidth="6" strokeLinecap="round" fill="none">
-        <path d="M72 120 Q66 150 70 182" />
-        <path d="M128 120 Q134 150 130 182" />
-      </g>
-    );
-  }
-  return (
-    <g>
-      <rect x="40" y="122" width="120" height="70" rx="22" fill={color} />
-      <rect x="44" y="150" width="20" height="30" rx="8" fill={dark} />
-      <rect x="136" y="150" width="20" height="30" rx="8" fill={dark} />
-      {kind === 'backpack-map' && (
-        <g>
-          <rect x="140" y="98" width="14" height="40" rx="5" fill="#FFF2C8" stroke="#E0A42F" strokeWidth="2" transform="rotate(14 147 118)" />
-        </g>
-      )}
-    </g>
-  );
-}
-
-function Shoes({ kind }: { kind?: string }) {
-  if (kind === 'sneakers-white') {
-    return (
-      <g>
-        <path d="M58 202 Q58 192 74 192 L92 196 Q96 206 88 210 L62 210 Q56 210 58 202 Z" fill="#fff" stroke="#D5D9DE" strokeWidth="2" />
-        <path d="M142 202 Q142 192 126 192 L108 196 Q104 206 112 210 L138 210 Q144 210 142 202 Z" fill="#fff" stroke="#D5D9DE" strokeWidth="2" />
-        <path d="M64 204 L88 204 M136 204 L112 204" stroke="#45C486" strokeWidth="3" />
-      </g>
-    );
-  }
-  if (kind === 'boots-mountain') {
-    return (
-      <g>
-        <path d="M60 186 L84 186 L90 200 Q94 210 84 212 L60 212 Q54 210 56 200 Z" fill="#7A4A2A" />
-        <path d="M140 186 L116 186 L110 200 Q106 210 116 212 L140 212 Q146 210 144 200 Z" fill="#7A4A2A" />
-        <path d="M58 208 L90 208 M142 208 L110 208" stroke="#3B2416" strokeWidth="4" />
-      </g>
-    );
-  }
-  return (
-    <g stroke={C.line} strokeWidth={LW}>
-      <ellipse cx="76" cy="204" rx="18" ry="10" fill="#6E3F20" />
-      <ellipse cx="124" cy="204" rx="18" ry="10" fill="#6E3F20" />
-      <path d="M66 204 l0 5 M74 205 l0 5 M126 205 l0 5 M134 204 l0 5" strokeWidth="2" />
-    </g>
-  );
-}
-
 function HandItem({ kind }: { kind?: string }) {
   switch (kind) {
     case 'flag-pl':
@@ -402,14 +426,12 @@ function HandItem({ kind }: { kind?: string }) {
 }
 
 function Eye({ cx, look, mood }: { cx: number; look: [number, number]; mood: BeaverMood }) {
-  const ry = mood === 'surprised' ? 18 : 16;
+  const ry = mood === 'surprised' ? 16.5 : 15;
   return (
     <g>
-      <ellipse cx={cx} cy="72" rx="14" ry={ry} fill="#fff" stroke={C.line} strokeWidth={LW} />
-      <circle cx={cx + look[0]} cy={74 + look[1]} r="9.5" fill="url(#bv-iris)" />
-      <circle cx={cx + look[0]} cy={74 + look[1]} r="5.5" fill={C.pupil} />
-      <circle cx={cx + look[0] + 3.5} cy={70 + look[1]} r="3.4" fill="#fff" />
-      <circle cx={cx + look[0] - 3} cy={78 + look[1]} r="1.6" fill="#fff" opacity="0.8" />
+      <ellipse cx={cx} cy="74" rx="12.5" ry={ry} fill="url(#bv-iris)" stroke={C.line} strokeWidth="2" />
+      <circle cx={cx + 4 + look[0]} cy={68 + look[1]} r="4.6" fill="#fff" />
+      <circle cx={cx - 3.5 + look[0]} cy={80 + look[1]} r="2" fill="#fff" opacity="0.85" />
     </g>
   );
 }
@@ -417,73 +439,67 @@ function Eye({ cx, look, mood }: { cx: number; look: [number, number]; mood: Bea
 function Face({ mood, blink }: { mood: BeaverMood; blink: boolean }) {
   const closed = mood === 'sleep';
   const happyEyes = mood === 'celebrate' || mood === 'cheer';
-  const look: [number, number] = mood === 'think' || mood === 'wait' ? [3, -4] : mood === 'sad' || mood === 'read' ? [0, 4] : [1, 0];
-  const brows: Record<string, [string, string]> = {
-    sad: ['M66 52 Q76 50 90 56', 'M134 52 Q124 50 110 56'],
-    think: ['M66 50 Q78 44 90 50', 'M110 46 Q122 40 134 46'],
-    surprised: ['M66 46 Q78 38 90 46', 'M110 46 Q122 38 134 46'],
-    default: ['M66 52 Q78 44 90 50', 'M110 50 Q122 44 134 52'],
+  const look: [number, number] = mood === 'think' || mood === 'wait' ? [1, -3] : mood === 'sad' || mood === 'read' ? [-1, 2] : [0, 0];
+  const brows: Partial<Record<BeaverMood, [string, string]>> = {
+    sad: ['M66 54 Q76 50 88 55', 'M134 54 Q124 50 112 55'],
+    think: ['M66 52 Q77 46 88 52', 'M112 48 Q123 42 134 48'],
+    surprised: ['M66 48 Q77 41 88 48', 'M112 48 Q123 41 134 48'],
   };
-  const [bl, br] = brows[mood] ?? brows.default;
+  const brow = brows[mood];
+  const open = mood === 'cheer' || mood === 'celebrate' || mood === 'wave' || mood === 'gift';
   return (
     <g>
-      {/* очі */}
       {closed ? (
-        <g stroke={C.line} strokeWidth="4" strokeLinecap="round" fill="none">
-          <path d="M68 76 Q79 84 90 76" />
-          <path d="M110 76 Q121 84 132 76" />
+        <g stroke={C.line} strokeWidth="3.6" strokeLinecap="round" fill="none">
+          <path d="M67 77 Q78 84 89 77" />
+          <path d="M111 77 Q122 84 133 77" />
         </g>
       ) : happyEyes ? (
-        <g stroke={C.line} strokeWidth="4.5" strokeLinecap="round" fill="none">
-          <path d="M67 78 Q79 62 91 78" />
-          <path d="M109 78 Q121 62 133 78" />
+        <g stroke={C.line} strokeWidth="4.2" strokeLinecap="round" fill="none">
+          <path d="M66 79 Q78 63 90 79" />
+          <path d="M110 79 Q122 63 134 79" />
         </g>
       ) : (
         <motion.g
-          className="beaver-eyes"
           animate={blink ? { scaleY: [1, 1, 0.1, 1] } : undefined}
-          transition={{ repeat: Infinity, duration: 4, times: [0, 0.92, 0.96, 1] }}
-          style={{ originY: '72px' }}
+          transition={{ repeat: Infinity, duration: 4.2, times: [0, 0.93, 0.96, 1] }}
+          style={{ originY: '74px' }}
         >
-          <Eye cx={79} look={look} mood={mood} />
-          <Eye cx={121} look={look} mood={mood} />
+          <Eye cx={78} look={look} mood={mood} />
+          <Eye cx={122} look={look} mood={mood} />
         </motion.g>
       )}
-      {/* брови */}
-      {!closed && (
-        <g stroke={C.furDark} strokeWidth="5" strokeLinecap="round" fill="none">
-          <path d={bl} />
-          <path d={br} />
+      {brow && (
+        <g stroke={C.furDark} strokeWidth="3.6" strokeLinecap="round" fill="none">
+          <path d={brow[0]} />
+          <path d={brow[1]} />
         </g>
       )}
       {/* щічки */}
-      <ellipse cx="60" cy="100" rx="10" ry="6.5" fill="#FF7E94" opacity={mood === 'sad' ? 0.25 : 0.55} />
-      <ellipse cx="140" cy="100" rx="10" ry="6.5" fill="#FF7E94" opacity={mood === 'sad' ? 0.25 : 0.55} />
+      <ellipse cx="60" cy="98" rx="9.5" ry="6" fill="#FF8C8C" opacity={mood === 'sad' ? 0.3 : 0.5} />
+      <ellipse cx="140" cy="98" rx="9.5" ry="6" fill="#FF8C8C" opacity={mood === 'sad' ? 0.3 : 0.5} />
       {/* мордочка */}
-      <ellipse cx="100" cy="104" rx="32" ry="23" fill={C.muzzle} stroke={C.line} strokeWidth={LW} />
-      <path d="M78 102 l-10 -2 M78 107 l-10 1 M122 102 l10 -2 M122 107 l10 1" stroke={C.line} strokeWidth="1.8" strokeLinecap="round" opacity="0.7" />
+      <ellipse cx="100" cy="104" rx="29" ry="21" fill={C.muzzle} stroke={C.line} strokeWidth={LW} />
       {/* ніс */}
-      <path d="M88 90 Q100 82 112 90 Q110 99 100 101 Q90 99 88 90 Z" fill={C.nose} />
-      <ellipse cx="95" cy="88.5" rx="4" ry="2.2" fill="#fff" opacity="0.65" />
-      {/* рот і зуби */}
-      {mood === 'sad' ? (
+      <path d="M90 92 Q100 85 110 92 Q109 100 100 102 Q91 100 90 92 Z" fill={C.nose} />
+      <ellipse cx="96" cy="90.5" rx="3.6" ry="2" fill="#fff" opacity="0.6" />
+      <path d="M100 102 L100 106" stroke={C.line} strokeWidth="2.2" strokeLinecap="round" />
+      {/* рот і два характерні зуби */}
+      {mood === 'surprised' ? (
         <g>
-          <path d="M86 117 Q100 107 114 117" stroke={C.line} strokeWidth="3.5" fill="none" strokeLinecap="round" />
-          <rect x="93" y="110" width="14" height="10" rx="3" fill="#fff" stroke={C.line} strokeWidth="2" />
+          <ellipse cx="100" cy="116" rx="7" ry="7.5" fill="#7A2C2C" stroke={C.line} strokeWidth="2" />
+          <path d="M94 106 h12 v6 q0 2.5 -2.5 2.5 h-7 q-2.5 0 -2.5 -2.5z" fill="#fff" stroke={C.line} strokeWidth="1.8" />
         </g>
-      ) : mood === 'surprised' ? (
+      ) : open ? (
         <g>
-          <ellipse cx="100" cy="116" rx="8" ry="9" fill="#7A2430" stroke={C.line} strokeWidth="2.5" />
-          <rect x="93" y="103" width="14" height="9" rx="2.5" fill="#fff" stroke={C.line} strokeWidth="2" />
+          <path d="M84 106 Q100 130 116 106 Q100 112 84 106 Z" fill="#7A2C2C" stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
+          <path d="M92 119 Q100 125 108 119 Q100 115 92 119 Z" fill="#FF8A8A" />
+          <path d="M93 107 h6.4 v9 q0 2 -2 2 h-2.4 q-2 0 -2 -2z M100.6 107 h6.4 v9 q0 2 -2 2 h-2.4 q-2 0 -2 -2z" fill="#fff" stroke={C.line} strokeWidth="1.6" strokeLinejoin="round" />
         </g>
-      ) : mood === 'sleep' ? (
-        <path d="M92 110 Q100 115 108 110" stroke={C.line} strokeWidth="3" fill="none" strokeLinecap="round" />
       ) : (
         <g>
-          {/* відкрита усмішка з язиком */}
-          <path d="M76 101 Q100 136 124 101 Q100 110 76 101 Z" fill="#7A2430" stroke={C.line} strokeWidth="3" strokeLinejoin="round" />
-          <path d="M88 118 Q100 128 112 118 Q100 112 88 118 Z" fill="#FF7E94" />
-          <path d="M90 102 L90 117 Q90 120 93 120 L99 120 L99 103 Z M101 103 L101 120 L107 120 Q110 120 110 117 L110 102 Z" fill="#fff" stroke={C.line} strokeWidth="2" strokeLinejoin="round" />
+          <path d={mood === 'sad' ? 'M86 112 Q93 108 100 106 Q107 108 114 112' : 'M84 105 Q92 112 100 106 Q108 112 116 105'} stroke={C.line} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+          <path d="M93.5 106.5 h6 v8.5 q0 2 -2 2 h-2 q-2 0 -2 -2z M100.5 106.5 h6 v8.5 q0 2 -2 2 h-2 q-2 0 -2 -2z" fill="#fff" stroke={C.line} strokeWidth="1.6" strokeLinejoin="round" />
         </g>
       )}
     </g>
@@ -499,7 +515,10 @@ function Effects({ mood }: { mood: BeaverMood }) {
       </g>
     );
   }
-  if (mood === 'sad') return <path d="M146 60 Q152 70 146 76 Q140 70 146 60 Z" fill="#69C7F4" />;
+  if (mood === 'sad') {
+    // Підтримка після помилки: сердечко, а не сльоза.
+    return <path d="M160 52 c-6 -9 -20 -4 -14 7 l14 13 l14 -13 c6 -11 -8 -16 -14 -7z" fill="#F45159" stroke="#fff" strokeWidth="2.5" />;
+  }
   if (mood === 'celebrate' || mood === 'cheer') {
     return (
       <g>
@@ -584,6 +603,57 @@ type Props = {
   vectorOnly?: boolean;
 };
 
+type ArmPose = 'rest' | 'wave' | 'up' | 'chin' | 'heart' | 'hold';
+const RAISED = new Set<ArmPose>(['wave', 'up']);
+
+function armPose(mood: BeaverMood): [ArmPose, ArmPose] {
+  switch (mood) {
+    case 'wave':
+    case 'learn':
+      return ['rest', 'wave'];
+    case 'cheer':
+    case 'celebrate':
+      return ['up', 'up'];
+    case 'think':
+    case 'wait':
+      return ['rest', 'chin'];
+    case 'sad':
+      return ['heart', 'rest'];
+    case 'travel':
+    case 'gift':
+    case 'read':
+      return ['rest', 'hold'];
+    default:
+      return ['rest', 'rest'];
+  }
+}
+
+/** Лапа: side −1 ліва, +1 права. Плече (66|134, 132). */
+function Arm({ side, pose, sleeve, anim }: { side: -1 | 1; pose: ArmPose; sleeve: string; anim: boolean }) {
+  const sx = 100 + side * 34;
+  const geo: Record<ArmPose, { cx: number; cy: number; rot: number; px: number; py: number }> = {
+    rest: { cx: sx + side * 6, cy: 156, rot: -side * 14, px: sx + side * 8, py: 174 },
+    wave: { cx: sx + side * 24, cy: 112, rot: side * 30, px: sx + side * 34, py: 92 },
+    up: { cx: sx + side * 24, cy: 108, rot: side * 22, px: sx + side * 31, py: 86 },
+    chin: { cx: sx - side * 6, cy: 136, rot: side * 52, px: sx - side * 20, py: 124 },
+    heart: { cx: sx - side * 4, cy: 150, rot: side * 48, px: sx - side * 16, py: 150 },
+    hold: { cx: sx + side * 8, cy: 148, rot: -side * 34, px: sx + side * 16, py: 162 },
+  };
+  const g = geo[pose];
+  const moving = anim && (pose === 'wave' || pose === 'up');
+  return (
+    <motion.g
+      style={{ originX: `${sx}px`, originY: '132px' }}
+      animate={moving ? { rotate: pose === 'wave' ? [0, side * 14, -side * 4, side * 14, 0] : [0, side * 10, 0] } : { rotate: 0 }}
+      transition={{ repeat: Infinity, duration: pose === 'wave' ? 1.4 : 0.8, repeatDelay: pose === 'wave' ? 0.5 : 0 }}
+    >
+      <ellipse cx={g.cx} cy={g.cy} rx="11" ry="20" fill={sleeve} stroke={C.line} strokeWidth={LW} transform={`rotate(${g.rot} ${g.cx} ${g.cy})`} />
+      <circle cx={g.px} cy={g.py} r="9" fill={C.paw} stroke={C.line} strokeWidth={LW} />
+      <path d={`M${g.px - 3} ${g.py - 6} l0 4 M${g.px + 3} ${g.py - 6} l0 4`} stroke={C.line} strokeWidth="1.4" strokeLinecap="round" opacity="0.6" />
+    </motion.g>
+  );
+}
+
 export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size = 160, className, animate = true, vectorOnly }: Props) {
   const reduce = useReducedMotion();
   const anim = animate && !reduce;
@@ -600,59 +670,48 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
   }
   const costume = outfit.COSTUME;
   const jacket = costume ? undefined : outfit.JACKET;
-  const waving = mood === 'wave' || mood === 'cheer' || mood === 'learn';
-  const armsUp = mood === 'celebrate';
+  const sleeve = jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : costume === 'costume-dragon' ? '#3DBE6A' : C.fur;
+  const [leftPose, rightPose] = armPose(mood);
+  const backpack = mood === 'royal' ? 'none' : outfit.BACKPACK;
+  const handItem = mood === 'travel' && !outfit.ACCESSORY ? 'map-paper' : mood === 'read' || mood === 'royal' ? undefined : outfit.ACCESSORY;
 
   const body = (
     <svg viewBox="-10 -40 220 260" width={size} height={size * (260 / 220)} className={className} aria-hidden>
       <Defs />
-      <ellipse cx="100" cy="214" rx="62" ry="9" fill="url(#bv-shadow)" />
+      <ellipse cx="100" cy="214" rx="64" ry="8" fill="url(#bv-shadow)" />
       {mood === 'royal' && (
         <g>
-          <path d="M44 118 Q100 96 156 118 L170 206 Q100 220 30 206 Z" fill="#C42A36" stroke="#4A2A14" strokeWidth={LW} strokeLinejoin="round" />
-          <path d="M40 200 Q100 214 160 200 L162 212 Q100 226 38 212 Z" fill="#fff" stroke="#4A2A14" strokeWidth="2" />
+          <path d="M44 118 Q100 96 156 118 L170 206 Q100 220 30 206 Z" fill="#C42A36" stroke={C.line} strokeWidth={LW} strokeLinejoin="round" />
+          <path d="M40 200 Q100 214 160 200 L162 212 Q100 226 38 212 Z" fill="#fff" stroke={C.line} strokeWidth="2" />
           {[52, 72, 92, 112, 132, 150].map((x) => <circle key={x} cx={x} cy={207 + (x % 3)} r="2" fill="#22364A" />)}
         </g>
       )}
-      <Backpack kind={mood === 'royal' ? undefined : outfit.BACKPACK} />
+      <Backpack kind={backpack} />
       <Tail mermaid={costume === 'costume-syrenka'} />
-      {/* тіло */}
-      <path d="M52 160 C 50 122, 74 108, 100 108 C 126 108, 150 122, 148 160 C 147 196, 128 210, 100 210 C 72 210, 53 196, 52 160 Z" fill={C.fur} stroke={C.line} strokeWidth={LW} />
-      <ellipse cx="100" cy="170" rx="31" ry="34" fill={C.belly} />
+      {/* тіло-«груша» */}
+      <path d="M58 152 C 56 120, 78 106, 100 106 C 122 106, 144 120, 142 152 C 144 190, 126 212, 100 212 C 74 212, 56 190, 58 152 Z" fill={C.fur} stroke={C.line} strokeWidth={LW} />
+      <ellipse cx="100" cy="170" rx="28" ry="32" fill={C.belly} />
       <Shoes kind={outfit.SHOES} />
       <Jacket kind={jacket} />
       <Costume kind={costume} />
-      <Backpack kind={outfit.BACKPACK} front />
-      <Scarf kind={outfit.SCARF} />
-      {/* ліва лапа */}
-      <motion.g
-        style={{ originX: '62px', originY: '130px' }}
-        animate={anim && armsUp ? { rotate: [0, -18, 0] } : { rotate: 0 }}
-        transition={{ repeat: Infinity, duration: 0.8 }}
-      >
-        <ellipse cx={armsUp ? 51 : 54} cy={armsUp ? 114 : 158} rx="12" ry="22" fill={jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : costume === 'costume-dragon' ? '#3DBE6A' : C.fur} stroke={C.line} strokeWidth={LW} transform={armsUp ? 'rotate(-34 51 114)' : 'rotate(18 54 158)'} />
-        <circle cx={armsUp ? 40 : 50} cy={armsUp ? 96 : 177} r="9.5" fill="#8A5530" stroke={C.line} strokeWidth={LW} />
-      </motion.g>
-      {/* права лапа (махає) */}
-      <motion.g
-        style={{ originX: '138px', originY: '132px' }}
-        animate={anim && (waving || armsUp) ? { rotate: [0, 16, -6, 16, 0] } : { rotate: 0 }}
-        transition={{ repeat: Infinity, duration: 1.4, repeatDelay: 0.4 }}
-      >
-        <ellipse cx={waving || armsUp ? 149 : 146} cy={waving || armsUp ? 114 : 158} rx="12" ry="22" fill={jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : costume === 'costume-dragon' ? '#3DBE6A' : C.fur} stroke={C.line} strokeWidth={LW} transform={waving || armsUp ? 'rotate(34 149 114)' : 'rotate(-18 146 158)'} />
-        <circle cx={waving || armsUp ? 160 : 150} cy={waving || armsUp ? 96 : 177} r="9.5" fill="#8A5530" stroke={C.line} strokeWidth={LW} />
-      </motion.g>
-      <HandItem kind={mood === 'travel' && !outfit.ACCESSORY ? 'map-paper' : mood === 'read' || mood === 'royal' ? undefined : outfit.ACCESSORY} />
-      {/* голова */}
-      <circle cx="56" cy="40" r="15" fill={C.fur} stroke={C.line} strokeWidth={LW} />
-      <circle cx="144" cy="40" r="15" fill={C.fur} stroke={C.line} strokeWidth={LW} />
-      <circle cx="56" cy="41" r="8" fill={C.ear} />
-      <circle cx="144" cy="41" r="8" fill={C.ear} />
-      {/* голова з пухнастими щоками */}
-      <path d="M100 26 C 132 26, 154 46, 154 76 C 156 84, 162 88, 156 94 C 160 100, 154 104, 150 104 C 142 122, 122 132, 100 132 C 78 132, 58 122, 50 104 C 46 104, 40 100, 44 94 C 38 88, 44 84, 46 76 C 46 46, 68 26, 100 26 Z" fill={C.fur} stroke={C.line} strokeWidth={LW} strokeLinejoin="round" />
-      <path d="M92 28 l4 -8 l4 7 l4 -6 l2 8" fill={C.furFlat} stroke={C.line} strokeWidth="2.5" strokeLinejoin="round" />
-      <ellipse cx="78" cy="44" rx="18" ry="8" fill="#fff" opacity="0.14" transform="rotate(-20 78 44)" />
+      <Backpack kind={backpack} front />
+      {mood !== 'royal' && <Scarf kind={outfit.SCARF} />}
+      {/* Опущені лапи — під головою, підняті — поверх (інакше їх ховає голова). */}
+      {!RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}
+      {!RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
+      <HandItem kind={handItem} />
+      {/* вушка */}
+      <circle cx="54" cy="40" r="14" fill={C.fur} stroke={C.line} strokeWidth={LW} />
+      <circle cx="146" cy="40" r="14" fill={C.fur} stroke={C.line} strokeWidth={LW} />
+      <circle cx="55" cy="41" r="7" fill={C.ear} />
+      <circle cx="145" cy="41" r="7" fill={C.ear} />
+      {/* кругла голова з пухнастими щоками */}
+      <path d="M100 24 C 135 24, 158 46, 158 78 C 158 90, 162 94, 156 100 C 150 120, 128 134, 100 134 C 72 134, 50 120, 44 100 C 38 94, 42 90, 42 78 C 42 46, 65 24, 100 24 Z" fill={C.fur} stroke={C.line} strokeWidth={LW} strokeLinejoin="round" />
+      <path d="M93 26 q3 -9 7 -2 q4 -8 7 2" fill={C.furFlat} stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
+      <ellipse cx="76" cy="44" rx="17" ry="7" fill="#fff" opacity="0.16" transform="rotate(-22 76 44)" />
       <Face mood={mood} blink={anim && mood !== 'sleep'} />
+      {RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}
+      {RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
       <CostumeHead kind={costume} />
       <Glasses kind={outfit.GLASSES} />
       {!costume && <Hat kind={mood === 'royal' ? 'crown-gold' : outfit.HAT} />}
@@ -663,12 +722,12 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
   if (!anim) return body;
   const idle =
     mood === 'celebrate' || mood === 'cheer'
-      ? { y: [0, -14, 0], transition: { repeat: Infinity, duration: 0.7 } }
+      ? { y: [0, -12, 0], transition: { repeat: Infinity, duration: 0.75 } }
       : mood === 'sleep'
         ? { scale: [1, 1.02, 1], transition: { repeat: Infinity, duration: 3 } }
         : mood === 'sad'
-          ? { rotate: [0, -2, 0], transition: { repeat: Infinity, duration: 2.4 } }
-          : { y: [0, -4, 0], transition: { repeat: Infinity, duration: 2.6, ease: 'easeInOut' as const } };
+          ? { rotate: [0, -1.5, 0], transition: { repeat: Infinity, duration: 2.6 } }
+          : { y: [0, -3, 0], transition: { repeat: Infinity, duration: 2.8, ease: 'easeInOut' as const } };
   return (
     <motion.div className="inline-block" animate={idle} style={{ lineHeight: 0 }}>
       {body}

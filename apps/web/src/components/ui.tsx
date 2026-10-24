@@ -7,6 +7,7 @@ import { tg, haptic } from '../lib/telegram';
 import { speak, useSpeechState } from '../lib/audio';
 import { Beaver } from './Beaver';
 import { GameIcon, type IconName } from './GameIcon';
+import { Icon, type LineIconName } from './Icon';
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ');
@@ -228,30 +229,35 @@ export function StatPill({ icon, value, color, onClick, label }: { icon: string;
 }
 
 // ───────── Нижня навігація ─────────
-const TABS: { to: string; icon: IconName; key: TKey }[] = [
+const TABS: { to: string; icon: LineIconName; key: TKey }[] = [
   { to: '/', icon: 'home', key: 'nav_home' },
   { to: '/map', icon: 'map', key: 'nav_map' },
-  { to: '/learn', icon: 'lessons', key: 'nav_learn' },
-  { to: '/quests', icon: 'quests', key: 'nav_quests' },
-  { to: '/profile', icon: 'profile', key: 'nav_profile' },
+  { to: '/learn', icon: 'book', key: 'nav_learn' },
+  { to: '/quests', icon: 'target', key: 'nav_quests' },
+  { to: '/profile', icon: 'user', key: 'nav_profile' },
 ];
 
 export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }) {
   const { t } = useT();
   const loc = useLocation();
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-soft bg-elev/95 backdrop-blur">
-      <div className="mx-auto flex max-w-xl justify-around px-1 pt-1.5">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-soft bg-elev/95 backdrop-blur-md" style={{ paddingBottom: 'var(--safe-b)' }}>
+      <div className="mx-auto flex max-w-xl justify-around px-1" style={{ height: 'var(--nav-h)' }}>
         {TABS.map((tab) => {
           const active = tab.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(tab.to);
           return (
-            <NavLink key={tab.to} to={tab.to} onClick={() => haptic.select()} className="relative flex min-w-[60px] flex-col items-center gap-0.5 rounded-xl px-2 py-1">
-              {active && <motion.div layoutId="navpill" className="absolute inset-0 rounded-xl" style={{ background: 'color-mix(in srgb, var(--color-pl-red) 12%, transparent)' }} />}
-              <motion.span className="relative" animate={{ y: active ? -2 : 0, scale: active ? 1.08 : 1 }}>
-                <GameIcon name={tab.icon} size={30} inactive={!active} />
-              </motion.span>
-              <span className={cx('relative text-[11px] font-extrabold', active ? 'text-pl-red' : 'muted')}>{t(tab.key)}</span>
-              {!!badge?.[tab.to] && <span className="absolute right-2 top-0 h-2.5 w-2.5 rounded-full bg-pl-red" />}
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              onClick={() => haptic.select()}
+              className={cx('relative flex min-w-[62px] flex-1 flex-col items-center justify-center gap-1 transition-colors active:scale-95', active ? 'text-pl-red' : 'text-[#8A97A6]')}
+              aria-current={active ? 'page' : undefined}
+            >
+              <span className={cx('grid h-9 w-12 place-items-center rounded-2xl transition-colors', active && 'bg-[color-mix(in_srgb,var(--color-pl-red)_12%,transparent)]')}>
+                <Icon name={tab.icon} size={24} strokeWidth={active ? 2.4 : 2} />
+              </span>
+              <span className="text-[11px] font-extrabold leading-none">{t(tab.key)}</span>
+              {!!badge?.[tab.to] && <span className="absolute right-[22%] top-2 h-2.5 w-2.5 rounded-full bg-pl-red ring-2 ring-[var(--bg-elev)]" />}
             </NavLink>
           );
         })}
