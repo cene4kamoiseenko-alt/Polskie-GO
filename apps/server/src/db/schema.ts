@@ -4,7 +4,7 @@
  * Усі нагороди, прогрес і покупки зберігаються лише сервером.
  */
 import { relations, sql } from 'drizzle-orm';
-import { check, index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { blob, check, index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import type { I18n } from '@polski-go/shared';
 
 export const newId = () => crypto.randomUUID().replace(/-/g, '');
@@ -659,6 +659,14 @@ export const notificationCampaigns = sqliteTable('notification_campaigns', {
   cursor: text('cursor'),
   scheduledAt: ts('scheduled_at'),
   sentAt: ts('sent_at'),
+  createdAt: createdAt(),
+});
+
+/** Файли, завантажені в адмінці (зображення, аудіо, Lottie). Рядок D1 вміщує до 2 МБ. */
+export const uploads = sqliteTable('uploads', {
+  name: text('name').primaryKey(),
+  type: text('type').notNull(),
+  data: blob('data', { mode: 'buffer' }).notNull(),
   createdAt: createdAt(),
 });
 

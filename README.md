@@ -13,7 +13,7 @@ Telegram Mini App — образовательная игра для изуче�
 | Админ-панель | отдельное React-приложение (`/admin/`) |
 | AI | Anthropic Claude через серверный API (ключ только на сервере) |
 | Платежи | Telegram Stars (подписка + разовые тарифы) |
-| Хостинг | один бесплатный Cloudflare Worker: API + Mini App + админка, D1, KV, Cron |
+| Хостинг | один бесплатный Cloudflare Worker: API + Mini App + админка, D1, Cron |
 | Тесты | Vitest (модульные + интеграционные на локальной D1 через Miniflare), Playwright E2E |
 
 Подробности: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Статус этапов: [docs/STATUS.md](docs/STATUS.md)
@@ -60,8 +60,8 @@ npm run typecheck
 
 Всё приложение — **один Cloudflare Worker** на бесплатном плане:
 API (`/api`), webhook бота (`/telegram/webhook`), Mini App (`/`), админка (`/admin/`),
-база **D1**, файлы админки в **KV**, напоминания по **Cron** каждые 15 минут.
-База и KV создаются автоматически при первом деплое.
+база **D1** (в ней же файлы, загруженные в админке, до 1,9 МБ), напоминания по **Cron** каждые 15 минут.
+База создаётся автоматически при первом деплое.
 
 ### 1. Подключить репозиторий
 
@@ -69,7 +69,7 @@ Cloudflare → **Workers & Pages → Create → Import a repository** → выб
 
 | Настройка | Значение |
 |---|---|
-| Project name | `polski-go` |
+| Project name | `polskie-go` (должно совпадать с `name` в `wrangler.jsonc`) |
 | Root directory | *(пусто — корень репозитория)* |
 | Build command | `npm run build:cf` |
 | Deploy command | `npm run deploy:cf` |
@@ -80,7 +80,7 @@ Cloudflare → **Workers & Pages → Create → Import a repository** → выб
 
 ### 2. Секреты Worker
 
-Worker `polski-go` → **Settings → Variables and Secrets** (тип *Secret*):
+Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*):
 
 | Имя | Значение |
 |---|---|
@@ -89,17 +89,17 @@ Worker `polski-go` → **Settings → Variables and Secrets** (тип *Secret*):
 | `TELEGRAM_APP_SHORT_NAME` | короткое имя Mini App из `/newapp` (например `app`) |
 | `TELEGRAM_WEBHOOK_SECRET` | случайная строка |
 | `SESSION_SECRET` | случайная строка ≥ 32 символов |
-| `WEB_APP_URL` | `https://polski-go.<аккаунт>.workers.dev` (или свой домен) |
+| `WEB_APP_URL` | `https://polskie-go.<аккаунт>.workers.dev` (или свой домен) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | первый вход в `/admin/` |
 | `ANTHROPIC_API_KEY` | необязательно; без ключа AI честно работает в ограниченном режиме |
 
-Проверка: `https://polski-go.<аккаунт>.workers.dev/api/health` → `{"ok":true}`.
+Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true}`.
 
 ### 3. Бот
 
-1. В [@BotFather](https://t.me/BotFather): `/newapp` → URL `https://polski-go.<аккаунт>.workers.dev`.
+1. В [@BotFather](https://t.me/BotFather): `/newapp` → URL `https://polskie-go.<аккаунт>.workers.dev`.
 2. Webhook (бот, Stars, `/start`): открыть в браузере
-   `https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=https://polski-go.<аккаунт>.workers.dev/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>&allowed_updates=["message","pre_checkout_query"]`
+   `https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=https://polskie-go.<аккаунт>.workers.dev/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>&allowed_updates=["message","pre_checkout_query"]`
    или локально: `PUBLIC_URL=… WEB_APP_URL=… TELEGRAM_BOT_TOKEN=… TELEGRAM_WEBHOOK_SECRET=… npm run bot:setup -w @polski-go/server`.
 3. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`, цены тарифов — в админке.
 

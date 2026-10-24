@@ -2,7 +2,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { and, count, eq } from 'drizzle-orm';
 import { db } from '../src/db';
 import { cityRoutes, cosmeticItems, gameWallets, quests, subscriptions, userInventory, userQuests, users } from '../src/db/schema';
-import { disposeEnv, lessonId, login, playSession, request } from './helpers';
+import { disposeEnv, getEnv, lessonId, login, playSession, request } from './helpers';
 
 afterAll(disposeEnv);
 
@@ -296,6 +296,21 @@ describe('Адмін-панель', () => {
     expect((await editor('GET', '/users')).status).toBe(403);
     expect((await editor('PATCH', '/resources/plans/MONTH_1', { priceStars: 1 })).status).toBe(403);
     expect((await editor('GET', '/resources/vocabulary?search=kot')).status).toBe(200);
+  });
+
+  it('завантаження файлу зберігається в D1 і віддається за /uploads', async () => {
+    const res = await request('POST', '/api/admin/login', { email: 'admin@test.dev', password: 'admin-password-123' });
+    const { app, env } = await getEnv();
+    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 250]);
+    const fd = new FormData();
+    fd.append('file', new File([png], 'pic.png', { type: 'image/png' }));
+    const up = await app.request('/api/admin/upload', { method: 'POST', body: fd, headers: { authorization: `Bearer ${res.body.token}` } }, env);
+    expect(up.status).toBe(200);
+    const { url } = (await up.json()) as { url: string };
+    const file = await app.request(url, {}, env);
+    expect(file.status).toBe(200);
+    expect(file.headers.get('content-type')).toBe('image/png');
+    expect(new Uint8Array(await file.arrayBuffer())).toEqual(png);
   });
 
   it('видача Premium та блокування користувача', async () => {

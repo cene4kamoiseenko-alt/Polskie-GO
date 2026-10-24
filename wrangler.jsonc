@@ -1,11 +1,11 @@
 // POLSKI GO на Cloudflare Workers (безкоштовний план):
 //  • Worker (apps/server) — API, webhook бота, cron-нагадування;
 //  • Static Assets — зібрані Mini App і адмінка (dist-cf);
-//  • D1 — база даних, KV — файли, завантажені в адмінці.
-// Бази D1 і KV створюються автоматично під час першого `wrangler deploy`.
+//  • D1 — база даних (і файли, завантажені в адмінці).
+// База D1 створюється автоматично під час першого `wrangler deploy`.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "polski-go",
+  "name": "polskie-go",
   "main": "apps/server/src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -23,7 +23,6 @@
       "migrations_dir": "apps/server/migrations"
     }
   ],
-  "kv_namespaces": [{ "binding": "UPLOADS" }],
   // Нагадування та розсилки — кожні 15 хвилин.
   "triggers": { "crons": ["*/15 * * * *"] },
   // Несекретні налаштування. Секрети (TELEGRAM_BOT_TOKEN, SESSION_SECRET, ...) — у панелі Cloudflare.

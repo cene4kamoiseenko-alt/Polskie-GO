@@ -4,8 +4,6 @@
  */
 export type Bindings = {
   DB: D1Database;
-  /** Завантажені адміністратором файли (зображення, аудіо). */
-  UPLOADS?: KVNamespace;
   /** Зібрані Mini App і адмінка (Workers Static Assets). */
   ASSETS?: Fetcher;
   ENVIRONMENT?: string;

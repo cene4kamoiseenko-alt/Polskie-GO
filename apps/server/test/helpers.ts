@@ -25,7 +25,7 @@ async function applySql(d1: D1Database, statements: string[]) {
 
 export async function getEnv() {
   if (state) return state;
-  const mf = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response(null) } }', d1Databases: { DB: `test-${Date.now()}` }, kvNamespaces: ['UPLOADS'] });
+  const mf = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response(null) } }', d1Databases: { DB: `test-${Date.now()}` } });
   const d1 = (await mf.getD1Database('DB')) as unknown as D1Database;
   const dir = new URL('../migrations/', import.meta.url);
   for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) {
@@ -35,7 +35,6 @@ export async function getEnv() {
   await applySql(d1, buildSeedSql());
   const env: Bindings = {
     DB: d1,
-    UPLOADS: (await mf.getKVNamespace('UPLOADS')) as unknown as KVNamespace,
     ENVIRONMENT: 'test',
     SESSION_SECRET: 'test-secret-test-secret-test-secret-123',
     TELEGRAM_BOT_TOKEN: BOT_TOKEN,

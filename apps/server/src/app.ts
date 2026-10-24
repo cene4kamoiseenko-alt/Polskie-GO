@@ -2,7 +2,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { ZodError } from 'zod';
-import { bindDb, mapDbError } from './db';
+import { eq } from 'drizzle-orm';
+import { bindDb, db, mapDbError } from './db';
+import { uploads } from './db/schema';
 import { config, setEnv } from './env';
 import { requireUser } from './auth';
 import { rateLimit, type AppEnv } from './hono';
@@ -45,13 +47,11 @@ export function buildApp() {
   app.route('/api', gameRoutes);
   app.all('/api/*', (c) => c.json({ error: 'not_found' }, 404));
 
-  // Завантажені адміністратором ассети (Cloudflare KV).
+  // Завантажені адміністратором ассети (зберігаються в D1).
   app.get('/uploads/:name', async (c) => {
-    const kv = c.env.UPLOADS;
-    if (!kv) return c.notFound();
-    const { value, metadata } = await kv.getWithMetadata<{ type?: string }>(c.req.param('name'), 'arrayBuffer');
-    if (!value) return c.notFound();
-    return c.body(value, 200, { 'content-type': metadata?.type ?? 'application/octet-stream', 'cache-control': 'public, max-age=31536000, immutable' });
+    const row = await db.query.uploads.findFirst({ where: eq(uploads.name, c.req.param('name')) });
+    if (!row) return c.notFound();
+    return c.body(new Uint8Array(row.data), 200, { 'content-type': row.type, 'cache-control': 'public, max-age=31536000, immutable' });
   });
 
   // Адмінка — окремий SPA під /admin/ у тих самих статичних файлах.

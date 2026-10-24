@@ -445,26 +445,25 @@ a.post('/admins', async (c) => {
   return c.json({ id: created.id });
 });
 
-// ── Завантаження ассетів (Cloudflare KV) ──
+// ── Завантаження ассетів (зберігаються в D1) ──
 const ALLOWED: Record<string, string> = {
   'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/gif': '.gif',
   'audio/mpeg': '.mp3', 'audio/ogg': '.ogg', 'audio/wav': '.wav', 'audio/webm': '.webm',
   'application/json': '.json', // Lottie-анімації
 };
-const MAX_UPLOAD = 8 * 1024 * 1024;
+/** Обмеження рядка D1 — 2 МБ. */
+const MAX_UPLOAD = 1900 * 1024;
 
 a.post('/upload', async (c) => {
   needRole(c, 'SUPERADMIN', 'EDITOR');
-  const kv = getBindings().UPLOADS;
-  if (!kv) throw badRequest('uploads_not_configured', 'Сховище файлів (KV UPLOADS) не підключено');
   const form = await c.req.parseBody();
   const file = form.file;
   if (!(file instanceof File)) throw badRequest('no_file');
   const ext = ALLOWED[file.type];
   if (!ext) throw badRequest('unsupported_type', `Unsupported type ${file.type}`);
-  if (file.size > MAX_UPLOAD) throw badRequest('file_too_large');
+  if (file.size > MAX_UPLOAD) throw badRequest('file_too_large', 'Файл більший за 1,9 МБ');
   const name = `${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 12)}${ext}`;
-  await kv.put(name, await file.arrayBuffer(), { metadata: { type: file.type } });
+  await db.insert(t.uploads).values({ name, type: file.type, data: Buffer.from(await file.arrayBuffer()) });
   await audit(c, 'upload', 'asset', name, { original: file.name, type: file.type });
   return c.json({ url: `/uploads/${name}` });
 });
