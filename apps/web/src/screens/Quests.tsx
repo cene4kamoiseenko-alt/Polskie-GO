@@ -131,7 +131,7 @@ export default function QuestsScreen() {
           <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 text-xs font-black">
             <GameIcon name="timer" size={18} /> {t('quests_resets', { t: countdown })}
           </div>
-          <div className="mt-1.5 text-xs font-black text-ink/80">{t('quests_done_of', { n: finished, total: list.length })}</div>
+          <div className="mt-1.5 inline-block rounded-full bg-white/85 px-2.5 py-0.5 text-xs font-black">{t('quests_done_of', { n: finished, total: list.length })}</div>
         </div>
         <div className="absolute -bottom-2 right-1">
           <Beaver mood="gift" size={140} />
