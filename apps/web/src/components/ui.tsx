@@ -251,7 +251,7 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
   const { t } = useT();
   const loc = useLocation();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-soft bg-elev/95 backdrop-blur-md" style={{ paddingBottom: 'var(--safe-b)' }}>
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-soft" style={{ paddingBottom: "var(--safe-b)", background: "linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev))", boxShadow: "0 -8px 20px -12px rgb(0 0 0 / 0.6)" }}>
       <div className="mx-auto flex max-w-xl justify-around px-1" style={{ height: 'var(--nav-h)' }}>
         {TABS.map((tab) => {
           const active = tab.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(tab.to);

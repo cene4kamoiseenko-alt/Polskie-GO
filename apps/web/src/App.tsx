@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { SplashScene } from './components/Splash';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { MotionConfig, motion } from 'framer-motion';
 import { I18nProvider, guessLang } from './i18n';
@@ -8,7 +9,7 @@ import { configureAudio, setSoundEnabled } from './lib/audio';
 import { ApiError } from './lib/api';
 import { BottomNav, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
-import { Logo, Skyline } from './components/Scenery';
+
 import { HomeScreen } from './screens/Home';
 
 const Onboarding = lazy(() => import('./screens/Onboarding'));
@@ -48,23 +49,18 @@ function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
     mq.addEventListener('change', h);
     return () => mq.removeEventListener('change', h);
   }, []);
-  const dark = pref === 'dark' || ((pref ?? 'auto') === 'auto' && systemDark);
+  // Основна тема POLSKI GO — ігрова темно-синя; світла лише за явним вибором.
+  void systemDark;
+  const dark = pref !== 'light';
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
-    setTelegramColors(dark ? '#13202b' : '#fff9f0');
+    document.documentElement.classList.toggle('light', !dark);
+    setTelegramColors(dark ? '#0c1b29' : '#fff9f0');
   }, [dark]);
 }
 
 function Splash() {
-  return (
-    <div className="relative grid h-full min-h-[100dvh] place-items-center overflow-hidden" style={{ background: 'linear-gradient(180deg, #7CC8F5 0%, #CDEBFF 60%, #FFF9F0 100%)' }}>
-      <Skyline className="absolute inset-x-0 bottom-0 w-full" height={240} sky={false} />
-      <div className="relative -mt-24 flex flex-col items-center gap-3">
-        <Logo size={46} />
-        <Beaver mood="wave" size={160} outfit={{}} />
-      </div>
-    </div>
-  );
+  return <SplashScene loading />;
 }
 
 /** Після старту у вільний час підвантажуємо екрани вкладок — перший перехід без очікування. */

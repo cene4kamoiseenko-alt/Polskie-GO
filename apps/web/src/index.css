@@ -8,50 +8,67 @@
   --color-navy: #22364a;
   --font-sans: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-brand: #35c88a;
-  --color-brand-dark: #22a06b;
+  --color-brand: #27cf91;
+  --color-brand-dark: #1fb57e;
   --color-brand-light: #dcf6ea;
   --color-cream: #fff9f0;
-  --color-xp: #ffbd42;
+  --color-xp: #ffc44d;
   --color-xp-dark: #e39a14;
-  --color-sky: #55bdf4;
+  --color-sky: #80d4ff;
   --color-sky-dark: #2c9ad6;
   --color-ink: #22364a;
-  --color-coral: #f45159;
+  --color-coral: #ff4e5b;
   --color-coral-dark: #d23540;
   --color-grape: #9568f5;
-  --color-pl-red: #f45159;
+  --color-pl-red: #ff4e5b;
 
   --radius-card: 22px;
-  --shadow-card: 0 8px 22px -8px rgb(31 51 70 / 0.22), 0 2px 4px rgb(31 51 70 / 0.05);
+  --shadow-card: 0 10px 24px -12px rgb(0 0 0 / 0.7);
 }
 
-:root {
+:root,
+.dark {
+  /* POLSKI GO 3.0 — ігрова темно-синя палітра (основна тема) */
+  --bg: #0c1b29;
+  --bg-2: #10263a;
+  --bg-elev: #162b3b;
+  --bg-elev-2: #1c3549;
+  --bg-muted: #20394c;
+  --text: #ffffff;
+  --text-muted: #a4b9c8;
+  --border: #25435a;
+  --track: #233e53;
+  --cream: #fff1da;
+  --cream-2: #ffe6bf;
+  --on-cream: #1e3346;
+  --on-cream-muted: #6f8293;
+  --map-land: #8fd16e;
+  --map-land-2: #6fbf55;
+  --map-sea: #3f9fd8;
+  --shadow-deep: 0 10px 24px -12px rgb(0 0 0 / 0.7), 0 2px 0 rgb(255 255 255 / 0.04) inset;
+  color-scheme: dark;
+}
+
+/* Світла тема — за вибором у налаштуваннях */
+.light {
   --bg: #fff9f0;
+  --bg-2: #fff3e2;
   --bg-elev: #ffffff;
+  --bg-elev-2: #fffaf3;
   --bg-muted: #f6efe3;
   --text: #22364a;
   --text-muted: #6d7f8f;
   --border: #efe6d6;
   --track: #f0e7d8;
+  --cream: #fff6e6;
+  --cream-2: #ffeccc;
+  --on-cream: #22364a;
+  --on-cream-muted: #6d7f8f;
   --map-land: #bfe8a9;
   --map-land-2: #a6dc8c;
   --map-sea: #8fd3f5;
+  --shadow-deep: 0 8px 22px -8px rgb(31 51 70 / 0.22), 0 2px 4px rgb(31 51 70 / 0.05);
   color-scheme: light;
-}
-
-.dark {
-  --bg: #13202b;
-  --bg-elev: #1d2d3a;
-  --bg-muted: #243746;
-  --text: #f1f5f8;
-  --text-muted: #9fb2c0;
-  --border: #2c4050;
-  --track: #2c4050;
-  --map-land: #3f7a4f;
-  --map-land-2: #356a44;
-  --map-sea: #1f5a7a;
-  color-scheme: dark;
 }
 
 html,
@@ -62,7 +79,7 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: radial-gradient(900px 520px at 50% -160px, var(--bg-2) 0%, var(--bg) 70%) fixed, var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -106,10 +123,20 @@ textarea {
 
 @layer components {
   .card {
-    background: var(--bg-elev);
+    background: linear-gradient(180deg, var(--bg-elev-2) 0%, var(--bg-elev) 100%);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-deep);
     border: 1px solid var(--border);
+  }
+  /* Світла кремова картка (профіль, слова, граматика) */
+  .card-cream {
+    background: linear-gradient(180deg, var(--cream) 0%, var(--cream-2) 100%);
+    color: var(--on-cream);
+    border-radius: var(--radius-card);
+    box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.55), inset 0 -3px 0 rgb(0 0 0 / 0.06);
+  }
+  .card-cream .muted {
+    color: var(--on-cream-muted);
   }
   .muted {
     color: var(--text-muted);
@@ -134,23 +161,27 @@ textarea {
   .btn:disabled {
     opacity: 0.5;
   }
-  .btn-primary {
-    background: linear-gradient(180deg, #5fdc9f 0%, #36bd78 55%, #2aa865 100%);
-    color: white;
-    box-shadow: 0 5px 0 #1e8a50, inset 0 2px 0 rgb(255 255 255 / 0.45);
-    text-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
-  }
-  .btn-primary:active:not(:disabled) {
-    box-shadow: 0 2px 0 #1e8a50, inset 0 2px 0 rgb(255 255 255 / 0.45);
-  }
+  /* Основна дія — червона ігрова кнопка з глибиною */
+  .btn-primary,
   .btn-red {
-    background: linear-gradient(180deg, #ff6b70 0%, #ea4049 55%, #d12f3a 100%);
+    background: linear-gradient(180deg, #ff7480 0%, #ff4e5b 50%, #ef3d4c 100%);
     color: white;
-    box-shadow: 0 5px 0 #a3222c, inset 0 2px 0 rgb(255 255 255 / 0.4);
+    box-shadow: 0 5px 0 #c92f42, 0 10px 18px -8px rgb(255 78 91 / 0.55), inset 0 2px 0 rgb(255 255 255 / 0.35);
+    text-shadow: 0 1px 0 rgb(0 0 0 / 0.18);
+  }
+  .btn-primary:active:not(:disabled),
+  .btn-red:active:not(:disabled) {
+    box-shadow: 0 2px 0 #c92f42, inset 0 2px 0 rgb(255 255 255 / 0.35);
+  }
+  /* Успіх / «правильно» */
+  .btn-green {
+    background: linear-gradient(180deg, #4fe3ab 0%, #27cf91 55%, #1fb57e 100%);
+    color: white;
+    box-shadow: 0 5px 0 #168a60, inset 0 2px 0 rgb(255 255 255 / 0.4);
     text-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
   }
-  .btn-red:active:not(:disabled) {
-    box-shadow: 0 2px 0 #a3222c, inset 0 2px 0 rgb(255 255 255 / 0.4);
+  .btn-green:active:not(:disabled) {
+    box-shadow: 0 2px 0 #168a60, inset 0 2px 0 rgb(255 255 255 / 0.4);
   }
   .btn-xp {
     background: linear-gradient(180deg, #ffe07a 0%, #ffc232 60%, #f5a90f 100%);
@@ -163,10 +194,10 @@ textarea {
     box-shadow: 0 5px 0 #2a7fb5, inset 0 2px 0 rgb(255 255 255 / 0.45);
   }
   .btn-ghost {
-    background: var(--bg-elev);
+    background: var(--bg-elev-2);
     color: var(--text);
     border: 2px solid var(--border);
-    box-shadow: 0 4px 0 var(--border);
+    box-shadow: 0 4px 0 rgb(0 0 0 / 0.35);
   }
   .btn-ghost:active:not(:disabled) {
     box-shadow: 0 1px 0 var(--border);
@@ -174,9 +205,9 @@ textarea {
   .option {
     @apply w-full rounded-2xl border-2 px-4 py-3 text-left text-[17px] font-bold transition-colors;
     min-height: 56px;
-    background: var(--bg-elev);
+    background: var(--bg-elev-2);
     border-color: var(--border);
-    box-shadow: 0 4px 0 var(--border), 0 6px 14px -8px rgb(31 51 70 / 0.25);
+    box-shadow: 0 4px 0 rgb(0 0 0 / 0.35), 0 6px 14px -8px rgb(0 0 0 / 0.4);
   }
   .option[data-state='selected'] {
     border-color: var(--color-sky);
@@ -195,8 +226,9 @@ textarea {
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold;
-    background: var(--bg-elev);
-    box-shadow: 0 2px 6px -2px rgb(31 51 70 / 0.2);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 6px -2px rgb(0 0 0 / 0.35);
   }
   /* Кольорова плитка-іконка, як у референсі */
   .icon-tile {

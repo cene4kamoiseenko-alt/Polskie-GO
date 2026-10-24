@@ -14,6 +14,9 @@ const MOODS: [BeaverMood, string][] = [
   ['gift', 'gift'],
   ['learn', 'learn'],
   ['sleep', 'sleep'],
+  ['explain', 'explain'],
+  ['music', 'music'],
+  ['mic', 'mic'],
 ];
 
 export default function Gallery() {

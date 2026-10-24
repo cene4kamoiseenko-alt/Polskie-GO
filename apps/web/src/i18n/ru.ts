@@ -334,6 +334,7 @@ export const ru: Dict = {
   diary_empty: 'Пока пусто',
   achievements_title: 'Достижения',
   achievements_unlocked: '{n} из {total} открыто',
+  ob_start_journey: "Начать путешествие",
   lesson_resumed: "Продолжаем урок: выполнено {n} из {total}",
   lesson_skipped_ok: "Ничего, вернёмся позже",
   shop_wearing: "Надето",

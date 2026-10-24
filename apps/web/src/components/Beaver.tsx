@@ -14,7 +14,7 @@ import { beaverAsset } from '../lib/assets';
  * роздуми (think), урок пройдено (celebrate), нове місто (travel) та додаткові:
  * happy, surprised, read, learn, gift, royal, wait, sleep.
  */
-export type BeaverMood = 'happy' | 'wave' | 'sad' | 'think' | 'celebrate' | 'sleep' | 'travel' | 'gift' | 'cheer' | 'surprised' | 'read' | 'learn' | 'royal' | 'wait';
+export type BeaverMood = 'happy' | 'wave' | 'sad' | 'think' | 'celebrate' | 'sleep' | 'travel' | 'gift' | 'cheer' | 'surprised' | 'read' | 'learn' | 'royal' | 'wait' | 'explain' | 'music' | 'mic' | 'map';
 export type BeaverOutfit = Partial<Record<'HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME' | 'FRAME', string>>;
 
 const C = {
@@ -62,9 +62,13 @@ function Defs() {
         <stop offset="0" stopColor="#FF7468" />
         <stop offset="1" stopColor="#E2433F" />
       </linearGradient>
+      <linearGradient id="bv-cap" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#FF6B74" />
+        <stop offset="1" stopColor="#E23A48" />
+      </linearGradient>
       <linearGradient id="bv-pack" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#3FC79A" />
-        <stop offset="1" stopColor="#1F8F6E" />
+        <stop offset="0" stopColor="#5AA8FF" />
+        <stop offset="1" stopColor="#2A62C9" />
       </linearGradient>
       <radialGradient id="bv-iris" cx="40%" cy="35%" r="70%">
         <stop offset="0" stopColor="#6A4026" />
@@ -104,7 +108,7 @@ function Backpack({ kind, front }: { kind?: string; front?: boolean }) {
   if (kind === 'none') return null;
   const map = kind === 'backpack-map';
   const fill = map ? '#F2994A' : 'url(#bv-pack)';
-  const dark = map ? '#C8742E' : '#1C7F62';
+  const dark = map ? '#C8742E' : '#1E4E9E';
   if (front) {
     return (
       <g>
@@ -302,6 +306,26 @@ function CostumeHead({ kind }: { kind?: string }) {
 
 function Hat({ kind }: { kind?: string }) {
   switch (kind) {
+    // Фірмова червона кепка Бобека з білою емблемою (стилізований птах, не державний герб).
+    case 'cap-signature':
+      return (
+        <g stroke={C.line} strokeWidth="2.4" strokeLinejoin="round">
+          <path d="M58 44 C58 18 80 8 100 8 C120 8 142 18 142 44 Z" fill="url(#bv-cap)" />
+          <path d="M70 40 C72 24 84 14 98 12" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" />
+          <path d="M48 40 Q100 54 152 40 Q157 48 146 52 Q100 61 54 52 Q43 48 48 40 Z" fill="#D7303F" />
+          <ellipse cx="100" cy="28" rx="11" ry="10" fill="#fff" strokeWidth="1.8" />
+          <path d="M91 27 Q95 22 100 26 Q105 22 109 27 Q105 28 103 32 L100 35 L97 32 Q95 28 91 27 Z" fill="#E5484D" stroke="none" />
+          <circle cx="100" cy="8.5" r="3.5" fill="#D7303F" strokeWidth="1.6" />
+        </g>
+      );
+    case 'headphones':
+      return (
+        <g stroke={C.line} strokeWidth="2.4">
+          <path d="M44 74 C44 26 156 26 156 74" fill="none" stroke="#2A62C9" strokeWidth="9" strokeLinecap="round" />
+          <rect x="30" y="62" width="22" height="34" rx="10" fill="#FF4E5B" />
+          <rect x="148" y="62" width="22" height="34" rx="10" fill="#FF4E5B" />
+        </g>
+      );
     case 'cap-green':
     case 'cap-red': {
       const c = kind === 'cap-green' ? '#45C486' : '#E5484D';
@@ -438,7 +462,7 @@ function Eye({ cx, look, mood }: { cx: number; look: [number, number]; mood: Bea
 
 function Face({ mood, blink }: { mood: BeaverMood; blink: boolean }) {
   const closed = mood === 'sleep';
-  const happyEyes = mood === 'celebrate' || mood === 'cheer';
+  const happyEyes = mood === 'celebrate' || mood === 'cheer' || mood === 'music';
   const look: [number, number] = mood === 'think' || mood === 'wait' ? [1, -3] : mood === 'sad' || mood === 'read' ? [-1, 2] : mood === 'travel' ? [4, -3] : [0, 0];
   const brows: Partial<Record<BeaverMood, [string, string]>> = {
     sad: ['M66 54 Q76 50 88 55', 'M134 54 Q124 50 112 55'],
@@ -446,7 +470,7 @@ function Face({ mood, blink }: { mood: BeaverMood; blink: boolean }) {
     surprised: ['M66 48 Q77 41 88 48', 'M112 48 Q123 41 134 48'],
   };
   const brow = brows[mood];
-  const open = mood === 'cheer' || mood === 'celebrate' || mood === 'wave' || mood === 'gift';
+  const open = mood === 'cheer' || mood === 'celebrate' || mood === 'wave' || mood === 'gift' || mood === 'explain' || mood === 'mic';
   return (
     <g>
       {closed ? (
@@ -530,6 +554,33 @@ function Effects({ mood }: { mood: BeaverMood }) {
         ].map(([x, y, c]) => (
           <path key={`${x}`} d={`M${x} ${Number(y) - 8} L${Number(x) + 2.5} ${Number(y) - 2.5} L${Number(x) + 8} ${y} L${Number(x) + 2.5} ${Number(y) + 2.5} L${x} ${Number(y) + 8} L${Number(x) - 2.5} ${Number(y) + 2.5} L${Number(x) - 8} ${y} L${Number(x) - 2.5} ${Number(y) - 2.5} Z`} fill={String(c)} />
         ))}
+      </g>
+    );
+  }
+  if (mood === 'music') {
+    return (
+      <g fill="#80D4FF">
+        <path d="M166 30 v18 a5 4 0 1 1 -3 -3.5 v-11 l10 -2 v14 a5 4 0 1 1 -3 -3.5 v-9z" />
+        <path d="M24 58 v14 a4.5 3.5 0 1 1 -2.5 -3 v-11 l3 -1z" fill="#FFC44D" />
+      </g>
+    );
+  }
+  if (mood === 'mic') {
+    return (
+      <g>
+        <g transform="translate(110 112) rotate(-20)">
+          <rect x="-3.5" y="6" width="7" height="22" rx="3" fill="#3B4A5A" stroke={C.line} strokeWidth="2" />
+          <circle cx="0" cy="0" r="9" fill="#A9B7C4" stroke={C.line} strokeWidth="2.2" />
+          <path d="M-5 -3 h10 M-6 1 h12" stroke="#5B6B7A" strokeWidth="1.4" />
+        </g>
+        <path d="M140 92 q8 8 0 16 M148 86 q13 14 0 28" stroke="#80D4FF" strokeWidth="3" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (mood === 'explain') {
+    return (
+      <g stroke="#FFC44D" strokeWidth="3.5" strokeLinecap="round">
+        <path d="M168 60 l10 -6 M172 74 h12 M166 46 l6 -9" />
       </g>
     );
   }
@@ -634,8 +685,8 @@ type Props = {
   vectorOnly?: boolean;
 };
 
-type ArmPose = 'rest' | 'wave' | 'up' | 'chin' | 'heart' | 'hold' | 'salute' | 'map';
-const RAISED = new Set<ArmPose>(['wave', 'up', 'salute']);
+type ArmPose = 'rest' | 'wave' | 'up' | 'chin' | 'heart' | 'hold' | 'salute' | 'map' | 'point';
+const RAISED = new Set<ArmPose>(['wave', 'up', 'salute', 'point']);
 
 function armPose(mood: BeaverMood): [ArmPose, ArmPose] {
   switch (mood) {
@@ -647,10 +698,17 @@ function armPose(mood: BeaverMood): [ArmPose, ArmPose] {
       return ['rest', 'up'];
     // Урок пройдено — тримає розгорнуту карту з відміченим етапом.
     case 'celebrate':
+    case 'map':
       return ['map', 'map'];
     case 'think':
     case 'wait':
+    case 'mic':
       return ['rest', 'chin'];
+    // Пояснює: лапа піднята вбік, як вказівка.
+    case 'explain':
+      return ['rest', 'point'];
+    case 'music':
+      return ['rest', 'rest'];
     case 'sad':
       return ['heart', 'rest'];
     // Нове місто — крок уперед, лапа «козирком» над очима, погляд на пам'ятку.
@@ -676,6 +734,7 @@ function Arm({ side, pose, sleeve, anim }: { side: -1 | 1; pose: ArmPose; sleeve
     hold: { cx: sx + side * 8, cy: 148, rot: -side * 34, px: sx + side * 16, py: 162 },
     salute: { cx: sx + side * 16, cy: 92, rot: -side * 18, px: sx + side * 8, py: 50 },
     map: { cx: sx - side * 4, cy: 150, rot: -side * 8, px: sx - side * 2, py: 168 },
+    point: { cx: sx + side * 22, cy: 116, rot: side * 58, px: sx + side * 38, py: 104 },
   };
   const g = geo[pose];
   const moving = anim && (pose === 'wave' || pose === 'up');
@@ -711,7 +770,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
   const sleeve = jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : costume === 'costume-dragon' ? '#3DBE6A' : C.fur;
   const [leftPose, rightPose] = armPose(mood);
   const backpack = mood === 'royal' ? 'none' : outfit.BACKPACK;
-  const handItem = mood === 'read' || mood === 'royal' || mood === 'travel' || mood === 'celebrate' ? undefined : outfit.ACCESSORY;
+  const handItem = mood === 'read' || mood === 'royal' || mood === 'travel' || mood === 'celebrate' || mood === 'map' ? undefined : outfit.ACCESSORY;
 
   const body = (
     <svg viewBox="-10 -40 220 260" width={size} height={size * (260 / 220)} className={className} aria-hidden>
@@ -736,7 +795,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       <Costume kind={costume} />
       <Backpack kind={backpack} front />
       {mood !== 'royal' && <Scarf kind={outfit.SCARF} />}
-      {mood === 'celebrate' && <HeldMap />}
+      {(mood === 'celebrate' || mood === 'map') && <HeldMap />}
       {/* Опущені лапи — під головою, підняті — поверх (інакше їх ховає голова). */}
       {!RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}
       {!RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
@@ -755,7 +814,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       {RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
       <CostumeHead kind={costume} />
       <Glasses kind={outfit.GLASSES} />
-      {!costume && <Hat kind={mood === 'royal' ? 'crown-gold' : outfit.HAT} />}
+      {!costume && <Hat kind={mood === 'royal' ? 'crown-gold' : mood === 'music' ? 'headphones' : outfit.HAT ?? (mood === 'sleep' ? undefined : 'cap-signature')} />}
       </g>
       <Effects mood={mood} />
     </svg>

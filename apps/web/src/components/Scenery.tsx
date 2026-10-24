@@ -127,25 +127,26 @@ export const Skyline = memo(function Skyline({ className, sky = true, height = 1
 });
 
 /** Ігровий логотип з білим контуром і тінню. */
+/** Обʼємний логотип POLSKI GO: білий контур, темна «глибина», прапорець. */
 export function Logo({ size = 44, slogan }: { size?: number; slogan?: string }) {
-  const style = (fill: string) => ({
+  const style = (fill: string, deep: string) => ({
     color: fill,
-    WebkitTextStroke: `${Math.round(size / 7)}px #fff`,
+    WebkitTextStroke: `${Math.max(3, Math.round(size / 6))}px #fff`,
     paintOrder: 'stroke fill' as const,
-    textShadow: `0 ${size / 10}px 0 rgba(36,55,70,0.35)`,
+    textShadow: `0 ${size / 12}px 0 ${deep}, 0 ${size / 6}px 0 #0c1b29, 0 ${size / 4}px ${size / 3}px rgba(0,0,0,0.35)`,
   });
   return (
     <div className="flex flex-col items-center leading-none">
-      <div className="flex items-end font-black italic tracking-tight" style={{ fontSize: size }}>
-        <span style={style('#E5484D')}>POLSKI</span>
-        <span className="ml-2" style={style('#FFB627')}>GO</span>
-        <svg viewBox="0 0 30 20" style={{ width: size * 0.7, marginLeft: 4, marginBottom: size * 0.45 }} aria-hidden>
-          <path d="M2 2 Q15 -2 28 4 L28 18 Q15 12 2 16 Z" fill="#E5484D" stroke="#fff" strokeWidth="2" />
+      <div className="flex items-end font-black italic tracking-tight" style={{ fontSize: size, transform: 'rotate(-4deg)' }}>
+        <span style={style('#2A62C9', '#1B3F86')}>POLSKI</span>
+        <span className="ml-2" style={style('#FF4E5B', '#C92F42')}>GO</span>
+        <svg viewBox="0 0 30 20" style={{ width: size * 0.72, marginLeft: 4, marginBottom: size * 0.55 }} aria-hidden>
+          <path d="M2 2 Q15 -2 28 4 L28 18 Q15 12 2 16 Z" fill="#FF4E5B" stroke="#fff" strokeWidth="2.4" />
           <path d="M2 2 Q15 -2 28 4 L28 10 Q15 6 2 9 Z" fill="#fff" />
         </svg>
       </div>
       {slogan && (
-        <div className="mt-2 rounded-full bg-white/85 px-3 py-1 text-[13px] font-black text-ink shadow" style={{ fontStyle: 'normal' }}>
+        <div className="mt-3 rounded-full bg-white/90 px-3.5 py-1 text-[13px] font-black text-[#1E3346] shadow-lg" style={{ fontStyle: 'normal' }}>
           {slogan}
         </div>
       )}

@@ -334,6 +334,7 @@ export const pl: Dict = {
   diary_empty: 'Na razie pusto',
   achievements_title: 'Osiągnięcia',
   achievements_unlocked: '{n} z {total} odblokowanych',
+  ob_start_journey: "Zacznij podróż",
   lesson_resumed: "Kontynuujemy: zrobione {n} z {total}",
   lesson_skipped_ok: "Nic nie szkodzi, wrócimy do tego",
   shop_wearing: "Założone",

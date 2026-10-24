@@ -355,6 +355,7 @@ export const uk = {
 
   achievements_title: 'Досягнення',
   achievements_unlocked: '{n} з {total} відкрито',
+  ob_start_journey: "Почати подорож",
   lesson_resumed: "Продовжуємо урок: виконано {n} з {total}",
   lesson_skipped_ok: "Нічого, повернемось пізніше",
   shop_wearing: "Вдягнено",

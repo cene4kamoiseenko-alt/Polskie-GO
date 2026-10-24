@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { SplashScene } from '../components/Splash';
 import { Icon, type LineIconName } from '../components/Icon';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -76,6 +77,22 @@ export default function Onboarding() {
     }
   };
 
+  if (id === 'hello') {
+    return (
+      <SplashScene slogan={t('slogan')}>
+        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.45, type: 'spring' }} className="absolute bottom-[47%] left-[8%] z-10 w-[230px] rounded-3xl bg-white px-5 py-3 text-left text-[15px] font-bold text-[#1E3346] shadow-xl">
+          {t('ob_bubble')}
+          <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
+        </motion.div>
+        <div className="safe-bottom absolute inset-x-5 bottom-4 z-20">
+          <motion.button initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); nextStep(); }}>
+            {t('ob_start_journey')}
+          </motion.button>
+        </div>
+      </SplashScene>
+    );
+  }
+
   return (
     <div className="flex min-h-[100dvh] flex-col px-5 pb-6 pt-4">
       {step > 0 && (
@@ -88,23 +105,6 @@ export default function Onboarding() {
       )}
       <AnimatePresence mode="wait">
         <motion.div key={id} initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.22 }} className="flex flex-1 flex-col">
-          {id === 'hello' && (
-            <div className="relative -mx-5 -mt-4 flex flex-1 flex-col items-center overflow-hidden pt-8 text-center" style={{ background: 'linear-gradient(180deg, #7CC8F5 0%, #CDEBFF 55%, #FFF9F0 100%)' }}>
-              <Skyline className="absolute inset-x-0 bottom-0 w-full" height={260} sky={false} />
-              <div className="absolute inset-x-0 bottom-0 h-24" style={{ background: 'linear-gradient(180deg, transparent, var(--bg))' }} />
-              <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative">
-                <Logo size={50} slogan={t('slogan')} />
-              </motion.div>
-              <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.25, type: 'spring' }} className="relative mt-4 max-w-[270px] rounded-3xl bg-white px-5 py-3 text-left text-[15px] font-bold text-navy shadow-lg">
-                {t('ob_bubble')}
-                <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
-              </motion.div>
-              <div className="relative mt-1">
-                <Beaver mood="wave" size={210} outfit={{}} />
-              </div>
-            </div>
-          )}
-
           {id === 'lang' && (
             <div className="space-y-3">
               <Header mood="happy" title={t('ob_lang')} />
