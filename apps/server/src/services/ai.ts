@@ -20,7 +20,7 @@ export const AI_MODES = {
 } as const;
 export type AiMode = keyof typeof AI_MODES;
 
-export const ROLEPLAYS = ['cafe', 'doctor', 'urzad', 'interview', 'landlord', 'train'] as const;
+export const ROLEPLAYS = ['cafe', 'shop', 'interview', 'doctor', 'airport', 'landlord', 'meeting', 'work', 'urzad', 'train'] as const;
 
 const LANG_NAMES: Record<UiLang, string> = { uk: 'Ukrainian', ru: 'Russian', en: 'English', pl: 'Polish' };
 
@@ -30,6 +30,10 @@ const ROLEPLAY_SCENES: Record<(typeof ROLEPLAYS)[number], string> = {
   urzad: 'You are a clerk at the Urząd Wojewódzki in Lublin. The learner wants to apply for a residence card (karta pobytu).',
   interview: 'You are an HR manager at a logistics company in Poznań interviewing the learner for a warehouse job.',
   landlord: 'You are a landlady in Kraków showing the learner a flat for rent.',
+  shop: 'You are a shop assistant at a small grocery store (sklep spożywczy) in Gdańsk. The learner is buying food and asking about prices.',
+  airport: 'You are a check-in agent at Warsaw Chopin Airport. The learner is checking in for a flight and asking about luggage and the gate.',
+  meeting: 'You are a friendly Polish neighbour of the same age meeting the learner for the first time at a party in Łódź. Make small talk: names, origin, work, hobbies.',
+  work: 'You are the learner\'s new team leader at an office in Wrocław. Talk about tasks, schedule, meetings and ask polite workplace questions.',
   train: 'You are a ticket clerk at Wrocław Główny station. The learner wants to buy a train ticket to Gdańsk.',
 };
 
