@@ -99,6 +99,8 @@ export type SessionStart = {
   words: { id: string; pl: string; translations: I18n; pronunciation: string | null; emoji: string | null; audioUrl: string | null }[];
   items: PublicItem[];
   timeLimitSec: number | null;
+  /** Незавершений урок: уже виконані завдання. */
+  resume?: { done: string[] } | null;
 };
 
 export type AnswerResult = CheckResult & { explanation: I18n | null; retry: boolean; answered: number; total: number };

@@ -71,7 +71,7 @@ export const uk = {
   ob_map_title: 'Твоя подорож',
   ob_map_text: '20 міст Польщі — 20 глав. Кожне місто має уроки, квести, сувеніри та фінальний іспит. Склав іспит — отримав квиток далі!',
   ob_first_lesson: 'Перший урок у Варшаві',
-  ob_go: 'Поїхали! 🚀',
+  ob_go: 'Поїхали!',
 
   // Головна
   home_hello: 'Cześć, {name}!',
@@ -355,6 +355,8 @@ export const uk = {
 
   achievements_title: 'Досягнення',
   achievements_unlocked: '{n} з {total} відкрито',
+  lesson_resumed: "Продовжуємо урок: виконано {n} з {total}",
+  lesson_skipped_ok: "Нічого, повернемось пізніше",
   shop_wearing: "Вдягнено",
   learn_start_here: "Почни тут",
   map_skip: "Пропустити",

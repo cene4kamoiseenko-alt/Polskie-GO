@@ -32,6 +32,9 @@ type SessionRow = typeof learningSessions.$inferSelect;
 type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[] };
 type SessionState = { answers: Record<string, ItemState>; run: number };
 
+/** Детермінований порядок варіантів для сесії (той самий після продовження). */
+const sessionSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 17);
+
 const SESSION_TTL_MS = 3 * 60 * 60 * 1000;
 /** Мінімальний час на одну вправу — захист від автоматичного проходження. */
 const MIN_MS_PER_ITEM = 1000;
@@ -204,12 +207,38 @@ export async function startSession(userId: string, input: { lessonId?: string; m
     ]);
     items = lessonToItems(exRows);
     words = lw;
+
+    // Незавершений урок (у межах TTL сесії) продовжується з того самого завдання.
+    if (realMode === 'LESSON') {
+      const [prev] = await db
+        .select()
+        .from(learningSessions)
+        .where(and(eq(learningSessions.userId, userId), eq(learningSessions.status, 'ACTIVE'), eq(learningSessions.lessonId, lesson.id), eq(learningSessions.mode, 'LESSON')))
+        .orderBy(desc(learningSessions.startedAt))
+        .limit(1);
+      const st = prev?.state as unknown as SessionState | undefined;
+      const prevItems = prev?.items as ExerciseItem[] | undefined;
+      const done = prevItems?.filter((i) => st?.answers[i.key]?.done).map((i) => i.key) ?? [];
+      if (prev && prevItems && Date.now() - prev.startedAt.getTime() < SESSION_TTL_MS && done.length > 0 && done.length < prevItems.length) {
+        const prnd = seededRandom(sessionSeed(prev.id));
+        return {
+          sessionId: prev.id,
+          mode: realMode,
+          lesson: { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr },
+          words,
+          items: prevItems.map((i) => toPublicItem(i, prnd)),
+          timeLimitSec: null,
+          resume: { done },
+        };
+      }
+    }
   } else {
     items = await buildPracticeItems(userId, mode, seed, input.topic);
   }
   if (!items.length) throw badRequest('empty_session');
 
   const id = newId();
+  const prnd = seededRandom(sessionSeed(id));
   await atomic([
     // Не залишаємо «висячих» активних сесій того ж уроку.
     db
@@ -226,8 +255,9 @@ export async function startSession(userId: string, input: { lessonId?: string; m
       ? { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr }
       : null,
     words,
-    items: items.map((i) => toPublicItem(i, rnd)),
+    items: items.map((i) => toPublicItem(i, prnd)),
     timeLimitSec: realMode === 'SPEED' ? 90 : null,
+    resume: null as null | { done: string[] },
   };
 }
 

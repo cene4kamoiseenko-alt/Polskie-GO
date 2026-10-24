@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { Icon, type LineIconName } from '../components/Icon';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -23,7 +24,9 @@ const LEVELS: Cefr[] = ['A0', 'A1', 'A2', 'B1', 'B2'];
 /** Кольори бейджів рівнів CEFR. */
 export const LEVEL_COLORS: Record<string, string> = { A0: '#45C486', A1: '#3A7BD5', A2: '#9B6BFF', B1: '#F2994A', B2: '#E5484D' };
 const GOALS = ['life', 'work', 'study', 'exam', 'travel', 'fun'] as const;
-const GOAL_ICONS = { life: '🏠', work: '💼', study: '🎓', exam: '📝', travel: '✈️', fun: '😊' };
+const GOAL_ICONS: Record<(typeof GOALS)[number], [LineIconName, string]> = {
+  life: ['home', '#35C88A'], work: ['layers', '#55BDF4'], study: ['book', '#9568F5'], exam: ['trophy', '#F45159'], travel: ['map', '#FFBD42'], fun: ['star', '#FF8A3D'],
+};
 const TIMES = [5, 10, 15, 20] as const;
 const HOURS = [8, 12, 18, 20];
 
@@ -97,7 +100,7 @@ export default function Onboarding() {
                 <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
               </motion.div>
               <div className="relative mt-1">
-                <Beaver mood="travel" size={210} outfit={{}} />
+                <Beaver mood="wave" size={210} outfit={{}} />
               </div>
             </div>
           )}
@@ -138,7 +141,7 @@ export default function Onboarding() {
               <h2 className="text-2xl font-black">{t('ob_placement_q')}</h2>
               <p className="muted font-semibold">{t('ob_placement_text')}</p>
               <div className="w-full space-y-3">
-                <Option selected={placement} onClick={() => setPlacement(true)}>📝 {t('ob_placement_yes')}</Option>
+                <Option selected={placement} onClick={() => setPlacement(true)}>{t('ob_placement_yes')}</Option>
                 <Option selected={!placement} onClick={() => setPlacement(false)}>🧜‍♀️ {t('ob_placement_no')}</Option>
               </div>
             </div>
@@ -150,7 +153,7 @@ export default function Onboarding() {
               <div className="grid grid-cols-2 gap-3">
                 {GOALS.map((g) => (
                   <Option key={g} selected={goal === g} onClick={() => setGoal(g)}>
-                    <span className="text-2xl">{GOAL_ICONS[g]}</span>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: GOAL_ICONS[g][1] }}><Icon name={GOAL_ICONS[g][0]} size={22} /></span>
                     <span className="text-[15px] leading-tight">{t(`goal_${g}` as TKey)}</span>
                   </Option>
                 ))}
@@ -200,7 +203,7 @@ export default function Onboarding() {
       <div className="pt-5">
         {id === 'map' ? (
           <button className="btn btn-red w-full text-lg" disabled={busy} onClick={finish}>
-            {placement ? `📝 ${t('ob_placement_yes')}` : `${t('ob_go')} · ${t('ob_first_lesson')}`}
+            {placement ? t('ob_placement_yes') : t('ob_first_lesson')}
           </button>
         ) : (
           <button className={cx('btn w-full text-lg', step === 0 ? 'btn-red' : 'btn-primary')} onClick={() => { haptic.tap(); nextStep(); }}>

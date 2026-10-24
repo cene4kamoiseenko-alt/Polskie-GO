@@ -3,7 +3,7 @@ import { and, count, eq } from 'drizzle-orm';
 import { db } from '../src/db';
 import { cities, gameConfig, playerProgress, reviewSchedule, userAchievements, achievements } from '../src/db/schema';
 import { validateInitData, signInitData } from '../src/lib/telegram';
-import { disposeEnv, lessonId, login, playSession, request, sessionItems } from './helpers';
+import { correctAnswers, disposeEnv, lessonId, login, playSession, request, sessionItems } from './helpers';
 
 afterAll(disposeEnv);
 
@@ -61,6 +61,26 @@ describe('Уроки та нагороди', () => {
     expect((await call('POST', '/api/sessions', { lessonId: await lessonId('waw-2-uprzejmosc') })).status).toBe(403);
     expect((await call('POST', '/api/sessions', { lessonId: await lessonId('waw-boss') })).status).toBe(403);
     expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-1-rodzina') })).status).toBe(403);
+  });
+
+  it('незавершений урок продовжується з того самого завдання з тим самим порядком варіантів', async () => {
+    const { call } = await login();
+    const j = await call('GET', '/api/journey');
+    const first = j.body.cities[0].routes[0].lessons[0];
+    const s1 = await call('POST', '/api/sessions', { lessonId: first.id });
+    const items = await sessionItems(s1.body.sessionId);
+    for (const it of items.slice(0, 2)) for (const a of correctAnswers(it)) await call('POST', `/api/sessions/${s1.body.sessionId}/answer`, { key: it.key, answer: a });
+    const s2 = await call('POST', '/api/sessions', { lessonId: first.id });
+    expect(s2.body.sessionId).toBe(s1.body.sessionId);
+    expect(s2.body.resume.done).toEqual(items.slice(0, 2).map((i) => i.key));
+    expect(JSON.stringify(s2.body.items)).toBe(JSON.stringify(s1.body.items));
+    // Без жодної відповіді урок починається заново.
+    const other = j.body.cities[0].routes[0].lessons[0];
+    const { call: call2 } = await login();
+    const a = await call2('POST', '/api/sessions', { lessonId: other.id });
+    const b = await call2('POST', '/api/sessions', { lessonId: other.id });
+    expect(b.body.sessionId).not.toBe(a.body.sessionId);
+    expect(b.body.resume).toBeNull();
   });
 
   it('повний урок: XP і Złotki на сервері, слова, наступний урок відкрито', async () => {

@@ -263,8 +263,11 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
               className={cx('relative flex min-w-[62px] flex-1 flex-col items-center justify-center gap-1 transition-colors active:scale-95', active ? 'text-pl-red' : 'text-[#8A97A6]')}
               aria-current={active ? 'page' : undefined}
             >
-              <span className={cx('grid h-9 w-12 place-items-center rounded-2xl transition-colors', active && 'bg-[color-mix(in_srgb,var(--color-pl-red)_12%,transparent)]')}>
-                <Icon name={tab.icon} size={24} strokeWidth={active ? 2.4 : 2} />
+              <span className="relative grid h-9 w-12 place-items-center">
+                {active && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--color-pl-red)_12%,transparent)]" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
+                <motion.span className="relative" animate={{ scale: active ? 1.08 : 1, y: active ? -1 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 24 }}>
+                  <Icon name={tab.icon} size={24} strokeWidth={active ? 2.4 : 2} />
+                </motion.span>
               </span>
               <span className="text-[11px] font-extrabold leading-none">{t(tab.key)}</span>
               {!!badge?.[tab.to] && <span className="absolute right-[22%] top-2 h-2.5 w-2.5 rounded-full bg-pl-red ring-2 ring-[var(--bg-elev)]" />}

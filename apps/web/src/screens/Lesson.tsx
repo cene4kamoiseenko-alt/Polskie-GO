@@ -40,6 +40,7 @@ export default function LessonScreen() {
   const [quit, setQuit] = useState(false);
   const [finish, setFinish] = useState<FinishResult | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [resumed, setResumed] = useState(0);
   const started = useRef(false);
 
   useEffect(() => {
@@ -48,8 +49,17 @@ export default function LessonScreen() {
     api<SessionStart>('/sessions', { body: lessonId ? { lessonId } : { mode, topic } })
       .then((s) => {
         setSession(s);
-        setQueue(s.items.map((i) => i.key));
-        setPhase(s.lesson && (s.lesson.kind === 'LESSON' || s.lesson.kind === 'BOSS') ? 'intro' : 'play');
+        if (s.resume?.done.length) {
+          // Продовжуємо з першого невиконаного завдання, без повторного вступу.
+          const done = new Set(s.resume.done);
+          setQueue(s.items.map((i) => i.key).filter((k) => !done.has(k)));
+          setFirstDone(done.size);
+          setResumed(done.size);
+          setPhase('play');
+        } else {
+          setQueue(s.items.map((i) => i.key));
+          setPhase(s.lesson && (s.lesson.kind === 'LESSON' || s.lesson.kind === 'BOSS') ? 'intro' : 'play');
+        }
         if (s.timeLimitSec) setTimeLeft(s.timeLimitSec);
       })
       .catch((e) => {
@@ -61,7 +71,8 @@ export default function LessonScreen() {
   const items = useMemo(() => new Map(session?.items.map((i) => [i.key, i]) ?? []), [session]);
   const key = queue[pos];
   const item = key ? items.get(key) : undefined;
-  const isRetry = item ? pos >= (session?.items.length ?? 0) : false;
+  // Повторне коло помилок починається після початкової черги (при продовженні вона коротша).
+  const isRetry = item ? pos >= (session?.items.length ?? 0) - resumed : false;
   const speed = session?.mode === 'SPEED';
 
   // Озвучка поточного й наступного завдання завантажується заздалегідь.
@@ -254,6 +265,11 @@ export default function LessonScreen() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-48 pt-4">
+        {resumed > 0 && pos === 0 && !result && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-2 flex items-center justify-center gap-1.5 rounded-2xl bg-sky/15 px-3 py-1.5 text-sm font-black text-sky-dark">
+            <Icon name="play" size={14} /> {t('lesson_resumed', { n: resumed, total: session.items.length })}
+          </motion.div>
+        )}
         {isRetry && <div className="mb-2 text-center text-sm font-black text-coral"><Icon name="refresh" size={16} className="mr-1 inline" />{t('lesson_retry_round')}</div>}
         <AnimatePresence mode="wait">
           <motion.div key={`${item.key}-${pos}`} initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.2 }}>
@@ -288,7 +304,7 @@ export default function LessonScreen() {
                 <Beaver mood={result.correct ? 'cheer' : result.skipped ? 'think' : 'sad'} size={64} outfit={me?.outfit.wear} animate={false} />
                 <div className="min-w-0 flex-1">
                   <div className={cx('text-xl font-black', result.correct ? 'text-brand-dark' : 'text-coral-dark')}>
-                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? '🙂' : t('lesson_wrong')}
+                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? t('lesson_skipped_ok') : t('lesson_wrong')}
                     {result.correct && !result.retry && session.lesson && me?.rewards && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-[#5a3d00]">
                         +{me.rewards.exerciseXp} XP
