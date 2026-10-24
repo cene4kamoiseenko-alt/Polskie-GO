@@ -12,7 +12,8 @@ import { haptic } from '../lib/telegram';
 /** Позиція вузла на «звивистій стежці» уроків. */
 const OFFSETS = [0, 52, 76, 52, 0, -52, -76, -52];
 
-function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson; index: number; onClick: () => void; isNext: boolean }) {
+function LessonNode({ lesson, index, onClick, isNext, icon }: { lesson: JourneyLesson; index: number; onClick: () => void; isNext: boolean; icon: string }) {
+  const { tr } = useT();
   const boss = lesson.kind === 'BOSS';
   const locked = lesson.state === 'locked';
   const done = lesson.state === 'completed';
@@ -34,16 +35,19 @@ function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson;
         aria-label={lesson.slug}
       >
         {isNext && <motion.span className="absolute inset-[-8px] rounded-full border-4 border-brand" animate={{ opacity: [1, 0.2, 1] }} transition={{ repeat: Infinity, duration: 1.6 }} />}
-        <span style={{ filter: locked ? 'grayscale(1)' : undefined, opacity: locked ? 0.5 : 1 }}>{boss ? '🏆' : done ? '⭐' : locked ? '🔒' : '📘'}</span>
+        <span style={{ filter: locked ? 'grayscale(1)' : undefined, opacity: locked ? 0.5 : 1 }}>{boss ? '🏆' : locked ? '🔒' : icon}</span>
         {lesson.isPremium && <span className="absolute -right-1 -top-1 text-lg">👑</span>}
       </motion.button>
-      {done && (
-        <div className="mt-2 flex gap-0.5 text-sm">
-          {[1, 2, 3].map((s) => (
-            <span key={s} style={{ opacity: s <= lesson.stars ? 1 : 0.25 }}>⭐</span>
-          ))}
-        </div>
-      )}
+      <div className={cx('mt-2 max-w-[150px] rounded-xl px-2.5 py-1 text-center text-xs font-black leading-tight', locked ? 'muted' : 'bg-elev shadow-sm')}>
+        {tr(lesson.title)}
+        {done && (
+          <div className="mt-0.5 flex justify-center gap-0.5 text-[11px]">
+            {[1, 2, 3].map((s) => (
+              <span key={s} style={{ opacity: s <= lesson.stars ? 1 : 0.25 }}>⭐</span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -116,7 +120,7 @@ export default function LearnScreen() {
               const i = idx++;
               return (
                 <div key={l.id} ref={l.id === nextId ? nextRef : undefined}>
-                  <LessonNode lesson={l} index={i} isNext={l.id === nextId} onClick={() => { haptic.tap(); setPicked(l); }} />
+                  <LessonNode lesson={l} index={i} icon={r.icon} isNext={l.id === nextId} onClick={() => { haptic.tap(); setPicked(l); }} />
                 </div>
               );
             })}

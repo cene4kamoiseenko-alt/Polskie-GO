@@ -46,9 +46,11 @@ type Props = {
   onCityClick?: (c: JourneyCity) => void;
   compact?: boolean;
   travel?: { from: JourneyCity; to: JourneyCity } | null;
+  /** Підпис під поточним містом («Ти тут»). */
+  hereLabel?: string;
 };
 
-export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel }: Props) {
+export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel, hereLabel }: Props) {
   const reduce = useReducedMotion();
   const outline = useMemo(() => path(OUTLINE, true), []);
   const sorted = useMemo(() => [...cities].sort((a, b) => a.order - b.order), [cities]);
@@ -150,7 +152,7 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
               <motion.circle r={r} fill="none" stroke="#E5484D" strokeWidth="5" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} animate={{ scale: [1, 1.6], opacity: [0.8, 0] }} transition={{ repeat: Infinity, duration: 1.6 }} />
             )}
             <circle r={r + 4} fill="#fff" />
-            <circle r={r} fill={c.unlocked ? c.color : '#B9C3CB'} />
+            <circle r={r} fill={c.unlocked ? c.color : '#C9D3DA'} />
             <text textAnchor="middle" dominantBaseline="central" fontSize={compact ? 32 : 38} style={{ filter: c.unlocked ? undefined : 'grayscale(1)', opacity: c.unlocked ? 1 : 0.6 }}>
               {c.emoji}
             </text>
@@ -160,20 +162,25 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
                 <path d="M-6 0 L-1 5 L7 -5" stroke="#fff" strokeWidth="3.5" fill="none" strokeLinecap="round" />
               </g>
             )}
-            {!c.unlocked && (
-              <g transform={`translate(${r - 4} ${-r + 4})`}>
-                <circle r="12" fill="#5B6B78" stroke="#fff" strokeWidth="3" />
-                <text textAnchor="middle" dominantBaseline="central" fontSize="13">🔒</text>
-              </g>
-            )}
-            {!compact && (
-              <g transform={`translate(0 ${r + 26})`}>
-                <rect x={-c.namePl.length * 10 - 12} y="-20" width={c.namePl.length * 20 + 24} height="40" rx="20" fill={isCurrent ? '#E5484D' : 'var(--bg-elev)'} stroke="var(--border)" />
-                <text textAnchor="middle" dominantBaseline="central" fontSize="28" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#fff' : 'var(--text)'}>
-                  {c.namePl}
-                </text>
-              </g>
-            )}
+            {!compact && (() => {
+              // Підпис міста — «таблетка»; у закритих міст — замок, у поточного — червона з другим рядком.
+              const label = c.unlocked ? c.namePl : `🔒 ${c.namePl}`;
+              const w = label.length * 19 + 28;
+              const h = isCurrent && hereLabel ? 64 : 40;
+              return (
+                <g transform={`translate(0 ${r + 28})`}>
+                  <rect x={-w / 2} y="-20" width={w} height={h} rx="20" fill={isCurrent ? '#E5484D' : 'var(--bg-elev)'} stroke={isCurrent ? '#fff' : 'var(--border)'} strokeWidth="3" />
+                  <text textAnchor="middle" dominantBaseline="central" fontSize="28" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#fff' : c.unlocked ? 'var(--text)' : 'var(--text-muted)'}>
+                    {label}
+                  </text>
+                  {isCurrent && hereLabel && (
+                    <text y="26" textAnchor="middle" dominantBaseline="central" fontSize="20" fontWeight="800" fontFamily="Nunito" fill="#FFE3E3">
+                      {hereLabel}
+                    </text>
+                  )}
+                </g>
+              );
+            })()}
             {c.unlocked && !c.completed && !compact && c.hasContent && (
               <g transform={`translate(${-r + 2} ${-r + 2})`}>
                 <circle r="14" fill="#FFC857" stroke="#fff" strokeWidth="3" />

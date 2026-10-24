@@ -47,7 +47,8 @@ export const ORDER_TYPES: ExerciseType[] = ['BUILD_SENTENCE', 'WORD_ORDER'];
 export const DIALOGUE_TYPES: ExerciseType[] = ['DIALOGUE', 'SITUATION'];
 
 /** Варіант відповіді: польський рядок або переклад мовами інтерфейсу. */
-export type ChoiceOption = { id: string; text: string | I18n };
+/** image — емодзі або URL ілюстрації (варіант-картка з картинкою). */
+export type ChoiceOption = { id: string; text: string | I18n; image?: string };
 
 export type ChoiceData = {
   /** Питання/інструкція мовою інтерфейсу (необов'язково — є стандартна за типом). */

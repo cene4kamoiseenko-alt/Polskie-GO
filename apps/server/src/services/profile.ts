@@ -65,6 +65,7 @@ export async function getMe(userId: string) {
     outfit: look,
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
     ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay },
+    rewards: { exerciseXp: cfg.exerciseXp },
   };
 }
 

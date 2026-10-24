@@ -1,6 +1,6 @@
 /** Краків — A0→A1: сім'я і повсякденне життя. */
 import {
-  t, wordChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading,
+  t, wordChoice, pictureChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading,
   translate, grammar, dictation, build, wordOrder, match, speak, dialogue,
 } from './builders';
 import type { CityContent } from './types';
@@ -33,6 +33,7 @@ export const KRAKOW: CityContent = {
           words: ['rodzina', 'mama', 'tata', 'brat', 'siostra', 'syn', 'córka', 'babcia', 'dziadek'],
           exercises: [
             picture('vocab.family', '👵', ['babcia', 'mama', 'siostra']),
+            pictureChoice('vocab.family', 'dziadek', [['👴', t('дідусь', 'дедушка', 'grandpa')], ['👶', t('дитина', 'ребёнок', 'baby')], ['👩', t('мама', 'мама', 'mum')], ['👧', t('донька', 'дочь', 'daughter')]]),
             wordChoice('vocab.family', 'brat', [t('брат', 'брат', 'brother'), t('сестра', 'сестра', 'sister'), t('син', 'сын', 'son')]),
             wordChoice('vocab.family', 'córka', [t('донька', 'дочь', 'daughter'), t('бабуся', 'бабушка', 'grandma'), t('мама', 'мама', 'mum')]),
             match('vocab.family', [
@@ -131,6 +132,7 @@ export const KRAKOW: CityContent = {
             wordChoice('vocab.home', 'dywan', [t('килим', 'ковёр', 'carpet'), t('диван', 'диван', 'sofa'), t('двері', 'дверь', 'door')],
               t('**dywan** — килим! Не плутай з українським «диван».', '**dywan** — ковёр! Не путай с «диван».', '**dywan** means carpet!')),
             picture('vocab.home', '🐶', ['pies', 'kot', 'dom']),
+            pictureChoice('vocab.home', 'dom', [['🏠', t('будинок', 'дом', 'house')], ['🐱', t('кіт', 'кот', 'cat')], ['🚗', t('машина', 'машина', 'car')], ['🍞', t('хліб', 'хлеб', 'bread')]]),
             match('vocab.home', [
               ['kuchnia', t('кухня', 'кухня', 'kitchen')],
               ['łazienka', t('ванна кімната', 'ванная', 'bathroom')],

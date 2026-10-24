@@ -1,6 +1,6 @@
 /** Вроцлав — A1: покупки, кафе, ресторани. */
 import {
-  t, wordChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading,
+  t, wordChoice, pictureChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading,
   translate, grammar, dictation, build, wordOrder, match, speak, dialogue,
 } from './builders';
 import type { CityContent } from './types';
@@ -36,6 +36,7 @@ export const WROCLAW: CityContent = {
           exercises: [
             picture('vocab.cafe', '☕', ['kawa', 'herbata', 'woda']),
             picture('vocab.cafe', '🍰', ['ciasto', 'chleb', 'sok']),
+            pictureChoice('vocab.cafe', 'herbata', [['🍵', t('чай', 'чай', 'tea')], ['☕', t('кава', 'кофе', 'coffee')], ['🧃', t('сік', 'сок', 'juice')], ['💧', t('вода', 'вода', 'water')]]),
             wordChoice('vocab.cafe', 'herbata', [t('чай', 'чай', 'tea'), t('кава', 'кофе', 'coffee'), t('сік', 'сок', 'juice')]),
             fillGap('grammar.accusative', 'Poproszę ___.', ['kawę', 'kawa', 'kawy'], t('Каву, будь ласка.', 'Кофе, пожалуйста.', 'A coffee, please.'),
               t('Після **poproszę**: kawa → **kawę**.', 'После **poproszę**: kawa → **kawę**.', 'After **poproszę**: kawa → **kawę**.')),
@@ -87,6 +88,7 @@ export const WROCLAW: CityContent = {
           exercises: [
             picture('vocab.shopping', '🍞', ['chleb', 'ser', 'jabłko']),
             picture('vocab.shopping', '💳', ['karta', 'paragon', 'torba']),
+            pictureChoice('vocab.shopping', 'jabłko', [['🍎', t('яблуко', 'яблоко', 'apple')], ['🧀', t('сир', 'сыр', 'cheese')], ['🥐', t('булочка', 'булочка', 'bread roll')], ['🥛', t('молоко', 'молоко', 'milk')]]),
             wordChoice('vocab.shopping', 'sklep', [t('магазин', 'магазин', 'shop'), t('склеп', 'склеп', 'crypt'), t('склад', 'склад', 'warehouse')],
               t('Хибний друг: **sklep** — це магазин.', 'Ложный друг: **sklep** — это магазин.', 'False friend: **sklep** means shop.')),
             wordChoice('vocab.shopping', 'Ile kosztuje?', [t('Скільки коштує?', 'Сколько стоит?', 'How much is it?'), t('Котра година?', 'Который час?', 'What time is it?'), t('Де каса?', 'Где касса?', 'Where is the till?')]),

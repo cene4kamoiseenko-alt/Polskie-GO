@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
-import { useMe } from '../lib/queries';
-import { Beaver } from '../components/Beaver';
+import { useJourney, useMe, useShop } from '../lib/queries';
+import { Beaver, ITEM_ICONS } from '../components/Beaver';
+import { LEVEL_COLORS } from './Onboarding';
 import { XpChart } from '../components/XpChart';
 import { Card, EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
 import { rankFor, TopStats } from './Home';
@@ -28,6 +29,11 @@ export default function ProfileScreen() {
   const stats = useQuery({ queryKey: ['stats', range], queryFn: () => api<Stats>(`/me/stats?days=${range}`) });
   const ach = useQuery({ queryKey: ['achievements'], queryFn: () => api<Ach[]>('/achievements') });
   const name = me.profile.displayName || me.firstName;
+  const journey = useJourney();
+  const shop = useShop();
+  const citiesDone = journey.data?.cities.filter((c) => c.completed).length ?? 0;
+  const WEAR = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME'];
+  const wardrobe = (shop.data?.items ?? []).filter((i) => i.owned && WEAR.includes(i.slot)).sort((a, b) => Number(b.equipped) - Number(a.equipped));
 
   // Агрегуємо навички за групою (vocab.*, grammar.* …), показуємо найслабші першими.
   const skillGroups = Object.entries(
@@ -56,33 +62,38 @@ export default function ProfileScreen() {
         </div>
         <div className="min-w-0 flex-1 text-ink">
           <h1 className="truncate text-2xl font-black">{name}</h1>
-          {me.username && <div className="text-sm font-bold opacity-70">@{me.username}</div>}
-          <div className="text-sm font-black">{rankFor(me.progress.level)}</div>
-          {me.progress.currentCity && <div className="text-sm font-bold">{me.progress.currentCity.emoji} {me.progress.currentCity.namePl}</div>}
+          <div className="text-sm font-black">
+            {t('level')} {me.progress.level} · {rankFor(me.progress.level)}
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/70">
+              <div className="h-full rounded-full bg-brand" style={{ width: `${(me.progress.levelXp / me.progress.levelXpNeeded) * 100}%` }} />
+            </div>
+            <span className="text-[11px] font-black opacity-70">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
+          </div>
+          {me.progress.currentCity && <div className="mt-1 text-xs font-bold opacity-80">📍 {me.progress.currentCity.namePl}</div>}
         </div>
         <button onClick={() => nav('/settings')} className="self-start text-2xl" aria-label={t('profile_settings')}>⚙️</button>
       </div>
 
-      {/* Рівні */}
-      <div className="grid grid-cols-2 gap-3 px-4">
-        <Card className="p-3">
-          <div className="muted text-xs font-black uppercase">{t('profile_level')}</div>
-          <div className="text-3xl font-black">{me.progress.level}</div>
-          <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} color="var(--color-xp)" height={8} />
-        </Card>
-        <Card className="p-3" onClick={() => nav('/exams')}>
-          <div className="muted text-xs font-black uppercase">{t('profile_language')}</div>
-          <div className="text-3xl font-black text-pl-red">{me.progress.languageLevel}</div>
-          <div className="muted text-[11px] font-bold">{t('profile_language_note')} →</div>
-        </Card>
-      </div>
+      {/* Рівень польської */}
+      <Card className="mx-4 flex items-center gap-3 p-3" onClick={() => nav('/exams')}>
+        <span className="grid h-12 w-12 place-items-center rounded-xl text-lg font-black text-white" style={{ background: LEVEL_COLORS[me.progress.languageLevel] }}>
+          {me.progress.languageLevel}
+        </span>
+        <div className="flex-1">
+          <div className="font-black">{t('profile_language')}</div>
+          <div className="muted text-xs font-bold">{t('profile_language_note')}</div>
+        </div>
+        <span className="muted text-xl">›</span>
+      </Card>
 
       <div className="grid grid-cols-4 gap-2 px-4">
         {[
           ['🔥', me.progress.streak, t('profile_streak')],
-          ['⭐', me.progress.xpTotal, t('profile_xp_total')],
-          ['📖', me.progress.wordsLearned, t('profile_words')],
           ['📘', me.progress.lessonsCompleted, t('profile_lessons')],
+          ['⭐', me.progress.wordsLearned, t('profile_words')],
+          ['🏆', citiesDone, t('profile_cities')],
         ].map(([icon, v, l]) => (
           <Card key={String(l)} className="px-1 py-3 text-center">
             <div className="text-xl">{icon}</div>
@@ -91,6 +102,18 @@ export default function ProfileScreen() {
           </Card>
         ))}
       </div>
+
+      {/* Мій гардероб */}
+      <Section title={t('profile_my_wardrobe')} action={<button className="text-sm font-black text-sky-dark" onClick={() => nav('/shop')}>{t('home_see_all')} →</button>}>
+        <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+          {wardrobe.map((i) => (
+            <button key={i.id} onClick={() => nav('/shop')} className={cx('card grid h-20 w-20 shrink-0 place-items-center text-4xl', i.equipped && 'ring-4 ring-brand')}>
+              {ITEM_ICONS[i.assetKey] ?? '🎁'}
+            </button>
+          ))}
+          <button onClick={() => nav('/shop')} className="grid h-20 w-20 shrink-0 place-items-center rounded-[22px] border-2 border-dashed border-soft text-3xl muted">+</button>
+        </div>
+      </Section>
 
       {/* Бобер і швидкі переходи */}
       <div className="mx-4 flex items-center gap-3">

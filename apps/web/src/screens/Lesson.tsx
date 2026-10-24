@@ -271,6 +271,11 @@ export default function LessonScreen() {
                 <div className="min-w-0 flex-1">
                   <div className={cx('text-xl font-black', result.correct ? 'text-brand-dark' : 'text-coral-dark')}>
                     {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? '🙂' : t('lesson_wrong')}
+                    {result.correct && !result.retry && session.lesson && me?.rewards && (
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-[#5a3d00]">
+                        +{me.rewards.exerciseXp} XP
+                      </motion.span>
+                    )}
                   </div>
                   {caText && (
                     <div className="font-bold">

@@ -25,7 +25,7 @@ export type ExProps = {
   onDialogueDone: () => void;
 };
 
-type Opt = { id: string; text: string | I18n };
+type Opt = { id: string; text: string | I18n; image?: string };
 const d = <T,>(item: PublicItem) => item.data as unknown as T;
 
 export function instructionKey(item: PublicItem): TKey {
@@ -94,6 +94,45 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
               {tr(o.text)}
             </motion.button>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Варіанти-картки з ілюстраціями (сітка 2×2).
+  if (data.options.some((o) => o.image)) {
+    return (
+      <div className="space-y-5">
+        {data.pl && (
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-4xl font-black">{data.pl}</span>
+            <SpeakButton text={data.audioText ?? data.pl} url={data.audioUrl} />
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          {data.options.map((o, i) => {
+            const st = state(o.id);
+            return (
+              <motion.button
+                key={o.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.05 }}
+                whileTap={{ scale: 0.96 }}
+                data-state={st}
+                onClick={() => pick(o.id, o.text)}
+                className="option relative flex flex-col items-center gap-1 px-2 py-4"
+              >
+                {st === 'correct' && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-brand text-xs text-white">✓</span>}
+                {o.image!.startsWith('/') || o.image!.startsWith('http') ? (
+                  <img src={assetUrl(o.image!)} alt="" className="h-20 w-20 rounded-2xl object-cover" />
+                ) : (
+                  <span className="text-[64px] leading-none">{o.image}</span>
+                )}
+                <span className="text-center text-base">{tr(o.text)}</span>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
     );

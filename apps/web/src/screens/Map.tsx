@@ -64,7 +64,7 @@ export default function MapScreen() {
 
       <div className={cx('no-scrollbar mx-2 overflow-auto rounded-[28px]', zoom && 'h-[70vh]')}>
         <div style={{ width: zoom ? '180%' : '100%' }}>
-          <PolandMap cities={j.cities} currentCityId={j.currentCityId} travel={travel} onCityClick={(c) => { haptic.tap(); setSelected(c); }} />
+          <PolandMap cities={j.cities} currentCityId={j.currentCityId} travel={travel} hereLabel={t('map_you_are_here')} onCityClick={(c) => { haptic.tap(); setSelected(c); }} />
         </div>
       </div>
 

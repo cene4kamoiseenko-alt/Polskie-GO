@@ -33,6 +33,12 @@ export function reverseChoice(skill: string, translation: I18n, options: string[
   return { type: 'WORD_TRANSLATION', skill, data: { translation, options: opts, answer: 'o0' }, explanation };
 }
 
+/** Обери картинку для польського слова (сітка 2×2). options[0] — правильний: [емодзі, переклад]. */
+export function pictureChoice(skill: string, pl: string, options: [string, I18n][], explanation?: I18n): ExerciseSeed {
+  const opts = options.map(([image, text], i) => ({ id: `o${i}`, text, image }));
+  return { type: 'WORD_TRANSLATION', skill, data: { pl, audioText: pl, options: opts, answer: 'o0' }, explanation };
+}
+
 /** Встав пропущене слово. Речення містить ___. options[0] — правильний. */
 export function fillGap(skill: string, pl: string, options: string[], translation: I18n, explanation?: I18n): ExerciseSeed {
   const opts = options.map((text, i) => ({ id: `o${i}`, text }));

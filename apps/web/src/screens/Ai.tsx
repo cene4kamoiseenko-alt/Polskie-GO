@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useMe } from '../lib/queries';
-import { speak } from '../lib/audio';
+import { recognizePolish, speak, speechRecognitionAvailable } from '../lib/audio';
 import { Beaver } from '../components/Beaver';
 import { RichText, ScreenHeader, cx } from '../components/ui';
 
@@ -13,6 +13,13 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 const MODES = ['chat', 'check', 'explain', 'roleplay', 'exam'] as const;
 const PREMIUM_MODES = new Set(['roleplay', 'exam']);
 const SCENES = ['cafe', 'doctor', 'urzad', 'interview', 'landlord', 'train'] as const;
+const ACTIONS = [
+  { mode: 'chat', icon: '💬', color: '#3A7BD5' },
+  { mode: 'roleplay', icon: '🎭', color: '#9B6BFF' },
+  { mode: 'explain', icon: '📚', color: '#F2994A' },
+  { mode: 'check', icon: '✏️', color: '#E5484D' },
+  { mode: 'exam', icon: '🎓', color: '#45C486' },
+] as const;
 
 export default function AiScreen() {
   const { t } = useT();
@@ -27,6 +34,7 @@ export default function AiScreen() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -62,7 +70,7 @@ export default function AiScreen() {
   return (
     <div className="flex h-[100dvh] flex-col">
       <ScreenHeader title={t('ai_title')} subtitle={t('ai_limit', { used: me.ai.used, limit: me.ai.limit })} />
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2">
+      <div className={cx('no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2', msgs.length === 0 && 'hidden')}>
         {MODES.map((m) => (
           <button key={m} onClick={() => reset(m)} className={cx('chip shrink-0', mode === m && 'bg-pl-red text-white')}>
             {PREMIUM_MODES.has(m) && '👑 '}
@@ -85,6 +93,24 @@ export default function AiScreen() {
           <Beaver size={56} mood="wave" outfit={me.outfit.wear} animate={false} />
           <div className="card rounded-bl-md px-4 py-3 font-semibold">{t('ai_welcome')}</div>
         </div>
+        {msgs.length === 0 && (
+          <div className="space-y-2 pl-14">
+            {ACTIONS.map((a) => (
+              <motion.button
+                key={a.mode}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => reset(a.mode)}
+                className={cx('flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-black text-white shadow-[0_3px_0_rgba(0,0,0,0.15)]', mode === a.mode && 'ring-4 ring-white/70')}
+                style={{ background: a.color }}
+              >
+                <span className="text-xl">{a.icon}</span>
+                <span className="flex-1">{t(`ai_mode_${a.mode}` as TKey)}</span>
+                {PREMIUM_MODES.has(a.mode) && !me.premium.active && <span>👑</span>}
+                {mode === a.mode && <span>✓</span>}
+              </motion.button>
+            ))}
+          </div>
+        )}
         {msgs.map((m, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cx('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
             <div className={cx('max-w-[86%] rounded-2xl px-4 py-3 text-[15px] font-semibold', m.role === 'user' ? 'rounded-br-md bg-brand text-white' : 'card rounded-bl-md')}>
@@ -123,6 +149,26 @@ export default function AiScreen() {
             placeholder={t('ai_placeholder')}
             className="max-h-32 flex-1 resize-none rounded-2xl border-2 border-soft bg-[var(--bg)] px-4 py-3 font-semibold outline-none focus:border-sky"
           />
+          {speechRecognitionAvailable() && (
+            <button
+              className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-full text-xl text-white', listening ? 'animate-pulse bg-coral' : 'bg-sky')}
+              aria-label={t('ex_mic_start')}
+              disabled={listening}
+              onClick={async () => {
+                setListening(true);
+                try {
+                  const heard = await recognizePolish().promise;
+                  if (heard) setText((x) => (x ? `${x} ${heard}` : heard));
+                } catch {
+                  /* мікрофон недоступний */
+                } finally {
+                  setListening(false);
+                }
+              }}
+            >
+              🎤
+            </button>
+          )}
           <button className="btn btn-primary min-h-[48px] px-4" disabled={!text.trim() || busy} onClick={send} aria-label={t('ai_send')}>
             ➤
           </button>

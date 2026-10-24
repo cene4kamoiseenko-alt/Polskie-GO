@@ -102,7 +102,10 @@ export default function PremiumScreen() {
             {data.plans.map((p) => {
               const save = base && p.months > 1 ? Math.round((1 - p.priceStars / (base.priceStars * p.months)) * 100) : 0;
               return (
-                <button key={p.code} onClick={() => setPlan(p.code)} className={cx('card relative flex flex-col items-center gap-1 px-1 py-4', plan === p.code && 'ring-4 ring-pl-red')}>
+                <button key={p.code} onClick={() => setPlan(p.code)} className={cx('card relative flex flex-col items-center gap-1 px-1 pb-4 pt-6', plan === p.code && 'ring-4 ring-xp')}>
+                  <span className={cx('absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full border-2 text-[11px] font-black', plan === p.code ? 'border-brand bg-brand text-white' : 'border-soft')}>
+                    {plan === p.code ? '✓' : ''}
+                  </span>
                   {save > 0 && <span className="absolute -top-2 rounded-full bg-pl-red px-2 text-[11px] font-black text-white">-{save}%</span>}
                   <span className="text-sm font-black">{tr(p.title)}</span>
                   <span className="text-xl font-black">⭐ {p.priceStars}</span>
@@ -113,7 +116,8 @@ export default function PremiumScreen() {
             })}
           </div>
           <div className="px-4">
-            <button className="btn btn-red w-full text-lg" disabled={!data.paymentsConfigured || status === 'waiting'} onClick={buy}>
+            <button className="btn btn-xp w-full text-lg" disabled={!data.paymentsConfigured || status === 'waiting'} onClick={buy}>
+              👑{' '}
               {data.paymentsConfigured ? t('prem_buy', { n: data.plans.find((p) => p.code === plan)?.priceStars ?? '' }) : t('prem_not_configured')}
             </button>
             <p className="muted mt-2 text-center text-xs font-bold">{t('prem_stars_note')}</p>

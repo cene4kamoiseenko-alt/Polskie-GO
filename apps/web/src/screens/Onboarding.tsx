@@ -18,7 +18,9 @@ const LANGS: { code: UiLang; flag: string; name: string }[] = [
   { code: 'en', flag: '🇬🇧', name: 'English' },
   { code: 'pl', flag: '🇵🇱', name: 'Polski' },
 ];
-const LEVELS: Cefr[] = ['A0', 'A1', 'A2', 'B1'];
+const LEVELS: Cefr[] = ['A0', 'A1', 'A2', 'B1', 'B2'];
+/** Кольори бейджів рівнів CEFR. */
+export const LEVEL_COLORS: Record<string, string> = { A0: '#45C486', A1: '#3A7BD5', A2: '#9B6BFF', B1: '#F2994A', B2: '#E5484D' };
 const GOALS = ['life', 'work', 'study', 'exam', 'travel', 'fun'] as const;
 const GOAL_ICONS = { life: '🏠', work: '💼', study: '🎓', exam: '📝', travel: '✈️', fun: '😊' };
 const TIMES = [5, 10, 15, 20] as const;
@@ -88,9 +90,13 @@ export default function Onboarding() {
                 <span className="text-pl-red">POLSKI</span> <span className="text-xp">GO</span>
               </div>
               <div className="muted mb-4 mt-1 font-black">{t('slogan')}</div>
-              <Beaver mood="wave" size={190} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel', ACCESSORY: 'flag-pl' }} />
-              <h1 className="mt-4 text-2xl font-black">{t('ob_hello')}</h1>
-              <p className="muted mt-2 max-w-xs font-semibold">{t('ob_hello_text')}</p>
+              <div className="relative mt-2">
+                <Beaver mood="wave" size={190} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel', ACCESSORY: 'map-paper' }} />
+              </div>
+              <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: 'spring' }} className="relative mt-3 max-w-xs rounded-3xl bg-white px-5 py-4 text-left font-bold text-ink shadow-lg">
+                <div className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
+                {t('ob_bubble')}
+              </motion.div>
             </div>
           )}
 
@@ -109,17 +115,16 @@ export default function Onboarding() {
           {id === 'level' && (
             <div className="space-y-3">
               <Header mood="think" title={t('ob_level')} />
-              {LEVELS.map((lv, i) => (
+              {LEVELS.map((lv) => (
                 <Option key={lv} selected={level === lv} onClick={() => setLevel(lv)}>
-                  <span className="flex gap-0.5">
-                    {[0, 1, 2, 3].map((b) => (
-                      <span key={b} className={cx('h-5 w-1.5 rounded-full', b <= i ? 'bg-brand' : 'bg-muted')} />
-                    ))}
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-base font-black text-white" style={{ background: LEVEL_COLORS[lv] }}>
+                    {lv}
                   </span>
                   <span className="flex-1">
                     <span className="block">{t(`ob_level_${lv}` as TKey)}</span>
                     <span className="muted block text-sm font-semibold">{t(`ob_level_${lv}d` as TKey)}</span>
                   </span>
+                  {level === lv && <span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-sm text-white">✓</span>}
                 </Option>
               ))}
             </div>

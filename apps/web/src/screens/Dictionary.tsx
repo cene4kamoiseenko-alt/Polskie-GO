@@ -71,16 +71,23 @@ export default function DictionaryScreen() {
         <div className="space-y-2">
           {items.map((w) => (
             <Card key={w.id} className="flex items-center gap-3 px-3 py-2.5" onClick={() => setOpen(w)}>
-              <span className="text-2xl">{w.emoji ?? '📝'}</span>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-muted text-2xl">{w.emoji ?? '📝'}</span>
               <div className="min-w-0 flex-1">
                 <div className="font-black">
-                  {w.pl} <span className="muted text-xs">{w.cefr}</span>
+                  {w.pl} {w.mine?.status === 'LEARNED' && <span className="text-brand">✓</span>}
                 </div>
-                <div className="muted truncate text-sm font-bold">{tr(w.translations)}</div>
+                <div className="muted text-[11px] font-bold">{t(`pos_${w.pos}` as TKey)} · {w.cefr}</div>
+                <div className="truncate text-sm font-bold">{tr(w.translations)}</div>
               </div>
-              {w.mine?.favorite && <span>⭐</span>}
-              {w.mine?.status === 'LEARNED' && <span className="text-brand">✓</span>}
               <SpeakButton text={w.pl} url={w.audioUrl} size="sm" />
+              <button
+                onClick={(e) => { e.stopPropagation(); void toggleFav(w); }}
+                className="grid h-9 w-9 place-items-center text-2xl"
+                aria-label={t('dict_filter_favorites')}
+                style={{ color: w.mine?.favorite ? '#FFC857' : 'var(--border)' }}
+              >
+                ★
+              </button>
             </Card>
           ))}
         </div>

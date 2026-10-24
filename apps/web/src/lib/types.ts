@@ -44,6 +44,8 @@ export type Me = {
   outfit: Outfit;
   counters: { dueReviews: number; mistakes: number; unseenAchievements: number };
   ai: { used: number; limit: number };
+  /** Може бути відсутнім, якщо сервер старіший за клієнт. */
+  rewards?: { exerciseXp: number };
 };
 
 export type LessonState = 'locked' | 'available' | 'completed';
