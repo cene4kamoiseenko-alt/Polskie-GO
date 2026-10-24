@@ -1,0 +1,17 @@
+{
+  "name": "polski-go",
+  "private": true,
+  "version": "0.1.0",
+  "description": "POLSKI GO — Telegram Mini App для вивчення польської мови через гру",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "npm run dev -w @polski-go/server & npm run dev -w @polski-go/web & npm run dev -w @polski-go/admin & wait",
+    "build": "npm run build -w @polski-go/web && npm run build -w @polski-go/admin && npm run build -w @polski-go/server",
+    "test": "npm run test -w @polski-go/shared && npm run test -w @polski-go/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:migrate": "npm run db:migrate -w @polski-go/server",
+    "db:seed": "npm run db:seed -w @polski-go/server",
+    "e2e": "node scripts/e2e.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@polski-go/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "build": "tsup src/index.ts --format esm --target node20 --out-dir dist --clean --no-splitting --external @prisma/client",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
+    "db:backup": "node scripts/backup.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@fastify/cors": "11.3.1",
+    "@fastify/multipart": "9.4.0",
+    "@fastify/rate-limit": "10.3.0",
+    "@fastify/static": "8.3.0",
+    "@polski-go/shared": "0.1.0",
+    "@prisma/client": "6.19.3",
+    "fastify": "5.12.7",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "prisma": "6.19.3",
+    "tsup": "8.5.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

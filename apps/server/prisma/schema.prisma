@@ -1,0 +1,861 @@
+// POLSKI GO — схема бази даних.
+// Таблиці названі в snake_case (@@map), моделі — у PascalCase.
+// Усі нагороди, прогрес і покупки зберігаються лише сервером.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Cefr {
+  A0
+  A1
+  A2
+  B1
+  B2
+}
+
+enum ContentStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LessonKind {
+  LESSON
+  BOSS
+  EXAM
+  PLACEMENT
+}
+
+enum SessionMode {
+  LESSON
+  REVIEW
+  MISTAKES
+  FIVE_MIN
+  SPEED
+  EXAM
+  PLACEMENT
+}
+
+enum SessionStatus {
+  ACTIVE
+  FINISHED
+  ABANDONED
+}
+
+enum VocabStatus {
+  NEW
+  LEARNING
+  LEARNED
+}
+
+enum QuestKind {
+  DAILY
+  WEEKLY
+  STORY
+  EVENT
+}
+
+enum QuestStatus {
+  ACTIVE
+  COMPLETED
+  CLAIMED
+}
+
+enum ItemSlot {
+  HAT
+  GLASSES
+  SCARF
+  JACKET
+  BACKPACK
+  SHOES
+  ACCESSORY
+  COSTUME
+  FURNITURE
+  DECOR
+  SOUVENIR
+  FRAME
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum AdminRole {
+  SUPERADMIN
+  EDITOR
+  SUPPORT
+}
+
+// ───────────────────────── Користувачі ─────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  telegramId   BigInt    @unique @map("telegram_id")
+  username     String?
+  firstName    String    @default("") @map("first_name")
+  lastName     String?   @map("last_name")
+  photoUrl     String?   @map("photo_url")
+  languageCode String?   @map("language_code")
+  referralCode String    @unique @map("referral_code")
+  referredById String?   @map("referred_by_id")
+  isBanned     Boolean   @default(false) @map("is_banned")
+  banReason    String?   @map("ban_reason")
+  onboardedAt  DateTime? @map("onboarded_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastSeenAt   DateTime  @default(now()) @map("last_seen_at")
+
+  referredBy     User?                @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals      User[]               @relation("Referrals")
+  settings       UserSettings?
+  profile        UserProfile?
+  progress       PlayerProgress?
+  wallet         GameWallet?
+  skills         LanguageSkill[]
+  attempts       ExerciseAttempt[]
+  vocabulary     UserVocabulary[]
+  reviews        ReviewSchedule[]
+  quests         UserQuest[]
+  achievements   UserAchievement[]
+  inventory      UserInventory[]
+  transactions   WalletTransaction[]
+  xpEvents       XpEvent[]
+  leaderboard    LeaderboardEntry[]
+  sentFriends    Friendship[]         @relation("FriendRequester")
+  gotFriends     Friendship[]         @relation("FriendAddressee")
+  subscriptions  Subscription[]
+  payments       PaymentEvent[]
+  aiConversations AiConversation[]
+  sessions       LearningSession[]
+  lessonProgress UserLessonProgress[]
+  cities         UserCity[]
+  dailyActivity  DailyActivity[]
+
+  @@index([createdAt])
+  @@index([lastSeenAt])
+  @@map("users")
+}
+
+model UserSettings {
+  userId               String   @id @map("user_id")
+  uiLanguage           String   @default("uk") @map("ui_language")
+  theme                String   @default("auto")
+  timezone             String   @default("Europe/Warsaw")
+  learningGoal         String?  @map("learning_goal")
+  dailyGoalMinutes     Int      @default(10) @map("daily_goal_minutes")
+  reminderHour         Int?     @map("reminder_hour")
+  notificationsEnabled Boolean  @default(false) @map("notifications_enabled")
+  soundEnabled         Boolean  @default(true) @map("sound_enabled")
+  reducedMotion        Boolean  @default(false) @map("reduced_motion")
+  publicProfile        Boolean  @default(true) @map("public_profile")
+  showInLeaderboard    Boolean  @default(true) @map("show_in_leaderboard")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model UserProfile {
+  userId      String   @id @map("user_id")
+  displayName String?  @map("display_name")
+  bio         String?
+  beaverName  String   @default("Bobek") @map("beaver_name")
+  /// Самооцінка рівня під час онбордингу (не підтверджений рівень).
+  selfLevel   Cefr?    @map("self_level")
+  /// Результат вхідного тесту (рекомендація, не сертифікація).
+  placementLevel Cefr? @map("placement_level")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model PlayerProgress {
+  userId           String   @id @map("user_id")
+  xpTotal          Int      @default(0) @map("xp_total")
+  playerLevel      Int      @default(1) @map("player_level")
+  /// Підтверджений рівень польської (тільки через іспити/фінальні випробування).
+  languageLevel    Cefr     @default(A0) @map("language_level")
+  currentCityId    String?  @map("current_city_id")
+  streakCurrent    Int      @default(0) @map("streak_current")
+  streakBest       Int      @default(0) @map("streak_best")
+  lastActiveDay    String?  @map("last_active_day")
+  lessonsCompleted Int      @default(0) @map("lessons_completed")
+  perfectLessons   Int      @default(0) @map("perfect_lessons")
+  wordsLearned     Int      @default(0) @map("words_learned")
+  exercisesCorrect Int      @default(0) @map("exercises_correct")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentCity City? @relation(fields: [currentCityId], references: [id], onDelete: SetNull)
+
+  @@index([xpTotal])
+  @@map("player_progress")
+}
+
+model LanguageSkill {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  skill     String
+  mastery   Int      @default(0)
+  attempts  Int      @default(0)
+  correct   Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skill])
+  @@map("language_skills")
+}
+
+/// Агрегат активності за день — для графіків прогресу та щоденної мети.
+model DailyActivity {
+  userId    String @map("user_id")
+  day       String
+  xp        Int    @default(0)
+  lessons   Int    @default(0)
+  exercises Int    @default(0)
+  correct   Int    @default(0)
+  newWords  Int    @default(0) @map("new_words")
+  reviews   Int    @default(0)
+  seconds   Int    @default(0)
+  practiceXp Int   @default(0) @map("practice_xp")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+  @@map("daily_activity")
+}
+
+// ───────────────────────── Контент: карта, міста, уроки ─────────────────────────
+
+model City {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  order       Int           @unique
+  namePl      String        @map("name_pl")
+  name        Json
+  theme       Json
+  description Json
+  cefr        Cefr
+  mapX        Float         @map("map_x")
+  mapY        Float         @map("map_y")
+  emoji       String        @default("🏙️")
+  color       String        @default("#45C486")
+  /// Скільки уроків треба пройти, щоб отримати квиток до наступного міста.
+  ticketLessons Int         @default(0) @map("ticket_lessons")
+  status      ContentStatus @default(DRAFT)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  routes    CityRoute[]
+  progress  PlayerProgress[]
+  visitors  UserCity[]
+  quests    Quest[]
+  items     CosmeticItem[]
+
+  @@map("cities")
+}
+
+model CityRoute {
+  id          String        @id @default(cuid())
+  cityId      String        @map("city_id")
+  slug        String        @unique
+  order       Int
+  title       Json
+  description Json
+  icon        String        @default("📘")
+  status      ContentStatus @default(DRAFT)
+
+  city    City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([cityId, order])
+  @@map("city_routes")
+}
+
+model Lesson {
+  id          String        @id @default(cuid())
+  routeId     String?       @map("route_id")
+  slug        String        @unique
+  order       Int           @default(0)
+  kind        LessonKind    @default(LESSON)
+  title       Json
+  topic       Json
+  cefr        Cefr          @default(A0)
+  difficulty  Int           @default(1)
+  /// Коротке пояснення граматики/теми перед вправами.
+  explanation Json
+  /// Приклади: [{pl, tr: I18n}]
+  examples    Json          @default("[]")
+  isPremium   Boolean       @default(false) @map("is_premium")
+  status      ContentStatus @default(DRAFT)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  route     CityRoute?           @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  exercises Exercise[]
+  words     LessonWord[]
+  progress  UserLessonProgress[]
+  sessions  LearningSession[]
+
+  @@index([routeId, order])
+  @@map("lessons")
+}
+
+model LessonWord {
+  lessonId String @map("lesson_id")
+  entryId  String @map("entry_id")
+  order    Int    @default(0)
+
+  lesson Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  entry  VocabularyEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@id([lessonId, entryId])
+  @@map("lesson_words")
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  lessonId    String   @map("lesson_id")
+  order       Int
+  type        String
+  skill       String
+  /// Дані вправи, включно з правильною відповіддю. Ніколи не надсилаються клієнту повністю.
+  data        Json
+  explanation Json?
+  audioUrl    String?  @map("audio_url")
+  imageUrl    String?  @map("image_url")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  lesson   Lesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  attempts ExerciseAttempt[]
+
+  @@unique([lessonId, order])
+  @@map("exercises")
+}
+
+model ExerciseAttempt {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  sessionId  String   @map("session_id")
+  exerciseId String?  @map("exercise_id")
+  itemKey    String   @map("item_key")
+  type       String
+  skill      String
+  answer     Json
+  isCorrect  Boolean  @map("is_correct")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session  LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, isCorrect])
+  @@index([exerciseId, isCorrect])
+  @@map("exercise_attempts")
+}
+
+model UserLessonProgress {
+  userId      String   @map("user_id")
+  lessonId    String   @map("lesson_id")
+  completions Int      @default(0)
+  bestScore   Int      @default(0) @map("best_score")
+  stars       Int      @default(0)
+  firstCompletedAt DateTime? @map("first_completed_at")
+  lastCompletedAt  DateTime? @map("last_completed_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@map("user_lesson_progress")
+}
+
+model UserCity {
+  userId      String    @map("user_id")
+  cityId      String    @map("city_id")
+  unlockedAt  DateTime  @default(now()) @map("unlocked_at")
+  completedAt DateTime? @map("completed_at")
+  bossPassedAt DateTime? @map("boss_passed_at")
+  /// journey — відкрито квитком; placement — відкрито за вхідним тестом (усі уроки доступні)
+  source      String    @default("journey")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city City @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@id([userId, cityId])
+  @@map("user_cities")
+}
+
+model LearningSession {
+  id         String        @id @default(cuid())
+  userId     String        @map("user_id")
+  lessonId   String?       @map("lesson_id")
+  mode       SessionMode
+  status     SessionStatus @default(ACTIVE)
+  /// Знімок вправ сесії з відповідями (серверний).
+  items      Json
+  /// Стан проходження: відповіді, кроки діалогів.
+  state      Json          @default("{}")
+  correct    Int           @default(0)
+  total      Int           @default(0)
+  xpAwarded  Int           @default(0) @map("xp_awarded")
+  zlotkiAwarded Int        @default(0) @map("zlotki_awarded")
+  startedAt  DateTime      @default(now()) @map("started_at")
+  finishedAt DateTime?     @map("finished_at")
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson   Lesson?           @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  attempts ExerciseAttempt[]
+
+  @@index([userId, startedAt])
+  @@index([userId, lessonId, finishedAt])
+  @@map("learning_sessions")
+}
+
+// ───────────────────────── Словник ─────────────────────────
+
+model VocabularyEntry {
+  id            String   @id @default(cuid())
+  pl            String
+  pos           String
+  translations  Json
+  pronunciation String?
+  /// Граматичні форми: {"gen":"kota", ...}
+  forms         Json     @default("{}")
+  /// Приклади: [{pl, tr: I18n}]
+  examples      Json     @default("[]")
+  cefr          Cefr     @default(A0)
+  topics        String[]
+  emoji         String?
+  audioUrl      String?  @map("audio_url")
+  imageUrl      String?  @map("image_url")
+  status        ContentStatus @default(PUBLISHED)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  lessons LessonWord[]
+  users   UserVocabulary[]
+
+  @@unique([pl, pos])
+  @@index([cefr])
+  @@map("vocabulary_entries")
+}
+
+model UserVocabulary {
+  userId     String      @map("user_id")
+  entryId    String      @map("entry_id")
+  status     VocabStatus @default(NEW)
+  favorite   Boolean     @default(false)
+  timesSeen  Int         @default(0) @map("times_seen")
+  timesCorrect Int       @default(0) @map("times_correct")
+  timesWrong Int         @default(0) @map("times_wrong")
+  addedAt    DateTime    @default(now()) @map("added_at")
+  lastSeenAt DateTime?   @map("last_seen_at")
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entry VocabularyEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@id([userId, entryId])
+  @@index([userId, status])
+  @@map("user_vocabulary")
+}
+
+model ReviewSchedule {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  /// WORD — слово словника, EXERCISE — вправа з помилкою
+  itemType     String   @map("item_type")
+  itemId       String   @map("item_id")
+  ease         Float    @default(2.5)
+  intervalDays Int      @default(0) @map("interval_days")
+  repetitions  Int      @default(0)
+  lapses       Int      @default(0)
+  dueAt        DateTime @map("due_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId, dueAt])
+  @@map("review_schedule")
+}
+
+// ───────────────────────── Квести та досягнення ─────────────────────────
+
+model Quest {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  kind        QuestKind
+  title       Json
+  description Json
+  /// Метрика прогресу: LESSONS, XP, NEW_WORDS, REVIEWS, PERFECT_STREAK, DIALOGUES, LISTENING, CITY_COMPLETED, STORY
+  metric      String
+  target      Int       @default(1)
+  xpReward    Int       @default(0) @map("xp_reward")
+  zlotkiReward Int      @default(0) @map("zlotki_reward")
+  rewardItemId String?  @map("reward_item_id")
+  cityId      String?   @map("city_id")
+  icon        String    @default("⭐")
+  isPremium   Boolean   @default(false) @map("is_premium")
+  status      ContentStatus @default(PUBLISHED)
+  order       Int       @default(0)
+
+  city  City?        @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  steps QuestStep[]
+  users UserQuest[]
+
+  @@map("quests")
+}
+
+model QuestStep {
+  id      String @id @default(cuid())
+  questId String @map("quest_id")
+  order   Int
+  /// Граф сцени: {nodes: {id: {speaker, pl, tr, choices:[{pl, tr, next, ok, feedback}]}}, start}
+  data    Json
+
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, order])
+  @@map("quest_steps")
+}
+
+model UserQuest {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  questId     String      @map("quest_id")
+  /// Період: день (2026-10-24), тиждень (2026-W43) або "story".
+  periodKey   String      @map("period_key")
+  progress    Int         @default(0)
+  status      QuestStatus @default(ACTIVE)
+  state       Json        @default("{}")
+  completedAt DateTime?   @map("completed_at")
+  claimedAt   DateTime?   @map("claimed_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, periodKey])
+  @@index([userId, periodKey])
+  @@map("user_quests")
+}
+
+model Achievement {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  title        Json
+  description  Json
+  icon         String
+  /// Метрика: LESSONS, STREAK, WORDS, XP, PERFECT_LESSONS, CITIES, PURCHASES, FRIENDS, STORY_QUESTS
+  metric       String
+  threshold    Int
+  zlotkiReward Int     @default(0) @map("zlotki_reward")
+  rewardItemId String? @map("reward_item_id")
+  order        Int     @default(0)
+  isActive     Boolean @default(true) @map("is_active")
+
+  users UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+  seen          Boolean  @default(false)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ───────────────────────── Гардероб, домик, гаманець ─────────────────────────
+
+model CosmeticItem {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  slot        ItemSlot
+  name        Json
+  description Json?
+  /// Ключ ассета для рендеру на бобрі/в домику.
+  assetKey    String   @map("asset_key")
+  price       Int      @default(0)
+  rarity      String   @default("common")
+  isPremium   Boolean  @default(false) @map("is_premium")
+  /// Не продається — лише нагорода (досягнення, квест, місто).
+  rewardOnly  Boolean  @default(false) @map("reward_only")
+  cityId      String?  @map("city_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  order       Int      @default(0)
+
+  city  City?           @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  owners UserInventory[]
+
+  @@map("cosmetic_items")
+}
+
+model UserInventory {
+  userId     String   @map("user_id")
+  itemId     String   @map("item_id")
+  equipped   Boolean  @default(false)
+  source     String   @default("shop")
+  acquiredAt DateTime @default(now()) @map("acquired_at")
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item CosmeticItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@map("user_inventory")
+}
+
+model GameWallet {
+  userId    String   @id @map("user_id")
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("game_wallets")
+}
+
+model WalletTransaction {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  amount         Int
+  reason         String
+  /// Ключ ідемпотентності: одна нагорода за подію нараховується один раз.
+  idempotencyKey String   @unique @map("idempotency_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("wallet_transactions")
+}
+
+/// Журнал нарахувань XP (з ключем ідемпотентності).
+model XpEvent {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  amount         Int
+  reason         String
+  idempotencyKey String   @unique @map("idempotency_key")
+  day            String
+  week           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, day])
+  @@index([week])
+  @@map("xp_events")
+}
+
+// ───────────────────────── Соціальне ─────────────────────────
+
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String           @map("requester_id")
+  addresseeId String           @map("addressee_id")
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  requester User @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+  @@map("friendships")
+}
+
+/// Тижневі ліги: XP за тиждень.
+model LeaderboardEntry {
+  userId    String   @map("user_id")
+  periodKey String   @map("period_key")
+  league    String   @default("bronze")
+  xp        Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, periodKey])
+  @@index([periodKey, xp])
+  @@map("leaderboards")
+}
+
+// ───────────────────────── Монетизація ─────────────────────────
+
+model SubscriptionPlan {
+  code       String   @id
+  months     Int
+  priceStars Int      @map("price_stars")
+  /// true — щомісячна підписка Telegram Stars з автопродовженням.
+  recurring  Boolean  @default(false)
+  title      Json
+  isActive   Boolean  @default(true) @map("is_active")
+  order      Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String             @map("user_id")
+  planCode           String             @map("plan_code")
+  status             SubscriptionStatus @default(ACTIVE)
+  startsAt           DateTime           @map("starts_at")
+  expiresAt          DateTime           @map("expires_at")
+  isRecurring        Boolean            @default(false) @map("is_recurring")
+  telegramChargeId   String?            @unique @map("telegram_charge_id")
+  cancelledAt        DateTime?          @map("cancelled_at")
+  grantedByAdminId   String?            @map("granted_by_admin_id")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("subscriptions")
+}
+
+/// Журнал платіжних подій. Унікальний charge id захищає від повторної обробки.
+model PaymentEvent {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  type      String
+  planCode  String?  @map("plan_code")
+  amount    Int?
+  currency  String?
+  chargeId  String?  @unique @map("charge_id")
+  payload   String?
+  raw       Json?
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@map("payment_events")
+}
+
+// ───────────────────────── AI ─────────────────────────
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  mode      String   @default("chat")
+  title     String?
+  messages  Json     @default("[]")
+  tokensIn  Int      @default(0) @map("tokens_in")
+  tokensOut Int      @default(0) @map("tokens_out")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("ai_conversations")
+}
+
+/// Лічильник AI-запитів за день (ліміти та контроль витрат).
+model AiUsage {
+  userId    String @map("user_id")
+  day       String
+  requests  Int    @default(0)
+  tokensIn  Int    @default(0) @map("tokens_in")
+  tokensOut Int    @default(0) @map("tokens_out")
+
+  @@id([userId, day])
+  @@map("ai_usage")
+}
+
+// ───────────────────────── Адміністрування ─────────────────────────
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         AdminRole @default(EDITOR)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastLoginAt  DateTime? @map("last_login_at")
+
+  logs AdminAuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String?  @map("admin_id")
+  action     String
+  entity     String
+  entityId   String?  @map("entity_id")
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  admin AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("admin_audit_logs")
+}
+
+/// Налаштування гри, що редагуються в адмінці (нагороди, ліміти).
+model GameConfig {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("game_config")
+}
+
+model NotificationCampaign {
+  id        String   @id @default(cuid())
+  kind      String
+  title     String
+  message   Json
+  status    String   @default("DRAFT")
+  sentCount Int      @default(0) @map("sent_count")
+  scheduledAt DateTime? @map("scheduled_at")
+  sentAt    DateTime? @map("sent_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notification_campaigns")
+}
+
+/// Журнал надісланих нагадувань (не частіше одного на день).
+model NotificationLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  kind      String
+  day       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, kind, day])
+  @@map("notification_log")
+}
