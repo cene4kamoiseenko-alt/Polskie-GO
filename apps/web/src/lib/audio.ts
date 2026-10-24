@@ -1,36 +1,171 @@
-import { assetUrl } from './api';
-/** Озвучування польською (Web Speech API), звукові ефекти та розпізнавання мовлення. */
+import { useSyncExternalStore } from 'react';
+import { pickPolishVoice, speechText } from '@polski-go/shared';
+import { apiBlob, assetUrl } from './api';
+
+/**
+ * Польська озвучка.
+ * Порядок джерел: записаний аудіофайл → серверний синтез pl-PL (кеш) → польський голос пристрою.
+ * Голос іншої мови не використовується ніколи: без польського голосу показується зрозумілий стан.
+ * Нове відтворення завжди зупиняє попереднє — черги з накладених голосів не буває.
+ */
 let enabled = true;
 export function setSoundEnabled(v: boolean) {
   enabled = v;
 }
 
-let plVoice: SpeechSynthesisVoice | null = null;
-function pickVoice() {
-  if (!('speechSynthesis' in window)) return;
-  const voices = speechSynthesis.getVoices();
-  plVoice = voices.find((v) => v.lang?.toLowerCase().startsWith('pl')) ?? null;
+let serverTts = false;
+export function configureAudio(opts: { server: boolean }) {
+  serverTts = opts.server;
 }
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  pickVoice();
-  speechSynthesis.onvoiceschanged = pickVoice;
+
+export type SpeechStatus = 'idle' | 'loading' | 'playing' | 'error';
+export type SpeechIssue = 'no_polish_voice' | 'network' | 'blocked' | null;
+type State = { key: string | null; status: SpeechStatus; issue: SpeechIssue };
+
+let state: State = { key: null, status: 'idle', issue: null };
+const listeners = new Set<() => void>();
+function set(next: State) {
+  state = next;
+  listeners.forEach((l) => l());
+}
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
+
+/** Стан озвучування конкретного тексту (для кнопки: завантаження, відтворення, помилка). */
+export function useSpeechState(text: string, slow = false): { status: SpeechStatus; issue: SpeechIssue } {
+  const k = keyOf(text, slow);
+  const snap = useSyncExternalStore(subscribe, () => state);
+  return snap.key === k ? { status: snap.status, issue: snap.issue } : { status: 'idle', issue: null };
+}
+
+const keyOf = (text: string, slow: boolean) => `${slow ? 's' : 'n'}|${speechText(text)}`;
+
+// Один спільний <audio>: «розблоковується» першим дотиком (iOS/Telegram дозволяють потім програвати з коду).
+const el: HTMLAudioElement | null = typeof Audio !== 'undefined' ? new Audio() : null;
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+if (el && typeof document !== 'undefined') {
+  el.preload = 'auto';
+  const unlock = () => {
+    if (el.src) return;
+    el.src = SILENT;
+    void el.play().catch(() => {});
+  };
+  document.addEventListener('pointerdown', unlock, { once: true, capture: true });
+}
+
+const blobCache = new Map<string, string>();
+async function serverAudio(text: string, slow: boolean): Promise<string> {
+  const k = keyOf(text, slow);
+  const hit = blobCache.get(k);
+  if (hit) return hit;
+  const blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}`);
+  const url = URL.createObjectURL(blob);
+  blobCache.set(k, url);
+  if (blobCache.size > 300) {
+    const [first] = blobCache.keys();
+    URL.revokeObjectURL(blobCache.get(first)!);
+    blobCache.delete(first);
+  }
+  return url;
+}
+
+function playElement(src: string, rate: number, onStart: () => void): Promise<void> {
+  if (!el) return Promise.reject(new Error('no_audio'));
+  return new Promise((resolve, reject) => {
+    let playing = false;
+    el.onended = () => resolve();
+    // Пауза рахується лише після початку саме цього відтворення (зміна src теж генерує pause).
+    el.onpause = () => playing && resolve();
+    el.onerror = () => reject(new Error('playback'));
+    el.onplaying = () => {
+      playing = true;
+      onStart();
+    };
+    el.src = src;
+    el.playbackRate = rate;
+    (el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true;
+    el.play().catch((e: Error) => reject(e.name === 'NotAllowedError' ? new Error('blocked') : e));
+  });
 }
 
 export const ttsAvailable = () => typeof window !== 'undefined' && 'speechSynthesis' in window;
 
-/** Озвучити польський текст. Якщо є записаний аудіофайл — використовується він. */
-export function speak(text: string, opts: { url?: string; slow?: boolean } = {}) {
-  if (opts.url) {
-    void new Audio(assetUrl(opts.url)).play().catch(() => speak(text, { slow: opts.slow }));
-    return;
+/** Голоси пристрою завантажуються асинхронно — чекаємо подію voiceschanged (до 1,5 с). */
+function deviceVoices(): Promise<SpeechSynthesisVoice[]> {
+  if (!ttsAvailable()) return Promise.resolve([]);
+  const now = speechSynthesis.getVoices();
+  if (now.length) return Promise.resolve(now);
+  return new Promise((resolve) => {
+    const done = () => resolve(speechSynthesis.getVoices());
+    speechSynthesis.addEventListener('voiceschanged', done, { once: true });
+    setTimeout(done, 1500);
+  });
+}
+
+/** Польський голос пристрою (або null) — для діагностики в налаштуваннях. */
+export async function devicePolishVoice() {
+  return pickPolishVoice(await deviceVoices());
+}
+
+async function speakDevice(text: string, slow: boolean, onStart: () => void): Promise<void> {
+  const voice = pickPolishVoice(await deviceVoices());
+  if (!voice) throw new Error('no_polish_voice');
+  return new Promise((resolve, reject) => {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(speechText(text));
+    u.voice = voice;
+    u.lang = voice.lang;
+    u.rate = slow ? 0.7 : 0.95;
+    u.onstart = onStart;
+    u.onend = () => resolve();
+    u.onerror = (e) => (e.error === 'interrupted' || e.error === 'canceled' ? resolve() : reject(new Error('playback')));
+    speechSynthesis.speak(u);
+  });
+}
+
+let seq = 0;
+
+export function stopSpeech() {
+  seq++;
+  if (ttsAvailable()) speechSynthesis.cancel();
+  if (el && !el.paused) el.pause();
+  if (state.status !== 'idle') set({ key: null, status: 'idle', issue: null });
+}
+
+/** Озвучити польський текст. Повторне натискання перезапускає, а не ставить у чергу. */
+export async function speak(text: string, opts: { url?: string | null; slow?: boolean } = {}): Promise<void> {
+  const slow = !!opts.slow;
+  const k = keyOf(text, slow);
+  if (!speechText(text)) return;
+  stopSpeech();
+  const my = ++seq;
+  const mine = () => my === seq;
+  set({ key: k, status: 'loading', issue: null });
+  const started = () => mine() && set({ key: k, status: 'playing', issue: null });
+  try {
+    if (opts.url) {
+      await playElement(assetUrl(opts.url), slow ? 0.8 : 1, started);
+    } else if (serverTts) {
+      let src: string | null = null;
+      try {
+        src = await serverAudio(text, slow);
+      } catch {
+        src = null;
+      }
+      if (!mine()) return;
+      if (src) await playElement(src, 1, started);
+      else await speakDevice(text, slow, started).catch((e: Error) => Promise.reject(e.message === 'no_polish_voice' ? new Error('network') : e));
+    } else {
+      await speakDevice(text, slow, started);
+    }
+    if (mine()) set({ key: null, status: 'idle', issue: null });
+  } catch (e) {
+    if (!mine()) return;
+    const msg = (e as Error).message;
+    set({ key: k, status: 'error', issue: msg === 'no_polish_voice' ? 'no_polish_voice' : msg === 'blocked' ? 'blocked' : 'network' });
   }
-  if (!ttsAvailable()) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'pl-PL';
-  if (plVoice) u.voice = plVoice;
-  u.rate = opts.slow ? 0.6 : 0.9;
-  speechSynthesis.speak(u);
 }
 
 let ctx: AudioContext | null = null;

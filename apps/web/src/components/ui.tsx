@@ -1,9 +1,10 @@
 /** Базові компоненти дизайн-системи. */
 import { AnimatePresence, motion } from 'framer-motion';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { tg, haptic } from '../lib/telegram';
+import { speak, useSpeechState } from '../lib/audio';
 import { Beaver } from './Beaver';
 import { GameIcon, type IconName } from './GameIcon';
 
@@ -306,22 +307,71 @@ export function RichText({ text, className }: { text: string; className?: string
   );
 }
 
-export function SpeakButton({ text, url, size = 'md' }: { text: string; url?: string | null; size?: 'sm' | 'md' | 'lg' }) {
-  const dims = size === 'lg' ? 'h-16 w-16 text-3xl' : size === 'sm' ? 'h-8 w-8 text-sm' : 'h-11 w-11 text-xl';
+/** Кнопка польської озвучки: стан завантаження, відтворення та помилки; slow — сповільнено. */
+export function SpeakButton({ text, url, size = 'md', slow = false }: { text: string; url?: string | null; size?: 'sm' | 'md' | 'lg'; slow?: boolean }) {
+  const { t } = useT();
+  const toast = useToast();
+  const { status, issue } = useSpeechState(text, slow);
+  const lastIssue = useRef<string | null>(null);
+  useEffect(() => {
+    if (status !== 'error' || !issue || lastIssue.current === issue) return;
+    lastIssue.current = issue;
+    toast(t(issue === 'no_polish_voice' ? 'audio_no_voice' : issue === 'blocked' ? 'audio_blocked' : 'audio_error'), '🔇');
+  }, [status, issue, toast, t]);
+  const dims = size === 'lg' ? 'h-16 w-16' : size === 'sm' ? 'h-9 w-9' : 'h-11 w-11';
+  const icon = size === 'lg' ? 30 : size === 'sm' ? 16 : 22;
   return (
-    <motion.button
-      whileTap={{ scale: 0.9 }}
-      onClick={async (e) => {
+    <button
+      onClick={(e) => {
         e.stopPropagation();
         haptic.tap();
-        const { speak } = await import('../lib/audio');
-        speak(text, { url: url ?? undefined });
+        void speak(text, { url: url ?? undefined, slow });
       }}
-      className={cx('grid shrink-0 place-items-center rounded-2xl bg-sky text-white shadow-[0_3px_0_var(--color-sky-dark)]', dims)}
-      aria-label="listen"
+      className={cx(
+        'relative grid shrink-0 place-items-center rounded-2xl text-white transition-transform active:scale-90',
+        status === 'error' ? 'bg-[#B9C1CB] shadow-[0_3px_0_#8D97A3]' : slow ? 'bg-elev text-sky-dark shadow-[0_3px_0_var(--border)]' : 'bg-sky shadow-[0_3px_0_var(--color-sky-dark)]',
+        dims,
+      )}
+      aria-label={slow ? t('ex_slow') : t('audio_listen')}
+      aria-busy={status === 'loading'}
     >
-      🔊
-    </motion.button>
+      {status === 'loading' ? (
+        <span className="h-1/2 w-1/2 animate-spin rounded-full border-[3px] border-current border-t-transparent" />
+      ) : slow ? (
+        <SlowIcon size={icon} />
+      ) : (
+        <SpeakerIcon size={icon} playing={status === 'playing'} muted={status === 'error'} />
+      )}
+    </button>
+  );
+}
+
+function SpeakerIcon({ size, playing, muted }: { size: number; playing: boolean; muted: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" />
+      {muted ? (
+        <path d="M16 9.5l5 5m0-5l-5 5" />
+      ) : (
+        <>
+          <path d="M15.5 9a4 4 0 010 6" className={playing ? 'animate-pulse' : ''} />
+          <path d="M18.5 6.5a7.5 7.5 0 010 11" className={playing ? 'animate-pulse' : ''} />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function SlowIcon({ size }: { size: number }) {
+  // Черепаха — сповільнене відтворення.
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M4 15c0-4 3.2-7 7.5-7S19 11 19 15H4z" />
+      <path d="M19 13.5c1.6 0 3-.6 3-2s-1.2-2-2.2-2c-1 0-1.3 1-1.3 1.6" />
+      <rect x="5.5" y="15" width="2.6" height="3" rx="1" />
+      <rect x="14.5" y="15" width="2.6" height="3" rx="1" />
+      <path d="M9 10.5l2.5 2 2.5-2" stroke="#fff" strokeWidth="1.3" fill="none" opacity=".6" />
+    </svg>
   );
 }
 

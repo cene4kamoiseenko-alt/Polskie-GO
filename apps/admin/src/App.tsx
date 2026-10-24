@@ -74,6 +74,39 @@ function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: st
   );
 }
 
+/** Попередній синтез польської озвучки для всього контенту (частинами). */
+function WarmAudio() {
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    let offset = 0;
+    let made = 0;
+    try {
+      for (;;) {
+        const r: any = await api('/tts/warm', { body: { offset } });
+        made += r.synthesized;
+        setMsg(`Озвучено ${r.next} з ${r.total} фраз (нових записів: ${made})${r.failed.length ? `, помилки: ${r.failed.length}` : ''}`);
+        if (r.done) break;
+        offset = r.next;
+      }
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="panel flex flex-wrap items-center gap-3 p-4">
+      <div className="flex-1">
+        <div className="font-bold">Польська озвучка контенту</div>
+        <div className="text-sm text-slate-500">{msg || 'Синтезує й кешує всі слова та фрази (звичайна і сповільнена швидкість). Потрібен ключ Google TTS або Azure Speech.'}</div>
+      </div>
+      <button className="btn-p" disabled={busy} onClick={run}>{busy ? 'Озвучую…' : 'Озвучити весь контент'}</button>
+    </div>
+  );
+}
+
 function Dashboard() {
   const { data, error } = useLoad(() => api('/dashboard'), []);
   if (error) return <p className="text-rose-600">{error}</p>;
@@ -82,6 +115,7 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-black">Огляд</h1>
+      <WarmAudio />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Користувачів" value={data.users} sub={`+${data.new7} за 7 днів`} />
         <Stat label="Активні (24 год / 7 дн)" value={`${data.active1} / ${data.active7}`} />

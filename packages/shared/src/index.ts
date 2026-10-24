@@ -5,3 +5,4 @@ export * from './answers';
 export * from './srs';
 export * from './dates';
 export * from './progression';
+export * from './speech';

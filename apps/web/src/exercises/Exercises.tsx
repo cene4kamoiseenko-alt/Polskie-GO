@@ -155,9 +155,7 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
       {item.type === 'LISTENING' && data.audioText && (
         <div className="flex justify-center gap-3">
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" />
-          <button className="grid h-16 w-16 place-items-center rounded-2xl bg-elev text-2xl shadow" onClick={() => speak(data.audioText!, { slow: true })} aria-label="slow">
-            🐢
-          </button>
+          <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
         </div>
       )}
       {item.type === 'READING' && data.passage && (
@@ -251,9 +249,7 @@ function TextExercise({ item, result, onChange }: ExProps) {
       {item.type === 'DICTATION' && data.audioText && (
         <div className="flex justify-center gap-3">
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" />
-          <button className="grid h-16 w-16 place-items-center rounded-2xl bg-elev text-2xl shadow" onClick={() => speak(data.audioText!, { slow: true })} aria-label={t('ex_slow')}>
-            🐢
-          </button>
+          <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
         </div>
       )}
       <textarea

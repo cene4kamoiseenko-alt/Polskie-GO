@@ -4,7 +4,7 @@ import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { I18nProvider, guessLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
 import { useMe } from './lib/queries';
-import { setSoundEnabled } from './lib/audio';
+import { configureAudio, setSoundEnabled } from './lib/audio';
 import { ApiError } from './lib/api';
 import { BottomNav, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
@@ -72,7 +72,8 @@ export function App() {
   useTheme(me.data?.settings.theme);
   useEffect(() => {
     setSoundEnabled(me.data?.settings.soundEnabled ?? true);
-  }, [me.data?.settings.soundEnabled]);
+    configureAudio({ server: !!me.data?.audio?.server });
+  }, [me.data?.settings.soundEnabled, me.data?.audio?.server]);
 
   // Глибокі посилання: startapp=lesson_<id>, story_<slug>, premium
   useEffect(() => {

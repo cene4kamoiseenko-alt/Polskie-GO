@@ -58,6 +58,19 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
   return body as T;
 }
 
+/** Бінарна відповідь API (аудіо) з авторизацією. */
+export async function apiBlob(path: string): Promise<Blob> {
+  await ensureAuth();
+  let res = await fetch(`${API_BASE}/api${path}`, { headers: { authorization: `Bearer ${token}` } });
+  if (res.status === 401) {
+    authPromise = null;
+    await ensureAuth();
+    res = await fetch(`${API_BASE}/api${path}`, { headers: { authorization: `Bearer ${token}` } });
+  }
+  if (!res.ok) throw new ApiError(res.status, 'blob_failed');
+  return res.blob();
+}
+
 export async function downloadExport() {
   await ensureAuth();
   const res = await fetch(`${API_BASE}/api/me/export`, { headers: { authorization: `Bearer ${token}` } });

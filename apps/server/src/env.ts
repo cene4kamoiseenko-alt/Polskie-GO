@@ -20,6 +20,12 @@ export type Bindings = {
   AI_MONTHLY_OUTPUT_TOKENS?: string;
   INIT_DATA_MAX_AGE?: string;
   ADMIN_EMAIL?: string;
+  /** Серверна озвучка: Google Cloud Text-to-Speech (ключ API) або Azure Speech. */
+  GOOGLE_TTS_API_KEY?: string;
+  GOOGLE_TTS_VOICE?: string;
+  AZURE_SPEECH_KEY?: string;
+  AZURE_SPEECH_REGION?: string;
+  AZURE_SPEECH_VOICE?: string;
   ADMIN_PASSWORD?: string;
 };
 

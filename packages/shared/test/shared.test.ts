@@ -149,3 +149,33 @@ describe('прогресія', () => {
     expect(lessonReward({ cfg, correct: 2, total: 10, firstCompletion: true, replaysToday: 0, passed: false }).xp).toBe(0);
   });
 });
+
+import { pickPolishVoice, speechText } from '../src/speech';
+
+describe('Польська озвучка', () => {
+  it('зберігає діакритику (NFC) і прибирає пропуски', () => {
+    const decomposed = 'dziękuję'; // ę як e + огонек
+    expect(speechText(decomposed)).toBe('dziękuję');
+    expect(speechText('To  jest ___ kot')).toBe('To jest … kot');
+    for (const w of ['siedem', 'dziękuję', 'moja', 'są', 'byłem', 'cześć', 'dzień dobry', 'przepraszam', 'proszę', 'dziewięć', 'dziesięć', 'Wrocław']) {
+      expect(speechText(w)).toBe(w);
+    }
+  });
+
+  it('обирає лише польський голос, кращий — pl-PL нейронний', () => {
+    const voices = [
+      { lang: 'en-US', name: 'Google US English', default: true },
+      { lang: 'ru-RU', name: 'Milena' },
+      { lang: 'pl-PL', name: 'Zosia' },
+      { lang: 'pl-PL', name: 'Microsoft Zofia Online (Natural) - Polish' },
+    ];
+    expect(pickPolishVoice(voices)?.name).toBe('Microsoft Zofia Online (Natural) - Polish');
+    expect(pickPolishVoice([{ lang: 'pl_PL', name: 'x' }])?.name).toBe('x');
+  });
+
+  it('без польського голосу — null, а не англійський/російський голос', () => {
+    expect(pickPolishVoice([{ lang: 'en-US', name: 'Alex', default: true }, { lang: 'ru-RU', name: 'Yuri' }])).toBeNull();
+    expect(pickPolishVoice([{ lang: 'pt-BR', name: 'Luciana' }])).toBeNull();
+    expect(pickPolishVoice([])).toBeNull();
+  });
+});

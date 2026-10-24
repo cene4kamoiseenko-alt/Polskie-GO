@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { UiLang } from '@polski-go/shared';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
@@ -7,7 +7,27 @@ import { tg } from '../lib/telegram';
 import { useMe, useUpdateSettings } from '../lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Me } from '../lib/types';
-import { Card, Modal, ScreenHeader, Toggle, cx, useToast } from '../components/ui';
+import { Card, Modal, ScreenHeader, SpeakButton, Toggle, cx, useToast } from '../components/ui';
+import { devicePolishVoice } from '../lib/audio';
+
+/** Звідки береться польська озвучка на цьому пристрої + перевірка на слух. */
+function AudioDiagnostics({ server }: { server: boolean }) {
+  const { t } = useT();
+  const [voice, setVoice] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    void devicePolishVoice().then((v) => setVoice(v ? `${v.name} (${v.lang})` : null));
+  }, []);
+  const label = server ? t('audio_source_server') : voice ? t('audio_source_device', { name: voice }) : voice === null ? t('audio_source_none') : '…';
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="font-bold">{t('audio_source')}</div>
+        <div className={cx('text-xs font-semibold', !server && voice === null ? 'text-coral-dark' : 'muted')}>{label}</div>
+      </div>
+      <SpeakButton text="Dzień dobry! Dziękuję, do widzenia." size="sm" />
+    </div>
+  );
+}
 
 const LANGS: [UiLang, string][] = [['uk', '🇺🇦 Українська'], ['ru', '🌐 Русский'], ['en', '🇬🇧 English'], ['pl', '🇵🇱 Polski']];
 
@@ -69,6 +89,7 @@ export default function SettingsScreen() {
           </div>
         )}
         <Toggle label={`🔊 ${t('set_sound')}`} checked={s.soundEnabled} onChange={(v) => set({ soundEnabled: v })} />
+        <AudioDiagnostics server={!!me.audio?.server} />
         <Toggle label={`🐢 ${t('set_motion')}`} checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />
       </Card>
       <Card className="divide-y divide-[var(--border)] px-4">

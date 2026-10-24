@@ -670,6 +670,18 @@ export const uploads = sqliteTable('uploads', {
   createdAt: createdAt(),
 });
 
+/** Кеш серверного синтезу польського мовлення: кожна фраза синтезується один раз. */
+export const ttsCache = sqliteTable('tts_cache', {
+  /** sha256(провайдер|голос|швидкість|текст) */
+  key: text('key').primaryKey(),
+  text: text('text').notNull(),
+  voice: text('voice').notNull(),
+  rate: text('rate').notNull(),
+  mime: text('mime').notNull(),
+  data: blob('data', { mode: 'buffer' }).notNull(),
+  createdAt: createdAt(),
+});
+
 /** Журнал надісланих нагадувань (не частіше одного на день). */
 export const notificationLog = sqliteTable(
   'notification_log',

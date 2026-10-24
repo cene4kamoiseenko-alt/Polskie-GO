@@ -17,6 +17,7 @@ import { HttpError, badRequest, notFound } from '../lib/errors';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signToken } from '../lib/token';
 import { invalidateRewards } from '../services/gameConfig';
+import { contentPhrases, synthesize, ttsConfigured } from '../services/tts';
 
 const i18n = z.object({ uk: z.string().min(1), ru: z.string().optional(), en: z.string().optional(), pl: z.string().optional() });
 const status = z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
@@ -466,6 +467,28 @@ a.post('/upload', async (c) => {
   await db.insert(t.uploads).values({ name, type: file.type, data: Buffer.from(await file.arrayBuffer()) });
   await audit(c, 'upload', 'asset', name, { original: file.name, type: file.type });
   return c.json({ url: `/uploads/${name}` });
+});
+
+// ── Попередній синтез озвучки всього контенту (частинами — ліміт підзапитів Worker) ──
+a.post('/tts/warm', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  if (!ttsConfigured()) throw badRequest('tts_not_configured', 'Додайте GOOGLE_TTS_API_KEY або AZURE_SPEECH_KEY + AZURE_SPEECH_REGION');
+  const { offset } = z.object({ offset: z.number().int().min(0).default(0) }).parse(await body(c));
+  const phrases = await contentPhrases();
+  const chunk = phrases.slice(offset, offset + 12);
+  let synthesized = 0;
+  const failed: string[] = [];
+  for (const text of chunk) {
+    for (const rate of ['normal', 'slow'] as const) {
+      try {
+        if (!(await synthesize(text, rate)).cached) synthesized++;
+      } catch {
+        failed.push(text);
+      }
+    }
+  }
+  const next = offset + chunk.length;
+  return c.json({ total: phrases.length, next, done: next >= phrases.length, synthesized, failed });
 });
 
 // ── Розсилки: надсилаються частинами за розкладом (cron) ──
