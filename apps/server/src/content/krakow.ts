@@ -7,6 +7,7 @@ import type { CityContent } from './types';
 import { KRK_DWORZEC } from './krakow-dworzec';
 import { KRK_ZABKA } from './krakow-zabka';
 import { KRK_RYNEK } from './krakow-rynek';
+import { KRK_RESTAURACJA } from './krakow-restauracja';
 
 const KASIA = { name: 'Kasia', emoji: '👩🏻‍🦰', role: t('подруга з Кракова', 'подруга из Кракова', 'a friend from Kraków') };
 
@@ -16,6 +17,7 @@ export const KRAKOW: CityContent = {
     KRK_DWORZEC,
     KRK_ZABKA,
     KRK_RYNEK,
+    KRK_RESTAURACJA,
     {
       slug: 'krk-rodzina',
       title: t('Сім\'я', 'Семья', 'Family'),
