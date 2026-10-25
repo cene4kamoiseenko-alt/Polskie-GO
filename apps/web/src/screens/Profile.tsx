@@ -84,7 +84,7 @@ export default function ProfileScreen() {
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[24px] font-black leading-tight text-white drop-shadow">{name}</h1>
-            <div className="truncate text-[14px] font-black text-[#cfe0f2]">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rankFor(me.progress.level)}</span></div>
+            <div className="text-[14px] font-black leading-tight text-[#cfe0f2]">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rankFor(me.progress.level)}</span></div>
             <div className="mt-1.5 flex items-center gap-2">
               <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={9} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
               <span className="shrink-0 text-[11px] font-black text-white">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
@@ -248,9 +248,13 @@ export default function ProfileScreen() {
               return (
                 <div key={s.id} className="flex items-center gap-2">
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white shadow-[inset_0_-2px_0_rgb(0_0_0/0.2)]" style={{ background: s.color }}><Icon name={s.icon} size={15} /></span>
-                  <span className="w-[88px] shrink-0 truncate text-[12px] font-black">{t(s.key)}</span>
-                  <Progress value={v} height={9} color={s.color} />
-                  <span className="w-7 shrink-0 text-right text-[12.5px] font-black">{v}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="text-[12.5px] font-black leading-tight">{t(s.key)}</span>
+                      <span className="shrink-0 text-[12.5px] font-black">{v}</span>
+                    </span>
+                    <span className="mt-1 block"><Progress value={v} height={7} color={s.color} /></span>
+                  </span>
                 </div>
               );
             })}
@@ -275,7 +279,7 @@ export default function ProfileScreen() {
                     <Icon name={kind === 'hist_lesson' ? 'book' : kind === 'hist_test' ? 'layers' : 'refresh'} size={20} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-black">{h.lesson ? tr(h.lesson.title) : t(kind as TKey)}</span>
+                    <span className="block line-clamp-2 text-[14px] font-black leading-tight">{h.lesson ? tr(h.lesson.title) : t(kind as TKey)}</span>
                     <span className="muted block text-[11px] font-bold">{t(kind as TKey)} · {date(h.finishedAt)}</span>
                   </span>
                   <span className="text-[14px] font-black">{h.correct}/{h.total}</span>

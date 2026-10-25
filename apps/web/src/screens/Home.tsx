@@ -15,7 +15,7 @@ import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { MissionCard, missionsQuery } from './Missions';
+import { MissionCard, missionsQuery } from '../components/MissionCard';
 import { Badge, Item } from '../components/Illustrations';
 
 export const RANKS: [number, string][] = [

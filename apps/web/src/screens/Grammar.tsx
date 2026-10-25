@@ -81,8 +81,8 @@ export default function GrammarScreen() {
           >
             <TopicArt topic={topic} />
             <div className="min-w-0 flex-1">
-              <div className="truncate font-black">{topic.title}</div>
-              <div className="muted truncate text-xs font-bold">{tr(topic.subtitle)}</div>
+              <div className="line-clamp-2 font-black leading-tight">{topic.title}</div>
+              <div className="muted line-clamp-2 text-xs font-bold leading-tight">{tr(topic.subtitle)}</div>
               <div className="mt-1.5 flex items-center gap-2">
                 <Progress value={topic.mastery} height={7} color={topic.state === 'mastered' ? 'var(--color-xp)' : topic.color} />
                 <span className="text-[11px] font-black">{topic.mastery}%</span>

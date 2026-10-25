@@ -253,7 +253,7 @@ export const WARSZAWA: CityContent = {
     {
       slug: 'waw-egzamin',
       title: t('Іспит Варшави', 'Экзамен Варшавы', 'Warsaw exam'),
-      description: t('Фінальне випробування: пройди, щоб отримати квиток до Кракова', 'Финальное испытание: пройди, чтобы получить билет в Краков', 'Final challenge: pass it to get a ticket to Kraków'),
+      description: t('Фінальне випробування: пройди, щоб отримати квиток до Лодзі', 'Финальное испытание: пройди, чтобы получить билет в Лодзь', 'Final challenge: pass it to get a ticket to Łódź'),
       icon: '🏆',
       lessons: [
         {

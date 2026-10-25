@@ -128,7 +128,7 @@ export default function LearnScreen() {
               <span className="text-[22px] font-black text-white">{city.namePl}</span>
               <span className="rounded-lg px-1.5 py-0.5 text-[11px] font-black text-white" style={{ background: city.color }}>{city.cefr}</span>
             </div>
-            <div className="max-w-[220px] truncate text-xs font-bold text-[#cfe0f2]">{tr(city.theme)}</div>
+            <div className="line-clamp-2 max-w-[240px] text-xs font-bold leading-tight text-[#cfe0f2]">{tr(city.theme)}</div>
           </div>
           <div className="glass-card absolute inset-x-3 bottom-3 flex items-center gap-2 px-3 py-2">
             <Progress value={city.progress} height={9} color="linear-gradient(90deg,#FFC857,#FFE38A)" />
@@ -146,8 +146,8 @@ export default function LearnScreen() {
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-black uppercase tracking-wide text-sky">{t('learn_location_n', { n: ri + 1 })}</div>
-              <div className="truncate text-[17px] font-black leading-tight">{tr(r.title)}</div>
-              <div className="muted truncate text-xs font-bold">{tr(r.description)}</div>
+              <div className="line-clamp-2 text-[17px] font-black leading-tight">{tr(r.title)}</div>
+              <div className="muted line-clamp-2 text-xs font-bold leading-tight">{tr(r.description)}</div>
               <div className="mt-1 flex items-center gap-2">
                 <Progress value={r.lessons.filter((x) => x.state === 'completed').length} max={Math.max(1, r.lessons.length)} height={6} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
                 <span className="shrink-0 text-[11px] font-black">{r.lessons.filter((x) => x.state === 'completed').length}/{r.lessons.length}</span>

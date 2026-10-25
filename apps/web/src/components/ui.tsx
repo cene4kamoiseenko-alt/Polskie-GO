@@ -115,7 +115,7 @@ export function ScreenHeader({ title, subtitle, right, onBack }: { title: string
       )}
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-2xl font-black leading-tight">{title}</h1>
-        {subtitle && <p className="muted truncate text-sm font-semibold">{subtitle}</p>}
+        {subtitle && <p className="muted line-clamp-2 text-sm font-semibold leading-tight">{subtitle}</p>}
       </div>
       {right}
     </div>

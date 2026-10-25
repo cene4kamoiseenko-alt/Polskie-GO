@@ -78,7 +78,7 @@ export default function DictionaryScreen() {
                   {w.pl} {w.mine?.status === 'LEARNED' && <span className="text-brand">✓</span>}
                 </div>
                 <div className="muted text-[11px] font-bold">{t(`pos_${w.pos}` as TKey)} · {w.cefr}</div>
-                <div className="truncate text-sm font-bold">{tr(w.translations)}</div>
+                <div className="line-clamp-2 text-sm font-bold leading-tight">{tr(w.translations)}</div>
               </div>
               <SpeakButton text={w.pl} url={w.audioUrl} size="sm" />
               <button

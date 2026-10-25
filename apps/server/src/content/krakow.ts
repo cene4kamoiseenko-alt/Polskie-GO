@@ -248,7 +248,7 @@ export const KRAKOW: CityContent = {
     {
       slug: 'krk-egzamin',
       title: t('Іспит Кракова', 'Экзамен Кракова', 'Kraków exam'),
-      description: t('Пройди, щоб отримати квиток до Вроцлава', 'Пройди, чтобы получить билет во Вроцлав', 'Pass to get a ticket to Wrocław'),
+      description: t('Пройди, щоб отримати квиток до Катовіце', 'Пройди, чтобы получить билет в Катовице', 'Pass to get a ticket to Katowice'),
       icon: '🏆',
       lessons: [
         {

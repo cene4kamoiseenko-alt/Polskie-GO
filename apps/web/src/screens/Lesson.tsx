@@ -219,7 +219,7 @@ export default function LessonScreen() {
                     <WordTile pl={w.pl} size={40} />
                     <div className="min-w-0 flex-1">
                       <div className="font-black">{w.pl}</div>
-                      <div className="muted truncate text-sm font-bold">
+                      <div className="muted line-clamp-2 text-sm font-bold leading-tight">
                         {w.pronunciation && `[${w.pronunciation}] · `}
                         {tr(w.translations)}
                       </div>
@@ -290,7 +290,7 @@ export default function LessonScreen() {
               <span className="shrink-0 text-[var(--text)]">{Math.min(firstDone + 1, session.items.length)}/{session.items.length}</span>
             )}
           </div>
-          <div className="mb-1 truncate text-[15px] font-black leading-tight">{session.lesson ? tr(session.lesson.title) : t(instructionKey(item))}</div>
+          <div className="mb-1 line-clamp-2 text-[15px] font-black leading-tight">{session.lesson ? tr(session.lesson.title) : t(instructionKey(item))}</div>
           <Progress value={firstDone} max={session.items.length} height={12} color="linear-gradient(90deg, #36B9FF, #25D79B)" />
         </div>
         <div className={cx('flex shrink-0 flex-col items-center rounded-2xl px-2 py-1', mistakes ? 'bg-coral/15 text-coral' : 'bg-elev text-[var(--text-muted)]')} title={t('stage_mistakes')} aria-label={`${t('stage_mistakes')}: ${mistakes}`}>

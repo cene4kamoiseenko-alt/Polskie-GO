@@ -213,7 +213,7 @@ export const WROCLAW: CityContent = {
     {
       slug: 'wro-egzamin',
       title: t('Іспит Вроцлава', 'Экзамен Вроцлава', 'Wrocław exam'),
-      description: t('Пройди, щоб отримати квиток до Гданська', 'Пройди, чтобы получить билет в Гданьск', 'Pass to get a ticket to Gdańsk'),
+      description: t('Пройди, щоб отримати квиток до Познані', 'Пройди, чтобы получить билет в Познань', 'Pass to get a ticket to Poznań'),
       icon: '🏆',
       lessons: [
         {

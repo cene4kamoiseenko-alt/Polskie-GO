@@ -218,8 +218,8 @@ export default function MapScreen() {
                           {full ? <Icon name="check" size={18} strokeWidth={3} /> : i + 1}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-black">{tr(r.title)}</span>
-                          <span className="block truncate text-xs font-bold text-[#6B7A8A]">{tr(r.description)}</span>
+                          <span className="block line-clamp-2 font-black leading-tight">{tr(r.title)}</span>
+                          <span className="block line-clamp-2 text-xs font-bold leading-tight text-[#6B7A8A]">{tr(r.description)}</span>
                         </span>
                         <span className="text-sm font-black text-[#6B7A8A]">{done}/{r.lessons.length}</span>
                       </div>

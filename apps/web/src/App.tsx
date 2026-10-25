@@ -51,9 +51,8 @@ function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
     mq.addEventListener('change', h);
     return () => mq.removeEventListener('change', h);
   }, []);
-  // Основна тема POLSKI GO — насичена темно-синя (затверджені референси); світла — за явним вибором.
-  void systemDark;
-  const dark = pref !== 'light';
+  // «Авто» — як у Telegram (або системі); явний вибір має пріоритет.
+  const dark = pref === 'dark' ? true : pref === 'light' ? false : systemDark;
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.classList.toggle('light', !dark);

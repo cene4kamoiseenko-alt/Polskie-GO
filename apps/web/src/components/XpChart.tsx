@@ -21,8 +21,10 @@ export function XpChart({ days, unit }: { days: Day[]; unit: string }) {
   const peak = Math.max(0, ...days.map((d) => d.xp));
   const top = niceMax(Math.max(20, peak));
   const peakIdx = peak > 0 ? days.findIndex((d) => d.xp === peak) : -1;
-  const gap = n > 40 ? 1.5 : n > 10 ? 3 : 12;
-  const bw = Math.max(2, (W - L - gap * (n - 1)) / n);
+  // Кожен день має однаковий слот у межах viewBox — навіть 90 стовпчиків повністю вміщуються.
+  const slot = (W - L) / Math.max(1, n);
+  const gap = n > 40 ? slot * 0.25 : n > 10 ? Math.min(3, slot * 0.3) : Math.min(12, slot * 0.35);
+  const bw = slot - gap;
   const y = (v: number) => T + (H - T) * (1 - v / top);
   const a = active !== null ? days[active] : null;
   const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -43,7 +45,7 @@ export function XpChart({ days, unit }: { days: Day[]; unit: string }) {
         ))}
         {days.map((d, i) => {
           const h = d.xp ? Math.max(4, H - y(d.xp)) : 0;
-          const x = L + i * (bw + gap);
+          const x = L + i * slot + gap / 2;
           const r = Math.min(4, bw / 2);
           const isMax = i === peakIdx;
           return (
@@ -58,13 +60,13 @@ export function XpChart({ days, unit }: { days: Day[]; unit: string }) {
                 />
               )}
               {i % labelEvery === 0 && (
-                <text x={x + bw / 2} y={H + 13} textAnchor="middle" fontSize="9" fontWeight="800" fill="var(--text-muted)">{fmt(d.day)}</text>
+                <text x={Math.min(W - 16, Math.max(L + 14, x + bw / 2))} y={H + 13} textAnchor="middle" fontSize="9" fontWeight="800" fill="var(--text-muted)">{fmt(d.day)}</text>
               )}
             </g>
           );
         })}
         {peakIdx >= 0 && (
-          <g transform={`translate(${Math.min(W - 34, Math.max(L + 34, L + peakIdx * (bw + gap) + bw / 2))} ${Math.max(10, y(peak) - 12)})`}>
+          <g transform={`translate(${Math.min(W - 34, Math.max(L + 34, L + peakIdx * slot + slot / 2))} ${Math.max(10, y(peak) - 12)})`}>
             <rect x="-34" y="-10" width="68" height="18" rx="9" fill="#0F3B3A" stroke="#25D79B" strokeWidth="1.4" />
             <text x="0" y="3" textAnchor="middle" fontSize="10" fontWeight="900" fill="#5BF0B8">max {peak} {unit}</text>
           </g>

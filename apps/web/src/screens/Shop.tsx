@@ -252,7 +252,7 @@ export default function ShopScreen() {
             <div className="flex items-center gap-3 rounded-[22px] border border-sky/40 bg-[#0d2342]/95 p-3 shadow-[0_-10px_30px_-10px_rgb(0_0_0/0.8)] backdrop-blur">
               <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#07182c]"><ItemArt item={picked} size={50} /></span>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[15px] font-black text-white">{tr(picked.name)}</div>
+                <div className="line-clamp-2 text-[15px] font-black leading-tight text-white">{tr(picked.name)}</div>
                 <div className="text-[11px] font-black uppercase" style={{ color: RARITY_COLOR[picked.rarity] }}>{t(`rarity_${picked.rarity}` as TKey)}{picked.city ? ` · ${tr(picked.city.name)}` : ''}</div>
               </div>
               {picked.owned ? (

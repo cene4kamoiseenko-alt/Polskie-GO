@@ -6,6 +6,7 @@
  */
 import { DEFAULT_REWARDS } from '@polski-go/shared';
 import { resetIds } from './builders';
+import { TEXT_FIXES } from './fixes';
 import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
 import { WARSZAWA } from './warszawa';
@@ -169,6 +170,11 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   }
   lessonSql(PLACEMENT, 0, null);
   lessonSql(EXAM_A1, 0, null);
+
+  // ── Явні виправлення текстів (лише якщо в БД досі старе значення з коду) ──
+  for (const f of TEXT_FIXES) {
+    out.push(`UPDATE ${f.table} SET "${f.column}" = ${lit(f.to)} WHERE slug = ${lit(f.slug)} AND "${f.column}" = ${lit(f.from)};`);
+  }
 
   // ── Косметика ──
   for (const [i, item] of ITEMS.entries()) {

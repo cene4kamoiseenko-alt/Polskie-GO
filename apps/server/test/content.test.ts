@@ -127,3 +127,20 @@ describe('Локації міст (3.0)', () => {
     }
   });
 });
+
+import { buildSeedSql } from '../src/content/seed';
+import { TEXT_FIXES } from '../src/content/fixes';
+
+describe('Оновлення засіяного контенту', () => {
+  it('квиток з іспиту веде до наступного міста маршруту, а виправлення не чіпає правок з адмінки', () => {
+    const sql = buildSeedSql().join('\n');
+    for (const f of TEXT_FIXES) {
+      const line = sql.split('\n').find((l) => l.startsWith(`UPDATE ${f.table} SET "${f.column}"`) && l.includes(`slug = '${f.slug}'`));
+      expect(line, f.slug).toBeTruthy();
+      // оновлюємо лише рядок, у якому досі старий текст із коду
+      expect(line).toContain(`AND "${f.column}" = '${JSON.stringify(f.from)}'`);
+    }
+    const waw = CITY_CONTENT.find((c) => c.city === 'warszawa')!.routes.find((r) => r.slug === 'waw-egzamin')!;
+    expect(waw.description.uk).toContain('Лодзі');
+  });
+});

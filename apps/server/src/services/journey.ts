@@ -3,11 +3,13 @@
  * Правила відкриття:
  *  • перше місто відкрите з початку; наступне — після складання іспиту (боса) попереднього;
  *  • уроки в місті відкриваються послідовно (крім міст, відкритих вхідним тестом);
- *  • бос доступний після проходження `ticketLessons` звичайних уроків міста.
+ *  • бос доступний після проходження `ticketLessons` звичайних уроків міста
+ *    (або всіх уроків міста до розширення курсу — LEGACY_CITY_LESSONS).
  */
 import type { Cefr } from '@polski-go/shared';
 import { and, asc, count, eq, isNotNull } from 'drizzle-orm';
 import { db } from '../db';
+import { LEGACY_CITY_LESSONS } from '../content/legacy';
 import { cities, cityRoutes, exercises, lessons, playerProgress, userCities, userLessonProgress } from '../db/schema';
 
 export type LessonState = 'locked' | 'available' | 'completed';
@@ -85,7 +87,10 @@ export async function getJourney(userId: string) {
     const regular = all.filter((l) => l.kind === 'LESSON');
     const regularDone = regular.filter((l) => lp.get(l.id)?.firstCompletedAt).length;
     const ticket = city.ticketLessons > 0 ? Math.min(city.ticketLessons, regular.length) : regular.length;
-    const bossAvailable = unlocked && regularDone >= ticket;
+    // Хто пройшов усі уроки міста до розширення курсу, не втрачає доступ до іспиту.
+    const legacy = LEGACY_CITY_LESSONS[city.slug];
+    const legacyDone = !!legacy && legacy.every((slug) => { const l = all.find((x) => x.slug === slug); return !!l && !!lp.get(l.id)?.firstCompletedAt; });
+    const bossAvailable = unlocked && (regularDone >= ticket || legacyDone);
 
     let prevDone = true;
     const states = new Map<string, LessonState>();

@@ -49,8 +49,8 @@ export function QuestCard({ q, onClaim, busy }: { q: Quest; onClaim: (q: Quest) 
     <div className={cx('card flex items-center gap-3 p-3', done && 'ring-2 ring-xp', claimed && 'opacity-60')}>
       <GameIcon name={claimed ? 'check' : questIcon(q.slug)} size={50} />
       <div className="min-w-0 flex-1">
-        <div className="truncate font-black">{tr(q.title)}</div>
-        <div className="muted truncate text-xs font-bold">{tr(q.description)}</div>
+        <div className="line-clamp-2 font-black leading-tight">{tr(q.title)}</div>
+        <div className="muted line-clamp-2 text-xs font-bold leading-tight">{tr(q.description)}</div>
         <div className="mt-1.5 flex items-center gap-2">
           <Progress value={q.progress} max={q.target} height={9} color={done || claimed ? 'var(--color-xp)' : 'var(--color-brand)'} />
           <span className="text-xs font-black">{Math.min(q.progress, q.target)}/{q.target}</span>
@@ -166,7 +166,7 @@ export default function QuestsScreen() {
               style={on ? { background: x.color, color: '#fff', boxShadow: `0 4px 0 color-mix(in srgb, ${x.color} 70%, black)` } : { background: 'var(--bg-elev)', boxShadow: 'var(--shadow-card)' }}
             >
               <GameIcon name={x.icon} size={24} inactive={!on} />
-              <span className="truncate">{x.label}</span>
+              <span className="leading-tight">{x.label}</span>
               {badge > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] text-white">{badge}</span>}
             </motion.button>
           );
