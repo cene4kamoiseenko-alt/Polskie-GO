@@ -201,6 +201,7 @@ export const pl: Dict = {
   stage_lesson_n: "Lekcja {n} z {total}",
   stage_practice: "Trening",
   stage_tasks_n: "{n} zadań",
+  learn_location_n: "Lokacja {n}",
   stage_hint: "Podpowiedź Bobka",
   lesson_correct: 'Świetnie!',
   lesson_correct_alt: ['Świetnie!', 'Super!', 'Brawo!', 'Dobrze!', 'Ekstra!'].join('|'),

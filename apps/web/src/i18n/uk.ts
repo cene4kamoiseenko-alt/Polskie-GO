@@ -211,6 +211,7 @@ export const uk = {
   stage_lesson_n: "Урок {n} з {total}",
   stage_practice: "Тренування",
   stage_tasks_n: "{n} завдань",
+  learn_location_n: "Локація {n}",
   stage_hint: "Підказка Бобка",
   lesson_correct: 'Чудово!',
   lesson_correct_alt: ['Świetnie!', 'Super!', 'Brawo!', 'Dobrze!', 'Ekstra!'].join('|'),

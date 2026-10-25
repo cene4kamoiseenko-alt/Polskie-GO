@@ -560,3 +560,11 @@ textarea {
 .light .item-card {
   background: var(--bg-elev);
 }
+
+/* Картка локації міста */
+.location-card {
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1.5px solid rgb(54 185 255 / 0.3);
+  box-shadow: var(--shadow-deep);
+}

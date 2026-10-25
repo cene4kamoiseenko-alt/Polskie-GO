@@ -35,7 +35,7 @@ export const CITIES: CitySeed[] = [
   { slug: 'lodz', namePl: 'Łódź', name: t('Лодзь', 'Лодзь', 'Łódź'), theme: t('Дім і квартира', 'Дом и квартира', 'Home & flat'),
     description: t('Колишня фабрична столиця з вулицею Пйотрковською.', 'Бывшая фабричная столица с улицей Пётрковской.', 'The former factory capital with Piotrkowska Street.'),
     cefr: 'A1', lon: 19.46, lat: 51.76, emoji: '🏭', color: '#EB5757' },
-  { slug: 'krakow', namePl: 'Kraków', name: t('Краків', 'Краков', 'Kraków'), theme: t("Сім'я і щоденне життя", 'Семья и повседневная жизнь', 'Family & daily life'),
+  { slug: 'krakow', namePl: 'Kraków', name: t('Краків', 'Краков', 'Kraków'), theme: t('Вокзал, покупки й місто', 'Вокзал, покупки и город', 'Station, shopping & the city'),
     description: t('Королівське місто з Вавельським драконом і найбільшим ринком Європи.', 'Королевский город с Вавельским драконом и крупнейшей площадью Европы.', 'The royal city with the Wawel Dragon and Europe\'s largest market square.'),
     cefr: 'A1', lon: 19.94, lat: 50.06, dx: 26, dy: 4, emoji: '🐉', color: '#F2994A' },
   { slug: 'katowice', namePl: 'Katowice', name: t('Катовіце', 'Катовице', 'Katowice'), theme: t('Час і розпорядок дня', 'Время и распорядок дня', 'Time & daily routine'),

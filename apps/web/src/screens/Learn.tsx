@@ -1,4 +1,8 @@
 import { motion } from 'framer-motion';
+import { isMissionSlug } from '@polski-go/shared';
+import { Art } from '../components/GameArt';
+import { Scene } from '../components/Illustrations';
+import { sceneForRoute } from '../components/LessonStage';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
@@ -6,7 +10,7 @@ import { useJourney, useMe } from '../lib/queries';
 import type { JourneyLesson } from '../lib/types';
 import { Beaver, type BeaverOutfit } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
-import { CityBanner } from '../components/Scenery';
+import { CityHero } from '../components/CityHero';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, Sheet, cx } from '../components/ui';
 import { TopStats } from './Home';
 import { haptic } from '../lib/telegram';
@@ -117,29 +121,39 @@ export default function LearnScreen() {
       </div>
 
       {/* Герой міста */}
-      <CityBanner slug={city.slug} color={city.color} height={170} shade={false} className="mx-4 rounded-[28px] shadow-[var(--shadow-card)]">
-        <div className="absolute left-3 top-3 rounded-2xl bg-white/95 px-3 py-1.5 shadow-sm">
-          <div className="flex items-baseline gap-2">
-            <span className="text-[22px] font-black text-navy">{city.namePl}</span>
-            <span className="rounded-lg px-1.5 py-0.5 text-[11px] font-black text-white" style={{ background: city.color }}>{city.cefr}</span>
+      <div className="hero-card relative mx-4">
+        <CityHero slug={city.slug} color={city.color} name={city.namePl} sign={false} height={176}>
+          <div className="glass-card absolute left-3 top-3 px-3 py-1.5">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[22px] font-black text-white">{city.namePl}</span>
+              <span className="rounded-lg px-1.5 py-0.5 text-[11px] font-black text-white" style={{ background: city.color }}>{city.cefr}</span>
+            </div>
+            <div className="max-w-[220px] truncate text-xs font-bold text-[#cfe0f2]">{tr(city.theme)}</div>
           </div>
-          <div className="max-w-[220px] truncate text-xs font-bold text-[#6B7A8A]">{tr(city.theme)}</div>
-        </div>
-        <div className="absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-2xl bg-white/95 px-3 py-2 shadow-sm">
-          <Progress value={city.progress} height={9} color="var(--color-xp)" />
-          <span className="whitespace-nowrap text-xs font-black text-navy">{t('learn_city_progress', { n: doneCount, total: allLessons.length })}</span>
-        </div>
-      </CityBanner>
+          <div className="glass-card absolute inset-x-3 bottom-3 flex items-center gap-2 px-3 py-2">
+            <Progress value={city.progress} height={9} color="linear-gradient(90deg,#FFC857,#FFE38A)" />
+            <span className="whitespace-nowrap text-xs font-black text-white">{t('learn_city_progress', { n: doneCount, total: allLessons.length })}</span>
+          </div>
+        </CityHero>
+      </div>
 
       {/* Маршрути та уроки */}
       {city.routes.map((r, ri) => (
         <section key={r.id} className="space-y-6 pb-4">
-          <div className="mx-4 flex items-center gap-3 rounded-2xl border-2 border-soft bg-elev px-4 py-3">
-            <GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={44} />
-            <div className="min-w-0">
-              <div className="font-black">{tr(r.title)}</div>
+          <div className="location-card mx-4 flex items-center gap-3 overflow-hidden p-2 pr-3">
+            <span className="relative h-[64px] w-[92px] shrink-0 overflow-hidden rounded-xl">
+              {sceneForRoute(r.slug) ? <Scene name={sceneForRoute(r.slug)!} className="absolute inset-0 h-full w-full" /> : <span className="grid h-full place-items-center bg-[#07182c]"><GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={40} /></span>}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-black uppercase tracking-wide text-sky">{t('learn_location_n', { n: ri + 1 })}</div>
+              <div className="truncate text-[17px] font-black leading-tight">{tr(r.title)}</div>
               <div className="muted truncate text-xs font-bold">{tr(r.description)}</div>
+              <div className="mt-1 flex items-center gap-2">
+                <Progress value={r.lessons.filter((x) => x.state === 'completed').length} max={Math.max(1, r.lessons.length)} height={6} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
+                <span className="shrink-0 text-[11px] font-black">{r.lessons.filter((x) => x.state === 'completed').length}/{r.lessons.length}</span>
+              </div>
             </div>
+            {r.lessons.some((x) => isMissionSlug(x.slug)) && <Art name="trophy" size={30} />}
           </div>
           <div className={cx('flex flex-col items-center', r.lessons[0]?.id === nextId && 'pt-8')}>
             {r.lessons.map((l, li) => {
@@ -161,7 +175,7 @@ export default function LearnScreen() {
       <Sheet open={!!picked} onClose={() => setPicked(null)}>
         {picked && (
           <div className="space-y-4 text-center">
-            <div className="flex justify-center"><GameIcon name={picked.kind === 'BOSS' ? 'exam' : 'lessons'} size={72} /></div>
+            <div className="flex justify-center">{isMissionSlug(picked.slug) ? <Art name="trophy" size={72} /> : <GameIcon name={picked.kind === 'BOSS' ? 'exam' : 'lessons'} size={72} />}</div>
             <div>
               <h2 className="text-2xl font-black">{tr(picked.title)}</h2>
               <p className="muted font-bold">{tr(picked.topic)}</p>

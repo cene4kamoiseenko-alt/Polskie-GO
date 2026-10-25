@@ -201,6 +201,7 @@ export const ru: Dict = {
   stage_lesson_n: "Урок {n} из {total}",
   stage_practice: "Тренировка",
   stage_tasks_n: "{n} заданий",
+  learn_location_n: "Локация {n}",
   stage_hint: "Подсказка Бобка",
   lesson_correct: 'Отлично!',
   lesson_correct_alt: ['Świetnie!', 'Super!', 'Brawo!', 'Dobrze!', 'Ekstra!'].join('|'),
