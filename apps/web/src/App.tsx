@@ -7,6 +7,7 @@ import { tg, setTelegramColors, startParam } from './lib/telegram';
 import { useMe } from './lib/queries';
 import { configureAudio, setSoundEnabled } from './lib/audio';
 import { ApiError } from './lib/api';
+import { bootMark } from './lib/boot';
 import { BottomNav, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
 
@@ -64,6 +65,12 @@ function Splash() {
   return <SplashScene loading />;
 }
 
+/** Перший справжній екран змонтовано — запуск завершено. */
+function BootDone() {
+  useEffect(() => bootMark('screen'), []);
+  return null;
+}
+
 /** Після старту у вільний час підвантажуємо екрани вкладок — перший перехід без очікування. */
 function prefetchScreens() {
   const load = () => {
@@ -101,14 +108,19 @@ export function App() {
   const reduced = me.data?.settings.reducedMotion;
   const badges = useMemo(() => ({ '/quests': 0, '/profile': me.data?.counters.unseenAchievements ?? 0 }), [me.data]);
 
+  useEffect(() => {
+    if (me.data) bootMark('profile');
+  }, [me.data]);
+
   let body;
   if (me.isLoading) body = <Splash />;
   else if (me.error) {
     const banned = me.error instanceof ApiError && me.error.code === 'banned';
-    body = <ErrorState error={banned ? new Error('banned') : me.error} onRetry={() => me.refetch()} />;
+    body = banned ? <ErrorState error={new Error('banned')} /> : <SplashScene error onRetry={() => me.refetch()} />;
   } else if (me.data && !me.data.onboarded && !loc.pathname.startsWith('/lesson')) {
     body = (
       <Suspense fallback={<Splash />}>
+        <BootDone />
         <Onboarding />
       </Suspense>
     );
@@ -124,6 +136,7 @@ export function App() {
             className={showNav ? 'nav-pad' : ''}
           >
             <Suspense fallback={<ScreenSkeleton />}>
+              <BootDone />
               <Routes location={loc}>
                 <Route path="/" element={<HomeScreen />} />
                 <Route path="/map" element={<MapScreen />} />

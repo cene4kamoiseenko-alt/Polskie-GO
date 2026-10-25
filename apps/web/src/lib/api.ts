@@ -1,4 +1,5 @@
 import { tg, startParam } from './telegram';
+import { bootMark } from './boot';
 
 /** Адрес API. Пусто — тот же домен (один сервер). Для Cloudflare Pages задайте VITE_API_URL=https://api.ваш-домен */
 export const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
@@ -36,7 +37,10 @@ function saveToken(t: string) {
   }
 }
 token = typeof window !== 'undefined' ? savedToken() : null;
-if (token) authPromise = Promise.resolve();
+if (token) {
+  authPromise = Promise.resolve();
+  bootMark('auth');
+}
 
 async function authenticate() {
   const res = tg
@@ -51,6 +55,7 @@ async function authenticate() {
   if (!res.ok) throw new ApiError(res.status, body.error ?? 'auth_failed', body.message);
   token = body.token;
   saveToken(body.token);
+  bootMark('auth');
 }
 
 export function ensureAuth() {

@@ -80,9 +80,10 @@ export default function Onboarding() {
   if (id === 'hello') {
     return (
       <SplashScene slogan={t('slogan')}>
-        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.45, type: 'spring' }} className="absolute bottom-[47%] left-[8%] z-10 w-[230px] rounded-3xl bg-white px-5 py-3 text-left text-[15px] font-bold text-[#1E3346] shadow-xl">
+        <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45, type: 'spring' }} className="absolute inset-x-5 z-30 rounded-3xl border-2 border-sky/60 bg-white px-5 py-3.5 text-left text-[15px] font-bold leading-snug text-[#1E3346] shadow-[0_8px_0_rgb(7_24_44/0.35)]" style={{ bottom: 'calc(var(--safe-b) + 92px)' }}>
+          <div className="absolute -top-2.5 left-1/2 h-5 w-5 -translate-x-1/2 rotate-45 border-l-2 border-t-2 border-sky/60 bg-white" />
+          <div className="mb-0.5 text-[12px] font-black uppercase tracking-wide text-sky-dark">Bobek</div>
           {t('ob_bubble')}
-          <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white" />
         </motion.div>
         <div className="safe-bottom absolute inset-x-5 bottom-4 z-20">
           <motion.button initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); nextStep(); }}>

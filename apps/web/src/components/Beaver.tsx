@@ -6,7 +6,7 @@
  * Растровий ассет (src/assets/beaver/<mood>.webp), якщо є, має пріоритет.
  */
 import { motion, useReducedMotion } from 'framer-motion';
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import { beaverAsset } from '../lib/assets';
 
 /**
@@ -130,7 +130,17 @@ function Backpack({ kind, front }: { kind?: string; front?: boolean }) {
 }
 
 /** Шарф: фірмовий кораловий за замовчуванням або предмет з гардероба. Кінець звисає праворуч. */
-function Scarf({ kind }: { kind?: string }) {
+/** Кінчик шарфа, що легенько майорить на вітрі (заставка, «живий» режим). */
+function Flutter({ on, children }: { on?: boolean; children: ReactNode }) {
+  if (!on) return <g>{children}</g>;
+  return (
+    <motion.g style={{ transformBox: 'fill-box', transformOrigin: '30% 0%' }} animate={{ rotate: [0, -7, 2, -5, 0], skewY: [0, 3, -2, 2, 0] }} transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}>
+      {children}
+    </motion.g>
+  );
+}
+
+function Scarf({ kind, flutter, label }: { kind?: string; flutter?: boolean; label?: boolean }) {
   const colors: Record<string, [string, string]> = {
     'scarf-pl': ['#FFFFFF', '#E5484D'],
     'scarf-ua': ['#3A7BD5', '#FFD43B'],
@@ -139,8 +149,11 @@ function Scarf({ kind }: { kind?: string }) {
   if (!kind) {
     return (
       <g>
-        <path d="M112 132 Q124 140 126 170 L112 172 Q108 150 104 138 Z" fill="url(#bv-scarf)" stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
-        <path d="M112 166 L113 176 M117 165 L118 176 M122 165 L123 175" stroke="#E2433F" strokeWidth="2.6" strokeLinecap="round" />
+        <Flutter on={flutter}>
+          <path d="M112 132 Q124 140 126 170 L112 172 Q108 150 104 138 Z" fill="url(#bv-scarf)" stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
+          <path d="M112 166 L113 176 M117 165 L118 176 M122 165 L123 175" stroke="#E2433F" strokeWidth="2.6" strokeLinecap="round" />
+          {label && <text x="116.5" y="160" textAnchor="middle" fontSize="8.5" fontWeight="900" fill="#fff" fontFamily="Nunito, system-ui, sans-serif" transform="rotate(-10 116.5 158)">PL</text>}
+        </Flutter>
         <path d="M58 118 Q100 142 142 118 L145 132 Q100 158 55 132 Z" fill="url(#bv-scarf)" stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
         <path d="M60 126 Q100 148 140 126" stroke="#FFFFFF" strokeOpacity="0.35" strokeWidth="2.5" fill="none" />
         <ellipse cx="112" cy="138" rx="10" ry="8" fill="url(#bv-scarf)" stroke={C.line} strokeWidth="2" />
@@ -150,8 +163,10 @@ function Scarf({ kind }: { kind?: string }) {
   const [a, b] = colors[kind] ?? ['#45C486', '#2FA56C'];
   return (
     <g>
-      <path d="M112 132 Q122 140 124 170 L110 172 Q106 150 102 138 Z" fill={a} stroke={C.line} strokeWidth="2" />
-      <path d="M106 154 L122 154 L123 162 L108 163 Z" fill={b} />
+      <Flutter on={flutter}>
+        <path d="M112 132 Q122 140 124 170 L110 172 Q106 150 102 138 Z" fill={a} stroke={C.line} strokeWidth="2" />
+        <path d="M106 154 L122 154 L123 162 L108 163 Z" fill={b} />
+      </Flutter>
       <path d="M58 118 Q100 142 142 118 L145 132 Q100 158 55 132 Z" fill={a} stroke={C.line} strokeWidth="2" />
       <path d="M57 125 Q100 150 143 125 L145 132 Q100 158 55 132 Z" fill={b} />
     </g>
@@ -683,6 +698,8 @@ type Props = {
   animate?: boolean;
   /** Не використовувати растровий ассет (наприклад, у гардеробі, де видно одяг). */
   vectorOnly?: boolean;
+  /** «Живий» режим (заставка): хвіст помахує, шарф майорить, на шарфі напис PL. */
+  lively?: boolean;
 };
 
 type ArmPose = 'rest' | 'wave' | 'up' | 'chin' | 'heart' | 'hold' | 'salute' | 'map' | 'point';
@@ -751,7 +768,7 @@ function Arm({ side, pose, sleeve, anim }: { side: -1 | 1; pose: ArmPose; sleeve
   );
 }
 
-export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size = 160, className, animate = true, vectorOnly }: Props) {
+export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size = 160, className, animate = true, vectorOnly, lively }: Props) {
   const reduce = useReducedMotion();
   const anim = animate && !reduce;
   const raster = vectorOnly ? null : beaverAsset(mood);
@@ -767,7 +784,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
   }
   const costume = outfit.COSTUME;
   // Фірмовий образ Бобека — червона худі «PL» (якщо інший одяг не вибрано).
-  const jacket = costume ? undefined : (outfit.JACKET ?? 'hoodie-red');
+  const jacket = costume || outfit.JACKET === 'none' ? undefined : (outfit.JACKET ?? 'hoodie-red');
   const sleeve = jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : costume === 'costume-dragon' ? '#3DBE6A' : C.fur;
   const [leftPose, rightPose] = armPose(mood);
   const backpack = mood === 'royal' ? 'none' : outfit.BACKPACK;
@@ -787,7 +804,13 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       {mood === 'travel' && <NewCityScene />}
       <g transform={mood === 'travel' ? 'rotate(5 100 212) translate(-6 0)' : undefined}>
       <Backpack kind={backpack} />
-      <Tail mermaid={costume === 'costume-syrenka'} />
+      {lively && anim ? (
+        <motion.g style={{ transformBox: 'fill-box', transformOrigin: '92% 30%' }} animate={{ rotate: [0, -9, 0, 6, 0] }} transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut' }}>
+          <Tail mermaid={costume === 'costume-syrenka'} />
+        </motion.g>
+      ) : (
+        <Tail mermaid={costume === 'costume-syrenka'} />
+      )}
       {/* тіло-«груша» */}
       <path d="M58 152 C 56 120, 78 106, 100 106 C 122 106, 144 120, 142 152 C 144 190, 126 212, 100 212 C 74 212, 56 190, 58 152 Z" fill={C.fur} stroke={C.line} strokeWidth={LW} />
       <ellipse cx="100" cy="170" rx="28" ry="32" fill={C.belly} />
@@ -795,7 +818,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       <Jacket kind={jacket} />
       <Costume kind={costume} />
       <Backpack kind={backpack} front />
-      {mood !== 'royal' && <Scarf kind={outfit.SCARF} />}
+      {mood !== 'royal' && <Scarf kind={outfit.SCARF} flutter={lively && anim} label={lively && !outfit.SCARF} />}
       {(mood === 'celebrate' || mood === 'map') && <HeldMap />}
       {/* Опущені лапи — під головою, підняті — поверх (інакше їх ховає голова). */}
       {!RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}
