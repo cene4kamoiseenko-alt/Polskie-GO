@@ -79,8 +79,18 @@ export function TopStats({ compact }: { compact?: boolean }) {
 /** Ілюстрація щоденного завдання за типом. */
 const TASK_ART: Record<string, ArtName> = {
   'd-lesson-1': 'book', 'd-lessons-3': 'book', 'd-xp-100': 'star', 'd-words-10': 'chat', 'd-perfect-5': 'target',
-  'd-reviews-15': 'books', 'd-dialogue-1': 'chat', 'd-listening-5': 'gamepad',
+  'd-reviews-15': 'books', 'd-dialogue-1': 'chat', 'd-listening-5': 'headphones',
 };
+
+/** Дерев'яний покажчик з назвою поточного міста (як на макеті головної). */
+function CitySign({ name }: { name: string }) {
+  return (
+    <span className="city-sign" aria-hidden>
+      <span className="city-sign-post" />
+      <span className="city-sign-board" lang="pl">{name.toUpperCase()}</span>
+    </span>
+  );
+}
 
 export function HomeScreen() {
   const { t, tr } = useT();
@@ -132,9 +142,11 @@ export function HomeScreen() {
           <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.38), transparent 55%)' }} />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-[#07182c]/45 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#07182c]/50 to-transparent" />
+          {/* Покажчик міста позаду бобра */}
+          <CitySign name={current?.namePl ?? 'Warszawa'} />
           {/* Бобек у поточному образі — головний персонаж банера, картки його не закривають */}
           <motion.div className="home-hero-beaver absolute bottom-0 -left-1" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
-            <Beaver mood="wave" size={heroBeaver} outfit={me.outfit.wear} />
+            <Beaver mood="happy" size={heroBeaver} outfit={me.outfit.wear} />
           </motion.div>
           <div className="absolute right-2.5 top-2.5 w-[52%] space-y-2">
             <button onClick={() => { haptic.tap(); nav('/map'); }} className="glass-card flex w-full items-center gap-1.5 px-2.5 py-2 text-left">
@@ -180,8 +192,8 @@ export function HomeScreen() {
           <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[var(--border)] text-xs font-black">+</span>
         </button>
         <button onClick={() => nav('/profile')} className="stat-card">
-          <Art name="crown" size={28} />
-          <span className="min-w-0 text-left"><span className="block text-[20px] font-black leading-none">{me.progress.level}</span><span className="muted block text-[10.5px] font-bold leading-tight">{rank}</span></span>
+          <Art name="crown" size={26} />
+          <span className="min-w-0 text-left"><span className="block whitespace-nowrap text-[clamp(12.5px,3.6vw,15px)] font-black leading-tight">{t('home_level_n', { n: me.progress.level })}</span><span className="muted block text-[10.5px] font-bold leading-tight">{rank}</span></span>
         </button>
       </div>
 

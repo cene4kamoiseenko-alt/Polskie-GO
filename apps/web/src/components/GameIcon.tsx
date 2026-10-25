@@ -12,6 +12,12 @@ export type IconName =
   | 'rewards' | 'settings' | 'wardrobe' | 'review' | 'mistakes' | 'timer' | 'speed' | 'house' | 'diary'
   | 'friends' | 'leaderboard' | 'star' | 'fire' | 'coin' | 'xp' | 'lock' | 'check' | 'mic' | 'story' | 'city';
 
+/** Розділи без однойменного файлу → найближча іконка з листа «Іконки без емодзі». */
+const ICON_RASTER: Partial<Record<IconName, string>> = {
+  grammar: 'writing', ai: 'pronunciation', story: 'dialog', city: 'shopping', exam: 'achievements', wardrobe: 'profile',
+  mic: 'pronunciation', fire: 'streak', coin: 'zlotki', diary: 'writing', rewards: 'gift',
+};
+
 /** Базовий колір плитки кожної іконки (з фірмової палітри). */
 export const ICON_COLORS: Record<IconName, string> = {
   home: '#F45159', map: '#35C88A', lessons: '#55BDF4', dictionary: '#F45159', ai: '#9568F5', grammar: '#FFBD42',
@@ -260,7 +266,7 @@ type Props = { name: IconName; size?: number; color?: string; inactive?: boolean
 /** Ігрова іконка-плитка. `inactive` — сірий стан (закрито / неактивна вкладка). */
 export const GameIcon = memo(function GameIcon({ name, size = 48, color, inactive, className }: Props) {
   const uid = useId().replace(/:/g, '');
-  const raster = iconAsset(name);
+  const raster = iconAsset(ICON_RASTER[name] ?? name);
   const base = inactive ? '#B9C4CE' : color ?? ICON_COLORS[name];
   if (raster && !inactive) return <img src={raster} alt="" width={size} height={size} className={className} draggable={false} />;
   return (

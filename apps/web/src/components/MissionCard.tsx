@@ -20,7 +20,8 @@ export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen
     <motion.button whileTap={{ scale: 0.98 }} onClick={() => { haptic.tap(); onOpen(); }} className="card block w-full overflow-hidden text-left">
       <div className="relative">
         <Scene name={m.scene} className={cx('block w-full', compact ? 'h-24' : 'h-32')} />
-        <div className="absolute left-3 top-3 flex gap-1.5">
+        {/* Чипи внизу сцени: угорі зазвичай вивіска закладу. */}
+        <div className="absolute bottom-2 left-3 flex gap-1.5">
           <span className="chip !px-2.5 !py-0.5 text-xs"><Icon name="clock" size={14} /> {t('life_minutes', { n: m.minutes })}</span>
           <span className="chip !px-2.5 !py-0.5 text-xs text-xp-dark"><Icon name="star" size={14} /> +{m.xp} XP</span>
         </div>

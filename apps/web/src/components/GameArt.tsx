@@ -12,7 +12,9 @@ const SW = 2.4;
 export type ArtName =
   | 'gift' | 'book' | 'chat' | 'gamepad' | 'scroll' | 'map-pin' | 'suitcase' | 'flame' | 'coin' | 'crown'
   | 'shield' | 'trophy' | 'medal-gold' | 'medal-silver' | 'medal-bronze' | 'lock' | 'sprout' | 'star' | 'books' | 'clock' | 'target' | 'plane'
-  | 'passport' | 'house' | 'diary' | 'grad';
+  | 'passport' | 'house' | 'diary' | 'grad'
+  // Лише растрові (лист «Іконки без емодзі»); без файлу — найближча векторна.
+  | 'headphones' | 'mic' | 'cafe' | 'food' | 'tram' | 'basket' | 'explore' | 'gnome' | 'dragon' | 'level';
 
 type Grad = (id: string, a: string, b: string, vertical?: boolean) => ReactNode;
 const lin: Grad = (id, a, b, vertical = true) => (
@@ -22,8 +24,15 @@ const lin: Grad = (id, a, b, vertical = true) => (
   </linearGradient>
 );
 
+/** Векторна заміна для назв, що існують лише растром. */
+const VECTOR_FALLBACK: Partial<Record<ArtName, ArtName>> = {
+  headphones: 'gamepad', mic: 'chat', cafe: 'gift', food: 'gift', tram: 'plane', basket: 'gift', explore: 'map-pin', gnome: 'star', dragon: 'star', level: 'shield',
+};
+
 function art(name: ArtName, u: (s: string) => string, label?: string): ReactNode {
   const f = (s: string) => `url(#${u(s)})`;
+  const alt = VECTOR_FALLBACK[name];
+  if (alt) return art(alt, u, label);
   switch (name) {
     case 'gift':
       return (
@@ -291,6 +300,8 @@ function art(name: ArtName, u: (s: string) => string, label?: string): ReactNode
 const RASTER: Partial<Record<ArtName, string>> = {
   gift: 'gift', book: 'lessons', chat: 'dialog', scroll: 'quests', 'map-pin': 'map', flame: 'streak', coin: 'zlotki',
   trophy: 'leaderboard', 'medal-gold': 'achievements', passport: 'passport', house: 'house', diary: 'writing', books: 'dictionary', suitcase: 'profile',
+  headphones: 'listening', mic: 'pronunciation', cafe: 'cafe', food: 'food', tram: 'transport', basket: 'shopping', explore: 'explore',
+  gnome: 'gnome', dragon: 'dragon', level: 'level',
 };
 
 export const Art = memo(function Art({ name, size = 48, className, label }: { name: ArtName; size?: number; className?: string; label?: string }) {
