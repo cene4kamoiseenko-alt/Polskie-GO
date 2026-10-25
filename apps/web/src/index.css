@@ -531,3 +531,21 @@ textarea {
 .light .section-tile {
   box-shadow: var(--shadow-deep);
 }
+
+/* Рядок рейтингу */
+.lb-row {
+  border-radius: 18px;
+  background: linear-gradient(90deg, #15325a 0%, #10284a 100%);
+  border: 1.5px solid rgb(54 185 255 / 0.28);
+  box-shadow: var(--shadow-deep);
+}
+.lb-row.is-silver {
+  border-color: rgb(201 214 230 / 0.55);
+}
+.lb-row.is-bronze {
+  background: linear-gradient(90deg, #4a2a22 0%, #2a2030 100%);
+  border-color: rgb(227 154 107 / 0.6);
+}
+.light .lb-row {
+  background: var(--bg-elev);
+}

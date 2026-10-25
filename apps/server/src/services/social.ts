@@ -56,7 +56,11 @@ export async function leaderboard(userId: string, scope: 'league' | 'friends' | 
     ]);
     rows.push({ rank: 0, userId, name: displayName(user[0]), photoUrl: user[0].photoUrl, xp: mine[0]?.xp ?? 0, level: me?.playerLevel ?? 1, isMe: true });
   }
-  return { week, league, scope, rows };
+  // Наступна ліга — за загальним XP (пороги як у leagueFor).
+  const xpTotal = me?.xpTotal ?? 0;
+  const ladder: [string, number][] = [['silver', 500], ['gold', 2000], ['diamond', 5000]];
+  const nxt = ladder.find(([, at]) => xpTotal < at);
+  return { week, league, scope, rows, me: { xpTotal, next: nxt ? { league: nxt[0], at: nxt[1] } : null } };
 }
 
 export async function listFriends(userId: string) {
