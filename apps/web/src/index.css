@@ -908,3 +908,110 @@ textarea {
   border-color: #25b884;
   box-shadow: 0 0 14px -6px rgb(37 215 155 / 0.6), var(--shadow-deep);
 }
+
+/* ───────── Урок (макет 02) ───────── */
+.stage-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px 4px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  background: rgb(7 24 44 / 0.78);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.stage-bubble {
+  color: #10233b;
+  background: #fff;
+  box-shadow: 0 6px 0 rgb(0 0 0 / 0.25);
+}
+.speak-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 14px;
+  border-radius: 18px;
+  font-size: 16px;
+  font-weight: 900;
+  transition: transform 0.12s, box-shadow 0.12s, opacity 0.2s;
+}
+.speak-pill.is-normal {
+  color: #fff;
+  background: linear-gradient(180deg, #4fc0ff 0%, #2a8fe6 100%);
+  box-shadow: 0 4px 0 #1b68b0, inset 0 1px 0 rgb(255 255 255 / 0.4), 0 0 18px -6px rgb(54 185 255 / 0.8);
+}
+.speak-pill.is-slow {
+  color: var(--text);
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 2px solid rgb(54 185 255 / 0.55);
+  box-shadow: 0 4px 0 rgb(0 0 0 / 0.3);
+}
+.speak-pill.is-slow .speak-pill-icon {
+  color: var(--color-sky);
+}
+.speak-pill:active:not([aria-disabled]) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #1b68b0;
+}
+.speak-pill.is-playing {
+  outline: 3px solid rgb(54 185 255 / 0.45);
+  outline-offset: 2px;
+}
+.speak-pill.is-failed {
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border: 2px solid var(--border);
+  box-shadow: none;
+}
+.speak-pill.is-failed .speak-pill-icon {
+  color: var(--text-muted);
+}
+.speak-pill-icon {
+  display: grid;
+  place-items: center;
+}
+.waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 34px;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+.waveform > span {
+  width: 4px;
+  border-radius: 999px;
+  background: var(--color-sky);
+  transform-origin: center;
+}
+.waveform.is-playing {
+  opacity: 1;
+}
+.waveform.is-playing > span {
+  animation: wave-bar 0.7s ease-in-out infinite alternate;
+}
+@keyframes wave-bar {
+  from { transform: scaleY(0.35); }
+  to { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .waveform.is-playing > span { animation: none; }
+}
+.reduced-motion .waveform.is-playing > span { animation: none; }
+/* Вторинна дія: підкреслене посилання, достатній контраст в обох темах */
+.link-secondary {
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -106,6 +106,10 @@ export function App() {
 
   const showNav = TAB_ROUTES.includes(loc.pathname);
   const reduced = me.data?.settings.reducedMotion;
+  // Налаштування «Менше анімацій» діє і на CSS-анімації (MotionConfig керує лише framer-motion).
+  useEffect(() => {
+    document.documentElement.classList.toggle('reduced-motion', !!reduced);
+  }, [reduced]);
   const badges = useMemo(() => ({ '/quests': 0, '/profile': me.data?.counters.unseenAchievements ?? 0 }), [me.data]);
 
   useEffect(() => {

@@ -717,4 +717,8 @@ export const ru: Dict = {
   costume_desc_artist: "Берет, палитра и кисть — для прогулок по галереям.",
   costume_desc_winter: "Тёплая куртка и шапка для польской зимы.",
   costume_desc_syrenka: "Варшавская русалка — символ столицы.",
+  ex_normal: "Обычно",
+  ex_sub_LISTENING: "Выбери то, что прозвучало.",
+  ex_sub_DICTATION: "Запиши то, что услышишь.",
+  ex_sub_PRONUNCIATION: "Нажми на микрофон и скажи фразу.",
 };

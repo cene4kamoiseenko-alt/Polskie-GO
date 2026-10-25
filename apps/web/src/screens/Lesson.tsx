@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { WordTile } from '../components/Illustrations';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useT } from '../i18n';
+import { useT, type TKey } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
@@ -14,7 +14,10 @@ import { Badge, Stamp } from '../components/Illustrations';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
 import { ExerciseView, correctAnswerText, instructionKey, polishForFeedback, type Payload } from '../exercises/Exercises';
-import { LessonStage, sceneForRoute, type StageMood } from '../components/LessonStage';
+
+/** Підзаголовок завдання (де інструкція потребує уточнення). */
+const SUBTITLE: Partial<Record<string, TKey>> = { LISTENING: 'ex_sub_LISTENING', DICTATION: 'ex_sub_DICTATION', PRONUNCIATION: 'ex_sub_PRONUNCIATION' };
+import { LessonStage, sceneForRoute, stageBadge, type StageMood } from '../components/LessonStage';
 import { Scene } from '../components/Illustrations';
 import { isMissionSlug } from '@polski-go/shared';
 
@@ -286,16 +289,18 @@ export default function LessonScreen() {
           <Icon name="x" size={20} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide text-sky">
-            <span className="truncate">{session.place ? `${session.place.cityName} · ${tr(session.place.routeTitle)}` : t('stage_practice')}</span>
+          {/* Як на макеті 02: механіка завдання, лічильник і смуга прогресу */}
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-1.5 truncate text-[13px] font-black text-sky">
+              <Icon name={stageBadge(item.type)[0]} size={15} className="shrink-0" /> {t(stageBadge(item.type)[1])}
+            </span>
             {timeLeft !== null ? (
-              <span className="flex shrink-0 items-center gap-1 text-xp"><Icon name="clock" size={13} /> {timeLeft}</span>
+              <span className="flex shrink-0 items-center gap-1 text-[15px] font-black text-xp"><Icon name="clock" size={14} /> {timeLeft}</span>
             ) : (
-              <span className="shrink-0 text-[var(--text)]">{Math.min(firstDone + 1, session.items.length)}/{session.items.length}</span>
+              <span className="shrink-0 text-[15px] font-black tabular-nums">{Math.min(firstDone + 1, session.items.length)} / {session.items.length}</span>
             )}
           </div>
-          <div className="mb-1 line-clamp-2 text-[15px] font-black leading-tight">{session.lesson ? tr(session.lesson.title) : t(instructionKey(item))}</div>
-          <Progress value={firstDone} max={session.items.length} height={12} color="linear-gradient(90deg, #36B9FF, #25D79B)" />
+          <Progress value={firstDone} max={session.items.length} height={12} color="linear-gradient(90deg, var(--color-sky), var(--color-brand))" />
         </div>
         <div className={cx('flex shrink-0 flex-col items-center rounded-2xl px-2 py-1', mistakes ? 'bg-coral/15 text-coral' : 'bg-elev text-[var(--text-muted)]')} title={t('stage_mistakes')} aria-label={`${t('stage_mistakes')}: ${mistakes}`}>
           <Icon name="alert" size={16} />
@@ -320,10 +325,14 @@ export default function LessonScreen() {
               color={session.place?.color}
               evening={session.lesson?.kind === 'BOSS' || isMissionSlug(session.lesson?.slug)}
               mood={stageMood}
-              instruction={t(instructionKey(item))}
+              place={session.place?.cityName}
               outfit={me?.outfit.wear}
             />
-            <div className="h-4" />
+            {/* Заголовок завдання мовою інтерфейсу (на сцені Бобек говорить польською) */}
+            <div className="mb-4 mt-4 text-center">
+              <h2 className="text-[22px] font-black leading-tight">{t(instructionKey(item))}</h2>
+              {SUBTITLE[item.type] && <p className="muted mt-1 text-[15px] font-bold leading-snug">{t(SUBTITLE[item.type]!)}</p>}
+            </div>
             <ExerciseView
               item={item}
               result={result}

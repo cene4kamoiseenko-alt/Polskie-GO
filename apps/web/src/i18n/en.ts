@@ -717,4 +717,8 @@ export const en: Dict = {
   costume_desc_artist: "Beret, palette and brush for gallery walks.",
   costume_desc_winter: "A warm jacket and hat for a Polish winter.",
   costume_desc_syrenka: "The Warsaw mermaid, the capital’s symbol.",
+  ex_normal: "Normal",
+  ex_sub_LISTENING: "Choose what you heard.",
+  ex_sub_DICTATION: "Write down what you hear.",
+  ex_sub_PRONUNCIATION: "Tap the microphone and say the phrase.",
 };

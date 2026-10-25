@@ -751,6 +751,10 @@ export const uk = {
   costume_desc_artist: "Берет, палітра й пензель — для прогулянок галереями.",
   costume_desc_winter: "Тепла куртка й шапка для польської зими.",
   costume_desc_syrenka: "Варшавська сирена — символ столиці.",
+  ex_normal: "Звичайно",
+  ex_sub_LISTENING: "Обери те, що прозвучало.",
+  ex_sub_DICTATION: "Запиши те, що почуєш.",
+  ex_sub_PRONUNCIATION: "Натисни на мікрофон і скажи фразу.",
 };
 
 export type Dict = Record<keyof typeof uk, string>;

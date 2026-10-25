@@ -717,4 +717,8 @@ export const pl: Dict = {
   costume_desc_artist: "Beret, paleta i pędzel na spacer po galeriach.",
   costume_desc_winter: "Ciepła kurtka i czapka na polską zimę.",
   costume_desc_syrenka: "Syrenka — symbol Warszawy.",
+  ex_normal: "Normalnie",
+  ex_sub_LISTENING: "Wybierz to, co słychać w nagraniu.",
+  ex_sub_DICTATION: "Zapisz to, co słyszysz.",
+  ex_sub_PRONUNCIATION: "Naciśnij mikrofon i powiedz zdanie.",
 };

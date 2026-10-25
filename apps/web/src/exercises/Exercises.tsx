@@ -14,7 +14,7 @@ import { Icon } from '../components/Icon';
 import { useMe } from '../lib/queries';
 import { microphoneRecordingAvailable, recognizeRecordedPolish } from '../lib/recorder';
 import { ApiError } from '../lib/api';
-import { SpeakButton, cx } from '../components/ui';
+import { SpeakButton, SpeakPill, Waveform, cx } from '../components/ui';
 
 export type Payload = Record<string, unknown>;
 export type ExProps = {
@@ -100,23 +100,6 @@ function Highlight({ text, fill, state }: { text: string; fill?: string; state?:
 }
 
 /** Анімований еквалайзер аудіокартки (без руху при reduced motion). */
-function Equalizer() {
-  const reduce = useReducedMotion();
-  return (
-    <span className="flex h-10 items-end gap-1" aria-hidden>
-      {[0.5, 0.9, 0.65, 1, 0.55, 0.8, 0.45].map((h, i) => (
-        <motion.span
-          key={i}
-          className="w-1.5 rounded-full bg-sky"
-          style={{ height: `${h * 100}%` }}
-          animate={reduce ? undefined : { scaleY: [1, 0.45, 1] }}
-          transition={{ repeat: Infinity, duration: 0.9 + (i % 3) * 0.2, delay: i * 0.08 }}
-        />
-      ))}
-    </span>
-  );
-}
-
 // ───────── Вибір варіанту ─────────
 /** Відгук варіанта: вибір — легке збільшення, помилка — похитування, правильна — «пульс». */
 function optionMotion(st: string | undefined) {
@@ -136,20 +119,27 @@ function PromptCard({ children }: { children: ReactNode }) {
  * Аудіювання без звуку не можна чесно пройти: на пристрої немає польського голосу або озвучка не завантажилась.
  * Тоді завдання можна пропустити — без XP і без помилки (сервер приймає { skipped: true } лише для звукових типів).
  */
-function CantListen({ text, onSkip }: { text: string; onSkip: () => void }) {
+function CantListen({ text, onSkip, place }: { text: string; onSkip: () => void; place: 'controls' | 'bottom' }) {
   const { t } = useT();
   const { status, issue } = useSpeechState(text);
-  const failed = status === 'error';
+  const slowState = useSpeechState(text, true);
+  const failed = status === 'error' || slowState.status === 'error';
+  const why = status === 'error' ? issue : slowState.issue;
+  const skip = () => { stopSpeech(); onSkip(); };
+  // Біля кнопок — лише чесне повідомлення про недоступну озвучку; внизу — тиха вторинна дія.
+  if (place === 'controls') {
+    if (!failed) return null;
+    return (
+      <div className="rounded-2xl bg-muted p-3 text-center">
+        <p className="mb-2 text-sm font-bold">{t(why === 'no_polish_voice' ? 'ex_audio_missing' : why === 'blocked' ? 'audio_blocked' : 'audio_error')}</p>
+        <button type="button" className="link-secondary" onClick={skip}>{t('ex_audio_skip')}</button>
+      </div>
+    );
+  }
+  if (failed) return null;
   return (
-    <div className={cx('text-center', failed && 'rounded-2xl bg-muted p-3')}>
-      {failed && (
-        <p className="mb-2 text-sm font-bold">
-          {t(issue === 'no_polish_voice' ? 'ex_audio_missing' : issue === 'blocked' ? 'audio_blocked' : 'audio_error')}
-        </p>
-      )}
-      <button className="text-sm font-black text-sky-dark underline" onClick={() => { stopSpeech(); onSkip(); }}>
-        {t(failed ? 'ex_audio_skip' : 'ex_cant_listen')}
-      </button>
+    <div className="pt-1 text-center">
+      <button type="button" className="link-secondary" onClick={skip}>{t('ex_cant_listen')}</button>
     </div>
   );
 }
@@ -245,15 +235,14 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
           )}
         </div>
       )}
-      {/* Аудіювання: аудіокартка з еквалайзером, звичайна й повільна швидкість */}
+      {/* Аудіювання (макет 02): дві кнопки з підписами — звичайна й повільна швидкість */}
       {item.type === 'LISTENING' && data.audioText && (
-        <div className="audio-card flex items-center justify-center gap-4 p-4">
-          <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" />
-          <Equalizer />
-          <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
+        <div className="grid grid-cols-2 gap-3">
+          <SpeakPill text={data.audioText} url={data.audioUrl} />
+          <SpeakPill text={data.audioText} url={data.audioUrl} slow />
         </div>
       )}
-      {item.type === 'LISTENING' && data.audioText && !result && <CantListen text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
+      {item.type === 'LISTENING' && data.audioText && !result && <CantListen place="controls" text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
       {/* Читання: текст як справжня записка, оголошення чи меню */}
       {item.type === 'READING' && data.passage && (
         <div className="reading-paper relative p-4 pt-5 text-[16.5px] font-semibold leading-relaxed">
@@ -313,6 +302,8 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
           </motion.button>
         ))}
       </div>
+      {item.type === 'LISTENING' && data.audioText && <Waveform text={data.audioText} />}
+      {item.type === 'LISTENING' && data.audioText && !result && <CantListen place="bottom" text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
     </div>
   );
 }
@@ -358,12 +349,12 @@ function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
         </div>
       )}
       {item.type === 'DICTATION' && data.audioText && (
-        <div className="flex justify-center gap-3">
-          <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" />
-          <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
+        <div className="grid grid-cols-2 gap-3">
+          <SpeakPill text={data.audioText} url={data.audioUrl} />
+          <SpeakPill text={data.audioText} url={data.audioUrl} slow />
         </div>
       )}
-      {item.type === 'DICTATION' && data.audioText && !result && <CantListen text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
+      {item.type === 'DICTATION' && data.audioText && !result && <CantListen place="controls" text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
       <textarea
         ref={ref}
         value={value}
@@ -389,6 +380,7 @@ function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
           ))}
         </div>
       )}
+      {item.type === 'DICTATION' && data.audioText && !result && <CantListen place="bottom" text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
     </div>
   );
 }

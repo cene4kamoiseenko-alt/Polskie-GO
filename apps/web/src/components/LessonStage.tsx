@@ -118,6 +118,19 @@ function StageProp({ type, item }: { type: string; item?: ItemName }) {
   );
 }
 
+/** Мітка механіки (іконка й назва) — для шапки уроку. */
+export const stageBadge = (type: string) => TYPE_BADGE[type] ?? TYPE_BADGE.WORD_TRANSLATION;
+
+/** Репліка Бобека польською (занурення); пояснення мовою інтерфейсу — заголовок під сценою. */
+const PL_CUE: Record<string, string> = {
+  WORD_TRANSLATION: 'Wybierz tłumaczenie!', PICTURE_WORD: 'Co widzisz na obrazku?', ODD_ONE_OUT: 'Co tu nie pasuje?',
+  FIND_ERROR: 'Znajdź błąd!', FILL_GAP: 'Uzupełnij zdanie!', GRAMMAR: 'Wpisz poprawną formę!', LISTENING: 'Posłuchaj i wybierz!',
+  DICTATION: 'Posłuchaj i napisz!', READING: 'Przeczytaj i odpowiedz!', SENTENCE_TRANSLATION: 'Przetłumacz na polski!',
+  BUILD_SENTENCE: 'Ułóż zdanie!', WORD_ORDER: 'Ułóż słowa po kolei!', MATCH_PAIRS: 'Połącz w pary!', PRONUNCIATION: 'Powiedz to na głos!',
+  DIALOGUE: 'Porozmawiajmy!', SITUATION: 'Co powiesz?',
+};
+const REVERSE_CUE = 'Jak to jest po polsku?';
+
 export type StageMood = 'idle' | 'think' | 'correct' | 'wrong';
 
 const MOOD: Record<StageMood, BeaverMood> = { idle: 'happy', think: 'think', correct: 'cheer', wrong: 'sad' };
@@ -130,18 +143,21 @@ type Props = {
   color?: string;
   evening?: boolean;
   mood: StageMood;
-  instruction: string;
+  /** Назва міста для мітки сцени; без неї (тренування) показується механіка. */
+  place?: string | null;
   outfit?: BeaverOutfit;
 };
 
-export const LessonStage = memo(function LessonStage({ item, index, routeSlug, citySlug, color = '#36B9FF', evening, mood, instruction, outfit }: Props) {
+export const LessonStage = memo(function LessonStage({ item, index, routeSlug, citySlug, color = '#36B9FF', evening, mood, place, outfit }: Props) {
   const { t } = useT();
   const reduce = useReducedMotion();
   const scene = sceneForRoute(routeSlug);
   const pool = scene ? (POOLS[scene] ?? SCENE_ITEM_POOLS[scene]) : [];
   // Кожне завдання зсуває вітрину на один предмет: сусідні завдання виглядають по-різному.
   const items = pool.length ? [0, 1, 2].map((k) => pool[(index + k) % pool.length]) : undefined;
-  const badge = TYPE_BADGE[item.type] ?? TYPE_BADGE.WORD_TRANSLATION;
+  const badge = stageBadge(item.type);
+  const reverse = item.type === 'WORD_TRANSLATION' && !(item.data as { pl?: string }).pl;
+  const cue = reverse ? REVERSE_CUE : (PL_CUE[item.type] ?? PL_CUE.WORD_TRANSLATION);
   const npc = (item.type === 'DIALOGUE' || item.type === 'SITUATION') ? (item.data as unknown as { npc?: { emoji: string; name: string } }).npc : undefined;
 
   return (
@@ -155,9 +171,15 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
       )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#07182c] via-[#07182c]/35 to-transparent" />
 
-      <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-[#07182c]/75 px-2.5 py-1 text-[12px] font-black uppercase tracking-wide text-sky backdrop-blur-sm">
-        <Icon name={badge[0]} size={14} /> {t(badge[1])}
-      </div>
+      {place ? (
+        <div className="stage-tag absolute left-3 top-3" lang="pl">
+          <Icon name="pin" size={15} filled className="text-coral" /> {place}
+        </div>
+      ) : (
+        <div className="stage-tag absolute left-3 top-3 uppercase tracking-wide text-sky">
+          <Icon name={badge[0]} size={14} /> {t(badge[1])}
+        </div>
+      )}
 
       {!npc && (
         <div className="absolute right-3 top-3">
@@ -196,14 +218,15 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
         </motion.div>
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${item.key}-${instruction}`}
+            key={`${item.key}-${cue}`}
+            lang="pl"
             initial={reduce ? false : { opacity: 0, y: 8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="relative mb-3 min-w-0 flex-1 rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-[17px] font-black leading-snug text-[#10233b] shadow-[0_6px_0_rgb(0_0_0/0.25)]"
+            className="stage-bubble relative mb-3 min-w-0 flex-1 rounded-2xl rounded-bl-md px-3.5 py-2.5 text-[17px] font-black leading-snug"
           >
-            {instruction}
+            {cue}
           </motion.div>
         </AnimatePresence>
       </div>

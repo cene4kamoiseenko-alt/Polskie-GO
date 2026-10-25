@@ -368,6 +368,51 @@ export function SpeakButton({ text, url, size = 'md', slow = false }: { text: st
   );
 }
 
+/**
+ * Кнопка відтворення з підписом («Звичайно» / «Повільно»), як на макеті аудіювання.
+ * Стани: звичайний, натиснутий (active), завантаження (aria-busy), звучить, недоступно (aria-disabled + приглушений вигляд).
+ */
+export function SpeakPill({ text, url, slow = false }: { text: string; url?: string | null; slow?: boolean }) {
+  const { t } = useT();
+  // Причину збою пояснює повідомлення поруч із кнопками (CantListen), тож без тосту поверх шапки уроку.
+  const { status } = useSpeechState(text, slow);
+  const failed = status === 'error';
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        haptic.tap();
+        void speak(text, { url: url ?? undefined, slow });
+      }}
+      className={cx('speak-pill', slow ? 'is-slow' : 'is-normal', status === 'playing' && 'is-playing', failed && 'is-failed')}
+      aria-busy={status === 'loading'}
+      aria-disabled={failed || undefined}
+      aria-label={`${slow ? t('ex_slow') : t('ex_normal')} — ${t('audio_listen')}`}
+    >
+      <span className="speak-pill-icon" aria-hidden>
+        {status === 'loading' ? <span className="block h-5 w-5 animate-spin rounded-full border-[3px] border-current border-t-transparent" /> : slow ? <SlowIcon size={24} /> : <SpeakerIcon size={24} playing={status === 'playing'} muted={failed} />}
+      </span>
+      <span>{slow ? t('ex_slow') : t('ex_normal')}</span>
+    </button>
+  );
+}
+
+/** Звукова хвиля: рухається лише поки звучить фраза (не нескінченна анімація у спокої). */
+export function Waveform({ text }: { text: string }) {
+  const normal = useSpeechState(text).status;
+  const slow = useSpeechState(text, true).status;
+  const playing = normal === 'playing' || slow === 'playing';
+  return (
+    <div className={cx('waveform', playing && 'is-playing')} aria-hidden>
+      {WAVE.map((h, i) => (
+        <span key={i} style={{ height: `${h}%`, animationDelay: `${(i % 7) * 70}ms` }} />
+      ))}
+    </div>
+  );
+}
+const WAVE = [18, 30, 22, 44, 30, 60, 38, 72, 50, 86, 64, 100, 70, 92, 58, 80, 46, 66, 34, 52, 28, 40, 20, 30, 16];
+
 function SpeakerIcon({ size, playing, muted }: { size: number; playing: boolean; muted: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
