@@ -378,142 +378,184 @@ textarea {
   scrollbar-width: none;
 }
 
-/* ───────── Заставка: шари, паралакс, рухи ───────── */
+/* ───────── Заставка: панорама з листа, логотип, бобер, картка прогресу ─────────
+   Завжди темна (фірмовий екран), кольори — токени нижче. Рухи лише transform/opacity:
+   один наїзд панорами, поява бобра й картки; безкінечні — погойдування бобра і відблиск смуги. */
 .splash {
-  background: #2c92ea;
+  --splash-ink: #07182c;
+  --splash-glass: rgb(7 24 44 / 0.8);
+  --splash-line: rgb(255 255 255 / 0.14);
+  --splash-text: #f8faff;
+  --splash-muted: #c4d3e4;
+  --beaver: min(64vw, 36vh, 300px);
+  background: var(--splash-ink);
+  color: var(--splash-text);
 }
-.sw-layer {
-  --d: 0px;
-  transform: translate3d(calc(var(--px, 0) * var(--d) * -1), calc(var(--py, 0) * var(--d) * -0.5), 0);
-  transition: transform 0.6s ease-out;
-  will-change: transform;
+.splash-pano {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Колона Зигмунта ліворуч, кам'яниці Старого міста за бобром. */
+  object-position: 38% 50%;
+  user-select: none;
+  pointer-events: none;
 }
-.sw-far {
-  --d: 5px;
-  animation: sw-drift 16s ease-in-out infinite alternate;
+.splash-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgb(7 24 44 / 0.5) 0%, rgb(7 24 44 / 0) 24%),
+    linear-gradient(180deg, rgb(7 24 44 / 0) 56%, rgb(7 24 44 / 0.6) 76%, var(--splash-ink) 100%);
 }
-.sw-mid {
-  --d: 9px;
-  animation: sw-drift 13s ease-in-out infinite alternate-reverse;
+.splash-head {
+  padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 5vh);
 }
-.sw-plaza {
-  --d: 11px;
+.splash-logo {
+  width: min(84vw, 340px);
+  height: auto;
+  filter: drop-shadow(0 10px 16px rgb(7 24 44 / 0.45));
 }
-.sw-near {
-  --d: 15px;
+.splash-slogan {
+  margin-top: 10px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--splash-glass);
+  border: 1px solid var(--splash-line);
+  color: var(--splash-text);
+  font-size: 13px;
+  font-weight: 900;
 }
-.sw-front {
-  --d: 22px;
+.splash-hero {
+  position: relative;
+  width: var(--beaver);
+  height: var(--beaver);
 }
-@keyframes sw-drift {
-  from { translate: -3px 0; }
-  to { translate: 3px 0; }
+.splash-shadow {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: -3%;
+  height: 10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(7 24 44 / 0.5), rgb(7 24 44 / 0));
 }
-.sw-intro .sw-layer > svg {
-  animation: sw-rise 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.splash-beaver {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 50% 98%;
+  animation: splash-sway 3.4s ease-in-out infinite;
+  user-select: none;
 }
-.sw-intro .sw-far > svg { --rise: 26px; animation-delay: 0.05s; }
-.sw-intro .sw-mid > svg { --rise: 44px; animation-delay: 0.12s; }
-.sw-intro .sw-plaza > svg { --rise: 30px; animation-delay: 0.1s; }
-.sw-intro .sw-near > svg { --rise: 60px; animation-delay: 0.2s; }
-.sw-intro .sw-front > svg { --rise: 80px; animation-delay: 0.15s; }
-@keyframes sw-rise {
-  from { transform: translateY(var(--rise, 30px)); opacity: 0; }
-  to { transform: none; opacity: 1; }
-}
-.sw-cloud {
-  animation: sw-cloud linear infinite;
-  will-change: transform;
-}
-@keyframes sw-cloud {
-  from { transform: translateX(-230px); }
-  to { transform: translateX(calc(100vw + 40px)); }
-}
-.sw-tram {
-  animation: sw-tram 12s cubic-bezier(0.45, 0.05, 0.55, 0.95) 1.4s infinite both;
-  will-change: transform;
-}
-@keyframes sw-tram {
-  0% { transform: translateX(0); }
-  55% { transform: translateX(178%); }
-  100% { transform: translateX(178%); }
-}
-.sw-steam {
-  animation: sw-steam 2.1s ease-out infinite;
-  opacity: 0;
-}
-@keyframes sw-steam {
-  0% { opacity: 0; transform: translateY(4px); }
-  30% { opacity: 0.85; }
-  100% { opacity: 0; transform: translateY(-26px); }
-}
-.sw-birds {
-  animation: sw-birds 14s ease-in-out infinite alternate;
-}
-@keyframes sw-birds {
-  from { transform: translate(0, 0); }
-  to { transform: translate(70px, -14px); }
-}
-.sw-bird {
-  animation: sw-flap 0.55s ease-in-out infinite alternate;
-  transform-origin: 50% 70%;
-}
-@keyframes sw-flap {
-  from { transform: scaleY(1); }
-  to { transform: scaleY(0.45); }
-}
-.sw-flag {
-  animation: sw-flag 1.4s ease-in-out infinite alternate;
-}
-@keyframes sw-flag {
-  from { transform: skewY(0deg) scaleX(1); }
-  to { transform: skewY(-5deg) scaleX(0.96); }
+@keyframes splash-sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50% { transform: rotate(1.5deg); }
 }
 .splash-ui {
   padding-bottom: calc(var(--safe-b) + 3.2vh);
 }
+.splash-card {
+  padding: 12px 14px 14px;
+  border-radius: 24px;
+  background: var(--splash-glass);
+  border: 1px solid var(--splash-line);
+  box-shadow: 0 16px 32px -16px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  color: var(--splash-text);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.splash-muted {
+  color: var(--splash-muted);
+}
+.splash-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid var(--splash-line);
+}
+.splash-icon img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.splash-pct {
+  flex: none;
+  min-width: 4ch;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--splash-muted);
+}
 .splash-bar {
-  height: 32px;
-  padding: 5px;
+  position: relative;
+  height: 12px;
   border-radius: 999px;
-  background: rgb(7 24 44 / 0.66);
-  border: 1.5px solid rgb(255 255 255 / 0.22);
-  box-shadow: 0 10px 24px -10px rgb(0 0 0 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.12);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.12);
 }
 .splash-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.24) 0 9px, transparent 9px 18px), linear-gradient(180deg, #8ad8ff 0%, #36b9ff 45%, #1e6fe0 100%);
-  background-size: 26px 100%, 100% 100%;
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.55), 0 0 14px rgb(54 185 255 / 0.65);
-  transition: width 0.6s ease-out;
-  animation: splash-stripes 0.9s linear infinite;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-sky), var(--color-brand));
+  transition: transform 0.6s ease-out;
+  will-change: transform;
 }
-@keyframes splash-stripes {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 26px 0, 0 0; }
+.splash-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.5), rgb(255 255 255 / 0));
+  transform: translateX(-100%);
+  animation: splash-shine 1.8s ease-in-out infinite;
 }
-.splash-msg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 58px;
-  padding: 10px 18px;
-  border-radius: 22px;
-  background: rgb(7 24 44 / 0.68);
-  border: 1.5px solid rgb(255 255 255 / 0.18);
-  box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.65);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+@keyframes splash-shine {
+  to { transform: translateX(260%); }
+}
+/* Перший показ: панорама проявляється з легким наїздом, бобер і картка з'являються слідом. */
+.is-intro .splash-pano {
+  animation: splash-pano 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.is-intro .splash-hero {
+  animation: splash-rise 0.6s cubic-bezier(0.34, 1.4, 0.64, 1) 0.2s both;
+}
+.is-intro .splash-ui {
+  animation: splash-up 0.4s ease-out 0.35s both;
+}
+@keyframes splash-pano {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes splash-rise {
+  from { opacity: 0; transform: translateY(40px) scale(0.86); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes splash-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sw-layer, .sw-far, .sw-mid, .sw-cloud, .sw-tram, .sw-steam, .sw-birds, .sw-bird, .sw-flag, .splash-bar-fill, .sw-intro .sw-layer > svg {
+  .splash *,
+  .splash *::after {
     animation: none !important;
     transition: none !important;
   }
-  .sw-tram { display: none; }
+}
+html.reduced-motion .splash *,
+html.reduced-motion .splash *::after {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* ───────── Ігрові картки головної (референс GLOBAL REDESIGN) ───────── */

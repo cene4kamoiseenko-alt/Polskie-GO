@@ -1,84 +1,11 @@
 /**
- * Ілюстрований світ заставки POLSKI GO — Краків, оригінальна векторна графіка.
- * Кожен шар — окремий <svg> з однаковою системою координат 390×844 (обрізання по низу),
- * тож шари рухаються незалежно (паралакс, трамвай, хмари) і браузер компонує їх на GPU
- * без перемальовування всієї сцени. Безперервні рухи — CSS-анімації (див. index.css, .sw-*),
- * вимикаються при «зменшити рух».
+ * Векторний Краків (оригінальна графіка) для банера міста без растрової панорами (CityHero):
+ * дальній план (Вавель, Маріацький костел), середній (кам'яниці, Żabka) і площа.
+ * Система координат 390×844. Заставка тепер растрова (Splash.tsx), шари з паралаксом прибрано.
  */
-import { memo, type ReactNode } from 'react';
 
 const INK = '#1B3550';
 const SW = 2.2;
-const VB = '0 0 390 844';
-/** Місто підняте над панеллю завантаження: «земля» площі на ~77% висоти екрана. */
-const LIFT = 66;
-
-function Layer({ children, className = '', style, lift = LIFT }: { children: ReactNode; className?: string; style?: React.CSSProperties; lift?: number }) {
-  return (
-    <div className={`sw-layer absolute inset-0 ${className}`} style={style} aria-hidden>
-      <svg viewBox={VB} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full">
-        <g transform={lift ? `translate(0 ${-lift})` : undefined}>{children}</g>
-      </svg>
-    </div>
-  );
-}
-
-// ───────────── Небо, сонце, хмари, птахи ─────────────
-
-export function Sky() {
-  return (
-    <div className="absolute inset-0" aria-hidden style={{ background: 'linear-gradient(180deg, #1672D8 0%, #2C92EA 22%, #5DB6F4 46%, #A9DDFB 66%, #DDF2FF 80%, #F4E7CF 100%)' }}>
-      <div className="absolute -right-20 -top-16 h-80 w-80 rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,251,225,0.95) 0%, rgba(255,236,170,0.45) 32%, transparent 68%)' }} />
-      <div className="absolute inset-x-0 top-[42%] h-40" style={{ background: 'radial-gradient(60% 100% at 50% 50%, rgba(255,255,255,0.55), transparent 70%)' }} />
-    </div>
-  );
-}
-
-function CloudShape({ w = 160 }: { w?: number }) {
-  return (
-    <svg viewBox="0 0 160 70" width={w} height={(w * 70) / 160} aria-hidden>
-      <path d="M22 58 C 4 58, 2 36, 20 34 C 18 18, 40 10, 52 22 C 58 6, 90 2, 98 22 C 108 12, 132 16, 132 34 C 152 32, 158 58, 136 58 Z" fill="#FFFFFF" />
-      <path d="M22 58 C 10 58, 6 48, 12 42 C 30 50, 110 52, 150 44 C 154 54, 146 58, 136 58 Z" fill="#D7ECFB" />
-      <ellipse cx="62" cy="26" rx="16" ry="6" fill="#FFFFFF" opacity="0.9" />
-    </svg>
-  );
-}
-
-export function Clouds() {
-  const clouds: { top: string; w: number; dur: number; delay: number; op: number }[] = [
-    { top: '7%', w: 150, dur: 70, delay: -12, op: 0.95 },
-    { top: '15%', w: 110, dur: 55, delay: -40, op: 0.85 },
-    { top: '31%', w: 190, dur: 90, delay: -60, op: 0.9 },
-    { top: '42%', w: 120, dur: 64, delay: -25, op: 0.75 },
-    { top: '3%', w: 90, dur: 48, delay: -5, op: 0.7 },
-  ];
-  return (
-    <div className="absolute inset-0 overflow-hidden" aria-hidden>
-      {clouds.map((c, i) => (
-        <div key={i} className="sw-cloud absolute left-0" style={{ top: c.top, opacity: c.op, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s` }}>
-          <CloudShape w={c.w} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function Birds() {
-  return (
-    <div className="sw-birds absolute left-[8%] top-[24%]" aria-hidden>
-      {[
-        [0, 0, 1],
-        [34, -14, 0.8],
-        [64, 6, 0.9],
-      ].map(([x, y, s], i) => (
-        <svg key={i} viewBox="0 0 30 12" width={30 * s} height={12 * s} className="sw-bird absolute" style={{ left: x, top: y, animationDelay: `${i * 0.25}s` }}>
-          <path d="M1 8 Q8 0 15 8 Q22 0 29 8" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M1 8 Q8 0 15 8 Q22 0 29 8" fill="none" stroke="#6E8DAA" strokeWidth="0.8" strokeLinecap="round" opacity="0.7" />
-        </svg>
-      ))}
-    </div>
-  );
-}
 
 // ───────────── Дальній план: Вавель, панорама, Маріацький костел ─────────────
 
@@ -206,14 +133,6 @@ export function FarCityArt() {
     </>
   );
 }
-
-export const FarCity = memo(function FarCity() {
-  return (
-    <Layer className="sw-far">
-      <FarCityArt />
-    </Layer>
-  );
-});
 
 // ───────────── Середній план: кам'яниці, пам'ятник, Żabka, дерева ─────────────
 
@@ -348,48 +267,6 @@ export function MidCityArt() {
   );
 }
 
-export const MidCity = memo(function MidCity() {
-  return (
-    <Layer className="sw-mid">
-      <MidCityArt />
-    </Layer>
-  );
-});
-
-// ───────────── Трамвай (окремий шар, проїжджає вулицею) ─────────────
-
-export function Tram() {
-  return (
-    <div className="sw-tram absolute inset-0" aria-hidden>
-      <svg viewBox={VB} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full">
-        <g transform={`translate(0 ${-LIFT})`}>
-          {/* пантограф */}
-          <path d="M-118 652 L-104 632 L-90 652 M-112 632 H-96" stroke="#2C3E57" strokeWidth="2" fill="none" strokeLinejoin="round" />
-          <rect x="-236" y="650" width="226" height="56" rx="14" fill="#F4F7FA" stroke={INK} strokeWidth={SW} />
-          <path d="M-236 682 H-10 V694 Q-10 706 -24 706 H-222 Q-236 706 -236 694 Z" fill="#1D4F9C" stroke={INK} strokeWidth={SW} />
-          <path d="M-236 678 H-10" stroke="#FFC857" strokeWidth="3" />
-          <rect x="-226" y="656" width="200" height="20" rx="5" fill="#22405F" stroke={INK} strokeWidth="1.6" />
-          {[-196, -164, -132, -100, -68].map((x) => <path key={x} d={`M${x} 656 V676`} stroke="#F4F7FA" strokeWidth="2.4" />)}
-          {[-218, -186, -154, -122, -90, -58].map((x) => <path key={x} d={`M${x} 674 L${x + 10} 658`} stroke="#FFFFFF" strokeWidth="3" opacity="0.28" />)}
-          {/* ніс */}
-          <path d="M-26 656 Q-6 660 -6 686 L-10 696" stroke={INK} strokeWidth={SW} fill="none" />
-          <circle cx="-17" cy="692" r="3.4" fill="#FFE38A" stroke={INK} strokeWidth="1.2" />
-          <rect x="-60" y="644" width="36" height="9" rx="2" fill="#10233B" stroke={INK} strokeWidth="1.2" />
-          <text x="-42" y="651.5" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#FFC857" fontFamily="Nunito, system-ui, sans-serif">52 RYNEK</text>
-          {/* візки */}
-          {[-206, -70].map((x) => (
-            <g key={x}>
-              <rect x={x} y="704" width="44" height="8" rx="3" fill="#2C3E57" />
-              <circle cx={x + 10} cy="712" r="5" fill="#3A4A60" stroke={INK} strokeWidth="1.2" />
-              <circle cx={x + 34} cy="712" r="5" fill="#3A4A60" stroke={INK} strokeWidth="1.2" />
-            </g>
-          ))}
-        </g>
-      </svg>
-    </div>
-  );
-}
-
 // ───────────── Площа, колії, голуби ─────────────
 
 /** Вміст шару без обгортки — для повторного використання (банер міста на головній). */
@@ -424,90 +301,3 @@ export function PlazaArt() {
     </>
   );
 }
-
-export const Plaza = memo(function Plaza() {
-  return (
-    <Layer className="sw-plaza">
-      <PlazaArt />
-    </Layer>
-  );
-});
-
-// ───────────── Кіоск з хот-догами + пара ─────────────
-
-/** Вміст шару без обгортки — для повторного використання (банер міста на головній). */
-export function HotDogCartArt() {
-  return (
-    <>
-      <defs>
-        <clipPath id="sw-awning"><path d="M294 690 L398 690 L392 708 L300 708 Z" /></clipPath>
-      </defs>
-      <path d="M306 690 V730 M388 690 V730" stroke="#9AA3AD" strokeWidth="3" />
-      <g clipPath="url(#sw-awning)">
-        <rect x="290" y="688" width="112" height="22" fill="#FFFFFF" />
-        {[0, 1, 2, 3, 4, 5, 6].map((i) => <rect key={i} x={292 + i * 16} y="688" width="8" height="22" fill="#E5383B" />)}
-      </g>
-      <path d="M294 690 L398 690 L392 708 L300 708 Z" fill="none" stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-      {[0, 1, 2, 3, 4, 5].map((i) => <path key={i} d={`M${300 + i * 15.3} 708 a7.6 5 0 0 0 15.3 0`} fill={i % 2 ? '#FFFFFF' : '#E5383B'} stroke={INK} strokeWidth="1.4" />)}
-      <rect x="298" y="726" width="98" height="6" rx="2" fill="#C9CED6" stroke={INK} strokeWidth="1.6" />
-      <rect x="302" y="732" width="90" height="46" rx="6" fill="#FFFFFF" stroke={INK} strokeWidth={SW} />
-      <rect x="307" y="737" width="80" height="18" rx="4" fill="#E5383B" stroke={INK} strokeWidth="1.4" />
-      <text x="347" y="750.5" textAnchor="middle" fontSize="11.5" fontWeight="900" fill="#FFFFFF" fontFamily="Nunito, system-ui, sans-serif" letterSpacing="0.5">HOT-DOGI</text>
-      <g transform="translate(347 767)">
-        <path d="M-18 0 Q-18 -6 -10 -6 H10 Q18 -6 18 0 Q18 6 10 6 H-10 Q-18 6 -18 0 Z" fill="#F2B866" stroke={INK} strokeWidth="1.3" />
-        <path d="M-21 -1 Q-21 -4 -16 -4 H16 Q21 -4 21 -1 Q21 2 16 2 H-16 Q-21 2 -21 -1 Z" fill="#C9472F" stroke={INK} strokeWidth="1.2" />
-        <path d="M-14 -1 l3 -2 l3 2 l3 -2 l3 2 l3 -2 l3 2 l3 -2 l3 2" stroke="#FFD43B" strokeWidth="1.4" fill="none" />
-      </g>
-      {[318, 378].map((x) => (
-        <g key={x}>
-          <circle cx={x} cy="784" r="9" fill="#2A2F3A" stroke={INK} strokeWidth="1.6" />
-          <circle cx={x} cy="784" r="3" fill="#9AA3AD" />
-        </g>
-      ))}
-    </>
-  );
-}
-
-export const HotDogCart = memo(function HotDogCart() {
-  return (
-    <Layer className="sw-near">
-      <HotDogCartArt />
-    </Layer>
-  );
-});
-
-export function Steam() {
-  return (
-    <div className="absolute inset-0" aria-hidden>
-      <svg viewBox={VB} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full">
-        <g transform={`translate(0 ${-LIFT})`}>
-          {[312, 324, 336].map((x, i) => (
-            <path key={x} className="sw-steam" style={{ animationDelay: `${i * 0.7}s` }} d={`M${x} 700 q-5 -8 0 -16 q5 -8 0 -16`} fill="none" stroke="#FFFFFF" strokeWidth="3.2" strokeLinecap="round" />
-          ))}
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-// ───────────── Передній план: розмиті кущі ─────────────
-
-export const Foreground = memo(function Foreground() {
-  return (
-    <Layer className="sw-front" lift={0}>
-      <defs>
-        <filter id="sw-blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3.2" /></filter>
-      </defs>
-      <g filter="url(#sw-blur)" opacity="0.96">
-        <circle cx="-6" cy="824" r="52" fill="#2A7A45" />
-        <circle cx="40" cy="846" r="40" fill="#35914F" />
-        <circle cx="12" cy="790" r="26" fill="#3FA75A" />
-        <circle cx="398" cy="826" r="50" fill="#2A7A45" />
-        <circle cx="352" cy="848" r="38" fill="#35914F" />
-        <circle cx="380" cy="796" r="24" fill="#3FA75A" />
-        <circle cx="30" cy="812" r="5" fill="#FF8FA3" />
-        <circle cx="362" cy="818" r="5" fill="#FFD43B" />
-      </g>
-    </Layer>
-  );
-});
