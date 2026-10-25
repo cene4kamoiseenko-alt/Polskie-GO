@@ -4,6 +4,8 @@
  * страви та побутові предмети, значки досягнень і штампи паспорта.
  */
 import { memo, type ReactNode } from 'react';
+import { iconAsset } from '../lib/assets';
+import { Art, type ArtName } from './GameArt';
 
 const INK = '#3B4A5A';
 const SW = 2.2;
@@ -335,14 +337,30 @@ const TIER_COLORS: Record<Tier, [string, string, string]> = {
 };
 
 /** Значок досягнення: медальйон з унікальною ілюстрацією; рамка за рівнем; незароблений — сірий із замком. */
+/**
+ * Растрові символи досягнень (src/assets/icons). Старі досягнення мають емодзі в БД —
+ * їм теж підбираємо власний символ, щоб жоден значок не був заглушкою.
+ */
+const BADGE_RASTER: Record<string, string> = {
+  'snack-bag': 'shopping', basket: 'shopping', 'pierogi-plate': 'food', 'coffee-cup': 'cafe', 'backpack-patches': 'profile',
+  'map-pins': 'map', headphones: 'listening', 'book-clock': 'dictionary', speech: 'dialog', dragon: 'dragon', gnome: 'gnome',
+  explore: 'explore', mic: 'pronunciation', writing: 'writing', gift: 'gift', trophy: 'leaderboard', passport: 'passport', house: 'house',
+  '📘': 'lessons', '🔥': 'streak', '💪': 'achievements', '📖': 'writing', '📚': 'dictionary', '🎫': 'passport', '🗺️': 'map',
+  '🛍️': 'shopping', '🤝': 'dialog', '📜': 'quests', '🎁': 'gift', '🏆': 'leaderboard',
+};
+const BADGE_VECTOR: Record<string, ArtName> = { '🐾': 'sprout', '🎓': 'grad', '⭐': 'star', '💯': 'star', '🧠': 'crown' };
+
 export const Badge = memo(function Badge({ icon, unlocked, size = 72, tier }: { icon: string; unlocked: boolean; size?: number; tier?: Tier }) {
-  const art = BADGE_ART[icon];
+  const raster = BADGE_RASTER[icon] ? iconAsset(BADGE_RASTER[icon]) : null;
+  const vector = raster ? undefined : BADGE_VECTOR[icon];
+  const art = raster || vector ? undefined : BADGE_ART[icon];
   const color = art?.color ?? P.yellow;
   const tc = tier ? TIER_COLORS[tier] : null;
   const gid = `bdg-${tier ?? 'none'}`;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size, filter: unlocked && tier === 'legendary' ? 'drop-shadow(0 0 8px rgba(157,105,255,0.75))' : unlocked && tier === 'gold' ? 'drop-shadow(0 0 7px rgba(255,200,87,0.6))' : undefined }}>
-      <svg viewBox="0 0 80 80" width={size} height={size} aria-hidden style={unlocked ? undefined : { filter: 'grayscale(1)', opacity: 0.55 }}>
+      <div className="relative" style={unlocked ? undefined : { filter: 'grayscale(1)', opacity: 0.55 }}>
+      <svg viewBox="0 0 80 80" width={size} height={size} aria-hidden className="block">
         {tc && (
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor={tc[0]} /><stop offset="1" stopColor={tc[1]} /></linearGradient>
@@ -352,8 +370,11 @@ export const Badge = memo(function Badge({ icon, unlocked, size = 72, tier }: { 
         {tc && <path d="M22 16 Q40 6 58 16" stroke="#fff" strokeWidth="2.4" fill="none" opacity="0.55" strokeLinecap="round" />}
         <circle cx="40" cy="40" r="27" fill={P.cream} stroke={tc ? tc[2] : INK} strokeWidth={2} />
         <circle cx="40" cy="40" r="23" fill="none" stroke={tc ? tc[1] : color} strokeWidth={1.6} strokeDasharray="2 3" />
-        {art ? <g transform="translate(19 19) scale(0.66)">{ITEMS[art.item]}</g> : <text x="40" y="49" textAnchor="middle" fontSize="26">{icon}</text>}
+        {art ? <g transform="translate(19 19) scale(0.66)">{ITEMS[art.item]}</g> : !raster && !vector && <text x="40" y="49" textAnchor="middle" fontSize="26">{icon}</text>}
       </svg>
+      {raster && <img src={raster} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: size * 0.6, height: size * 0.6, objectFit: 'contain' }} draggable={false} />}
+      {vector && <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 leading-[0]"><Art name={vector} size={size * 0.52} /></span>}
+      </div>
       {!unlocked && (
         <span className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full bg-elev shadow" aria-hidden>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg>

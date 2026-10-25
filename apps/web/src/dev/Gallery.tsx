@@ -1,5 +1,6 @@
 /** Галерея станів маскота (лише для розробки: /__gallery). */
 import { Beaver, type BeaverMood } from '../components/Beaver';
+import { CityHero } from '../components/CityHero';
 
 const MOODS: [BeaverMood, string][] = [
   ['wave', 'Привітання'],
@@ -22,6 +23,13 @@ const MOODS: [BeaverMood, string][] = [
 export default function Gallery() {
   return (
     <div className="min-h-screen bg-[var(--bg)] p-4">
+      {location.search.includes('cities') && (
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          {['warszawa', 'krakow', 'wroclaw', 'lodz', 'katowice', 'opole', 'gdansk', 'poznan'].map((c) => (
+            <div key={c} className="overflow-hidden rounded-2xl"><CityHero slug={c} color="#36B9FF" name={c} height={200} /></div>
+          ))}
+        </div>
+      )}
       <div className="mb-4 flex items-end justify-center gap-2">
         <Beaver mood="wave" size={300} animate={false} outfit={{ BACKPACK: 'backpack-green' }} />
         <Beaver mood="think" size={150} animate={false} />

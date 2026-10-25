@@ -4,7 +4,8 @@
  * міста з великою пам'яткою цього міста. Дорожній вказівник з назвою міста.
  */
 import { memo, type ReactNode } from 'react';
-import { CITY_LANDMARKS, Landmark } from './Scenery';
+import { CityLayers } from './CityScenes';
+import { cityAsset } from '../lib/assets';
 import { FarCityArt, MidCityArt, PlazaArt } from './SplashWorld';
 
 function Signpost({ name }: { name: string }) {
@@ -21,6 +22,15 @@ function Signpost({ name }: { name: string }) {
 
 export const CityHero = memo(function CityHero({ slug, color, name, height = 236, className = '', children, evening, sign = true }: { slug: string; color: string; name: string; height?: number; className?: string; children?: ReactNode; evening?: boolean; sign?: boolean }) {
   const krakow = slug === 'krakow';
+  const photo = cityAsset(slug);
+  if (photo) {
+    return (
+      <div className={`relative overflow-hidden ${className}`} style={{ height }}>
+        <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+        {children}
+      </div>
+    );
+  }
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ height }}>
       <svg viewBox="0 0 390 240" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full" aria-hidden>
@@ -36,18 +46,18 @@ export const CityHero = memo(function CityHero({ slug, color, name, height = 236
         <rect width="390" height="240" fill="url(#ch-sky)" />
         <circle cx="350" cy="30" r="40" fill="#FFF6D0" opacity={evening ? 0.25 : 0.45} />
         {krakow ? (
-          <g transform="translate(-34 -118) scale(0.6)">
-            <FarCityArt />
-          </g>
+          <>
+            <g transform="translate(-34 -118) scale(0.6)">
+              <FarCityArt />
+            </g>
+            <g transform="translate(-8 -424) scale(0.84)">
+              <PlazaArt />
+              <MidCityArt />
+            </g>
+          </>
         ) : (
-          <g transform="translate(250 166) scale(1.55)">
-            <Landmark kind={CITY_LANDMARKS[slug] ?? 'townhall'} color={color} />
-          </g>
+          <CityLayers slug={slug} color={color} />
         )}
-        <g transform="translate(-8 -424) scale(0.84)">
-          <PlazaArt />
-          <MidCityArt />
-        </g>
         {sign && name && <Signpost name={name} />}
       </svg>
       {children}
