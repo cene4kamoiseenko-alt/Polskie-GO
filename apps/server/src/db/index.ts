@@ -78,6 +78,23 @@ export async function atomic(stmts: (Stmt | null | undefined | false)[]) {
   }
 }
 
+/**
+ * Кілька запитів на читання за один виклик D1 (batch) — один мережевий обмін замість N.
+ * Рядок — масив значень у порядку колонок SELECT. Лише для простих вибірок без однойменних колонок
+ * (count, окремі поля): об'єкт рядка D1 з однаковими іменами колонок їх злив би.
+ */
+export async function readBatch(queries: Stmt[]): Promise<unknown[][][]> {
+  if (!queries.length) return [];
+  if (!bound) throw new Error('Database is not bound');
+  const d1 = bound;
+  const prepared = queries.map((q) => {
+    const { sql, params } = (q as unknown as Preparable)._prepare().getQuery();
+    return d1.prepare(sql).bind(...params);
+  });
+  const res = await d1.batch<Record<string, unknown>>(prepared);
+  return res.map((r) => (r.results ?? []).map((row) => Object.values(row)));
+}
+
 export { schema };
 
 /** Розбити рядки на частини для багаторядкових INSERT (D1: не більше 100 параметрів на запит). */
