@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `pron_hint` text DEFAULT 'simple' NOT NULL;

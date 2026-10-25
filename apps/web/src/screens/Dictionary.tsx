@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { WordTile } from '../components/Illustrations';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { PronHint } from '../components/PronHint';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import type { VocabEntry } from '../lib/types';
@@ -111,8 +112,9 @@ export default function DictionaryScreen() {
               <WordTile pl={open.pl} size={64} picture={open.emoji} />
               <div className="flex-1">
                 <h2 className="text-3xl font-black">{open.pl}</h2>
+                <PronHint text={open.pl} className="muted font-bold" />
                 <div className="muted font-bold">
-                  [{open.pronunciation}] · {t(`pos_${open.pos}` as TKey)} · {open.cefr}
+                  {t(`pos_${open.pos}` as TKey)} · {open.cefr}
                 </div>
               </div>
               <SpeakButton text={open.pl} url={open.audioUrl} size="lg" />

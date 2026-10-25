@@ -63,6 +63,8 @@ export const userSettings = sqliteTable('user_settings', {
   notificationsEnabled: bool('notifications_enabled').notNull().default(false),
   soundEnabled: bool('sound_enabled').notNull().default(true),
   reducedMotion: bool('reduced_motion').notNull().default(false),
+  /** Підказка вимови: simple — приблизно кирилицею (лише ru/uk), ipa — транскрипція IPA, off — без підказки. */
+  pronHint: text('pron_hint', { enum: ['simple', 'ipa', 'off'] }).notNull().default('simple'),
   publicProfile: bool('public_profile').notNull().default(true),
   showInLeaderboard: bool('show_in_leaderboard').notNull().default(true),
   updatedAt: updatedAt(),

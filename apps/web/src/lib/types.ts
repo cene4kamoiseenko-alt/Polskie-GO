@@ -20,6 +20,8 @@ export type Me = {
     notificationsEnabled: boolean;
     soundEnabled: boolean;
     reducedMotion: boolean;
+    /** Може бути відсутнім, якщо сервер старіший за клієнт. */
+    pronHint?: 'simple' | 'ipa' | 'off';
     publicProfile: boolean;
     showInLeaderboard: boolean;
   };

@@ -10,6 +10,7 @@ import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useT, type TKey } from '../i18n';
 import { beaverAsset, brandAsset, cityAsset, iconAsset } from '../lib/assets';
+import { Icon } from './Icon';
 import { bootState, useBootProgress, type BootStage } from '../lib/boot';
 
 /** Іконка з листа до кожної фрази завантаження (15 — фінальна «бобер уже чекає»). */
@@ -88,15 +89,15 @@ function LoadingUi({ onRetry }: { onRetry?: () => void }) {
  * Нет связи (экран B). Продолжить офлайн не предлагаем: сохранённых для офлайна уроков нет — проверка ответов,
  * награды и прогресс идут через сервер. Когда сеть возвращается, App повторяет загрузку сам.
  */
-function ErrorUi({ onRetry }: { onRetry?: () => void }) {
+function ErrorUi({ onRetry, offline }: { onRetry?: () => void; offline: boolean }) {
   const { t } = useT();
-  const offline = !useOnline();
   return (
     <div className="splash-card text-center" role="alert" data-boot-error={offline ? 'offline' : 'server'}>
       <div className="text-lg font-black">{t(offline ? 'splash_offline_title' : 'splash_error_title')}</div>
       <div className="splash-muted mt-1 text-sm font-bold">{t(offline ? 'splash_offline_text' : 'splash_error_text')}</div>
       {onRetry && (
-        <button className="btn btn-primary mt-3 w-full" onClick={onRetry}>
+        <button className="btn btn-red mt-3 flex w-full items-center justify-center gap-2" onClick={onRetry}>
+          <Icon name="refresh" size={20} strokeWidth={2.6} />
           {t('error_retry')}
         </button>
       )}
@@ -104,15 +105,16 @@ function ErrorUi({ onRetry }: { onRetry?: () => void }) {
   );
 }
 
-export function SplashScene({ slogan, loading, error, onRetry, children }: { slogan?: string; loading?: boolean; error?: boolean; onRetry?: () => void; children?: ReactNode }) {
+export function SplashScene({ slogan, steps, loading, error, onRetry, heroBottom, children }: { slogan?: string; steps?: ReactNode; loading?: boolean; error?: boolean; onRetry?: () => void; heroBottom?: string; children?: ReactNode }) {
   const reduce = useReducedMotion();
+  const online = useOnline();
   const [intro] = useState(() => !introPlayed && !reduce);
   useEffect(() => {
     introPlayed = true;
   }, []);
   const hasUi = loading || error;
   // Бобер стоїть на площі над карткою (помилка вища за прогрес) або над реплікою онбордингу.
-  const feet = error ? 'calc(var(--safe-b) + 3.2vh + 206px)' : loading ? 'calc(var(--safe-b) + 3.2vh + 146px)' : 'calc(var(--safe-b) + 196px)';
+  const feet = heroBottom ?? (error ? 'calc(var(--safe-b) + 3.2vh + 206px)' : loading ? 'calc(var(--safe-b) + 3.2vh + 146px)' : 'calc(var(--safe-b) + 196px)');
 
   return (
     <div className={`splash relative min-h-[100dvh] overflow-hidden ${intro ? 'is-intro' : ''}`}>
@@ -122,16 +124,23 @@ export function SplashScene({ slogan, loading, error, onRetry, children }: { slo
         {/* Той самий логотип, що й у миттєвій заставці index.html, на тому ж місці: без стрибка. */}
         <img className="splash-logo" src={brandAsset('logo') ?? undefined} alt="POLSKI GO" width={640} height={126} />
         {slogan && <div className="splash-slogan">{slogan}</div>}
+        {steps}
       </header>
       <div className="absolute left-1/2 z-20 -translate-x-1/2" style={{ bottom: feet }} aria-hidden>
         <div className="splash-hero">
           <span className="splash-shadow" />
-          <img className="splash-beaver" src={beaverAsset('wave') ?? brandAsset('avatar') ?? undefined} alt="" draggable={false} />
+          {/* Помилка — бобер-мандрівник із картою (як у концепті «Немає зв'язку»), без мережі — ще й значок wi-fi. */}
+          <img className="splash-beaver" src={beaverAsset(error ? 'travel' : 'wave') ?? brandAsset('avatar') ?? undefined} alt="" draggable={false} />
+          {error && !online && (
+            <span className="splash-badge">
+              <Icon name="wifi-off" size={28} strokeWidth={2.6} />
+            </span>
+          )}
         </div>
       </div>
       {hasUi && (
         <div className="splash-ui absolute inset-x-0 bottom-0 z-30 px-5">
-          {error ? <ErrorUi onRetry={onRetry} /> : <LoadingUi onRetry={onRetry} />}
+          {error ? <ErrorUi onRetry={onRetry} offline={!online} /> : <LoadingUi onRetry={onRetry} />}
         </div>
       )}
       {children}

@@ -257,3 +257,93 @@ describe('isLoneLetter: однолітерні прийменники не оз�
     for (const x of ['we', 'ze', 'w domu', 'Wrocław', 'ul.', '', '…']) expect(isLoneLetter(x)).toBe(false);
   });
 });
+
+import { polishCyrillic, polishIpa } from '../src/pron';
+
+describe('Польська вимова: IPA за правилами написання', () => {
+  const cases: [string, string][] = [
+    ['Dzień dobry', 'd͡ʑɛɲ ˈdɔbrɨ'],
+    ['Cześć', 't͡ʂɛɕt͡ɕ'],
+    ['Dziękuję', 'd͡ʑɛŋˈkujɛ'],
+    ['Przepraszam', 'pʂɛˈpraʂam'],
+    ['Warszawa', 'varˈʂava'],
+    ['Kraków', 'ˈkrakuf'],
+    ['Wrocław', 'ˈvrɔt͡swaf'],
+    ['Łódź', 'wut͡ɕ'],
+    ['Szczecin', 'ˈʂt͡ʂɛt͡ɕin'],
+    ['Katowice', 'katɔˈvit͡sɛ'],
+    ['Opole', 'ɔˈpɔlɛ'],
+    ['chleb', 'xlɛp'],
+    ['w domu', 'ˈvdɔmu'],
+    ['w Polsce', 'ˈfpɔlst͡sɛ'],
+    ['z kawą', 'ˈskavɔ̃'],
+    ['kiedy', 'ˈkʲɛdɨ'],
+    ['pies', 'pjɛs'],
+    ['miasto', 'ˈmjastɔ'],
+    ['się', 'ɕɛ'],
+    ['mieszkanie', 'mjɛʂˈkaɲɛ'],
+    ['rzeka', 'ˈʐɛka'],
+    ['trzy', 'tʂɨ'],
+    ['wtorek', 'ˈftɔrɛk'],
+    ['ząb', 'zɔmp'],
+    ['proszę', 'ˈprɔʂɛ'],
+    ['jabłko', 'ˈjapkɔ'],
+    ['mógł', 'muk'],
+    ['pomysł', 'ˈpɔmɨsw'],
+    ['dziewczyna', 'd͡ʑɛfˈt͡ʂɨna'],
+    ['książka', 'ˈkɕɔ̃ʂka'],
+    ['piątek', 'ˈpjɔntɛk'],
+    ['Europa', 'ɛwˈrɔpa'],
+    ['auto', 'ˈawtɔ'],
+    ['nauka', 'naˈuka'],
+    ['chrząszcz', 'xʂɔ̃ʂt͡ʂ'],
+    ['bank', 'baŋk'],
+    ['kwiat', 'kfjat'],
+    ['dworzec', 'ˈdvɔʐɛt͡s'],
+    ['Gdzie jest dworzec?', 'ɡd͡ʑɛ jɛst ˈdvɔʐɛt͡s'],
+    ['wziął', 'vʑɔw'],
+    ['herbata', 'xɛrˈbata'],
+    ['miło mi', 'ˈmiwɔ mi'],
+    ['oni', 'ˈɔɲi'],
+    ['pani', 'ˈpaɲi'],
+    ['drogi', 'ˈdrɔɡʲi'],
+    ['trzydzieści', 'tʂɨˈd͡ʑɛɕt͡ɕi'],
+    ['wegetariański', 'vɛɡɛtaˈrjaɲskʲi'],
+    ['bez mięsa', 'bɛs ˈmjɛ̃sa'],
+    ['rozkład jazdy', 'ˈrɔskwat ˈjazdɨ'],
+    ['zaświadczenie', 'zaɕfjatˈt͡ʂɛɲɛ'],
+    ['z ketchupem', 'skɛˈt͡ʂupɛm'],
+  ];
+  for (const [pl, ipa] of cases) it(pl, () => expect(polishIpa(pl)).toBe(ipa));
+});
+
+describe('Польська вимова: приблизне прочитання кирилицею', () => {
+  const ru: [string, string][] = [
+    ['Dzień dobry', 'дзень до́бры'],
+    ['Cześć', 'чэсьчь'],
+    ['Dziękuję', 'дзенку́е'],
+    ['Przepraszam', 'пшэпра́шам'],
+    ['się', 'се'],
+    ['pies', 'пьес'],
+    ['mieszkanie', 'мьешка́не'],
+    ['w Polsce', 'ф по́льсцэ'],
+    ['z kawą', 'с ка́вон'],
+    ['Łódź', 'вучь'],
+    ['jabłko', 'я́пко'],
+    ['książka', 'ксёншка'],
+  ];
+  const uk: [string, string][] = [
+    ['Dzień dobry', 'дзєнь до́бри'],
+    ['Cześć', 'чесьць'],
+    ['Dziękuję', 'дзєнку́є'],
+    ['Przepraszam', 'пшепра́шам'],
+    ['się', 'сє'],
+    ['pies', 'п’єс'],
+    ['miasto', 'м’я́сто'],
+    ['Łódź', 'вуць'],
+    ['książka', 'ксьо́ншка'],
+    ['dziewczyna', 'дзєфчи́на'],
+  ];
+  for (const [pl, c] of ru) it(`ru: ${pl}`, () => expect(polishCyrillic(pl, 'ru')).toBe(c));
+  for (const [pl, c] of uk) it(`uk: ${pl}`, () => expect(polishCyrillic(pl, 'uk')).toBe(c));
+});

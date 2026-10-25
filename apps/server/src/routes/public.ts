@@ -63,6 +63,7 @@ me.patch('/me/settings', async (c) => {
       notificationsEnabled: z.boolean().optional(),
       soundEnabled: z.boolean().optional(),
       reducedMotion: z.boolean().optional(),
+      pronHint: z.enum(['simple', 'ipa', 'off']).optional(),
       publicProfile: z.boolean().optional(),
       showInLeaderboard: z.boolean().optional(),
     })

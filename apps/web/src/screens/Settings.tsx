@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Me } from '../lib/types';
 import { Card, Modal, ScreenHeader, Toggle, cx, useToast } from '../components/ui';
 import { devicePolishVoice, speak, type SpeechOutcome } from '../lib/audio';
+import { PronHint } from '../components/PronHint';
 
 /**
  * Звідки береться польська озвучка на цьому пристрої + перевірка справжнім відтворенням:
@@ -47,6 +48,23 @@ function AudioDiagnostics({ server, provider }: { server: boolean; provider: str
             : t(result.issue === 'no_polish_voice' ? 'ex_audio_missing' : result.issue === 'blocked' ? 'audio_blocked' : 'audio_error')}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Підказка вимови: приблизно кирилицею (лише ru/uk), IPA або без підказки; приклад — на живій фразі. */
+function PronSetting({ value, onChange }: { value: 'simple' | 'ipa' | 'off'; onChange: (v: 'simple' | 'ipa' | 'off') => void }) {
+  const { t, lang } = useT();
+  const cyr = lang === 'ru' || lang === 'uk';
+  const options: ['simple' | 'ipa' | 'off', string][] = [...(cyr ? [['simple', t('pron_simple')] as ['simple', string]] : []), ['ipa', 'IPA'], ['off', t('pron_off')]];
+  return (
+    <div className="space-y-2 py-2" data-setting="pron">
+      <div className="font-bold">{t('set_pron')}</div>
+      <Seg value={!cyr && value === 'simple' ? 'ipa' : value} options={options} onChange={onChange} />
+      <div className="text-sm font-bold">
+        <span lang="pl">Dzień dobry</span> <PronHint text="Dzień dobry" inline className="text-sky-dark" />
+      </div>
+      <p className="muted text-xs font-semibold">{t('set_pron_note')}</p>
     </div>
   );
 }
@@ -111,6 +129,7 @@ export default function SettingsScreen() {
           </div>
         )}
         <Toggle icon="headphones" label={t('set_sound')} checked={s.soundEnabled} onChange={(v) => set({ soundEnabled: v })} />
+        <PronSetting value={s.pronHint ?? 'simple'} onChange={(v) => set({ pronHint: v })} />
         <AudioDiagnostics server={!!me.audio?.server} provider={me.audio?.provider ? `${me.audio.provider} · ${me.audio.voice}` : null} />
         <Toggle icon="layers" label={t('set_motion')} checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />
       </Card>

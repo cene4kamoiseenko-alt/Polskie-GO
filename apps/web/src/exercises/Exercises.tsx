@@ -17,6 +17,7 @@ import type { RecognitionRun } from '../lib/recognition';
 import type { Transcription } from '../lib/api';
 import { ApiError } from '../lib/api';
 import { SpeakButton, SpeakPill, Waveform, cx } from '../components/ui';
+import { PronHint } from '../components/PronHint';
 import { NpcFace, Pictogram } from '../components/pictograms/Pictogram';
 import { brandAsset } from '../lib/assets';
 
@@ -671,14 +672,14 @@ function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <div className="flex w-full items-end gap-1">
-        <div className="card prompt-card relative flex min-w-0 flex-1 items-center gap-3 p-4 text-left">
-          <div className="flex shrink-0 flex-col gap-1.5">
-            <SpeakButton text={data.text} url={data.audioUrl} />
-            <SpeakButton text={data.text} url={data.audioUrl} size="sm" slow />
-          </div>
-          <div className="min-w-0">
-            <div className="text-2xl font-black leading-tight">{data.text}</div>
-            <div className="muted font-bold">{tr(data.translation)}</div>
+        <div className="card prompt-card relative min-w-0 flex-1 p-4 text-left">
+          <div lang="pl" className="text-2xl font-black leading-tight">{data.text}</div>
+          <PronHint text={data.text} className="mt-0.5 text-[15px] font-bold text-sky-dark" />
+          <div className="muted font-bold">{tr(data.translation)}</div>
+          {/* Дві швидкості з підписами, як в аудіюванні: зразок перед записом. */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <SpeakPill text={data.text} url={data.audioUrl} />
+            <SpeakPill text={data.text} url={data.audioUrl} slow />
           </div>
         </div>
       </div>

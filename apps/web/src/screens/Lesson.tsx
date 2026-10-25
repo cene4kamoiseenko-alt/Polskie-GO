@@ -13,6 +13,7 @@ import { Icon, type LineIconName } from '../components/Icon';
 import { Badge, Stamp } from '../components/Illustrations';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton, useToast } from '../components/ui';
+import { PronHint } from '../components/PronHint';
 import { ExerciseView, correctAnswerText, instructionKey, polishForFeedback, type Payload } from '../exercises/Exercises';
 
 /** Підзаголовок завдання (де інструкція потребує уточнення). */
@@ -240,7 +241,7 @@ export default function LessonScreen() {
                     <div className="min-w-0 flex-1">
                       <div className="font-black">{w.pl}</div>
                       <div className="muted line-clamp-2 text-sm font-bold leading-tight">
-                        {w.pronunciation && `[${w.pronunciation}] · `}
+                        <PronHint text={w.pl} inline className="mr-1" />
                         {tr(w.translations)}
                       </div>
                     </div>
@@ -364,7 +365,9 @@ export default function LessonScreen() {
         </AnimatePresence>
       </div>
 
-      {/* Нижня панель: перевірка / зворотний зв'язок */}
+      {/* Нижня панель: перевірка / зворотний зв'язок. Для вимови до відповіді панелі немає зовсім:
+          порожня смуга фону перекривала кнопку запису на вузьких екранах. */}
+      {(isDialogue || result || item.type !== 'PRONUNCIATION') && (
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto max-w-xl">
         <AnimatePresence>
           {result && !speed && (
@@ -433,13 +436,14 @@ export default function LessonScreen() {
                 {t('next')}
               </button>
             )
-          ) : item.type === 'PRONUNCIATION' ? null : (
+          ) : (
             <button className="btn btn-primary w-full text-lg" data-action="check" disabled={!payload || checking} aria-busy={checking} onClick={() => check()}>
               {checking ? <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[3px] border-white border-t-transparent" /> : t('lesson_check')}
             </button>
           )}
         </div>
       </div>
+      )}
       <QuitModal open={quit} onStay={() => setQuit(false)} onQuit={() => nav(-1)} />
     </div>
   );

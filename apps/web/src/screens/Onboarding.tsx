@@ -8,6 +8,7 @@ import type { Cefr, UiLang } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { haptic } from '../lib/telegram';
+import { speak, stopSpeech } from '../lib/audio';
 import { useJourney, useUpdateSettings } from '../lib/queries';
 import type { Me } from '../lib/types';
 import { Beaver } from '../components/Beaver';
@@ -17,6 +18,9 @@ import { Logo, Skyline } from '../components/Scenery';
 import { LangFlag } from '../components/pictograms/Flag';
 import { PictoTile } from '../components/pictograms/Pictogram';
 import { inkOn } from '../lib/color';
+
+/** Перша польська фраза знайомства (після «Cześć!»): звучить польським голосом за кнопкою «Послухати». */
+const HELLO_PL = 'Jestem Bobek. Razem nauczymy się polskiego!';
 
 const LANGS: { code: UiLang; name: string }[] = [
   { code: 'uk', name: 'Українська' },
@@ -55,6 +59,7 @@ export default function Onboarding() {
   const [time, setTime] = useState<(typeof TIMES)[number]>(10);
   const [hour, setHour] = useState<number | null>(19);
   const [busy, setBusy] = useState(false);
+  const [heard, setHeard] = useState(false);
 
   const steps = ['hello', 'lang', 'level', ...(level !== 'A0' ? ['placement'] : []), 'goal', 'time', 'reminder', 'map'];
   const id = steps[step];
@@ -82,15 +87,32 @@ export default function Onboarding() {
 
   if (id === 'hello') {
     return (
-      <SplashScene slogan={t('slogan')}>
-        <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45, type: 'spring' }} className="absolute inset-x-5 z-30 rounded-3xl border-2 border-sky/60 bg-white px-5 py-3.5 text-left text-[15px] font-bold leading-snug text-ink shadow-[0_8px_0_rgb(7_24_44/0.35)]" style={{ bottom: 'calc(var(--safe-b) + 92px)' }}>
+      <SplashScene
+        slogan={t('slogan')}
+        // Бобер стоїть над реплікою: репліка (≈150 px) над двома кнопками.
+        heroBottom="calc(var(--safe-b) + 286px)"
+        steps={
+          <div className="splash-steps" aria-label={t('boot_step', { n: 1, total: steps.length })}>
+            {steps.map((x, i) => <i key={x} className={i === 0 ? 'on' : undefined} />)}
+            <span className="ml-1">1/{steps.length}</span>
+          </div>
+        }
+      >
+        <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45, type: 'spring' }} className="absolute inset-x-5 z-30 rounded-3xl border-2 border-sky/60 bg-white px-5 py-3.5 text-left text-ink shadow-[0_8px_0_rgb(7_24_44/0.35)]" style={{ bottom: 'calc(var(--safe-b) + 150px)' }}>
           <div className="absolute -top-2.5 left-1/2 h-5 w-5 -translate-x-1/2 rotate-45 border-l-2 border-t-2 border-sky/60 bg-white" />
           <div className="mb-0.5 text-[12px] font-black uppercase tracking-wide text-sky-dark">Bobek</div>
-          {t('ob_bubble')}
+          <div lang="pl" className="text-[26px] font-black leading-tight">Cześć!</div>
+          <div lang="pl" className="text-[16px] font-extrabold leading-snug">{HELLO_PL}</div>
+          {t('ob_bubble') && <div className="mt-0.5 text-[14px] font-bold leading-snug text-[#3d5168]">{t('ob_bubble')}</div>}
         </motion.div>
-        <div className="safe-bottom absolute inset-x-5 bottom-4 z-20">
-          <motion.button initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); nextStep(); }}>
+        <div className="safe-bottom absolute inset-x-5 bottom-4 z-20 space-y-2">
+          <motion.button initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); stopSpeech(); nextStep(); }}>
             {t('ob_start_journey')}
+          </motion.button>
+          {/* Польська звучить лише польським голосом (сервер або голос пристрою); без нього — зрозумілий стан, а не чужий голос. */}
+          <motion.button initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }} className="btn btn-ghost flex w-full items-center justify-center gap-2 bg-white text-ink" onClick={() => { haptic.tap(); setHeard(true); void speak(`Cześć! ${HELLO_PL}`); }}>
+            <Icon name="headphones" size={20} />
+            {t(heard ? 'ob_listen_again' : 'ob_listen')}
           </motion.button>
         </div>
       </SplashScene>

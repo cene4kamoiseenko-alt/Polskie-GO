@@ -35,9 +35,25 @@ const I18nCtx = createContext<Ctx | null>(null);
 export function I18nProvider({ lang, children }: { lang: UiLang; children: ReactNode }) {
   const [loaded, setLoaded] = useState(0);
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
+  // Словник, яким відрендерено цей кадр (undefined — показано запасну українську).
+  const rendered = DICTS[lang];
   useEffect(() => {
-    if (!DICTS[lang]) void preloadLang(lang).then(() => setLoaded((n) => n + 1));
-  }, [lang]);
+    // Словник міг довантажитись між рендером і цим ефектом (кешований чанк) — тоді просто перемальовуємо,
+    // інакше інтерфейс назавжди лишався б запасною мовою.
+    if (DICTS[lang]) {
+      if (!rendered) setLoaded((n) => n + 1);
+      return;
+    }
+    // Невдалий динамічний імпорт браузер запам'ятовує до перезавантаження, тож повтор тут нічого не дасть:
+    // лишається запасна мова, а недовантажені екрани обробляє ScreenBoundary («Перезавантажити»).
+    let alive = true;
+    void preloadLang(lang).then(() => {
+      if (alive && DICTS[lang]) setLoaded((n) => n + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lang, rendered]);
   const value = useMemo<Ctx>(() => {
     void loaded;
     const dict = DICTS[lang] ?? uk;

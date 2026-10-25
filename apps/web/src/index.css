@@ -154,13 +154,14 @@ textarea {
 }
 
 /* Безпечні зони Telegram (Bot API 8.0+) з запасними значеннями браузера */
-.safe-top {
-  padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));
-}
 :root {
   /* Висота нижньої навігації без safe area — вміст не ховається під неї. */
   --nav-h: 76px;
+  --safe-t: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));
   --safe-b: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+.safe-top {
+  padding-top: var(--safe-t);
 }
 .stat-pill {
   display: inline-flex;
@@ -454,9 +455,23 @@ textarea {
   --splash-line: rgb(255 255 255 / 0.14);
   --splash-text: #f8faff;
   --splash-muted: #c4d3e4;
+  --splash-track: rgb(255 255 255 / 0.12);
+  --splash-top: rgb(7 24 44 / 0.5);
   --beaver: min(64vw, 36vh, 300px);
+  /* Панорама йде під статус-бар: корінь має відступ safe area, тут він компенсується, а шапка сама відступає вниз. */
+  margin-top: calc(-1 * var(--safe-t));
   background: var(--splash-ink);
   color: var(--splash-text);
+}
+/* Світла тема: світла скляна картка і світлий низ, панорама без темного затемнення. */
+html.light .splash {
+  --splash-ink: #fff7ec;
+  --splash-glass: rgb(255 255 255 / 0.9);
+  --splash-line: rgb(7 24 44 / 0.1);
+  --splash-text: #0b2440;
+  --splash-muted: #3d5168;
+  --splash-track: rgb(7 24 44 / 0.1);
+  --splash-top: rgb(7 24 44 / 0.28);
 }
 .splash-pano {
   position: absolute;
@@ -473,12 +488,54 @@ textarea {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* Запасний варіант для WebView без color-mix (iOS < 16.2): темний низ в обох темах. */
   background:
-    linear-gradient(180deg, rgb(7 24 44 / 0.5) 0%, rgb(7 24 44 / 0) 24%),
+    linear-gradient(180deg, var(--splash-top) 0%, rgb(7 24 44 / 0) 24%),
     linear-gradient(180deg, rgb(7 24 44 / 0) 56%, rgb(7 24 44 / 0.6) 76%, var(--splash-ink) 100%);
+  background:
+    linear-gradient(180deg, var(--splash-top) 0%, rgb(7 24 44 / 0) 24%),
+    linear-gradient(180deg, transparent 56%, color-mix(in srgb, var(--splash-ink) 60%, transparent) 76%, var(--splash-ink) 100%);
 }
 .splash-head {
-  padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 5vh);
+  padding-top: calc(var(--safe-t) + 5vh);
+}
+/* Значок «немає мережі» біля голови бобра. */
+.splash-badge {
+  position: absolute;
+  right: 4%;
+  top: 4%;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: var(--color-pl-red);
+  color: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 8px 18px -8px rgb(0 0 0 / 0.6);
+}
+/* Кроки знайомства під слоганом. */
+.splash-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--splash-glass);
+  border: 1px solid var(--splash-line);
+  font-size: 12px;
+  font-weight: 900;
+}
+.splash-steps i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--splash-track);
+}
+.splash-steps i.on {
+  width: 18px;
+  background: var(--color-pl-red);
 }
 .splash-logo {
   width: min(84vw, 340px);
@@ -546,6 +603,7 @@ textarea {
   height: 48px;
   border-radius: 16px;
   background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--splash-text) 8%, transparent);
   border: 1px solid var(--splash-line);
 }
 .splash-icon img {
@@ -567,7 +625,7 @@ textarea {
   height: 12px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgb(255 255 255 / 0.12);
+  background: var(--splash-track);
 }
 .splash-bar-fill {
   position: absolute;
@@ -577,6 +635,11 @@ textarea {
   background: linear-gradient(90deg, var(--color-sky), var(--color-brand));
   transition: transform 0.6s ease-out;
   will-change: transform;
+  /* Плавний старт від нуля: смуга не стрибає одразу на перший етап. */
+  animation: splash-fill-in 0.3s ease-out;
+}
+@keyframes splash-fill-in {
+  from { transform: translateX(-100%); }
 }
 .splash-bar-fill::after {
   content: '';
@@ -1207,4 +1270,11 @@ html.reduced-motion .splash *::after {
 }
 .bg-sky.text-white {
   background-color: var(--fill-sky);
+}
+
+/* Підказка вимови. Знаків IPA (ɕ ʑ ʂ ɛ ɔ ɨ ˈ t͡s) немає в наборі Nunito — увесь рядок системним шрифтом, щоб не змішувати гарнітури. */
+.pron-hint[data-pron='ipa'] {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
