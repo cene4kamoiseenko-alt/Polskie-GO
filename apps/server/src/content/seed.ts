@@ -8,7 +8,7 @@ import { DEFAULT_REWARDS } from '@polski-go/shared';
 import { resetIds } from './builders';
 import { CONTINUATION_TEXT_FIXES } from './continuation-fixes';
 import { EXERCISE_FIXES } from './exercise-fixes';
-import { LESSON_MOVES, TEXT_FIXES } from './fixes';
+import { LESSON_MOVES, ROUTE_ICON_FIXES, TEXT_FIXES } from './fixes';
 import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
 import { WARSZAWA } from './warszawa';
@@ -178,7 +178,7 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   lessonSql(EXAM_A1, 0, null);
 
   // ── Явні виправлення текстів (лише якщо в БД досі старе значення з коду) ──
-  for (const f of [...TEXT_FIXES, ...CONTINUATION_TEXT_FIXES]) {
+  for (const f of [...TEXT_FIXES, ...CONTINUATION_TEXT_FIXES, ...ROUTE_ICON_FIXES]) {
     out.push(`UPDATE ${f.table} SET "${f.column}" = ${lit(f.to)} WHERE slug = ${lit(f.slug)} AND "${f.column}" = ${lit(f.from)};`);
   }
   // ── Перенесення уроків між локаціями (лише з очікуваної старої локації) ──

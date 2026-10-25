@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
 import { useMe, useShop } from '../lib/queries';
-import { Beaver, ITEM_ICONS } from '../components/Beaver';
+import { Beaver } from '../components/Beaver';
+import { ITEM_PICTO, PictoTile } from '../components/pictograms/Pictogram';
 import { EmptyState, ScreenHeader, ScreenSkeleton } from '../components/ui';
 
 /** Розміщення предметів у кімнаті (відсотки від ширини/висоти сцени). */
@@ -32,7 +33,7 @@ export default function HouseScreen() {
           const [x, y, s] = SPOTS[key] ?? [50, 60, 40];
           return (
             <motion.div key={key} initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -translate-x-1/2 -translate-y-full" style={{ left: `${x}%`, top: `${y}%`, fontSize: s }}>
-              {ITEM_ICONS[key] ?? '🎁'}
+              <PictoTile spec={ITEM_PICTO[key] ?? null} size={s} />
             </motion.div>
           );
         })}

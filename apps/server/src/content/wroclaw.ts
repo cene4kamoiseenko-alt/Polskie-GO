@@ -16,7 +16,7 @@ export const WROCLAW: CityContent = {
       slug: 'wro-kawiarnia',
       title: t('У кав\'ярні', 'В кофейне', 'At the café'),
       description: t('Замов каву, чай і тістечко', 'Закажи кофе, чай и пирожное', 'Order coffee, tea and cake'),
-      icon: '☕',
+      icon: 'cafe',
       lessons: [
         {
           slug: 'wro-1-kawa',
@@ -68,7 +68,7 @@ export const WROCLAW: CityContent = {
       slug: 'wro-sklep',
       title: t('У магазині', 'В магазине', 'At the shop'),
       description: t('Żabka, ціни і оплата', 'Żabka, цены и оплата', 'Żabka, prices and paying'),
-      icon: '🛒',
+      icon: 'shopping',
       lessons: [
         {
           slug: 'wro-2-zabka',
@@ -165,7 +165,7 @@ export const WROCLAW: CityContent = {
       slug: 'wro-restauracja',
       title: t('У ресторані', 'В ресторане', 'At the restaurant'),
       description: t('Замов обід і попроси рахунок', 'Закажи обед и попроси счёт', 'Order lunch and ask for the bill'),
-      icon: '🍽️',
+      icon: 'food',
       lessons: [
         {
           slug: 'wro-4-restauracja',
@@ -214,7 +214,7 @@ export const WROCLAW: CityContent = {
       slug: 'wro-egzamin',
       title: t('Іспит Вроцлава', 'Экзамен Вроцлава', 'Wrocław exam'),
       description: t('Пройди, щоб отримати квиток до Познані', 'Пройди, чтобы получить билет в Познань', 'Pass to get a ticket to Poznań'),
-      icon: '🏆',
+      icon: 'achievements',
       lessons: [
         {
           slug: 'wro-boss',

@@ -222,7 +222,7 @@ export default function LessonScreen() {
               <div className="grid grid-cols-1 gap-2">
                 {session.words.map((w) => (
                   <div key={w.id} className="card flex items-center gap-3 px-3 py-2">
-                    <WordTile pl={w.pl} size={40} />
+                    <WordTile pl={w.pl} size={40} picture={w.emoji} />
                     <div className="min-w-0 flex-1">
                       <div className="font-black">{w.pl}</div>
                       <div className="muted line-clamp-2 text-sm font-bold leading-tight">

@@ -15,7 +15,7 @@ export const KATOWICE: CityContent = {
       slug: 'kat-ruch',
       title: t('Куди і чим?', 'Куда и на чём?', 'Where to and how?'),
       description: t('Транспорт, do/na і дієслова руху', 'Транспорт, do/na и глаголы движения', 'Transport, do/na and verbs of motion'),
-      icon: '🚋',
+      icon: 'transport',
       lessons: [
         {
           slug: 'kat-1-transport',
@@ -123,7 +123,7 @@ export const KATOWICE: CityContent = {
       slug: 'kat-pary',
       title: t('Підступні пари', 'Коварные пары', 'Tricky pairs'),
       description: t('Wiedzieć / znać і tę / tą', 'Wiedzieć / znać и tę / tą', 'Wiedzieć / znać and tę / tą'),
-      icon: '⚖️',
+      icon: 'dictionary',
       lessons: [
         {
           slug: 'kat-3-wiedziec-znac',
@@ -226,7 +226,7 @@ export const KATOWICE: CityContent = {
       slug: 'kat-egzamin',
       title: t('Іспит Катовіце', 'Экзамен Катовице', 'Katowice exam'),
       description: t('Транспорт, рух і підступні пари', 'Транспорт, движение и коварные пары', 'Transport, motion, tricky pairs'),
-      icon: '🏆',
+      icon: 'achievements',
       lessons: [
         {
           slug: 'kat-boss',

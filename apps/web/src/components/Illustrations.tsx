@@ -6,6 +6,7 @@
 import { memo, type ReactNode } from 'react';
 import { iconAsset } from '../lib/assets';
 import { Art, type ArtName } from './GameArt';
+import { Pictogram, hasPictogram } from './pictograms/Pictogram';
 
 const INK = '#3B4A5A';
 const SW = 2.2;
@@ -352,8 +353,9 @@ const BADGE_VECTOR: Record<string, ArtName> = { '🐾': 'sprout', '🎓': 'grad'
 
 export const Badge = memo(function Badge({ icon, unlocked, size = 72, tier }: { icon: string; unlocked: boolean; size?: number; tier?: Tier }) {
   const raster = BADGE_RASTER[icon] ? iconAsset(BADGE_RASTER[icon]) : null;
-  const vector = raster ? undefined : BADGE_VECTOR[icon];
-  const art = raster || vector ? undefined : BADGE_ART[icon];
+  const art = raster ? undefined : BADGE_ART[icon];
+  // Невідомий значок — векторна зірка (емодзі в інтерфейсі не показуємо).
+  const vector = raster || art ? undefined : (BADGE_VECTOR[icon] ?? 'star');
   const color = art?.color ?? P.yellow;
   const tc = tier ? TIER_COLORS[tier] : null;
   const gid = `bdg-${tier ?? 'none'}`;
@@ -370,7 +372,7 @@ export const Badge = memo(function Badge({ icon, unlocked, size = 72, tier }: { 
         {tc && <path d="M22 16 Q40 6 58 16" stroke="#fff" strokeWidth="2.4" fill="none" opacity="0.55" strokeLinecap="round" />}
         <circle cx="40" cy="40" r="27" fill={P.cream} stroke={tc ? tc[2] : INK} strokeWidth={2} />
         <circle cx="40" cy="40" r="23" fill="none" stroke={tc ? tc[1] : color} strokeWidth={1.6} strokeDasharray="2 3" />
-        {art ? <g transform="translate(19 19) scale(0.66)">{ITEMS[art.item]}</g> : !raster && !vector && <text x="40" y="49" textAnchor="middle" fontSize="26">{icon}</text>}
+        {art ? <g transform="translate(19 19) scale(0.66)">{ITEMS[art.item]}</g> : null}
       </svg>
       {raster && <img src={raster} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: size * 0.6, height: size * 0.6, objectFit: 'contain' }} draggable={false} />}
       {vector && <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 leading-[0]"><Art name={vector} size={size * 0.52} /></span>}
@@ -437,11 +439,13 @@ const WORD_ITEM: Record<string, ItemName> = {
 const TILE_COLORS = ['#35C88A', '#55BDF4', '#FFBD42', '#F45159', '#9568F5', '#2BB3A3'];
 
 /** Ілюстрація слова (якщо є) або однакова для всіх слів плитка з першою літерою. */
-export const WordTile = memo(function WordTile({ pl, size = 48 }: { pl: string; size?: number }) {
+export const WordTile = memo(function WordTile({ pl, size = 48, picture }: { pl: string; size?: number; picture?: string | null }) {
   const item = WORD_ITEM[pl];
   if (item) {
     return <span className="grid shrink-0 place-items-center rounded-2xl bg-muted" style={{ width: size, height: size }}><Item name={item} size={size * 0.82} /></span>;
   }
+  // Ключ картинки слова зі словника (історично емодзі) → піктограма; невідомий ключ — буквена плитка.
+  if (hasPictogram(picture)) return <Pictogram emoji={picture} size={size} seed={pl} />;
   const color = TILE_COLORS[[...pl].reduce((h, c) => h + c.charCodeAt(0), 0) % TILE_COLORS.length];
   return (
     <span className="grid shrink-0 place-items-center rounded-2xl font-black text-white" style={{ width: size, height: size, background: color, fontSize: size * 0.42, boxShadow: 'inset 0 -3px 0 rgb(0 0 0 / 0.12)' }} aria-hidden>

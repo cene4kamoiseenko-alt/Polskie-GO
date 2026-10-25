@@ -1,4 +1,5 @@
-import { Beaver, ITEM_ICONS, type BeaverOutfit } from './Beaver';
+import { Beaver, type BeaverOutfit } from './Beaver';
+import { ITEM_PICTO, PictoTile } from './pictograms/Pictogram';
 
 export const WEAR_SLOTS = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME'];
 
@@ -11,5 +12,5 @@ export function ItemPreview({ slot, assetKey, size = 64 }: { slot: string; asset
       </span>
     );
   }
-  return <span className="grid place-items-center rounded-2xl bg-muted" style={{ width: size, height: size, fontSize: size * 0.55 }}>{ITEM_ICONS[assetKey] ?? '🎁'}</span>;
+  return <PictoTile spec={ITEM_PICTO[assetKey] ?? null} size={size} />;
 }

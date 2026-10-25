@@ -25,7 +25,7 @@ export const KRK_TRAMWAJ: RouteSeed = {
   slug: 'krk-tramwaj',
   title: t('Tramwaj', 'Tramwaj', 'Tramwaj'),
   description: t('Міський транспорт: зупинки, лінії, квитки, пасажири й контроль', 'Городской транспорт: остановки, линии, билеты, пассажиры и контроль', 'City transport: stops, lines, tickets, passengers and inspections'),
-  icon: '🚋',
+  icon: 'transport',
   lessons: [
     // ───────────── Урок 1 ─────────────
     {

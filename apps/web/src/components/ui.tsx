@@ -219,13 +219,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Іконка тосту за ключем (історично — емодзі); невідомий ключ — нейтральна зірка, емодзі не показується. */
 const TOAST_ICONS: Record<string, [LineIconName, string]> = {
-  '⚠️': ['alert', '#F45159'], '✅': ['check', '#35C88A'], 'ℹ️': ['alert', '#55BDF4'], '✨': ['star', '#FFBD42'],
-  '👋': ['user', '#9568F5'], '🔇': ['headphones', '#F45159'], '🤝': ['user', '#35C88A'],
+  '⚠️': ['alert', 'var(--color-coral)'], '✅': ['check', 'var(--color-brand-dark)'], 'ℹ️': ['alert', 'var(--color-sky-dark)'], '✨': ['star', 'var(--color-xp-dark)'],
+  '👋': ['user', 'var(--color-grape)'], '🔇': ['headphones', 'var(--color-coral)'], '🤝': ['user', 'var(--color-brand-dark)'], '🎁': ['gift', 'var(--color-xp-dark)'],
+  '📋': ['check', 'var(--color-sky-dark)'],
 };
 function ToastIcon({ icon }: { icon: string }) {
-  const m = TOAST_ICONS[icon];
-  if (!m) return <span className="text-xl">{icon}</span>;
+  const m = TOAST_ICONS[icon] ?? ['star', 'var(--color-sky-dark)'];
   return <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ background: m[1] }}><Icon name={m[0]} size={16} strokeWidth={2.6} /></span>;
 }
 

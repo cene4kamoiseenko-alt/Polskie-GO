@@ -20,7 +20,7 @@ export const KRK_RYNEK: RouteSeed = {
   slug: 'krk-rynek',
   title: t('Rynek Główny', 'Rynek Główny', 'Rynek Główny'),
   description: t('Місто й пам\'ятки: орієнтування, опис місць, запитання перехожим', 'Город и достопримечательности: ориентирование, описание мест, вопросы прохожим', 'The city and its sights: directions, describing places, asking passers-by'),
-  icon: '⛪',
+  icon: 'explore',
   lessons: [
     // ───────────── Урок 1 ─────────────
     {

@@ -27,7 +27,7 @@ export const KRK_UNIWERSYTET: RouteSeed = {
   slug: 'krk-uniwersytet',
   title: t('Uniwersytet', 'Uniwersytet', 'Uniwersytet'),
   description: t('Університет: кампус, розклад, студенти, бібліотека й деканат', 'Университет: кампус, расписание, студенты, библиотека и деканат', 'University: campus, timetable, students, library and dean\'s office'),
-  icon: '🎓',
+  icon: 'lessons',
   lessons: [
     // ───────────── Урок 1 ─────────────
     {

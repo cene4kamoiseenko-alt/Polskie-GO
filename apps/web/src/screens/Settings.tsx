@@ -30,7 +30,7 @@ function AudioDiagnostics({ server, provider }: { server: boolean; provider: str
   );
 }
 
-const LANGS: [UiLang, string][] = [['uk', '🇺🇦 Українська'], ['ru', '🌐 Русский'], ['en', '🇬🇧 English'], ['pl', '🇵🇱 Polski']];
+const LANGS: [UiLang, string][] = [['uk', 'Українська'], ['ru', 'Русский'], ['en', 'English'], ['pl', 'Polski']];
 
 function Seg<T extends string | number>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (

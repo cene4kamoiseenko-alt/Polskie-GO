@@ -15,6 +15,10 @@ import { useMe } from '../lib/queries';
 import { microphoneRecordingAvailable, recognizeRecordedPolish } from '../lib/recorder';
 import { ApiError } from '../lib/api';
 import { SpeakButton, SpeakPill, Waveform, cx } from '../components/ui';
+import { NpcFace, Pictogram } from '../components/pictograms/Pictogram';
+import { brandAsset } from '../lib/assets';
+
+const beaverFace = brandAsset('avatar');
 
 export type Payload = Record<string, unknown>;
 export type ExProps = {
@@ -210,7 +214,7 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
                 {o.image!.startsWith('/') || o.image!.startsWith('http') ? (
                   <img src={assetUrl(o.image!)} alt="" className="h-20 w-20 rounded-2xl object-cover" />
                 ) : (
-                  <span className="text-[64px] leading-none">{o.image}</span>
+                  <Pictogram emoji={o.image} size={76} seed={o.id} />
                 )}
                 <span className="text-center text-base">{tr(o.text)}</span>
               </motion.button>
@@ -229,8 +233,8 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
           {data.image.startsWith('/') || data.image.startsWith('http') ? (
             <img src={assetUrl(data.image)} alt="" className="h-40 w-40 rounded-3xl object-cover" />
           ) : (
-            <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="card grid h-40 w-40 place-items-center text-[96px]">
-              {data.image}
+            <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="card grid h-40 w-40 place-items-center">
+              <Pictogram emoji={data.image} size={112} />
             </motion.div>
           )}
         </div>
@@ -702,7 +706,7 @@ function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
     <div className="space-y-3">
       {data.scene && <div className="rounded-2xl bg-muted px-4 py-2 text-center text-sm font-bold">{tr(data.scene)}</div>}
       <div className="flex items-center gap-2">
-        <span className="text-4xl">{data.npc.emoji}</span>
+        <NpcFace emoji={data.npc.emoji} name={data.npc.name} size={48} />
         <div>
           <div className="font-black">{data.npc.name}</div>
           {data.npc.role && <div className="muted text-xs font-bold">{tr(data.npc.role)}</div>}
@@ -713,7 +717,7 @@ function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
           <motion.div key={i} initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={cx('flex', b.who === 'me' ? 'justify-end' : 'justify-start')}>
             {b.who === 'coach' ? (
               <div className="flex max-w-[90%] items-start gap-2 rounded-2xl bg-xp/25 px-3 py-2 text-sm font-bold">
-                <span>🦫</span>
+                <img src={beaverFace ?? undefined} alt="" width={24} height={24} className="mt-px h-6 w-6 shrink-0 rounded-full" hidden={!beaverFace} />
                 <span>{b.text.replace(/\*\*/g, '')}</span>
               </div>
             ) : (

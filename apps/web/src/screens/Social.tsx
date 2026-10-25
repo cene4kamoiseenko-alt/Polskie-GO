@@ -300,7 +300,7 @@ export default function SocialScreen() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[15px] font-black text-white">{f.user.name}</div>
                     <div className="text-[12px] font-bold text-[#cfe0f2]">
-                      {f.user.level !== null ? `${t('lb_level_n', { n: f.user.level })} · 🔥 ${f.user.streak} · ${f.user.languageLevel}` : t('friends_hidden')}
+                      {f.user.level !== null ? <>{t('lb_level_n', { n: f.user.level })} · <Art name="flame" size={14} className="inline-block align-[-2px]" /> {f.user.streak} · {f.user.languageLevel}</> : t('friends_hidden')}
                     </div>
                   </div>
                   {f.incoming ? (

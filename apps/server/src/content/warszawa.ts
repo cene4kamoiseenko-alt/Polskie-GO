@@ -24,7 +24,7 @@ export const WARSZAWA: CityContent = {
       slug: 'waw-powitania',
       title: t('Перше знайомство', 'Первое знакомство', 'First meeting'),
       description: t('Привітання, ввічливість, ім\'я та звідки ти — перша розмова у Варшаві', 'Приветствия, вежливость, имя и откуда ты — первый разговор в Варшаве', 'Greetings, politeness, your name and where you\'re from — your first chat in Warsaw'),
-      icon: '👋',
+      icon: 'dialog',
       lessons: [
         {
           slug: 'waw-1-czesc',
@@ -189,7 +189,7 @@ export const WARSZAWA: CityContent = {
       slug: 'waw-przedstawianie',
       title: t('Warszawa Centralna й транспорт', 'Warszawa Centralna и транспорт', 'Warszawa Centralna & transport'),
       description: t('Вокзал, квитки, метро M1 і M2 та пересадка', 'Вокзал, билеты, метро M1 и M2 и пересадка', 'The station, tickets, metro lines M1 and M2, transfers'),
-      icon: '🚇',
+      icon: 'transport',
       lessons: [
         ...WAW_CENTRALNA_LESSONS,
       ],
@@ -198,7 +198,7 @@ export const WARSZAWA: CityContent = {
       slug: 'waw-liczby',
       title: t('Числа й прості покупки', 'Числа и простые покупки', 'Numbers & simple shopping'),
       description: t('Числа до 100, ціни, ринок і крамниця біля дому', 'Числа до 100, цены, рынок и магазин у дома', 'Numbers to 100, prices, the market and the local shop'),
-      icon: '🛒',
+      icon: 'shopping',
       lessons: [
         {
           slug: 'waw-5-liczby',
@@ -275,28 +275,28 @@ export const WARSZAWA: CityContent = {
       slug: 'waw-stare-miasto',
       title: t('Старе Місто й орієнтування', 'Старый город и ориентирование', 'Old Town & finding your way'),
       description: t('Замкова площа, Русалка й Барбакан; як спитати дорогу й читати мапу', 'Замковая площадь, Русалка и Барбакан; как спросить дорогу и читать карту', 'Castle Square, the Mermaid and the Barbican; asking the way and reading a map'),
-      icon: '🏰',
+      icon: 'explore',
       lessons: WAW_STARE_MIASTO_LESSONS,
     },
     {
       slug: 'waw-kawiarnia',
       title: t('Кав\'ярня й пекарня', 'Кафе и пекарня', 'Café & bakery'),
       description: t('Замовити каву, купити булки й вузетку, розповісти, що любиш', 'Заказать кофе, купить булки и вузетку, рассказать, что любишь', 'Order coffee, buy rolls and a wuzetka, say what you like'),
-      icon: '☕',
+      icon: 'cafe',
       lessons: WAW_KAWIARNIA_LESSONS,
     },
     {
       slug: 'waw-sasiedzi',
       title: t('Сусіди й повсякдення', 'Соседи и повседневность', 'Neighbours & daily life'),
       description: t('Знайомство із сусідами, правила будинку, сортування сміття й плани на тиждень', 'Знакомство с соседями, правила дома, сортировка мусора и планы на неделю', 'Meeting neighbours, house rules, recycling and weekly plans'),
-      icon: '🏘️',
+      icon: 'house',
       lessons: WAW_SASIEDZI_LESSONS,
     },
     {
       slug: 'waw-egzamin',
       title: t('Іспит Варшави', 'Экзамен Варшавы', 'Warsaw exam'),
       description: t('Фінальне випробування: пройди, щоб отримати квиток до Лодзі', 'Финальное испытание: пройди, чтобы получить билет в Лодзь', 'Final challenge: pass it to get a ticket to Łódź'),
-      icon: '🏆',
+      icon: 'achievements',
       lessons: [
         {
           slug: 'waw-boss',

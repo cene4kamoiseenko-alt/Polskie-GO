@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useT } from '../i18n';
 import { Beaver } from './Beaver';
 import { GameIcon } from './GameIcon';
+import { Badge } from './Illustrations';
 import { Confetti } from './ui';
 
 /** Число, що «набігає» від 0 до value. */
@@ -81,7 +82,7 @@ export function RewardModal({ reward, onClose }: { reward: Reward | null; onClos
               </div>
               {reward.extra?.map((e) => (
                 <div key={e.text} className="flex items-center justify-center gap-2 rounded-2xl bg-muted px-3 py-2 text-sm font-black">
-                  <span className="text-xl">{e.icon}</span> {e.text}
+                  <Badge icon={e.icon} unlocked size={28} /> {e.text}
                 </div>
               ))}
               <button className="btn btn-primary w-full text-lg" onClick={onClose} autoFocus>

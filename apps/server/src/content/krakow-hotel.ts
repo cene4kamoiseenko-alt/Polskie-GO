@@ -22,7 +22,7 @@ export const KRK_HOTEL: RouteSeed = {
   slug: 'krk-hotel',
   title: t('Hotel', 'Hotel', 'Hotel'),
   description: t('Готель: заселення, номер і сервіс, проблеми, виселення', 'Отель: заселение, номер и сервис, проблемы, выселение', 'Hotel: check-in, the room and services, problems, check-out'),
-  icon: '🏨',
+  icon: 'house',
   lessons: [
     // ───────────── Урок 1 ─────────────
     {

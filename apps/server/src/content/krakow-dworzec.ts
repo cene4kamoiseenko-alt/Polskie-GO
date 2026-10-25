@@ -24,7 +24,7 @@ export const KRK_DWORZEC: RouteSeed = {
   slug: 'krk-dworzec',
   title: t('Dworzec Główny', 'Dworzec Główny', 'Dworzec Główny'),
   description: t('Прибуття до Кракова: знайомство, вокзал, квиток і платформа', 'Прибытие в Краков: знакомство, вокзал, билет и платформа', 'Arriving in Kraków: introductions, the station, tickets and platforms'),
-  icon: '🚉',
+  icon: 'transport',
   lessons: [
     // ───────────── Урок 1 ─────────────
     {

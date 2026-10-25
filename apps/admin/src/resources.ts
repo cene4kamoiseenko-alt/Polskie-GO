@@ -40,7 +40,7 @@ export const RESOURCES: ResourceDef[] = [
       { name: 'cityId', label: 'Місто', type: 'ref', resource: 'cities', display: 'namePl' }, { name: 'slug', label: 'Slug', type: 'text' }, { name: 'order', label: 'Порядок', type: 'number' },
       { name: 'title', label: 'Назва', type: 'i18n' }, { name: 'description', label: 'Опис', type: 'i18n' }, { name: 'icon', label: 'Іконка', type: 'text' }, { name: 'status', label: 'Статус', type: 'select', options: STATUS },
     ],
-    defaults: { cityId: '', slug: '', order: 1, title: i18n, description: i18n, icon: '📘', status: 'DRAFT' },
+    defaults: { cityId: '', slug: '', order: 1, title: i18n, description: i18n, icon: 'lessons', status: 'DRAFT' },
   },
   {
     name: 'lessons', title: 'Уроки', filters: ['routeId', 'kind', 'status'],

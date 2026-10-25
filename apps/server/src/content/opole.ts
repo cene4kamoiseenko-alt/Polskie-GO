@@ -16,7 +16,7 @@ export const OPOLE: CityContent = {
       slug: 'opo-zywy',
       title: t('Żywy polski', 'Żywy polski', 'Żywy polski'),
       description: t('Як насправді говорять поляки', 'Как на самом деле говорят поляки', 'How Poles really talk'),
-      icon: '💬',
+      icon: 'dialog',
       lessons: [
         {
           slug: 'opo-1-siema',
@@ -218,7 +218,7 @@ export const OPOLE: CityContent = {
       slug: 'opo-egzamin',
       title: t('Іспит Ополя', 'Экзамен Ополе', 'Opole exam'),
       description: t('Живий польський і заперечення', 'Живой польский и отрицание', 'Living Polish and negation'),
-      icon: '🏆',
+      icon: 'achievements',
       lessons: [
         {
           slug: 'opo-boss',

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
 import { Card, EmptyState, ErrorState, Progress, ScreenHeader, ScreenSkeleton } from '../components/ui';
-import { ITEM_ICONS } from '../components/Beaver';
+import { CITY_PICTO, ITEM_PICTO, PictoTile } from '../components/pictograms/Pictogram';
 
 type Entry = {
   city: { id: string; slug: string; namePl: string; name: never; emoji: string; color: string; theme: never };
@@ -27,7 +27,7 @@ export default function DiaryScreen() {
         {q.data!.map((e, i) => (
           <Card key={e.city.id} className="overflow-hidden">
             <div className="flex items-center gap-3 p-4 text-white" style={{ background: `linear-gradient(135deg, ${e.city.color}, ${e.city.color}aa)`, transform: `rotate(${i % 2 ? 0.4 : -0.4}deg)` }}>
-              <span className="text-5xl">{e.city.emoji}</span>
+              <PictoTile spec={CITY_PICTO[e.city.slug] ?? ['map', 'place']} size={52} />
               <div className="flex-1">
                 <div className="text-xl font-black">{e.city.namePl}</div>
                 <div className="text-sm font-bold opacity-90">{tr(e.city.theme)}</div>
@@ -44,12 +44,12 @@ export default function DiaryScreen() {
               )}
               {e.quests.length > 0 && (
                 <div>
-                  <b>{t('diary_quests')}:</b> {e.quests.map((x) => `${x.icon} ${tr(x.title)}`).join(', ')}
+                  <b>{t('diary_quests')}:</b> {e.quests.map((x) => tr(x.title)).join(', ')}
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <b>{t('diary_souvenirs')}:</b>
-                {e.souvenirs.length ? e.souvenirs.map((s) => <span key={s.slug} title={tr(s.name)} className="text-2xl">{ITEM_ICONS[s.slug] ?? '🎁'}</span>) : <span className="muted">—</span>}
+                {e.souvenirs.length ? e.souvenirs.map((s) => <span key={s.slug} title={tr(s.name)} className="inline-block"><PictoTile spec={ITEM_PICTO[s.slug] ?? null} size={30} /></span>) : <span className="muted">—</span>}
               </div>
             </div>
           </Card>

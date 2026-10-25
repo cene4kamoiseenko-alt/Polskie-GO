@@ -28,7 +28,7 @@ export const KRAKOW: CityContent = {
       slug: 'krk-rodzina',
       title: t('Сім\'я', 'Семья', 'Family'),
       description: t('Члени сім\'ї та конструкція «у мене є»', 'Члены семьи и конструкция «у меня есть»', 'Family members and "I have"'),
-      icon: '👨‍👩‍👧',
+      icon: 'house',
       lessons: [
         {
           slug: 'krk-1-rodzina',
@@ -123,7 +123,7 @@ export const KRAKOW: CityContent = {
       slug: 'krk-dom',
       title: t('Дім', 'Дом', 'Home'),
       description: t('Кімнати, тварини і хибні друзі перекладача', 'Комнаты, животные и ложные друзья переводчика', 'Rooms, pets and false friends'),
-      icon: '🏠',
+      icon: 'house',
       lessons: [
         {
           slug: 'krk-3-dom',
@@ -169,7 +169,7 @@ export const KRAKOW: CityContent = {
       slug: 'krk-dzien',
       title: t('Мій день', 'Мой день', 'My day'),
       description: t('Дні тижня і дієслово «бути»', 'Дни недели и глагол «быть»', 'Days of the week and "to be"'),
-      icon: '📅',
+      icon: 'writing',
       lessons: [
         {
           slug: 'krk-4-tydzien',
@@ -249,7 +249,7 @@ export const KRAKOW: CityContent = {
       slug: 'krk-egzamin',
       title: t('Іспит Кракова', 'Экзамен Кракова', 'Kraków exam'),
       description: t('Пройди, щоб отримати квиток до Катовіце', 'Пройди, чтобы получить билет в Катовице', 'Pass to get a ticket to Katowice'),
-      icon: '🏆',
+      icon: 'achievements',
       lessons: [
         {
           slug: 'krk-boss',

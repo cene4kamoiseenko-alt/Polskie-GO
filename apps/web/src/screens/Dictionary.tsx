@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import type { VocabEntry } from '../lib/types';
 import { haptic } from '../lib/telegram';
 import { Card, EmptyState, ScreenHeader, Sheet, Skeleton, SpeakButton, cx } from '../components/ui';
+import { Icon } from '../components/Icon';
 
 const FILTERS = ['all', 'mine', 'learned', 'favorites', 'due'] as const;
 
@@ -52,7 +53,11 @@ export default function DictionaryScreen() {
     <div className="pb-6">
       <ScreenHeader title={t('dict_title')} subtitle={t('dict_subtitle')} />
       <div className="space-y-3 px-4">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`🔍 ${t('dict_search')}`} className="w-full rounded-2xl border-2 border-soft bg-elev px-4 py-3 font-bold outline-none focus:border-sky" />
+        <label className="relative block">
+          <span className="sr-only">{t('dict_search')}</span>
+          <Icon name="search" size={20} className="muted pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('dict_search')} className="w-full rounded-2xl border-2 border-soft bg-elev py-3 pl-11 pr-4 font-bold outline-none focus:border-sky" />
+        </label>
         <div className="no-scrollbar flex gap-2 overflow-x-auto">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)} className={cx('chip shrink-0', filter === f && 'bg-pl-red text-white')}>
@@ -72,7 +77,7 @@ export default function DictionaryScreen() {
         <div className="space-y-2">
           {items.map((w) => (
             <Card key={w.id} className="flex items-center gap-3 px-3 py-2.5" onClick={() => setOpen(w)}>
-              <WordTile pl={w.pl} />
+              <WordTile pl={w.pl} picture={w.emoji} />
               <div className="min-w-0 flex-1">
                 <div className="font-black">
                   {w.pl} {w.mine?.status === 'LEARNED' && <span className="text-brand">✓</span>}
@@ -103,7 +108,7 @@ export default function DictionaryScreen() {
         {open && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <WordTile pl={open.pl} size={64} />
+              <WordTile pl={open.pl} size={64} picture={open.emoji} />
               <div className="flex-1">
                 <h2 className="text-3xl font-black">{open.pl}</h2>
                 <div className="muted font-bold">

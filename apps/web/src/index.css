@@ -1015,3 +1015,23 @@ textarea {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ───────── Піктограми замість емодзі ───────── */
+.picto {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 28%;
+  color: #fff;
+  background: linear-gradient(160deg, var(--p1), var(--p2));
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.14), inset 0 2px 0 rgb(255 255 255 / 0.3);
+}
+.picto.tone-food { --p1: #ffa14d; --p2: #e8692a; }
+.picto.tone-drink { --p1: #5cc8ff; --p2: #1f8fd6; }
+.picto.tone-transport { --p1: #4f8dff; --p2: #2a5cd0; }
+.picto.tone-place { --p1: #a77dff; --p2: #6f42d8; }
+.picto.tone-home { --p1: #3fd39b; --p2: #18a272; }
+.picto.tone-nature { --p1: #6fcf5a; --p2: #3c9a3a; }
+.picto.tone-way { --p1: #ff6b7a; --p2: #d9344a; }
+.picto.tone-thing { --p1: #5c7a99; --p2: #3b5370; }
+.picto.tone-symbol { --p1: #ffc857; --p2: #d89110; }

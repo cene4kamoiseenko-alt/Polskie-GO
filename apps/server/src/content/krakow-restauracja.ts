@@ -19,7 +19,7 @@ export const KRK_RESTAURACJA: RouteSeed = {
   slug: 'krk-restauracja',
   title: t('Restauracja', 'Restauracja', 'Restauracja'),
   description: t('Польська кухня: страви, замовлення, офіціант, рахунок і чайові', 'Польская кухня: блюда, заказ, официант, счёт и чаевые', 'Polish food: dishes, ordering, the waiter, the bill and tips'),
-  icon: '🥟',
+  icon: 'food',
   lessons: [
     // ───────────── Урок 1 ─────────────
     {

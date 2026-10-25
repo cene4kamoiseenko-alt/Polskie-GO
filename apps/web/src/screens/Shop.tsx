@@ -13,7 +13,8 @@ import { useMe, useRefreshAll, useShop } from '../lib/queries';
 import type { ShopItem } from '../lib/types';
 import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { Beaver, BeaverPart, ITEM_ICONS } from '../components/Beaver';
+import { Beaver, BeaverPart } from '../components/Beaver';
+import { ITEM_PICTO, PictoTile } from '../components/pictograms/Pictogram';
 import { WEAR_SLOTS } from '../components/ItemPreview';
 import { Icon } from '../components/Icon';
 import { Art } from '../components/GameArt';
@@ -98,7 +99,7 @@ function ItemArt({ item, size }: { item: ShopItem; size: number }) {
     return <Beaver size={size * 0.92} outfit={{ COSTUME: item.assetKey }} animate={false} vectorOnly />;
   }
   if (WEAR_SLOTS.includes(item.slot)) return <BeaverPart slot={item.slot} kind={item.assetKey} size={size} />;
-  return <span style={{ fontSize: size * 0.6, lineHeight: 1 }}>{ITEM_ICONS[item.assetKey] ?? '🎁'}</span>;
+  return <PictoTile spec={ITEM_PICTO[item.assetKey] ?? null} size={size * 0.8} />;
 }
 
 /** Стартовий образ «Мандрівник»: не предмет магазину, а «без костюма». */

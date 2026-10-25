@@ -5,6 +5,7 @@
  */
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { memo } from 'react';
+import { NpcFace } from './pictograms/Pictogram';
 import { Beaver, type BeaverMood, type BeaverOutfit } from './Beaver';
 import { Icon, type LineIconName } from './Icon';
 import { Item, SCENE_ITEM_POOLS, Scene, type ItemName, type SceneName } from './Illustrations';
@@ -193,7 +194,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
           animate={{ scale: 1, opacity: 1 }}
           className="absolute right-3 top-3 flex flex-col items-center"
         >
-          <span className="grid h-14 w-14 place-items-center rounded-full border-[3px] border-white bg-[#FFF1DA] text-[30px] shadow-lg">{npc.emoji}</span>
+          <span className="grid h-14 w-14 place-items-center rounded-full shadow-lg"><NpcFace emoji={npc.emoji} name={npc.name} size={56} /></span>
           <span className="mt-1 max-w-[110px] truncate rounded-full bg-[#07182c]/80 px-2 py-0.5 text-[11px] font-black text-white">{npc.name}</span>
         </motion.div>
       )}

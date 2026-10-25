@@ -14,12 +14,14 @@ import { Beaver } from '../components/Beaver';
 import { Progress, cx } from '../components/ui';
 import { PolandMap } from '../components/PolandMap';
 import { Logo, Skyline } from '../components/Scenery';
+import { LangFlag } from '../components/pictograms/Flag';
+import { PictoTile } from '../components/pictograms/Pictogram';
 
-const LANGS: { code: UiLang; flag: string; name: string }[] = [
-  { code: 'uk', flag: '🇺🇦', name: 'Українська' },
-  { code: 'ru', flag: '🌐', name: 'Русский' },
-  { code: 'en', flag: '🇬🇧', name: 'English' },
-  { code: 'pl', flag: '🇵🇱', name: 'Polski' },
+const LANGS: { code: UiLang; name: string }[] = [
+  { code: 'uk', name: 'Українська' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'en', name: 'English' },
+  { code: 'pl', name: 'Polski' },
 ];
 const LEVELS: Cefr[] = ['A0', 'A1', 'A2', 'B1', 'B2'];
 /** Кольори бейджів рівнів CEFR. */
@@ -111,7 +113,7 @@ export default function Onboarding() {
               <Header mood="happy" title={t('ob_lang')} />
               {LANGS.map((l) => (
                 <Option key={l.code} selected={lang === l.code} onClick={() => updateSettings.mutate({ uiLanguage: l.code })}>
-                  <span className="text-2xl">{l.flag}</span>
+                  <LangFlag code={l.code} size={30} />
                   {l.name}
                 </Option>
               ))}
@@ -143,7 +145,7 @@ export default function Onboarding() {
               <p className="muted font-semibold">{t('ob_placement_text')}</p>
               <div className="w-full space-y-3">
                 <Option selected={placement} onClick={() => setPlacement(true)}>{t('ob_placement_yes')}</Option>
-                <Option selected={!placement} onClick={() => setPlacement(false)}>🧜‍♀️ {t('ob_placement_no')}</Option>
+                <Option selected={!placement} onClick={() => setPlacement(false)}><PictoTile spec={['mermaid', 'symbol']} size={26} className="mr-1.5 align-middle" />{t('ob_placement_no')}</Option>
               </div>
             </div>
           )}
@@ -181,11 +183,11 @@ export default function Onboarding() {
               <div className="grid grid-cols-2 gap-3">
                 {HOURS.map((h) => (
                   <Option key={h} selected={hour === h} onClick={() => setHour(h)}>
-                    ⏰ {String(h).padStart(2, '0')}:00
+                    {String(h).padStart(2, '0')}:00
                   </Option>
                 ))}
               </div>
-              <Option selected={hour === null} onClick={() => setHour(null)}>🔕 {t('ob_reminder_no')}</Option>
+              <Option selected={hour === null} onClick={() => setHour(null)}><PictoTile spec={['bell-off', 'thing']} size={26} className="mr-1.5 align-middle" />{t('ob_reminder_no')}</Option>
             </div>
           )}
 

@@ -19,7 +19,7 @@ export const KRK_ZABKA: RouteSeed = {
   slug: 'krk-zabka',
   title: t('Żabka', 'Żabka', 'Żabka'),
   description: t('Покупки: продукти, ціни, каса і хот-дог', 'Покупки: продукты, цены, касса и хот-дог', 'Shopping: products, prices, the till and a hot dog'),
-  icon: '🐸',
+  icon: 'shopping',
   lessons: [
     // ───────────── Урок 1 ─────────────
     {

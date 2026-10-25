@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { useMe } from '../lib/queries';
 import { Beaver } from '../components/Beaver';
 import { Card, ErrorState, ScreenHeader, ScreenSkeleton, Section } from '../components/ui';
+import { PictoTile } from '../components/pictograms/Pictogram';
 
 type Exam = { id: string; slug: string; kind: string; title: never; topic: never; cefr: string; isPremium: boolean; exerciseCount: number; bestScore: number | null; passed: boolean };
 
@@ -30,7 +31,7 @@ export default function ExamsScreen() {
       <div className="space-y-3 px-4">
         {exams.map((e) => (
           <Card key={e.id} className="flex items-center gap-3 p-4">
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-sky/20 text-2xl font-black text-sky-dark">{e.kind === 'PLACEMENT' ? '🧭' : e.cefr}</div>
+            {e.kind === 'PLACEMENT' ? <PictoTile spec={['compass', 'drink']} size={56} /> : <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-sky/20 text-2xl font-black text-sky-dark">{e.cefr}</div>}
             <div className="min-w-0 flex-1">
               <div className="font-black">{tr(e.title)}</div>
               <div className="muted text-xs font-bold">{tr(e.topic)}</div>

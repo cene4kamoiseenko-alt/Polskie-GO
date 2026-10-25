@@ -1090,19 +1090,3 @@ export const BeaverPart = memo(function BeaverPart({ slot, kind, size = 96 }: { 
     </svg>
   );
 });
-
-/** Іконки предметів (тимчасові ассети — замінюються зображеннями з адмінки). */
-export const ITEM_ICONS: Record<string, string> = {
-  'hoodie-red': '🧥', 'jacket-denim': '🧥', 'jacket-rain': '🧥', 'vest-krakowiak': '🦺',
-  'cap-green': '🧢', 'cap-red': '🧢', 'beanie-blue': '🧶', 'hat-chef': '👨‍🍳', 'hat-krasnal': '🎅', 'crown-gold': '👑',
-  'glasses-round': '👓', 'glasses-sun': '🕶️', 'glasses-star': '🤩',
-  'scarf-pl': '🧣', 'scarf-ua': '🧣', 'scarf-green': '🧣',
-  'backpack-travel': '🎒', 'backpack-map': '🗺️',
-  'sneakers-white': '👟', 'boots-mountain': '🥾',
-  'flag-pl': '🇵🇱', camera: '📷', 'map-paper': '🗺️', obwarzanek: '🥯',
-  'costume-dragon': '🐉', 'costume-syrenka': '🧜‍♀️',
-  'bed-basic': '🛏️', 'bed-cozy': '🛌', desk: '🪑', bookshelf: '📚', sofa: '🛋️', lamp: '💡',
-  plant: '🪴', 'rug-red': '🟥', 'poster-poland': '🖼️', 'map-wall': '🗺️',
-  'souvenir-syrenka': '🧜‍♀️', 'souvenir-dragon': '🐲', 'souvenir-krasnal': '🧙‍♂️',
-  'frame-green': '🟩', 'frame-gold': '🟨',
-};

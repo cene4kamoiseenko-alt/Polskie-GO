@@ -16,7 +16,7 @@ export const LODZ: CityContent = {
       slug: 'lodz-dzwieki',
       title: t('Звуки польської', 'Звуки польского', 'Polish sounds'),
       description: t('Літери, диграфи й наголос', 'Буквы, диграфы и ударение', 'Letters, digraphs and stress'),
-      icon: '🔤',
+      icon: 'pronunciation',
       lessons: [
         {
           slug: 'lodz-1-alfabet',
@@ -110,7 +110,7 @@ export const LODZ: CityContent = {
       slug: 'lodz-ludzie',
       title: t('Хто ти і хто вони', 'Кто ты и кто они', 'Who you are and who they are'),
       description: t('Być, професії, oni і one', 'Być, профессии, oni и one', 'Być, jobs, oni and one'),
-      icon: '🧑‍🤝‍🧑',
+      icon: 'dialog',
       lessons: [
         {
           slug: 'lodz-3-zawody',
@@ -212,7 +212,7 @@ export const LODZ: CityContent = {
       slug: 'lodz-egzamin',
       title: t('Іспит Лодзі', 'Экзамен Лодзи', 'Łódź exam'),
       description: t('Звуки, być і oni/one', 'Звуки, być и oni/one', 'Sounds, być and oni/one'),
-      icon: '🏆',
+      icon: 'achievements',
       lessons: [
         {
           slug: 'lodz-boss',
