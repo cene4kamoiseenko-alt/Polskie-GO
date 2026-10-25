@@ -3,10 +3,13 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
-import { initTelegram } from './lib/telegram';
+import { initTelegram, tg } from './lib/telegram';
+import { guessLang, preloadLang } from './i18n';
 import './index.css';
 
 initTelegram();
+// Словник мови користувача вантажиться одразу, паралельно з авторизацією.
+void preloadLang(guessLang(tg?.initDataUnsafe.user?.language_code));
 
 const queryClient = new QueryClient({
   // Дані кешуються на хвилину; після навчальних подій потрібні ключі інвалідовуються явно.

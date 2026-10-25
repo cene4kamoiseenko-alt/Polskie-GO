@@ -17,6 +17,23 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * fetch з тайм-аутом: при поганому зв'язку запит не «висить» вічно, а завершується
+ * зрозумілою помилкою network_timeout / network_error (екран показує «Спробувати ще»).
+ */
+async function timedFetch(url: string, init: RequestInit = {}, ms = 15_000): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw new ApiError(0, 'network_timeout');
+    throw new ApiError(0, 'network_error');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Токен зберігається між запусками (7 днів) і прив'язаний до користувача Telegram — повторний вхід без зайвого запиту. */
 const AUTH_KEY = 'pg_auth';
 const authOwner = () => String(tg?.initDataUnsafe.user?.id ?? `dev:${new URLSearchParams(location.search).get('devUser') ?? 100001}`);
@@ -44,9 +61,9 @@ if (token) {
 
 async function authenticate() {
   const res = tg
-    ? await fetch(`${API_BASE}/api/auth/telegram`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData }) })
+    ? await timedFetch(`${API_BASE}/api/auth/telegram`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData }) })
     : // Поза Telegram — режим розробки (на сервері вмикається DEV_AUTH=true).
-      await fetch(`${API_BASE}/api/auth/dev`, {
+      await timedFetch(`${API_BASE}/api/auth/dev`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id: Number(new URLSearchParams(location.search).get('devUser') ?? 100001), firstName: 'Podróżnik', startParam: startParam() }),
@@ -69,7 +86,7 @@ export function ensureAuth() {
 export async function api<T = unknown>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   await ensureAuth();
   const doFetch = () =>
-    fetch(`${API_BASE}/api${path}`, {
+    timedFetch(`${API_BASE}/api${path}`, {
       method: opts.method ?? (opts.body !== undefined ? 'POST' : 'GET'),
       headers: { authorization: `Bearer ${token}`, ...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}) },
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -89,11 +106,11 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
 /** Бінарна відповідь API (аудіо) з авторизацією. */
 export async function apiBlob(path: string): Promise<Blob> {
   await ensureAuth();
-  let res = await fetch(`${API_BASE}/api${path}`, { headers: { authorization: `Bearer ${token}` } });
+  let res = await timedFetch(`${API_BASE}/api${path}`, { headers: { authorization: `Bearer ${token}` } }, 30_000);
   if (res.status === 401) {
     authPromise = null;
     await ensureAuth();
-    res = await fetch(`${API_BASE}/api${path}`, { headers: { authorization: `Bearer ${token}` } });
+    res = await timedFetch(`${API_BASE}/api${path}`, { headers: { authorization: `Bearer ${token}` } }, 30_000);
   }
   if (!res.ok) throw new ApiError(res.status, 'blob_failed');
   return res.blob();
@@ -101,7 +118,7 @@ export async function apiBlob(path: string): Promise<Blob> {
 
 export async function downloadExport() {
   await ensureAuth();
-  const res = await fetch(`${API_BASE}/api/me/export`, { headers: { authorization: `Bearer ${token}` } });
+  const res = await timedFetch(`${API_BASE}/api/me/export`, { headers: { authorization: `Bearer ${token}` } }, 45_000);
   const blob = await res.blob();
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

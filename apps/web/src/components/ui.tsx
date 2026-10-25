@@ -85,7 +85,8 @@ export function EmptyState({ text, action }: { text: string; action?: ReactNode 
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useT();
-  const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const code = (error as { code?: string } | null)?.code;
+  const offline = (typeof navigator !== 'undefined' && !navigator.onLine) || code === 'network_timeout' || code === 'network_error';
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
       <Beaver mood="sad" size={120} />

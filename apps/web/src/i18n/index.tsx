@@ -1,11 +1,30 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { tr as trShared, type I18n, type UiLang } from '@polski-go/shared';
 import { uk, type Dict } from './uk';
-import { ru } from './ru';
-import { en } from './en';
-import { pl } from './pl';
 
-const DICTS: Record<UiLang, Dict> = { uk, ru, en, pl };
+/**
+ * Словники завантажуються ліниво: у стартовому бандлі лише українська (запасна мова),
+ * потрібна мова підвантажується паралельно з авторизацією (див. preloadLang у main.tsx).
+ */
+const DICTS: Partial<Record<UiLang, Dict>> = { uk };
+const LOADERS: Record<UiLang, () => Promise<Dict>> = {
+  uk: async () => uk,
+  ru: () => import('./ru').then((m) => m.ru),
+  en: () => import('./en').then((m) => m.en),
+  pl: () => import('./pl').then((m) => m.pl),
+};
+const pending: Partial<Record<UiLang, Promise<void>>> = {};
+
+export function preloadLang(lang: UiLang): Promise<void> {
+  if (DICTS[lang]) return Promise.resolve();
+  return (pending[lang] ??= LOADERS[lang]()
+    .then((d) => {
+      DICTS[lang] = d;
+    })
+    .catch(() => {
+      delete pending[lang];
+    }));
+}
 const LOCALES: Record<UiLang, string> = { uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB', pl: 'pl-PL' };
 
 export type TKey = keyof Dict;
@@ -14,7 +33,12 @@ type Ctx = { lang: UiLang; t: (k: TKey, vars?: Record<string, string | number>) 
 const I18nCtx = createContext<Ctx | null>(null);
 
 export function I18nProvider({ lang, children }: { lang: UiLang; children: ReactNode }) {
+  const [loaded, setLoaded] = useState(0);
+  useEffect(() => {
+    if (!DICTS[lang]) void preloadLang(lang).then(() => setLoaded((n) => n + 1));
+  }, [lang]);
   const value = useMemo<Ctx>(() => {
+    void loaded;
     const dict = DICTS[lang] ?? uk;
     return {
       lang,
@@ -26,7 +50,7 @@ export function I18nProvider({ lang, children }: { lang: UiLang; children: React
       tr: (v) => trShared(v ?? '', lang),
       date: (d) => new Date(d).toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'long', year: 'numeric' }),
     };
-  }, [lang]);
+  }, [lang, loaded]);
   return <I18nCtx.Provider value={value}>{children}</I18nCtx.Provider>;
 }
 
