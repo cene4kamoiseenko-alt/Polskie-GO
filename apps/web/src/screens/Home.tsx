@@ -6,7 +6,7 @@ import { api } from '../lib/api';
 import { useJourney, useMe, useQuests } from '../lib/queries';
 import type { VocabEntry } from '../lib/types';
 import { Beaver } from '../components/Beaver';
-import { CityBanner } from '../components/Scenery';
+import { CityBanner, Skyline } from '../components/Scenery';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon, type LineIconName } from '../components/Icon';
 import { Progress, Ring, Section, Skeleton, SpeakButton, cx } from '../components/ui';
@@ -23,86 +23,49 @@ export const RANKS: [number, string][] = [
 ];
 export const rankFor = (level: number) => RANKS.find(([l]) => level >= l)![1];
 
-/** Шапка вкладок: аватар-бобер, логотип, нагадування; під ними — серія, Złotki, Premium. */
+/** Шапка вкладок: серія, XP, Złotki, нагадування, налаштування (компактна — з логотипом). */
 export function TopStats({ compact }: { compact?: boolean }) {
   const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data;
   if (!me) return <div className="h-14" />;
-  const pills = (
-    <div className="flex items-center gap-2">
-      <button onClick={() => nav('/profile')} aria-label={t('profile_streak')} className="stat-pill">
-        <Icon name="flame" size={18} className="text-[#FF8A3D]" filled /> {me.progress.streak}
-      </button>
-      <button onClick={() => nav('/shop')} aria-label="Złotki" className="stat-pill">
-        <Icon name="coin" size={18} className="text-xp" /> {me.zlotki}
-      </button>
-      <button onClick={() => nav('/premium')} aria-label="Premium" className={cx('stat-pill', me.premium.active ? 'text-xp' : 'text-xp/80')}>
-        <Icon name="crown" size={18} filled={me.premium.active} />
-      </button>
-    </div>
-  );
-  if (compact) {
-    return (
-      <div className="safe-top flex items-center gap-2 px-4 pt-2">
-        <button onClick={() => nav('/')} aria-label="POLSKI GO" className="text-[19px] font-black italic tracking-tight text-[#2A62C9] dark:text-white">
-          POLSKI <span className="text-pl-red">GO</span>
-        </button>
-        <div className="flex-1" />
-        {pills}
-      </div>
-    );
-  }
+  const round = 'grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elev text-[#6B7A8A] shadow-[var(--shadow-card)]';
   return (
-    <div className="safe-top space-y-3 px-4 pt-2">
-      <div className="flex items-center gap-3">
-        <button onClick={() => nav('/profile')} className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-[#FFC44D] bg-gradient-to-b from-[#FFE6BF] to-[#FFC98A] shadow-lg" aria-label={t('nav_profile')}>
-          <Beaver size={46} animate={false} vectorOnly outfit={me.outfit.wear} />
-        </button>
-        <div className="flex-1 text-[26px] font-black italic leading-none tracking-tight text-[#2A62C9] dark:text-white" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.6)' }}>
+    <div className="safe-top flex items-center gap-2 px-4 pt-2">
+      {compact && (
+        <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-1 text-[19px] font-black italic tracking-tight text-[#2A62C9] dark:text-white">
           POLSKI <span className="text-pl-red">GO</span>
-        </div>
-        <button onClick={() => nav('/settings')} aria-label={t('profile_settings')} className="grid h-11 w-11 place-items-center rounded-2xl bg-elev text-[#6B7A8A] shadow-[var(--shadow-card)] dark:text-white">
-          <Icon name="settings" size={22} />
         </button>
-      </div>
-      {pills}
+      )}
+      <button onClick={() => nav('/profile')} aria-label={t('profile_streak')} className="stat-pill">
+        <Icon name="flame" size={18} className="text-[#FF8A3D]" filled /> {compact ? me.progress.streak : t('home_days_n', { n: me.progress.streak })}
+      </button>
+      {!compact && (
+        <button onClick={() => nav('/profile')} aria-label="XP" className="stat-pill">
+          <Icon name="star" size={18} className="text-xp" filled /> {me.progress.xpTotal}
+        </button>
+      )}
+      <button onClick={() => nav('/shop')} aria-label="Złotki" className="stat-pill">
+        <Icon name="coin" size={18} className="text-xp-dark" /> {me.zlotki}
+      </button>
+      <div className="flex-1" />
+      {!compact && (
+        <button onClick={() => nav('/settings')} aria-label={t('set_notifications')} className={round}>
+          <Icon name="clock" size={19} />
+        </button>
+      )}
+      <button onClick={() => nav(compact ? '/premium' : '/settings')} aria-label={compact ? 'Premium' : t('profile_settings')} className={cx(round, compact && 'text-xp-dark')}>
+        <Icon name={compact ? 'crown' : 'settings'} size={19} filled={compact && me.premium.active} />
+      </button>
     </div>
   );
 }
 
-/** Кремова картка профілю: аватар, імʼя, рівень і звання, XP, поточне місто. */
-function ProfileCard() {
-  const { t } = useT();
-  const nav = useNavigate();
-  const me = useMe().data!;
-  const journey = useJourney();
-  const city = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
-  const name = me.profile.displayName || me.firstName || 'Podróżnik';
-  return (
-    <motion.button whileTap={{ scale: 0.98 }} onClick={() => nav('/profile')} className="card-cream mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3.5 text-left">
-      <div className="relative shrink-0">
-        {me.photoUrl ? (
-          <img src={me.photoUrl} alt="" className="h-16 w-16 rounded-full border-[3px] border-white object-cover shadow" />
-        ) : (
-          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border-[3px] border-white bg-[#CDEBFF] shadow">
-            <Beaver size={58} animate={false} vectorOnly outfit={me.outfit.wear} />
-          </div>
-        )}
-        <span className="absolute -bottom-1 -right-1 grid h-6 min-w-6 place-items-center rounded-full bg-[#2A62C9] px-1 text-[11px] font-black text-white ring-2 ring-white">{me.progress.level}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-lg font-black leading-tight">{name}</div>
-        <div className="muted text-xs font-black">{t('level')} {me.progress.level} · {rankFor(me.progress.level)}</div>
-        <div className="mt-1.5 flex items-center gap-2">
-          <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={8} color="var(--color-brand)" />
-          <span className="whitespace-nowrap text-[11px] font-black">{me.progress.levelXp}/{me.progress.levelXpNeeded} XP</span>
-        </div>
-        {city && <div className="mt-1 flex items-center gap-1 text-xs font-black text-pl-red"><Icon name="pin" size={13} /> {city.namePl}</div>}
-      </div>
-    </motion.button>
-  );
-}
+/** Іконки щоденних завдань за типом. */
+const TASK_ICONS: Record<string, [IconName]> = {
+  'd-lesson-1': ['lessons'], 'd-lessons-3': ['lessons'], 'd-xp-100': ['xp'], 'd-words-10': ['dictionary'], 'd-perfect-5': ['star'],
+  'd-reviews-15': ['review'], 'd-dialogue-1': ['ai'], 'd-listening-5': ['mic'],
+};
 
 export function HomeScreen() {
   const { t, tr } = useT();
@@ -126,52 +89,91 @@ export function HomeScreen() {
   return (
     <div className="space-y-4">
       <TopStats />
-      <ProfileCard />
 
-      {/* Сцена поточного міста з Бобеком і кнопкою продовження */}
-      <div className="px-4">
-        {journey.isLoading ? (
-          <Skeleton className="h-[330px]" />
-        ) : current ? (
-          <div className="overflow-hidden rounded-[28px] border-[3px] border-white shadow-[var(--shadow-card)]" style={{ background: 'var(--bg-elev)' }}>
-            <div className="relative">
-              <CityBanner slug={current.slug} color={current.color} height={210} shade={false} />
-              <div className="absolute left-3 top-3 rounded-2xl bg-white/95 px-3 py-2 text-[#1E3346] shadow-lg">
-                <div className="flex items-center gap-1 text-[11px] font-black text-[#6F8293]">
-                  <Icon name="pin" size={12} /> {t('home_your_city')}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[26px] font-black leading-tight">{current.namePl}</span>
-                  <span className="rounded-lg bg-pl-red px-2 py-0.5 text-xs font-black text-white">{current.cefr}</span>
-                </div>
-                <div className="mt-1 flex w-36 items-center gap-1.5">
-                  <Progress value={current.lessonsDone} max={Math.max(1, current.lessonsTotal)} height={7} color="var(--color-brand)" />
-                  <span className="text-[10px] font-black">{current.progress}%</span>
-                </div>
-              </div>
-              <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: 'spring' }} className="absolute bottom-4 left-3 max-w-[52%] rounded-2xl rounded-br-sm bg-white px-3 py-2 text-[12px] font-bold leading-snug text-[#1E3346] shadow-lg">
-                {bubble}
-              </motion.div>
-              <div className="absolute -bottom-1 right-1">
-                <Beaver mood={goalDone ? 'cheer' : next ? 'wave' : 'travel'} outfit={me.outfit.wear} size={128} />
-              </div>
-            </div>
-            <div className="p-3.5">
-              {next && (
-                <div className="mb-3 flex items-center gap-2 text-sm">
-                  <Icon name={next.kind === 'BOSS' ? 'trophy' : 'book'} size={18} className="shrink-0 text-sky" />
-                  <span className="muted shrink-0 font-black">{t('home_next_lesson')}:</span>
-                  <span className="truncate font-black">{tr(next.title)}</span>
-                </div>
-              )}
-              <button className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : '/map'); }}>
-                {next ? t('home_continue_lesson') : t('home_city_done')}
-                <Icon name="play" size={20} />
-              </button>
-            </div>
+      {/* Привітання: великий Бобек з реплікою на тлі міста */}
+      <div className="relative mx-4 overflow-hidden rounded-[28px]" style={{ background: 'linear-gradient(180deg, #CDEBFF 0%, #EAF6FF 55%, #FFF3E0 100%)' }}>
+        <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-60" height={120} sky={false} />
+        <div className="relative flex min-h-[176px] items-end">
+          <div className="z-10 flex-1 self-start p-4 pr-0">
+            <h1 className="text-[26px] font-black leading-tight text-[#22364A]">{t('home_hero_hello', { name: me.profile.displayName || me.firstName || t('home_traveller') })}</h1>
+            <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.25, type: 'spring' }} className="relative mt-3 inline-block max-w-[190px] rounded-2xl rounded-br-sm bg-white px-3 py-2 text-[13px] font-bold leading-snug text-[#22364A] shadow-md">
+              {bubble}
+            </motion.div>
           </div>
-        ) : null}
+          <div className="-mb-1 -mr-1 shrink-0">
+            <Beaver mood={goalDone ? 'cheer' : 'wave'} outfit={me.outfit.wear} size={150} />
+          </div>
+        </div>
       </div>
+
+      {/* Рівень гравця */}
+      <motion.button whileTap={{ scale: 0.98 }} onClick={() => nav('/profile')} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3 text-left">
+        <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-b from-[#FFE6BF] to-[#FFC98A]">
+          <Beaver size={52} animate={false} vectorOnly outfit={me.outfit.wear} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-lg font-black">{t('home_level_n', { n: me.progress.level })}</span>
+            <span className="muted text-xs font-black">{me.progress.levelXp} / {me.progress.levelXpNeeded} XP</span>
+          </div>
+          <div className="muted mb-1.5 text-xs font-bold">{rankFor(me.progress.level)}</div>
+          <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={10} color="var(--color-xp)" />
+        </div>
+      </motion.button>
+
+      {/* Поточне місто й наступна ціль */}
+      {current && (
+        <motion.button whileTap={{ scale: 0.98 }} onClick={() => nav('/learn')} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden p-2 pr-3 text-left">
+          <CityBanner slug={current.slug} color={current.color} height={64} shade={false} className="w-24 shrink-0 rounded-2xl" />
+          <div className="min-w-0 flex-1">
+            <div className="font-black">{t('home_now_in', { city: current.namePl })}</div>
+            <div className="muted truncate text-xs font-bold">
+              {(() => { const nc = journey.data?.cities.filter((c) => c.order > (current?.order ?? 0)).sort((x, y) => x.order - y.order)[0]; return nc ? t('home_next_goal', { city: nc.namePl }) : tr(current.theme); })()}
+            </div>
+            <Progress value={current.lessonsDone} max={Math.max(1, current.lessonsTotal)} height={6} color="var(--color-brand)" className="mt-1.5" />
+          </div>
+          <Icon name="chevron-right" size={20} className="shrink-0 text-[#A3AEBB]" />
+        </motion.button>
+      )}
+
+      <div className="px-4">
+        <button className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : '/map'); }}>
+          {next ? t('home_continue_learning') : t('home_city_done')}
+          <Icon name="arrow-right" size={22} strokeWidth={2.6} />
+        </button>
+      </div>
+
+      {/* Сьогоднішні завдання */}
+      <Section title={t('home_today_tasks')} action={<button className="text-sm font-black text-sky-dark" onClick={() => nav('/quests')}>{t('home_see_all')}</button>}>
+        <div className="card divide-y divide-[var(--border)] overflow-hidden">
+          {tasks.map((q, i) => {
+            const done = q.status !== 'ACTIVE';
+            const [icon] = TASK_ICONS[q.slug] ?? (['quests'] as [IconName]);
+            return (
+              <motion.button
+                key={q.slug}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + i * 0.06 }}
+                onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
+                className="flex w-full items-center gap-3 px-3 py-2.5 text-left active:bg-black/5"
+              >
+                <span className="relative shrink-0">
+                  <GameIcon name={icon} size={38} inactive={done} />
+                  {done && <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-white ring-2 ring-white"><Icon name="check" size={12} strokeWidth={3} /></span>}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className={cx('text-[15px] font-black leading-tight', done && 'opacity-60')}>{tr(q.title)}</div>
+                  <div className="muted text-[11px] font-black">{Math.min(q.progress, q.target)}/{q.target}</div>
+                </div>
+                <span className="shrink-0 text-sm font-black text-brand-dark">+{q.xp} XP</span>
+                <Icon name="chevron-right" size={18} className="shrink-0 text-[#A3AEBB]" />
+              </motion.button>
+            );
+          })}
+          {!tasks.length && <Skeleton className="h-36" />}
+        </div>
+      </Section>
 
       {/* Куди сьогодні? — пастельні плитки основних розділів */}
       <Section title={t('home_where_today')}>
@@ -201,41 +203,6 @@ export function HomeScreen() {
               <span className="text-[10px] font-bold leading-tight" style={{ color: fg }}>{t(sub)}</span>
             </motion.button>
           ))}
-        </div>
-      </Section>
-
-      {/* Завдання на сьогодні: три короткі дії з прогресом і нагородою */}
-      <Section
-        title={t('home_today_tasks')}
-        action={<span className={cx('text-xs font-black', goalDone ? 'text-brand' : 'muted')}>{t('home_goal_short', { n: Math.min(me.today.xp, me.today.goalXp), total: me.today.goalXp })}</span>}
-      >
-        <div className="card divide-y divide-[var(--border)] overflow-hidden">
-          {tasks.map((q, i) => {
-            const done = q.status !== 'ACTIVE';
-            return (
-              <motion.button
-                key={q.slug}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + i * 0.06 }}
-                onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
-                className="flex w-full items-center gap-3 px-3.5 py-3 text-left active:bg-white/5"
-              >
-                <span className={cx('grid h-8 w-8 shrink-0 place-items-center rounded-full border-2', done ? 'border-brand bg-brand text-white' : 'border-[var(--border)]')}>
-                  {done && <Icon name="check" size={16} strokeWidth={3} />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className={cx('text-[15px] font-black leading-tight', done && 'opacity-70')}>{tr(q.title)}</div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Progress value={q.progress} max={q.target} height={5} color={done ? 'var(--color-brand)' : 'var(--color-sky)'} />
-                    <span className="muted whitespace-nowrap text-[11px] font-black">{Math.min(q.progress, q.target)}/{q.target}</span>
-                  </div>
-                </div>
-                <span className="shrink-0 rounded-lg bg-xp px-2 py-0.5 text-xs font-black text-[#5a3d00]">+{q.xp} XP</span>
-              </motion.button>
-            );
-          })}
-          {!tasks.length && <Skeleton className="h-36" />}
         </div>
       </Section>
 

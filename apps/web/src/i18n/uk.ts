@@ -355,6 +355,13 @@ export const uk = {
 
   achievements_title: 'Досягнення',
   achievements_unlocked: '{n} з {total} відкрито',
+  home_hero_hello: "Привіт, {name}!",
+  home_traveller: "мандрівнику",
+  home_level_n: "Рівень {n}",
+  home_now_in: "Зараз: {city}",
+  home_next_goal: "Наступна ціль: {city}",
+  home_continue_learning: "Продовжити навчання",
+  home_days_n: "{n} дн.",
   ex_mic_again: "Повторити для тренування (без зарахування)",
   ex_mic_heard: "Розпізнано",
   ex_mic_legend: "Зелене — розпізнано; жовте — без польських знаків; закреслене — не розпізнано.",
