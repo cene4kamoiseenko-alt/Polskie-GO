@@ -157,6 +157,8 @@ export type ShopItem = {
   isPremium: boolean;
   rewardOnly: boolean;
   city: { slug: string; name: I18n } | null;
+  /** Як отримати предмет-нагороду (з сервера). */
+  unlock: { kind: 'mission' | 'city' | 'achievement' | 'quest'; title: I18n; slug?: string } | null;
   owned: boolean;
   equipped: boolean;
 };

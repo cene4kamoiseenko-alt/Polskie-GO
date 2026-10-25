@@ -1,12 +1,13 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { achievements, gameWallets, missionRuns, playerProgress, reviewSchedule, userAchievements, userMissionSteps, userVocabulary } from '../src/db/schema';
+import { achievements, cosmeticItems, gameWallets, missionRuns, playerProgress, reviewSchedule, userAchievements, userInventory, userMissionSteps, userMissions, userVocabulary } from '../src/db/schema';
+import { buildSeedSql } from '../src/content/seed';
 import { MISSIONS, type Mission, type MissionStep } from '../src/content/missions';
 import { VOCAB } from '../src/content/vocab';
 import { DISHES, PIEROGI_PHRASES } from '../src/content/vocab-life';
 import { tokensOf } from '../src/services/missions';
-import { disposeEnv, login } from './helpers';
+import { disposeEnv, getEnv, login } from './helpers';
 
 afterAll(disposeEnv);
 
@@ -180,5 +181,35 @@ describe('Місії: проходження', () => {
     const list = await call('GET', '/api/missions');
     expect(list.body.missions.find((m: { slug: string }) => m.slug === 'first-tram').completions).toBe(1);
     expect(list.body.soon.length).toBeGreaterThan(0);
+  });
+  it('костюм за місію: лише за перше проходження, магазин показує умову, seed видає тим, хто пройшов раніше', async () => {
+    const { call, user } = await login();
+    const m = MISSIONS.find((x) => x.slug === 'orlen-coffee')!;
+    expect(m.rewardItem).toBe('costume-barista');
+    const shop0 = await call('GET', '/api/shop');
+    const barista = shop0.body.items.find((i: { slug: string }) => i.slug === 'costume-barista');
+    expect(barista).toMatchObject({ rewardOnly: true, owned: false, unlock: { kind: 'mission', slug: 'orlen-coffee' } });
+    expect(barista.unlock.title.uk).toBe(m.title.uk);
+    // Купити нагороду не можна.
+    expect((await call('POST', '/api/shop/buy', { itemId: barista.id })).status).toBe(400);
+
+    const first = await playMission(call, m);
+    expect(first.finished.reward).toMatchObject({ slug: 'costume-barista', slot: 'COSTUME' });
+    await wait(5);
+    const again = await playMission(call, m);
+    expect(again.finished.reward).toBeNull();
+    const inv = await db.select().from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(and(eq(userInventory.userId, user.id), eq(cosmeticItems.slug, 'costume-barista')));
+    expect(inv).toHaveLength(1);
+    expect(inv[0].user_inventory.source).toBe('mission:orlen-coffee');
+
+    // Пройшов місію до появи костюма: seed видає його один раз і не чіпає інші предмети.
+    const old = await login();
+    await db.insert(userMissions).values({ userId: old.user.id, missionSlug: 'train-wroclaw', completions: 2, flawless: 0, bestMistakes: 1, firstCompletedAt: new Date(), lastCompletedAt: new Date() });
+    const { env } = await getEnv();
+    const late = buildSeedSql().filter((q) => q.startsWith('INSERT INTO user_inventory'));
+    expect(late.length).toBeGreaterThanOrEqual(4);
+    for (let k = 0; k < 2; k++) for (const q of late) await env.DB.prepare(q).run();
+    const got = await db.select({ slug: cosmeticItems.slug }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(eq(userInventory.userId, old.user.id));
+    expect(got.map((g) => g.slug).filter((x) => x.startsWith('costume-'))).toEqual(['costume-conductor']);
   });
 });

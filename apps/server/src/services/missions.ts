@@ -7,11 +7,11 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { normalize, seededRandom, shuffle, type I18n } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
-import { missionRuns, newId, reviewSchedule, userMissionSteps, userMissions, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
+import { cosmeticItems, missionRuns, newId, reviewSchedule, userMissionSteps, userMissions, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
 import { MISSIONS, MISSIONS_SOON, missionBySlug, type Mission, type MissionStep } from '../content/missions';
 import { badRequest, notFound, HttpError } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
-import { grantXp, grantZlotki, loadCtx, touchActivity } from './rewards';
+import { grantItem, grantXp, grantZlotki, loadCtx, touchActivity } from './rewards';
 
 const REPEAT_XP = 10;
 type Run = typeof missionRuns.$inferSelect;
@@ -36,7 +36,7 @@ function publicStep(m: Mission, step: MissionStep, seed: string) {
 function summaryOf(m: Mission) {
   return {
     slug: m.slug, category: m.category, tags: m.tags, city: m.city, scene: m.scene, title: m.title, goal: m.goal,
-    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length,
+    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length, rewardItem: m.rewardItem ?? null,
   };
 }
 
@@ -147,10 +147,13 @@ async function finishMission(userId: string, run: Run, m: Mission, lastFirstTry:
   const ctx = await loadCtx(userId);
   const now = ctx.now;
   const flawless = run.mistakes === 0 && run.hints === 0 && lastFirstTry;
-  const [prevRow, vocab] = await Promise.all([
+  const [prevRow, vocab, rewardRow] = await Promise.all([
     db.select().from(userMissions).where(and(eq(userMissions.userId, userId), eq(userMissions.missionSlug, m.slug))),
     db.select({ id: vocabularyEntries.id, pl: vocabularyEntries.pl, translations: vocabularyEntries.translations }).from(vocabularyEntries)
       .where(inArray(vocabularyEntries.pl, [...new Set(m.steps.flatMap((s) => s.words ?? []))].concat('-'))),
+    m.rewardItem
+      ? db.select({ id: cosmeticItems.id, slug: cosmeticItems.slug, name: cosmeticItems.name, slot: cosmeticItems.slot }).from(cosmeticItems).where(and(eq(cosmeticItems.slug, m.rewardItem), eq(cosmeticItems.isActive, true)))
+      : Promise.resolve([]),
   ]);
   const prev = prevRow[0];
   const first = !prev;
@@ -189,6 +192,9 @@ async function finishMission(userId: string, run: Run, m: Mission, lastFirstTry:
     ...zl.stmts,
     ...activity.stmts,
   ];
+  // Костюм за місію — лише за перше проходження (повторна видача ігнорується первинним ключем).
+  const reward = first ? (rewardRow[0] ?? null) : null;
+  if (reward) stmts.push(grantItem(userId, reward.id, `mission:${m.slug}`));
   // Вирази місії → словник і розклад повторень (перше повторення — завтра).
   if (fresh.length) {
     for (const part of chunks(fresh)) {
@@ -211,5 +217,6 @@ async function finishMission(userId: string, run: Run, m: Mission, lastFirstTry:
     first, flawless, mistakes: run.mistakes, hints: run.hints, xp: xp.granted, zlotki: zl.granted,
     levelUp: xp.levelAfter > xp.levelBefore ? xp.levelAfter : null, streak: activity.streak, streakIncreased: activity.streakChanged,
     phrases: m.phrases, newWords: fresh.map((v) => ({ id: v.id, pl: v.pl, translations: v.translations })), achievements: ach.unlocked,
+    reward: reward ? { slug: reward.slug, name: reward.name, slot: reward.slot } : null,
   };
 }

@@ -1,8 +1,8 @@
 /**
- * Гардероб (референси «Гардероб»): ігрова примірочна з бобром на підсвіченому подіумі,
- * стрілки перемикають предмети категорії (одразу приміряються на бобра), категорії з іконками,
- * великі картки з рідкістю, ціною і статусом. Купівля й одягання — лише через сервер.
- * У режимі «Домик» (?house=1) показуються меблі, декор і сувеніри.
+ * Гардероб (макет «Цільовий візуал», екран 03): угорі — сцена образу (костюм у своєму місті
+ * або примірочна з живим бобром для окремих речей), вкладки «Нагороди» / «Магазин»,
+ * картки костюмів зі сценою, описом, умовою отримання і кнопкою «Приміряти».
+ * Купівля й одягання — лише через сервер. У режимі «Домик» (?house=1) — меблі, декор і сувеніри.
  */
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
@@ -18,10 +18,10 @@ import { WEAR_SLOTS } from '../components/ItemPreview';
 import { Icon } from '../components/Icon';
 import { Art } from '../components/GameArt';
 import { ErrorState, ScreenSkeleton, cx, useBackButton, useToast } from '../components/ui';
+import { costumeAsset, costumeScene, supportsBeaverArt, travellerScene } from '../lib/assets';
 
 const WARDROBE_SLOTS = ['JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'HAT', 'GLASSES', 'SCARF', 'COSTUME', 'FRAME'];
 const HOUSE_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR'];
-const RARITY_COLOR: Record<string, string> = { common: '#3F7CC4', rare: '#36B9FF', epic: '#9D69FF', legendary: '#FFC857' };
 
 /** Лінійні іконки категорій. */
 const SLOT_GLYPH: Record<string, ReactNode> = {
@@ -91,44 +91,74 @@ function DressingRoom() {
 }
 
 function ItemArt({ item, size }: { item: ShopItem; size: number }) {
-  // Костюм без бобра розпадається на частини — показуємо бобра в костюмі.
-  if (item.slot === 'COSTUME') return <Beaver size={size * 0.92} outfit={{ COSTUME: item.assetKey }} animate={false} vectorOnly />;
+  // Костюм без бобра розпадається на частини — показуємо бобра в костюмі (растр, якщо є).
+  if (item.slot === 'COSTUME') {
+    const art = costumeAsset(item.assetKey);
+    if (art) return <img src={art} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
+    return <Beaver size={size * 0.92} outfit={{ COSTUME: item.assetKey }} animate={false} vectorOnly />;
+  }
   if (WEAR_SLOTS.includes(item.slot)) return <BeaverPart slot={item.slot} kind={item.assetKey} size={size} />;
   return <span style={{ fontSize: size * 0.6, lineHeight: 1 }}>{ITEM_ICONS[item.assetKey] ?? '🎁'}</span>;
 }
 
+/** Стартовий образ «Мандрівник»: не предмет магазину, а «без костюма». */
+const TRAVELLER_ID = '__traveller';
+const travellerItem = (name: string, equipped: boolean): ShopItem => ({
+  id: TRAVELLER_ID, slug: 'traveller', slot: 'COSTUME', name: { uk: name, ru: name, en: name }, assetKey: 'costume-traveller', price: 0,
+  rarity: 'common', isPremium: false, rewardOnly: false, city: null, unlock: null, owned: true, equipped,
+});
+const costumeKey = (i: ShopItem) => (i.id === TRAVELLER_ID ? 'traveller' : i.assetKey.replace(/^costume-/, ''));
+
+type Tab = 'rewards' | 'shop';
+
 export default function ShopScreen() {
   const { t, tr } = useT();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const houseMode = params.get('house') === '1';
   const nav = useNavigate();
   const shop = useShop();
   const me = useMe().data;
   const refresh = useRefreshAll();
   const toast = useToast();
+  const tab: Tab = houseMode || params.get('tab') === 'shop' ? 'shop' : 'rewards';
   const slots = houseMode ? HOUSE_SLOTS : WARDROBE_SLOTS;
   const [slot, setSlot] = useState(slots[0]);
   const [picked, setPicked] = useState<ShopItem | null>(null);
   const [busy, setBusy] = useState(false);
   useBackButton(useCallback(() => nav(-1), [nav]));
 
-  const items = useMemo(() => shop.data?.items.filter((i) => i.slot === slot) ?? [], [shop.data, slot]);
+  const all = shop.data?.items ?? [];
+  const equippedCostume = all.find((i) => i.slot === 'COSTUME' && i.equipped) ?? null;
+  const traveller = useMemo(() => travellerItem(t('wardrobe_traveller'), !equippedCostume), [t, equippedCostume]);
+  // «Нагороди»: стартовий образ і костюми-нагороди великими картками, решта нагород — звичайними.
+  const rewardCostumes = useMemo(() => [traveller, ...all.filter((i) => i.slot === 'COSTUME' && i.rewardOnly)], [all, traveller]);
+  const otherRewards = useMemo(() => all.filter((i) => i.rewardOnly && i.slot !== 'COSTUME' && WARDROBE_SLOTS.includes(i.slot)), [all]);
+  const items = useMemo(() => all.filter((i) => i.slot === slot && (houseMode || !i.rewardOnly)), [all, slot, houseMode]);
   // Примірка: бобер одразу показує вибраний предмет — ще до покупки.
   const preview = useMemo(() => {
-    const wear = { ...(me?.outfit.wear ?? {}) };
-    if (picked && WEAR_SLOTS.includes(picked.slot)) wear[picked.slot] = picked.assetKey;
+    const wear: Record<string, string | undefined> = { ...(me?.outfit.wear ?? {}) };
+    if (picked?.id === TRAVELLER_ID) delete wear.COSTUME;
+    else if (picked && WEAR_SLOTS.includes(picked.slot)) wear[picked.slot] = picked.assetKey;
     return wear;
   }, [me, picked]);
+  // Сцена образу: костюм — у своєму місті; фірмовий образ без інших речей — «Мандрівник».
+  const scene = preview.COSTUME ? costumeScene(preview.COSTUME) : supportsBeaverArt(preview) ? travellerScene() : null;
 
   const pick = (i: ShopItem | null) => {
     haptic.select();
     if (i) sfx.tap();
     setPicked(i);
   };
+  const stepList = tab === 'rewards' ? [...rewardCostumes, ...otherRewards] : items;
   const step = (d: number) => {
-    if (!items.length) return;
-    const idx = picked ? items.findIndex((i) => i.id === picked.id) : -1;
-    pick(items[(idx + d + items.length) % items.length]);
+    if (!stepList.length) return;
+    const idx = picked ? stepList.findIndex((i) => i.id === picked.id) : -1;
+    pick(stepList[(idx + d + stepList.length) % stepList.length]);
+  };
+  const setTab = (next: Tab) => {
+    haptic.select();
+    setPicked(null);
+    setParams(next === 'shop' ? { tab: 'shop' } : {}, { replace: true });
   };
 
   const act = async (fn: () => Promise<unknown>, okText: string) => {
@@ -147,11 +177,95 @@ export default function ShopScreen() {
     }
   };
 
+  const unlockText = (i: ShopItem) =>
+    i.unlock ? t(`unlock_${i.unlock.kind}` as TKey, { title: tr(i.unlock.title) }) : i.isPremium ? t('unlock_premium') : t('shop_reward_only');
+
   if (shop.isLoading) return <ScreenSkeleton />;
   if (shop.error) return <ErrorState error={shop.error} onRetry={() => shop.refetch()} />;
   const balance = shop.data!.balance;
   const wearable = picked ? WEAR_SLOTS.includes(picked.slot) : true;
 
+  const costumeCard = (i: ShopItem, n: number) => {
+    const key = costumeKey(i);
+    const art = i.id === TRAVELLER_ID ? travellerScene() : costumeScene(i.assetKey);
+    const selected = picked?.id === i.id;
+    const status = i.id === TRAVELLER_ID ? t('unlock_starter') : i.owned ? t('wardrobe_owned') : i.rewardOnly || (i.isPremium && !shop.data!.premium) ? unlockText(i) : null;
+    return (
+      <motion.article
+        key={i.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(n, 6) * 0.04, duration: 0.25 }}
+        className={cx('costume-card flex flex-col', selected && 'is-selected', i.equipped && 'is-equipped')}
+      >
+        <div className="costume-card-art">
+          {art ? <img src={art} alt="" loading="lazy" decoding="async" draggable={false} /> : <span className="grid h-full place-items-center"><ItemArt item={i} size={110} /></span>}
+          {i.equipped && <span className="costume-card-badge"><Icon name="check" size={14} strokeWidth={3.4} /> {t('shop_wearing')}</span>}
+        </div>
+        <div className="flex flex-1 flex-col gap-1.5 p-3 pt-2.5">
+          <h3 className="text-[15px] font-black leading-tight">{tr(i.name)}</h3>
+          <p className="muted line-clamp-2 text-[12px] font-bold leading-snug">{t(`costume_desc_${key}` as TKey)}</p>
+          <div className="mt-auto flex min-h-[30px] items-center gap-1.5 pt-1">
+            {status ? (
+              <span className={cx('costume-card-cond', i.owned && 'is-owned')}>
+                {i.owned ? <Icon name="check" size={13} strokeWidth={3.2} /> : <Art name={i.unlock?.kind === 'mission' ? 'scroll' : i.unlock?.kind === 'city' ? 'passport' : i.isPremium ? 'crown' : 'medal-gold'} size={18} />}
+                <span className="line-clamp-3">{status}</span>
+              </span>
+            ) : (
+              <span className="costume-card-cond"><Art name="coin" size={18} /> {i.price}</span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => pick(selected ? null : i)}
+            aria-pressed={selected}
+            className={cx('btn mt-1 !min-h-[40px] w-full !rounded-xl !px-2 text-[14px]', selected ? 'btn-primary' : 'btn-outline')}
+          >
+            {t('wardrobe_try')}
+          </button>
+        </div>
+      </motion.article>
+    );
+  };
+
+  const itemCard = (i: ShopItem, n: number) => {
+    const color = i.equipped ? 'var(--color-brand)' : `var(--rarity-${i.rarity}, var(--rarity-common))`;
+    const selected = picked?.id === i.id;
+    return (
+      <motion.button
+        key={i.id}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(n, 6) * 0.04, duration: 0.25 }}
+        whileTap={{ scale: 0.96 }}
+        onClick={() => pick(selected ? null : i)}
+        aria-pressed={selected}
+        className={cx('item-card relative flex flex-col items-center gap-1.5 px-2 pb-3 pt-3', `is-${i.rarity}`, i.equipped && 'is-equipped', selected && 'is-selected')}
+        style={{ ['--item-color' as string]: color }}
+      >
+        {i.isPremium && <span className="absolute right-2 top-2"><Art name="crown" size={24} /></span>}
+        {i.rewardOnly && !i.owned && <span className="absolute right-2 top-2"><Art name="medal-gold" size={26} /></span>}
+        <span className="item-rarity absolute left-2 top-2 rounded-full px-1.5 py-px text-[9.5px] font-black uppercase tracking-wide">{t(`rarity_${i.rarity}` as TKey)}</span>
+        <span className="mt-3 grid h-[112px] w-full place-items-center">
+          <span className="drop-shadow-[0_8px_8px_rgba(0,0,0,0.45)]">
+            <ItemArt item={i} size={104} />
+          </span>
+        </span>
+        <span className="line-clamp-2 min-h-[38px] text-center text-[15px] font-black leading-tight">{tr(i.name)}</span>
+        {i.owned ? (
+          <span className={cx('grid h-8 min-w-[40px] place-items-center rounded-lg px-2', i.equipped ? 'item-equipped' : 'border border-brand/60 text-brand')}>
+            {i.equipped ? <Icon name="check" size={20} strokeWidth={3.2} /> : <span className="text-[12px] font-black">{t('shop_owned')}</span>}
+          </span>
+        ) : i.rewardOnly ? (
+          <span className="line-clamp-2 px-1 text-center text-[11.5px] font-black leading-tight text-grape">{unlockText(i)}</span>
+        ) : (
+          <span className="item-price flex items-center gap-1.5 rounded-full px-4 py-1 text-[17px] font-black"><Art name="coin" size={22} /> {i.price}</span>
+        )}
+      </motion.button>
+    );
+  };
+
+  const isTraveller = picked?.id === TRAVELLER_ID;
   return (
     <div className="pb-36">
       {/* Заголовок */}
@@ -160,107 +274,120 @@ export default function ShopScreen() {
         <span className="hud-pill !h-11 !px-4 !text-[18px]"><Art name="coin" size={26} /> {balance}</span>
       </div>
 
-      {/* Примірочна */}
+      {/* Сцена образу або примірочна */}
       {!houseMode && (
-        <div className="relative -mt-2 h-[300px] overflow-hidden">
-          <DressingRoom />
-          <div className="absolute inset-x-0 bottom-[42px] flex justify-center">
-            <AnimatePresence mode="popLayout">
-              <motion.div key={picked?.id ?? 'base'} initial={{ scale: 0.92, opacity: 0.4, y: 6 }} animate={{ scale: 1, opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 18 }}>
-                <Beaver size={196} outfit={preview} mood={picked ? 'cheer' : 'happy'} />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-          {items.length > 1 && (
+        <div className="wardrobe-stage relative mx-4 mt-3 overflow-hidden">
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={scene ?? 'room'}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              {scene ? (
+                <img src={scene} alt="" className="h-full w-full object-cover" draggable={false} />
+              ) : (
+                <>
+                  <DressingRoom />
+                  <div className="absolute inset-x-0 bottom-[30px] flex justify-center">
+                    <Beaver size={176} outfit={preview} mood={picked ? 'cheer' : 'happy'} />
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
+          <div className="wardrobe-stage-shade" />
+          {stepList.length > 1 && (
             <>
-              <button onClick={() => step(-1)} aria-label={t('shop_prev')} className="glass-card absolute left-6 top-[46%] grid h-12 w-12 place-items-center !rounded-full text-white active:scale-90"><Icon name="chevron-right" size={22} className="rotate-180" /></button>
-              <button onClick={() => step(1)} aria-label={t('shop_next')} className="glass-card absolute right-6 top-[46%] grid h-12 w-12 place-items-center !rounded-full text-white active:scale-90"><Icon name="chevron-right" size={22} /></button>
+              <button onClick={() => step(-1)} aria-label={t('shop_prev')} className="glass-card absolute left-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center !rounded-full text-white active:scale-90"><Icon name="chevron-right" size={22} className="rotate-180" /></button>
+              <button onClick={() => step(1)} aria-label={t('shop_next')} className="glass-card absolute right-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center !rounded-full text-white active:scale-90"><Icon name="chevron-right" size={22} /></button>
             </>
           )}
           {picked && (
-            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="glass-card absolute left-1/2 top-2 max-w-[70%] -translate-x-1/2 truncate px-3 py-1 text-[12px] font-black text-white">
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="glass-card absolute bottom-3 left-1/2 max-w-[80%] -translate-x-1/2 truncate px-3 py-1 text-[12px] font-black text-white">
               {t('shop_trying')}: {tr(picked.name)}
             </motion.div>
           )}
         </div>
       )}
 
-      {/* Категорії */}
-      <div className="no-scrollbar relative z-10 -mt-1 flex gap-2 overflow-x-auto px-4 pb-1 pt-2">
-        {slots.map((s) => (
-          <button
-            key={s}
-            onClick={() => { haptic.select(); setSlot(s); setPicked(null); }}
-            className={cx('flex shrink-0 items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-[14px] font-black transition-colors', s === slot ? 'border-transparent bg-gradient-to-b from-[#FF6B7A] to-[#E5384B] text-white shadow-[0_0_16px_-2px_rgb(255_82_101/0.8)]' : 'border-[var(--border)] bg-elev text-[var(--text-muted)]')}
-          >
-            <SlotIcon slot={s} /> {t(`slot_${s}` as TKey)}
-          </button>
-        ))}
-      </div>
+      {/* Вкладки «Нагороди» / «Магазин» */}
+      {!houseMode && (
+        <div role="tablist" className="segmented mx-4 mt-4">
+          {(['rewards', 'shop'] as Tab[]).map((k) => (
+            <button key={k} role="tab" aria-selected={tab === k} onClick={() => tab !== k && setTab(k)} className={cx('segmented-item', tab === k && 'is-active')}>
+              {t(k === 'rewards' ? 'wardrobe_tab_rewards' : 'wardrobe_tab_shop')}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Предмети */}
-      <div className="mt-3 grid grid-cols-2 gap-3 px-4">
-        {items.map((i, n) => {
-          const color = i.equipped ? '#25D79B' : (RARITY_COLOR[i.rarity] ?? RARITY_COLOR.common);
-          const selected = picked?.id === i.id;
-          return (
-            <motion.button
-              key={i.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(n, 6) * 0.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => pick(selected ? null : i)}
-              className="item-card relative flex flex-col items-center gap-1.5 px-2 pb-3 pt-3"
-              style={{
-                borderColor: selected ? '#FFFFFF' : color,
-                background: i.equipped ? 'radial-gradient(120% 80% at 50% 20%, #1f6b55 0%, #0f3b3a 60%, #0c2c33 100%)' : i.rarity === 'legendary' ? 'radial-gradient(120% 80% at 50% 20%, #5a4316 0%, #2e2614 55%, #1c1b1e 100%)' : i.rarity === 'epic' ? 'radial-gradient(120% 80% at 50% 20%, #3e2a7a 0%, #22184a 60%, #171433 100%)' : undefined,
-                boxShadow: `0 0 ${selected ? 26 : 18}px -6px ${color}, var(--shadow-deep)`,
-              }}
-            >
-              {i.isPremium && <span className="absolute right-2 top-2"><Art name="crown" size={24} /></span>}
-              {i.rewardOnly && !i.owned && <span className="absolute right-2 top-2"><Art name="medal-gold" size={26} /></span>}
-              <span className="absolute left-2 top-2 rounded-full px-1.5 py-px text-[9.5px] font-black uppercase tracking-wide" style={{ background: `${RARITY_COLOR[i.rarity] ?? RARITY_COLOR.common}33`, color: RARITY_COLOR[i.rarity] ?? '#9CC4FF' }}>{t(`rarity_${i.rarity}` as TKey)}</span>
-              <span className="mt-3 grid h-[112px] w-full place-items-center">
-                <motion.span animate={selected ? { y: [0, -6, 0] } : undefined} transition={{ repeat: Infinity, duration: 1.6 }} className="drop-shadow-[0_8px_8px_rgba(0,0,0,0.45)]">
-                  <ItemArt item={i} size={104} />
-                </motion.span>
-              </span>
-              <span className="line-clamp-2 min-h-[38px] text-center text-[15px] font-black leading-tight text-white">{tr(i.name)}</span>
-              {i.owned ? (
-                <span className={cx('grid h-8 min-w-[40px] place-items-center rounded-lg px-2', i.equipped ? 'bg-gradient-to-b from-[#3DF0A8] to-[#13A874] text-[#07182c]' : 'border border-brand/60 text-brand')}>
-                  {i.equipped ? <Icon name="check" size={20} strokeWidth={3.2} /> : <span className="text-[12px] font-black">{t('shop_owned')}</span>}
-                </span>
-              ) : i.rewardOnly ? (
-                <span className="rounded-full border border-grape/60 bg-[#07182c]/50 px-3 py-1 text-[12px] font-black text-grape">{t('shop_reward_only')}</span>
-              ) : (
-                <span className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[#07182c]/60 px-4 py-1 text-[17px] font-black text-white"><Art name="coin" size={22} /> {i.price}</span>
-              )}
-            </motion.button>
-          );
-        })}
-      </div>
+      {tab === 'rewards' ? (
+        <>
+          <h2 className="mx-4 mt-5 text-[20px] font-black">{t('wardrobe_costumes')}</h2>
+          <div className="mt-3 grid grid-cols-2 gap-3 px-4">{rewardCostumes.map(costumeCard)}</div>
+          {otherRewards.length > 0 && (
+            <>
+              <h2 className="mx-4 mt-6 text-[20px] font-black">{t('wardrobe_other_rewards')}</h2>
+              <div className="mt-3 grid grid-cols-2 gap-3 px-4">{otherRewards.map(itemCard)}</div>
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Категорії */}
+          <div className="no-scrollbar relative z-10 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 pt-1">
+            {slots.map((s) => (
+              <button
+                key={s}
+                onClick={() => { haptic.select(); setSlot(s); setPicked(null); }}
+                aria-pressed={s === slot}
+                className={cx('chip-tab', s === slot && 'is-active')}
+              >
+                <SlotIcon slot={s} /> {t(`slot_${s}` as TKey)}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 px-4">{items.map((i, n) => (i.slot === 'COSTUME' ? costumeCard(i, n) : itemCard(i, n)))}</div>
+        </>
+      )}
       <div className="mx-4 mt-5 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-elev p-3.5">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[#9CC4FF] text-lg font-black text-[#9CC4FF]">i</span>
-        <span className="text-[13px] font-bold leading-snug text-[#cfe0f2]">{t('shop_earn_hint')}</span>
+        <span className="info-dot grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 text-lg font-black">i</span>
+        <span className="muted text-[13px] font-bold leading-snug">{t('shop_earn_hint')}</span>
       </div>
 
       {/* Панель дії для вибраного предмета */}
       <AnimatePresence>
         {picked && (
           <motion.div initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-xl px-3">
-            <div className="flex items-center gap-3 rounded-[22px] border border-sky/40 bg-[#0d2342]/95 p-3 shadow-[0_-10px_30px_-10px_rgb(0_0_0/0.8)] backdrop-blur">
-              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#07182c]"><ItemArt item={picked} size={50} /></span>
+            <div className="action-sheet flex items-center gap-3 rounded-[22px] p-3">
+              <span className="action-sheet-art grid h-14 w-14 shrink-0 place-items-center rounded-2xl">
+                {isTraveller ? <Beaver size={50} mood="happy" outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} animate={false} /> : <ItemArt item={picked} size={50} />}
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="line-clamp-2 text-[15px] font-black leading-tight text-white">{tr(picked.name)}</div>
-                <div className="text-[11px] font-black uppercase" style={{ color: RARITY_COLOR[picked.rarity] }}>{t(`rarity_${picked.rarity}` as TKey)}{picked.city ? ` · ${tr(picked.city.name)}` : ''}</div>
+                <div className="line-clamp-2 text-[15px] font-black leading-tight">{tr(picked.name)}</div>
+                <div className="line-clamp-2 text-[11px] font-black" style={{ color: `var(--rarity-${picked.rarity}, var(--rarity-common))` }}>
+                  {!picked.owned && (picked.rewardOnly || picked.isPremium) ? unlockText(picked) : `${t(`rarity_${picked.rarity}` as TKey)}${picked.city ? ` · ${tr(picked.city.name)}` : ''}`}
+                </div>
               </div>
-              {picked.owned ? (
+              {isTraveller ? (
+                <button
+                  className="btn btn-green min-h-[46px] px-4"
+                  disabled={busy || !equippedCostume}
+                  onClick={() => equippedCostume && act(() => api('/inventory/equip', { body: { itemId: equippedCostume.id, equipped: false } }), t('toast_saved'))}
+                >
+                  {equippedCostume ? t('wardrobe_take_off') : t('shop_wearing')}
+                </button>
+              ) : picked.owned ? (
                 <button className="btn btn-green min-h-[46px] px-4" disabled={busy} onClick={() => act(() => api('/inventory/equip', { body: { itemId: picked.id, equipped: !picked.equipped } }), t('toast_saved'))}>
                   {picked.equipped ? (wearable ? t('shop_unequip') : t('shop_remove')) : wearable ? t('shop_equip') : t('shop_place')}
                 </button>
               ) : picked.rewardOnly ? (
-                <span className="max-w-[120px] text-right text-[12px] font-bold text-[#cfe0f2]">{t('shop_reward_only')}</span>
+                picked.unlock?.kind === 'mission' && picked.unlock.slug ? (
+                  <button className="btn btn-sky min-h-[46px] px-4" onClick={() => nav(`/life/${picked.unlock!.slug}`)}>{t('wardrobe_go_mission')}</button>
+                ) : null
               ) : picked.isPremium && !shop.data!.premium ? (
                 <button className="btn btn-xp min-h-[46px] px-4" onClick={() => nav('/premium')}>{t('shop_premium_only')}</button>
               ) : (

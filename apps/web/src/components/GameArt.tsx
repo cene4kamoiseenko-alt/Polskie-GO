@@ -295,6 +295,16 @@ const RASTER: Partial<Record<ArtName, string>> = {
 
 export const Art = memo(function Art({ name, size = 48, className, label }: { name: ArtName; size?: number; className?: string; label?: string }) {
   const id = useId().replace(/:/g, '');
+  // Щит рівня: растровий щит з листа іконок + справжнє число поверх (на малюнку числа немає).
+  const level = name === 'shield' && label ? iconAsset('level') : null;
+  if (level) {
+    return (
+      <span className={`art-level ${className ?? ''}`} style={{ width: size, height: size, fontSize: Math.round(size * (label!.length > 1 ? 0.36 : 0.44)) }}>
+        <img src={level} alt="" width={size} height={size} draggable={false} />
+        <span>{label}</span>
+      </span>
+    );
+  }
   const raster = !label && RASTER[name] ? iconAsset(RASTER[name]!) : null;
   if (raster) return <img src={raster} alt="" width={size} height={size} className={className} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
   const u = (s: string) => `${id}-${s}`;

@@ -326,11 +326,18 @@ export const ITEMS: ItemSeed[] = [
   // Рамки профілю
   it('frame-green', 'FRAME', t('Зелена рамка', 'Зелёная рамка', 'Green frame'), 100),
   it('frame-gold', 'FRAME', t('Золота рамка', 'Золотая рамка', 'Gold frame'), 150, { premium: true, rarity: 'legendary' }),
+  // Костюми з листа «Костюми й міста» (в кінці списку: порядок наявних предметів не змінюється)
+  it('costume-barista', 'COSTUME', t('Костюм баристи', 'Костюм бариста', 'Barista outfit'), 0, { rewardOnly: true, rarity: 'rare' }),
+  it('costume-chef', 'COSTUME', t('Костюм кухаря', 'Костюм повара', 'Chef outfit'), 0, { rewardOnly: true, rarity: 'rare' }),
+  it('costume-conductor', 'COSTUME', t('Костюм провідника', 'Костюм проводника', 'Train conductor outfit'), 0, { rewardOnly: true, rarity: 'epic' }),
+  it('costume-krasnal', 'COSTUME', t('Костюм гнома з Вроцлава', 'Костюм гнома из Вроцлава', 'Wrocław gnome outfit'), 0, { rewardOnly: true, rarity: 'legendary', city: 'wroclaw' }),
+  it('costume-artist', 'COSTUME', t('Костюм художника', 'Костюм художника', 'Artist outfit'), 180, { rarity: 'epic' }),
+  it('costume-winter', 'COSTUME', t('Зимовий образ', 'Зимний образ', 'Winter look'), 120, { rarity: 'rare' }),
 ];
 
 /** Нагороди за проходження іспиту міста (сувенір + костюм). */
 export const CITY_REWARDS: Record<string, string[]> = {
   warszawa: ['souvenir-syrenka', 'costume-syrenka'],
   krakow: ['souvenir-dragon', 'vest-krakowiak', 'obwarzanek'],
-  wroclaw: ['souvenir-krasnal'],
+  wroclaw: ['souvenir-krasnal', 'costume-krasnal'],
 };

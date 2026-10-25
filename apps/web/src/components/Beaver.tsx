@@ -7,7 +7,7 @@
  */
 import { motion, useReducedMotion } from 'framer-motion';
 import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { beaverAsset, supportsBeaverArt } from '../lib/assets';
+import { beaverAsset, costumeArt, supportsBeaverArt } from '../lib/assets';
 
 /**
  * Стани: привітання (wave), правильна відповідь (cheer), підтримка після помилки (sad),
@@ -303,6 +303,98 @@ function Costume({ kind }: { kind?: string }) {
       </g>
     );
   }
+  const base = 'M60 138 C 60 118, 78 112, 100 112 C 122 112, 140 118, 140 138 L 146 186 C 146 198, 126 206, 100 206 C 74 206, 54 198, 54 186 Z';
+  if (kind === 'costume-barista') {
+    // Біла сорочка, зелений фартух з кавовим зерном, кишеня з олівцем.
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d={base} fill="#F6F3EC" strokeWidth={LW} />
+        <path d="M90 116 L100 128 L110 116" fill="none" strokeWidth="2" />
+        <path d="M98 128 l2 10 l2 -10 z" fill="#D9762B" strokeWidth="1.4" />
+        <path d="M68 146 Q100 138 132 146 L138 196 Q100 208 62 196 Z" fill="#2F7D4F" strokeWidth={LW} />
+        <path d="M74 140 L70 120 M126 140 L130 120" stroke="#245F3C" strokeWidth="4" strokeLinecap="round" />
+        <ellipse cx="100" cy="166" rx="9" ry="11" fill="#E2C38F" strokeWidth="1.8" />
+        <path d="M100 156 Q96 166 100 176" fill="none" stroke="#7A4E2A" strokeWidth="1.8" />
+        <rect x="76" y="176" width="16" height="14" rx="3" fill="#245F3C" strokeWidth="1.6" />
+        <path d="M80 176 l2 -10" stroke="#FFC857" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (kind === 'costume-chef') {
+    // Двобортний кітель кухаря з червоними ґудзиками і червона хустка.
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d={base} fill="#FBF8F1" strokeWidth={LW} />
+        <path d="M100 116 C 112 140, 112 170, 104 204" fill="none" stroke="#D9D2C3" strokeWidth="2" />
+        {[146, 164, 182].map((y) => (
+          <g key={y}>
+            <circle cx="88" cy={y} r="3" fill="#E5484D" strokeWidth="1.2" />
+            <circle cx="114" cy={y} r="3" fill="#E5484D" strokeWidth="1.2" />
+          </g>
+        ))}
+        <path d="M80 118 Q100 134 120 118 L112 140 Q100 132 88 140 Z" fill="#E5484D" strokeWidth="2" />
+      </g>
+    );
+  }
+  if (kind === 'costume-conductor') {
+    // Темно-синя форма провідника: золоті ґудзики, краватка, сумка через плече.
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d={base} fill="#22356B" strokeWidth={LW} />
+        <path d="M88 114 L100 134 L112 114 Z" fill="#F4F1EA" strokeWidth="1.6" />
+        <path d="M100 126 l-4 8 l4 20 l4 -20 z" fill="#B8323A" strokeWidth="1.4" />
+        {[150, 166, 182].map((y) => <circle key={y} cx="112" cy={y} r="3" fill="#FFC857" strokeWidth="1.2" />)}
+        <path d="M60 140 L138 196" stroke="#7A4E2A" strokeWidth="6" strokeLinecap="round" />
+        <rect x="118" y="182" width="26" height="20" rx="4" fill="#9A6236" strokeWidth="2" />
+        <path d="M58 150 h14 M128 150 h14" stroke="#FFC857" strokeWidth="2.5" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (kind === 'costume-krasnal') {
+    // Вроцлавський гном: вишита червона камізелька, біла сорочка, пасок з пряжкою.
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d={base} fill="#F6F3EC" strokeWidth={LW} />
+        <path d="M60 138 C 60 120, 76 113, 90 112 L 94 204 C 76 204, 54 198, 54 186 Z" fill="#9C2430" strokeWidth="2" />
+        <path d="M140 138 C 140 120, 124 113, 110 112 L 106 204 C 124 204, 146 198, 146 186 Z" fill="#9C2430" strokeWidth="2" />
+        {[[72, 146], [80, 168], [126, 150], [120, 172]].map(([x, y]) => (
+          <g key={`${x}${y}`} stroke="none">
+            <circle cx={x} cy={y} r="3.4" fill="#FFC857" />
+            <circle cx={x - 5} cy={y + 4} r="2" fill="#3DB565" />
+            <circle cx={x + 5} cy={y + 4} r="2" fill="#69C7F4" />
+          </g>
+        ))}
+        <path d="M56 184 Q100 196 144 184 L145 194 Q100 206 55 194 Z" fill="#5A3A22" strokeWidth="2" />
+        <rect x="92" y="186" width="16" height="12" rx="2" fill="#FFC857" strokeWidth="1.6" />
+      </g>
+    );
+  }
+  if (kind === 'costume-artist') {
+    // Блуза художника з плямами фарби і червоний шарф.
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d={base} fill="#F3EAD7" strokeWidth={LW} />
+        {[[74, 156, '#E5484D'], [124, 170, '#3A7BD5'], [88, 186, '#FFC857'], [116, 146, '#3DB565'], [132, 188, '#9D69FF']].map(([x, y, c]) => (
+          <ellipse key={`${x}${y}`} cx={x as number} cy={y as number} rx="5" ry="3.6" fill={c as string} stroke="none" />
+        ))}
+        <path d="M70 120 Q100 138 130 120 L132 132 Q100 150 68 132 Z" fill="#D7303F" strokeWidth="2" />
+        <path d="M112 136 l8 40 l-10 2 l-6 -38 z" fill="#C42A36" strokeWidth="2" />
+      </g>
+    );
+  }
+  if (kind === 'costume-winter') {
+    // Бірюзовий пуховик з хутряним коміром і червоний шарф.
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d={base} fill="#1F8F8A" strokeWidth={LW} />
+        {[150, 168, 186].map((y) => <path key={y} d={`M58 ${y} Q100 ${y + 8} 142 ${y}`} fill="none" stroke="#16716D" strokeWidth="2" />)}
+        <path d="M100 118 L100 204" stroke="#16716D" strokeWidth="2.5" />
+        <path d="M62 128 Q80 108 100 118 Q120 108 138 128 Q120 136 100 128 Q80 136 62 128 Z" fill="#F4E6CC" strokeWidth="2" />
+        <path d="M76 124 Q100 138 124 124 L124 134 Q100 148 76 134 Z" fill="#E5384B" strokeWidth="2" />
+        <path d="M112 134 l6 32 l-9 2 l-5 -30 z" fill="#C42A36" strokeWidth="2" />
+      </g>
+    );
+  }
   if (kind === 'costume-syrenka') {
     return (
       <g>
@@ -328,6 +420,38 @@ function CostumeHead({ kind }: { kind?: string }) {
         <circle cx="136" cy="34" r="5" fill="#fff" />
         <circle cx="64" cy="34" r="2.5" fill="#243746" />
         <circle cx="136" cy="34" r="2.5" fill="#243746" />
+      </g>
+    );
+  }
+  if (kind === 'costume-chef') return <Hat kind="hat-chef" />;
+  if (kind === 'costume-krasnal') return <Hat kind="hat-krasnal" />;
+  if (kind === 'costume-conductor') {
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d="M54 46 C 54 22, 78 12, 100 12 C 122 12, 146 22, 146 46 Z" fill="#22356B" strokeWidth="2.4" />
+        <path d="M50 44 Q100 56 150 44 L150 52 Q100 64 50 52 Z" fill="#141F40" strokeWidth="2" />
+        <path d="M62 52 Q100 66 138 52 Q132 62 100 66 Q68 62 62 52 Z" fill="#0E1730" strokeWidth="2" />
+        <path d="M88 28 l12 -6 l12 6 l-12 6 z" fill="#FFC857" strokeWidth="1.6" />
+        <path d="M78 28 h8 M114 28 h8" stroke="#FFC857" strokeWidth="2.4" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (kind === 'costume-artist') {
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <ellipse cx="94" cy="30" rx="50" ry="18" fill="#D7303F" strokeWidth="2.4" transform="rotate(-10 94 30)" />
+        <path d="M100 12 l2 -8" stroke={C.line} strokeWidth="3" strokeLinecap="round" />
+        <path d="M60 30 Q90 40 128 22" fill="none" stroke="#FF7480" strokeWidth="2.4" opacity="0.6" />
+      </g>
+    );
+  }
+  if (kind === 'costume-winter') {
+    return (
+      <g stroke={C.line} strokeLinejoin="round">
+        <path d="M54 52 C 54 18, 80 8, 100 8 C 120 8, 146 18, 146 52 Z" fill="#1F8F8A" strokeWidth="2.4" />
+        <path d="M66 30 h68 M60 42 h80" stroke="#F4E6CC" strokeWidth="3" strokeDasharray="5 5" />
+        <rect x="50" y="44" width="100" height="14" rx="7" fill="#16716D" strokeWidth="2" />
+        <circle cx="100" cy="4" r="10" fill="#E5384B" strokeWidth="2" />
       </g>
     );
   }
@@ -729,6 +853,12 @@ type Props = {
   lively?: boolean;
 };
 
+/** Колір рукавів костюма у векторному бобрі. */
+const COSTUME_SLEEVE: Record<string, string> = {
+  'costume-dragon': '#3DBE6A', 'costume-barista': '#F6F3EC', 'costume-chef': '#FBF8F1', 'costume-conductor': '#22356B',
+  'costume-krasnal': '#F6F3EC', 'costume-artist': '#F3EAD7', 'costume-winter': '#1F8F8A',
+};
+
 type ArmPose = 'rest' | 'wave' | 'up' | 'chin' | 'heart' | 'hold' | 'salute' | 'map' | 'point';
 const RAISED = new Set<ArmPose>(['wave', 'up', 'salute', 'point']);
 
@@ -798,10 +928,26 @@ function Arm({ side, pose, sleeve, anim }: { side: -1 | 1; pose: ArmPose; sleeve
 export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size = 160, className, animate = true, vectorOnly, lively }: Props) {
   const reduce = useReducedMotion();
   const anim = animate && !reduce;
-  // Composed base art is allowed only for the exact supported outfit; custom wear stays visible.
-  const raster = vectorOnly || !supportsBeaverArt(outfit) ? null : beaverAsset(mood);
+  // Растр — лише коли на малюнку є все вдягнене: фірмовий образ (поза за станом) або костюм цілком.
+  const raster = vectorOnly ? null : (costumeArt(outfit) ?? (supportsBeaverArt(outfit) ? beaverAsset(mood) : null));
   if (raster) {
-    const img = <img src={raster} alt="" width={size} height={size * (260 / 220)} className={className} decoding="async" style={{ objectFit: 'contain' }} draggable={false} />;
+    // Зміна пози — коротке «перевтілення» (opacity + scale), без зміни розміру блока.
+    const img = (
+      <motion.img
+        key={raster}
+        src={raster}
+        alt=""
+        width={size}
+        height={size * (260 / 220)}
+        className={className}
+        decoding="async"
+        style={{ objectFit: 'contain' }}
+        draggable={false}
+        initial={anim ? { opacity: 0.35, scale: 0.94 } : false}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+      />
+    );
     return anim ? (
       <motion.div className="inline-block" style={{ lineHeight: 0 }} animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 2.6 }}>
         {img}
@@ -813,7 +959,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
   const costume = outfit.COSTUME;
   // Фірмовий образ Бобека — червона худі «PL» (якщо інший одяг не вибрано).
   const jacket = costume || outfit.JACKET === 'none' ? undefined : (outfit.JACKET ?? 'hoodie-red');
-  const sleeve = jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : costume === 'costume-dragon' ? '#3DBE6A' : C.fur;
+  const sleeve = jacket === 'hoodie-red' ? 'url(#bv-hoodie)' : (costume && COSTUME_SLEEVE[costume]) || C.fur;
   const [leftPose, rightPose] = armPose(mood);
   const backpack = mood === 'royal' ? 'none' : outfit.BACKPACK;
   const handItem = mood === 'read' || mood === 'royal' || mood === 'travel' || mood === 'celebrate' || mood === 'map' ? undefined : outfit.ACCESSORY;
@@ -846,7 +992,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       <Jacket kind={jacket} />
       <Costume kind={costume} />
       <Backpack kind={backpack} front />
-      {mood !== 'royal' && (outfit.SCARF || jacket !== 'hoodie-red') && <Scarf kind={outfit.SCARF} flutter={lively && anim} label={lively && !outfit.SCARF} />}
+      {mood !== 'royal' && (outfit.SCARF || (!costume && jacket !== 'hoodie-red')) && <Scarf kind={outfit.SCARF} flutter={lively && anim} label={lively && !outfit.SCARF} />}
       {(mood === 'celebrate' || mood === 'map') && <HeldMap />}
       {/* Опущені лапи — під головою, підняті — поверх (інакше їх ховає голова). */}
       {!RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}

@@ -20,6 +20,8 @@ const MOODS: [BeaverMood, string][] = [
   ['mic', 'mic'],
 ];
 
+const COSTUMES = ['costume-barista', 'costume-chef', 'costume-conductor', 'costume-krasnal', 'costume-dragon', 'costume-artist', 'costume-winter', 'costume-syrenka'];
+
 export default function Gallery() {
   return (
     <div className="min-h-screen bg-[var(--bg)] p-4">
@@ -40,6 +42,26 @@ export default function Gallery() {
           <div key={m} className="card flex flex-col items-center p-2">
             <Beaver mood={m} size={110} animate={false} />
             <div className="text-xs font-black">{label}</div>
+          </div>
+        ))}
+      </div>
+      {/* Фірмовий образ (растр за станом) і костюми: растр та векторна запасна версія */}
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        {MOODS.map(([m]) => (
+          <div key={m} className="card flex flex-col items-center p-1">
+            <Beaver mood={m} size={80} animate={false} outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} />
+            <div className="text-[10px] font-black">{m}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {COSTUMES.map((c) => (
+          <div key={c} className="card flex flex-col items-center p-1">
+            <div className="flex items-end">
+              <Beaver size={90} animate={false} outfit={{ COSTUME: c, BACKPACK: 'backpack-travel' }} />
+              <Beaver size={90} animate={false} vectorOnly outfit={{ COSTUME: c, BACKPACK: 'backpack-travel' }} />
+            </div>
+            <div className="text-[10px] font-black">{c.slice(8)}</div>
           </div>
         ))}
       </div>

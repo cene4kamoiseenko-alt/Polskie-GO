@@ -1,7 +1,9 @@
 /** Магазин косметики за Złotki та гардероб/домик бобра. */
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull } from 'drizzle-orm';
+import type { I18n } from '@polski-go/shared';
 import { atomic, db, isUniqueViolation } from '../db';
-import { cities, cosmeticItems, gameWallets, playerProgress, userInventory } from '../db/schema';
+import { achievements, cities, cosmeticItems, gameWallets, playerProgress, quests, userInventory } from '../db/schema';
+import { MISSIONS } from '../content/missions';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { isPremium } from './premium';
@@ -10,8 +12,11 @@ import { spendZlotki } from './rewards';
 /** Слоти, де одночасно може бути вдягнений лише один предмет. */
 const EXCLUSIVE = new Set(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME']);
 
+/** Як отримати предмет-нагороду: місія, іспит міста, досягнення або квест. */
+export type Unlock = { kind: 'mission' | 'city' | 'achievement' | 'quest'; title: I18n; slug?: string };
+
 export async function listShop(userId: string) {
-  const [items, inv, wallet] = await Promise.all([
+  const [items, inv, wallet, achRows, questRows] = await Promise.all([
     db
       .select({ item: cosmeticItems, citySlug: cities.slug, cityName: cities.name })
       .from(cosmeticItems)
@@ -20,9 +25,21 @@ export async function listShop(userId: string) {
       .orderBy(asc(cosmeticItems.slot), asc(cosmeticItems.order)),
     db.select().from(userInventory).where(eq(userInventory.userId, userId)),
     db.select().from(gameWallets).where(eq(gameWallets.userId, userId)),
+    db.select({ itemId: achievements.rewardItemId, title: achievements.title }).from(achievements).where(and(isNotNull(achievements.rewardItemId), eq(achievements.isActive, true))),
+    db.select({ itemId: quests.rewardItemId, title: quests.title }).from(quests).where(and(isNotNull(quests.rewardItemId), eq(quests.status, 'PUBLISHED'))),
   ]);
   const premium = await isPremium(userId);
   const owned = new Map(inv.map((i) => [i.itemId, i]));
+  const unlockOf = (itemId: string, slug: string, city: { name: I18n | null } | null): Unlock | null => {
+    const m = MISSIONS.find((x) => x.rewardItem === slug);
+    if (m) return { kind: 'mission', title: m.title, slug: m.slug };
+    const a = achRows.find((x) => x.itemId === itemId);
+    if (a) return { kind: 'achievement', title: a.title };
+    const q = questRows.find((x) => x.itemId === itemId);
+    if (q) return { kind: 'quest', title: q.title };
+    if (city?.name) return { kind: 'city', title: city.name };
+    return null;
+  };
   return {
     balance: wallet[0]?.balance ?? 0,
     premium,
@@ -37,6 +54,7 @@ export async function listShop(userId: string) {
       isPremium: i.isPremium,
       rewardOnly: i.rewardOnly,
       city: citySlug ? { slug: citySlug, name: cityName } : null,
+      unlock: i.rewardOnly ? unlockOf(i.id, i.slug, citySlug ? { name: cityName } : null) : null,
       owned: owned.has(i.id),
       equipped: owned.get(i.id)?.equipped ?? false,
     })),

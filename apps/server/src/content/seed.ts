@@ -19,9 +19,13 @@ import { KATOWICE } from './katowice';
 import { OPOLE } from './opole';
 import { PLACEMENT, EXAM_A1 } from './exams';
 import { ACHIEVEMENTS, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from './gamification';
+import { MISSIONS } from './missions';
 import type { CityContent, LessonSeed } from './types';
 
 export const CITY_CONTENT: CityContent[] = [WARSZAWA, LODZ, KRAKOW, KATOWICE, OPOLE, WROCLAW];
+
+/** Нагороди за іспит міста, додані після запуску: [місто, предмет]. Ті, хто вже склав іспит, теж їх отримують. */
+const LATE_CITY_REWARDS: [string, string][] = [['wroclaw', 'costume-krasnal']];
 
 type Value = string | number | boolean | null | undefined | object | Raw;
 class Raw {
@@ -198,6 +202,19 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
         ['slug'],
         force,
       ),
+    );
+  }
+
+  // ── Нагороди, додані пізніше: видаємо тим, хто вже виконав умову (ідемпотентно, без зміни інших предметів) ──
+  for (const m of MISSIONS) {
+    if (!m.rewardItem) continue;
+    out.push(
+      `INSERT INTO user_inventory (user_id, item_id, source) SELECT um.user_id, ci.id, ${lit(`mission:${m.slug}`)} FROM user_missions um JOIN cosmetic_items ci ON ci.slug = ${lit(m.rewardItem)} WHERE um.mission_slug = ${lit(m.slug)} ON CONFLICT DO NOTHING;`,
+    );
+  }
+  for (const [city, item] of LATE_CITY_REWARDS) {
+    out.push(
+      `INSERT INTO user_inventory (user_id, item_id, source) SELECT uc.user_id, ci.id, ${lit(`city:${city}`)} FROM user_cities uc JOIN cities c ON c.id = uc.city_id JOIN cosmetic_items ci ON ci.slug = ${lit(item)} WHERE c.slug = ${lit(city)} AND uc.boss_passed_at IS NOT NULL ON CONFLICT DO NOTHING;`,
     );
   }
 

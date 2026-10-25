@@ -50,6 +50,8 @@ export type Mission = {
   zlotki: number;
   steps: MissionStep[];
   phrases: { pl: string; tr: I18n }[];
+  /** Костюм за перше проходження (slug предмета гардероба). */
+  rewardItem?: string;
 };
 
 const npc = (pl: string, uk: string, ru: string, en: string, hidden = false): MissionLine => ({ who: 'npc', pl, tr: t(uk, ru, en), hidden });
@@ -143,7 +145,7 @@ export const MISSIONS: Mission[] = [
 
   // ───────────── 2. Pierogi w Krakowie ─────────────
   {
-    slug: 'krakow-pierogi', category: 'food', tags: ['restaurant'], city: 'krakow', scene: 'cafe-pierogi',
+    slug: 'krakow-pierogi', rewardItem: 'costume-chef', category: 'food', tags: ['restaurant'], city: 'krakow', scene: 'cafe-pierogi',
     npc: { name: 'Marta', role: t('офіціантка', 'официантка', 'waitress') },
     title: t('Pierogi у Кракові', 'Pierogi в Кракове', 'Pierogi in Kraków'),
     goal: t('Попроси меню, обери начинку, замов żurek і попроси рахунок.', 'Попроси меню, выбери начинку, закажи żurek и попроси счёт.', 'Ask for the menu, choose a filling, order żurek and ask for the bill.'),
@@ -295,7 +297,7 @@ export const MISSIONS: Mission[] = [
 
   // ───────────── 4. Кава на ORLEN ─────────────
   {
-    slug: 'orlen-coffee', category: 'road', tags: ['checkout'], city: 'gdansk', scene: 'petrol-station',
+    slug: 'orlen-coffee', rewardItem: 'costume-barista', category: 'road', tags: ['checkout'], city: 'gdansk', scene: 'petrol-station',
     npc: { name: 'Pan Marek', role: t('касир на заправці', 'кассир на заправке', 'station cashier') },
     title: t('Кава на ORLEN', 'Кофе на ORLEN', 'Coffee at ORLEN'),
     goal: t('Купи каву з собою і запитай дорогу до Ґданська.', 'Купи кофе с собой и спроси дорогу до Гданьска.', 'Buy a coffee to go and ask the way to Gdańsk.'),
@@ -560,7 +562,7 @@ export const MISSIONS: Mission[] = [
 
   // ───────────── 8. Квиток до Вроцлава ─────────────
   {
-    slug: 'train-wroclaw', category: 'transport', tags: [], city: 'warszawa', scene: 'train-station',
+    slug: 'train-wroclaw', rewardItem: 'costume-conductor', category: 'transport', tags: [], city: 'warszawa', scene: 'train-station',
     npc: { name: 'Pan Adam', role: t('касир на вокзалі', 'кассир на вокзале', 'ticket clerk') },
     title: t('Квиток до Вроцлава', 'Билет до Вроцлава', 'A ticket to Wrocław'),
     goal: t('Купи квиток на потрібний час, обери місце й знайди перон.', 'Купи билет на нужное время, выбери место и найди перрон.', 'Buy a ticket, choose a seat and find the platform.'),

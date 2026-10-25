@@ -120,7 +120,7 @@ function StageProp({ type, item }: { type: string; item?: ItemName }) {
 
 export type StageMood = 'idle' | 'think' | 'correct' | 'wrong';
 
-const MOOD: Record<StageMood, BeaverMood> = { idle: 'happy', think: 'think', correct: 'cheer', wrong: 'surprised' };
+const MOOD: Record<StageMood, BeaverMood> = { idle: 'happy', think: 'think', correct: 'cheer', wrong: 'sad' };
 
 type Props = {
   item: PublicItem;
