@@ -131,10 +131,10 @@ export default function QuestsScreen() {
         <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-70" height={110} sky={false} />
         <div className="absolute left-4 top-4 max-w-[58%]">
           <h1 className="text-3xl font-black text-ink drop-shadow-[0_2px_0_rgba(255,255,255,0.8)]">{t('quests_title')}</h1>
-          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-black text-[#10233b]">
+          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-black text-ink">
             <GameIcon name="timer" size={18} /> {t('quests_resets', { t: countdown })}
           </div>
-          <div className="mt-1.5 inline-block rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-black text-[#10233b]">{t('quests_done_of', { n: finished, total: list.length })}</div>
+          <div className="mt-1.5 inline-block rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-black text-ink">{t('quests_done_of', { n: finished, total: list.length })}</div>
         </div>
         <div className="absolute -bottom-2 right-1">
           <Beaver mood="gift" size={140} />
@@ -200,7 +200,7 @@ export default function QuestsScreen() {
                   <GameIcon name="story" size={56} />
                 </div>
                 {!s.available && (
-                  <div className="absolute inset-0 grid place-items-center bg-[#22364a]/35">
+                  <div className="absolute inset-0 grid place-items-center bg-ink/35">
                     <GameIcon name="lock" size={56} />
                   </div>
                 )}

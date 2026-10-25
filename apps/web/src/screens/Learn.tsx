@@ -129,7 +129,7 @@ export default function LearnScreen() {
               <span className="text-[22px] font-black text-white">{city.namePl}</span>
               <span className="rounded-lg px-1.5 py-0.5 text-[11px] font-black" style={{ background: city.color, color: inkOn(city.color) }}>{city.cefr}</span>
             </div>
-            <div className="line-clamp-2 max-w-[240px] text-xs font-bold leading-tight text-[#cfe0f2]">{tr(city.theme)}</div>
+            <div className="line-clamp-2 max-w-[240px] text-xs font-bold leading-tight text-mist">{tr(city.theme)}</div>
           </div>
           <div className="glass-card absolute inset-x-3 bottom-3 flex items-center gap-2 px-3 py-2">
             <Progress value={city.progress} height={9} color="linear-gradient(90deg,#FFC857,#FFE38A)" />
@@ -143,7 +143,7 @@ export default function LearnScreen() {
         <section key={r.id} className="space-y-6 pb-4">
           <div className="location-card mx-4 flex items-center gap-3 overflow-hidden p-2 pr-3">
             <span className="relative h-[64px] w-[92px] shrink-0 overflow-hidden rounded-xl">
-              {sceneForRoute(r.slug) ? <Scene name={sceneForRoute(r.slug)!} className="absolute inset-0 h-full w-full" /> : <span className="grid h-full place-items-center bg-[#07182c]"><GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={40} /></span>}
+              {sceneForRoute(r.slug) ? <Scene name={sceneForRoute(r.slug)!} className="absolute inset-0 h-full w-full" /> : <span className="grid h-full place-items-center bg-night"><GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={40} /></span>}
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-black uppercase tracking-wide text-sky">{t('learn_location_n', { n: ri + 1 })}</div>

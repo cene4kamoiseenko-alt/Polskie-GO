@@ -28,7 +28,7 @@ export function XPBadge({ xp, zlotki, size = 'md' }: { xp?: number; zlotki?: num
         </span>
       )}
       {zlotki != null && (
-        <span className="flex items-center gap-0.5 text-[#C8742E]">
+        <span className="flex items-center gap-0.5 text-xp">
           <GameIcon name="coin" size={icon} /> +{zlotki}
         </span>
       )}
@@ -49,7 +49,7 @@ export function RewardModal({ reward, onClose }: { reward: Reward | null; onClos
       {reward && (
         <div className="fixed inset-0 z-[60] grid place-items-center p-6" role="dialog" aria-modal>
           <Confetti run />
-          <motion.div className="absolute inset-0 bg-[#22364a]/70" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-ink/70" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div
             className="relative w-full max-w-sm overflow-hidden rounded-[28px] bg-elev text-center shadow-2xl"
             initial={{ scale: 0.7, opacity: 0, y: 40 }}
@@ -76,7 +76,7 @@ export function RewardModal({ reward, onClose }: { reward: Reward | null; onClos
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.25, type: 'spring' }} className="flex items-center gap-2 rounded-2xl bg-xp/20 px-4 py-2 text-2xl font-black text-xp-dark">
                   <GameIcon name="xp" size={34} /> +<CountUp value={reward.xp} />
                 </motion.div>
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.4, type: 'spring' }} className="flex items-center gap-2 rounded-2xl bg-[#FFF1D6] px-4 py-2 text-2xl font-black text-[#C8742E]">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.4, type: 'spring' }} className="flex items-center gap-2 rounded-2xl bg-xp/20 px-4 py-2 text-2xl font-black text-xp">
                   <GameIcon name="coin" size={34} /> +<CountUp value={reward.zlotki} />
                 </motion.div>
               </div>

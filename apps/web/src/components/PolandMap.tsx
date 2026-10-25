@@ -252,27 +252,28 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
               const w = label.length * 14 + 50 + (locked ? 22 : 0);
               const sub = isCurrent && hereLabel ? hereLabel : !c.hasContent && soonLabel ? soonLabel : null;
               const h = sub ? 54 : 36;
-              const fill = isCurrent ? '#F45159' : c.completed ? '#35C88A' : '#fff';
-              const ink = isCurrent || c.completed ? '#fff' : locked ? '#7A8B99' : '#22364A';
+              // Підписи на плашках — WCAG AA: білий лише на темнішому червоному, на м'ятній — темно-синій.
+              const fill = isCurrent ? '#D42D43' : c.completed ? '#35C88A' : '#fff';
+              const ink = isCurrent ? '#fff' : c.completed ? '#07182C' : locked ? '#536170' : '#22364A';
               return (
                 <g transform="translate(0 28)">
                   <rect x={-w / 2} y="-18" width={w} height={h} rx="18" fill={fill} stroke={isCurrent || c.completed ? '#fff' : '#E6DCCB'} strokeWidth="3" />
                   {/* номер етапу маршруту */}
                   <circle cx={-w / 2 + 20} cy="0" r="12" fill={isCurrent || c.completed ? '#fff' : locked ? '#E9E1D3' : '#22364A'} />
-                  <text x={-w / 2 + 20} y="1" textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#F45159' : c.completed ? '#1F9A67' : locked ? '#8D98A5' : '#fff'}>
+                  <text x={-w / 2 + 20} y="1" textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="900" fontFamily="Nunito" fill={isCurrent ? '#D42D43' : c.completed ? '#0D7F57' : locked ? '#536170' : '#fff'}>
                     {c.order}
                   </text>
                   {locked && (
                     <g transform={`translate(${-w / 2 + 44} 0)`}>
-                      <rect x="-7" y="-2" width="14" height="11" rx="2.5" fill="#8D98A5" />
-                      <path d="M-4 -2 L-4 -6 Q0 -11 4 -6 L4 -2" stroke="#8D98A5" strokeWidth="2.5" fill="none" />
+                      <rect x="-7" y="-2" width="14" height="11" rx="2.5" fill="#536170" />
+                      <path d="M-4 -2 L-4 -6 Q0 -11 4 -6 L4 -2" stroke="#536170" strokeWidth="2.5" fill="none" />
                     </g>
                   )}
                   <text x={(locked ? 22 : 12) + 2} textAnchor="middle" dominantBaseline="central" fontSize="21" fontWeight="900" fontFamily="Nunito" fill={ink}>
                     {label}
                   </text>
                   {sub && (
-                    <text x="12" y="21" textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="800" fontFamily="Nunito" fill={isCurrent ? '#FFE3E3' : '#9AA6B2'}>
+                    <text x="12" y="21" textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="800" fontFamily="Nunito" fill={isCurrent ? '#fff' : c.completed ? '#07182C' : '#536170'}>
                       {sub}
                     </text>
                   )}

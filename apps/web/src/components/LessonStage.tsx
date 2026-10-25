@@ -86,7 +86,7 @@ function StageProp({ type, item }: { type: string; item?: ItemName }) {
     ));
   if (type === 'LISTENING' || type === 'DICTATION')
     return (
-      <div className="relative grid h-14 w-14 place-items-center rounded-full bg-sky text-[#07182c] shadow-[0_4px_0_#1d8fd6]">
+      <div className="relative grid h-14 w-14 place-items-center rounded-full bg-sky text-night shadow-[0_4px_0_#1d8fd6]">
         {rings('#36B9FF')}
         <Icon name="headphones" size={28} />
       </div>
@@ -170,7 +170,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
       ) : (
         <Scene name="flat" items={items} evening={evening} className="absolute inset-0 h-full w-full" />
       )}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#07182c] via-[#07182c]/35 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-night via-night/35 to-transparent" />
 
       {place ? (
         <div className="stage-tag absolute left-3 top-3" lang="pl">
@@ -195,7 +195,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
           className="absolute right-3 top-3 flex flex-col items-center"
         >
           <span className="grid h-14 w-14 place-items-center rounded-full shadow-lg"><NpcFace emoji={npc.emoji} name={npc.name} size={56} /></span>
-          <span className="mt-1 max-w-[110px] truncate rounded-full bg-[#07182c]/80 px-2 py-0.5 text-[11px] font-black text-white">{npc.name}</span>
+          <span className="mt-1 max-w-[110px] truncate rounded-full bg-night/80 px-2 py-0.5 text-[11px] font-black text-white">{npc.name}</span>
         </motion.div>
       )}
 

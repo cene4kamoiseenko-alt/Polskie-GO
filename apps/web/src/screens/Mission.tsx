@@ -136,7 +136,7 @@ function LineCard({ line, npcName, revealed }: { line: MissionLine; npcName: str
   const hidden = !!line.hidden && !revealed;
   if (line.who === 'narrator') {
     return (
-      <div className="card border-2 !border-[var(--color-navy)] bg-[#FFFDF6] p-4 dark:bg-elev">
+      <div className="card border-2 !border-[var(--color-navy)] bg-paper p-4 dark:bg-elev">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             {hidden ? <HiddenText /> : <div className="text-[19px] font-black leading-snug">{line.pl}</div>}
@@ -428,7 +428,7 @@ function Summary({ run, result, onBack, onAgain }: { run: MissionRun; result: Mi
         </motion.div>
         <h1 className="mt-2 text-[28px] font-black leading-tight">{t('life_done_title')}</h1>
         <p className="muted font-bold">{tr(run.mission.title)}</p>
-        {result.flawless && <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-xp px-3 py-1 text-sm font-black text-[#6b3f00]"><Icon name="star" size={16} /> {t('life_done_flawless')}</div>}
+        {result.flawless && <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-xp px-3 py-1 text-sm font-black text-xp-ink"><Icon name="star" size={16} /> {t('life_done_flawless')}</div>}
       </div>
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div ref={xpRef} className="card flex flex-col items-center p-3">
@@ -436,7 +436,7 @@ function Summary({ run, result, onBack, onAgain }: { run: MissionRun; result: Mi
           <div className="muted text-xs font-black">XP</div>
         </div>
         <div className="card flex flex-col items-center p-3">
-          <div className="text-3xl font-black text-[#B26A12]">+<CountUp to={result.zlotki} delay={0.7} /></div>
+          <div className="text-3xl font-black text-xp">+<CountUp to={result.zlotki} delay={0.7} /></div>
           <div className="muted text-xs font-black">Złotki</div>
         </div>
         {stats.map((s) => (

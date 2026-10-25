@@ -193,9 +193,9 @@ export default function LessonScreen() {
         <div className="flex-1 space-y-4 overflow-y-auto">
           <div className="lesson-stage relative h-[180px] overflow-hidden rounded-[26px]">
             <Scene name={sceneForRoute(session.place?.routeSlug) ?? 'flat'} evening={l.kind === 'BOSS' || isMissionSlug(l.slug)} className="absolute inset-0 h-full w-full" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#07182c]/80 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-night/80 via-transparent to-transparent" />
             {session.place && (
-              <div className="absolute left-3 top-3 rounded-full bg-[#07182c]/75 px-3 py-1 text-[12px] font-black uppercase tracking-wide text-sky backdrop-blur-sm">
+              <div className="absolute left-3 top-3 rounded-full bg-night/75 px-3 py-1 text-[12px] font-black uppercase tracking-wide text-sky backdrop-blur-sm">
                 {session.place.cityName} · {tr(session.place.routeTitle)}
               </div>
             )}
@@ -203,9 +203,9 @@ export default function LessonScreen() {
           </div>
           <div>
             <div className="mb-1.5 flex flex-wrap gap-1.5">
-              <span className="rounded-full bg-sky px-2.5 py-0.5 text-[12px] font-black text-[#07182c]">{l.cefr}</span>
+              <span className="rounded-full bg-sky px-2.5 py-0.5 text-[12px] font-black text-night">{l.cefr}</span>
               {isMissionSlug(l.slug) ? (
-                <span className="rounded-full bg-xp px-2.5 py-0.5 text-[12px] font-black text-[#5a3d00]">{t('stage_mission')}</span>
+                <span className="rounded-full bg-xp px-2.5 py-0.5 text-[12px] font-black text-xp-ink">{t('stage_mission')}</span>
               ) : session.place ? (
                 <span className="rounded-full bg-elev px-2.5 py-0.5 text-[12px] font-black">{t('stage_lesson_n', { n: session.place.index, total: session.place.count })}</span>
               ) : null}
@@ -373,7 +373,7 @@ export default function LessonScreen() {
                   <div className={cx('text-xl font-black', result.correct ? 'text-brand' : result.skipped ? 'text-sky' : 'text-coral')}>
                     {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? t('lesson_skipped_ok') : t('lesson_wrong')}
                     {result.correct && !result.retry && session.lesson && me?.rewards && (
-                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-[#5a3d00]">
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-xp-ink">
                         +{me.rewards.exerciseXp} XP
                       </motion.span>
                     )}
@@ -516,7 +516,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
           <Stat icon="target" label={t('res_accuracy')} value={<><CountUp to={r.accuracy} delay={0.2} />%</>} color="#45C486" delay={0.08} />
           <Stat icon="clock" label={t('res_time')} value={`${mins}:${secs}`} color="#69C7F4" delay={0.16} />
         </div>
-        {r.zlotki > 0 && <div className="chip text-base"><Icon name="coin" size={18} className="text-[#B26A12]" /> +{r.zlotki} Złotki</div>}
+        {r.zlotki > 0 && <div className="chip text-base"><Icon name="coin" size={18} className="text-xp" /> +{r.zlotki} Złotki</div>}
         {r.streakIncreased && <div className="chip text-base">{t('res_streak', { n: r.streak })}</div>}
 
         {r.cityCompleted && stampCity && (

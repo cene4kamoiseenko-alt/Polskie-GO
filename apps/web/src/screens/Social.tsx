@@ -36,14 +36,14 @@ function RankShield({ rank }: { rank: number }) {
       </svg>
     );
   }
-  return <span className="w-[34px] text-center text-[18px] font-black text-[#cfe0f2]">{rank || '—'}</span>;
+  return <span className="w-[34px] text-center text-[18px] font-black text-mist">{rank || '—'}</span>;
 }
 
 function PlayerAvatar({ row, size }: { row: Row; size: number }) {
   const me = useMe().data;
   if (row.isMe && !row.photoUrl) {
     return (
-      <span className="inline-grid shrink-0 place-items-end overflow-hidden rounded-full bg-gradient-to-b from-[#8FD3F5] to-[#FFF1DA]" style={{ width: size, height: size, boxShadow: '0 0 0 3px #FFC857' }}>
+      <span className="inline-grid shrink-0 place-items-end overflow-hidden rounded-full bg-gradient-to-b from-dawn-sky to-dawn-sand" style={{ width: size, height: size, boxShadow: '0 0 0 3px #FFC857' }}>
         <Beaver size={size * 0.95} outfit={me?.outfit.wear} animate={false} />
       </span>
     );
@@ -57,7 +57,7 @@ function Podium({ rows }: { rows: Row[] }) {
   return (
     <div className="hero-card relative mx-4 h-[268px]">
       <CityHero slug="krakow" color="#F2994A" name="" sign={false} evening skyline height={268} className="absolute inset-0" />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#07182c]/45 via-[#07182c]/15 to-[#07182c]/90" />
+      <div className="absolute inset-0 bg-gradient-to-b from-night/45 via-night/15 to-night/90" />
       {/* вечірні вогні міста й прожектор над першим місцем */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(38% 46% at 50% 58%, rgba(255,200,87,0.42), transparent 70%)' }} />
       {[[14, 38], [24, 54], [70, 30], [82, 50], [60, 44], [36, 26], [90, 36]].map(([x, y], i) => (
@@ -86,9 +86,9 @@ function Podium({ rows }: { rows: Row[] }) {
                     <PlayerAvatar row={row} size={big ? 78 : 60} />
                   )
                 ) : (
-                  <span className="grid place-items-center rounded-full border-2 border-dashed border-white/40 bg-[#07182c]/50 text-xl font-black text-white/60" style={{ width: big ? 72 : 56, height: big ? 72 : 56 }}>?</span>
+                  <span className="grid place-items-center rounded-full border-2 border-dashed border-white/40 bg-night/50 text-xl font-black text-white/60" style={{ width: big ? 72 : 56, height: big ? 72 : 56 }}>?</span>
                 )}
-                {row && <span className="mt-1 max-w-[100px] truncate rounded-full bg-[#07182c]/75 px-2 py-0.5 text-[11px] font-black text-white">{row.isMe ? `★ ${row.name}` : row.name}</span>}
+                {row && <span className="mt-1 max-w-[100px] truncate rounded-full bg-night/75 px-2 py-0.5 text-[11px] font-black text-white">{row.isMe ? `★ ${row.name}` : row.name}</span>}
               </motion.div>
               <div className="relative flex w-full items-start justify-center rounded-t-2xl border-x-2 border-t-2 pt-2" style={{ height: cfg.h, background: cfg.ped, borderColor: cfg.ring, boxShadow: big ? '0 0 26px -4px rgba(255,200,87,0.7)' : undefined }}>
                 <span className="grid h-9 w-9 place-items-center rounded-full border-2 text-[17px] font-black text-white" style={{ borderColor: cfg.ring, background: 'rgba(0,0,0,0.25)' }}>{place}</span>
@@ -166,13 +166,13 @@ export default function SocialScreen() {
           <PlayerAvatar row={mine} size={58} />
           <div className="min-w-0 flex-1">
             <div className="line-clamp-2 text-[17px] font-black leading-tight text-white">{mine.name} <span className="text-xp">({t('lb_you')})</span></div>
-            <div className="text-[13px] font-bold text-[#cfe0f2]">{t('lb_level_n', { n: mine.level })} · <span className="text-sky">{rankFor(mine.level)}</span></div>
+            <div className="text-[13px] font-bold text-mist">{t('lb_level_n', { n: mine.level })} · <span className="text-sky">{rankFor(mine.level)}</span></div>
           </div>
           <div className="text-right text-[18px] font-black text-white">{mine.xp} XP</div>
         </div>
-        <div className="mt-2.5 flex items-center gap-2 rounded-2xl bg-[#07182c]/55 px-3 py-2">
+        <div className="mt-2.5 flex items-center gap-2 rounded-2xl bg-night/55 px-3 py-2">
           <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-black text-[#cfe0f2]">{next ? t('lb_to_next', { league: t(`league_${next.league}` as TKey) }) : t('lb_max_league')}</div>
+            <div className="text-[12px] font-black text-mist">{next ? t('lb_to_next', { league: t(`league_${next.league}` as TKey) }) : t('lb_max_league')}</div>
             {next && (
               <div className="mt-1 flex items-center gap-2">
                 <Progress value={xpTotal} max={next.at} height={9} color="linear-gradient(90deg,#FFC857,#FFE38A)" />
@@ -238,7 +238,7 @@ export default function SocialScreen() {
             </section>
             <button onClick={() => nav('/learn')} className="stat-card mx-4 w-[calc(100%-2rem)] !gap-3 !p-3">
               <Art name="trophy" size={40} />
-              <span className="flex-1 text-left text-[13px] font-bold leading-snug text-[#cfe0f2]">{t('lb_footer')}</span>
+              <span className="flex-1 text-left text-[13px] font-bold leading-snug text-mist">{t('lb_footer')}</span>
               <Icon name="chevron-right" size={18} className="text-[var(--text-muted)]" />
             </button>
           </>
@@ -251,22 +251,22 @@ export default function SocialScreen() {
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-[22px] font-black text-white"><Art name="plane" size={28} /> {t('friends_invite')}</div>
-                  <p className="mt-1 text-[14px] font-bold leading-snug text-[#cfe0f2]">{t('friends_invite_desc')}</p>
+                  <p className="mt-1 text-[14px] font-bold leading-snug text-mist">{t('friends_invite_desc')}</p>
                 </div>
                 <Beaver size={86} mood="wave" outfit={me?.outfit.wear} />
               </div>
               <button className="btn btn-sky w-full text-[17px]" onClick={() => share(friends.data!.inviteLink, t('friends_invite_text'))}>
                 <Art name="plane" size={22} /> {t('friends_invite')}
               </button>
-              <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[#07182c]/60 px-3 py-2">
-                <span className="text-[14px] font-bold text-[#cfe0f2]">{t('friends_code')}:</span>
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-night/60 px-3 py-2">
+                <span className="text-[14px] font-bold text-mist">{t('friends_code')}:</span>
                 <button onClick={() => copy(friends.data!.referralCode)} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-elev px-3 py-1.5 font-mono text-[17px] font-black tracking-wider text-white">
                   {friends.data.referralCode}
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" /></svg>
                 </button>
               </div>
               <div className="flex gap-2">
-                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={t('friends_add_ph')} className="min-w-0 flex-1 rounded-2xl border border-[var(--border)] bg-[#07182c]/60 px-3 py-3 font-bold text-white outline-none placeholder:text-[var(--text-muted)] focus:border-sky" />
+                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={t('friends_add_ph')} className="min-w-0 flex-1 rounded-2xl border border-[var(--border)] bg-night/60 px-3 py-3 font-bold text-white outline-none placeholder:text-[var(--text-muted)] focus:border-sky" />
                 <button className="btn btn-green min-h-[48px] shrink-0 px-3 text-[14px]" disabled={code.trim().length < 4} onClick={add}>
                   + {t('friends_add')}
                 </button>
@@ -278,18 +278,18 @@ export default function SocialScreen() {
           {friends.data && friends.data.friends.length === 0 ? (
             <div className="hero-card relative mx-4 h-[260px]">
               <CityHero slug="krakow" color="#F2994A" name="" sign={false} evening height={260} className="absolute inset-0" />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#07182c]/40 to-[#07182c]/90" />
+              <div className="absolute inset-0 bg-gradient-to-b from-night/40 to-night/90" />
               <div className="absolute inset-x-0 top-6 flex justify-center">
                 <div className="relative">
                   <Beaver size={130} mood="think" outfit={me?.outfit.wear} />
-                  <motion.span animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 2.4 }} className="absolute -right-12 -top-2 grid h-14 w-16 place-items-center rounded-[50%] bg-white text-sky-dark shadow-lg">
+                  <motion.span animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 2.4 }} className="absolute -right-12 -top-2 grid h-14 w-16 place-items-center rounded-[50%] bg-white ink-sky shadow-lg">
                     <Icon name="user" size={22} /><span className="absolute -bottom-2 left-2 h-3 w-3 rounded-full bg-white" />
                   </motion.span>
                 </div>
               </div>
               <div className="absolute inset-x-4 bottom-4 text-center">
                 <div className="text-[19px] font-black text-white">{t('friends_empty_title')}</div>
-                <div className="text-[14px] font-bold text-[#cfe0f2]">{t('friends_empty_text')}</div>
+                <div className="text-[14px] font-bold text-mist">{t('friends_empty_text')}</div>
               </div>
             </div>
           ) : friends.data ? (
@@ -299,7 +299,7 @@ export default function SocialScreen() {
                   <UserAvatar url={f.user.photoUrl} seed={f.user.id} size={44} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[15px] font-black text-white">{f.user.name}</div>
-                    <div className="text-[12px] font-bold text-[#cfe0f2]">
+                    <div className="text-[12px] font-bold text-mist">
                       {f.user.level !== null ? <>{t('lb_level_n', { n: f.user.level })} · <Art name="flame" size={14} className="inline-block align-[-2px]" /> {f.user.streak} · {f.user.languageLevel}</> : t('friends_hidden')}
                     </div>
                   </div>

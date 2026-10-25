@@ -23,7 +23,7 @@ export default function HouseScreen() {
   return (
     <div className="pb-6">
       <ScreenHeader title={t('house_title')} subtitle={me.profile.beaverName} right={<button className="chip" onClick={() => nav('/shop?house=1')}>{t('house_edit')}</button>} />
-      <div className="relative mx-4 aspect-[4/3] overflow-hidden rounded-[28px] border-4 border-[#C8742E]" style={{ background: 'linear-gradient(180deg,#FFF2C8 0%,#FFE7A8 62%,#D9A066 62%,#C8742E 100%)' }}>
+      <div className="relative mx-4 aspect-[4/3] overflow-hidden rounded-[28px] border-4 border-xp-dark" style={{ background: 'linear-gradient(180deg,#FFF2C8 0%,#FFE7A8 62%,#D9A066 62%,#C8742E 100%)' }}>
         {/* вікно */}
         <div className="absolute left-[44%] top-[8%] h-[26%] w-[20%] rounded-xl border-4 border-white" style={{ background: 'linear-gradient(#8FD3F5,#DFF6E8)' }}>
           <div className="absolute inset-x-0 top-1/2 h-1 bg-white" />

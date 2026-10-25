@@ -103,7 +103,7 @@ export function AchievementQueue({ items, onDone }: { items: NewAchievement[]; o
             </motion.div>
             <div className="text-xl font-black leading-tight">{tr(cur.title)}</div>
             <p className="muted mt-1 text-sm font-semibold">{tr(cur.description)}</p>
-            {cur.zlotki > 0 && <div className="mt-2 font-black text-[#B26A12]">+{cur.zlotki} Złotki</div>}
+            {cur.zlotki > 0 && <div className="mt-2 font-black text-xp">+{cur.zlotki} Złotki</div>}
             <div className="muted mt-3 text-xs font-bold">{t('tap_to_continue')}</div>
           </motion.div>
         </motion.div>

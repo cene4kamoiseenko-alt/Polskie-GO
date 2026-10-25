@@ -146,7 +146,7 @@ export function Logo({ size = 44, slogan }: { size?: number; slogan?: string }) 
         </svg>
       </div>
       {slogan && (
-        <div className="mt-3 rounded-full bg-white/90 px-3.5 py-1 text-[13px] font-black text-[#1E3346] shadow-lg" style={{ fontStyle: 'normal' }}>
+        <div className="mt-3 rounded-full bg-white/90 px-3.5 py-1 text-[13px] font-black text-ink shadow-lg" style={{ fontStyle: 'normal' }}>
           {slogan}
         </div>
       )}

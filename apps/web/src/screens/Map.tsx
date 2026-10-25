@@ -91,7 +91,7 @@ export default function MapScreen() {
       <TopStats compact />
       <div className="px-4">
         <h1 className="text-[26px] font-black leading-tight">{t('map_journey')}</h1>
-        <p className="text-sm font-bold text-[#6B7A8A]">{t('map_journey_d', { done: completedCount, total: j.cities.length })}</p>
+        <p className="text-sm font-bold muted">{t('map_journey_d', { done: completedCount, total: j.cities.length })}</p>
       </div>
 
       {/* Фільтр рівнів: показує, які рівні вже мають уроки, а які ще готуються */}
@@ -102,7 +102,7 @@ export default function MapScreen() {
             <button
               key={lv ?? 'all'}
               onClick={() => { haptic.select(); setLevel(lv); }}
-              className={cx('flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition', level === lv ? 'bg-pl-red text-white shadow-[0_3px_0_#C0353D]' : 'bg-elev shadow-[var(--shadow-card)]')}
+              className={cx('flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition', level === lv ? 'bg-pl-red text-white shadow-[0_3px_0_var(--fill-coral)]' : 'bg-elev shadow-[var(--shadow-card)]')}
             >
               {lv ?? t('map_all')}
               {lv && ready === 0 && <span className={cx('text-[10px] font-extrabold', level === lv ? 'text-white/80' : 'muted')}>{t('map_soon')}</span>}
@@ -111,7 +111,7 @@ export default function MapScreen() {
         })}
       </div>
       {level && (
-        <p className="px-5 text-xs font-bold text-[#6B7A8A]">
+        <p className="px-5 text-xs font-bold muted">
           {j.cities.some((c) => c.cefr === level && c.hasContent) ? t('map_level_ready', { n: j.cities.filter((c) => c.cefr === level && c.hasContent).length }) : t('map_level_soon', { level })}
         </p>
       )}
@@ -147,7 +147,7 @@ export default function MapScreen() {
             ['+', () => setZoom((z) => Math.min(ZOOMS.length - 1, z + 1)), zoom === ZOOMS.length - 1],
             ['−', () => setZoom((z) => Math.max(0, z - 1)), zoom === 0],
           ].map(([label, fn, disabled]) => (
-            <button key={label as string} onClick={fn as () => void} disabled={disabled as boolean} aria-label={`${t('map_zoom')} ${label}`} className="grid h-11 w-11 place-items-center rounded-2xl bg-[#162B3B]/90 text-2xl font-black text-white shadow-md ring-1 ring-white/15 active:scale-95 disabled:opacity-40">
+            <button key={label as string} onClick={fn as () => void} disabled={disabled as boolean} aria-label={`${t('map_zoom')} ${label}`} className="grid h-11 w-11 place-items-center rounded-2xl bg-night/90 text-2xl font-black text-white shadow-md ring-1 ring-white/15 active:scale-95 disabled:opacity-40">
               {label as string}
             </button>
           ))}
@@ -193,8 +193,8 @@ export default function MapScreen() {
                   </span>
                 )}
               </div>
-              <div className="font-black text-[#6B7A8A]">{tr(selected.theme)}</div>
-              <p className="mt-1 text-sm font-semibold text-[#6B7A8A]">{tr(selected.description)}</p>
+              <div className="font-black muted">{tr(selected.theme)}</div>
+              <p className="mt-1 text-sm font-semibold muted">{tr(selected.description)}</p>
             </div>
             {selected.hasContent && (
               <div>
@@ -207,7 +207,7 @@ export default function MapScreen() {
             )}
             {selected.hasContent && (
               <div>
-                <h3 className="mb-2 text-sm font-black uppercase tracking-wide text-[#6B7A8A]">{t('map_topics')}</h3>
+                <h3 className="mb-2 text-sm font-black uppercase tracking-wide muted">{t('map_topics')}</h3>
                 <div className="space-y-2">
                   {selected.routes.map((r, i) => {
                     const done = r.lessons.filter((l) => l.state === 'completed').length;
@@ -219,9 +219,9 @@ export default function MapScreen() {
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block line-clamp-2 font-black leading-tight">{tr(r.title)}</span>
-                          <span className="block line-clamp-2 text-xs font-bold leading-tight text-[#6B7A8A]">{tr(r.description)}</span>
+                          <span className="block line-clamp-2 text-xs font-bold leading-tight muted">{tr(r.description)}</span>
                         </span>
-                        <span className="text-sm font-black text-[#6B7A8A]">{done}/{r.lessons.length}</span>
+                        <span className="text-sm font-black muted">{done}/{r.lessons.length}</span>
                       </div>
                     );
                   })}
@@ -230,7 +230,7 @@ export default function MapScreen() {
             )}
             {!selected.unlocked ? (
               <div className="flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-3 font-bold">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E9E1D3] text-[#7A8B99]">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--bg-muted)] muted">
                   <Icon name="lock" size={20} />
                 </span>
                 {prevOf(selected) ? t('map_unlock_after', { city: prevOf(selected)!.namePl }) : t('map_locked_hint')}

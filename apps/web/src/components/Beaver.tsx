@@ -5,7 +5,7 @@
  * Шари: рюкзак → хвіст → тіло → одяг → шарф → лапи → голова → обличчя → головний убір.
  * Растровий ассет (src/assets/beaver/<mood>.webp), якщо є, замінює лише фірмовий образ без іншого одягу.
  */
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { beaverAsset, costumeArt, supportsBeaverArt } from '../lib/assets';
 
@@ -925,9 +925,17 @@ function Arm({ side, pose, sleeve, anim }: { side: -1 | 1; pose: ArmPose; sleeve
   );
 }
 
+/** Найменший бобер, у якого лишаються безкінечні рухи (менші — аватарки, рухаються лише разово). */
+const LOOP_MIN_SIZE = 96;
+
 export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size = 160, className, animate = true, vectorOnly, lively }: Props) {
   const reduce = useReducedMotion();
   const anim = animate && !reduce;
+  // Безкінечні рухи (дихання, кліпання, хвіст, шарф, помах) — лише в помітного бобра на екрані:
+  // поза екраном (IntersectionObserver) і в маленьких аватарок вони вимкнені.
+  const wrap = useRef<HTMLDivElement>(null);
+  const inView = useInView(wrap, { margin: '80px' });
+  const loops = anim && inView && size >= LOOP_MIN_SIZE;
   // Растр — лише коли на малюнку є все вдягнене: фірмовий образ (поза за станом) або костюм цілком.
   const raster = vectorOnly ? null : (costumeArt(outfit) ?? (supportsBeaverArt(outfit) ? beaverAsset(mood) : null));
   if (raster) {
@@ -948,12 +956,10 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
         transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
       />
     );
-    return anim ? (
-      <motion.div className="inline-block" style={{ lineHeight: 0 }} animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 2.6 }}>
+    return (
+      <motion.div ref={wrap} className="inline-block" style={{ lineHeight: 0 }} animate={loops ? { y: [0, -4, 0] } : { y: 0 }} transition={loops ? { repeat: Infinity, duration: 2.6 } : { duration: 0.2 }}>
         {img}
       </motion.div>
-    ) : (
-      img
     );
   }
   const costume = outfit.COSTUME;
@@ -978,7 +984,7 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       {mood === 'travel' && <NewCityScene />}
       <g transform={mood === 'travel' ? 'rotate(5 100 212) translate(-6 0)' : undefined}>
       <Backpack kind={backpack} />
-      {lively && anim ? (
+      {lively && loops ? (
         <motion.g style={{ transformBox: 'fill-box', transformOrigin: '92% 30%' }} animate={{ rotate: [0, -9, 0, 6, 0] }} transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut' }}>
           <Tail mermaid={costume === 'costume-syrenka'} />
         </motion.g>
@@ -992,11 +998,11 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       <Jacket kind={jacket} />
       <Costume kind={costume} />
       <Backpack kind={backpack} front />
-      {mood !== 'royal' && (outfit.SCARF || (!costume && jacket !== 'hoodie-red')) && <Scarf kind={outfit.SCARF} flutter={lively && anim} label={lively && !outfit.SCARF} />}
+      {mood !== 'royal' && (outfit.SCARF || (!costume && jacket !== 'hoodie-red')) && <Scarf kind={outfit.SCARF} flutter={lively && loops} label={lively && !outfit.SCARF} />}
       {(mood === 'celebrate' || mood === 'map') && <HeldMap />}
       {/* Опущені лапи — під головою, підняті — поверх (інакше їх ховає голова). */}
-      {!RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}
-      {!RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
+      {!RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={loops} />}
+      {!RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={loops} />}
       <HandItem kind={handItem} />
       {/* об'єм тулуба й тінь від голови */}
       <g clipPath="url(#bv-body-clip)" style={{ pointerEvents: 'none' }}>
@@ -1020,9 +1026,9 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       <path d="M45 96 l-6 3 5 2 -4 4 6 0" fill="none" stroke={C.line} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       <path d="M155 96 l6 3 -5 2 4 4 -6 0" fill="none" stroke={C.line} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       <ellipse cx="76" cy="44" rx="17" ry="7" fill="#fff" opacity="0.16" transform="rotate(-22 76 44)" />
-      <Face mood={mood} blink={anim && mood !== 'sleep'} />
-      {RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}
-      {RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
+      <Face mood={mood} blink={loops && mood !== 'sleep'} />
+      {RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={loops} />}
+      {RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={loops} />}
       <CostumeHead kind={costume} />
       <Glasses kind={outfit.GLASSES} />
       {!costume && <Hat kind={mood === 'royal' ? 'crown-gold' : mood === 'music' ? 'headphones' : outfit.HAT} />}
@@ -1031,21 +1037,24 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
     </svg>
   );
 
-  if (!anim) return body;
-  const idle =
-    mood === 'cheer'
+  // Разові реакції (радість, святкування, прибуття) — завжди, коли рух дозволено; дихання — лише з loops.
+  const idle = !anim
+    ? undefined
+    : mood === 'cheer'
       ? { y: [0, -12, 0], transition: { duration: 0.5, ease: 'easeOut' as const } }
       : mood === 'celebrate'
         ? { y: [0, -10, 0, -5, 0], transition: { duration: 1.1 } }
         : mood === 'travel'
           ? { x: [-10, 0], transition: { duration: 0.6, ease: 'easeOut' as const } }
-          : mood === 'sleep'
-        ? { scale: [1, 1.02, 1], transition: { repeat: Infinity, duration: 3 } }
-        : mood === 'sad'
-          ? { rotate: [0, -1.5, 0], transition: { repeat: Infinity, duration: 2.6 } }
-          : { y: [0, -3, 0], transition: { repeat: Infinity, duration: 2.8, ease: 'easeInOut' as const } };
+          : !loops
+            ? { y: 0, rotate: 0, scale: 1 }
+            : mood === 'sleep'
+              ? { scale: [1, 1.02, 1], transition: { repeat: Infinity, duration: 3 } }
+              : mood === 'sad'
+                ? { rotate: [0, -1.5, 0], transition: { repeat: Infinity, duration: 2.6 } }
+                : { y: [0, -3, 0], transition: { repeat: Infinity, duration: 2.8, ease: 'easeInOut' as const } };
   return (
-    <motion.div className="inline-block" animate={idle} style={{ lineHeight: 0 }}>
+    <motion.div ref={wrap} className="inline-block" animate={idle} style={{ lineHeight: 0 }}>
       {body}
     </motion.div>
   );

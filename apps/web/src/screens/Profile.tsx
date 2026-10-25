@@ -72,21 +72,21 @@ export default function ProfileScreen() {
       {/* Картка мандрівника */}
       <div className="hero-card relative mx-4">
         <CityHero slug={city?.slug ?? 'krakow'} color={cityRow?.color ?? '#36B9FF'} name="" sign={false} evening skyline height={150} className="absolute inset-0 !h-full" />
-        {/* затемнення лише під текстом: праворуч видно місто */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(48,34,112,0.96) 0%, rgba(36,62,150,0.9) 46%, rgba(20,50,110,0.5) 66%, rgba(20,50,110,0) 86%)' }} />
+        {/* затемнення під текстом (AA для підписів), праворуч місто просвічує */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(48,34,112,0.96) 0%, rgba(36,62,150,0.92) 56%, rgba(20,50,110,0.8) 78%, rgba(20,50,110,0.4) 100%)' }} />
         <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(70% 90% at 92% 10%, rgba(255,200,130,0.28), transparent 60%)' }} />
         <div className="relative flex items-center gap-3 p-3.5 pr-12">
           <button onClick={() => { haptic.tap(); nav('/shop'); }} className="relative shrink-0" aria-label={t('profile_wardrobe')}>
-            <span className={cx('block h-[84px] w-[84px] overflow-hidden rounded-full border-[3px] bg-gradient-to-b from-[#8FD3F5] to-[#FFF1DA] shadow-lg', me.outfit.wear.FRAME === 'frame-gold' ? 'border-xp' : me.outfit.wear.FRAME === 'frame-green' ? 'border-brand' : 'border-white')}>
+            <span className={cx('block h-[84px] w-[84px] overflow-hidden rounded-full border-[3px] bg-gradient-to-b from-dawn-sky to-dawn-sand shadow-lg', me.outfit.wear.FRAME === 'frame-gold' ? 'border-xp' : me.outfit.wear.FRAME === 'frame-green' ? 'border-brand' : 'border-white')}>
               {me.photoUrl ? <img src={me.photoUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-end justify-center"><Beaver size={78} outfit={me.outfit.wear} animate={false} /></span>}
             </span>
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-sky text-[#07182c] shadow">
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-sky text-night shadow">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20l4-1 10-10-3-3L5 16z" /></svg>
             </span>
           </button>
           <div className="min-w-0 flex-1">
             <h1 className={cx('line-clamp-2 break-words font-black leading-[1.1] text-white drop-shadow', name.length > 18 ? 'text-[18px]' : name.length > 12 ? 'text-[21px]' : 'text-[24px]')}>{name}</h1>
-            <div className="text-[14px] font-black leading-tight text-[#cfe0f2]">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rankFor(me.progress.level)}</span></div>
+            <div className="text-[14px] font-black leading-tight text-mist">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rankFor(me.progress.level)}</span></div>
             <div className="mt-1.5 flex items-center gap-2">
               <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={9} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
               <span className="shrink-0 text-[11px] font-black text-white">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
@@ -134,9 +134,9 @@ export default function ProfileScreen() {
       {/* Мій гардероб */}
       <Section title={t('profile_my_wardrobe')} action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => nav('/shop')}>{t('home_see_all')} <Icon name="arrow-right" size={16} /></button>}>
         <div className="no-scrollbar flex gap-2.5 overflow-x-auto pb-1">
-          <button onClick={() => nav('/shop')} className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[20px] border-2 border-brand bg-gradient-to-b from-[#8FD3F5] to-[#CDEFD0] shadow-[0_0_14px_-4px_rgb(37_215_155/0.8)]" aria-label={t('profile_current_look')}>
+          <button onClick={() => nav('/shop')} className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[20px] border-2 border-brand bg-gradient-to-b from-dawn-sky to-dawn-mint shadow-[0_0_14px_-4px_rgb(37_215_155/0.8)]" aria-label={t('profile_current_look')}>
             <span className="absolute inset-x-0 bottom-0 flex justify-center"><Beaver size={84} outfit={me.outfit.wear} animate={false} /></span>
-            <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-[#07182c]"><Icon name="check" size={12} strokeWidth={3.2} /></span>
+            <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-night"><Icon name="check" size={12} strokeWidth={3.2} /></span>
           </button>
           {/* Образи — костюми, що вже є в гардеробі (кожен помітно відрізняється силуетом) */}
           {owned.filter((i) => i.slot === 'COSTUME').slice(0, 4).map((i) => (
@@ -152,12 +152,12 @@ export default function ProfileScreen() {
       <div className="grid grid-cols-[1.05fr_1fr] gap-2.5 px-4">
         <button onClick={() => { haptic.tap(); nav('/shop'); }} className="hero-card relative h-[212px] text-left">
           <CityHero slug={city?.slug ?? 'krakow'} color={cityRow?.color ?? '#36B9FF'} name="" sign={false} height={212} className="absolute inset-0" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#07182c]/90 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-transparent to-transparent" />
           <div className="absolute inset-x-0 bottom-10 flex justify-center"><Beaver size={116} outfit={me.outfit.wear} mood="wave" /></div>
           <div className="absolute inset-x-2.5 bottom-2 flex items-center gap-1.5">
             <Icon name="user" size={18} className="text-sky" />
             <span className="flex-1 text-[18px] font-black text-white">{t('profile_wardrobe')}</span>
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-[#07182c]/70 text-white"><Icon name="chevron-right" size={16} /></span>
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-night/70 text-white"><Icon name="chevron-right" size={16} /></span>
           </div>
         </button>
         <div className="flex flex-col gap-2">
@@ -208,7 +208,7 @@ export default function ProfileScreen() {
         action={
           <div className="flex rounded-full border border-[var(--border)] bg-elev p-0.5">
             {([7, 30, 90] as const).map((d) => (
-              <button key={d} onClick={() => { haptic.select(); setRange(d); }} className={cx('rounded-full px-2.5 py-1 text-[12px] font-black transition-colors', range === d ? 'bg-sky text-[#07182c] shadow-[0_0_12px_-2px_rgb(54_185_255/0.8)]' : 'text-[var(--text-muted)]')}>
+              <button key={d} onClick={() => { haptic.select(); setRange(d); }} className={cx('rounded-full px-2.5 py-1 text-[12px] font-black transition-colors', range === d ? 'bg-sky text-night shadow-[0_0_12px_-2px_rgb(54_185_255/0.8)]' : 'text-[var(--text-muted)]')}>
                 {t(`stats_${d}` as 'stats_7')}
               </button>
             ))}

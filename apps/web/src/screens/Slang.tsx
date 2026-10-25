@@ -46,7 +46,7 @@ function Card({ it }: { it: Item }) {
           <div className="muted text-sm font-bold">{tr(it.meaning)}</div>
         </div>
         <span onClick={(e) => e.stopPropagation()}><SpeakButton text={it.pl} size="sm" /></span>
-        <Icon name="chevron-right" size={18} className={cx('mt-2 shrink-0 text-[#A3AEBB] transition-transform', open && 'rotate-90')} />
+        <Icon name="chevron-right" size={18} className={cx('mt-2 shrink-0 muted transition-transform', open && 'rotate-90')} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -153,7 +153,7 @@ export default function SlangScreen() {
       <ScreenHeader title="Żywy polski" subtitle={t('slang_subtitle', { n: items.length })} />
       <div className="mx-4 flex items-center gap-3 overflow-hidden rounded-3xl p-3" style={{ background: 'linear-gradient(135deg, #DFF5FF, #FFF1C9)' }}>
         <Beaver mood="explain" size={76} />
-        <p className="text-sm font-bold text-[#22364A]">{t('slang_intro')}</p>
+        <p className="text-sm font-bold text-ink">{t('slang_intro')}</p>
       </div>
       <div className="mx-4 mt-3 flex flex-wrap gap-2">
         {(Object.keys(REG) as Register[]).map((r) => <RegBadge key={r} r={r} />)}

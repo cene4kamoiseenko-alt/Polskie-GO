@@ -75,7 +75,7 @@ export default function AchievementsScreen() {
                       <div className="muted mt-0.5 text-[11px] font-black">{a.progress}/{a.threshold}</div>
                     </div>
                   )}
-                  {a.isNew && <span className="absolute right-1.5 top-1.5 rounded-full bg-xp px-1.5 text-[10px] font-black text-[#6b3f00]">{t('new')}</span>}
+                  {a.isNew && <span className="absolute right-1.5 top-1.5 rounded-full bg-xp px-1.5 text-[10px] font-black text-xp-ink">{t('new')}</span>}
                 </motion.button>
               ))}
             </div>
@@ -103,7 +103,7 @@ export default function AchievementsScreen() {
               {open.zlotki > 0 && (
                 <>
                   <div className="muted mt-3 text-xs font-black uppercase tracking-wide">{t('ach_reward')}</div>
-                  <p className="mt-0.5 font-black text-[#B26A12]">+{open.zlotki} Złotki</p>
+                  <p className="mt-0.5 font-black text-xp">+{open.zlotki} Złotki</p>
                 </>
               )}
             </div>

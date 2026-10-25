@@ -90,7 +90,7 @@ export default function DictionaryScreen() {
                 onClick={(e) => { e.stopPropagation(); void toggleFav(w); }}
                 className="grid h-9 w-9 place-items-center text-2xl"
                 aria-label={t('dict_filter_favorites')}
-                style={{ color: w.mine?.favorite ? '#FFC857' : 'var(--border)' }}
+                style={{ color: w.mine?.favorite ? 'var(--text-xp)' : 'var(--text-muted)' }}
               >
                 ★
               </button>

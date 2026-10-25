@@ -140,8 +140,8 @@ export function HomeScreen() {
       <div className="hero-card mx-4">
         <CityHero slug={current?.slug ?? 'warszawa'} color={current?.color ?? '#36B9FF'} name={current?.namePl ?? 'Warszawa'} height={256}>
           <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.38), transparent 55%)' }} />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-[#07182c]/45 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#07182c]/50 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-night/45 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-night/50 to-transparent" />
           {/* Покажчик міста позаду бобра */}
           <CitySign name={current?.namePl ?? 'Warszawa'} />
           {/* Бобек у поточному образі — головний персонаж банера, картки його не закривають */}
@@ -151,7 +151,7 @@ export function HomeScreen() {
           <div className="absolute right-2.5 top-2.5 w-[52%] space-y-2">
             <button onClick={() => { haptic.tap(); nav('/map'); }} className="glass-card flex w-full items-center gap-1.5 px-2.5 py-2 text-left">
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black text-[#cfe0f2]">{t('home_cur_city')}</div>
+                <div className="text-[11px] font-black text-mist">{t('home_cur_city')}</div>
                 <div className="flex min-w-0 items-center gap-1 text-[18px] font-black leading-tight text-white">
                   <Icon name="pin" size={17} className="shrink-0 text-coral" filled /> <span className="min-w-0" lang="pl" style={{ fontSize: (current?.namePl.length ?? 0) > 10 ? 15 : undefined }}>{current?.namePl ?? '—'}</span>
                 </div>
@@ -164,7 +164,7 @@ export function HomeScreen() {
                 <div className="text-[12.5px] font-black leading-tight text-white">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rank}</span></div>
                 <div className="mt-1 flex items-center gap-1.5">
                   <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={7} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
-                  <span className="shrink-0 text-[10.5px] font-black text-[#cfe0f2]">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
+                  <span className="shrink-0 text-[10.5px] font-black text-mist">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
                 </div>
               </div>
             </button>
@@ -212,12 +212,12 @@ export function HomeScreen() {
                 onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
                 className={cx('task-card relative flex flex-col items-center gap-1 px-1 pb-2 pt-3 text-center', done && 'is-done')}
               >
-                <span className={cx('absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full border-2', done ? 'border-brand bg-brand text-[#07182c]' : 'border-white/40')}>
+                <span className={cx('absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full border-2', done ? 'border-brand bg-brand text-night' : 'border-white/40')}>
                   {done && <Icon name="check" size={12} strokeWidth={3.2} />}
                 </span>
                 <Art name={TASK_ART[q.slug] ?? 'star'} size={40} />
                 <span className="line-clamp-2 min-h-[28px] text-[11.5px] font-black leading-tight">{tr(q.title)}</span>
-                <span className="flex items-center gap-0.5 rounded-full bg-[#07182c]/60 px-1.5 py-0.5 text-[11px] font-black text-xp"><Art name="coin" size={13} />+{q.zlotki}</span>
+                <span className="on-dark flex items-center gap-0.5 rounded-full bg-night/80 px-1.5 py-0.5 text-[11px] font-black text-xp"><Art name="coin" size={13} />+{q.zlotki}</span>
               </motion.button>
             );
           })}
@@ -234,7 +234,7 @@ export function HomeScreen() {
               <Art name="gift" size={48} />
             </motion.span>
             <span className="text-[11px] font-black leading-tight text-white">{t('home_big_reward')}</span>
-            <span className="mt-0.5 text-[9.5px] font-bold leading-tight text-[#cfe0f2]">
+            <span className="mt-0.5 text-[9.5px] font-bold leading-tight text-mist">
               {chest?.claimed ? `✓ ${t('home_claimed')}` : chest?.ready ? t('home_claim') : `${chest?.done ?? 0}/${chest?.total ?? 3} · ${t('home_big_reward_d')}`}
             </span>
           </motion.button>
@@ -262,7 +262,7 @@ export function HomeScreen() {
               style={{ background: bg }}
             >
               {cityAsset(current?.slug ?? 'warszawa') && <img src={cityAsset(current?.slug ?? 'warszawa')!} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-luminosity" />}
-              <span className="absolute inset-0 bg-gradient-to-t from-[#07182c]/85 via-transparent to-transparent" />
+              <span className="absolute inset-0 bg-gradient-to-t from-night/85 via-transparent to-transparent" />
               <svg viewBox="0 0 120 40" className="absolute inset-x-0 bottom-0 w-full opacity-25" aria-hidden><path d="M0 40 V26 h10 v-8 h8 v8 h10 V14 l6 -8 l6 8 v12 h12 v-10 h10 v10 h14 V10 l4 -6 l4 6 v16 h12 v-6 h12 V40 Z" fill="#07182c" /></svg>
               <span className="absolute right-1 top-1 drop-shadow-[0_6px_10px_rgba(0,0,0,0.35)]"><Art name={art} size={76} /></span>
               <span className="absolute bottom-2 left-2.5 right-2">
@@ -280,11 +280,11 @@ export function HomeScreen() {
         {cityOfDay ? (
           <button onClick={() => { haptic.tap(); nav('/map'); }} className="hero-card relative block h-[150px] overflow-hidden text-left">
             <CityHero slug={cityOfDay.slug} color={cityOfDay.color} name="" height={150} evening sign={false} className="absolute inset-0" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#07182c] via-[#07182c]/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-transparent" />
             <div className="absolute left-2.5 top-2 flex items-center gap-1 text-[12px] font-black text-white"><Art name="star" size={18} /> {t('home_city_of_day')}</div>
             <div className="absolute inset-x-2.5 bottom-2">
               <div className="text-[22px] font-black leading-none text-white">{cityOfDay.namePl}</div>
-              <div className="line-clamp-2 text-[11px] font-bold leading-tight text-[#cfe0f2]">{tr(cityOfDay.theme)}</div>
+              <div className="line-clamp-2 text-[11px] font-bold leading-tight text-mist">{tr(cityOfDay.theme)}</div>
             </div>
           </button>
         ) : (
@@ -298,7 +298,7 @@ export function HomeScreen() {
                 <span className="break-words text-[clamp(15px,4.7vw,20px)] font-black leading-tight text-white">{wod.data.pl}</span>
                 <SpeakButton text={wod.data.pl} url={wod.data.audioUrl} size="sm" />
               </div>
-              <div className="mt-1 line-clamp-2 pr-10 text-[12px] font-bold leading-tight text-[#cfe0f2]">{tr(wod.data.translations)}</div>
+              <div className="mt-1 line-clamp-2 pr-10 text-[12px] font-bold leading-tight text-mist">{tr(wod.data.translations)}</div>
             </>
           ) : (
             <Skeleton className="mt-2 h-10" />

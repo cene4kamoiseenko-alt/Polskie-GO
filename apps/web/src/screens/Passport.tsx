@@ -25,7 +25,7 @@ export default function PassportScreen() {
     <div className="pb-8">
       <ScreenHeader title={t('passport_title')} subtitle={t('passport_stamps', { n: d.stamps, total: d.total })} />
       {d.stamps === 0 && <p className="muted mx-4 rounded-2xl bg-muted p-3 text-sm font-semibold">{t('passport_empty_hint')}</p>}
-      <div className="mx-4 mt-3 rounded-[26px] border-2 border-[#C9B48A] bg-[#FBF3E1] p-3 shadow-[inset_0_0_0_6px_#F4E7C9] dark:bg-[#2A2A22]">
+      <div className="mx-4 mt-3 rounded-[26px] border-2 border-paper-line bg-paper-2 p-3 shadow-[inset_0_0_0_6px_#F4E7C9] dark:bg-paper-dark">
         <div className="grid grid-cols-3 gap-1">
           {d.cities.map((c, i) => (
             <motion.button
@@ -38,7 +38,7 @@ export default function PassportScreen() {
               aria-label={tr(c.name)}
             >
               <Stamp slug={c.slug} name={c.namePl} stamped={!!c.stampedAt} date={c.stampedAt ? date(c.stampedAt) : null} size={96} />
-              <span className="text-[11px] font-black leading-tight text-[#7A6440]">{t('passport_stop', { n: c.stop })}</span>
+              <span className="text-[11px] font-black leading-tight text-paper-ink dark:text-paper-ink-dark">{t('passport_stop', { n: c.stop })}</span>
             </motion.button>
           ))}
         </div>
@@ -52,7 +52,7 @@ export default function PassportScreen() {
               <>
                 <div className="mt-3 overflow-hidden rounded-2xl border-4 border-white shadow-lg" style={{ transform: 'rotate(-1.2deg)' }}>
                   <CityBanner slug={open.slug} color="#F45159" height={140} shade={false} />
-                  <div className="bg-[#FFFDF6] p-3.5 dark:bg-elev">
+                  <div className="bg-paper p-3.5 dark:bg-elev">
                     <div className="mb-1 text-xs font-black uppercase tracking-widest text-pl-red">{t('passport_postcard')}</div>
                     <div className="flex items-start gap-2">
                       <p className="flex-1 font-extrabold italic leading-snug">{open.postcard?.pl}</p>

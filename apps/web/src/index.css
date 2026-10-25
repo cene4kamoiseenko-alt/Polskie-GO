@@ -22,6 +22,21 @@
   --color-coral-dark: #d23540;
   --color-grape: #9d69ff;
   --color-pl-red: #ff5265;
+  /* Темно-синя «ніч» (підкладки на фото, скло) і світлий підпис на ній — однакові в обох темах. */
+  --color-night: #07182c;
+  --color-mist: #cfe0f2;
+  /* Текст на золотій заливці (бейджі XP); світлий фон аватарки (небо → пісок/м'ята). */
+  --color-xp-ink: #5a3d00;
+  --color-dawn-sky: #8fd3f5;
+  --color-dawn-sand: #fff1da;
+  --color-dawn-mint: #cdefd0;
+  /* Папір паспорта й записок: фон, лінія, текст (у темній темі — темний папір). */
+  --color-paper: #fffdf6;
+  --color-paper-2: #fbf3e1;
+  --color-paper-dark: #2a2a22;
+  --color-paper-line: #c9b48a;
+  --color-paper-ink: #7a6440;
+  --color-paper-ink-dark: #d9c89f;
 
   --radius-card: 22px;
   --shadow-card: 0 10px 24px -12px rgb(0 0 0 / 0.7);
@@ -99,6 +114,45 @@ textarea {
   user-select: text;
 }
 
+/* Поверхні, темні в обох темах (фото міста, скляні картки, темні чипи): текстові токени —
+   як у темній темі, інакше світла тема підставила б темні відтінки на темний фон. */
+.on-dark,
+.hero-card,
+.glass-card {
+  --text-coral: #ff7480;
+  --text-brand: var(--color-brand);
+  --text-xp: var(--color-xp);
+  --text-sky: #7cd0ff;
+  --text-grape: #b495ff;
+  --text-muted: #c4d3e4;
+  --focus-ring: #8fd8ff;
+}
+/* Синій на білих бульбашках усередині темних поверхонь. */
+.ink-sky {
+  color: var(--fill-sky);
+}
+
+/* Нижня навігація: індикатор активного пункту (форма, не лише колір). */
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 28px;
+  height: 4px;
+  margin-left: -14px;
+  border-radius: 0 0 4px 4px;
+  background: currentColor;
+}
+.nav-tab:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Фокус з клавіатури (Telegram Desktop, веб): єдина помітна рамка, не лише колір. */
+:where(a, button, input, select, textarea, summary, [role='button'], [role='tab'], [role='switch'], [tabindex]):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 /* Безпечні зони Telegram (Bot API 8.0+) з запасними значеннями браузера */
 .safe-top {
   padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));
@@ -166,29 +220,36 @@ textarea {
   }
   .btn:disabled {
     opacity: 0.5;
+    cursor: not-allowed;
+    filter: saturate(0.5);
+  }
+  @media (hover: hover) {
+    .btn:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
   }
   /* Основна дія — червона ігрова кнопка з глибиною */
   .btn-primary,
   .btn-red {
-    background: linear-gradient(180deg, #ff7480 0%, #ff4e5b 50%, #ef3d4c 100%);
+    /* Увесь градієнт під текстом дає білому ≥4.5:1. */
+    background: linear-gradient(180deg, var(--fill-coral-top) 0%, var(--fill-coral) 55%, #c02438 100%);
     color: white;
-    box-shadow: 0 5px 0 #c92f42, 0 10px 18px -8px rgb(255 78 91 / 0.55), inset 0 2px 0 rgb(255 255 255 / 0.35);
+    box-shadow: 0 5px 0 #a8203a, 0 10px 18px -8px rgb(255 78 91 / 0.55), inset 0 2px 0 rgb(255 255 255 / 0.35);
     text-shadow: 0 1px 0 rgb(0 0 0 / 0.18);
   }
   .btn-primary:active:not(:disabled),
   .btn-red:active:not(:disabled) {
-    box-shadow: 0 2px 0 #c92f42, inset 0 2px 0 rgb(255 255 255 / 0.35);
+    box-shadow: 0 2px 0 #a8203a, inset 0 2px 0 rgb(255 255 255 / 0.35);
   }
   /* Виділена головна дія: м'яке світіння (лише для однієї кнопки на екрані) */
   .btn-glow {
-    box-shadow: 0 5px 0 #c92f42, 0 0 22px -2px rgb(255 82 101 / 0.6), 0 12px 22px -8px rgb(255 78 91 / 0.65), inset 0 2px 0 rgb(255 255 255 / 0.35);
+    box-shadow: 0 5px 0 #a8203a, 0 0 22px -2px rgb(255 82 101 / 0.6), 0 12px 22px -8px rgb(255 78 91 / 0.65), inset 0 2px 0 rgb(255 255 255 / 0.35);
   }
   /* Успіх / «правильно» */
   .btn-green {
     background: linear-gradient(180deg, #4fe3ab 0%, #27cf91 55%, #1fb57e 100%);
-    color: white;
+    color: var(--ink-on-bright);
     box-shadow: 0 5px 0 #168a60, inset 0 2px 0 rgb(255 255 255 / 0.4);
-    text-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
   }
   .btn-green:active:not(:disabled) {
     box-shadow: 0 2px 0 #168a60, inset 0 2px 0 rgb(255 255 255 / 0.4);
@@ -200,8 +261,14 @@ textarea {
   }
   .btn-sky {
     background: linear-gradient(180deg, #8fd8ff 0%, #4fb4ec 60%, #3a9fdb 100%);
-    color: white;
+    color: var(--ink-on-bright);
     box-shadow: 0 5px 0 #2a7fb5, inset 0 2px 0 rgb(255 255 255 / 0.45);
+  }
+  .btn-sky:active:not(:disabled) {
+    box-shadow: 0 2px 0 #2a7fb5, inset 0 2px 0 rgb(255 255 255 / 0.45);
+  }
+  .btn-xp:active:not(:disabled) {
+    box-shadow: 0 2px 0 #c98307, inset 0 2px 0 rgb(255 255 255 / 0.55);
   }
   .btn-ghost {
     background: var(--bg-elev-2);
@@ -698,9 +765,9 @@ html.reduced-motion .splash *::after {
 
 /* ───────── Гардероб (макет 03) ───────── */
 :root {
-  --rarity-common: #3f7cc4;
+  --rarity-common: #9cc3f2;
   --rarity-rare: var(--color-sky);
-  --rarity-epic: var(--color-grape);
+  --rarity-epic: #c4adff;
   --rarity-legendary: var(--color-xp);
 }
 .light {
@@ -746,7 +813,7 @@ html.reduced-motion .splash *::after {
 }
 .segmented-item.is-active {
   color: #fff;
-  background: linear-gradient(180deg, #3d8fe0 0%, #1e63c4 100%);
+  background: linear-gradient(180deg, var(--fill-sky-top) 0%, var(--fill-sky) 100%);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 0 16px -4px rgb(54 185 255 / 0.7);
 }
 .chip-tab {
@@ -767,7 +834,7 @@ html.reduced-motion .splash *::after {
 .chip-tab.is-active {
   border-color: transparent;
   color: #fff;
-  background: linear-gradient(180deg, #ff6b7a 0%, #e5384b 100%);
+  background: linear-gradient(180deg, var(--fill-coral-top) 0%, var(--fill-coral) 100%);
   box-shadow: 0 0 16px -2px rgb(255 82 101 / 0.8);
 }
 .costume-card {
@@ -872,8 +939,8 @@ html.reduced-motion .splash *::after {
   background: color-mix(in srgb, var(--bg) 60%, transparent);
 }
 .info-dot {
-  border-color: var(--color-sky);
-  color: var(--color-sky);
+  border-color: var(--text-sky);
+  color: var(--text-sky);
 }
 .action-sheet {
   border: 1px solid rgb(54 185 255 / 0.4);
@@ -905,7 +972,8 @@ html.reduced-motion .splash *::after {
   margin-top: -8%;
   font-weight: 900;
   color: #ffd76a;
-  -webkit-text-stroke: 0.06em #7a4300;
+  /* Обведення ≥1px: контраст цифри дає обведення (золото на коричневому), а не фон щита. */
+  -webkit-text-stroke: max(1px, 0.08em) #7a4300;
   paint-order: stroke fill;
   text-shadow: 0 0.06em 0 #7a4300;
 }
@@ -1090,20 +1158,27 @@ html.reduced-motion .splash *::after {
   --text-sky: var(--color-sky);
   --text-grape: #b495ff;
   --fill-coral: #d42d43;
+  --fill-coral-top: #dc3346;
   --fill-brand: #0d7f57;
   --fill-sky: #1773b0;
+  --fill-sky-top: #1f74c4;
   --fill-grape: #7448d8;
+  /* Текст на яскравих заливках (м'ята, блакить, золото): темно-синій, не білий. */
+  --ink-on-bright: #07182c;
+  --focus-ring: #8fd8ff;
 }
 .light {
-  --text-muted: #58697a;
-  --on-cream-muted: #58697a;
+  --text-muted: #4e5e6e;
+  --on-cream-muted: #4e5e6e;
   --text-coral: #c8233a;
   --text-brand: #0b6e4a;
   --text-xp: #8a5300;
   --text-sky: #0f6aa8;
   --text-grape: #5f33c4;
+  --focus-ring: #0f6aa8;
 }
 .text-coral,
+.text-coral-dark,
 .text-pl-red {
   color: var(--text-coral);
 }
