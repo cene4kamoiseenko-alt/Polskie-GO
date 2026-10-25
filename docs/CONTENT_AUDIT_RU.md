@@ -1,0 +1,47 @@
+# Аудит учебного контента — журнал правок
+
+Как проверялось: полная выгрузка (`node --import tsx scripts/content-dump.ts <dir>`), автоматический линтер
+(`node --import tsx scripts/content-lint.ts <file>`) и ручное чтение каждого задания: польский, переводы uk/ru/en,
+соответствие вопроса и ответа, единственность правильного варианта, объяснение, повторы.
+ID упражнения в журнале — `урок#порядок` (порядок = номер в уроке, с нуля; он же ключ строки в БД).
+
+## Варшава — проверено 499 заданий (26 уроков) + экзамен
+
+### Неоднозначные задания
+- `waw-1-czesc#6` «Найди лишнее: Cześć / Dzień dobry / Dobry wieczór / Dobranoc» — критерий спорный (cześć и приветствие, и прощание).
+  → пропуск в контексте: «— Idę już spać. — ___!» (Dobranoc / Dzień dobry / Dobry wieczór) с объяснением.
+- `waw-p5-misja#8` «Czy może pan mówić ___?» — вариант **wolno** тоже грамматичен («медленно»). → дистрактор заменён на **wolność**, объяснение разбирает все три слова.
+- `waw-f3-gusty#13`, `waw-f4-misja#12`, `waw-n1-sasiad#12` — вопрос «Найди лишнее» прямо называл ответ («Где покупают лекарства?»).
+  → настоящий критерий: «Какое слово НЕ описывает вкус?», «Какое место НЕ связано с едой?», «Что НЕ является частью жилого дома?».
+
+### Принимались не все правильные ответы
+- `waw-2-uprzejmosc#6` сборка «Dziękuję bardzo» → принимается и **Bardzo dziękuję**.
+- `waw-3-imie#8` «Меня зовут Оля» → добавлено **Nazywam się Ola**.
+- `waw-4-skad#6` → **Trochę mówię po polsku**; `waw-4-skad#8` → **Pochodzę z Ukrainy**; `waw-p5-misja#11` → порядок «trochę mówię».
+- `waw-6-wiek#8` → **Mam 20 lat** (цифрами).
+- `waw-k3-zakupy#14` плитка **kilo** была «ловушкой», хотя «Poproszę kilo ziemniaków» правильно → принимается как вариант, объяснение дополнено.
+- `waw-k3-zakupy#15` → «Dzisiaj ogórki są w promocji», «Ogórki dzisiaj są w promocji».
+- `waw-boss#26` → оба порядка «w niedzielę na kawę».
+
+### Ошибки и неестественный польский, логика
+- `waw-p5-misja#7` «Przepraszam, czy wie pan albo pani, gdzie…» — неестественно. → «Przepraszam bardzo, gdzie tu jest najbliższa poczta?»
+- `waw-c3-metro#11` «еду не в ту сторону» → совет «выйдите на Świętokrzyskiej» противоречил ситуации. → «wysiąść na następnej stacji, wrócić na Świętokrzyską i tam przesiąść się…».
+- `waw-f2-piekarnia#9` сумма 7 + 4 + 4 названа «trzynaście» → **piętnaście złotych**.
+- `waw-p5-misja#19` перевод «Пани в учреждении: …» не соответствовал польскому «Do pani w urzędzie» (говорит пользователь). Исправлено.
+- `waw-boss#10` «Jestem Ewa, pani sąsiadka» (к женщине) и затем «Skąd pan jest?» (к мужчине) — противоречие и навязанный род. → «Jestem Ewa, mieszkam obok» / «A skąd jesteś?».
+- Урок `waw-5-liczby`: украинское объяснение «ę в конце слова звучит как е: pięć → «п'єнчь»» противоречило примеру → «ę перед согласным звучит как „ен“».
+- `waw-c4-misja` (объяснение): «вийди на Нових Світах» → «на станції Nowy Świat-Uniwersytet».
+- `waw-s1-zabytki#11`, `waw-k3/k4` — уточнены объяснения (узгодження «маю свій пакет», «міські об'єкти»).
+
+### Обращение к пользователю без навязанного рода
+- `waw-2-uprzejmosc#8` «Ты случайно толкнул…» → «ты случайно наталкиваешься…»; подсказка «Если случайно кого-то заденешь…».
+- `waw-3-imie#7` реплика пользователя «Mam na imię Taras» → «Mam na imię Bobek» (как в остальных диалогах).
+
+### Повторы → заменены новыми заданиями
+- `waw-5-liczby#14` повторял вопрос `#5` того же урока («какое слово не число») → новое: «0 — нуль» → **zero**.
+- `waw-c4-misja#0` «tramwaj» (дубль Кракова, не по теме метро) → **biletomat** (квитковий автомат / банкомат / паркомат).
+- `waw-c4-misja#5` почти дубль `c1#5` («Gdzie jest…») → оплата: «W biletomacie można płacić kartą albo ___» (gotówką).
+- `waw-c4-misja#18` то же предложение, что `c3#14` → «Сідай у M2 у напрямку Брудна» (Wsiądź do M2 w kierunku Bródna).
+- `waw-boss#12` диктант «Miło mi» (третий раз) → «Bez cukru, proszę»; `#15` «przejście podziemne» (дубль c1) → «bilet dobowy»;
+  `#17` «To kosztuje pięć ___» (дубль Вроцлава и входного теста) → «…dwadzieścia cztery ___» (правило 22–24);
+  `#20` «Poproszę ___ z mlekiem» (дубль экзамена Вроцлава) → «Poproszę małą ___ bez cukru»; `#21` «Na miejscu czy na wynos?» (ещё в двух городах) → «Kartą czy telefonem?».

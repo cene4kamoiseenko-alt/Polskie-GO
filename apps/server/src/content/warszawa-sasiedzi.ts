@@ -74,7 +74,7 @@ export const WAW_N1: LessonSeed = {
     findError('usage.home', ['Mieszkam', 'na', 'siódemką'], 1, t('Я живу в сьомій квартирі.', 'Я живу в седьмой квартире.', 'I live at number seven.'),
       t('Номер квартири — з **pod**: pod siódemką.', 'Номер квартиры — с **pod**: pod siódemką.', 'Flat numbers take **pod**: pod siódemką.')),
     oddOne('vocab.home', ['blok', 'klatka schodowa', 'winda', 'peron'], 3,
-      t('Три — у будинку, а **peron** — на вокзалі.', 'Три — в доме, а **peron** — на вокзале.', 'Three are in a building; a **peron** is at a station.'), t("Що позначає платформу на вокзалі?", "Что обозначает платформу на вокзале?", "Which word means a station platform?")),
+      t('Три — у будинку, а **peron** — на вокзалі.', 'Три — в доме, а **peron** — на вокзале.', 'Three are in a building; a **peron** is at a station.'), t("Що НЕ є частиною житлового будинку?", "Что НЕ является частью жилого дома?", "Which is NOT part of a block of flats?")),
     wordChoice('vocab.home', 'oczywiście', [t('звичайно', 'конечно', 'of course'), t('можливо', 'возможно', 'maybe'), t('ніколи', 'никогда', 'never')]),
     build('grammar.home', 'Czy może mi pani pomóc?', t('Ви можете мені допомогти? (до жінки)', 'Вы можете мне помочь? (к женщине)', 'Could you help me? (to a woman)'), ['pomoc', 'mogę'], ['Czy pani może mi pomóc?']),
     wordOrder('grammar.home', 'Oczywiście, zaraz przyniosę wiertarkę', t('Звичайно, зараз принесу дриль.', 'Конечно, сейчас принесу дрель.', 'Of course, I\'ll bring the drill right away.')),

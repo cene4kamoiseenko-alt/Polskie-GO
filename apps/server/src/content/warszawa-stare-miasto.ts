@@ -73,7 +73,7 @@ export const WAW_S1: LessonSeed = {
     findError('grammar.locative', ['Syrenka', 'stoi', 'na', 'Rynek'], 3, t('Русалка стоїть на Ринку.', 'Русалка стоит на Рынке.', 'The Mermaid stands in the Market Square.'),
       t('Де? Після **na** — місцевий: **na Rynku**.', 'Где? После **na** — предложный: **na Rynku**.', 'Where? After **na** use the locative: **na Rynku**.')),
     oddOne('vocab.city', ['zamek', 'kamienica', 'pomnik', 'pociąg'], 3,
-      t('Три — у місті-пам\'ятці, а **pociąg** — потяг.', 'Три — достопримечательности, а **pociąg** — поезд.', 'Three are sights; **pociąg** is a train.'), t("Що є транспортним засобом, а не міським об’єктом?", "Что является транспортным средством, а не городским объектом?", "Which is a vehicle rather than a city structure?")),
+      t('Три — міські об\'єкти, а **pociąg** — потяг.', 'Три — городские объекты, а **pociąg** — поезд.', 'Three are city structures; **pociąg** is a train.'), t("Що є транспортним засобом, а не міським об’єктом?", "Что является транспортным средством, а не городским объектом?", "Which is a vehicle rather than a city structure?")),
     wordChoice('vocab.city', 'zniszczony', [t('зруйнований', 'разрушенный', 'destroyed'), t('відбудований', 'восстановленный', 'rebuilt'), t('старовинний', 'старинный', 'ancient')]),
     build('grammar.city', 'Stare Miasto jest na liście UNESCO', t('Старе Місто в списку ЮНЕСКО', 'Старый город в списке ЮНЕСКО', 'The Old Town is on the UNESCO list'), ['w', 'listę']),
     wordOrder('grammar.city', 'Mieszkańcy odbudowali Stare Miasto po wojnie', t('Мешканці відбудували Старе Місто після війни.', 'Жители восстановили Старый город после войны.', 'Residents rebuilt the Old Town after the war.'),
