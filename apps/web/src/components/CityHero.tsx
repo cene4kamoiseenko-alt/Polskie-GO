@@ -20,20 +20,22 @@ function Signpost({ name }: { name: string }) {
   );
 }
 
-export const CityHero = memo(function CityHero({ slug, color, name, height = 236, className = '', children, evening, sign = true }: { slug: string; color: string; name: string; height?: number; className?: string; children?: ReactNode; evening?: boolean; sign?: boolean }) {
+export const CityHero = memo(function CityHero({ slug, color, name, height = 236, className = '', children, evening, sign = true, skyline }: { slug: string; color: string; name: string; height?: number; className?: string; children?: ReactNode; evening?: boolean; sign?: boolean; /** Невисока картка: панорама з пам'ятками праворуч (без площі на передньому плані). */ skyline?: boolean }) {
   const krakow = slug === 'krakow';
   const photo = cityAsset(slug);
+  // Позиціонування задає батько (absolute) або сам банер (relative) — обидва класи разом конфліктують.
+  const pos = /\babsolute\b/.test(className) ? '' : 'relative';
   if (photo) {
     return (
-      <div className={`relative overflow-hidden ${className}`} style={{ height }}>
+      <div className={`${pos} overflow-hidden ${className}`} style={{ height }}>
         <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
         {children}
       </div>
     );
   }
   return (
-    <div className={`relative overflow-hidden ${className}`} style={{ height }}>
-      <svg viewBox="0 0 390 240" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full" aria-hidden>
+    <div className={`${pos} overflow-hidden ${className}`} style={{ height }}>
+      <svg viewBox="0 0 390 240" preserveAspectRatio={skyline ? 'xMaxYMax slice' : 'xMidYMax slice'} className="absolute inset-0 h-full w-full" aria-hidden>
         <defs>
           <linearGradient id="ch-sky" x1="0" y1="0" x2="0" y2="1">
             {evening ? (
@@ -45,7 +47,11 @@ export const CityHero = memo(function CityHero({ slug, color, name, height = 236
         </defs>
         <rect width="390" height="240" fill="url(#ch-sky)" />
         <circle cx="350" cy="30" r="40" fill="#FFF6D0" opacity={evening ? 0.25 : 0.45} />
-        {krakow ? (
+        {krakow && skyline ? (
+          <g transform="translate(70 -168) scale(0.74)">
+            <FarCityArt />
+          </g>
+        ) : krakow ? (
           <>
             <g transform="translate(-34 -118) scale(0.6)">
               <FarCityArt />

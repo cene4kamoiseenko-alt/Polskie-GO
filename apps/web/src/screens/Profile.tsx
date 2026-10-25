@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ItemPreview } from '../components/ItemPreview';
 import { Badge, achTier } from '../components/Illustrations';
 import { Icon, type LineIconName } from '../components/Icon';
 import { useT, type TKey } from '../i18n';
@@ -71,9 +70,11 @@ export default function ProfileScreen() {
 
       {/* Картка мандрівника */}
       <div className="hero-card relative mx-4">
-        <CityHero slug={city?.slug ?? 'krakow'} color={cityRow?.color ?? '#36B9FF'} name="" sign={false} evening height={150} className="absolute inset-0 !h-full" />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(56,38,120,0.97) 0%, rgba(38,66,156,0.9) 44%, rgba(20,50,110,0.25) 78%, rgba(20,50,110,0) 100%)' }} />
-        <div className="relative flex items-center gap-3 p-3.5">
+        <CityHero slug={city?.slug ?? 'krakow'} color={cityRow?.color ?? '#36B9FF'} name="" sign={false} evening skyline height={150} className="absolute inset-0 !h-full" />
+        {/* затемнення лише під текстом: праворуч видно місто */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(48,34,112,0.96) 0%, rgba(36,62,150,0.9) 46%, rgba(20,50,110,0.5) 66%, rgba(20,50,110,0) 86%)' }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(70% 90% at 92% 10%, rgba(255,200,130,0.28), transparent 60%)' }} />
+        <div className="relative flex items-center gap-3 p-3.5 pr-12">
           <button onClick={() => { haptic.tap(); nav('/shop'); }} className="relative shrink-0" aria-label={t('profile_wardrobe')}>
             <span className={cx('block h-[84px] w-[84px] overflow-hidden rounded-full border-[3px] bg-gradient-to-b from-[#8FD3F5] to-[#FFF1DA] shadow-lg', me.outfit.wear.FRAME === 'frame-gold' ? 'border-xp' : me.outfit.wear.FRAME === 'frame-green' ? 'border-brand' : 'border-white')}>
               {me.photoUrl ? <img src={me.photoUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-end justify-center"><Beaver size={78} outfit={me.outfit.wear} animate={false} /></span>}
@@ -83,7 +84,7 @@ export default function ProfileScreen() {
             </span>
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[24px] font-black leading-tight text-white drop-shadow">{name}</h1>
+            <h1 className={cx('line-clamp-2 break-words font-black leading-[1.1] text-white drop-shadow', name.length > 18 ? 'text-[18px]' : name.length > 12 ? 'text-[21px]' : 'text-[24px]')}>{name}</h1>
             <div className="text-[14px] font-black leading-tight text-[#cfe0f2]">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rankFor(me.progress.level)}</span></div>
             <div className="mt-1.5 flex items-center gap-2">
               <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={9} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
@@ -136,9 +137,10 @@ export default function ProfileScreen() {
             <span className="absolute inset-x-0 bottom-0 flex justify-center"><Beaver size={84} outfit={me.outfit.wear} animate={false} /></span>
             <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-[#07182c]"><Icon name="check" size={12} strokeWidth={3.2} /></span>
           </button>
-          {owned.slice(0, 4).map((i) => (
-            <button key={i.id} onClick={() => nav('/shop')} className={cx('section-tile grid h-[92px] w-[92px] shrink-0 place-items-center rounded-[20px]', i.equipped && 'ring-2 ring-brand')}>
-              <ItemPreview slot={i.slot} assetKey={i.assetKey} size={66} />
+          {/* Образи — костюми, що вже є в гардеробі (кожен помітно відрізняється силуетом) */}
+          {owned.filter((i) => i.slot === 'COSTUME').slice(0, 4).map((i) => (
+            <button key={i.id} onClick={() => nav('/shop')} className={cx('section-tile relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[20px]', i.equipped && 'ring-2 ring-brand')} aria-label={tr(i.name)}>
+              <span className="absolute inset-x-0 bottom-0 flex justify-center"><Beaver size={84} outfit={{ COSTUME: i.assetKey }} animate={false} /></span>
             </button>
           ))}
           <button onClick={() => nav('/shop')} className="grid h-[92px] w-[92px] shrink-0 place-items-center rounded-[20px] border-2 border-dashed border-[var(--border)] text-3xl font-black text-[var(--text-muted)]">+</button>

@@ -56,8 +56,13 @@ function Podium({ rows }: { rows: Row[] }) {
   const order = [2, 1, 3];
   return (
     <div className="hero-card relative mx-4 h-[268px]">
-      <CityHero slug="krakow" color="#F2994A" name="" sign={false} evening height={268} className="absolute inset-0" />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#07182c]/35 via-[#07182c]/10 to-[#07182c]/85" />
+      <CityHero slug="krakow" color="#F2994A" name="" sign={false} evening skyline height={268} className="absolute inset-0" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#07182c]/45 via-[#07182c]/15 to-[#07182c]/90" />
+      {/* вечірні вогні міста й прожектор над першим місцем */}
+      <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(38% 46% at 50% 58%, rgba(255,200,87,0.42), transparent 70%)' }} />
+      {[[14, 38], [24, 54], [70, 30], [82, 50], [60, 44], [36, 26], [90, 36]].map(([x, y], i) => (
+        <span key={i} className="pointer-events-none absolute h-1.5 w-1.5 rounded-full bg-[#FFD983] shadow-[0_0_8px_3px_rgba(255,200,87,0.55)]" style={{ left: `${x}%`, top: `${y}%`, opacity: 0.75 }} />
+      ))}
       {/* прапори з короною */}
       {[0, 1].map((i) => (
         <svg key={i} viewBox="0 0 40 90" className={cx('absolute top-3 w-9', i ? 'right-3' : 'left-3')} aria-hidden>
@@ -87,7 +92,17 @@ function Podium({ rows }: { rows: Row[] }) {
               </motion.div>
               <div className="relative flex w-full items-start justify-center rounded-t-2xl border-x-2 border-t-2 pt-2" style={{ height: cfg.h, background: cfg.ped, borderColor: cfg.ring, boxShadow: big ? '0 0 26px -4px rgba(255,200,87,0.7)' : undefined }}>
                 <span className="grid h-9 w-9 place-items-center rounded-full border-2 text-[17px] font-black text-white" style={{ borderColor: cfg.ring, background: 'rgba(0,0,0,0.25)' }}>{place}</span>
-                {big && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] text-xp">✦ ✦ ✦</span>}
+                {big && (
+                  <svg viewBox="0 0 120 40" className="pointer-events-none absolute -top-5 left-1/2 w-[120%] -translate-x-1/2" aria-hidden>
+                    {/* лавровий вінок */}
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <g key={i}>
+                        <ellipse cx={22 + i * 6} cy={30 - i * 4.2} rx="5" ry="2.4" fill="#FFC857" transform={`rotate(${-40 + i * 8} ${22 + i * 6} ${30 - i * 4.2})`} />
+                        <ellipse cx={98 - i * 6} cy={30 - i * 4.2} rx="5" ry="2.4" fill="#FFC857" transform={`rotate(${40 - i * 8} ${98 - i * 6} ${30 - i * 4.2})`} />
+                      </g>
+                    ))}
+                  </svg>
+                )}
               </div>
             </div>
           );
@@ -177,7 +192,7 @@ export default function SocialScreen() {
         <div className="min-w-0 flex-1">
           <h1 className="text-[30px] font-black leading-none">{t('lb_title')}</h1>
           <div className="mt-1 flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">
-            <Art name="medal-bronze" size={18} /> <span className="leading-tight">{leagueName}{lb.data ? ` · ${lb.data.week}` : ''}</span>
+            <Art name="medal-bronze" size={18} /> <span className="leading-tight">{leagueName}{lb.data ? ` · ${t('lb_week_n', { n: Number(lb.data.week.split('W')[1] ?? 0) || lb.data.week })}` : ''}</span>
           </div>
         </div>
         <div className="flex shrink-0 rounded-full border border-[var(--border)] bg-elev p-1">

@@ -601,6 +601,7 @@ export const pl: Dict = {
   league_diamond: 'Liga diamentowa',
   lb_empty: 'W tym tygodniu nikt jeszcze nie zdobył XP',
   lb_top: "Najlepsi gracze ligi",
+  lb_week_n: "tydzień {n}",
   lb_to_next: "Do ligi: {league}",
   lb_max_league: "Najwyższa liga — tak trzymaj!",
   lb_footer: "Zdobywaj XP za lekcje, questy i osiągnięcia, aby awansować!",

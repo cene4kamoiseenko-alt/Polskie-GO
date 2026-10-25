@@ -66,7 +66,7 @@ async function authenticate() {
       await timedFetch(`${API_BASE}/api/auth/dev`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: Number(new URLSearchParams(location.search).get('devUser') ?? 100001), firstName: 'Podróżnik', startParam: startParam() }),
+        body: JSON.stringify({ id: Number(new URLSearchParams(location.search).get('devUser') ?? 100001), firstName: new URLSearchParams(location.search).get('devName') ?? 'Podróżnik', startParam: startParam() }),
       });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, body.error ?? 'auth_failed', body.message);
