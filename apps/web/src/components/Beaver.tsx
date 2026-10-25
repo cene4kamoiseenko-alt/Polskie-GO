@@ -6,7 +6,7 @@
  * Растровий ассет (src/assets/beaver/<mood>.webp), якщо є, має пріоритет.
  */
 import { motion, useReducedMotion } from 'framer-motion';
-import { memo, type ReactNode } from 'react';
+import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { beaverAsset } from '../lib/assets';
 
 /**
@@ -861,6 +861,46 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
     <motion.div className="inline-block" animate={idle} style={{ lineHeight: 0 }}>
       {body}
     </motion.div>
+  );
+});
+
+/**
+ * Предмет гардероба окремо від бобра — намальований тими самими деталями, що й на бобрі,
+ * тож картка в гардеробі точно відповідає тому, що з'явиться на персонажі.
+ * viewBox підбирається за реальними межами малюнка.
+ */
+export const BeaverPart = memo(function BeaverPart({ slot, kind, size = 96 }: { slot: string; kind: string; size?: number }) {
+  const ref = useRef<SVGGElement>(null);
+  const [vb, setVb] = useState('-10 -40 220 260');
+  useLayoutEffect(() => {
+    const g = ref.current;
+    if (!g) return;
+    try {
+      const b = g.getBBox();
+      if (b.width > 0 && b.height > 0) {
+        const side = Math.max(b.width, b.height) * 1.18;
+        setVb(`${b.x + b.width / 2 - side / 2} ${b.y + b.height / 2 - side / 2} ${side} ${side}`);
+      }
+    } catch {
+      /* getBBox недоступний (наприклад, у тестовому оточенні) — лишаємо загальний кадр */
+    }
+  }, [slot, kind]);
+  const part =
+    slot === 'HAT' ? <Hat kind={kind} />
+    : slot === 'GLASSES' ? <Glasses kind={kind} />
+    : slot === 'SCARF' ? <Scarf kind={kind} />
+    : slot === 'JACKET' ? <Jacket kind={kind} />
+    : slot === 'BACKPACK' ? <Backpack kind={kind} />
+    : slot === 'SHOES' ? <Shoes kind={kind} />
+    : slot === 'ACCESSORY' ? <HandItem kind={kind} />
+    : slot === 'COSTUME' ? <><Costume kind={kind} /><CostumeHead kind={kind} /></>
+    : slot === 'FRAME' ? <circle cx="100" cy="100" r="60" fill="none" stroke={kind === 'frame-gold' ? '#FFC857' : '#25D79B'} strokeWidth="14" />
+    : null;
+  return (
+    <svg viewBox={vb} width={size} height={size} aria-hidden style={{ overflow: 'visible' }}>
+      <Defs />
+      <g ref={ref}>{part}</g>
+    </svg>
   );
 });
 

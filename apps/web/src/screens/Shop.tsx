@@ -1,5 +1,11 @@
-import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+/**
+ * Гардероб (референси «Гардероб»): ігрова примірочна з бобром на підсвіченому подіумі,
+ * стрілки перемикають предмети категорії (одразу приміряються на бобра), категорії з іконками,
+ * великі картки з рідкістю, ціною і статусом. Купівля й одягання — лише через сервер.
+ * У режимі «Домик» (?house=1) показуються меблі, декор і сувеніри.
+ */
+import { AnimatePresence, motion } from 'framer-motion';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
@@ -7,13 +13,89 @@ import { useMe, useRefreshAll, useShop } from '../lib/queries';
 import type { ShopItem } from '../lib/types';
 import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { Beaver } from '../components/Beaver';
-import { ItemPreview, WEAR_SLOTS } from '../components/ItemPreview';
+import { Beaver, BeaverPart, ITEM_ICONS } from '../components/Beaver';
+import { WEAR_SLOTS } from '../components/ItemPreview';
 import { Icon } from '../components/Icon';
-import { ErrorState, ScreenHeader, ScreenSkeleton, Sheet, cx, useToast } from '../components/ui';
+import { Art } from '../components/GameArt';
+import { ErrorState, ScreenSkeleton, cx, useBackButton, useToast } from '../components/ui';
 
-const ALL_SLOTS = [...WEAR_SLOTS, 'FURNITURE', 'DECOR', 'SOUVENIR'];
-const RARITY: Record<string, string> = { common: '#B9C3CB', rare: '#69C7F4', epic: '#9B6BFF', legendary: '#FFC857' };
+const WARDROBE_SLOTS = ['JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'HAT', 'GLASSES', 'SCARF', 'COSTUME', 'FRAME'];
+const HOUSE_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR'];
+const RARITY_COLOR: Record<string, string> = { common: '#3F7CC4', rare: '#36B9FF', epic: '#9D69FF', legendary: '#FFC857' };
+
+/** Лінійні іконки категорій. */
+const SLOT_GLYPH: Record<string, ReactNode> = {
+  JACKET: <path d="M8 4l4 2 4-2 4 3-2 4h-2v9H8v-9H6L4 7z" />,
+  BACKPACK: <><path d="M7 9a5 5 0 0 1 10 0v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" /><path d="M10 4h4M9 14h6" /></>,
+  SHOES: <path d="M3 15c0-3 1-6 3-6l3 3 5 2 5 1c1 0 2 1 2 2v1H3z" />,
+  ACCESSORY: <><circle cx="7" cy="12" r="3.2" /><circle cx="17" cy="12" r="3.2" /><path d="M10.2 12h3.6M3 11l1-2M21 11l-1-2" /></>,
+  HAT: <><path d="M5 15c0-5 3-9 7-9s7 4 7 9" /><path d="M3 15h18v2H3z" /></>,
+  GLASSES: <><circle cx="7" cy="13" r="3.2" /><circle cx="17" cy="13" r="3.2" /><path d="M10.2 13h3.6M3.8 12L3 9M20.2 12l.8-3" /></>,
+  SCARF: <path d="M5 7c4 3 10 3 14 0v3c-4 3-10 3-14 0zM14 11v9l3-1v-8" />,
+  COSTUME: <path d="M12 3l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.3 6.8 19l1-5.8L3.6 9.1l5.8-.8z" />,
+  FRAME: <><rect x="4" y="4" width="16" height="16" rx="3" /><rect x="8" y="8" width="8" height="8" rx="1" /></>,
+  FURNITURE: <path d="M4 18v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6M4 15h16M6 18v2M18 18v2M7 10V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" />,
+  DECOR: <path d="M12 20v-7M12 13c-4 0-6-3-6-7 4 0 6 3 6 7zm0 0c4 0 6-3 6-7-4 0-6 3-6 7zM8 20h8" />,
+  SOUVENIR: <><rect x="4" y="9" width="16" height="11" rx="2" /><path d="M12 9v11M4 13h16M12 9c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1" /></>,
+};
+
+function SlotIcon({ slot }: { slot: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {SLOT_GLYPH[slot]}
+    </svg>
+  );
+}
+
+/** Примірочна: арка з теплим світлом, рослини, вішак з одягом, капелюх, дзеркало, подіум. */
+function DressingRoom() {
+  return (
+    <svg viewBox="0 0 390 300" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full" aria-hidden>
+      <defs>
+        <radialGradient id="dr-glow" cx="0.5" cy="0.45" r="0.55"><stop offset="0" stopColor="#3D6FB8" /><stop offset="0.6" stopColor="#173661" /><stop offset="1" stopColor="#0A1C36" /></radialGradient>
+        <linearGradient id="dr-arch" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#5C8FD6" stopOpacity="0.9" /><stop offset="1" stopColor="#1E3F70" stopOpacity="0.2" /></linearGradient>
+        <radialGradient id="dr-ped" cx="0.5" cy="0.3" r="0.7"><stop offset="0" stopColor="#3B5C86" /><stop offset="1" stopColor="#13253F" /></radialGradient>
+        <linearGradient id="dr-spot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF4D6" stopOpacity="0.35" /><stop offset="1" stopColor="#FFF4D6" stopOpacity="0" /></linearGradient>
+      </defs>
+      <rect width="390" height="300" fill="url(#dr-glow)" />
+      {/* арка */}
+      <path d="M118 236 V108 a77 77 0 0 1 154 0 V236 Z" fill="url(#dr-arch)" stroke="#6E9AD8" strokeOpacity="0.5" strokeWidth="3" />
+      <path d="M136 236 V112 a59 59 0 0 1 118 0 V236" fill="none" stroke="#9CC4FF" strokeOpacity="0.25" strokeWidth="2" />
+      {/* дзеркало зліва */}
+      <rect x="18" y="72" width="54" height="120" rx="27" fill="#20406B" stroke="#C9A24A" strokeWidth="5" />
+      <path d="M30 98 L46 84 M30 120 L58 94" stroke="#9CC4FF" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" />
+      {/* рослина */}
+      <path d="M86 232 h28 l-4 -26 h-20 z" fill="#C9A24A" stroke="#7A5A22" strokeWidth="2" />
+      {[[-14, -36], [0, -48], [14, -36], [-8, -58], [8, -60]].map(([dx, dy], i) => (
+        <ellipse key={i} cx={100 + dx} cy={206 + dy / 1.4} rx="8" ry="16" fill={i % 2 ? '#2F9A55' : '#3DB565'} transform={`rotate(${dx * 2} ${100 + dx} ${206 + dy / 1.4})`} />
+      ))}
+      {/* вішак з одягом справа */}
+      <path d="M300 64 H376 M306 64 V232 M370 64 V232" stroke="#C9A24A" strokeWidth="4" />
+      {[['#E5383B', 316], ['#F4F7FA', 334], ['#3A7BD5', 352]].map(([c, x]) => (
+        <g key={x as number}>
+          <path d={`M${x} 64 v8`} stroke="#9AA3AD" strokeWidth="2" />
+          <path d={`M${(x as number) - 10} 74 l10 -2 l10 2 l2 64 h-24 z`} fill={c as string} stroke="#0E2240" strokeWidth="1.6" />
+        </g>
+      ))}
+      {/* капелюх на гачку */}
+      <path d="M300 44 q18 -18 36 0 z" fill="#8A5A36" stroke="#0E2240" strokeWidth="1.6" />
+      <rect x="294" y="42" width="48" height="5" rx="2.5" fill="#6E4428" />
+      {/* світло й подіум */}
+      <path d="M150 0 L240 0 L292 250 L98 250 Z" fill="url(#dr-spot)" />
+      <ellipse cx="195" cy="256" rx="118" ry="26" fill="#0A1C36" opacity="0.7" />
+      <ellipse cx="195" cy="246" rx="112" ry="22" fill="url(#dr-ped)" stroke="#6FB8FF" strokeWidth="3" style={{ filter: 'drop-shadow(0 0 10px rgba(54,185,255,0.75))' }} />
+      <ellipse cx="195" cy="242" rx="96" ry="15" fill="#2C4A72" opacity="0.8" />
+      <rect x="0" y="262" width="390" height="38" fill="#0A1A30" />
+    </svg>
+  );
+}
+
+function ItemArt({ item, size }: { item: ShopItem; size: number }) {
+  // Костюм без бобра розпадається на частини — показуємо бобра в костюмі.
+  if (item.slot === 'COSTUME') return <Beaver size={size * 0.92} outfit={{ COSTUME: item.assetKey }} animate={false} vectorOnly />;
+  if (WEAR_SLOTS.includes(item.slot)) return <BeaverPart slot={item.slot} kind={item.assetKey} size={size} />;
+  return <span style={{ fontSize: size * 0.6, lineHeight: 1 }}>{ITEM_ICONS[item.assetKey] ?? '🎁'}</span>;
+}
 
 export default function ShopScreen() {
   const { t, tr } = useT();
@@ -24,18 +106,30 @@ export default function ShopScreen() {
   const me = useMe().data;
   const refresh = useRefreshAll();
   const toast = useToast();
-  const slots = houseMode ? ['FURNITURE', 'DECOR', 'SOUVENIR'] : ALL_SLOTS;
+  const slots = houseMode ? HOUSE_SLOTS : WARDROBE_SLOTS;
   const [slot, setSlot] = useState(slots[0]);
   const [picked, setPicked] = useState<ShopItem | null>(null);
   const [busy, setBusy] = useState(false);
+  useBackButton(useCallback(() => nav(-1), [nav]));
 
   const items = useMemo(() => shop.data?.items.filter((i) => i.slot === slot) ?? [], [shop.data, slot]);
-  // Примірка: показуємо бобра у вибраному предметі ще до покупки.
+  // Примірка: бобер одразу показує вибраний предмет — ще до покупки.
   const preview = useMemo(() => {
     const wear = { ...(me?.outfit.wear ?? {}) };
     if (picked && WEAR_SLOTS.includes(picked.slot)) wear[picked.slot] = picked.assetKey;
     return wear;
   }, [me, picked]);
+
+  const pick = (i: ShopItem | null) => {
+    haptic.select();
+    if (i) sfx.tap();
+    setPicked(i);
+  };
+  const step = (d: number) => {
+    if (!items.length) return;
+    const idx = picked ? items.findIndex((i) => i.id === picked.id) : -1;
+    pick(items[(idx + d + items.length) % items.length]);
+  };
 
   const act = async (fn: () => Promise<unknown>, okText: string) => {
     setBusy(true);
@@ -59,72 +153,126 @@ export default function ShopScreen() {
   const wearable = picked ? WEAR_SLOTS.includes(picked.slot) : true;
 
   return (
-    <div className="pb-6">
-      <ScreenHeader title={houseMode ? t('house_edit') : t('shop_title')} right={<span className="chip text-base">🪙 {balance}</span>} />
+    <div className="pb-36">
+      {/* Заголовок */}
+      <div className="safe-top relative z-10 flex items-center gap-3 px-4 pt-3">
+        <h1 className="flex-1 text-[34px] font-black leading-none">{houseMode ? t('house_edit') : t('shop_title')}</h1>
+        <span className="hud-pill !h-11 !px-4 !text-[18px]"><Art name="coin" size={26} /> {balance}</span>
+      </div>
+
+      {/* Примірочна */}
       {!houseMode && (
-        <div className="mx-4 grid place-items-center rounded-[28px] py-3" style={{ background: 'radial-gradient(circle at 50% 40%, #DFF6E8, transparent 70%)' }}>
-          <Beaver size={170} outfit={preview} mood={picked ? 'cheer' : 'happy'} />
+        <div className="relative -mt-2 h-[300px] overflow-hidden">
+          <DressingRoom />
+          <div className="absolute inset-x-0 bottom-[42px] flex justify-center">
+            <AnimatePresence mode="popLayout">
+              <motion.div key={picked?.id ?? 'base'} initial={{ scale: 0.92, opacity: 0.4, y: 6 }} animate={{ scale: 1, opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 18 }}>
+                <Beaver size={196} outfit={preview} mood={picked ? 'cheer' : 'happy'} vectorOnly />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          {items.length > 1 && (
+            <>
+              <button onClick={() => step(-1)} aria-label={t('shop_prev')} className="glass-card absolute left-6 top-[46%] grid h-12 w-12 place-items-center !rounded-full text-white active:scale-90"><Icon name="chevron-right" size={22} className="rotate-180" /></button>
+              <button onClick={() => step(1)} aria-label={t('shop_next')} className="glass-card absolute right-6 top-[46%] grid h-12 w-12 place-items-center !rounded-full text-white active:scale-90"><Icon name="chevron-right" size={22} /></button>
+            </>
+          )}
+          {picked && (
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="glass-card absolute left-1/2 top-2 max-w-[70%] -translate-x-1/2 truncate px-3 py-1 text-[12px] font-black text-white">
+              {t('shop_trying')}: {tr(picked.name)}
+            </motion.div>
+          )}
         </div>
       )}
-      <div className="no-scrollbar my-3 flex gap-2 overflow-x-auto px-4">
+
+      {/* Категорії */}
+      <div className="no-scrollbar relative z-10 -mt-1 flex gap-2 overflow-x-auto px-4 pb-1 pt-2">
         {slots.map((s) => (
-          <button key={s} onClick={() => { haptic.select(); setSlot(s); }} className={cx('chip shrink-0 px-4 py-2', s === slot && 'bg-pl-red text-white')}>
-            {t(`slot_${s}` as TKey)}
+          <button
+            key={s}
+            onClick={() => { haptic.select(); setSlot(s); setPicked(null); }}
+            className={cx('flex shrink-0 items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-[14px] font-black transition-colors', s === slot ? 'border-transparent bg-gradient-to-b from-[#FF6B7A] to-[#E5384B] text-white shadow-[0_0_16px_-2px_rgb(255_82_101/0.8)]' : 'border-[var(--border)] bg-elev text-[var(--text-muted)]')}
+          >
+            <SlotIcon slot={s} /> {t(`slot_${s}` as TKey)}
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-3 gap-3 px-4">
-        {items.map((i) => (
-          <motion.button
-            key={i.id}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => { haptic.tap(); setPicked(i); }}
-            className={cx('card relative flex flex-col items-center gap-1 p-3', i.equipped && 'ring-4 ring-brand')}
-            style={{ borderTop: `4px solid ${RARITY[i.rarity] ?? RARITY.common}` }}
-          >
-            <ItemPreview slot={i.slot} assetKey={i.assetKey} />
-            <span className="line-clamp-2 text-center text-xs font-black leading-tight">{tr(i.name)}</span>
-            <span className="text-xs font-black">
-              {i.owned ? (
-                <span className="inline-flex items-center gap-0.5 text-brand-dark"><Icon name="check" size={14} strokeWidth={3} /> {t(i.equipped ? 'shop_wearing' : 'shop_owned')}</span>
-              ) : i.rewardOnly ? (
-                <span className="inline-flex items-center gap-0.5 text-grape"><Icon name="trophy" size={14} /> {t('shop_reward_only')}</span>
-              ) : (
-                <span className="inline-flex items-center gap-0.5 text-[#B26A12]"><Icon name="coin" size={14} /> {i.price}</span>
-              )}
-            </span>
-            {i.isPremium && <span className="absolute right-1.5 top-1.5 text-xp-dark"><Icon name="crown" size={16} filled /></span>}
-          </motion.button>
-        ))}
-      </div>
-      <p className="muted mx-6 mt-5 text-center text-xs font-bold">{t('shop_earn_hint')}</p>
 
-      <Sheet open={!!picked} onClose={() => setPicked(null)}>
+      {/* Предмети */}
+      <div className="mt-3 grid grid-cols-2 gap-3 px-4">
+        {items.map((i, n) => {
+          const color = i.equipped ? '#25D79B' : (RARITY_COLOR[i.rarity] ?? RARITY_COLOR.common);
+          const selected = picked?.id === i.id;
+          return (
+            <motion.button
+              key={i.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(n, 6) * 0.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => pick(selected ? null : i)}
+              className="item-card relative flex flex-col items-center gap-1.5 px-2 pb-3 pt-3"
+              style={{
+                borderColor: selected ? '#FFFFFF' : color,
+                background: i.equipped ? 'radial-gradient(120% 80% at 50% 20%, #1f6b55 0%, #0f3b3a 60%, #0c2c33 100%)' : i.rarity === 'legendary' ? 'radial-gradient(120% 80% at 50% 20%, #5a4316 0%, #2e2614 55%, #1c1b1e 100%)' : i.rarity === 'epic' ? 'radial-gradient(120% 80% at 50% 20%, #3e2a7a 0%, #22184a 60%, #171433 100%)' : undefined,
+                boxShadow: `0 0 ${selected ? 26 : 18}px -6px ${color}, var(--shadow-deep)`,
+              }}
+            >
+              {i.isPremium && <span className="absolute right-2 top-2"><Art name="crown" size={24} /></span>}
+              {i.rewardOnly && !i.owned && <span className="absolute right-2 top-2"><Art name="medal-gold" size={26} /></span>}
+              <span className="absolute left-2 top-2 rounded-full px-1.5 py-px text-[9.5px] font-black uppercase tracking-wide" style={{ background: `${RARITY_COLOR[i.rarity] ?? RARITY_COLOR.common}33`, color: RARITY_COLOR[i.rarity] ?? '#9CC4FF' }}>{t(`rarity_${i.rarity}` as TKey)}</span>
+              <span className="mt-3 grid h-[112px] w-full place-items-center">
+                <motion.span animate={selected ? { y: [0, -6, 0] } : undefined} transition={{ repeat: Infinity, duration: 1.6 }} className="drop-shadow-[0_8px_8px_rgba(0,0,0,0.45)]">
+                  <ItemArt item={i} size={104} />
+                </motion.span>
+              </span>
+              <span className="line-clamp-2 min-h-[38px] text-center text-[15px] font-black leading-tight text-white">{tr(i.name)}</span>
+              {i.owned ? (
+                <span className={cx('grid h-8 min-w-[40px] place-items-center rounded-lg px-2', i.equipped ? 'bg-gradient-to-b from-[#3DF0A8] to-[#13A874] text-[#07182c]' : 'border border-brand/60 text-brand')}>
+                  {i.equipped ? <Icon name="check" size={20} strokeWidth={3.2} /> : <span className="text-[12px] font-black">{t('shop_owned')}</span>}
+                </span>
+              ) : i.rewardOnly ? (
+                <span className="rounded-full border border-grape/60 bg-[#07182c]/50 px-3 py-1 text-[12px] font-black text-grape">{t('shop_reward_only')}</span>
+              ) : (
+                <span className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[#07182c]/60 px-4 py-1 text-[17px] font-black text-white"><Art name="coin" size={22} /> {i.price}</span>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+      <div className="mx-4 mt-5 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-elev p-3.5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[#9CC4FF] text-lg font-black text-[#9CC4FF]">i</span>
+        <span className="text-[13px] font-bold leading-snug text-[#cfe0f2]">{t('shop_earn_hint')}</span>
+      </div>
+
+      {/* Панель дії для вибраного предмета */}
+      <AnimatePresence>
         {picked && (
-          <div className="space-y-4 text-center">
-            <div className="flex justify-center"><ItemPreview slot={picked.slot} assetKey={picked.assetKey} size={110} /></div>
-            <h2 className="text-2xl font-black">{tr(picked.name)}</h2>
-            <div className="flex justify-center gap-2">
-              <span className="chip capitalize" style={{ color: RARITY[picked.rarity] }}>● {picked.rarity}</span>
-              {picked.city && <span className="chip">📍 {tr(picked.city.name)}</span>}
+          <motion.div initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-xl px-3">
+            <div className="flex items-center gap-3 rounded-[22px] border border-sky/40 bg-[#0d2342]/95 p-3 shadow-[0_-10px_30px_-10px_rgb(0_0_0/0.8)] backdrop-blur">
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#07182c]"><ItemArt item={picked} size={50} /></span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[15px] font-black text-white">{tr(picked.name)}</div>
+                <div className="text-[11px] font-black uppercase" style={{ color: RARITY_COLOR[picked.rarity] }}>{t(`rarity_${picked.rarity}` as TKey)}{picked.city ? ` · ${tr(picked.city.name)}` : ''}</div>
+              </div>
+              {picked.owned ? (
+                <button className="btn btn-green min-h-[46px] px-4" disabled={busy} onClick={() => act(() => api('/inventory/equip', { body: { itemId: picked.id, equipped: !picked.equipped } }), t('toast_saved'))}>
+                  {picked.equipped ? (wearable ? t('shop_unequip') : t('shop_remove')) : wearable ? t('shop_equip') : t('shop_place')}
+                </button>
+              ) : picked.rewardOnly ? (
+                <span className="max-w-[120px] text-right text-[12px] font-bold text-[#cfe0f2]">{t('shop_reward_only')}</span>
+              ) : picked.isPremium && !shop.data!.premium ? (
+                <button className="btn btn-xp min-h-[46px] px-4" onClick={() => nav('/premium')}>{t('shop_premium_only')}</button>
+              ) : (
+                <button className="btn btn-primary min-h-[46px] px-4" disabled={busy || balance < picked.price} onClick={() => act(() => api('/shop/buy', { body: { itemId: picked.id } }), t('shop_bought'))}>
+                  {balance < picked.price ? t('shop_no_money') : <><Art name="coin" size={20} /> {picked.price}</>}
+                </button>
+              )}
+              <button onClick={() => pick(null)} aria-label={t('shop_cancel_try')} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)]"><Icon name="x" size={18} /></button>
             </div>
-            {picked.owned ? (
-              <button className="btn btn-primary w-full" disabled={busy} onClick={() => act(() => api('/inventory/equip', { body: { itemId: picked.id, equipped: !picked.equipped } }), t('toast_saved'))}>
-                {picked.equipped ? (wearable ? t('shop_unequip') : t('shop_remove')) : wearable ? t('shop_equip') : t('shop_place')}
-              </button>
-            ) : picked.rewardOnly ? (
-              <div className="rounded-2xl bg-muted p-3 font-bold">🏅 {t('shop_reward_only')}</div>
-            ) : picked.isPremium && !shop.data!.premium ? (
-              <button className="btn btn-xp w-full" onClick={() => nav('/premium')}>👑 {t('shop_premium_only')}</button>
-            ) : (
-              <button className="btn btn-primary w-full" disabled={busy || balance < picked.price} onClick={() => act(() => api('/shop/buy', { body: { itemId: picked.id } }), t('shop_bought'))}>
-                {balance < picked.price ? t('shop_no_money') : `${t('shop_buy')} · 🪙 ${picked.price}`}
-              </button>
-            )}
-          </div>
+          </motion.div>
         )}
-      </Sheet>
+      </AnimatePresence>
     </div>
   );
 }
-
