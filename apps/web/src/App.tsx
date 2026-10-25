@@ -72,19 +72,14 @@ function BootDone() {
 }
 
 /**
- * Після старту у вільний час підвантажуємо екрани — по одному, від найімовірнішого переходу
- * (урок і карта з головної) до рідших. Не все разом: перші секунди мережа потрібна даним екрана.
+ * Після старту у вільний час підвантажуємо екрани двома хвилями: спершу найімовірніші переходи
+ * з головної (урок, карта, навчання), потім решта вкладок. Хвиля вантажиться паралельно —
+ * послідовне завантаження під повільним CPU не встигало до першого натискання (perf: вкладки ×2 довше).
  * У режимі заощадження трафіку або на 2G нічого наперед не вантажимо.
  */
-const PREFETCH_ORDER = [
-  () => import('./screens/Lesson'),
-  () => import('./screens/Map'),
-  () => import('./screens/Learn'),
-  () => import('./screens/Quests'),
-  () => import('./screens/Profile'),
-  () => import('./screens/Missions'),
-  () => import('./screens/Mission'),
-  () => import('./screens/Dictionary'),
+const PREFETCH_WAVES = [
+  [() => import('./screens/Lesson'), () => import('./screens/Map'), () => import('./screens/Learn')],
+  [() => import('./screens/Quests'), () => import('./screens/Profile'), () => import('./screens/Missions'), () => import('./screens/Mission'), () => import('./screens/Dictionary')],
 ];
 let prefetched = false;
 function prefetchScreens() {
@@ -93,15 +88,14 @@ function prefetchScreens() {
   const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
   if (conn?.saveData || /(^|-)2g$/.test(conn?.effectiveType ?? '')) return;
   const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void };
-  const idle = (cb: () => void) => (w.requestIdleCallback ? w.requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 600));
-  const queue = [...PREFETCH_ORDER];
-  const next = () => {
-    const load = queue.shift();
-    if (!load) return;
+  const idle = (cb: () => void) => (w.requestIdleCallback ? w.requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 300));
+  const wave = (i: number) => {
+    const loads = PREFETCH_WAVES[i];
+    if (!loads) return;
     // Помилку не показуємо: це лише попереднє завантаження, справжній перехід обробить ScreenBoundary.
-    load().catch(() => {}).finally(() => idle(next));
+    void Promise.allSettled(loads.map((load) => load())).then(() => idle(() => wave(i + 1)));
   };
-  idle(next);
+  idle(() => wave(0));
 }
 
 export function App() {

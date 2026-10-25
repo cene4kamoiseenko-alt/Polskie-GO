@@ -16,7 +16,8 @@
     "test": "npm run test -w @polski-go/shared && npm run test -w @polski-go/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:local": "npm run db:local -w @polski-go/server",
-    "e2e": "node --import tsx scripts/browser-check.ts"
+    "e2e": "node --import tsx scripts/browser-check.ts",
+    "perf": "node --import tsx scripts/perf.ts"
   },
   "engines": {
     "node": ">=20"

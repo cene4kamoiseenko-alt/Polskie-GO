@@ -63,6 +63,17 @@ if (token) {
   bootMark('auth');
 }
 
+/**
+ * Профіль, запитаний із index.html ще до завантаження JS (той самий збережений токен).
+ * Віддається один раз; будь-яка невдача (мережа, 401) — null, і застосунок іде звичайним шляхом.
+ */
+export function takeEarlyMe<T>(): Promise<T | null> | null {
+  const w = window as Window & { __pgEarlyMe?: { token: string; data: Promise<T | null> } };
+  const early = w.__pgEarlyMe;
+  delete w.__pgEarlyMe;
+  return early && early.token === token ? early.data : null;
+}
+
 async function authenticate() {
   const res = tg
     ? await timedFetch(`${API_BASE}/api/auth/telegram`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData }) })

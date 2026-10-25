@@ -8,6 +8,26 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- Панорама заставки вантажиться паралельно з JS (вона ж потрібна головній у Варшаві). -->
     <link rel="preload" as="image" href="/src/assets/cities/warszawa.webp" />
+    <script>
+      // Профіль запитуємо одразу, паралельно із завантаженням JS: збереженим токеном і лише для того ж
+      // власника, що й api.ts (authOwner). Без токена чи для іншого користувача — нічого не робимо.
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem('pg_auth') || 'null');
+          if (!saved || !saved.token || saved.exp <= Date.now() + 3600000) return;
+          var m = /(?:^|[#&])tgWebAppData=([^&]*)/.exec(location.hash);
+          var user = m ? new URLSearchParams(decodeURIComponent(m[1])).get('user') : null;
+          var owner = m ? (user ? String(JSON.parse(user).id) : '') : 'dev:' + (new URLSearchParams(location.search).get('devUser') || 100001);
+          if (owner !== saved.owner) return;
+          window.__pgEarlyMe = {
+            token: saved.token,
+            data: fetch(__PG_API_BASE__ + '/api/me', { headers: { authorization: 'Bearer ' + saved.token } })
+              .then(function (r) { return r.ok ? r.json() : null; })
+              .catch(function () { return null; }),
+          };
+        } catch (e) {}
+      })();
+    </script>
     <style>
       /* Миттєва заставка до завантаження JS: той самий фон і логотип на тому ж місці, що в Splash.tsx. */
       html, body { margin: 0; background: #07182c; }

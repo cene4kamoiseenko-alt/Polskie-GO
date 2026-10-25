@@ -64,7 +64,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function ScreenSkeleton() {
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4" data-skeleton aria-busy="true">
       <Skeleton className="h-10 w-2/3" />
       <Skeleton className="h-40" />
       <Skeleton className="h-24" />

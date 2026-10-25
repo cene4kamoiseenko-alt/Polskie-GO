@@ -1,9 +1,14 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
+/** Адреса API для раннього запиту профілю в index.html (там немає import.meta.env). */
+function apiBaseInHtml(base: string): Plugin {
+  return { name: 'pg-api-base', transformIndexHtml: (html) => html.replace('__PG_API_BASE__', JSON.stringify(base.replace(/\/$/, ''))) };
+}
+
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), tailwindcss(), apiBaseInHtml(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '')],
   server: {
     port: 5173,
     host: true,
@@ -24,4 +29,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

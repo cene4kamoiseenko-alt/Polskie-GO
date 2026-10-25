@@ -12,11 +12,10 @@
  *
  * Запуск: npm run e2e   (знімки — test-results/screens, підсумок — test-results/browser-results.json)
  */
-import { createServer as httpServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createServer as netServer, type AddressInfo } from 'node:net';
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { chromiumPath, startStand } from './lib/stand';
 
 const root = process.cwd();
 const require = createRequire(root + '/package.json');
@@ -37,28 +36,15 @@ function toneWav(path: string, seconds = 6, rate = 48000) {
   writeFileSync(path, buf);
 }
 
-/** Вільний TCP-порт від ОС (для Vite, якому потрібен конкретний номер). */
-function freePort(): Promise<number> {
-  return new Promise((ok, fail) => {
-    const srv = netServer();
-    srv.once('error', fail);
-    srv.listen(0, '127.0.0.1', () => {
-      const { port } = srv.address() as AddressInfo;
-      srv.close(() => ok(port));
-    });
-  });
-}
-
 function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`E2E: ${msg}`);
   console.log(`  ✓ ${msg}`);
 }
 
 async function main() {
-  const { createServer } = await import(root + '/node_modules/vite/dist/node/index.js');
-  const { getEnv, login, sessionItems, correctAnswers, disposeEnv } = await import(root + '/apps/server/test/helpers.ts');
   const { chromium } = require('playwright') as typeof import('playwright');
-  const { app, env } = await getEnv();
+  const stand = await startStand({ ui: 'dev' });
+  const { base, env, login, sessionItems, correctAnswers } = stand;
   mkdirSync(SCREENS, { recursive: true });
 
   // Azure STT підмінено лише в цьому процесі: повертає фразу поточного завдання, лічить виклики.
@@ -74,36 +60,11 @@ async function main() {
     return realFetch(input, init);
   }) as typeof fetch;
 
-  const bridge = httpServer(async (req: IncomingMessage, res: ServerResponse) => {
-    try {
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) chunks.push(chunk as Buffer);
-      const body = ['GET', 'HEAD'].includes(req.method!) ? {} : { body: Buffer.concat(chunks) };
-      const r = await app.request('http://localhost' + req.url, { method: req.method, headers: req.headers as never, ...body }, env);
-      res.writeHead(r.status, Object.fromEntries(r.headers));
-      res.end(Buffer.from(await r.arrayBuffer()));
-    } catch {
-      res.writeHead(500);
-      res.end('QA bridge error');
-    }
-  });
-  await new Promise<void>((ok) => bridge.listen(0, '127.0.0.1', ok));
-  const api = `http://127.0.0.1:${(bridge.address() as AddressInfo).port}`;
-  const vite = await createServer({
-    root: root + '/apps/web',
-    configFile: root + '/apps/web/vite.config.ts',
-    server: { host: '127.0.0.1', port: await freePort(), strictPort: true, proxy: { '/api': api, '/uploads': api } },
-    logLevel: 'error',
-  });
-  await vite.listen();
-  const base = (vite.resolvedUrls?.local[0] ?? '').replace(/\/$/, '');
-  console.log(`API ${api}, UI ${base}`);
+  console.log(`UI ${base}`);
 
   const wav = resolve(OUT, 'fake-mic.wav');
   toneWav(wav);
-  // Браузер пакета playwright, а якщо його не завантажено — системний Chromium (PLAYWRIGHT_CHROMIUM_EXECUTABLE або /opt/pw-browsers).
-  const bundled = existsSync(chromium.executablePath());
-  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ?? (bundled ? undefined : ['/opt/pw-browsers/chromium'].find((x) => existsSync(x)));
+  const executablePath = chromiumPath(chromium);
   const browser = await chromium.launch({
     headless: true,
     ...(executablePath ? { executablePath } : {}),
@@ -112,11 +73,13 @@ async function main() {
   const results: Record<string, unknown>[] = [];
   const errors: string[] = [];
 
-  /** Новий користувач із пройденим онбордингом і сторінка з його токеном. */
-  async function userPage(devUser: string, init?: () => void) {
+  /** Новий користувач (за замовчуванням — з пройденим онбордингом) і сторінка з його токеном. */
+  async function userPage(devUser: string, init?: () => void, opts: { onboarded?: boolean } = {}) {
     const u = await login();
-    await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
-    await u.call('PATCH', '/api/me/settings', { theme: 'dark', reducedMotion: true });
+    if (opts.onboarded !== false) {
+      await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
+      await u.call('PATCH', '/api/me/settings', { theme: 'dark', reducedMotion: true });
+    }
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
@@ -164,6 +127,74 @@ async function main() {
     }
     check(!results.some((r) => r.overflow), 'немає горизонтального переповнення на 360/390/430');
     await home.context.close();
+
+    // ── Новий користувач: онбординг у UI → перший урок повністю через UI → підсумок → головна → екрани.
+    // Відповіді не обов'язково правильні: перевіряється, що жоден тип завдання не блокує проходження.
+    console.log('Новий користувач');
+    const fresh = await userPage('880006', undefined, { onboarded: false });
+    const fp = fresh.page;
+    await fp.goto(fresh.url('/'));
+    await fp.locator('button.btn-red').click();
+    for (let i = 0; i < 5; i++) {
+      await fp.locator('button.btn-primary').last().click();
+      await fp.waitForTimeout(250);
+    }
+    await fp.locator('button.btn-red').click();
+    await fp.locator('[data-action="start"]').click({ timeout: 20_000 });
+    check(true, 'онбординг пройдено, відкрився вступ першого уроку');
+    const types = new Set<string>();
+    for (let guard = 0; guard < 150; guard++) {
+      if (await fp.locator('[data-lesson-result]').count()) break;
+      const next = fp.locator('[data-action="next"]:not([disabled])');
+      if (await next.count()) { await next.click(); await fp.waitForTimeout(250); continue; }
+      // Сервер відхиляє занадто швидке проходження (≥ 1 с на завдання) — відповідаємо в людському темпі.
+      await fp.waitForTimeout(1100);
+      const checkBtn = fp.locator('[data-action="check"]');
+      // Після відповіді чекаємо на панель результату з «Далі» (запит перевірки ще може йти).
+      const answered = () => fp.locator('[data-action="next"]').waitFor({ timeout: 15_000 });
+      if (await fp.locator('[data-action="skip"]').count()) { types.add('pronunciation'); await fp.locator('[data-action="skip"]').click(); await answered(); continue; }
+      if (await fp.locator('textarea').count()) { types.add('text'); await fp.fill('textarea', 'Dziękuję'); await checkBtn.click(); await answered(); continue; }
+      if (await fp.locator('[data-token]').count()) {
+        types.add('order');
+        while (await fp.locator('[data-token]').count()) await fp.locator('[data-token]').first().click();
+        await checkBtn.click();
+        await answered();
+        continue;
+      }
+      if (await fp.locator('[data-pair="left"]').count()) {
+        types.add('match');
+        const n = await fp.locator('[data-pair="left"]').count();
+        for (let k = 0; k < n; k++) { await fp.locator('[data-pair="left"]').nth(k).click(); await fp.locator('[data-pair="right"]').nth(k).click(); }
+        // Пари перевіряються самі після останньої пари; кнопка «Перевірити» лише якщо вона є.
+        if (await checkBtn.count()) await checkBtn.click();
+        await answered();
+        continue;
+      }
+      const opts = fp.locator('button.option:not([disabled])');
+      if ((await checkBtn.count()) && (await opts.count())) { types.add('choice'); await opts.first().click(); await checkBtn.click(); await answered(); continue; }
+      if (await opts.count()) {
+        // Діалог: пробуємо варіанти, поки сервер не прийме правильний.
+        types.add('dialogue');
+        const n = await opts.count();
+        for (let k = 0; k < n; k++) {
+          await opts.nth(k).click().catch(() => {});
+          await fp.waitForTimeout(900);
+          if ((await fp.locator('button.option:not([disabled])').count()) !== n) break;
+        }
+      }
+    }
+    check(await fp.locator('[data-lesson-result]').count() === 1, `перший урок пройдено через UI до підсумку (типи: ${[...types].join(', ')})`);
+    await fp.screenshot({ path: `${SCREENS}/first-lesson-result.png` });
+    await fp.locator('[data-action="home"]').click();
+    await fp.locator('nav a[href="/"]').waitFor();
+    const broken: string[] = [];
+    for (const path of ['/map', '/learn', '/quests', '/profile', '/dictionary', '/shop', '/life', '/achievements', '/passport', '/grammar', '/settings', '/life/zabka-first-order']) {
+      await fp.goto(fresh.url(path));
+      await fp.waitForFunction(() => !document.querySelector('.splash') && !document.querySelector('[data-skeleton]'), undefined, { timeout: 20_000 }).catch(() => broken.push(`${path}: завантаження`));
+      if (await fp.locator('[data-screen-error], [role="alert"]').count()) broken.push(`${path}: помилка`);
+    }
+    check(broken.length === 0, `основні екрани відкриваються без помилок${broken.length ? ': ' + broken.join('; ') : ''}`);
+    await fresh.context.close();
 
     // ── Запуск: недоступний сервер, відсутність мережі, повільний профіль, недовантажений екран.
     console.log('Запуск');
@@ -302,9 +333,7 @@ async function main() {
   } finally {
     globalThis.fetch = realFetch;
     await browser.close();
-    await vite.close();
-    bridge.close();
-    await disposeEnv();
+    await stand.stop();
   }
 }
 

@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from './api';
+import { api, takeEarlyMe } from './api';
 import type { Journey, Me, Quest, ShopItem } from './types';
 
-export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/me') });
+export const useMe = () => useQuery({ queryKey: ['me'], queryFn: async () => (await takeEarlyMe<Me>()) ?? api<Me>('/me') });
 export const useJourney = () => useQuery({ queryKey: ['journey'], queryFn: () => api<Journey>('/journey') });
 export const useQuests = () =>
   useQuery({ queryKey: ['quests'], queryFn: () => api<{ daily: Quest[]; weekly: Quest[]; story: Quest[]; resetsAt: string; chest?: { xp: number; zlotki: number; done: number; total: number; ready: boolean; claimed: boolean } }>('/quests') });

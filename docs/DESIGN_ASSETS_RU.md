@@ -9,7 +9,7 @@
 |---|---|---|
 | `beaver/` | 14 образов: wave, greet, think, doubt, correct, support, read, victory, celebrate, travel, front, three-quarter, side, back | ≈0.7 МБ |
 | `costumes/` | Бариста, Повар, Проводник, Гном Вроцлава, Дракон Кракова, Художник, Зимний образ (+ сцена карточки у каждого), сцена «Путешественник» | ≈0.7 МБ |
-| `cities/` | Панорамы Warszawa, Kraków, Wrocław (1440×720) | ≈0.8 МБ |
+| `cities/` | Панорамы Warszawa, Kraków, Wrocław (1440×720, WebP q74: на холодном старте −94 кБ без видимой разницы, PSNR ≈ 33 дБ) | ≈0.5 МБ |
 | `icons/` | 24 иконки листа (уроки, карта, квесты, паспорт, Złotki, серия, …) | ≈0.6 МБ |
 | `brand/` | Логотип POLSKI GO, аватар бобра | ≈0.07 МБ |
 
