@@ -9,7 +9,8 @@ import { exercises, languageSkills, learningSessions, lessons, reviewSchedule, u
 import { body, query, rateLimit, type AppEnv } from '../hono';
 import { notFound } from '../lib/errors';
 import { getJourney } from '../services/journey';
-import { answerItem, finishSession, startSession } from '../services/sessions';
+import { answerItem, assertSpeechItem, finishSession, startSession } from '../services/sessions';
+import { issueSpeechAttempt } from '../services/speech-attempts';
 import { synthesize, ttsStatus } from '../services/tts';
 import { TOPICS } from '../content/vocab';
 import { GRAMMAR } from '../content/grammar';
@@ -38,6 +39,8 @@ r.post('/sessions/:id/answer', async (c) => {
         z.object({ text: z.string().max(500) }),
         z.object({ tokens: z.array(z.string().max(60)).max(40) }),
         z.object({ pairs: z.array(z.tuple([z.string().max(40), z.string().max(40)])).max(12) }),
+        // Підписана спроба має йти перед транскриптом: zod відкидає зайві ключі, і {attempt} збігся б із {}.
+        z.object({ attempt: z.string().min(20).max(2000) }),
         z.object({ transcript: z.string().max(300).optional(), skipped: z.boolean().optional() }),
       ]),
     })
@@ -51,7 +54,13 @@ r.post('/sessions/:id/finish', async (c) => c.json(await finishSession(c.get('us
 r.get('/tts/status', (c) => c.json(ttsStatus()));
 r.get('/speech/status', (c) => c.json(sttStatus()));
 r.post('/speech/transcribe', rateLimit(6, 60_000, 'speech'), async (c) => {
-  return c.json(await transcribeSpeech(await readSpeechBody(c.req.raw)));
+  // Для уроку запис прив'язується до сесії й завдання: у відповідь — підписана спроба для /answer.
+  const bind = z.object({ session: z.string().max(64), item: z.string().max(100) }).partial().parse(query(c));
+  const userId = c.get('userId');
+  if (bind.session && bind.item) await assertSpeechItem(userId, bind.session, bind.item);
+  const result = await transcribeSpeech(await readSpeechBody(c.req.raw));
+  if (!bind.session || !bind.item) return c.json(result);
+  return c.json({ ...result, attempt: issueSpeechAttempt({ userId, sessionId: bind.session, key: bind.item, transcript: result.transcript }) });
 });
 r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {
   const q = z.object({ text: z.string().min(1).max(300), rate: z.enum(['normal', 'slow']).default('normal') }).parse(query(c));

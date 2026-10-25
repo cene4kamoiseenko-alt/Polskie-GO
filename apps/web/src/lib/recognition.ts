@@ -19,7 +19,7 @@ function constructor(): Constructor | undefined {
 export function speechRecognitionAvailable() {
   return !!constructor();
 }
-export type RecognitionRun = { promise: Promise<string>; stop: () => void; cancel: () => void };
+export type RecognitionRun<T = string> = { promise: Promise<T>; stop: () => void; cancel: () => void };
 export function recognizePolish(): RecognitionRun {
   const Ctor = constructor();
   if (!Ctor) return { promise: Promise.reject(new Error('unsupported')), stop() {}, cancel() {} };

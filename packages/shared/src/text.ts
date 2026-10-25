@@ -86,3 +86,47 @@ export function sameSpeechPolarityAndNumbers(a: string, b: string): boolean {
   // A recognizer may spell a number out or render it as digits; compare digits only when both use them.
   return negatives(a) === negatives(b) && (!x || !y || x === y);
 }
+
+export type WordMark = { w: string; st: 'ok' | 'near' | 'miss' };
+
+/**
+ * Розмітка слів фрази за розпізнаним текстом — вирівнювання послідовностей (найбільша зважена
+ * спільна підпослідовність), а не пошук слова будь-де: «A B» проти «B A» дає одне зелене слово,
+ * повтор у фразі зараховується лише стільки разів, скільки його почуто, а «czesc» замість «cześć» —
+ * «near» (без польських знаків). Це підказка про розпізнаний текст, а не фонетична оцінка.
+ * extra — почуті слова, яким немає місця у фразі (зайві або сказані не на своєму місці).
+ */
+export function alignSpeechWords(target: string, heard: string): { words: WordMark[]; extra: string[] } {
+  const key = (w: string) => normalize(w).replace(/ /g, '');
+  const tw = target.split(/\s+/).filter((w) => key(w));
+  const hw = heard.split(/\s+/).filter((w) => key(w));
+  const tk = tw.map(key), hk = hw.map(key);
+  const gain = (i: number, j: number) => (tk[i] === hk[j] ? 2 : stripDiacritics(tk[i]) === stripDiacritics(hk[j]) ? 1 : 0);
+  // best[i][j] — найкращий рахунок для суфіксів tw[i..] і hw[j..].
+  const best = Array.from({ length: tw.length + 1 }, () => new Array<number>(hw.length + 1).fill(0));
+  for (let i = tw.length - 1; i >= 0; i--) {
+    for (let j = hw.length - 1; j >= 0; j--) {
+      const g = gain(i, j);
+      best[i][j] = Math.max(best[i + 1][j], best[i][j + 1], g ? g + best[i + 1][j + 1] : 0);
+    }
+  }
+  const words: WordMark[] = [];
+  const extra: string[] = [];
+  let i = 0, j = 0;
+  while (i < tw.length && j < hw.length) {
+    const g = gain(i, j);
+    if (g && best[i][j] === g + best[i + 1][j + 1]) {
+      words.push({ w: tw[i], st: g === 2 ? 'ok' : 'near' });
+      i++; j++;
+    } else if (best[i][j] === best[i + 1][j]) {
+      words.push({ w: tw[i], st: 'miss' });
+      i++;
+    } else {
+      extra.push(hw[j]);
+      j++;
+    }
+  }
+  for (; i < tw.length; i++) words.push({ w: tw[i], st: 'miss' });
+  for (; j < hw.length; j++) extra.push(hw[j]);
+  return { words, extra };
+}

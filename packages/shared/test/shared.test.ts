@@ -217,3 +217,34 @@ describe('spreadByType', () => {
     }
   });
 });
+
+import { alignSpeechWords } from '../src/text';
+
+describe('alignSpeechWords: розмітка розпізнаних слів', () => {
+  const marks = (t: string, h: string) => alignSpeechWords(t, h).words.map((x) => `${x.w}:${x.st}`).join(' ');
+  it('усі слова на місці — усі зелені, пунктуація й регістр не заважають', () => {
+    expect(marks('Dzień dobry!', 'dzień dobry')).toBe('Dzień:ok dobry!:ok');
+  });
+  it('переставлені слова не позначаються всі зеленими', () => {
+    const r = alignSpeechWords('dzień dobry', 'dobry dzień');
+    expect(r.words.filter((x) => x.st === 'ok')).toHaveLength(1);
+    expect(r.words.filter((x) => x.st === 'miss')).toHaveLength(1);
+    expect(r.extra).toHaveLength(1);
+  });
+  it('повтор у фразі зараховується лише стільки разів, скільки почуто', () => {
+    expect(marks('tak tak', 'tak')).toBe('tak:ok tak:miss');
+    const r = alignSpeechWords('tak', 'tak tak');
+    expect(r.words.map((x) => x.st)).toEqual(['ok']);
+    expect(r.extra).toEqual(['tak']);
+  });
+  it('без польських знаків — «near», інше слово — «miss»', () => {
+    expect(marks('Cześć, Ania', 'czesc ania')).toBe('Cześć,:near Ania:ok');
+    expect(marks('Poproszę kawę', 'poproszę herbatę')).toBe('Poproszę:ok kawę:miss');
+  });
+  it('пропущене слово в середині не зсуває решту', () => {
+    expect(marks('Mam na imię Ola', 'mam imię ola')).toBe('Mam:ok na:miss imię:ok Ola:ok');
+  });
+  it('порожнє розпізнавання — усі слова не розпізнані', () => {
+    expect(marks('Do widzenia', '')).toBe('Do:miss widzenia:miss');
+  });
+});

@@ -20,6 +20,8 @@ export type AnswerPayload =
   | { tokens: string[] }
   | { pairs: [string, string][] }
   | { transcript?: string; skipped?: boolean }
+  /** Підписана сервером спроба вимови (серверний STT). Лише вона дає зарахування. */
+  | { attempt: string }
   | { step: number; optionId: string };
 
 /** Поріг схожості для зарахування вимови (розпізнавання мовлення, не фонетична оцінка). */

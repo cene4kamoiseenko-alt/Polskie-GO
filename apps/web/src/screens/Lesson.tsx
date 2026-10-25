@@ -345,6 +345,7 @@ export default function LessonScreen() {
                 return r;
               }}
               onDialogueDone={() => setDialogueDone(true)}
+              sessionId={session.sessionId}
             />
           </motion.div>
         </AnimatePresence>
@@ -371,7 +372,7 @@ export default function LessonScreen() {
                 </motion.span>
                 <div className="min-w-0 flex-1">
                   <div className={cx('text-xl font-black', result.correct ? 'text-brand' : result.skipped ? 'text-sky' : 'text-coral')}>
-                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? t('lesson_skipped_ok') : t('lesson_wrong')}
+                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.practice ? t(result.matched ? 'lesson_practice_match' : 'lesson_practice_miss') : result.skipped ? t('lesson_skipped_ok') : t('lesson_wrong')}
                     {result.correct && !result.retry && session.lesson && me?.rewards && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-xp-ink">
                         +{me.rewards.exerciseXp} XP
@@ -383,6 +384,7 @@ export default function LessonScreen() {
                       <span className="muted">{t('lesson_correct_answer')}</span> {caText}
                     </div>
                   )}
+                  {result.practice && <div className="mt-1 text-sm font-semibold">{t('lesson_practice_note')}</div>}
                   {result.explanation && (
                     <div className="mt-1 text-sm font-semibold">
                       <RichText text={tr(result.explanation)} />

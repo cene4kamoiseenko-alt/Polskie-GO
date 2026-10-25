@@ -20,6 +20,7 @@ import { HttpError, badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { getRewards } from './gameConfig';
 import { getJourney, lessonAccess } from './journey';
+import { readSpeechAttempt } from './speech-attempts';
 import { isPremium } from './premium';
 import { applyQuestEvents, type QuestEvents } from './quests';
 import { grantItem, grantXp, grantZlotki, loadCtx, touchActivity } from './rewards';
@@ -29,8 +30,9 @@ import { GRAMMAR } from '../content/grammar';
 type Mode = (typeof learningSessions.$inferSelect)['mode'];
 type SessionRow = typeof learningSessions.$inferSelect;
 
-type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[] };
-type SessionState = { answers: Record<string, ItemState>; run: number };
+type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[]; practice?: boolean };
+/** speechNonces — використані підтверджені спроби вимови (кожну приймаємо один раз). */
+type SessionState = { answers: Record<string, ItemState>; run: number; speechNonces?: string[] };
 
 /** Детермінований порядок варіантів для сесії (той самий після продовження). */
 const sessionSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 17);
@@ -351,6 +353,14 @@ function reviewStmts(userId: string, itemType: 'WORD' | 'EXERCISE', itemId: stri
   return stmts;
 }
 
+/** Перед серверним розпізнаванням: сесія користувача активна, завдання існує, це вимова й воно ще не виконане. */
+export async function assertSpeechItem(userId: string, sessionId: string, key: string) {
+  const s = await loadSession(userId, sessionId);
+  const item = (s.items as ExerciseItem[]).find((i) => i.key === key);
+  if (!item || item.type !== 'PRONUNCIATION') throw badRequest('unknown_item');
+  if ((s.state as unknown as SessionState).answers[key]?.done) throw badRequest('already_answered');
+}
+
 export async function answerItem(userId: string, sessionId: string, key: string, answer: AnswerPayload) {
   // Сесія і контекст користувача читаються паралельно — менше послідовних звернень до D1.
   const [s, ctx] = await Promise.all([loadSession(userId, sessionId), loadCtx(userId)]);
@@ -370,7 +380,29 @@ export async function answerItem(userId: string, sessionId: string, key: string,
     if (step !== expected) throw badRequest('wrong_step');
   }
 
-  const result: CheckResult = checkAnswer(item, answer);
+  // Вимова: зараховується лише текст, який розпізнав сервер (підписана спроба). Транскрипт від клієнта
+  // не підтверджено — тренування без XP і без помилки (див. services/speech-attempts.ts).
+  let practice = false;
+  let verified = false;
+  if (item.type === 'PRONUNCIATION') {
+    const a = answer as { attempt?: string; transcript?: string; skipped?: boolean };
+    if (a.attempt) {
+      const att = readSpeechAttempt(a.attempt, { userId, sessionId: s.id, key });
+      if (!att || state.speechNonces?.includes(att.nonce)) throw badRequest('speech_attempt_invalid');
+      state.speechNonces = [...(state.speechNonces ?? []), att.nonce].slice(-100);
+      answer = { transcript: att.transcript };
+      verified = true;
+    } else if (!a.skipped) {
+      practice = true;
+    }
+  }
+
+  const checked: CheckResult = checkAnswer(item, answer);
+  const result: CheckResult = practice
+    ? { correct: false, skipped: true, practice: true, matched: checked.correct, similarity: checked.similarity, done: true, correctAnswer: checked.correctAnswer }
+    : verified
+      ? { ...checked, verified: true }
+      : checked;
 
   if (isDialogue) {
     if (!result.correct) st.mistakes += 1;
@@ -382,6 +414,7 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   } else if (!retry) {
     st.done = true;
     st.skipped = result.skipped;
+    if (practice) st.practice = true;
     st.firstCorrect = result.skipped ? null : result.correct;
     if (!result.correct && !result.skipped) st.mistakes += 1;
   } else if (result.correct) {

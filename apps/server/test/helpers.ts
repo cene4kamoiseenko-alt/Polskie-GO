@@ -12,6 +12,7 @@ import { learningSessions, lessons, users } from '../src/db/schema';
 import { setEnv, type Bindings } from '../src/env';
 import { buildSeedSql } from '../src/content/seed';
 import { signInitData } from '../src/lib/telegram';
+import { issueSpeechAttempt } from '../src/services/speech-attempts';
 
 export const BOT_TOKEN = '123456:TEST_TOKEN';
 
@@ -142,21 +143,29 @@ export async function sessionItems(sessionId: string) {
   return s!.items as ExerciseItem[];
 }
 
-/** Пройти сесію повністю (правильно або з помилками), обходячи анти-бот затримку. */
+/** Відповідь на вимову так, ніби запис розпізнав серверний STT: підписана спроба, прив'язана до сесії й завдання. */
+export async function verifiedSpeech(sessionId: string, key: string, transcript: string) {
+  const s = await db.query.learningSessions.findFirst({ where: eq(learningSessions.id, sessionId) });
+  return { attempt: issueSpeechAttempt({ userId: s!.userId, sessionId, key, transcript }) };
+}
+
+/** Пройти сесію повністю (правильно або з помилками), обходячи анти-бот затримку. Вимова — через підписану спробу. */
 export async function playSession(call: Awaited<ReturnType<typeof login>>['call'], sessionId: string, opts: { wrong?: number } = {}) {
   const items = await sessionItems(sessionId);
   let wrongLeft = opts.wrong ?? 0;
   for (const item of items) {
     if (wrongLeft > 0) {
       wrongLeft--;
-      const w = await call('POST', `/api/sessions/${sessionId}/answer`, { key: item.key, answer: wrongAnswer(item) });
+      const bad = item.type === 'PRONUNCIATION' ? await verifiedSpeech(sessionId, item.key, 'zzz') : wrongAnswer(item);
+      const w = await call('POST', `/api/sessions/${sessionId}/answer`, { key: item.key, answer: bad });
       if (w.status !== 200) throw new Error(JSON.stringify(w.body));
       if (item.type === 'DIALOGUE' || item.type === 'SITUATION') {
         for (const a of correctAnswers(item)) await call('POST', `/api/sessions/${sessionId}/answer`, { key: item.key, answer: a });
       }
       continue;
     }
-    for (const a of correctAnswers(item)) {
+    const good = item.type === 'PRONUNCIATION' ? [await verifiedSpeech(sessionId, item.key, (item.data as PronunciationData).text)] : correctAnswers(item);
+    for (const a of good) {
       const r = await call('POST', `/api/sessions/${sessionId}/answer`, { key: item.key, answer: a });
       if (r.status !== 200 || !r.body.correct) throw new Error(`${item.type}: ${JSON.stringify(r.body)}`);
     }

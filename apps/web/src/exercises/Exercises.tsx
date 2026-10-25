@@ -4,7 +4,7 @@
  */
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { I18n } from '@polski-go/shared';
+import { alignSpeechWords, type I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import type { AnswerResult, PublicItem } from '../lib/types';
 import { assetUrl } from '../lib/api';
@@ -13,6 +13,8 @@ import { haptic } from '../lib/telegram';
 import { Icon } from '../components/Icon';
 import { useMe } from '../lib/queries';
 import { microphoneRecordingAvailable, recognizeRecordedPolish } from '../lib/recorder';
+import type { RecognitionRun } from '../lib/recognition';
+import type { Transcription } from '../lib/api';
 import { ApiError } from '../lib/api';
 import { SpeakButton, SpeakPill, Waveform, cx } from '../components/ui';
 import { NpcFace, Pictogram } from '../components/pictograms/Pictogram';
@@ -30,6 +32,8 @@ export type ExProps = {
   /** Покрокова перевірка діалогу. */
   submitStep: (p: Payload) => Promise<AnswerResult>;
   onDialogueDone: () => void;
+  /** Сесія уроку: серверний запис вимови прив'язується до неї й до завдання. */
+  sessionId?: string;
 };
 
 type Opt = { id: string; text: string | I18n; image?: string };
@@ -516,23 +520,7 @@ function MatchExercise({ item, result, onChange }: ExProps) {
 }
 
 // ───────── Вимова ─────────
-const normWord = (w: string) => w.toLowerCase().replace(/[.,!?;:„”"«»…()]/g, '');
-const plain = (w: string) => normWord(w).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l');
-
-/** Порівняння слів цільової фрази з розпізнаним текстом: ok / без діакритики / не розпізнано. */
-function wordDiff(target: string, heard: string) {
-  const said = heard.split(/\s+/).filter(Boolean);
-  const used = new Set<number>();
-  return target.split(/\s+/).filter(Boolean).map((w) => {
-    const exact = said.findIndex((x, i) => !used.has(i) && normWord(x) === normWord(w));
-    if (exact >= 0) { used.add(exact); return { w, st: 'ok' as const }; }
-    const loose = said.findIndex((x, i) => !used.has(i) && plain(x) === plain(w));
-    if (loose >= 0) { used.add(loose); return { w, st: 'near' as const }; }
-    return { w, st: 'miss' as const };
-  });
-}
-
-function PronunciationExercise({ item, result, onSubmit }: ExProps) {
+function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
   const { t, tr } = useT();
   const data = d<{ text: string; translation: I18n; audioUrl?: string }>(item);
   const [listening, setListening] = useState(false);
@@ -541,7 +529,7 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
   const serverRecognition = !!useMe().data?.audio?.recognition?.server;
   const available = useMemo(() => serverRecognition ? microphoneRecordingAvailable() : speechRecognitionAvailable(), [serverRecognition]);
   const [processing, setProcessing] = useState(false);
-  const run = useRef<ReturnType<typeof recognizePolish> | null>(null);
+  const run = useRef<RecognitionRun<Transcription> | null>(null);
   const attempt = useRef(0);
   const reduced = useReducedMotion();
   const cancel = () => {
@@ -558,12 +546,20 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
     stopSpeech();
     haptic.tap();
     try {
-      const current = serverRecognition ? recognizeRecordedPolish(() => { if (id === attempt.current) setProcessing(true); }) : recognizePolish();
+      // Зараховується лише серверний запис, прив'язаний до цього завдання (підписана спроба).
+      // Браузерне розпізнавання і повтори після відповіді — тренування без XP.
+      const bind = !practice && sessionId ? { session: sessionId, item: item.key } : undefined;
+      let current: RecognitionRun<Transcription>;
+      if (serverRecognition) current = recognizeRecordedPolish(() => { if (id === attempt.current) setProcessing(true); }, bind);
+      else {
+        const device = recognizePolish();
+        current = { ...device, promise: device.promise.then((transcript) => ({ transcript })) };
+      }
       run.current = current;
-      const transcript = await current.promise;
+      const heardNow = await current.promise;
       if (id !== attempt.current) return;
-      setHeard(transcript);
-      if (!practice) onSubmit({ transcript });
+      setHeard(heardNow.transcript);
+      if (!practice) onSubmit(heardNow.attempt ? { attempt: heardNow.attempt } : { transcript: heardNow.transcript });
     } catch (e) {
       if (id !== attempt.current) return;
       const code = e instanceof ApiError ? e.code : (e as Error).message;
@@ -576,7 +572,7 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
       if (id === attempt.current) { run.current = null; setListening(false); setProcessing(false); }
     }
   };
-  const diff = heard !== null ? wordDiff(data.text, heard) : null;
+  const diff = heard !== null ? alignSpeechWords(data.text, heard) : null;
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <div className="flex w-full items-end gap-1">
@@ -616,8 +612,11 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
           <div className="muted text-xs font-black uppercase tracking-wide">{t('ex_mic_heard')}</div>
           <div className="mb-2 font-bold">„{heard || '…'}”</div>
           <div className="flex flex-wrap gap-1.5">
-            {diff.map((x, i) => (
+            {diff.words.map((x, i) => (
               <span key={i} className={cx('rounded-lg px-2 py-0.5 font-black', x.st === 'ok' ? 'bg-brand/20 text-brand-dark' : x.st === 'near' ? 'bg-xp/30 text-xp-dark' : 'bg-coral/15 text-coral-dark line-through decoration-2')}>{x.w}</span>
+            ))}
+            {diff.extra.map((w, i) => (
+              <span key={`x${i}`} className="muted rounded-lg border border-dashed border-current px-2 py-0.5 font-bold">+{w}</span>
             ))}
           </div>
           <div className="muted mt-2 text-[11px] font-bold">{t('ex_mic_legend')}</div>
@@ -628,7 +627,7 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
       )}
       {error && <p className="text-sm font-bold text-coral">{error}</p>}
       <p className="muted text-xs font-semibold">{t('ex_speech_note')}</p>
-      {serverRecognition && <p className="muted text-xs">{t('ex_mic_server_note')}</p>}
+      {serverRecognition ? <p className="muted text-xs">{t('ex_mic_server_note')}</p> : available && <p className="muted text-xs">{t('ex_mic_device_note')}</p>}
       {!result && (
         <button className="text-sm font-black text-sky-dark underline" onClick={() => { cancel(); setListening(false); setProcessing(false); onSubmit({ skipped: true }); }}>
           {t(available ? 'lesson_skip_mic' : 'ex_mic_continue')}

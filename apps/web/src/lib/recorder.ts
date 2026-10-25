@@ -1,12 +1,15 @@
 import { encodeSpeechWav, MAX_SPEECH_SECONDS } from '@polski-go/shared';
 import workletUrl from './recorder.worklet.js?url';
-import { transcribeAudio } from './api';
+import { transcribeAudio, type Transcription } from './api';
 import type { RecognitionRun } from './recognition';
 export function microphoneRecordingAvailable() {
   return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof AudioContext !== 'undefined' && typeof AudioWorkletNode !== 'undefined';
 }
-/** Explicit recording only; cancellation releases hardware even if permission resolves later. */
-export function recognizeRecordedPolish(onProcessing: () => void): RecognitionRun {
+/**
+ * Explicit recording only; cancellation releases hardware even if permission resolves later.
+ * bind — завдання уроку, до якого прив'язується серверна спроба (без нього — лише тренування).
+ */
+export function recognizeRecordedPolish(onProcessing: () => void, bind?: { session: string; item: string }): RecognitionRun<Transcription> {
   const ctrl = new AbortController();
   let stream: MediaStream | null = null;
   let ctx: AudioContext | null = null;
@@ -14,7 +17,7 @@ export function recognizeRecordedPolish(onProcessing: () => void): RecognitionRu
   let node: AudioWorkletNode | null = null;
   let done = false, finishing = false, wantStop = false;
   let timer: ReturnType<typeof setTimeout>;
-  let settle: (text?: string, error?: Error) => void = () => {};
+  let settle: (text?: Transcription, error?: Error) => void = () => {};
   const chunks: Float32Array[] = [];
   const cleanup = () => {
     clearTimeout(timer);
@@ -33,11 +36,10 @@ export function recognizeRecordedPolish(onProcessing: () => void): RecognitionRu
     try {
       const wav = encodeSpeechWav(chunks, rate);
       if (wav.length < 3244) throw new Error('no-speech');
-      const transcript = await transcribeAudio(wav, ctrl.signal);
-      settle(transcript);
+      settle(await transcribeAudio(wav, ctrl.signal, bind));
     } catch (e) { settle(undefined, e as Error); }
   };
-  const promise = new Promise<string>((resolve, reject) => {
+  const promise = new Promise<Transcription>((resolve, reject) => {
     settle = (text, error) => {
       if (done) return;
       done = true; cleanup();
