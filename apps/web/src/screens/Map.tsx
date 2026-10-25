@@ -2,12 +2,14 @@ import { motion } from '../lib/motion';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
-import { useJourney } from '../lib/queries';
+import { useJourney, useRefreshAll } from '../lib/queries';
 import type { JourneyCity } from '../lib/types';
 import { PolandMap } from '../components/PolandMap';
 import { CityBanner } from '../components/Scenery';
 import { Icon } from '../components/Icon';
-import { ErrorState, Progress, ScreenSkeleton, Sheet, cx } from '../components/ui';
+import { ErrorState, Progress, ScreenSkeleton, Sheet, cx, useToast } from '../components/ui';
+import { api, ApiError } from '../lib/api';
+import { iconAsset } from '../lib/assets';
 import { TopStats } from './Home';
 import { haptic } from '../lib/telegram';
 import { sfx } from '../lib/audio';
@@ -82,6 +84,8 @@ export default function MapScreen() {
   if (journey.isLoading) return <ScreenSkeleton />;
   if (journey.error) return <ErrorState error={journey.error} onRetry={() => journey.refetch()} />;
   const j = journey.data!;
+  // Відкрита картка міста — завжди зі свіжих даних (після скрині чи уроку стан змінюється).
+  const sel = selected ? j.cities.find((c) => c.id === selected.id) ?? selected : null;
   const completedCount = j.cities.filter((c) => c.completed).length;
   const sorted = [...j.cities].sort((a, b) => a.order - b.order);
   const prevOf = (c: JourneyCity) => sorted[sorted.findIndex((x) => x.id === c.id) - 1];
@@ -176,44 +180,44 @@ export default function MapScreen() {
       )}
 
       <Sheet open={!!selected} onClose={() => setSelected(null)}>
-        {selected && (
+        {sel && (
           <div className="space-y-4">
-            <CityBanner slug={selected.slug} color={selected.color} height={140} shade={false} className="-mx-1 rounded-3xl">
+            <CityBanner slug={sel.slug} color={sel.color} height={140} shade={false} className="-mx-1 rounded-3xl">
               <div className="absolute left-3 top-3 flex gap-1.5">
-                <span className="rounded-lg bg-white/95 px-2 py-0.5 text-xs font-black text-navy">{t('map_stage', { n: selected.order })}</span>
-                <span className="rounded-lg bg-pl-red px-2 py-0.5 text-xs font-black text-white">{selected.cefr}</span>
+                <span className="rounded-lg bg-white/95 px-2 py-0.5 text-xs font-black text-navy">{t('map_stage', { n: sel.order })}</span>
+                <span className="rounded-lg bg-pl-red px-2 py-0.5 text-xs font-black text-white">{sel.cefr}</span>
               </div>
             </CityBanner>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-[28px] font-black leading-tight">{selected.namePl}</h2>
-                {selected.id === j.currentCityId && (
+                <h2 className="text-[28px] font-black leading-tight">{sel.namePl}</h2>
+                {sel.id === j.currentCityId && (
                   <span className="flex items-center gap-1 rounded-full bg-pl-red/10 px-2 py-0.5 text-xs font-black text-pl-red">
                     <Icon name="pin" size={13} /> {t('map_you_are_here')}
                   </span>
                 )}
               </div>
-              <div className="font-black muted">{tr(selected.theme)}</div>
-              <p className="mt-1 text-sm font-semibold muted">{tr(selected.description)}</p>
+              <div className="font-black muted">{tr(sel.theme)}</div>
+              <p className="mt-1 text-sm font-semibold muted">{tr(sel.description)}</p>
             </div>
-            {selected.hasContent && (
+            {sel.hasContent && (
               <div>
                 <div className="mb-1 flex justify-between text-sm font-black">
-                  <span>{t('map_lessons', { done: selected.lessonsDone, total: selected.lessonsTotal })}</span>
-                  <span>{selected.progress}%</span>
+                  <span>{t('map_lessons', { done: sel.lessonsDone, total: sel.lessonsTotal })}</span>
+                  <span>{sel.progress}%</span>
                 </div>
-                <Progress value={selected.progress} />
+                <Progress value={sel.progress} />
               </div>
             )}
-            {selected.hasContent && (
+            {sel.hasContent && (
               <div>
                 <h3 className="mb-2 text-sm font-black uppercase tracking-wide muted">{t('map_topics')}</h3>
                 <div className="space-y-2">
-                  {selected.routes.map((r, i) => {
+                  {sel.routes.map((r, i) => {
                     const done = r.lessons.filter((l) => l.state === 'completed').length;
                     const full = done === r.lessons.length;
                     return (
-                      <div key={r.id} className={cx('card flex items-center gap-3 px-3 py-2.5', !selected.unlocked && 'opacity-60')}>
+                      <div key={r.id} className={cx('card flex items-center gap-3 px-3 py-2.5', !sel.unlocked && 'opacity-60')}>
                         <span className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-black', full ? 'bg-brand text-white' : 'bg-[var(--bg)] text-navy')}>
                           {full ? <Icon name="check" size={18} strokeWidth={3} /> : i + 1}
                         </span>
@@ -222,32 +226,80 @@ export default function MapScreen() {
                           <span className="block line-clamp-2 text-xs font-bold leading-tight muted">{tr(r.description)}</span>
                         </span>
                         <span className="text-sm font-black muted">{done}/{r.lessons.length}</span>
+                        {r.chest && <RouteChest routeId={r.id} chest={r.chest} />}
                       </div>
                     );
                   })}
                 </div>
               </div>
             )}
-            {!selected.unlocked ? (
+            {!sel.unlocked ? (
               <div className="flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-3 font-bold">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--bg-muted)] muted">
                   <Icon name="lock" size={20} />
                 </span>
-                {prevOf(selected) ? t('map_unlock_after', { city: prevOf(selected)!.namePl }) : t('map_locked_hint')}
+                {prevOf(sel) ? t('map_unlock_after', { city: prevOf(sel)!.namePl }) : t('map_locked_hint')}
               </div>
-            ) : !selected.hasContent ? (
+            ) : !sel.hasContent ? (
               <div className="rounded-2xl bg-[var(--bg)] p-3 text-center text-sm font-bold">{t('map_soon_full')}</div>
             ) : (
-              <button className="btn btn-red w-full text-lg" onClick={() => nav(`/learn?city=${selected.id}`)}>
-                {selected.completed ? `${t('map_completed')} · ` : ''}
+              <button className="btn btn-red w-full text-lg" onClick={() => nav(`/learn?city=${sel.id}`)}>
+                {sel.completed ? `${t('map_completed')} · ` : ''}
                 {t('map_go_learn')}
                 <Icon name="arrow-right" size={22} strokeWidth={2.6} />
               </button>
             )}
-            {!selected.hasContent && !selected.unlocked && <p className="muted text-center text-xs font-bold">{t('map_soon_full')}</p>}
+            {!sel.hasContent && !sel.unlocked && <p className="muted text-center text-xs font-bold">{t('map_soon_full')}</p>}
           </div>
         )}
       </Sheet>
     </div>
+  );
+}
+
+/**
+ * Скриня теми: закрита, поки не пройдено всі уроки теми; потім її можна відкрити один раз
+ * (нагорода нараховується на сервері, повторне відкриття неможливе).
+ */
+function RouteChest({ routeId, chest }: { routeId: string; chest: { state: 'locked' | 'ready' | 'opened'; xp: number; zlotki: number } }) {
+  const { t } = useT();
+  const toast = useToast();
+  const refresh = useRefreshAll();
+  const [busy, setBusy] = useState(false);
+  const icon = iconAsset('gift');
+  const reward = `+${chest.xp} XP · +${chest.zlotki} zł`;
+  const open = async () => {
+    if (busy) return;
+    setBusy(true);
+    haptic.tap();
+    try {
+      const r = await api<{ xp: number; zlotki: number }>(`/journey/routes/${routeId}/chest`, { method: 'POST' });
+      sfx.coin();
+      haptic.success();
+      toast(t('map_chest_got', { xp: r.xp, zl: r.zlotki }), '🎁');
+      await refresh();
+    } catch (e) {
+      // Уже відкрита (інша вкладка) — просто оновлюємо стан.
+      if (e instanceof ApiError && e.code === 'already_claimed') await refresh();
+      else toast(t('answer_failed'), '⚠️');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const label = chest.state === 'ready' ? t('map_chest_open') : chest.state === 'opened' ? t('map_chest_opened') : t('map_chest_locked');
+  return (
+    <button
+      type="button"
+      data-chest={chest.state}
+      disabled={chest.state !== 'ready' || busy}
+      onClick={() => void open()}
+      title={`${label} (${reward})`}
+      aria-label={`${label} (${reward})`}
+      className={cx('relative grid h-11 w-11 shrink-0 place-items-center rounded-xl', chest.state === 'ready' ? 'chest-ready bg-xp/25' : 'bg-[var(--bg)]')}
+    >
+      {icon && <img src={icon} alt="" width={34} height={34} className={cx(chest.state === 'locked' && 'opacity-40 grayscale', chest.state === 'opened' && 'opacity-55')} />}
+      {chest.state === 'locked' && <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-elev muted shadow"><Icon name="lock" size={12} /></span>}
+      {chest.state === 'opened' && <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-white shadow"><Icon name="check" size={12} strokeWidth={3} /></span>}
+    </button>
   );
 }

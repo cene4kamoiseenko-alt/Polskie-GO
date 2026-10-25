@@ -15,6 +15,9 @@ export const DEFAULT_REWARDS = {
   dailyQuestZlotki: 10,
   storyQuestZlotki: 30,
   cityExamZlotki: 50,
+  /** Скриня теми міста: відкривається один раз, коли пройдено всі уроки теми. */
+  routeChestXp: 30,
+  routeChestZlotki: 15,
   /** Частка XP за повторне проходження вже пройденого уроку. */
   replayFactor: 0.25,
   /** Скільки повторних проходжень одного уроку на день дають XP. */

@@ -944,6 +944,76 @@ export const MISSIONS: Mission[] = [
       ph('Czy mogę zapłacić kartą?', 'Чи можу я заплатити карткою?', 'Могу ли я заплатить картой?', 'Can I pay by card?'),
     ],
   },
+
+  // ───────────── Перший візит до urzędu ─────────────
+  {
+    slug: 'urzad-pesel', category: 'home', tags: [], city: 'warszawa', scene: 'office',
+    npc: { name: 'Pani Ewa', role: t('урядовиця у віконці', 'служащая в окошке', 'clerk at the counter') },
+    title: t('Перший візит до urzędu', 'Первый визит в urząd', 'First visit to the urząd'),
+    goal: t('Візьми номерок, знайди своє віконце, подай заяву на номер PESEL і ввічливо попрощайся.', 'Возьми номерок, найди своё окошко, подай заявление на номер PESEL и вежливо попрощайся.', 'Take a queue ticket, find your counter, apply for a PESEL number and say goodbye politely.'),
+    intro: t('Бобек прийшов до urzędu у Варшаві, щоб отримати номер PESEL.', 'Бобек пришёл в urząd в Варшаве, чтобы получить номер PESEL.', 'Bobek has come to an office in Warsaw to get a PESEL number.'),
+    note: t('Порядок, документи й терміни залежать від установи та твоєї ситуації; тут — загальна навчальна сцена.', 'Порядок, документы и сроки зависят от учреждения и твоей ситуации; здесь — общая учебная сцена.', 'Procedures, documents and timing depend on the office and your situation; this is a general practice scene.'),
+    minutes: 5, xp: 45, zlotki: 20,
+    steps: [
+      choice('ticket', narr('W urzędzie stoi automat z numerkami.', 'В urzędzie стоїть автомат із номерками.', 'В urzędzie стоит автомат с номерками.', 'There is a queue-ticket machine in the office.'),
+        t('Ти щойно прийшов. Що зробити спочатку?', 'Ты только что пришёл. Что сделать сначала?', 'You’ve just arrived. What do you do first?'),
+        [
+          T(t('взяти номерок в автоматі', 'взять номерок в автомате', 'take a ticket from the machine'), true),
+          T(t('одразу підійти до будь-якого віконця', 'сразу подойти к любому окошку', 'go straight to any counter'), false, t('Зазвичай спершу беруть numerek і чекають, поки номер з’явиться на табло.', 'Обычно сначала берут numerek и ждут, пока номер появится на табло.', 'Usually you take a numerek first and wait for your number on the display.')),
+          T(t('стати в кінець будь-якої черги', 'встать в конец любой очереди', 'join the end of any line'), false, t('Номерки для різних справ різні: в автоматі обирають свою справу.', 'Номерки для разных дел разные: в автомате выбирают своё дело.', 'Tickets differ by matter: choose yours on the machine.')),
+        ],
+        { hint: t('numerek — номерок у черзі.', 'numerek — номерок в очереди.', 'numerek = queue ticket.'), explain: t('«Proszę pobrać numerek» — «Візьміть номерок».', '«Proszę pobrać numerek» — «Возьмите номерок».', '“Proszę pobrać numerek” = “Please take a ticket.”'), words: ['numerek', 'urząd'], tags: ['urzad'] }),
+      listen('display', narr('Numer A czterdzieści siedem, stanowisko numer trzy.', 'Номер А47, віконце номер 3.', 'Номер А47, окошко номер 3.', 'Number A47, counter number 3.'),
+        t('У тебе номерок A47. Куди йти?', 'У тебя номерок A47. Куда идти?', 'Your ticket is A47. Where do you go?'),
+        [
+          T(t('до віконця (stanowisko) №3', 'к окошку (stanowisko) №3', 'to counter (stanowisko) 3'), true),
+          T(t('до віконця №47', 'к окошку №47', 'to counter 47'), false, t('47 — твій номер у черзі, а stanowisko — номер віконця.', '47 — твой номер в очереди, а stanowisko — номер окошка.', '47 is your queue number; stanowisko is the counter.')),
+          T(t('до каси', 'в кассу', 'to the cashier')),
+        ],
+        { hint: t('stanowisko — віконце, робоче місце.', 'stanowisko — окошко, рабочее место.', 'stanowisko = counter, desk.'), explain: t('На табло показують номер і stanowisko — віконце, куди підійти.', 'На табло показывают номер и stanowisko — окошко, куда подойти.', 'The display shows your number and the counter to go to.'), words: ['stanowisko', 'okienko'], tags: ['urzad'] }),
+      choice('purpose', undefined, t('Підійди до віконця й скажи, навіщо прийшов.', 'Подойди к окошку и скажи, зачем пришёл.', 'Go to the counter and say why you came.'),
+        [
+          P('Dzień dobry, chciałbym złożyć wniosek o numer PESEL.', true),
+          P('Dzień dobry, chciałbym kupić numer PESEL.', false, t('PESEL не купують: подають заяву — złożyć wniosek.', 'PESEL не покупают: подают заявление — złożyć wniosek.', 'You don’t buy a PESEL; you apply for it: złożyć wniosek.')),
+          P('Cześć, daj mi PESEL.', false, t('Занадто фамільярно: в urzędzie кажуть «Dzień dobry» і звертаються на «pan/pani».', 'Слишком фамильярно: в urzędzie говорят «Dzień dobry» и обращаются на «pan/pani».', 'Too familiar: in an office say “Dzień dobry” and use pan/pani.')),
+        ],
+        { hint: t('złożyć wniosek — подати заяву.', 'złożyć wniosek — подать заявление.', 'złożyć wniosek = submit an application.'), explain: t('«Chciałbym złożyć wniosek o…» — ввічлива формула (жінка скаже «chciałabym»).', '«Chciałbym złożyć wniosek o…» — вежливая формула (женщина скажет «chciałabym»).', '“Chciałbym złożyć wniosek o…” is polite (a woman says “chciałabym”).'), words: ['wniosek'], tags: ['urzad'] }),
+      listen('documents', npc('Poproszę paszport i wypełniony wniosek.', 'Прошу паспорт і заповнену заяву.', 'Пожалуйста, паспорт и заполненное заявление.', 'Your passport and the completed form, please.'),
+        t('Що просить урядовиця?', 'Что просит служащая?', 'What does the clerk ask for?'),
+        [
+          T(t('паспорт і заповнену заяву', 'паспорт и заполненное заявление', 'your passport and the completed form'), true),
+          T(t('фото і гроші', 'фото и деньги', 'a photo and money')),
+          T(t('договір оренди', 'договор аренды', 'a rental agreement')),
+        ],
+        { hint: t('wypełniony — заповнений.', 'wypełniony — заполненный.', 'wypełniony = filled in.'), explain: t('«Poproszę…» — ввічливе «дайте, будь ласка…».', '«Poproszę…» — вежливое «дайте, пожалуйста…».', '“Poproszę…” = “May I have…”.'), words: ['paszport', 'wypełnić'], tags: ['urzad'] }),
+      choice('form', narr('We wniosku jest pole „Data urodzenia”.', 'У заяві є поле «Дата народження».', 'В заявлении есть поле «Дата рождения».', 'The form has a field “Date of birth”.'),
+        t('Що вписати в це поле?', 'Что вписать в это поле?', 'What goes in this field?'),
+        [
+          T(t('дату народження', 'дату рождения', 'your date of birth'), true),
+          T(t('місце народження', 'место рождения', 'your place of birth'), false, t('Місце народження — miejsce urodzenia, а data — це дата.', 'Место рождения — miejsce urodzenia, а data — это дата.', 'Place of birth is miejsce urodzenia; data means date.')),
+          T(t('дату приїзду до Польщі', 'дату приезда в Польшу', 'the date you came to Poland')),
+        ],
+        { hint: t('data — дата, urodzenie — народження.', 'data — дата, urodzenie — рождение.', 'data = date, urodzenie = birth.'), explain: t('Data urodzenia — дата народження, miejsce urodzenia — місце народження.', 'Data urodzenia — дата рождения, miejsce urodzenia — место рождения.', 'Data urodzenia = date of birth.'), words: ['data urodzenia'], tags: ['urzad'] }),
+      listen('wait', npc('Proszę chwilę poczekać, zaraz wydrukuję potwierdzenie.', 'Зачекайте хвилинку, зараз роздрукую підтвердження.', 'Подождите минутку, сейчас распечатаю подтверждение.', 'Please wait a moment, I’ll print the confirmation right away.'),
+        t('Що сказала урядовиця?', 'Что сказала служащая?', 'What did the clerk say?'),
+        [
+          T(t('зачекати хвилинку — вона роздрукує підтвердження', 'подождать минутку — она распечатает подтверждение', 'wait a moment — she’ll print a confirmation'), true),
+          T(t('прийти завтра', 'прийти завтра', 'come back tomorrow')),
+          T(t('заплатити в касі', 'заплатить в кассе', 'pay at the cashier')),
+        ],
+        { hint: t('chwila — хвилинка, potwierdzenie — підтвердження.', 'chwila — минутка, potwierdzenie — подтверждение.', 'chwila = a moment; potwierdzenie = confirmation.'), explain: t('«Proszę chwilę poczekać» — «Зачекайте хвилинку».', '«Proszę chwilę poczekać» — «Подождите минутку».', '“Proszę chwilę poczekać” = “Please wait a moment.”'), words: ['potwierdzenie', 'czekać'], tags: ['urzad'] }),
+      build('bye', undefined, t('Подякуй і попрощайся.', 'Поблагодари и попрощайся.', 'Thank her and say goodbye.'),
+        'Dziękuję bardzo, do widzenia.', ['cześć', 'proszę'],
+        { hint: t('do widzenia — до побачення.', 'do widzenia — до свидания.', 'do widzenia = goodbye.'), explain: t('В установі прощаються «Do widzenia», а не «Cześć».', 'В учреждении прощаются «Do widzenia», а не «Cześć».', 'In an office, say “Do widzenia”, not “Cześć”.'), words: ['dziękuję', 'do widzenia'], tags: ['urzad'] }),
+    ],
+    phrases: [
+      ph('Proszę pobrać numerek.', 'Візьміть номерок.', 'Возьмите номерок.', 'Please take a ticket.'),
+      ph('Chciałbym złożyć wniosek o numer PESEL.', 'Я хотів би подати заяву на номер PESEL.', 'Я хотел бы подать заявление на номер PESEL.', 'I’d like to apply for a PESEL number.'),
+      ph('Poproszę paszport.', 'Прошу паспорт.', 'Паспорт, пожалуйста.', 'Your passport, please.'),
+      ph('Proszę chwilę poczekać.', 'Зачекайте хвилинку.', 'Подождите минутку.', 'Please wait a moment.'),
+      ph('Dziękuję bardzo, do widzenia.', 'Дуже дякую, до побачення.', 'Большое спасибо, до свидания.', 'Thank you very much, goodbye.'),
+    ],
+  },
 ];
 
 /** Місії, що готуються (показуються як «скоро», без можливості почати). */

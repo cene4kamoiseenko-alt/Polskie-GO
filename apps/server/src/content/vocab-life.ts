@@ -10,6 +10,12 @@ const w = (pl: string, pos: string, uk: string, ru: string, en: string, pron: st
 });
 
 export const LIFE_VOCAB: VocabSeed[] = [
+  // ── Urząd: номерок, віконце, заява ──
+  w('numerek', 'noun', 'номерок (у черзі)', 'номерок (в очереди)', 'queue ticket', 'нумерек', ['urzad']),
+  w('stanowisko', 'noun', 'віконце, робоче місце', 'окошко, рабочее место', 'desk, counter', 'становіско', ['urzad']),
+  w('data urodzenia', 'phrase', 'дата народження', 'дата рождения', 'date of birth', 'дата уродзеня', ['urzad', 'documents']),
+  w('potwierdzenie', 'noun', 'підтвердження', 'подтверждение', 'confirmation', 'потф\'єрдзенє', ['urzad', 'documents']),
+
   // ── Польські страви ──
   w('żurek', 'noun', 'журек (кислий суп на житній заквасці)', 'журек (кислый суп на ржаной закваске)', 'żurek (sour rye soup)', 'журек', ['dishes', 'food']),
   w('bigos', 'noun', 'біґос (тушкована капуста з м\'ясом)', 'бигос (тушёная капуста с мясом)', 'bigos (hunter\'s stew)', 'біґос', ['dishes', 'food'], { gen: 'bigosu' }),

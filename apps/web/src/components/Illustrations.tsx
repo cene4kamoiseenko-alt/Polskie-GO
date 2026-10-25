@@ -232,7 +232,7 @@ export const Item = memo(function Item({ name, size = 48, className }: { name: I
 export type SceneName =
   | 'shop-corner' | 'cafe-pierogi' | 'supermarket' | 'petrol-station' | 'parcel-locker' | 'tram-stop' | 'train-station'
   | 'milk-bar' | 'bakery' | 'street-food' | 'drugstore' | 'flat' | 'work' | 'clinic'
-  | 'hotel' | 'university' | 'market-square' | 'restaurant' | 'castle';
+  | 'hotel' | 'university' | 'market-square' | 'restaurant' | 'castle' | 'office';
 
 type Shop = { sign: string; wall: string; awning: string; accent: string; items: ItemName[] };
 const SHOPS: Record<SceneName, Shop> = {
@@ -255,6 +255,7 @@ const SHOPS: Record<SceneName, Shop> = {
   'market-square': { sign: 'RYNEK GŁÓWNY', wall: '#FFF3D6', awning: P.coral, accent: P.coralD, items: ['map', 'paczki', 'coffee'] },
   restaurant: { sign: 'RESTAURACJA', wall: '#FFF1E0', awning: P.brown, accent: P.brownD, items: ['zurek', 'pierogi', 'dishes'] },
   castle: { sign: 'WAWEL', wall: '#F7E7D2', awning: P.yellow, accent: P.yellowD, items: ['map', 'beaver-map', 'ticket'] },
+  office: { sign: 'URZĄD', wall: '#EEF2F6', awning: P.navy, accent: P.skyD, items: ['card', 'receipt', 'book-clock'] },
 };
 
 /** Предмети у вітрині сцени — щоб кожне завдання уроку мало свою «картинку», а не однаковий фон. */
@@ -325,6 +326,7 @@ const BADGE_ART: Record<string, { item: ItemName; color: string }> = {
   speech: { item: 'speech', color: P.green },
   paws: { item: 'paws', color: P.yellow },
   'beaver-map': { item: 'beaver-map', color: P.coral },
+  office: { item: 'card', color: P.navy },
 };
 
 export type Tier = 'bronze' | 'silver' | 'gold' | 'legendary';

@@ -88,7 +88,8 @@ export type JourneyCity = {
   lessonsTotal: number;
   lessonsDone: number;
   progress: number;
-  routes: { id: string; slug: string; title: I18n; description: I18n; icon: string; lessons: JourneyLesson[] }[];
+  /** chest — скриня теми (null — тема без звичайних уроків; відсутня — сервер старіший за клієнт). */
+  routes: { id: string; slug: string; title: I18n; description: I18n; icon: string; lessons: JourneyLesson[]; chest?: { state: 'locked' | 'ready' | 'opened'; xp: number; zlotki: number } | null }[];
 };
 export type Journey = { cities: JourneyCity[]; currentCityId: string | null; nextLesson: JourneyLesson | null };
 

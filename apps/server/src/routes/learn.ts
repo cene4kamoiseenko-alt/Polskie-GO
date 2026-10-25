@@ -8,7 +8,7 @@ import { db } from '../db';
 import { exercises, languageSkills, learningSessions, lessons, reviewSchedule, userLessonProgress, userVocabulary, vocabularyEntries } from '../db/schema';
 import { body, query, rateLimit, type AppEnv } from '../hono';
 import { notFound } from '../lib/errors';
-import { getJourney } from '../services/journey';
+import { getJourney, openRouteChest } from '../services/journey';
 import { answerItem, assertSpeechItem, finishSession, startSession } from '../services/sessions';
 import { issueSpeechAttempt } from '../services/speech-attempts';
 import { consumeQuota } from '../services/quota';
@@ -52,6 +52,7 @@ r.post('/sessions/:id/answer', async (c) => {
 r.post('/sessions/:id/finish', async (c) => c.json(await finishSession(c.get('userId'), c.req.param('id'))));
 
 // ── Озвучка (серверний синтез pl-PL, кеш у D1) ──
+r.post('/journey/routes/:id/chest', async (c) => c.json(await openRouteChest(c.get('userId'), c.req.param('id'))));
 r.get('/tts/status', (c) => c.json(ttsStatus()));
 r.get('/speech/status', (c) => c.json(sttStatus()));
 r.post('/speech/transcribe', rateLimit(6, 60_000, 'speech'), async (c) => {

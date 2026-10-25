@@ -212,4 +212,12 @@ describe('Місії: проходження', () => {
     const got = await db.select({ slug: cosmeticItems.slug }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(eq(userInventory.userId, old.user.id));
     expect(got.map((g) => g.slug).filter((x) => x.startsWith('costume-'))).toEqual(['costume-conductor']);
   });
+
+  it('перший візит до urzędu відкриває досягнення «Перший візит до urzędu»', async () => {
+    const { call } = await login();
+    const urzad = MISSIONS.find((m) => m.slug === 'urzad-pesel')!;
+    const { finished } = await playMission(call, urzad);
+    expect(finished.achievements.map((a: { slug: string }) => a.slug)).toContain('pierwszy-urzad');
+    expect(finished.newWords.map((w: { pl: string }) => w.pl)).toEqual(expect.arrayContaining(['numerek', 'stanowisko', 'potwierdzenie']));
+  });
 });

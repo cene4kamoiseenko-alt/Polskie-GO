@@ -1278,3 +1278,20 @@ html.reduced-motion .splash *::after {
   font-weight: 600;
   letter-spacing: 0.01em;
 }
+
+/* Готова скриня теми: м'яке світіння (без руху при «менше анімацій»). */
+.chest-ready {
+  box-shadow: 0 0 0 2px var(--color-xp), 0 0 16px -2px var(--color-xp);
+  animation: chest-glow 1.6s ease-in-out infinite;
+}
+@keyframes chest-glow {
+  50% { box-shadow: 0 0 0 2px var(--color-xp), 0 0 24px 2px var(--color-xp); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chest-ready { animation: none; }
+}
+html.reduced-motion .chest-ready { animation: none; }
+
+/* Плашка рівня досягнення: у світлій темі — темний відтінок рівня (світлий текст на блідому тлі губився). */
+.tier-chip { color: var(--tier-ink); }
+html.dark .tier-chip { color: var(--tier-fg); }

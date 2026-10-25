@@ -20,17 +20,22 @@ const GROUPS: { id: 'life' | 'learning' | 'travel'; key: TKey }[] = [
   { id: 'travel', key: 'ach_group_travel' },
 ];
 
-const TIER_STYLE: Record<Tier, [string, string]> = {
-  bronze: ['#C06A33', '#F6C29A'],
-  silver: ['#7D8DA3', '#F4F8FC'],
-  gold: ['#E39A14', '#FFE38A'],
-  legendary: ['#7A4CF0', '#E3D3FF'],
+/** Колір рівня, світлий текст для темної теми і темний — для світлої (контраст ≥ 4.5:1 на картці). */
+const TIER_STYLE: Record<Tier, [string, string, string]> = {
+  bronze: ['#C06A33', '#F6C29A', '#86400F'],
+  silver: ['#7D8DA3', '#F4F8FC', '#3F4B5A'],
+  gold: ['#E39A14', '#FFE38A', '#7A4E00'],
+  legendary: ['#7A4CF0', '#E3D3FF', '#4F24B8'],
 };
 
 function TierChip({ tier }: { tier: Tier }) {
   const { t } = useT();
-  const [bg, fg] = TIER_STYLE[tier];
-  return <span className="rounded-full px-1.5 py-px text-[9.5px] font-black uppercase tracking-wide" style={{ background: `${bg}33`, color: fg, border: `1px solid ${bg}88` }}>{t(`tier_${tier}` as TKey)}</span>;
+  const [bg, fg, ink] = TIER_STYLE[tier];
+  return (
+    <span className="tier-chip rounded-full px-1.5 py-px text-[9.5px] font-black uppercase tracking-wide" style={{ background: `${bg}33`, border: `1px solid ${bg}88`, '--tier-fg': fg, '--tier-ink': ink } as React.CSSProperties}>
+      {t(`tier_${tier}` as TKey)}
+    </span>
+  );
 }
 
 export default function AchievementsScreen() {

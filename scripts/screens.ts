@@ -116,7 +116,13 @@ async function main() {
           await e.p.goto(e.url(path));
           await e.p.locator('nav a[href="/"]').waitFor({ timeout: 20_000 }).catch(() => {});
           await settle(e.p);
-          await shot(e.p, `${name}-${tag}`, true);
+          // Карта — прокручуваний контейнер: повносторінковий знімок збиває його прокрутку, тож знімаємо видиму область.
+          await shot(e.p, `${name}-${tag}`, name !== 'E-map');
+          if (name === 'E-map') {
+            await e.p.locator('svg[aria-label="Mapa Polski"] g[role="button"]:has(text:text-is("Warszawa"))').first().click({ timeout: 3000 }).catch(() => {});
+            await e.p.waitForTimeout(800);
+            await shot(e.p, `E-map-city-${tag}`, true);
+          }
           await e.context.close();
         }
       }

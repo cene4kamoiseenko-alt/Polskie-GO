@@ -74,6 +74,44 @@ function segment(list: JourneyCity[], i: number) {
   return `M${p1.mapX},${p1.mapY} C${c1x},${c1y} ${c2x},${c2y} ${p2.mapX},${p2.mapY}`;
 }
 
+/** Точка й напрям (градуси) на кривій перегону i → i+1 (та сама крива Безьє, що й segment). */
+function segmentPoint(list: JourneyCity[], i: number, t: number) {
+  const p0 = list[Math.max(0, i - 1)];
+  const p1 = list[i];
+  const p2 = list[i + 1];
+  const p3 = list[Math.min(list.length - 1, i + 2)];
+  const k = 6;
+  const c1 = { x: p1.mapX + (p2.mapX - p0.mapX) / k, y: p1.mapY + (p2.mapY - p0.mapY) / k };
+  const c2 = { x: p2.mapX - (p3.mapX - p1.mapX) / k, y: p2.mapY - (p3.mapY - p1.mapY) / k };
+  const u = 1 - t;
+  const at = (a: number, b: number, c: number, d: number) => u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
+  const dt = (a: number, b: number, c: number, d: number) => 3 * u * u * (b - a) + 6 * u * t * (c - b) + 3 * t * t * (d - c);
+  return {
+    x: at(p1.mapX, c1.x, c2.x, p2.mapX),
+    y: at(p1.mapY, c1.y, c2.y, p2.mapY),
+    angle: (Math.atan2(dt(p1.mapY, c1.y, c2.y, p2.mapY), dt(p1.mapX, c1.x, c2.x, p2.mapX)) * 180) / Math.PI,
+  };
+}
+
+/** Потяг на перегоні до наступної зупинки маршруту (напрямок подорожі). Колеса не обертаються вниз головою. */
+function Train({ x, y, angle }: { x: number; y: number; angle: number }) {
+  const flip = Math.abs(angle) > 90;
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(1 ${flip ? -1 : 1})`} style={{ pointerEvents: 'none' }} aria-hidden>
+      <g transform="translate(-34 -26)" stroke="#fff" strokeWidth="3" strokeLinejoin="round">
+        <ellipse cx="34" cy="30" rx="36" ry="7" fill="#000" opacity="0.15" stroke="none" />
+        <rect x="0" y="6" width="40" height="20" rx="5" fill="#F45159" />
+        <path d="M40 6 H56 Q66 6 66 18 V26 H40 Z" fill="#F45159" />
+        <rect x="5" y="10" width="9" height="7" rx="2" fill="#CDEBFF" stroke="none" />
+        <rect x="18" y="10" width="9" height="7" rx="2" fill="#CDEBFF" stroke="none" />
+        <path d="M45 10 H56 Q61 10 61 16 V17 H45 Z" fill="#CDEBFF" stroke="none" />
+        <rect x="0" y="19" width="66" height="3" fill="#FFF" stroke="none" />
+        {[10, 30, 54].map((cx) => <circle key={cx} cx={cx} cy="27" r="4.5" fill="#2E3A46" />)}
+      </g>
+    </g>
+  );
+}
+
 type Props = {
   cities: JourneyCity[];
   currentCityId: string | null;
@@ -205,6 +243,14 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
           </g>
         );
       })}
+
+      {/* Потяг: від поточного міста до наступної зупинки (якщо вона є і подорож зараз не анімується). */}
+      {!compact && !travel && current && (() => {
+        const i = sorted.findIndex((c) => c.id === current.id);
+        if (i < 0 || i >= sorted.length - 1) return null;
+        const p = segmentPoint(sorted, i, 0.62);
+        return <Train x={p.x} y={p.y} angle={p.angle} />;
+      })()}
 
       {/* Міста з пам'ятками */}
       {sorted.map((c) => {

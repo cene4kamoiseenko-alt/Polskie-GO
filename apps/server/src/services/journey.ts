@@ -7,10 +7,13 @@
  *    (або всіх уроків міста до розширення курсу — LEGACY_CITY_LESSONS).
  */
 import type { Cefr } from '@polski-go/shared';
-import { and, asc, eq, isNotNull } from 'drizzle-orm';
-import { db } from '../db';
+import { and, asc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { atomic, db } from '../db';
+import { badRequest, notFound } from '../lib/errors';
+import { getRewards } from './gameConfig';
+import { grantXp, grantZlotki, loadCtx } from './rewards';
 import { LEGACY_CITY_LESSONS } from '../content/legacy';
-import { cities, cityRoutes, lessons, playerProgress, userCities, userLessonProgress } from '../db/schema';
+import { cities, cityRoutes, lessons, playerProgress, userCities, userLessonProgress, xpEvents } from '../db/schema';
 
 export type LessonState = 'locked' | 'available' | 'completed';
 
@@ -54,8 +57,29 @@ export type JourneyCity = {
   lessonsTotal: number;
   lessonsDone: number;
   progress: number;
-  routes: { id: string; slug: string; title: unknown; description: unknown; icon: string; lessons: JourneyLesson[] }[];
+  routes: { id: string; slug: string; title: unknown; description: unknown; icon: string; lessons: JourneyLesson[]; chest?: RouteChest | null }[];
 };
+
+export type RouteChest = { state: 'locked' | 'ready' | 'opened'; xp: number; zlotki: number };
+const routeChestKey = (userId: string, routeId: string) => `route-chest:${userId}:${routeId}`;
+
+/**
+ * Відкрити скриню теми: лише коли пройдено всі уроки теми, рівно один раз (ключ ідемпотентності XP і Złotki —
+ * паралельні запити нараховують одноразово).
+ */
+export async function openRouteChest(userId: string, routeId: string) {
+  const journey = await getJourney(userId);
+  const route = journey.cities.flatMap((c) => c.routes).find((r) => r.id === routeId);
+  if (!route?.chest) throw notFound('route_not_found');
+  if (route.chest.state === 'opened') throw badRequest('already_claimed');
+  if (route.chest.state !== 'ready') throw badRequest('not_completed');
+  const ctx = await loadCtx(userId);
+  const key = routeChestKey(userId, routeId);
+  const xp = grantXp(ctx, route.chest.xp, 'route-chest', key);
+  const zl = grantZlotki(userId, route.chest.zlotki, 'route-chest', key, ctx.now);
+  await atomic([...xp.stmts, ...zl.stmts]);
+  return { xp: xp.granted, zlotki: zl.granted, levelUp: xp.levelAfter > xp.levelBefore ? xp.levelAfter : null };
+}
 
 export async function getJourney(userId: string) {
   // Кількість вправ — колонка lessons.exercise_count (тригери, міграція 0005), без GROUP BY по exercises.
@@ -152,6 +176,27 @@ export async function getJourney(userId: string) {
       })),
     };
   });
+
+  // Скрині тем: готова, коли пройдено всі звичайні уроки теми; відкрита — є подія XP з її ключем.
+  const cfg = await getRewards();
+  const completedRoutes = result.flatMap((c) => c.routes).filter((r) => {
+    const regular = r.lessons.filter((l) => l.kind === 'LESSON');
+    return regular.length > 0 && regular.every((l) => l.state === 'completed');
+  });
+  const opened = completedRoutes.length
+    ? new Set(
+        (await db.select({ key: xpEvents.idempotencyKey }).from(xpEvents).where(inArray(xpEvents.idempotencyKey, completedRoutes.map((r) => routeChestKey(userId, r.id))))).map((e) => e.key),
+      )
+    : new Set<string>();
+  const ready = new Set(completedRoutes.map((r) => r.id));
+  for (const city of result) {
+    for (const r of city.routes) {
+      const hasLessons = r.lessons.some((l) => l.kind === 'LESSON');
+      r.chest = hasLessons
+        ? { state: opened.has(routeChestKey(userId, r.id)) ? 'opened' : ready.has(r.id) ? 'ready' : 'locked', xp: cfg.routeChestXp, zlotki: cfg.routeChestZlotki }
+        : null;
+    }
+  }
 
   const current = result.find((c) => c.id === progress[0]?.currentCityId) ?? result.find((c) => c.unlocked) ?? result[0];
   const next = current ? findNextLesson(current) : null;
