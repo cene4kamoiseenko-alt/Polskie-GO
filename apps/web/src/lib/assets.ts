@@ -4,7 +4,8 @@
  *   src/assets/beaver/<стан>.webp   — happy, wave, sad, think, celebrate, sleep, travel, gift, cheer,
  *                                     surprised, read, learn, royal, wait
  *   src/assets/cities/<slug>.webp   — панорама міста (наприклад warszawa.webp), бажано 1200×600
- *   src/assets/icons/<name>.webp    — ігрові іконки (home, map, lessons, dictionary, ai, grammar, …)
+ *   src/assets/icons/<name>.webp    — ігрові іконки (lessons, quests, map, profile, leaderboard, streak, zlotki, …)
+ *   src/assets/brand/<name>.webp    — логотип (logo) і портрет Бобека для аватара (avatar)
  */
 const files = import.meta.glob('../assets/**/*.{webp,png}', { eager: true, import: 'default' }) as Record<string, string>;
 
@@ -15,3 +16,4 @@ function pick(dir: string, name: string): string | null {
 export const beaverAsset = (mood: string) => pick('beaver', mood);
 export const cityAsset = (slug: string) => pick('cities', slug);
 export const iconAsset = (name: string) => pick('icons', name);
+export const brandAsset = (name: string) => pick('brand', name);

@@ -22,6 +22,11 @@ const MOODS: [BeaverMood, string][] = [
 export default function Gallery() {
   return (
     <div className="min-h-screen bg-[var(--bg)] p-4">
+      <div className="mb-4 flex items-end justify-center gap-2">
+        <Beaver mood="wave" size={300} animate={false} outfit={{ BACKPACK: 'backpack-green' }} />
+        <Beaver mood="think" size={150} animate={false} />
+        <Beaver mood="cheer" size={150} animate={false} />
+      </div>
       <div className="grid grid-cols-3 gap-3">
         {MOODS.map(([m, label]) => (
           <div key={m} className="card flex flex-col items-center p-2">

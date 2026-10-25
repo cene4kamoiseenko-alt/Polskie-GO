@@ -3,7 +3,7 @@
  * Фірмові деталі: кораловий шарф і бірюзово-зелений рюкзак мандрівника.
  * Усі стани мають однакові пропорції: змінюються лише вираз обличчя, лапи та ефекти.
  * Шари: рюкзак → хвіст → тіло → одяг → шарф → лапи → голова → обличчя → головний убір.
- * Растровий ассет (src/assets/beaver/<mood>.webp), якщо є, має пріоритет.
+ * Растровий ассет (src/assets/beaver/<mood>.webp), якщо є, замінює лише фірмовий образ без іншого одягу.
  */
 import { motion, useReducedMotion } from 'framer-motion';
 import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
@@ -70,10 +70,28 @@ function Defs() {
         <stop offset="0" stopColor="#3FC79A" />
         <stop offset="1" stopColor="#1F8F6E" />
       </linearGradient>
-      <radialGradient id="bv-iris" cx="40%" cy="35%" r="70%">
-        <stop offset="0" stopColor="#6A4026" />
-        <stop offset="1" stopColor="#24140A" />
+      <radialGradient id="bv-iris" cx="50%" cy="62%" r="62%">
+        <stop offset="0" stopColor="#1C0E06" />
+        <stop offset="0.55" stopColor="#2E180B" />
+        <stop offset="0.85" stopColor="#6B3D20" />
+        <stop offset="1" stopColor="#8E5530" />
       </radialGradient>
+      {/* Об'єм: м'яка тінь знизу-праворуч поверх хутра й одягу (світло зверху-ліворуч). */}
+      <radialGradient id="bv-shade" cx="34%" cy="22%" r="88%">
+        <stop offset="0" stopColor="#3B1A08" stopOpacity="0" />
+        <stop offset="0.58" stopColor="#3B1A08" stopOpacity="0" />
+        <stop offset="1" stopColor="#3B1A08" stopOpacity="0.42" />
+      </radialGradient>
+      <radialGradient id="bv-glow" cx="30%" cy="18%" r="45%">
+        <stop offset="0" stopColor="#FFF3DD" stopOpacity="0.38" />
+        <stop offset="1" stopColor="#FFF3DD" stopOpacity="0" />
+      </radialGradient>
+      <radialGradient id="bv-earin" cx="50%" cy="40%" r="60%">
+        <stop offset="0" stopColor="#FFC2B0" />
+        <stop offset="1" stopColor="#E98A73" />
+      </radialGradient>
+      <clipPath id="bv-head-clip"><path d="M100 24 C 135 24, 158 46, 158 78 C 158 90, 162 94, 156 100 C 150 120, 128 134, 100 134 C 72 134, 50 120, 44 100 C 38 94, 42 90, 42 78 C 42 46, 65 24, 100 24 Z" /></clipPath>
+      <clipPath id="bv-body-clip"><path d="M58 152 C 56 120, 78 106, 100 106 C 122 106, 144 120, 142 152 C 144 190, 126 212, 100 212 C 74 212, 56 190, 58 152 Z" /><path d="M60 138 C 60 118, 78 112, 100 112 C 122 112, 140 118, 140 138 L 146 186 C 146 198, 126 206, 100 206 C 74 206, 54 198, 54 186 Z" /></clipPath>
       <radialGradient id="bv-shadow" cx="50%" cy="50%" r="50%">
         <stop offset="0" stopColor="#5A321A" stopOpacity="0.25" />
         <stop offset="1" stopColor="#5A321A" stopOpacity="0" />
@@ -208,17 +226,24 @@ function Jacket({ kind }: { kind?: string }) {
     return (
       <g>
         <path d={base} fill="url(#bv-hoodie)" stroke={C.line} strokeWidth={LW} strokeLinejoin="round" />
-        {/* капюшон-комір */}
-        <path d="M66 126 Q100 146 134 126 Q130 112 100 110 Q70 112 66 126 Z" fill="#E03E48" stroke={C.line} strokeWidth={LW} strokeLinejoin="round" />
-        {/* кишеня */}
-        <path d="M74 176 Q100 168 126 176 L128 196 Q100 202 72 196 Z" fill="#C93441" opacity="0.9" />
+        {/* складки тканини */}
+        <path d="M70 150 Q74 170 70 188 M132 148 Q128 168 133 188" stroke="#B82A36" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.55" />
+        {/* кишеня-кенгуру */}
+        <path d="M74 178 Q100 170 126 178 L128 194 Q100 200 72 194 Z" fill="#C93441" stroke="#A3222F" strokeWidth="1.6" strokeLinejoin="round" />
+        {/* резинка внизу */}
+        <path d="M55 188 Q100 206 145 188 L146 194 Q100 212 54 194 Z" fill="#C42F3C" stroke={C.line} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M66 196 l0 4 M78 199 l0 4 M90 201 l0 4 M110 201 l0 4 M122 199 l0 4 M134 196 l0 4" stroke="#9E1F2C" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
+        {/* капюшон, складений позаду шиї */}
+        <path d="M60 128 Q100 152 140 128 Q142 110 100 104 Q58 110 60 128 Z" fill="#E03E48" stroke={C.line} strokeWidth={LW} strokeLinejoin="round" />
+        <path d="M74 124 Q100 140 126 124 Q118 114 100 112 Q82 114 74 124 Z" fill="#A82634" />
+        <path d="M66 126 Q100 146 134 126" stroke="#FF8A8F" strokeWidth="2" fill="none" opacity="0.6" />
         {/* шнурки */}
-        <path d="M91 132 L88 152 M109 132 L112 152" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="88" cy="154" r="2.6" fill="#fff" />
-        <circle cx="112" cy="154" r="2.6" fill="#fff" />
+        <path d="M92 138 Q90 148 89 158 M108 138 Q110 148 111 158" stroke="#fff" strokeWidth="3" strokeLinecap="round" fill="none" />
+        <rect x="86.6" y="157" width="4.8" height="6" rx="1.6" fill="#F0F3F6" stroke="#C9D3DC" strokeWidth="1" />
+        <rect x="108.6" y="157" width="4.8" height="6" rx="1.6" fill="#F0F3F6" stroke="#C9D3DC" strokeWidth="1" />
         {/* напис PL — як на фірмовому худі */}
-        <text x="100" y="172" textAnchor="middle" fontSize="24" fontWeight="900" fontFamily="Nunito, sans-serif" fill="#fff" stroke="#B3202C" strokeWidth="1" paintOrder="stroke">PL</text>
-        <path d="M64 140 Q70 132 78 130" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity="0.35" fill="none" />
+        <text x="100" y="178" textAnchor="middle" fontSize="23" fontWeight="900" fontFamily="Nunito, sans-serif" fill="#fff" stroke="#B3202C" strokeWidth="1" paintOrder="stroke">PL</text>
+        <path d="M64 142 Q70 134 78 132" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity="0.35" fill="none" />
       </g>
     );
   }
@@ -465,12 +490,14 @@ function HandItem({ kind }: { kind?: string }) {
 }
 
 function Eye({ cx, look, mood }: { cx: number; look: [number, number]; mood: BeaverMood }) {
-  const ry = mood === 'surprised' ? 16.5 : 15;
+  const ry = mood === 'surprised' ? 17 : 15.8;
   return (
     <g>
-      <ellipse cx={cx} cy="74" rx="12.5" ry={ry} fill="url(#bv-iris)" stroke={C.line} strokeWidth="2" />
-      <circle cx={cx + 4 + look[0]} cy={68 + look[1]} r="4.6" fill="#fff" />
-      <circle cx={cx - 3.5 + look[0]} cy={80 + look[1]} r="2" fill="#fff" opacity="0.85" />
+      <ellipse cx={cx} cy="74" rx="13.2" ry={ry} fill="url(#bv-iris)" stroke="#2A140A" strokeWidth="2.2" />
+      <path d={`M${cx - 8.5} ${80} Q${cx} ${88.5} ${cx + 8.5} ${80}`} stroke="#B87A4E" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.55" />
+      <ellipse cx={cx + 3.6 + look[0]} cy={67.5 + look[1]} rx="5.4" ry="5" fill="#fff" />
+      <circle cx={cx - 4 + look[0]} cy={80 + look[1]} r="2.2" fill="#fff" opacity="0.9" />
+      <circle cx={cx - 5 + look[0]} cy={66 + look[1]} r="1.2" fill="#fff" opacity="0.75" />
     </g>
   );
 }
@@ -771,7 +798,9 @@ function Arm({ side, pose, sleeve, anim }: { side: -1 | 1; pose: ArmPose; sleeve
 export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size = 160, className, animate = true, vectorOnly, lively }: Props) {
   const reduce = useReducedMotion();
   const anim = animate && !reduce;
-  const raster = vectorOnly ? null : beaverAsset(mood);
+  // Растровий ассет має лише фірмовий образ, тож вибраний одяг завжди малюємо вектором.
+  const customized = Object.entries(outfit).some(([k, v]) => v && !(k === 'JACKET' && v === 'hoodie-red'));
+  const raster = vectorOnly || customized ? null : beaverAsset(mood);
   if (raster) {
     const img = <img src={raster} alt="" width={size} height={size * (260 / 220)} className={className} style={{ objectFit: 'contain' }} draggable={false} />;
     return anim ? (
@@ -818,20 +847,33 @@ export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size =
       <Jacket kind={jacket} />
       <Costume kind={costume} />
       <Backpack kind={backpack} front />
-      {mood !== 'royal' && <Scarf kind={outfit.SCARF} flutter={lively && anim} label={lively && !outfit.SCARF} />}
+      {mood !== 'royal' && (outfit.SCARF || jacket !== 'hoodie-red') && <Scarf kind={outfit.SCARF} flutter={lively && anim} label={lively && !outfit.SCARF} />}
       {(mood === 'celebrate' || mood === 'map') && <HeldMap />}
       {/* Опущені лапи — під головою, підняті — поверх (інакше їх ховає голова). */}
       {!RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}
       {!RAISED.has(rightPose) && <Arm side={1} pose={rightPose} sleeve={sleeve} anim={anim} />}
       <HandItem kind={handItem} />
+      {/* об'єм тулуба й тінь від голови */}
+      <g clipPath="url(#bv-body-clip)" style={{ pointerEvents: 'none' }}>
+        <rect x="50" y="104" width="100" height="112" fill="url(#bv-shade)" />
+        <ellipse cx="100" cy="130" rx="46" ry="11" fill="#2A1206" opacity="0.2" />
+      </g>
       {/* вушка */}
       <circle cx="54" cy="40" r="14" fill={C.fur} stroke={C.line} strokeWidth={LW} />
       <circle cx="146" cy="40" r="14" fill={C.fur} stroke={C.line} strokeWidth={LW} />
-      <circle cx="55" cy="41" r="7" fill={C.ear} />
-      <circle cx="145" cy="41" r="7" fill={C.ear} />
+      <circle cx="55" cy="41" r="7.5" fill="url(#bv-earin)" />
+      <circle cx="145" cy="41" r="7.5" fill="url(#bv-earin)" />
       {/* кругла голова з пухнастими щоками */}
       <path d="M100 24 C 135 24, 158 46, 158 78 C 158 90, 162 94, 156 100 C 150 120, 128 134, 100 134 C 72 134, 50 120, 44 100 C 38 94, 42 90, 42 78 C 42 46, 65 24, 100 24 Z" fill={C.fur} stroke={C.line} strokeWidth={LW} strokeLinejoin="round" />
       <path d="M93 26 q3 -9 7 -2 q4 -8 7 2" fill={C.furFlat} stroke={C.line} strokeWidth="2.2" strokeLinejoin="round" />
+      <g clipPath="url(#bv-head-clip)">
+        <rect x="36" y="20" width="128" height="118" fill="url(#bv-shade)" />
+        <rect x="36" y="20" width="128" height="118" fill="url(#bv-glow)" />
+        <path d="M152 56 C 160 72 160 92 152 106" stroke="#FFE3C2" strokeWidth="3.4" fill="none" strokeLinecap="round" opacity="0.5" />
+      </g>
+      {/* пухнасті щічки */}
+      <path d="M45 96 l-6 3 5 2 -4 4 6 0" fill="none" stroke={C.line} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M155 96 l6 3 -5 2 4 4 -6 0" fill="none" stroke={C.line} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       <ellipse cx="76" cy="44" rx="17" ry="7" fill="#fff" opacity="0.16" transform="rotate(-22 76 44)" />
       <Face mood={mood} blink={anim && mood !== 'sleep'} />
       {RAISED.has(leftPose) && <Arm side={-1} pose={leftPose} sleeve={sleeve} anim={anim} />}

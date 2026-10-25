@@ -1,9 +1,10 @@
 /**
  * Об'ємні ігрові ілюстрації інтерфейсу (стиль референсів GLOBAL REDESIGN): градієнтні заливки,
- * відблиски, темно-синій контур. Векторні — чіткі на будь-якому екрані, без растрових ассетів.
+ * відблиски, темно-синій контур. Якщо для назви є растрова ілюстрація (src/assets/icons), показуємо її.
  * Використання: <Art name="gift" size={64} />.
  */
 import { memo, useId, type ReactNode } from 'react';
+import { iconAsset } from '../lib/assets';
 
 const INK = '#0E2240';
 const SW = 2.4;
@@ -286,8 +287,16 @@ function art(name: ArtName, u: (s: string) => string, label?: string): ReactNode
   }
 }
 
+/** Растрові ілюстрації (src/assets/icons) для назв, які мають готовий ассет. */
+const RASTER: Partial<Record<ArtName, string>> = {
+  gift: 'gift', book: 'lessons', chat: 'dialog', scroll: 'quests', 'map-pin': 'map', flame: 'streak', coin: 'zlotki',
+  trophy: 'leaderboard', 'medal-gold': 'achievements', passport: 'passport', house: 'house', diary: 'writing', books: 'dictionary', suitcase: 'profile',
+};
+
 export const Art = memo(function Art({ name, size = 48, className, label }: { name: ArtName; size?: number; className?: string; label?: string }) {
   const id = useId().replace(/:/g, '');
+  const raster = !label && RASTER[name] ? iconAsset(RASTER[name]!) : null;
+  if (raster) return <img src={raster} alt="" width={size} height={size} className={className} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
   const u = (s: string) => `${id}-${s}`;
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} className={className} aria-hidden>
