@@ -5,7 +5,7 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { seededRandom, shuffle, type I18n } from '@polski-go/shared';
 import { atomic, db, type Stmt } from '../db';
-import { cosmeticItems, newId, questSteps, quests, userCities, userInventory, userQuests } from '../db/schema';
+import { cosmeticItems, newId, questSteps, quests, userCities, userInventory, userQuests, xpEvents } from '../db/schema';
 import { badRequest, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { grantItem, grantXp, grantZlotki, loadCtx, type UserCtx } from './rewards';
@@ -115,12 +115,46 @@ export async function listQuests(userId: string) {
   });
   const tomorrow = new Date();
   tomorrow.setUTCHours(24, 0, 0, 0);
+  const daily = rows.filter((r) => r.quest.kind === 'DAILY');
   return {
-    daily: rows.filter((r) => r.quest.kind === 'DAILY').map(map),
+    chest: await dailyChestState(userId, ctx.day, daily.map((r) => r.uq.status)),
+    daily: daily.map(map),
     weekly: rows.filter((r) => r.quest.kind === 'WEEKLY').map(map),
     story: await listStory(userId),
     resetsAt: tomorrow.toISOString(),
   };
+}
+
+// ───────────────────────── Велика нагорода дня ─────────────────────────
+
+/** Скриня дня: відкривається, коли виконано всі щоденні завдання; видається один раз на день. */
+export const DAILY_CHEST = { xp: 50, zlotki: 25 };
+const chestKey = (userId: string, day: string) => `daily-chest:${userId}:${day}`;
+
+async function dailyChestState(userId: string, day: string, statuses: string[]) {
+  const claimed = !!(await db.select({ id: xpEvents.id }).from(xpEvents).where(eq(xpEvents.idempotencyKey, chestKey(userId, day))).get());
+  const done = statuses.filter((s) => s === 'COMPLETED' || s === 'CLAIMED').length;
+  return { ...DAILY_CHEST, done, total: statuses.length, ready: statuses.length > 0 && done === statuses.length, claimed };
+}
+
+export async function claimDailyChest(userId: string) {
+  const ctx = await loadCtx(userId);
+  const { stmts: init } = await questState(ctx);
+  await atomic(init);
+  const rows = await db
+    .select({ status: userQuests.status })
+    .from(userQuests)
+    .innerJoin(quests, eq(quests.id, userQuests.questId))
+    .where(and(eq(userQuests.userId, userId), eq(userQuests.periodKey, ctx.day), eq(quests.kind, 'DAILY')));
+  const st = await dailyChestState(userId, ctx.day, rows.map((r) => r.status));
+  if (st.claimed) throw badRequest('already_claimed');
+  if (!st.ready) throw badRequest('not_completed');
+  const key = chestKey(userId, ctx.day);
+  // Ключ ідемпотентності охороняє від подвійного нарахування при паралельних запитах.
+  const xp = grantXp(ctx, DAILY_CHEST.xp, 'daily-chest', key);
+  const zl = grantZlotki(userId, DAILY_CHEST.zlotki, 'daily-chest', key, ctx.now);
+  await atomic([...xp.stmts, ...zl.stmts]);
+  return { xp: xp.granted, zlotki: zl.granted, levelUp: xp.levelAfter > xp.levelBefore ? xp.levelAfter : null };
 }
 
 /** Отримати нагороду за виконаний квест (рівно один раз — охороняє тригер у БД). */

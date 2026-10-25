@@ -1,15 +1,18 @@
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { useJourney, useMe, useQuests } from '../lib/queries';
+import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import type { VocabEntry } from '../lib/types';
 import { Beaver } from '../components/Beaver';
-import { CityBanner, Skyline } from '../components/Scenery';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon, type LineIconName } from '../components/Icon';
-import { Progress, Ring, Section, Skeleton, SpeakButton, cx } from '../components/ui';
+import { Progress, Section, Skeleton, SpeakButton, cx, useToast } from '../components/ui';
+import { Art, type ArtName } from '../components/GameArt';
+import { CityHero } from '../components/CityHero';
+import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { MissionCard, missionsQuery } from './Missions';
 import { Badge, Item } from '../components/Illustrations';
@@ -23,230 +26,294 @@ export const RANKS: [number, string][] = [
 ];
 export const rankFor = (level: number) => RANKS.find(([l]) => level >= l)![1];
 
-/** Шапка вкладок: серія, XP, Złotki, нагадування, налаштування (компактна — з логотипом). */
+/** Логотип-вордмарк для шапки: POLSKI GO з прапорцем. */
+export function Wordmark({ size = 22 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 150 30" height={size * 1.36} aria-label="POLSKI GO" role="img">
+      <g fontFamily="Nunito, ui-rounded, system-ui, sans-serif" fontWeight="900" fontStyle="italic" fontSize="24" letterSpacing="-0.6">
+        <text x="2" y="24" fill="#0E2758" stroke="#0E2758" strokeWidth="5" strokeLinejoin="round">POLSKI</text>
+        <text x="2" y="22" fill="#FFFFFF" stroke="#2B6CD6" strokeWidth="1.2" paintOrder="stroke">POLSKI</text>
+        <text x="91" y="24" fill="#0E2758" stroke="#0E2758" strokeWidth="5" strokeLinejoin="round">GO</text>
+        <text x="91" y="22" fill="#FF5265" stroke="#FFFFFF" strokeWidth="1.4" paintOrder="stroke">GO</text>
+      </g>
+      <g transform="translate(126 6)">
+        <path d="M0 2 Q6 -1 12 2 T22 2 V14 Q16 17 12 14 T0 14 Z" fill="#E5383B" stroke="#0E2758" strokeWidth="1.6" strokeLinejoin="round" />
+        <path d="M0 2 Q6 -1 12 2 T22 2 V8 Q16 11 12 8 T0 8 Z" fill="#fff" />
+      </g>
+    </svg>
+  );
+}
+
+/** Шапка вкладок: логотип, серія, Złotki, Premium, налаштування. */
 export function TopStats({ compact }: { compact?: boolean }) {
   const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data;
+  void compact;
   if (!me) return <div className="h-14" />;
-  const round = 'grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elev text-[#6B7A8A] shadow-[var(--shadow-card)]';
+  const round = 'grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev shadow-[var(--shadow-card)]';
   return (
-    <div className="safe-top flex items-center gap-2 px-4 pt-2">
-      {compact && (
-        <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-1 text-[19px] font-black italic tracking-tight text-[#2A62C9] dark:text-white">
-          POLSKI <span className="text-pl-red">GO</span>
-        </button>
-      )}
-      <button onClick={() => nav('/profile')} aria-label={t('profile_streak')} className="stat-pill">
-        <Icon name="flame" size={18} className="text-[#FF8A3D]" filled /> {compact ? me.progress.streak : t('home_days_n', { n: me.progress.streak })}
+    <div className="safe-top flex items-center gap-1.5 px-4 pt-2">
+      <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-auto min-w-0 shrink">
+        <Wordmark size={19} />
       </button>
-      {!compact && (
-        <button onClick={() => nav('/profile')} aria-label="XP" className="stat-pill">
-          <Icon name="star" size={18} className="text-xp" filled /> {me.progress.xpTotal}
-        </button>
-      )}
-      <button onClick={() => nav('/shop')} aria-label="Złotki" className="stat-pill">
-        <Icon name="coin" size={18} className="text-xp-dark" /> {me.zlotki}
+      <button onClick={() => nav('/profile')} aria-label={t('profile_streak')} className="hud-pill">
+        <Art name="flame" size={22} /> <span className="text-coral">{me.progress.streak}</span>
       </button>
-      <div className="flex-1" />
-      {!compact && (
-        <button onClick={() => nav('/settings')} aria-label={t('set_notifications')} className={round}>
-          <Icon name="clock" size={19} />
-        </button>
-      )}
-      <button onClick={() => nav(compact ? '/premium' : '/settings')} aria-label={compact ? 'Premium' : t('profile_settings')} className={cx(round, compact && 'text-xp-dark')}>
-        <Icon name={compact ? 'crown' : 'settings'} size={19} filled={compact && me.premium.active} />
+      <button onClick={() => nav('/shop')} aria-label="Złotki" className="hud-pill">
+        <Art name="coin" size={22} /> <span className="text-xp">{me.zlotki}</span>
+      </button>
+      <button onClick={() => nav('/premium')} aria-label="Premium" className={round}>
+        <Art name="crown" size={24} />
+      </button>
+      <button onClick={() => nav('/settings')} aria-label={t('profile_settings')} className={cx(round, 'text-[var(--text-muted)]')}>
+        <Icon name="settings" size={20} />
       </button>
     </div>
   );
 }
 
-/** Іконки щоденних завдань за типом. */
-const TASK_ICONS: Record<string, [IconName]> = {
-  'd-lesson-1': ['lessons'], 'd-lessons-3': ['lessons'], 'd-xp-100': ['xp'], 'd-words-10': ['dictionary'], 'd-perfect-5': ['star'],
-  'd-reviews-15': ['review'], 'd-dialogue-1': ['ai'], 'd-listening-5': ['mic'],
+/** Ілюстрація щоденного завдання за типом. */
+const TASK_ART: Record<string, ArtName> = {
+  'd-lesson-1': 'book', 'd-lessons-3': 'book', 'd-xp-100': 'star', 'd-words-10': 'chat', 'd-perfect-5': 'target',
+  'd-reviews-15': 'books', 'd-dialogue-1': 'chat', 'd-listening-5': 'gamepad',
 };
 
 export function HomeScreen() {
   const { t, tr } = useT();
   const nav = useNavigate();
+  const toast = useToast();
+  const refresh = useRefreshAll();
   const me = useMe().data!;
   const journey = useJourney();
   const quests = useQuests();
   const wod = useQuery({ queryKey: ['wod'], queryFn: () => api<VocabEntry | null>('/vocab/word-of-day'), staleTime: 3600_000 });
+  const [claiming, setClaiming] = useState(false);
 
   const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
   const next = journey.data?.nextLesson;
   const daily = quests.data?.daily ?? [];
-  const goalDone = me.today.xp >= me.today.goalXp;
-  const bubble = goalDone ? t('home_bubble_goal') : next ? t('home_bubble_next', { topic: tr(next.topic) }) : t('home_bubble_done');
-  // Три завдання дня: урок, нові слова, аудіо (якщо є серед щоденних квестів), інакше перші три.
-  const PICK = ['d-lesson-1', 'd-words-10', 'd-listening-5'];
-  const tasks = [...PICK.map((slug) => daily.find((q) => q.slug === slug)).filter(Boolean), ...daily.filter((q) => !PICK.includes(q.slug))].slice(0, 3) as typeof daily;
+  const chest = quests.data?.chest;
   const taskAction = (slug: string) =>
     slug === 'd-listening-5' || slug === 'd-reviews-15' ? '/practice/FIVE_MIN' : slug === 'd-dialogue-1' ? '/life' : next ? `/lesson/${next.id}` : '/learn';
+  const day = Math.floor(Date.now() / 86_400_000);
+  const cityPool = journey.data?.cities.filter((c) => c.hasContent) ?? [];
+  const cityOfDay = cityPool.length ? cityPool[day % cityPool.length] : undefined;
+  const rank = rankFor(me.progress.level);
+
+  const claimChest = async () => {
+    if (claiming) return;
+    setClaiming(true);
+    try {
+      const r = await api<{ xp: number; zlotki: number }>('/quests/daily-chest/claim', { body: {} });
+      haptic.success();
+      sfx.win();
+      toast(t('home_chest_got', { xp: r.xp, zl: r.zlotki }), '🎁');
+      await refresh();
+    } catch {
+      await refresh();
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 pb-2">
       <TopStats />
 
-      {/* Привітання: великий Бобек з реплікою на тлі міста */}
-      <div className="relative mx-4 overflow-hidden rounded-[28px]" style={{ background: 'linear-gradient(180deg, #CDEBFF 0%, #EAF6FF 55%, #FFF3E0 100%)' }}>
-        <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-60" height={120} sky={false} />
-        <div className="relative flex min-h-[176px] items-end">
-          <div className="z-10 flex-1 self-start p-4 pr-0">
-            <h1 className="text-[26px] font-black leading-tight text-[#22364A]">{t('home_hero_hello', { name: me.profile.displayName || me.firstName || t('home_traveller') })}</h1>
-            <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.25, type: 'spring' }} className="relative mt-3 inline-block max-w-[190px] rounded-2xl rounded-br-sm bg-white px-3 py-2 text-[13px] font-bold leading-snug text-[#22364A] shadow-md">
-              {bubble}
-            </motion.div>
+      {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія */}
+      <div className="hero-card mx-4">
+        <CityHero slug={current?.slug ?? 'warszawa'} color={current?.color ?? '#36B9FF'} name={current?.namePl ?? 'Warszawa'} height={236}>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-[64%] bg-gradient-to-l from-[#07182c]/55 to-transparent" />
+          <motion.div className="absolute -bottom-2 left-0" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
+            <Beaver mood="map" size={148} outfit={me.outfit.wear} />
+          </motion.div>
+          <div className="absolute right-2.5 top-2.5 w-[58%] space-y-2">
+            <button onClick={() => { haptic.tap(); nav('/map'); }} className="glass-card flex w-full items-center gap-2 px-3 py-2 text-left">
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-black text-[#cfe0f2]">{t('home_cur_city')}</div>
+                <div className="flex items-center gap-1 truncate text-[22px] font-black leading-tight text-white">
+                  <Icon name="pin" size={18} className="shrink-0 text-coral" filled /> {current?.namePl ?? '—'}
+                </div>
+              </div>
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/25 text-white"><Icon name="chevron-right" size={16} /></span>
+            </button>
+            <button onClick={() => { haptic.tap(); nav('/profile'); }} className="glass-card flex w-full items-center gap-2 px-2.5 py-2 text-left">
+              <Art name="shield" size={36} label={String(me.progress.level)} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-black text-white">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rank}</span></div>
+                <div className="mt-1 flex items-center gap-2">
+                  <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={8} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
+                  <span className="shrink-0 text-[11px] font-black text-[#cfe0f2]">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
+                </div>
+              </div>
+            </button>
           </div>
-          <div className="-mb-1 -mr-1 shrink-0">
-            <Beaver mood={goalDone ? 'cheer' : 'wave'} outfit={me.outfit.wear} size={150} />
-          </div>
-        </div>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : '/map'); }}
+            className="btn btn-red absolute bottom-3 right-2.5 w-[64%] !min-h-[50px] !gap-1.5 !px-2.5 text-[15px]"
+          >
+            <Icon name="play" size={16} filled /> <span className="truncate">{next ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
+          </motion.button>
+        </CityHero>
       </div>
 
-      {/* Рівень гравця */}
-      <motion.button whileTap={{ scale: 0.98 }} onClick={() => nav('/profile')} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3 text-left">
-        <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-b from-[#FFE6BF] to-[#FFC98A]">
-          <Beaver size={52} animate={false} vectorOnly outfit={me.outfit.wear} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-lg font-black">{t('home_level_n', { n: me.progress.level })}</span>
-            <span className="muted text-xs font-black">{me.progress.levelXp} / {me.progress.levelXpNeeded} XP</span>
-          </div>
-          <div className="muted mb-1.5 text-xs font-bold">{rankFor(me.progress.level)}</div>
-          <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={10} color="var(--color-xp)" />
-        </div>
-      </motion.button>
-
-      {/* Поточне місто й наступна ціль */}
-      {current && (
-        <motion.button whileTap={{ scale: 0.98 }} onClick={() => nav('/learn')} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden p-2 pr-3 text-left">
-          <CityBanner slug={current.slug} color={current.color} height={64} shade={false} className="w-24 shrink-0 rounded-2xl" />
-          <div className="min-w-0 flex-1">
-            <div className="font-black">{t('home_now_in', { city: current.namePl })}</div>
-            <div className="muted truncate text-xs font-bold">
-              {(() => { const nc = journey.data?.cities.filter((c) => c.order > (current?.order ?? 0)).sort((x, y) => x.order - y.order)[0]; return nc ? t('home_next_goal', { city: nc.namePl }) : tr(current.theme); })()}
-            </div>
-            <Progress value={current.lessonsDone} max={Math.max(1, current.lessonsTotal)} height={6} color="var(--color-brand)" className="mt-1.5" />
-          </div>
-          <Icon name="chevron-right" size={20} className="shrink-0 text-[#A3AEBB]" />
-        </motion.button>
-      )}
-
-      <div className="px-4">
-        <button className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : '/map'); }}>
-          {next ? t('home_continue_learning') : t('home_city_done')}
-          <Icon name="arrow-right" size={22} strokeWidth={2.6} />
+      {/* Три лічильники */}
+      <div className="grid grid-cols-3 gap-2 px-4">
+        <button onClick={() => nav('/profile')} className="stat-card">
+          <Art name="flame" size={30} />
+          <span className="min-w-0 text-left"><span className="block text-[20px] font-black leading-none">{me.progress.streak}</span><span className="muted block text-[10.5px] font-bold leading-tight">{t('home_stat_streak')}</span></span>
+        </button>
+        <button onClick={() => nav('/shop')} className="stat-card">
+          <Art name="coin" size={30} />
+          <span className="min-w-0 flex-1 text-left"><span className="block text-[20px] font-black leading-none">{me.zlotki}</span><span className="muted block text-[10.5px] font-bold leading-tight">{t('home_stat_zlotki')}</span></span>
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[var(--border)] text-xs font-black">+</span>
+        </button>
+        <button onClick={() => nav('/profile')} className="stat-card">
+          <Art name="crown" size={28} />
+          <span className="min-w-0 text-left"><span className="block text-[20px] font-black leading-none">{me.progress.level}</span><span className="muted block text-[10.5px] font-bold leading-tight">{rank}</span></span>
         </button>
       </div>
 
-      {/* Сьогоднішні завдання */}
-      <Section title={t('home_today_tasks')} action={<button className="text-sm font-black text-sky-dark" onClick={() => nav('/quests')}>{t('home_see_all')}</button>}>
-        <div className="card divide-y divide-[var(--border)] overflow-hidden">
-          {tasks.map((q, i) => {
-            const done = q.status !== 'ACTIVE';
-            const [icon] = TASK_ICONS[q.slug] ?? (['quests'] as [IconName]);
+      {/* Сьогодні: щоденні завдання + велика нагорода */}
+      <Section title={t('home_today')} action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => nav('/quests')}>{t('home_all_tasks')} <Icon name="arrow-right" size={16} /></button>}>
+        <div className="relative grid grid-cols-4 gap-2">
+          <div className="pointer-events-none absolute left-[8%] right-[33%] top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-brand/70 to-sky/40" />
+          {daily.slice(0, 3).map((q, i) => {
+            const done = q.status !== 'ACTIVE' && q.status !== 'NEW';
             return (
               <motion.button
                 key={q.slug}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + i * 0.06 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 * i }}
                 onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
-                className="flex w-full items-center gap-3 px-3 py-2.5 text-left active:bg-black/5"
+                className={cx('task-card relative flex flex-col items-center gap-1 px-1 pb-2 pt-3 text-center', done && 'is-done')}
               >
-                <span className="relative shrink-0">
-                  <GameIcon name={icon} size={38} inactive={done} />
-                  {done && <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-white ring-2 ring-white"><Icon name="check" size={12} strokeWidth={3} /></span>}
+                <span className={cx('absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full border-2', done ? 'border-brand bg-brand text-[#07182c]' : 'border-white/40')}>
+                  {done && <Icon name="check" size={12} strokeWidth={3.2} />}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className={cx('text-[15px] font-black leading-tight', done && 'opacity-60')}>{tr(q.title)}</div>
-                  <div className="muted text-[11px] font-black">{Math.min(q.progress, q.target)}/{q.target}</div>
-                </div>
-                <span className="shrink-0 text-sm font-black text-brand-dark">+{q.xp} XP</span>
-                <Icon name="chevron-right" size={18} className="shrink-0 text-[#A3AEBB]" />
+                <Art name={TASK_ART[q.slug] ?? 'star'} size={40} />
+                <span className="line-clamp-2 min-h-[28px] text-[11.5px] font-black leading-tight">{tr(q.title)}</span>
+                <span className="flex items-center gap-0.5 rounded-full bg-[#07182c]/60 px-1.5 py-0.5 text-[11px] font-black text-xp"><Art name="coin" size={13} />+{q.zlotki}</span>
               </motion.button>
             );
           })}
-          {!tasks.length && <Skeleton className="h-36" />}
+          {!daily.length && [0, 1, 2].map((i) => <Skeleton key={i} className="h-[118px]" />)}
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            onClick={() => (chest?.ready && !chest.claimed ? void claimChest() : nav('/quests'))}
+            className={cx('chest-card relative flex flex-col items-center px-1 pb-2 pt-1.5 text-center', chest?.ready && !chest.claimed && 'is-ready')}
+            aria-label={t('home_big_reward')}
+          >
+            <motion.span animate={chest?.ready && !chest.claimed ? { rotate: [0, -8, 8, -4, 0], scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 1.6, repeatDelay: 0.6 }}>
+              <Art name="gift" size={48} />
+            </motion.span>
+            <span className="text-[11px] font-black leading-tight text-white">{t('home_big_reward')}</span>
+            <span className="mt-0.5 text-[9.5px] font-bold leading-tight text-[#cfe0f2]">
+              {chest?.claimed ? `✓ ${t('home_claimed')}` : chest?.ready ? t('home_claim') : `${chest?.done ?? 0}/${chest?.total ?? 3} · ${t('home_big_reward_d')}`}
+            </span>
+          </motion.button>
         </div>
       </Section>
 
-      {/* Куди сьогодні? — пастельні плитки основних розділів */}
-      <Section title={t('home_where_today')}>
-        <div className="grid grid-cols-3 gap-2.5">
+      {/* Швидкий старт */}
+      <Section title={t('home_quick_start')}>
+        <div className="grid grid-cols-3 gap-2">
           {(
             [
-              ['grammar', 'home_tile_grammar', 'home_tile_grammar_d', '/grammar', '#FFF1C9', '#F5B82E'],
-              ['dictionary', 'home_tile_dict', 'home_tile_dict_d', '/dictionary', '#FFE1E1', '#F45159'],
-              ['ai', 'home_tile_talk', 'home_tile_talk_d', '/ai', '#EDE4FF', '#9568F5'],
-              ['story', 'home_tile_slang', 'home_tile_slang_d', '/slang', '#DFF5FF', '#2C9AD6'],
-              ['city', 'home_tile_life', 'home_tile_life_d', '/life', '#DDF6EA', '#22A06B'],
-              ['exam', 'home_tile_exams', 'home_tile_exams_d', '/exams', '#FFE8D6', '#F2884B'],
-            ] as [IconName, TKey, TKey, string, string, string][]
-          ).map(([icon, title, sub, to, bg, fg], i) => (
+              ['book', 'home_qs_lessons', 'home_qs_lessons_d', '/learn', 'linear-gradient(160deg,#FF6A8A 0%,#B8325F 55%,#5B1E52 100%)'],
+              ['scroll', 'home_qs_quests', 'home_qs_quests_d', '/quests', 'linear-gradient(160deg,#B48CFF 0%,#6B45D8 55%,#2E2273 100%)'],
+              ['map-pin', 'home_qs_map', 'home_qs_map_d', '/map', 'linear-gradient(160deg,#5CC8FF 0%,#2A7BD8 55%,#173E7A 100%)'],
+            ] as [ArtName, TKey, TKey, string, string][]
+          ).map(([art, title, sub, to, bg], i) => (
             <motion.button
               key={to}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 + i * 0.04 }}
-              whileTap={{ scale: 0.95 }}
+              transition={{ delay: 0.05 + i * 0.05 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => { haptic.tap(); nav(to); }}
-              className="flex flex-col items-center gap-1 rounded-3xl px-1.5 pb-2.5 pt-3 text-center shadow-[0_6px_14px_-8px_rgb(31_51_70/0.35)]"
-              style={{ background: `linear-gradient(180deg, #fff 0%, ${bg} 100%)`, boxShadow: `inset 0 -3px 0 ${fg}33, 0 6px 14px -8px rgb(31 51 70 / 0.35)` }}
+              className="qs-tile relative h-[104px] overflow-hidden rounded-[20px] p-2.5 text-left"
+              style={{ background: bg }}
             >
-              <GameIcon name={icon} size={46} />
-              <span className="text-[13px] font-black leading-tight text-[#22364A]">{t(title)}</span>
-              <span className="text-[10px] font-bold leading-tight" style={{ color: fg }}>{t(sub)}</span>
+              <svg viewBox="0 0 120 40" className="absolute inset-x-0 bottom-0 w-full opacity-25" aria-hidden><path d="M0 40 V26 h10 v-8 h8 v8 h10 V14 l6 -8 l6 8 v12 h12 v-10 h10 v10 h14 V10 l4 -6 l4 6 v16 h12 v-6 h12 V40 Z" fill="#07182c" /></svg>
+              <span className="absolute -right-1 -top-1"><Art name={art} size={52} /></span>
+              <span className="absolute bottom-2 left-2.5 right-8">
+                <span className="block text-[17px] font-black leading-tight text-white drop-shadow">{t(title)}</span>
+                <span className="block truncate text-[10.5px] font-bold text-white/85">{t(sub)}</span>
+              </span>
+              <span className="absolute bottom-2 right-2 grid h-6 w-6 place-items-center rounded-full bg-black/25 text-white"><Icon name="chevron-right" size={14} /></span>
             </motion.button>
           ))}
         </div>
       </Section>
 
-      {/* 4: місія дня з розділу «Польська в житті» (3–5 хв) */}
-      <DailyMission />
-
-      {/* 5: швидкий доступ до помилок і слів */}
-      <div className="grid grid-cols-2 gap-3 px-4">
-        <QuickTile icon="alert" color="#F45159" title={t('home_fix_mistakes')} sub={me.counters.mistakes ? t('home_mistakes_n', { n: me.counters.mistakes }) : t('home_nothing')} badge={me.counters.mistakes} onClick={() => nav('/practice/MISTAKES')} />
-        <QuickTile icon="refresh" color="#35C88A" title={t('home_review_words')} sub={me.counters.dueReviews ? t('home_review_due', { n: me.counters.dueReviews }) : t('home_review_none')} badge={me.counters.dueReviews} onClick={() => nav('/practice/REVIEW')} />
-        <QuickTile icon="clock" color="#55BDF4" title={t('home_five')} sub={t('home_five_d')} onClick={() => nav('/practice/FIVE_MIN')} />
-        <QuickTile icon="bolt" color="#9568F5" title={t('home_speed')} sub={t('home_speed_d')} onClick={() => nav('/practice/SPEED')} />
+      {/* Місто дня + слово дня */}
+      <div className="grid grid-cols-[1.12fr_1fr] gap-2.5 px-4">
+        {cityOfDay ? (
+          <button onClick={() => { haptic.tap(); nav('/map'); }} className="hero-card relative block h-[150px] overflow-hidden text-left">
+            <CityHero slug={cityOfDay.slug} color={cityOfDay.color} name="" height={150} evening sign={false} className="absolute inset-0" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#07182c] via-[#07182c]/30 to-transparent" />
+            <div className="absolute left-2.5 top-2 flex items-center gap-1 text-[12px] font-black text-white"><Art name="star" size={18} /> {t('home_city_of_day')}</div>
+            <div className="absolute inset-x-2.5 bottom-2">
+              <div className="text-[22px] font-black leading-none text-white">{cityOfDay.namePl}</div>
+              <div className="line-clamp-2 text-[11px] font-bold leading-tight text-[#cfe0f2]">{tr(cityOfDay.theme)}</div>
+            </div>
+          </button>
+        ) : (
+          <Skeleton className="h-[150px]" />
+        )}
+        <div className="wod-card relative h-[150px] overflow-hidden p-2.5">
+          <div className="flex items-center gap-1 text-[12px] font-black text-white"><Art name="book" size={18} /> {t('home_word_of_day')}</div>
+          {wod.data ? (
+            <>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span className="truncate text-[22px] font-black leading-none text-white">{wod.data.pl}</span>
+                <SpeakButton text={wod.data.pl} url={wod.data.audioUrl} size="sm" />
+              </div>
+              <div className="mt-1 line-clamp-2 pr-10 text-[12px] font-bold leading-tight text-[#cfe0f2]">{tr(wod.data.translations)}</div>
+            </>
+          ) : (
+            <Skeleton className="mt-2 h-10" />
+          )}
+          <span className="absolute -bottom-1 -right-1"><Art name="suitcase" size={58} /></span>
+        </div>
       </div>
 
-      {/* Слово дня */}
-      {wod.data && (
-        <Section title={t('home_word_of_day')}>
-          <div className="card flex items-center gap-3 p-4">
-            <div className="min-w-0 flex-1">
-              <div className="text-xl font-black">{wod.data.pl}</div>
-              <div className="text-sm font-bold text-[#6B7A8A]">
-                {wod.data.pronunciation ? `[${wod.data.pronunciation}] · ` : ''}
-                {tr(wod.data.translations)}
-              </div>
-              {wod.data.examples[0] && <div className="mt-1 text-sm font-semibold italic">„{wod.data.examples[0].pl}”</div>}
-            </div>
-            <SpeakButton text={wod.data.pl} url={wod.data.audioUrl} />
-          </div>
-        </Section>
-      )}
+      {/* Місія дня з розділу «Польська в житті» (3–5 хв) */}
+      <DailyMission />
 
-      {/* Інші розділи */}
+      {/* Тренування: помилки, повторення, 5 хвилин, швидкий раунд */}
+      <Section title={t('home_more_practice')}>
+        <div className="grid grid-cols-2 gap-2.5">
+          <QuickTile icon="alert" color="#FF5265" title={t('home_fix_mistakes')} sub={me.counters.mistakes ? t('home_mistakes_n', { n: me.counters.mistakes }) : t('home_nothing')} badge={me.counters.mistakes} onClick={() => nav('/practice/MISTAKES')} />
+          <QuickTile icon="refresh" color="#25D79B" title={t('home_review_words')} sub={me.counters.dueReviews ? t('home_review_due', { n: me.counters.dueReviews }) : t('home_review_none')} badge={me.counters.dueReviews} onClick={() => nav('/practice/REVIEW')} />
+          <QuickTile icon="clock" color="#36B9FF" title={t('home_five')} sub={t('home_five_d')} onClick={() => nav('/practice/FIVE_MIN')} />
+          <QuickTile icon="bolt" color="#9D69FF" title={t('home_speed')} sub={t('home_speed_d')} onClick={() => nav('/practice/SPEED')} />
+        </div>
+      </Section>
+
+      {/* Розділи */}
       <Section title={t('home_more_sections')}>
         <div className="grid grid-cols-4 gap-2">
           {(
             [
+              ['grammar', 'home_tile_grammar', '/grammar'],
+              ['dictionary', 'home_tile_dict', '/dictionary'],
+              ['ai', 'home_tile_talk', '/ai'],
+              ['story', 'home_tile_slang', '/slang'],
+              ['city', 'home_tile_life', '/life'],
+              ['exam', 'home_tile_exams', '/exams'],
               ['wardrobe', 'home_shop', '/shop'],
-              ['house', 'home_house', '/house'],
-              ['diary', 'home_diary', '/diary'],
               ['leaderboard', 'home_leaderboard', '/social'],
             ] as [IconName, TKey, string][]
           ).map(([icon, key, to]) => (
-            <button key={to} onClick={() => { haptic.tap(); nav(to); }} className="flex flex-col items-center gap-1 rounded-2xl py-2 transition active:scale-95">
-              <GameIcon name={icon} size={42} />
+            <button key={to} onClick={() => { haptic.tap(); nav(to); }} className="section-tile flex flex-col items-center gap-1 rounded-2xl px-1 py-2.5 transition active:scale-95">
+              <GameIcon name={icon} size={40} />
               <span className="text-center text-[11px] font-black leading-tight">{t(key)}</span>
             </button>
           ))}
@@ -289,7 +356,7 @@ function QuickTile({ icon, color, title, sub, badge, onClick }: { icon: LineIcon
       </span>
       <span className="min-w-0">
         <span className="block text-[13px] font-black leading-tight">{title}</span>
-        <span className="block text-[11px] font-bold leading-tight text-[#6B7A8A]">{sub}</span>
+        <span className="muted block text-[11px] font-bold leading-tight">{sub}</span>
       </span>
       {!!badge && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] font-black text-white">{badge}</span>}
     </button>

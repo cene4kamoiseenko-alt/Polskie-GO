@@ -36,6 +36,22 @@ describe('Квести', () => {
     expect(after - before).toBe(uq.quest.zlotkiReward + claims.find((c) => c.status === 200)!.body.achievements.reduce((s: number, a: { zlotki: number }) => s + a.zlotki, 0));
   });
 
+  it('велика нагорода дня: лише коли виконано всі щоденні завдання і рівно один раз', async () => {
+    const { call, user } = await login();
+    const q0 = await call('GET', '/api/quests');
+    expect(q0.body.chest).toMatchObject({ ready: false, claimed: false, done: 0, total: 3 });
+    expect((await call('POST', '/api/quests/daily-chest/claim')).body.error).toBe('not_completed');
+    for (const q of q0.body.daily) await db.update(userQuests).set({ status: 'COMPLETED' }).where(eq(userQuests.id, q.id));
+    const q1 = await call('GET', '/api/quests');
+    expect(q1.body.chest).toMatchObject({ ready: true, claimed: false, done: 3 });
+    const before = await balance(user.id);
+    const claims = await Promise.all([call('POST', '/api/quests/daily-chest/claim'), call('POST', '/api/quests/daily-chest/claim')]);
+    expect(claims.some((c) => c.status === 200)).toBe(true);
+    expect(await balance(user.id)).toBe(before + q1.body.chest.zlotki);
+    expect((await call('GET', '/api/quests')).body.chest.claimed).toBe(true);
+    expect((await call('POST', '/api/quests/daily-chest/claim')).body.error).toBe('already_claimed');
+  });
+
   it('нагороду за невиконаний квест отримати не можна', async () => {
     const { call } = await login();
     const q = await call('GET', '/api/quests');

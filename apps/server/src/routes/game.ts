@@ -7,7 +7,7 @@ import { config } from '../env';
 import { db } from '../db';
 import { achievements, playerProgress, userAchievements, userSettings, users, walletTransactions } from '../db/schema';
 import { body, query, rateLimit, type AppEnv } from '../hono';
-import { advanceStory, claimQuest, listQuests, startStory, storyState } from '../services/quests';
+import { advanceStory, claimDailyChest, claimQuest, listQuests, startStory, storyState } from '../services/quests';
 import { buyItem, equipItem, listShop, outfit } from '../services/shop';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
@@ -23,6 +23,7 @@ const r = gameRoutes;
 
 // ── Квести ──
 r.get('/quests', async (c) => c.json(await listQuests(c.get('userId'))));
+r.post('/quests/daily-chest/claim', async (c) => c.json(await claimDailyChest(c.get('userId'))));
 r.post('/quests/:id/claim', async (c) => c.json(await claimQuest(c.get('userId'), c.req.param('id'))));
 r.get('/story/:slug', async (c) => c.json(await storyState(c.get('userId'), c.req.param('slug'))));
 r.post('/story/:slug/start', async (c) => c.json(await startStory(c.get('userId'), c.req.param('slug'))));

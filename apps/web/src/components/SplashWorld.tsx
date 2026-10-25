@@ -106,9 +106,10 @@ function GothicWindow({ x, y, w = 10, h = 30 }: { x: number; y: number; w?: numb
   );
 }
 
-export const FarCity = memo(function FarCity() {
+/** Вміст шару без обгортки — для повторного використання (банер міста на головній). */
+export function FarCityArt() {
   return (
-    <Layer className="sw-far">
+    <>
       <defs>
         <linearGradient id="sw-hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6CCB62" /><stop offset="1" stopColor="#2F8C4A" /></linearGradient>
         <linearGradient id="sw-brick" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#C8653F" /><stop offset="0.7" stopColor="#B4523A" /><stop offset="1" stopColor="#8E3E2B" /></linearGradient>
@@ -202,6 +203,14 @@ export const FarCity = memo(function FarCity() {
       <path d="M312 470 L326 440 L326 520 L312 520 Z" fill="#9C4630" stroke={INK} strokeWidth="1.8" />
       <path d="M372 452 L400 418 L400 520 L372 520 Z" fill="url(#sw-slate)" stroke={INK} strokeWidth="1.8" />
       </g>
+    </>
+  );
+}
+
+export const FarCity = memo(function FarCity() {
+  return (
+    <Layer className="sw-far">
+      <FarCityArt />
     </Layer>
   );
 });
@@ -263,9 +272,10 @@ function TreeRound({ x, y, r = 30 }: { x: number; y: number; r?: number }) {
   );
 }
 
-export const MidCity = memo(function MidCity() {
+/** Вміст шару без обгортки — для повторного використання (банер міста на головній). */
+export function MidCityArt() {
   return (
-    <Layer className="sw-mid">
+    <>
       <defs>
         <linearGradient id="sw-zabka" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2DB463" /><stop offset="1" stopColor="#168043" /></linearGradient>
         <linearGradient id="sw-shop-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF4CC" /><stop offset="1" stopColor="#FFD98A" /></linearGradient>
@@ -334,6 +344,14 @@ export const MidCity = memo(function MidCity() {
       <path d="M362 640 H382 L378 618 H366 Z" fill="#FFE7A0" stroke="#24313D" strokeWidth="2" />
       <path d="M364 618 Q372 608 380 618" fill="#24313D" />
       <circle cx="372" cy="630" r="16" fill="#FFE7A0" opacity="0.25" />
+    </>
+  );
+}
+
+export const MidCity = memo(function MidCity() {
+  return (
+    <Layer className="sw-mid">
+      <MidCityArt />
     </Layer>
   );
 });
@@ -374,9 +392,10 @@ export function Tram() {
 
 // ───────────── Площа, колії, голуби ─────────────
 
-export const Plaza = memo(function Plaza() {
+/** Вміст шару без обгортки — для повторного використання (банер міста на головній). */
+export function PlazaArt() {
   return (
-    <Layer className="sw-plaza">
+    <>
       <defs>
         <linearGradient id="sw-cobble-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#E6D2AE" /><stop offset="1" stopColor="#C7A97F" /></linearGradient>
         <pattern id="sw-cobble" width="22" height="12" patternUnits="userSpaceOnUse">
@@ -402,15 +421,24 @@ export const Plaza = memo(function Plaza() {
           <path d="M-2 6 V9 M2 6 V9" stroke="#E8A33A" strokeWidth="1.4" />
         </g>
       ))}
+    </>
+  );
+}
+
+export const Plaza = memo(function Plaza() {
+  return (
+    <Layer className="sw-plaza">
+      <PlazaArt />
     </Layer>
   );
 });
 
 // ───────────── Кіоск з хот-догами + пара ─────────────
 
-export const HotDogCart = memo(function HotDogCart() {
+/** Вміст шару без обгортки — для повторного використання (банер міста на головній). */
+export function HotDogCartArt() {
   return (
-    <Layer className="sw-near">
+    <>
       <defs>
         <clipPath id="sw-awning"><path d="M294 690 L398 690 L392 708 L300 708 Z" /></clipPath>
       </defs>
@@ -436,6 +464,14 @@ export const HotDogCart = memo(function HotDogCart() {
           <circle cx={x} cy="784" r="3" fill="#9AA3AD" />
         </g>
       ))}
+    </>
+  );
+}
+
+export const HotDogCart = memo(function HotDogCart() {
+  return (
+    <Layer className="sw-near">
+      <HotDogCartArt />
     </Layer>
   );
 });

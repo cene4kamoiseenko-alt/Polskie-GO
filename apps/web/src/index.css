@@ -78,6 +78,9 @@ body,
 #root {
   height: 100%;
 }
+html {
+  background: var(--bg);
+}
 
 body {
   margin: 0;
@@ -437,4 +440,94 @@ textarea {
     transition: none !important;
   }
   .sw-tram { display: none; }
+}
+
+/* ───────── Ігрові картки головної (референс GLOBAL REDESIGN) ───────── */
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 38px;
+  padding: 0 10px 0 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--border);
+  font-weight: 900;
+  font-size: 16px;
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+.hero-card {
+  border-radius: 26px;
+  overflow: hidden;
+  border: 2px solid rgb(54 185 255 / 0.4);
+  box-shadow: 0 16px 32px -18px rgb(0 0 0 / 0.95), 0 0 26px -12px rgb(54 185 255 / 0.6);
+}
+.glass-card {
+  border-radius: 18px;
+  background: rgb(7 24 44 / 0.72);
+  border: 1.5px solid rgb(255 255 255 / 0.16);
+  box-shadow: 0 8px 18px -10px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 64px;
+  padding: 8px 8px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-deep);
+  transition: transform 0.12s;
+}
+.stat-card:active,
+.task-card:active,
+.chest-card:active,
+.section-tile:active {
+  transform: scale(0.97);
+}
+.task-card {
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-deep);
+  transition: transform 0.12s;
+}
+.task-card.is-done {
+  border-color: rgb(37 215 155 / 0.85);
+  background: linear-gradient(180deg, #14444a 0%, #0f3140 100%);
+  box-shadow: 0 0 18px -6px rgb(37 215 155 / 0.7), var(--shadow-deep);
+}
+.chest-card {
+  border-radius: 18px;
+  background: radial-gradient(120% 80% at 50% 0%, #3a3a7a 0%, #1a2a58 60%, #13234a 100%);
+  border: 2px solid rgb(255 200 87 / 0.55);
+  box-shadow: 0 0 20px -8px rgb(255 200 87 / 0.7), var(--shadow-deep);
+}
+.chest-card.is-ready {
+  border-color: #ffc857;
+  box-shadow: 0 0 26px -2px rgb(255 200 87 / 0.85), var(--shadow-deep);
+}
+.qs-tile {
+  border: 1.5px solid rgb(255 255 255 / 0.18);
+  box-shadow: 0 12px 22px -14px rgb(0 0 0 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+.wod-card {
+  border-radius: 22px;
+  background: linear-gradient(160deg, #1d4f9c 0%, #143a74 55%, #0e2a55 100%);
+  border: 1.5px solid rgb(54 185 255 / 0.35);
+  box-shadow: var(--shadow-deep);
+}
+.section-tile {
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-deep);
+}
+.light .hud-pill,
+.light .stat-card,
+.light .task-card,
+.light .section-tile {
+  box-shadow: var(--shadow-deep);
 }

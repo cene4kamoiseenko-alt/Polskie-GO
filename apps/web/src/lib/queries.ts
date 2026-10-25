@@ -5,7 +5,7 @@ import type { Journey, Me, Quest, ShopItem } from './types';
 export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/me') });
 export const useJourney = () => useQuery({ queryKey: ['journey'], queryFn: () => api<Journey>('/journey') });
 export const useQuests = () =>
-  useQuery({ queryKey: ['quests'], queryFn: () => api<{ daily: Quest[]; weekly: Quest[]; story: Quest[]; resetsAt: string }>('/quests') });
+  useQuery({ queryKey: ['quests'], queryFn: () => api<{ daily: Quest[]; weekly: Quest[]; story: Quest[]; resetsAt: string; chest?: { xp: number; zlotki: number; done: number; total: number; ready: boolean; claimed: boolean } }>('/quests') });
 export const useShop = () => useQuery({ queryKey: ['shop'], queryFn: () => api<{ balance: number; premium: boolean; items: ShopItem[] }>('/shop') });
 
 /** Після навчальних подій оновлюємо все, що могло змінитися. */
