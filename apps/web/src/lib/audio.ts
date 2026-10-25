@@ -5,6 +5,7 @@ import { apiBlob, assetUrl } from './api';
 /**
  * Польська озвучка.
  * Порядок джерел: записаний аудіофайл → серверний синтез pl-PL (кеш) → польський голос пристрою.
+ * Кожен крок при помилці переходить до наступного; лише якщо всі недоступні — зрозумілий стан помилки.
  * Голос іншої мови не використовується ніколи: без польського голосу показується зрозумілий стан.
  * Нове відтворення завжди зупиняє попереднє — черги з накладених голосів не буває.
  */
@@ -14,12 +15,21 @@ export function setSoundEnabled(v: boolean) {
 }
 
 let serverTts = false;
-export function configureAudio(opts: { server: boolean }) {
+/**
+ * Голос пристрою, коли система не віддає список голосів (часто в iOS WebView / Telegram):
+ *  - 'strict' (за замовчуванням): не говорити — системний запасний голос може бути не польським;
+ *  - 'soft': говорити з lang=pl-PL без підтвердженого голосу і позначити стан «голос не підтверджено».
+ * Обрано 'strict': доказів, що WebView без списку голосів завжди читає польською, немає (docs/STATUS.md).
+ */
+export type DeviceVoicePolicy = 'strict' | 'soft';
+let deviceVoicePolicy: DeviceVoicePolicy = 'strict';
+export function configureAudio(opts: { server: boolean; deviceVoice?: DeviceVoicePolicy }) {
   serverTts = opts.server;
+  if (opts.deviceVoice) deviceVoicePolicy = opts.deviceVoice;
 }
 
 export type SpeechStatus = 'idle' | 'loading' | 'playing' | 'error';
-export type SpeechIssue = 'no_polish_voice' | 'network' | 'blocked' | null;
+export type SpeechIssue = 'no_polish_voice' | 'network' | 'blocked' | 'unverified_voice' | null;
 type State = { key: string | null; status: SpeechStatus; issue: SpeechIssue };
 
 let state: State = { key: null, status: 'idle', issue: null };
@@ -68,17 +78,71 @@ if (el && typeof document !== 'undefined') {
   document.addEventListener('pointerdown', unlock, { once: true, capture: true });
 }
 
+// ── Кеш серверного синтезу ──
+// 1) blobCache — object URL у пам'яті (миттєво в межах сесії);
+// 2) Cache Storage — переживає перезапуск Mini App. Будь-яка помилка сховища = промах, не збій озвучки.
+const TTS_CACHE = 'pg-tts-v1';
+const TTS_CACHE_MAX = 800;
+const storeKey = (text: string, slow: boolean) => `${location.origin}/__tts/${slow ? 'slow' : 'normal'}/${encodeURIComponent(speechText(text))}`;
+async function ttsStore(): Promise<Cache | null> {
+  try {
+    return typeof caches === 'undefined' ? null : await caches.open(TTS_CACHE);
+  } catch {
+    return null;
+  }
+}
+async function readStored(text: string, slow: boolean): Promise<Blob | null> {
+  try {
+    const hit = await (await ttsStore())?.match(storeKey(text, slow));
+    const blob = hit ? await hit.blob() : null;
+    return blob?.size ? blob : null;
+  } catch {
+    return null;
+  }
+}
+let stored = 0;
+async function writeStored(text: string, slow: boolean, blob: Blob) {
+  try {
+    const c = await ttsStore();
+    if (!c) return;
+    await c.put(storeKey(text, slow), new Response(blob, { headers: { 'content-type': blob.type || 'audio/mpeg' } }));
+    // Найстаріші записи прибираємо зрідка, щоб не перелічувати кеш на кожну фразу.
+    if (++stored % 40 === 0) {
+      const keys = await c.keys();
+      for (const k of keys.slice(0, Math.max(0, keys.length - TTS_CACHE_MAX))) await c.delete(k);
+    }
+  } catch {
+    /* сховище недоступне або переповнене */
+  }
+}
+
+// Попереднє завантаження не з'їдає ліміт /tts (120 на хвилину): мережевих запитів наперед — не більше 40 на хвилину.
+const PREFETCH_PER_MIN = 40;
+const prefetchTimes: number[] = [];
+function prefetchBudget(): boolean {
+  const now = Date.now();
+  while (prefetchTimes.length && now - prefetchTimes[0] > 60_000) prefetchTimes.shift();
+  if (prefetchTimes.length >= PREFETCH_PER_MIN) return false;
+  prefetchTimes.push(now);
+  return true;
+}
+
 const blobCache = new Map<string, string>();
 const pendingAudio = new Map<string, Promise<string>>();
-async function serverAudio(text: string, slow: boolean): Promise<string> {
+async function serverAudio(text: string, slow: boolean, prefetch = false): Promise<string> {
   const k = keyOf(text, slow);
   const hit = blobCache.get(k);
   if (hit) return hit;
   const pending = pendingAudio.get(k);
   if (pending) return pending;
   const task = (async () => {
-    const blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}`);
-    if (!blob.size) throw new Error('empty_audio');
+    let blob = await readStored(text, slow);
+    if (!blob) {
+      if (prefetch && !prefetchBudget()) throw new Error('prefetch_budget');
+      blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}`);
+      if (!blob.size) throw new Error('empty_audio');
+      void writeStored(text, slow, blob);
+    }
     const url = URL.createObjectURL(blob);
     blobCache.set(k, url);
     if (blobCache.size > 300) {
@@ -158,14 +222,16 @@ export async function devicePolishVoice() {
   return pickPolishVoice(await deviceVoices());
 }
 
-async function speakDevice(text: string, slow: boolean, onStart: () => void, active: () => boolean): Promise<void> {
+async function speakDevice(text: string, slow: boolean, onStart: (unverified: boolean) => void, active: () => boolean): Promise<void> {
   if (!ttsAvailable()) throw new Error('no_polish_voice');
   // Якщо голоси вже завантажені — без await: iOS не втрачає жест користувача.
   const ready = speechSynthesis.getVoices();
   const voices = ready.length ? ready : await deviceVoices();
   const voice = pickPolishVoice(voices);
-  // Без підтвердженого польського голосу показуємо помилку: мовний fallback системи може бути чужим.
-  if (!voice) throw new Error('no_polish_voice');
+  // Без підтвердженого польського голосу — помилка: мовний fallback системи може бути чужим.
+  // Виняток — «м'яка» політика і порожній список голосів (див. DeviceVoicePolicy): тоді лише pl-PL з позначкою.
+  const unverified = !voice && deviceVoicePolicy === 'soft' && voices.length === 0;
+  if (!voice && !unverified) throw new Error('no_polish_voice');
   if (!active()) return;
   return new Promise((resolve, reject) => {
     // WebKit іноді «ковтає» репліку, якщо speak() викликати одразу після cancel() під час мовлення.
@@ -186,7 +252,7 @@ async function speakDevice(text: string, slow: boolean, onStart: () => void, act
       error ? reject(error) : resolve();
     };
     cancelPlayback = () => finish();
-    u.onstart = () => { clearTimeout(timer); onStart(); };
+    u.onstart = () => { clearTimeout(timer); onStart(unverified); };
     u.onend = () => finish();
     u.onerror = (e) => finish(e.error === 'interrupted' || e.error === 'canceled' ? undefined : new Error('playback'));
     if (busy) setTimeout(() => { if (active()) speechSynthesis.speak(u); else finish(); }, 80);
@@ -195,10 +261,10 @@ async function speakDevice(text: string, slow: boolean, onStart: () => void, act
   });
 }
 
-/** Попереднє завантаження озвучки найближчих фраз (лише серверний синтез; помилки ігноруються). */
+/** Попереднє завантаження озвучки найближчих фраз (лише серверний синтез, з бюджетом запитів; помилки ігноруються). */
 export function prefetchSpeech(texts: (string | null | undefined)[]) {
   if (!serverTts) return;
-  for (const t of texts.slice(0, 6)) if (t && speechText(t)) void serverAudio(t, false).catch(() => {});
+  for (const t of texts.slice(0, 6)) if (t && speechText(t)) void serverAudio(t, false, true).catch(() => {});
 }
 
 let seq = 0;
@@ -220,11 +286,10 @@ export async function speak(text: string, opts: { url?: string | null; slow?: bo
   const my = ++seq;
   const mine = () => my === seq;
   set({ key: k, status: 'loading', issue: null });
-  const started = () => mine() && set({ key: k, status: 'playing', issue: null });
-  try {
-    if (opts.url) {
-      await playElement(assetUrl(opts.url), slow ? 0.8 : 1, started);
-    } else if (serverTts) {
+  const started = (unverified = false) => mine() && set({ key: k, status: 'playing', issue: unverified ? 'unverified_voice' : null });
+  // Серверний синтез → голос пристрою. Якщо сервер був, але не відповів, а голосу пристрою немає, — це мережа.
+  const synthesize = async () => {
+    if (serverTts) {
       let src: string | null = null;
       try {
         src = await serverAudio(text, slow);
@@ -232,10 +297,31 @@ export async function speak(text: string, opts: { url?: string | null; slow?: bo
         src = null;
       }
       if (!mine()) return;
-      if (src) await playElement(src, 1, started);
-      else await speakDevice(text, slow, started, mine).catch((e: Error) => Promise.reject(e.message === 'no_polish_voice' ? new Error('network') : e));
+      if (src) {
+        try {
+          await playElement(src, 1, started);
+          return;
+        } catch (e) {
+          // Автовідтворення заборонене — голос пристрою теж не допоможе; інакше пробуємо пристрій.
+          if ((e as Error).message === 'blocked' || !mine()) throw e;
+        }
+      }
+      await speakDevice(text, slow, started, mine).catch((e: Error) => Promise.reject(e.message === 'no_polish_voice' ? new Error('network') : e));
     } else {
       await speakDevice(text, slow, started, mine);
+    }
+  };
+  try {
+    if (opts.url) {
+      try {
+        await playElement(assetUrl(opts.url), slow ? 0.8 : 1, started);
+      } catch (e) {
+        // Запис не відтворився (немає файлу, мережа, формат) — та сама фраза із синтезу.
+        if ((e as Error).message === 'blocked' || !mine()) throw e;
+        await synthesize();
+      }
+    } else {
+      await synthesize();
     }
     if (mine()) set({ key: null, status: 'idle', issue: null });
   } catch (e) {
