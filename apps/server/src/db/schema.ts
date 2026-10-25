@@ -188,6 +188,9 @@ export const lessons = sqliteTable(
     examples: json<{ pl: string; tr: I18n }[]>('examples').notNull().default([]),
     isPremium: bool('is_premium').notNull().default(false),
     status: text('status', { enum: CONTENT_STATUS }).notNull().default('DRAFT'),
+    /** Кількість вправ уроку. Підтримують тригери на exercises (міграція 0005), seed перераховує;
+     *  getJourney читає це поле замість GROUP BY по всій таблиці вправ. */
+    exerciseCount: integer('exercise_count').notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

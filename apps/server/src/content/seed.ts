@@ -251,6 +251,11 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
       ),
     );
   }
+
+  // Лічильник вправ (lessons.exercise_count) ведуть тригери міграції 0005; перерахунок у кінці seed — страховка
+  // від розбіжностей. Пише лише рядки, де число справді відрізняється.
+  const realCount = '(SELECT count(*) FROM exercises e WHERE e.lesson_id = lessons.id)';
+  out.push(`UPDATE lessons SET exercise_count = ${realCount} WHERE exercise_count <> ${realCount};`);
   return out;
 }
 

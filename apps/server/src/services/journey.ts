@@ -7,10 +7,10 @@
  *    (або всіх уроків міста до розширення курсу — LEGACY_CITY_LESSONS).
  */
 import type { Cefr } from '@polski-go/shared';
-import { and, asc, count, eq, isNotNull } from 'drizzle-orm';
+import { and, asc, eq, isNotNull } from 'drizzle-orm';
 import { db } from '../db';
 import { LEGACY_CITY_LESSONS } from '../content/legacy';
-import { cities, cityRoutes, exercises, lessons, playerProgress, userCities, userLessonProgress } from '../db/schema';
+import { cities, cityRoutes, lessons, playerProgress, userCities, userLessonProgress } from '../db/schema';
 
 export type LessonState = 'locked' | 'available' | 'completed';
 
@@ -58,21 +58,20 @@ export type JourneyCity = {
 };
 
 export async function getJourney(userId: string) {
-  const [cityRows, routeRows, lessonRows, exCounts, userCityRows, lessonProgress, progress] = await db.batch([
+  // Кількість вправ — колонка lessons.exercise_count (тригери, міграція 0005), без GROUP BY по exercises.
+  const [cityRows, routeRows, lessonRows, userCityRows, lessonProgress, progress] = await db.batch([
     db.select().from(cities).where(eq(cities.status, 'PUBLISHED')).orderBy(asc(cities.order)),
     db.select().from(cityRoutes).where(eq(cityRoutes.status, 'PUBLISHED')).orderBy(asc(cityRoutes.order)),
     db.select().from(lessons).where(and(eq(lessons.status, 'PUBLISHED'), isNotNull(lessons.routeId))).orderBy(asc(lessons.order)),
-    db.select({ lessonId: exercises.lessonId, n: count() }).from(exercises).groupBy(exercises.lessonId),
     db.select().from(userCities).where(eq(userCities.userId, userId)),
     db.select().from(userLessonProgress).where(eq(userLessonProgress.userId, userId)),
     db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
   ]);
-  const exN = new Map(exCounts.map((e) => [e.lessonId, e.n]));
   const cityList = cityRows.map((city) => ({
     ...city,
     routes: routeRows
       .filter((r) => r.cityId === city.id)
-      .map((r) => ({ ...r, lessons: lessonRows.filter((l) => l.routeId === r.id).map((l) => ({ ...l, _count: { exercises: exN.get(l.id) ?? 0 } })) })),
+      .map((r) => ({ ...r, lessons: lessonRows.filter((l) => l.routeId === r.id) })),
   }));
   const userCitiesList = userCityRows;
 
@@ -145,7 +144,7 @@ export async function getJourney(userId: string) {
           isPremium: l.isPremium,
           order: l.order,
           routeId: r.id,
-          exerciseCount: l._count.exercises,
+          exerciseCount: l.exerciseCount,
           state: states.get(l.id)!,
           stars: lp.get(l.id)?.stars ?? 0,
           bestScore: lp.get(l.id)?.bestScore ?? 0,

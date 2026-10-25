@@ -36,6 +36,13 @@
       "when": 1792881429496,
       "tag": "0004_missions",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792952405850,
+      "tag": "0005_lesson_exercise_count",
+      "breakpoints": true
     }
   ]
 }
