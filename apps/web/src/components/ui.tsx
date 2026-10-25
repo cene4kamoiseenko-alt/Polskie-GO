@@ -35,7 +35,7 @@ export function Card({ children, className, onClick }: { children: ReactNode; cl
 export function Progress({ value, max = 100, color = 'var(--color-brand)', height = 12, className }: { value: number; max?: number; color?: string; height?: number; className?: string }) {
   const pct = Math.max(0, Math.min(100, max ? (value / max) * 100 : 0));
   return (
-    <div className={cx('w-full overflow-hidden rounded-full', className)} style={{ height, background: 'var(--track)' }} role="progressbar" aria-valuenow={value} aria-valuemax={max}>
+    <div className={cx('w-full overflow-hidden rounded-full', className)} style={{ height, background: 'var(--track)', boxShadow: 'inset 0 1px 3px rgb(0 0 0 / 0.35), 0 0 0 1px var(--border)' }} role="progressbar" aria-valuenow={value} aria-valuemax={max}>
       <motion.div className="relative h-full rounded-full" style={{ background: color }} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ type: 'spring', stiffness: 80, damping: 18 }}>
         <div className="absolute inset-x-2 top-[3px] h-[3px] rounded-full bg-white/40" />
       </motion.div>

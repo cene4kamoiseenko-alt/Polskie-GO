@@ -98,6 +98,8 @@ export type SessionStart = {
   lesson: null | { id: string; slug: string; kind: string; title: I18n; topic: I18n; explanation: I18n; examples: { pl: string; tr: I18n }[]; cefr: Cefr };
   words: { id: string; pl: string; translations: I18n; pronunciation: string | null; emoji: string | null; audioUrl: string | null }[];
   items: PublicItem[];
+  /** Де урок на карті: місто, локація, номер уроку в локації. */
+  place?: null | { citySlug: string; cityName: string; color: string; routeSlug: string; routeTitle: I18n; routeIcon: string; index: number; count: number };
   timeLimitSec: number | null;
   /** Незавершений урок: уже виконані завдання. */
   resume?: { done: string[] } | null;

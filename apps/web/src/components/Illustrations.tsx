@@ -228,7 +228,8 @@ export const Item = memo(function Item({ name, size = 48, className }: { name: I
 
 export type SceneName =
   | 'shop-corner' | 'cafe-pierogi' | 'supermarket' | 'petrol-station' | 'parcel-locker' | 'tram-stop' | 'train-station'
-  | 'milk-bar' | 'bakery' | 'street-food' | 'drugstore' | 'flat' | 'work' | 'clinic';
+  | 'milk-bar' | 'bakery' | 'street-food' | 'drugstore' | 'flat' | 'work' | 'clinic'
+  | 'hotel' | 'university' | 'market-square' | 'restaurant' | 'castle';
 
 type Shop = { sign: string; wall: string; awning: string; accent: string; items: ItemName[] };
 const SHOPS: Record<SceneName, Shop> = {
@@ -246,19 +247,30 @@ const SHOPS: Record<SceneName, Shop> = {
   flat: { sign: 'MIESZKANIE', wall: '#F3EFE7', awning: P.greyD, accent: P.navy, items: ['map', 'parcel', 'speech'] },
   work: { sign: 'BIURO', wall: '#EEF2F6', awning: P.navy, accent: P.skyD, items: ['speech', 'coffee', 'book-clock'] },
   clinic: { sign: 'PRZYCHODNIA', wall: '#EAF8F2', awning: P.green, accent: P.greenD, items: ['speech', 'book-clock', 'card'] },
+  hotel: { sign: 'HOTEL ★★★', wall: '#F4ECFF', awning: P.grape, accent: '#6E45D8', items: ['card', 'backpack', 'coffee'] },
+  university: { sign: 'UNIWERSYTET', wall: '#EEF2F6', awning: P.navy, accent: P.skyD, items: ['book-clock', 'speech', 'map'] },
+  'market-square': { sign: 'RYNEK GŁÓWNY', wall: '#FFF3D6', awning: P.coral, accent: P.coralD, items: ['map', 'paczki', 'coffee'] },
+  restaurant: { sign: 'RESTAURACJA', wall: '#FFF1E0', awning: P.brown, accent: P.brownD, items: ['zurek', 'pierogi', 'dishes'] },
+  castle: { sign: 'WAWEL', wall: '#F7E7D2', awning: P.yellow, accent: P.yellowD, items: ['map', 'beaver-map', 'ticket'] },
 };
 
+/** Предмети у вітрині сцени — щоб кожне завдання уроку мало свою «картинку», а не однаковий фон. */
+export const SCENE_ITEM_POOLS: Record<SceneName, ItemName[]> = Object.fromEntries(
+  (Object.keys(SHOPS) as SceneName[]).map((k) => [k, SHOPS[k].items]),
+) as Record<SceneName, ItemName[]>;
+
 /** Ілюстрована вітрина місії: небо, будинок з навісом і вивіскою, товари у вітрині. */
-export const Scene = memo(function Scene({ name, className, dim }: { name: SceneName | string; className?: string; dim?: boolean }) {
+export const Scene = memo(function Scene({ name, className, dim, items, evening }: { name: SceneName | string; className?: string; dim?: boolean; items?: ItemName[]; evening?: boolean }) {
   const s = SHOPS[name as SceneName] ?? SHOPS['shop-corner'];
-  const id = `sc-${name}`;
+  const shown = items?.length ? items.slice(0, 3) : s.items;
+  const id = `sc-${name}${evening ? '-e' : ''}`;
   return (
     <svg viewBox="0 0 360 170" className={className} preserveAspectRatio="xMidYMid slice" aria-hidden style={dim ? { filter: 'grayscale(0.8) opacity(0.7)' } : undefined}>
       <defs>
-        <linearGradient id={`${id}-sky`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#BFE7FB" /><stop offset="1" stopColor="#EAF7FD" /></linearGradient>
+        <linearGradient id={`${id}-sky`} x1="0" y1="0" x2="0" y2="1">{evening ? <><stop offset="0" stopColor="#1B2E5C" /><stop offset="0.6" stopColor="#5B4B8A" /><stop offset="1" stopColor="#F6A97A" /></> : <><stop offset="0" stopColor="#BFE7FB" /><stop offset="1" stopColor="#EAF7FD" /></>}</linearGradient>
       </defs>
       <rect width="360" height="170" fill={`url(#${id}-sky)`} />
-      <circle cx="312" cy="34" r="16" fill="#FFE08A" />
+      <circle cx="312" cy="34" r="16" fill={evening ? '#FFF1C9' : '#FFE08A'} />
       <path d="M30 38c6-8 20-8 26 0 8-2 14 4 12 10H22c-4-6 2-12 8-10z" fill={P.white} opacity="0.9" />
       <path d="M220 26c5-6 16-6 20 0 6-1 10 3 9 8h-33c-3-4 0-9 4-8z" fill={P.white} opacity="0.8" />
       {/* сусідні будинки */}
@@ -276,8 +288,8 @@ export const Scene = memo(function Scene({ name, className, dim }: { name: Scene
       {[0, 1, 2, 3, 4, 5, 6].map((i) => <path key={i} d={`M${74 + i * 35.4} 100a17.7 8 0 0 0 35.4 0`} fill={s.awning} stroke={INK} strokeWidth={1.8} />)}
       {/* вітрина з товарами */}
       <rect x="76" y="112" width="140" height="44" rx="4" fill="#DDF3FD" stroke={INK} strokeWidth={SW} />
-      {s.items.map((it, i) => (
-        <g key={it} transform={`translate(${84 + i * 44} 114) scale(0.62)`}>{ITEMS[it]}</g>
+      {shown.map((it, i) => (
+        <g key={`${it}-${i}`} transform={`translate(${84 + i * 44} 114) scale(0.62)`}>{ITEMS[it]}</g>
       ))}
       {/* двері */}
       <rect x="230" y="108" width="54" height="52" rx="4" fill={s.accent} stroke={INK} strokeWidth={SW} />

@@ -124,6 +124,8 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
       ),
     );
     const lessonId = ref('lessons', { slug: l.slug });
+    // Урок, що лишився без локації (наприклад, локацію додали пізніше), прив'язуємо до неї.
+    if (routeSlug) out.push(`UPDATE lessons SET route_id = ${ref('city_routes', { slug: routeSlug }).sql} WHERE slug = ${lit(l.slug)} AND route_id IS NULL;`);
     for (const [i, ex] of l.exercises.entries()) {
       out.push(
         insert(
@@ -148,17 +150,22 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   for (const content of CITY_CONTENT) {
     const cityId = ref('cities', { slug: content.city });
     let regular = 0;
+    // Порядок локацій визначає код (нові локації можуть з'явитися на початку міста):
+    // тимчасово зсуваємо порядок (унікальний індекс міста), вставляємо нові, потім ставимо остаточний.
+    out.push(`UPDATE city_routes SET "order" = "order" + 2000 WHERE city_id = ${cityId.sql};`);
     for (const [ri, r] of content.routes.entries()) {
       out.push(
         insert('city_routes', { id: `r_${r.slug}`, city_id: cityId, slug: r.slug, order: ri + 1, title: r.title, description: r.description, icon: r.icon, status: 'PUBLISHED' }, ['slug'], force),
       );
+      out.push(`UPDATE city_routes SET "order" = ${ri + 1} WHERE slug = ${lit(r.slug)};`);
       for (const [li, l] of r.lessons.entries()) {
         lessonSql(l, li + 1, r.slug);
         if ((l.kind ?? 'LESSON') === 'LESSON') regular++;
       }
     }
     // Квиток до наступного міста: пройти всі звичайні уроки міста + іспит.
-    out.push(`UPDATE cities SET ticket_lessons = ${regular} WHERE slug = ${lit(content.city)}${force ? '' : ' AND ticket_lessons = 0'};`);
+    // Без force значення з адмінки не зменшуємо, але нові уроки міста теж мають рахуватися.
+    out.push(`UPDATE cities SET ticket_lessons = ${regular} WHERE slug = ${lit(content.city)}${force ? '' : ` AND ticket_lessons < ${regular}`};`);
   }
   lessonSql(PLACEMENT, 0, null);
   lessonSql(EXAM_A1, 0, null);

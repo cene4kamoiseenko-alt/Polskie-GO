@@ -14,6 +14,9 @@ import { Badge, Stamp } from '../components/Illustrations';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
 import { ExerciseView, correctAnswerText, instructionKey, type Payload } from '../exercises/Exercises';
+import { LessonStage, sceneForRoute, type StageMood } from '../components/LessonStage';
+import { Scene } from '../components/Illustrations';
+import { isMissionSlug } from '@polski-go/shared';
 
 type Phase = 'loading' | 'intro' | 'play' | 'finishing' | 'result' | 'error';
 const NO_RETRY = new Set(['DIALOGUE', 'SITUATION', 'PRONUNCIATION']);
@@ -41,6 +44,7 @@ export default function LessonScreen() {
   const [finish, setFinish] = useState<FinishResult | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [resumed, setResumed] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
   const started = useRef(false);
 
   useEffect(() => {
@@ -130,6 +134,7 @@ export default function LessonScreen() {
       } else if (!r.skipped) {
         sfx.wrong();
         haptic.error();
+        if (!r.retry) setMistakes((n) => n + 1);
         // Помилку повторимо в кінці уроку (без впливу на оцінку).
         if (!r.retry && !NO_RETRY.has(item.type) && !speed && !retried.has(item.key)) {
           setQueue((q) => [...q, item.key]);
@@ -179,13 +184,28 @@ export default function LessonScreen() {
       <div className="flex min-h-[100dvh] flex-col px-4 pb-6 pt-3">
         <TopClose onClose={onQuit} />
         <div className="flex-1 space-y-4 overflow-y-auto">
-          <div className="flex items-center gap-3">
-            <Beaver mood="think" size={96} outfit={{ ...me?.outfit.wear, GLASSES: 'glasses-round' }} />
-            <div>
-              <div className="chip mb-1 text-xs">{l.cefr} · <Icon name={l.kind === 'BOSS' ? 'trophy' : 'book'} size={14} /></div>
-              <h1 className="text-2xl font-black leading-tight">{tr(l.title)}</h1>
-              <p className="muted font-bold">{tr(l.topic)}</p>
+          <div className="lesson-stage relative h-[180px] overflow-hidden rounded-[26px]">
+            <Scene name={sceneForRoute(session.place?.routeSlug) ?? 'flat'} evening={l.kind === 'BOSS' || isMissionSlug(l.slug)} className="absolute inset-0 h-full w-full" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#07182c]/80 via-transparent to-transparent" />
+            {session.place && (
+              <div className="absolute left-3 top-3 rounded-full bg-[#07182c]/75 px-3 py-1 text-[12px] font-black uppercase tracking-wide text-sky backdrop-blur-sm">
+                {session.place.cityName} · {tr(session.place.routeTitle)}
+              </div>
+            )}
+            <div className="absolute bottom-0 left-1 -mb-3"><Beaver mood="explain" size={124} outfit={me?.outfit.wear} /></div>
+          </div>
+          <div>
+            <div className="mb-1.5 flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-sky px-2.5 py-0.5 text-[12px] font-black text-[#07182c]">{l.cefr}</span>
+              {isMissionSlug(l.slug) ? (
+                <span className="rounded-full bg-xp px-2.5 py-0.5 text-[12px] font-black text-[#5a3d00]">{t('stage_mission')}</span>
+              ) : session.place ? (
+                <span className="rounded-full bg-elev px-2.5 py-0.5 text-[12px] font-black">{t('stage_lesson_n', { n: session.place.index, total: session.place.count })}</span>
+              ) : null}
+              <span className="rounded-full bg-elev px-2.5 py-0.5 text-[12px] font-black">{t('stage_tasks_n', { n: session.items.length })}</span>
             </div>
+            <h1 className="text-[26px] font-black leading-tight">{tr(l.title)}</h1>
+            <p className="muted font-bold">{tr(l.topic)}</p>
           </div>
           <div className="card p-4 text-[16px] font-semibold leading-relaxed">
             <RichText text={tr(l.explanation)} />
@@ -253,15 +273,30 @@ export default function LessonScreen() {
   const isDialogue = item.type === 'DIALOGUE' || item.type === 'SITUATION';
   const praise = t('lesson_correct_alt').split('|');
   const caText = result ? correctAnswerText(item, result, tr) : null;
+  const stageMood: StageMood = result ? (result.correct ? 'correct' : result.skipped ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
       <div className="flex items-center gap-3 px-4 pt-3">
-        <button onClick={onQuit} className="text-2xl font-black muted" aria-label={t('close')}>
-          ✕
+        <button onClick={onQuit} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev text-[var(--text-muted)]" aria-label={t('close')}>
+          <Icon name="x" size={20} />
         </button>
-        <Progress value={firstDone} max={session.items.length} height={14} />
-        {timeLeft !== null ? <span className="chip font-black"><Icon name="clock" size={16} /> {timeLeft}</span> : <span className="text-sm font-black muted">{Math.min(firstDone + 1, session.items.length)}/{session.items.length}</span>}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide text-sky">
+            <span className="truncate">{session.place ? `${session.place.cityName} · ${tr(session.place.routeTitle)}` : t('stage_practice')}</span>
+            {timeLeft !== null ? (
+              <span className="flex shrink-0 items-center gap-1 text-xp"><Icon name="clock" size={13} /> {timeLeft}</span>
+            ) : (
+              <span className="shrink-0 text-[var(--text)]">{Math.min(firstDone + 1, session.items.length)}/{session.items.length}</span>
+            )}
+          </div>
+          <div className="mb-1 truncate text-[15px] font-black leading-tight">{session.lesson ? tr(session.lesson.title) : t(instructionKey(item))}</div>
+          <Progress value={firstDone} max={session.items.length} height={12} color="linear-gradient(90deg, #36B9FF, #25D79B)" />
+        </div>
+        <div className={cx('flex shrink-0 flex-col items-center rounded-2xl px-2 py-1', mistakes ? 'bg-coral/15 text-coral' : 'bg-elev text-[var(--text-muted)]')} title={t('stage_mistakes')} aria-label={`${t('stage_mistakes')}: ${mistakes}`}>
+          <Icon name="alert" size={16} />
+          <span className="text-[13px] font-black leading-none">{mistakes}</span>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-48 pt-4">
@@ -273,7 +308,18 @@ export default function LessonScreen() {
         {isRetry && <div className="mb-2 text-center text-sm font-black text-coral"><Icon name="refresh" size={16} className="mr-1 inline" />{t('lesson_retry_round')}</div>}
         <AnimatePresence mode="wait">
           <motion.div key={`${item.key}-${pos}`} initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.2 }}>
-            <h2 className="mb-4 text-xl font-black">{t(instructionKey(item))}</h2>
+            <LessonStage
+              item={item}
+              index={pos}
+              routeSlug={session.place?.routeSlug}
+              citySlug={session.place?.citySlug}
+              color={session.place?.color}
+              evening={session.lesson?.kind === 'BOSS' || isMissionSlug(session.lesson?.slug)}
+              mood={stageMood}
+              instruction={t(instructionKey(item))}
+              outfit={me?.outfit.wear}
+            />
+            <div className="h-4" />
             <ExerciseView
               item={item}
               result={result}
@@ -298,12 +344,19 @@ export default function LessonScreen() {
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
-              className={cx('rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'bg-[#d7f5e3] dark:bg-[#1c4430]' : result.skipped ? 'bg-muted' : 'bg-[#ffe1e1] dark:bg-[#4a2424]')}
+              className={cx('feedback-panel rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : result.skipped ? 'is-skipped' : 'is-wrong')}
             >
               <div className="flex items-start gap-3">
-                <Beaver mood={result.correct ? 'cheer' : result.skipped ? 'think' : 'sad'} size={64} outfit={me?.outfit.wear} animate={false} />
+                <motion.span
+                  initial={{ scale: 0, rotate: -30 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-[0_4px_0_rgb(0_0_0/0.25)]', result.correct ? 'bg-brand' : result.skipped ? 'bg-sky' : 'bg-coral')}
+                >
+                  <Icon name={result.correct ? 'check' : result.skipped ? 'arrow-right' : 'x'} size={26} />
+                </motion.span>
                 <div className="min-w-0 flex-1">
-                  <div className={cx('text-xl font-black', result.correct ? 'text-brand-dark' : 'text-coral-dark')}>
+                  <div className={cx('text-xl font-black', result.correct ? 'text-brand' : result.skipped ? 'text-sky' : 'text-coral')}>
                     {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? t('lesson_skipped_ok') : t('lesson_wrong')}
                     {result.correct && !result.retry && session.lesson && me?.rewards && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-[#5a3d00]">
@@ -326,7 +379,7 @@ export default function LessonScreen() {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className={cx('px-4 pb-3 pt-3', result && !speed ? (result.correct ? 'bg-[#d7f5e3] dark:bg-[#1c4430]' : result.skipped ? 'bg-muted' : 'bg-[#ffe1e1] dark:bg-[#4a2424]') : 'bg-[var(--bg)]')}>
+        <div className={cx('px-4 pb-3 pt-3', result && !speed ? cx('feedback-panel', result.correct ? 'is-correct' : result.skipped ? 'is-skipped' : 'is-wrong') : 'bg-[var(--bg)]')}>
           {isDialogue ? (
             <button className="btn btn-primary w-full text-lg" disabled={!dialogueDone} onClick={next}>
               {t('next')}
@@ -398,7 +451,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
   const journey = useJourney();
   const [levelModal, setLevelModal] = useState(!!r.levelUp);
   const boss = session.lesson?.kind === 'BOSS';
-  const passRatio = boss || r.mode === 'EXAM' ? 70 : 50;
+  const passRatio = boss || r.mode === 'EXAM' || isMissionSlug(session.lesson?.slug) ? 70 : 50;
   const title = !r.passed ? t('res_title_fail') : r.perfect ? t('res_title_perfect') : t('res_title_pass');
   const mins = Math.floor(r.durationSec / 60);
   const secs = String(r.durationSec % 60).padStart(2, '0');

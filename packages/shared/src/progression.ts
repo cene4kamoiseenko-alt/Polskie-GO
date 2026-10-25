@@ -80,6 +80,8 @@ export const EXAM_PASS_RATIO = 0.7;
 export const LESSON_PASS_RATIO = 0.5;
 /** Мінімальний результат фінального іспиту міста (бос). */
 export const BOSS_PASS_RATIO = 0.7;
+/** Фінальна місія локації міста (slug закінчується на `-misja`): поріг як у боса, нагорода як за урок. */
+export const isMissionSlug = (slug: string | null | undefined) => !!slug && slug.endsWith('-misja');
 
 /** Розрахунок нагороди за завершення уроку. Чиста функція — легко тестувати. */
 export function lessonReward(input: {

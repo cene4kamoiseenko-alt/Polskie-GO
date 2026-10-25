@@ -4,12 +4,14 @@ import {
   translate, grammar, dictation, build, wordOrder, match, speak, dialogue,
 } from './builders';
 import type { CityContent } from './types';
+import { KRK_DWORZEC } from './krakow-dworzec';
 
 const KASIA = { name: 'Kasia', emoji: '👩🏻‍🦰', role: t('подруга з Кракова', 'подруга из Кракова', 'a friend from Kraków') };
 
 export const KRAKOW: CityContent = {
   city: 'krakow',
   routes: [
+    KRK_DWORZEC,
     {
       slug: 'krk-rodzina',
       title: t('Сім\'я', 'Семья', 'Family'),

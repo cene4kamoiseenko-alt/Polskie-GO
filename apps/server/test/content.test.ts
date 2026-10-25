@@ -9,10 +9,11 @@ import { correctAnswers } from './helpers';
 const lessons = [...CITY_CONTENT.flatMap((c) => c.routes.flatMap((r) => r.lessons)), PLACEMENT, EXAM_A1];
 
 describe('Навчальний контент', () => {
-  it('кожен урок має 8–15 вправ і пояснення трьома мовами', () => {
+  it('кожен урок має 8–20 вправ (місії й іспити до 30) і пояснення трьома мовами', () => {
     for (const l of lessons) {
+      const long = l.slug.endsWith('-misja') || l.kind === 'BOSS' || l.kind === 'EXAM' || l.kind === 'PLACEMENT';
       expect(l.exercises.length, l.slug).toBeGreaterThanOrEqual(8);
-      expect(l.exercises.length, l.slug).toBeLessThanOrEqual(18);
+      expect(l.exercises.length, l.slug).toBeLessThanOrEqual(long ? 30 : 20);
       expect(l.explanation.uk && l.explanation.ru && l.explanation.en, l.slug).toBeTruthy();
     }
   });
@@ -83,5 +84,40 @@ describe('Żywy polski', () => {
     }
     // Грубі вирази позначені саме так.
     expect(SLANG.find((x) => x.id === 'mam-wywalone')!.register).toBe('rude');
+  });
+});
+
+import { KRK_DWORZEC } from '../src/content/krakow-dworzec';
+
+describe('Локації міст (3.0)', () => {
+  const LOCATIONS = [KRK_DWORZEC];
+  it('у локації 3–6 уроків, звичайний урок 15–20 завдань, місія 20–30; щонайменше 5 різних механік', () => {
+    for (const loc of LOCATIONS) {
+      expect(loc.lessons.length, loc.slug).toBeGreaterThanOrEqual(3);
+      expect(loc.lessons.length, loc.slug).toBeLessThanOrEqual(6);
+      expect(loc.lessons.at(-1)!.slug.endsWith('-misja'), `${loc.slug}: остання — місія`).toBe(true);
+      for (const l of loc.lessons) {
+        const mission = l.slug.endsWith('-misja');
+        expect(l.exercises.length, l.slug).toBeGreaterThanOrEqual(mission ? 20 : 15);
+        expect(l.exercises.length, l.slug).toBeLessThanOrEqual(mission ? 30 : 20);
+        // «Механіка» = тип вправи; WORD_TRANSLATION з картинками рахуємо окремо.
+        const mech = new Set(l.exercises.map((e) => (e.type === 'WORD_TRANSLATION' && (e.data.options as { image?: string }[])[0]?.image ? 'PICTURE_CHOICE' : e.type)));
+        expect(mech.size, `${l.slug}: ${[...mech].join(',')}`).toBeGreaterThanOrEqual(mission ? 8 : 5);
+      }
+    }
+  });
+
+  it('у місті немає однакових завдань', () => {
+    for (const c of CITY_CONTENT) {
+      const seen = new Map<string, string>();
+      for (const l of c.routes.flatMap((r) => r.lessons)) {
+        for (const ex of l.exercises) {
+          if (ex.type === 'MATCH_PAIRS') continue; // ідентифікатори пар унікальні, порівнюємо лише решту
+          const sig = `${ex.type}|${JSON.stringify(ex.data)}`;
+          expect(seen.get(sig), `${l.slug} повторює ${seen.get(sig)}: ${sig.slice(0, 120)}`).toBeUndefined();
+          seen.set(sig, l.slug);
+        }
+      }
+    }
   });
 });

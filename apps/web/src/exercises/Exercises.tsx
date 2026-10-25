@@ -10,7 +10,6 @@ import type { AnswerResult, PublicItem } from '../lib/types';
 import { assetUrl } from '../lib/api';
 import { recognizePolish, sfx, speak, speechRecognitionAvailable } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { Beaver } from '../components/Beaver';
 import { Icon } from '../components/Icon';
 import { SpeakButton, cx } from '../components/ui';
 
@@ -71,16 +70,9 @@ function optionMotion(st: string | undefined) {
 }
 
 /** Бобек «каже» завдання: репліка-бульбашка поруч із маскотом, настрій реагує на відповідь. */
-function BeaverSays({ mood, children }: { mood: 'think' | 'cheer' | 'sad'; children: ReactNode }) {
-  return (
-    <div className="flex items-end gap-1">
-      <div className="shrink-0"><Beaver mood={mood} size={92} /></div>
-      <div className="card relative mb-8 flex min-w-0 flex-1 flex-wrap items-center gap-3 rounded-bl-md p-4">
-        <span className="absolute -left-2 bottom-3 h-4 w-4 rotate-45 border-b border-l border-[var(--border)] bg-elev" aria-hidden />
-        {children}
-      </div>
-    </div>
-  );
+/** Картка-підказка завдання (бобер-супутник реагує у сцені над завданням). */
+function PromptCard({ children }: { children: ReactNode }) {
+  return <div className="card prompt-card flex min-w-0 flex-wrap items-center justify-center gap-3 p-4">{children}</div>;
 }
 
 function ChoiceExercise({ item, result, onChange }: ExProps) {
@@ -99,7 +91,6 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
     onChange({ optionId: id });
     if (typeof text === 'string' && item.type !== 'FIND_ERROR' && item.type !== 'READING') speak(text);
   };
-  const mood = result ? (result.correct ? 'cheer' : 'sad') : 'think';
   const state = (id: string) => {
     if (!result) return sel === id ? 'selected' : undefined;
     if (id === result.correctAnswer) return 'correct';
@@ -176,10 +167,10 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
         </div>
       )}
       {item.type === 'LISTENING' && data.audioText && (
-        <BeaverSays mood={mood}>
+        <PromptCard>
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" />
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
-        </BeaverSays>
+        </PromptCard>
       )}
       {item.type === 'READING' && data.passage && (
         <div className="card p-4 text-[17px] font-semibold leading-relaxed">
@@ -191,15 +182,15 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
       )}
       {data.question && <p className="text-center text-lg font-black">{tr(data.question)}</p>}
       {data.pl && item.type === 'WORD_TRANSLATION' && (
-        <BeaverSays mood={mood}>
+        <PromptCard>
           <SpeakButton text={data.audioText ?? data.pl} url={data.audioUrl} />
           <span className="text-[28px] font-black leading-tight">{data.pl}</span>
-        </BeaverSays>
+        </PromptCard>
       )}
       {!data.pl && item.type === 'WORD_TRANSLATION' && data.translation && (
-        <BeaverSays mood={mood}>
+        <PromptCard>
           <span className="text-[26px] font-black leading-tight">{tr(data.translation)}</span>
-        </BeaverSays>
+        </PromptCard>
       )}
       {item.type === 'FILL_GAP' && data.pl && (
         <div className="card p-4 text-center">
@@ -259,10 +250,7 @@ function TextExercise({ item, result, onChange }: ExProps) {
   return (
     <div className="space-y-4">
       {item.type === 'SENTENCE_TRANSLATION' && data.source && (
-        <div className="flex items-start gap-3">
-          <Beaver mood="think" size={72} animate={false} />
-          <div className="card flex-1 p-4 text-xl font-black">{tr(data.source)}</div>
-        </div>
+        <div className="card prompt-card p-4 text-center text-xl font-black">{tr(data.source)}</div>
       )}
       {item.type === 'GRAMMAR' && data.pl && (
         <div className="card p-4 text-center">
@@ -321,10 +309,7 @@ function OrderExercise({ item, result, onChange }: ExProps) {
   return (
     <div className="space-y-5">
       {data.translation && (
-        <div className="flex items-center gap-3">
-          <Beaver mood="happy" size={72} animate={false} />
-          <div className="card flex-1 p-4 text-xl font-black">{tr(data.translation)}</div>
-        </div>
+        <div className="card prompt-card p-4 text-center text-xl font-black">{tr(data.translation)}</div>
       )}
       {/* Спільний layoutId: слово плавно переїжджає з банку в речення і назад. */}
       <LayoutGroup id={item.key}>
@@ -481,8 +466,7 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <div className="flex w-full items-end gap-1">
-        <div className="shrink-0"><Beaver mood={listening ? 'mic' : result ? (result.correct ? 'cheer' : 'sad') : 'mic'} size={92} /></div>
-        <div className="card relative mb-8 flex min-w-0 flex-1 items-center gap-3 rounded-bl-md p-4 text-left">
+        <div className="card prompt-card relative flex min-w-0 flex-1 items-center gap-3 p-4 text-left">
           <div className="flex shrink-0 flex-col gap-1.5">
             <SpeakButton text={data.text} url={data.audioUrl} />
             <SpeakButton text={data.text} url={data.audioUrl} size="sm" slow />

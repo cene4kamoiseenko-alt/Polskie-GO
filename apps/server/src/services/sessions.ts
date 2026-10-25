@@ -6,7 +6,7 @@
  */
 import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, notInArray, or, sql, type AnyColumn } from 'drizzle-orm';
 import {
-  BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO,
+  BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO, isMissionSlug,
   checkAnswer, dayDiff, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
   seededRandom, shuffle, toPublicItem,
   type AnswerPayload, type Cefr, type CheckResult, type ExerciseItem, type ExerciseType, type I18n,
@@ -177,6 +177,27 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
   return shuffle(items, rnd);
 }
 
+/** Де урок на карті: місто, локація (маршрут) і номер уроку в ній — для шапки екрана вправ. */
+async function lessonPlace(lesson: typeof lessons.$inferSelect) {
+  if (!lesson.routeId) return null;
+  const [rows, siblings] = await Promise.all([
+    db.select({ route: cityRoutes, city: cities }).from(cityRoutes).innerJoin(cities, eq(cities.id, cityRoutes.cityId)).where(eq(cityRoutes.id, lesson.routeId)),
+    db.select({ id: lessons.id }).from(lessons).where(and(eq(lessons.routeId, lesson.routeId), eq(lessons.status, 'PUBLISHED'))).orderBy(asc(lessons.order)),
+  ]);
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    citySlug: r.city.slug,
+    cityName: r.city.namePl,
+    color: r.city.color,
+    routeSlug: r.route.slug,
+    routeTitle: r.route.title,
+    routeIcon: r.route.icon,
+    index: siblings.findIndex((x) => x.id === lesson.id) + 1,
+    count: siblings.length,
+  };
+}
+
 export async function startSession(userId: string, input: { lessonId?: string; mode?: Mode; topic?: string }) {
   const mode: Mode = input.lessonId ? 'LESSON' : (input.mode ?? 'REVIEW');
   const seed = Math.floor(Math.random() * 2 ** 31);
@@ -186,6 +207,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
   let lesson: typeof lessons.$inferSelect | undefined;
   let realMode = mode;
   let words: unknown[] = [];
+  let place: Awaited<ReturnType<typeof lessonPlace>> = null;
 
   if (input.lessonId) {
     lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, input.lessonId) });
@@ -196,7 +218,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
     if (access === 'not_found') throw notFound('lesson_not_found');
     if (lesson.kind === 'EXAM') realMode = 'EXAM';
     if (lesson.kind === 'PLACEMENT') realMode = 'PLACEMENT';
-    const [exRows, lw] = await Promise.all([
+    const [exRows, lw, lp] = await Promise.all([
       db.select().from(exercises).where(eq(exercises.lessonId, lesson.id)).orderBy(asc(exercises.order)),
       db
         .select({ id: vocabularyEntries.id, pl: vocabularyEntries.pl, translations: vocabularyEntries.translations, pronunciation: vocabularyEntries.pronunciation, emoji: vocabularyEntries.emoji, audioUrl: vocabularyEntries.audioUrl })
@@ -204,9 +226,11 @@ export async function startSession(userId: string, input: { lessonId?: string; m
         .innerJoin(vocabularyEntries, eq(vocabularyEntries.id, lessonWords.entryId))
         .where(eq(lessonWords.lessonId, lesson.id))
         .orderBy(asc(lessonWords.order)),
+      lessonPlace(lesson),
     ]);
     items = lessonToItems(exRows);
     words = lw;
+    place = lp;
 
     // Незавершений урок (у межах TTL сесії) продовжується з того самого завдання.
     if (realMode === 'LESSON') {
@@ -226,6 +250,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
           mode: realMode,
           lesson: { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr },
           words,
+          place,
           items: prevItems.map((i) => toPublicItem(i, prnd)),
           timeLimitSec: null,
           resume: { done },
@@ -255,6 +280,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
       ? { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr }
       : null,
     words,
+    place,
     items: items.map((i) => toPublicItem(i, prnd)),
     timeLimitSec: realMode === 'SPEED' ? 90 : null,
     resume: null as null | { done: string[] },
@@ -440,7 +466,7 @@ export async function finishSession(userId: string, sessionId: string) {
     const { lesson, cityId } = lessonRow[0];
     const ulp = ulpRow[0];
     const isBoss = lesson.kind === 'BOSS';
-    passed = accuracy >= (isBoss ? BOSS_PASS_RATIO : LESSON_PASS_RATIO);
+    passed = accuracy >= (isBoss || isMissionSlug(lesson.slug) ? BOSS_PASS_RATIO : LESSON_PASS_RATIO);
     const firstCompletion = !ulp?.firstCompletedAt;
     const replaysToday = firstCompletion
       ? 0

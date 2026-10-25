@@ -6,28 +6,51 @@
 @theme {
   --color-lavender: #9568f5;
   --color-navy: #22364a;
-  --font-sans: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Nunito', 'Inter', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-brand: #27cf91;
+  --color-brand: #25d79b;
   --color-brand-dark: #1fb57e;
   --color-brand-light: #dcf6ea;
   --color-cream: #fff9f0;
-  --color-xp: #ffc44d;
+  --color-xp: #ffc857;
   --color-xp-dark: #e39a14;
-  --color-sky: #80d4ff;
-  --color-sky-dark: #2c9ad6;
+  --color-sky: #36b9ff;
+  --color-sky-dark: #1d8fd6;
   --color-ink: #22364a;
-  --color-coral: #ff4e5b;
+  --color-coral: #ff5265;
   --color-coral-dark: #d23540;
-  --color-grape: #9568f5;
-  --color-pl-red: #ff4e5b;
+  --color-grape: #9d69ff;
+  --color-pl-red: #ff5265;
 
   --radius-card: 22px;
   --shadow-card: 0 10px 24px -12px rgb(0 0 0 / 0.7);
 }
 
-/* POLSKI GO — основна світла яскрава тема (кремовий фон, білі картки, пастельні плитки) */
+/* POLSKI GO — основна темно-синя ігрова тема (GLOBAL REDESIGN 2.0 / 3.0) */
 :root,
+.dark {
+  --bg: #07182c;
+  --bg-2: #0d2340;
+  --bg-elev: #102642;
+  --bg-elev-2: #193653;
+  --bg-muted: #15304d;
+  --text: #f8faff;
+  --text-muted: #a9bbd0;
+  --border: #23466b;
+  --track: #0b1f37;
+  --cream: #fff1da;
+  --cream-2: #ffe6bf;
+  --on-cream: #1e3346;
+  --on-cream-muted: #6f8293;
+  --map-land: #8fd16e;
+  --map-land-2: #6fbf55;
+  --map-sea: #3f9fd8;
+  --glow-sky: 0 0 0 1px rgb(54 185 255 / 0.35), 0 0 18px -2px rgb(54 185 255 / 0.45);
+  --shadow-deep: 0 12px 26px -14px rgb(0 0 0 / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  color-scheme: dark;
+}
+
+/* Світла тема — за вибором у налаштуваннях */
 .light {
   --bg: #fff7ec;
   --bg-2: #ffefd9;
@@ -45,30 +68,9 @@
   --map-land: #bfe8a9;
   --map-land-2: #a6dc8c;
   --map-sea: #8fd3f5;
+  --glow-sky: 0 0 0 1px rgb(54 185 255 / 0.25);
   --shadow-deep: 0 8px 22px -8px rgb(31 51 70 / 0.22), 0 2px 4px rgb(31 51 70 / 0.05);
   color-scheme: light;
-}
-
-.dark {
-  /* Темна тема — за вибором у налаштуваннях */
-  --bg: #0c1b29;
-  --bg-2: #10263a;
-  --bg-elev: #162b3b;
-  --bg-elev-2: #1c3549;
-  --bg-muted: #20394c;
-  --text: #ffffff;
-  --text-muted: #a4b9c8;
-  --border: #25435a;
-  --track: #233e53;
-  --cream: #fff1da;
-  --cream-2: #ffe6bf;
-  --on-cream: #1e3346;
-  --on-cream-muted: #6f8293;
-  --map-land: #8fd16e;
-  --map-land-2: #6fbf55;
-  --map-sea: #3f9fd8;
-  --shadow-deep: 0 10px 24px -12px rgb(0 0 0 / 0.7), 0 2px 0 rgb(255 255 255 / 0.04) inset;
-  color-scheme: dark;
 }
 
 html,
@@ -202,27 +204,59 @@ textarea {
   .btn-ghost:active:not(:disabled) {
     box-shadow: 0 1px 0 var(--border);
   }
+  /* Картка відповіді — об'ємна ігрова плитка */
   .option {
-    @apply w-full rounded-2xl border-2 px-4 py-3 text-left text-[17px] font-bold transition-colors;
-    min-height: 56px;
-    background: var(--bg-elev-2);
+    @apply w-full rounded-2xl border-2 px-4 py-3 text-left text-[17px] font-extrabold transition-[background,border-color,box-shadow];
+    min-height: 58px;
+    background: linear-gradient(180deg, var(--bg-elev-2) 0%, var(--bg-elev) 100%);
     border-color: var(--border);
-    box-shadow: 0 4px 0 rgb(0 0 0 / 0.35), 0 6px 14px -8px rgb(0 0 0 / 0.4);
+    box-shadow: 0 5px 0 rgb(3 12 26 / 0.55), 0 10px 18px -10px rgb(0 0 0 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.07);
+  }
+  .option:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 rgb(3 12 26 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.07);
   }
   .option[data-state='selected'] {
     border-color: var(--color-sky);
-    background: color-mix(in srgb, var(--color-sky) 14%, var(--bg-elev));
-    box-shadow: 0 3px 0 var(--color-sky-dark);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-sky) 24%, var(--bg-elev-2)) 0%, color-mix(in srgb, var(--color-sky) 12%, var(--bg-elev)) 100%);
+    box-shadow: 0 4px 0 var(--color-sky-dark), 0 0 22px -6px rgb(54 185 255 / 0.65);
   }
   .option[data-state='correct'] {
     border-color: var(--color-brand);
-    background: color-mix(in srgb, var(--color-brand) 18%, var(--bg-elev));
-    box-shadow: 0 3px 0 var(--color-brand-dark);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-brand) 26%, var(--bg-elev-2)) 0%, color-mix(in srgb, var(--color-brand) 14%, var(--bg-elev)) 100%);
+    box-shadow: 0 4px 0 #129468, 0 0 22px -6px rgb(37 215 155 / 0.65);
   }
   .option[data-state='wrong'] {
     border-color: var(--color-coral);
-    background: color-mix(in srgb, var(--color-coral) 16%, var(--bg-elev));
-    box-shadow: 0 3px 0 var(--color-coral-dark);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-coral) 24%, var(--bg-elev-2)) 0%, color-mix(in srgb, var(--color-coral) 12%, var(--bg-elev)) 100%);
+    box-shadow: 0 4px 0 var(--color-coral-dark), 0 0 22px -6px rgb(255 82 101 / 0.6);
+  }
+  /* Сцена уроку — рамка з підсвіткою, як у референсах */
+  .lesson-stage {
+    border: 2px solid rgb(54 185 255 / 0.35);
+    box-shadow: 0 14px 28px -16px rgb(0 0 0 / 0.9), 0 0 24px -10px rgb(54 185 255 / 0.5);
+  }
+  .prompt-card {
+    border-color: rgb(54 185 255 / 0.28);
+    box-shadow: var(--shadow-deep), 0 0 20px -10px rgb(54 185 255 / 0.55);
+  }
+  /* Панель результату відповіді */
+  .feedback-panel.is-correct {
+    background: linear-gradient(180deg, #0f3b3a 0%, #0c2f33 100%);
+    box-shadow: inset 0 2px 0 rgb(37 215 155 / 0.6);
+  }
+  .feedback-panel.is-wrong {
+    background: linear-gradient(180deg, #3d1830 0%, #2c1428 100%);
+    box-shadow: inset 0 2px 0 rgb(255 82 101 / 0.6);
+  }
+  .feedback-panel.is-skipped {
+    background: var(--bg-elev-2);
+  }
+  .light .feedback-panel.is-correct {
+    background: #d7f5e3;
+  }
+  .light .feedback-panel.is-wrong {
+    background: #ffe1e1;
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold;

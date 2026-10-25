@@ -6,6 +6,7 @@ import type { Cefr, I18n } from '@polski-go/shared';
 import { t } from './builders';
 import { LIFE_VOCAB } from './vocab-life';
 import { EDU_VOCAB } from './vocab-education';
+import { KRAKOW_VOCAB } from './vocab-krakow';
 
 export type VocabSeed = {
   pl: string;
@@ -328,4 +329,5 @@ export const VOCAB: VocabSeed[] = [
   v('certyfikat', 'noun', t('сертифікат', 'сертификат', 'certificate'), 'цертифікат', 'B1', ['exam_b1', 'documents'], '🎓'),
   ...LIFE_VOCAB,
   ...EDU_VOCAB,
+  ...KRAKOW_VOCAB,
 ];
