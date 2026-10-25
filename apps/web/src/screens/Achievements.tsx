@@ -1,6 +1,6 @@
 /** Галерея досягнень: унікальні значки, точні умови, прогрес і дата отримання. */
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion } from '../lib/motion';
 import { useState } from 'react';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';

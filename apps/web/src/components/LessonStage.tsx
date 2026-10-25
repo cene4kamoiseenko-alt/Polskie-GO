@@ -3,7 +3,7 @@
  * предмети у вітрині змінюються від завдання до завдання, бобер-супутник реагує на відповіді,
  * а в бульбашці — інструкція до завдання. Для діалогів праворуч з'являється співрозмовник.
  */
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { memo } from 'react';
 import { NpcFace } from './pictograms/Pictogram';
 import { Beaver, type BeaverMood, type BeaverOutfit } from './Beaver';

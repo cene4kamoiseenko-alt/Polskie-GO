@@ -2,7 +2,7 @@
  * Рендерери вправ. Відповіді перевіряє сервер; компоненти лише збирають відповідь користувача
  * і показують результат перевірки.
  */
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';

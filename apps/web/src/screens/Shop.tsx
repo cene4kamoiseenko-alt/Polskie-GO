@@ -4,7 +4,7 @@
  * картки костюмів зі сценою, описом, умовою отримання і кнопкою «Приміряти».
  * Купівля й одягання — лише через сервер. У режимі «Домик» (?house=1) — меблі, декор і сувеніри.
  */
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '../lib/motion';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';

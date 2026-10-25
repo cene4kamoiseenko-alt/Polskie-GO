@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from '../lib/motion';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
 import { useMe, useShop } from '../lib/queries';

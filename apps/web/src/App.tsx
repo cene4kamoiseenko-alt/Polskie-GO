@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { SplashScene } from './components/Splash';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { MotionConfig, motion } from 'framer-motion';
+import { LazyMotion, MotionConfig, loadMotionFeatures, motion } from './lib/motion';
 import { I18nProvider, guessLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
 import { useMe } from './lib/queries';
@@ -176,11 +176,13 @@ export function App() {
 
   return (
     <I18nProvider lang={lang}>
-      <MotionConfig reducedMotion={reduced ? 'always' : 'user'}>
-        <ToastProvider>
-          <div className="safe-top mx-auto min-h-full max-w-xl">{body}</div>
-        </ToastProvider>
-      </MotionConfig>
+      <LazyMotion features={loadMotionFeatures}>
+        <MotionConfig reducedMotion={reduced ? 'always' : 'user'}>
+          <ToastProvider>
+            <div className="safe-top mx-auto min-h-full max-w-xl">{body}</div>
+          </ToastProvider>
+        </MotionConfig>
+      </LazyMotion>
     </I18nProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '../lib/motion';
 import { Scene, type SceneName } from '../components/Illustrations';
 import { SceneAvatar, type SceneKey } from '../components/SceneAvatar';
 import { Icon } from '../components/Icon';

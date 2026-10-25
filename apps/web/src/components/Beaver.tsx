@@ -5,7 +5,7 @@
  * Шари: рюкзак → хвіст → тіло → одяг → шарф → лапи → голова → обличчя → головний убір.
  * Растровий ассет (src/assets/beaver/<mood>.webp), якщо є, замінює лише фірмовий образ без іншого одягу.
  */
-import { motion, useInView, useReducedMotion } from 'framer-motion';
+import { motion, useInView, useReducedMotion } from '../lib/motion';
 import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { beaverAsset, costumeArt, supportsBeaverArt } from '../lib/assets';
 

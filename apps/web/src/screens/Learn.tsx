@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from '../lib/motion';
 import { isMissionSlug } from '@polski-go/shared';
 import { Art } from '../components/GameArt';
 import { Scene } from '../components/Illustrations';

@@ -2,7 +2,7 @@
  * Ілюстрована карта Польщі (SVG). Контур, річки й міста — за реальними координатами
  * (та сама проєкція, що й на сервері: 1000×950).
  */
-import { animate, motion, useReducedMotion } from 'framer-motion';
+import { animate, motion, useReducedMotion } from '../lib/motion';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { JourneyCity } from '../lib/types';
 import { CITY_LANDMARKS, Cloud, Landmark } from './Scenery';

@@ -1,5 +1,5 @@
 /** Ігрові компоненти дизайн-системи: модалка нагороди, бейджі XP/Złotki. */
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from '../lib/motion';
 import { useEffect } from 'react';
 import { useT } from '../i18n';
 import { Beaver } from './Beaver';

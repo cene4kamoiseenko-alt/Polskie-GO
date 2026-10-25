@@ -2,7 +2,7 @@
  * Ігрові ефекти: частинки XP до лічильника, число, що «набігає», картка нового досягнення.
  * Усі ефекти короткі, не блокують наступну дію й вимикаються при reduced motion.
  */
-import { AnimatePresence, animate, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, animate, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { useT } from '../i18n';
 import { haptic } from '../lib/telegram';

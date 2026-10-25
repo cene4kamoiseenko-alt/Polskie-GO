@@ -1,5 +1,5 @@
 /** Картка місії «Польська в житті» і спільний запит списку (головна + екран місій; екран місій вантажиться ліниво). */
-import { motion } from 'framer-motion';
+import { motion } from '../lib/motion';
 import type { I18n } from '@polski-go/shared';
 import { useT } from '../i18n';
 import { api } from '../lib/api';

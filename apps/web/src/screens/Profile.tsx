@@ -4,7 +4,7 @@
  * статистика 7/30/90 днів за реальними даними, шість навичок та історія занять.
  */
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '../lib/motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, achTier } from '../components/Illustrations';

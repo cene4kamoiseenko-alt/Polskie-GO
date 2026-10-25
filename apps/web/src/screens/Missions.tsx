@@ -1,6 +1,6 @@
 /** «Польська в житті»: список місій-історій з реальних ситуацій у Польщі. */
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion } from '../lib/motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';

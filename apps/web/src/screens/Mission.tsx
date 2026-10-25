@@ -4,7 +4,7 @@
  * Помилка — пояснення й нова спроба того самого кроку.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from '../lib/motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { I18n } from '@polski-go/shared';

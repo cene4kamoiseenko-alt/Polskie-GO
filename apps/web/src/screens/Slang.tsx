@@ -3,7 +3,7 @@
  * ситуацією, діалогом і нейтральною альтернативою; тренажер «нейтрально ↔ розмовно».
  */
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '../lib/motion';
 import { useMemo, useState } from 'react';
 import type { I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';

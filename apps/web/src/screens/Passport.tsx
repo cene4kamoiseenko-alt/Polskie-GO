@@ -1,6 +1,6 @@
 /** Паспорт мандрівника: штампи міст, листівки Бобека й культурні нотатки. */
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion } from '../lib/motion';
 import { useState } from 'react';
 import type { I18n } from '@polski-go/shared';
 import { useT } from '../i18n';

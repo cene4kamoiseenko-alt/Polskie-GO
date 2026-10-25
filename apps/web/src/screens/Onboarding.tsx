@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '../lib/motion';
 import { SplashScene } from '../components/Splash';
 import { Icon, type LineIconName } from '../components/Icon';
 import { useState } from 'react';

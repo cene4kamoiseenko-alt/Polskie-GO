@@ -6,7 +6,7 @@
  * Без deviceorientation і без стеження за курсором.
  * Використовується під час завантаження і на першому кроці онбордингу.
  */
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useT, type TKey } from '../i18n';
 import { beaverAsset, brandAsset, cityAsset, iconAsset } from '../lib/assets';
