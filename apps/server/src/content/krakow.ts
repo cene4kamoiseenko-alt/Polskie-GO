@@ -10,6 +10,7 @@ import { KRK_RYNEK } from './krakow-rynek';
 import { KRK_RESTAURACJA } from './krakow-restauracja';
 import { KRK_TRAMWAJ } from './krakow-tramwaj';
 import { KRK_HOTEL } from './krakow-hotel';
+import { KRK_UNIWERSYTET } from './krakow-uniwersytet';
 
 const KASIA = { name: 'Kasia', emoji: '👩🏻‍🦰', role: t('подруга з Кракова', 'подруга из Кракова', 'a friend from Kraków') };
 
@@ -22,6 +23,7 @@ export const KRAKOW: CityContent = {
     KRK_RESTAURACJA,
     KRK_TRAMWAJ,
     KRK_HOTEL,
+    KRK_UNIWERSYTET,
     {
       slug: 'krk-rodzina',
       title: t('Сім\'я', 'Семья', 'Family'),

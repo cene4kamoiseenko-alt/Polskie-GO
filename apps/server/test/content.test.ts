@@ -93,9 +93,10 @@ import { KRK_RYNEK } from '../src/content/krakow-rynek';
 import { KRK_RESTAURACJA } from '../src/content/krakow-restauracja';
 import { KRK_TRAMWAJ } from '../src/content/krakow-tramwaj';
 import { KRK_HOTEL } from '../src/content/krakow-hotel';
+import { KRK_UNIWERSYTET } from '../src/content/krakow-uniwersytet';
 
 describe('Локації міст (3.0)', () => {
-  const LOCATIONS = [KRK_DWORZEC, KRK_ZABKA, KRK_RYNEK, KRK_RESTAURACJA, KRK_TRAMWAJ, KRK_HOTEL];
+  const LOCATIONS = [KRK_DWORZEC, KRK_ZABKA, KRK_RYNEK, KRK_RESTAURACJA, KRK_TRAMWAJ, KRK_HOTEL, KRK_UNIWERSYTET];
   it('у локації 3–6 уроків, звичайний урок 15–20 завдань, місія 20–30; щонайменше 5 різних механік', () => {
     for (const loc of LOCATIONS) {
       expect(loc.lessons.length, loc.slug).toBeGreaterThanOrEqual(3);
