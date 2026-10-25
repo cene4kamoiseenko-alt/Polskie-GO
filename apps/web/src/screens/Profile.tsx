@@ -20,6 +20,7 @@ import { LEVEL_COLORS } from './Onboarding';
 import { XpChart } from '../components/XpChart';
 import { EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
 import { rankFor, TopStats } from './Home';
+import { inkOn } from '../lib/color';
 
 type Stats = {
   days: { day: string; xp: number; lessons: number; minutes: number; correct: number; exercises: number }[];
@@ -101,7 +102,7 @@ export default function ProfileScreen() {
 
       {/* Рівень польської — лише за іспитами */}
       <button onClick={() => nav('/exams')} className="stat-card mx-4 w-[calc(100%-2rem)] !gap-3 !p-3">
-        <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[22px] font-black text-white shadow-[inset_0_-4px_0_rgb(0_0_0/0.2)]" style={{ background: LEVEL_COLORS[me.progress.languageLevel] }}>
+        <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[22px] font-black shadow-[inset_0_-4px_0_rgb(0_0_0/0.2)]" style={{ background: LEVEL_COLORS[me.progress.languageLevel], color: inkOn(LEVEL_COLORS[me.progress.languageLevel]) }}>
           {me.progress.languageLevel}
           <span className="absolute -right-2 -top-3"><Art name="grad" size={26} /></span>
         </span>

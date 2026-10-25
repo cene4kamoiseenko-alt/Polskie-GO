@@ -246,7 +246,7 @@ export default function ShopScreen() {
       >
         {i.isPremium && <span className="absolute right-2 top-2"><Art name="crown" size={24} /></span>}
         {i.rewardOnly && !i.owned && <span className="absolute right-2 top-2"><Art name="medal-gold" size={26} /></span>}
-        <span className="item-rarity absolute left-2 top-2 rounded-full px-1.5 py-px text-[9.5px] font-black uppercase tracking-wide">{t(`rarity_${i.rarity}` as TKey)}</span>
+        <span className="item-rarity absolute left-2 top-2 rounded-full px-1.5 py-px text-[10.5px] font-black uppercase tracking-wide">{t(`rarity_${i.rarity}` as TKey)}</span>
         <span className="mt-3 grid h-[112px] w-full place-items-center">
           <span className="drop-shadow-[0_8px_8px_rgba(0,0,0,0.45)]">
             <ItemArt item={i} size={104} />

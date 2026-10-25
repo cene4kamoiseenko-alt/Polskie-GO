@@ -15,6 +15,7 @@ import { RewardModal, XPBadge, type Reward } from '../components/game';
 import { Skyline } from '../components/Scenery';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, cx, useToast } from '../components/ui';
 import { TopStats } from './Home';
+import { inkOn } from '../lib/color';
 
 function useCountdown(to?: string) {
   const [now, setNow] = useState(Date.now());
@@ -163,7 +164,7 @@ export default function QuestsScreen() {
               whileTap={{ scale: 0.95 }}
               onClick={() => { haptic.select(); setTab(x.key); }}
               className="relative flex items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2 text-sm font-black"
-              style={on ? { background: x.color, color: '#fff', boxShadow: `0 4px 0 color-mix(in srgb, ${x.color} 70%, black)` } : { background: 'var(--bg-elev)', boxShadow: 'var(--shadow-card)' }}
+              style={on ? { background: x.color, color: inkOn(x.color), boxShadow: `0 4px 0 color-mix(in srgb, ${x.color} 70%, black)` } : { background: 'var(--bg-elev)', boxShadow: 'var(--shadow-card)' }}
             >
               <GameIcon name={x.icon} size={24} inactive={!on} />
               <span className="leading-tight">{x.label}</span>
@@ -189,7 +190,7 @@ export default function QuestsScreen() {
             <div key={s.slug} className={cx('card overflow-hidden', !s.available && 'opacity-70')}>
               <div className="relative h-36 overflow-hidden" style={{ background: `linear-gradient(180deg, #BFE8F8 0%, #E9DDFF 55%, ${active.color}55 100%)` }}>
                 <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-60" height={100} sky={false} />
-                <div className="absolute left-3 top-2 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black text-white" style={{ background: active.color }}>
+                <div className="absolute left-3 top-2 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black" style={{ background: active.color, color: inkOn(active.color) }}>
                   {t('quests_special')}
                 </div>
                 <div className="absolute bottom-0 left-2">

@@ -105,7 +105,7 @@ export default function MapScreen() {
               className={cx('flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition', level === lv ? 'bg-pl-red text-white shadow-[0_3px_0_#C0353D]' : 'bg-elev shadow-[var(--shadow-card)]')}
             >
               {lv ?? t('map_all')}
-              {lv && ready === 0 && <span className={cx('text-[10px] font-extrabold', level === lv ? 'text-white/80' : 'text-[#9AA6B2]')}>{t('map_soon')}</span>}
+              {lv && ready === 0 && <span className={cx('text-[10px] font-extrabold', level === lv ? 'text-white/80' : 'muted')}>{t('map_soon')}</span>}
             </button>
           );
         })}
@@ -244,7 +244,7 @@ export default function MapScreen() {
                 <Icon name="arrow-right" size={22} strokeWidth={2.6} />
               </button>
             )}
-            {!selected.hasContent && !selected.unlocked && <p className="text-center text-xs font-bold text-[#9AA6B2]">{t('map_soon_full')}</p>}
+            {!selected.hasContent && !selected.unlocked && <p className="muted text-center text-xs font-bold">{t('map_soon_full')}</p>}
           </div>
         )}
       </Sheet>

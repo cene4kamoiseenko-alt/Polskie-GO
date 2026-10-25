@@ -662,10 +662,10 @@ textarea {
   --rarity-legendary: var(--color-xp);
 }
 .light {
-  --rarity-common: #2f67a8;
-  --rarity-rare: #1773b0;
-  --rarity-epic: #6f42d8;
-  --rarity-legendary: #a86a00;
+  --rarity-common: #285a94;
+  --rarity-rare: #0f6aa8;
+  --rarity-epic: #5f33c4;
+  --rarity-legendary: #8a5300;
 }
 .wardrobe-stage {
   height: clamp(220px, 68vw, 300px);
@@ -819,7 +819,7 @@ textarea {
 }
 .item-rarity {
   color: var(--item-color);
-  background: color-mix(in srgb, var(--item-color) 20%, transparent);
+  background: color-mix(in srgb, var(--item-color) 14%, transparent);
 }
 .item-equipped {
   color: #07182c;
@@ -1035,3 +1035,59 @@ textarea {
 .picto.tone-way { --p1: #ff6b7a; --p2: #d9344a; }
 .picto.tone-thing { --p1: #5c7a99; --p2: #3b5370; }
 .picto.tone-symbol { --p1: #ffc857; --p2: #d89110; }
+
+/* ───────── Семантичні кольори тексту й заливок (WCAG AA в обох темах) ─────────
+   Яскрава палітра макета (корал, м'ята, золото, блакить) розрахована на темно-синій фон:
+   як текст на navy вона дає 4.7–11.6:1. На кремовому/білому ті ж відтінки дають 1.9–3.2:1,
+   тому у світлій темі текстові кольори — затемнені версії тих самих тонів.
+   Заливки під білим текстом — окремі токени (fill-*), бо білий на яскравих 1.7–3.2:1. */
+:root {
+  --text-coral: #ff7480;
+  --text-brand: var(--color-brand);
+  --text-xp: var(--color-xp);
+  --text-sky: var(--color-sky);
+  --text-grape: #b495ff;
+  --fill-coral: #d42d43;
+  --fill-brand: #0d7f57;
+  --fill-sky: #1773b0;
+  --fill-grape: #7448d8;
+}
+.light {
+  --text-muted: #58697a;
+  --on-cream-muted: #58697a;
+  --text-coral: #c8233a;
+  --text-brand: #0b6e4a;
+  --text-xp: #8a5300;
+  --text-sky: #0f6aa8;
+  --text-grape: #5f33c4;
+}
+.text-coral,
+.text-pl-red {
+  color: var(--text-coral);
+}
+.text-brand,
+.text-brand-dark {
+  color: var(--text-brand);
+}
+.text-xp,
+.text-xp-dark {
+  color: var(--text-xp);
+}
+.text-sky,
+.text-sky-dark {
+  color: var(--text-sky);
+}
+.text-grape {
+  color: var(--text-grape);
+}
+/* Активні чипи/сегменти з білим текстом */
+.bg-pl-red.text-white,
+.bg-coral.text-white {
+  background-color: var(--fill-coral);
+}
+.bg-brand.text-white {
+  background-color: var(--fill-brand);
+}
+.bg-sky.text-white {
+  background-color: var(--fill-sky);
+}

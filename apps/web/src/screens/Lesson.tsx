@@ -20,6 +20,7 @@ const SUBTITLE: Partial<Record<string, TKey>> = { LISTENING: 'ex_sub_LISTENING',
 import { LessonStage, sceneForRoute, stageBadge, type StageMood } from '../components/LessonStage';
 import { Scene } from '../components/Illustrations';
 import { isMissionSlug } from '@polski-go/shared';
+import { inkOn } from '../lib/color';
 
 type Phase = 'loading' | 'intro' | 'play' | 'finishing' | 'result' | 'error';
 const NO_RETRY = new Set(['DIALOGUE', 'SITUATION', 'PRONUNCIATION']);
@@ -461,7 +462,7 @@ function QuitModal({ open, onStay, onQuit }: { open: boolean; onStay: () => void
 function Stat({ icon, label, value, color, delay = 0 }: { icon: LineIconName; label: string; value: ReactNode; color: string; delay?: number }) {
   return (
     <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay, type: 'spring', stiffness: 300, damping: 18 }} className="overflow-hidden rounded-2xl border-2 text-center" style={{ borderColor: color }}>
-      <div className="py-1 text-xs font-black text-white" style={{ background: color }}>
+      <div className="py-1 text-xs font-black" style={{ background: color, color: inkOn(color) }}>
         {label}
       </div>
       <div className="flex items-center justify-center gap-1 py-2 text-xl font-black">

@@ -10,6 +10,7 @@ import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
 import { GameIcon } from '../components/GameIcon';
 import { ErrorState, Progress, RichText, ScreenHeader, ScreenSkeleton, Sheet, SpeakButton, cx } from '../components/ui';
+import { inkOn } from '../lib/color';
 
 type Topic = {
   slug: string;
@@ -89,7 +90,7 @@ export default function GrammarScreen() {
               </div>
             </div>
             <div className="flex flex-col items-end gap-1">
-              <span className="rounded-lg px-2 py-0.5 text-[11px] font-black text-white" style={{ background: topic.color }}>{topic.cefr}</span>
+              <span className="rounded-lg px-2 py-0.5 text-[11px] font-black" style={{ background: topic.color, color: inkOn(topic.color) }}>{topic.cefr}</span>
               {topic.state === 'new' && <span className="rounded-lg bg-pl-red px-2 py-0.5 text-[10px] font-black text-white">NEW</span>}
               {topic.state === 'mastered' && <GameIcon name="check" size={22} />}
             </div>

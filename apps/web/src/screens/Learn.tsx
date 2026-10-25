@@ -14,6 +14,7 @@ import { CityHero } from '../components/CityHero';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, Sheet, cx } from '../components/ui';
 import { TopStats } from './Home';
 import { haptic } from '../lib/telegram';
+import { inkOn } from '../lib/color';
 
 /** Позиція вузла на «звивистій стежці» уроків. */
 const OFFSETS = [0, 52, 76, 52, 0, -52, -76, -52];
@@ -126,7 +127,7 @@ export default function LearnScreen() {
           <div className="glass-card absolute left-3 top-3 px-3 py-1.5">
             <div className="flex items-baseline gap-2">
               <span className="text-[22px] font-black text-white">{city.namePl}</span>
-              <span className="rounded-lg px-1.5 py-0.5 text-[11px] font-black text-white" style={{ background: city.color }}>{city.cefr}</span>
+              <span className="rounded-lg px-1.5 py-0.5 text-[11px] font-black" style={{ background: city.color, color: inkOn(city.color) }}>{city.cefr}</span>
             </div>
             <div className="line-clamp-2 max-w-[240px] text-xs font-bold leading-tight text-[#cfe0f2]">{tr(city.theme)}</div>
           </div>

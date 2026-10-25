@@ -16,6 +16,7 @@ import { PolandMap } from '../components/PolandMap';
 import { Logo, Skyline } from '../components/Scenery';
 import { LangFlag } from '../components/pictograms/Flag';
 import { PictoTile } from '../components/pictograms/Pictogram';
+import { inkOn } from '../lib/color';
 
 const LANGS: { code: UiLang; name: string }[] = [
   { code: 'uk', name: 'Українська' },
@@ -125,7 +126,7 @@ export default function Onboarding() {
               <Header mood="think" title={t('ob_level')} />
               {LEVELS.map((lv) => (
                 <Option key={lv} selected={level === lv} onClick={() => setLevel(lv)}>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-base font-black text-white" style={{ background: LEVEL_COLORS[lv] }}>
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-base font-black" style={{ background: LEVEL_COLORS[lv], color: inkOn(LEVEL_COLORS[lv]) }}>
                     {lv}
                   </span>
                   <span className="flex-1">
