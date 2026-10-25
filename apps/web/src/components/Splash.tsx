@@ -10,7 +10,7 @@ import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useT, type TKey } from '../i18n';
 import { beaverAsset, brandAsset, cityAsset, iconAsset } from '../lib/assets';
-import { useBootProgress } from '../lib/boot';
+import { bootState, useBootProgress, type BootStage } from '../lib/boot';
 
 /** Іконка з листа до кожної фрази завантаження (15 — фінальна «бобер уже чекає»). */
 const MSG_ICONS = ['lessons', 'streak', 'shopping', 'zlotki', 'food', 'cafe', 'map', 'profile', 'dictionary', 'transport', 'pronunciation', 'quests', 'dragon', 'passport', 'gift'];
@@ -20,9 +20,28 @@ const ROTATING = 14;
 let introPlayed = false;
 let msgIndex = Math.floor(Math.random() * ROTATING);
 
-function LoadingUi() {
+/** Підпис реального етапу запуску (те, що зараз виконується). */
+const DOING_KEY: Record<Exclude<BootStage, 'start'>, TKey> = { auth: 'boot_doing_auth', profile: 'boot_doing_profile', screen: 'boot_doing_screen' };
+
+function useOnline() {
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine !== false);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    };
+  }, []);
+  return online;
+}
+
+function LoadingUi({ onRetry }: { onRetry?: () => void }) {
   const { t } = useT();
   const progress = useBootProgress();
+  const online = useOnline();
+  const boot = bootState();
   const [msg, setMsg] = useState(msgIndex);
   useEffect(() => {
     const id = setInterval(() => {
@@ -50,17 +69,32 @@ function LoadingUi() {
       <div className="splash-bar mt-3" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={t('splash_loading')}>
         <div className="splash-bar-fill" style={{ transform: `translateX(${Math.max(6, pct) - 100}%)` }} />
       </div>
+      {/* Чесний етап: що саме зараз робиться; якщо затягнулося — так і кажемо й даємо повторити. */}
+      <div className="mt-2 flex min-h-[22px] items-center gap-2 text-[12px] font-bold">
+        <span className="splash-muted min-w-0 flex-1 truncate" data-boot={!online ? 'offline' : boot.slow ? 'slow' : boot.doing ?? 'done'}>
+          {!online ? t('boot_offline') : boot.slow ? t('boot_slow') : `${t('boot_step', { n: boot.step, total: boot.total })} · ${t(DOING_KEY[boot.doing === 'start' || !boot.doing ? 'screen' : boot.doing])}`}
+        </span>
+        {(boot.slow || !online) && onRetry && (
+          <button type="button" className="shrink-0 underline" onClick={onRetry}>
+            {t('error_retry')}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
+/**
+ * Нет связи (экран B). Продолжить офлайн не предлагаем: сохранённых для офлайна уроков нет — проверка ответов,
+ * награды и прогресс идут через сервер. Когда сеть возвращается, App повторяет загрузку сам.
+ */
 function ErrorUi({ onRetry }: { onRetry?: () => void }) {
   const { t } = useT();
-  const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const offline = !useOnline();
   return (
-    <div className="splash-card text-center" role="alert">
-      <div className="text-lg font-black">{t('splash_error_title')}</div>
-      <div className="splash-muted mt-1 text-sm font-bold">{offline ? t('error_offline') : t('splash_error_text')}</div>
+    <div className="splash-card text-center" role="alert" data-boot-error={offline ? 'offline' : 'server'}>
+      <div className="text-lg font-black">{t(offline ? 'splash_offline_title' : 'splash_error_title')}</div>
+      <div className="splash-muted mt-1 text-sm font-bold">{t(offline ? 'splash_offline_text' : 'splash_error_text')}</div>
       {onRetry && (
         <button className="btn btn-primary mt-3 w-full" onClick={onRetry}>
           {t('error_retry')}
@@ -78,7 +112,7 @@ export function SplashScene({ slogan, loading, error, onRetry, children }: { slo
   }, []);
   const hasUi = loading || error;
   // Бобер стоїть на площі над карткою (помилка вища за прогрес) або над реплікою онбордингу.
-  const feet = error ? 'calc(var(--safe-b) + 3.2vh + 182px)' : loading ? 'calc(var(--safe-b) + 3.2vh + 118px)' : 'calc(var(--safe-b) + 196px)';
+  const feet = error ? 'calc(var(--safe-b) + 3.2vh + 206px)' : loading ? 'calc(var(--safe-b) + 3.2vh + 146px)' : 'calc(var(--safe-b) + 196px)';
 
   return (
     <div className={`splash relative min-h-[100dvh] overflow-hidden ${intro ? 'is-intro' : ''}`}>
@@ -97,7 +131,7 @@ export function SplashScene({ slogan, loading, error, onRetry, children }: { slo
       </div>
       {hasUi && (
         <div className="splash-ui absolute inset-x-0 bottom-0 z-30 px-5">
-          {error ? <ErrorUi onRetry={onRetry} /> : <LoadingUi />}
+          {error ? <ErrorUi onRetry={onRetry} /> : <LoadingUi onRetry={onRetry} />}
         </div>
       )}
       {children}

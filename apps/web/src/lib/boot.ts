@@ -32,6 +32,16 @@ export function bootProgress(now = performance.now()): number {
   return base + gap * 0.85 * (1 - Math.exp(-t / 1.6));
 }
 
+/** Етап довше за цей час — показуємо, що зв'язок повільний, і пропонуємо повторити. */
+export const BOOT_SLOW_MS = 8000;
+
+/** Що саме зараз виконується (наступний незавершений етап) і чи він затягнувся. */
+export function bootState(now = performance.now()): { doing: BootStage | null; step: number; total: number; slow: boolean } {
+  const i = ORDER.indexOf(stage);
+  const doing = ORDER[i + 1] ?? null;
+  return { doing, step: Math.min(i + 1, ORDER.length - 1), total: ORDER.length - 1, slow: !!doing && now - stageAt > BOOT_SLOW_MS };
+}
+
 export function useBootProgress(): number {
   const [value, setValue] = useState(() => bootProgress());
   useEffect(() => {

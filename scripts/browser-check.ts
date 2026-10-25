@@ -165,6 +165,41 @@ async function main() {
     check(!results.some((r) => r.overflow), 'немає горизонтального переповнення на 360/390/430');
     await home.context.close();
 
+    // ── Запуск: недоступний сервер, відсутність мережі, повільний профіль, недовантажений екран.
+    console.log('Запуск');
+    const boot = await userPage('880004');
+    await boot.page.route('**/api/**', (r) => r.abort('internetdisconnected'));
+    await boot.page.goto(boot.url('/'));
+    await boot.page.locator('[data-boot-error="server"]').waitFor({ timeout: 20_000 });
+    check(true, 'сервер недоступний — заставка з помилкою й «Повторить», не порожній екран');
+    await boot.context.setOffline(true);
+    await boot.page.locator('[data-boot-error="offline"]').waitFor();
+    check(!(await boot.page.getByText(/офлайн/i).count()), 'немає мережі — екран «Нет подключения» без обіцянки офлайн-уроків');
+    await boot.page.screenshot({ path: `${SCREENS}/boot-offline.png` });
+    await boot.page.unroute('**/api/**');
+    await boot.context.setOffline(false);
+    await boot.page.getByText('Быстрый старт', { exact: true }).waitFor({ timeout: 20_000 });
+    check(true, 'мережа повернулась — профіль довантажився сам, без перезапуску');
+
+    await boot.page.route('**/api/me', async (r) => {
+      await new Promise((ok) => setTimeout(ok, 9500));
+      await r.continue().catch(() => {});
+    });
+    await boot.page.reload();
+    // До завантаження профілю мова ще не відома (поза Telegram — українська), тож перевіряємо за станом.
+    await boot.page.locator('[data-boot="profile"]').waitFor({ timeout: 5_000 });
+    await boot.page.locator('[data-boot="slow"]').waitFor({ timeout: 15_000 });
+    check(await boot.page.locator('.splash-card button').count() === 1, 'повільний етап — спершу «профіль», після 8 с чесне «повільно» і кнопка повтору');
+    await boot.page.screenshot({ path: `${SCREENS}/boot-slow.png` });
+    await boot.page.unroute('**/api/me');
+    await boot.page.getByText('Быстрый старт', { exact: true }).waitFor({ timeout: 20_000 });
+
+    await boot.page.route('**/src/screens/Shop.tsx*', (r) => r.abort('failed'));
+    await boot.page.goto(boot.url('/shop'));
+    await boot.page.locator('[data-screen-error="chunk"]').waitFor({ timeout: 20_000 });
+    check(await boot.page.getByRole('button', { name: 'Перезагрузить' }).count() === 1, 'недовантажений екран — межа помилок з «Перезагрузить», а не порожня сторінка');
+    await boot.context.close();
+
     // ── Розпізнавання пристрою (сервер STT вимкнено): лише тренування.
     console.log('Розпізнавання пристрою');
     const device = await userPage('880002', () => {
@@ -260,7 +295,9 @@ async function main() {
     results.push({ microphone: 'device recognition simulated by events; server path recorded from Chromium fake microphone (WAV tone), Azure STT stubbed', sttCalls });
     await server.context.close();
 
-    check(errors.length === 0, `без помилок сторінки${errors.length ? ': ' + errors.join(' | ') : ''}`);
+    // Намірно зламаний чанк Shop.tsx: React у dev-режимі дублює помилку, перехоплену межею, у pageerror.
+    const unexpected = errors.filter((e) => !e.includes('/src/screens/Shop.tsx'));
+    check(unexpected.length === 0, `без несподіваних помилок сторінки${unexpected.length ? ': ' + unexpected.join(' | ') : ''}`);
     writeFileSync(resolve(OUT, 'browser-results.json'), JSON.stringify({ results, errors }, null, 2));
   } finally {
     globalThis.fetch = realFetch;

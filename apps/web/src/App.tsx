@@ -10,6 +10,7 @@ import { ApiError } from './lib/api';
 import { bootMark } from './lib/boot';
 import { BottomNav, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
+import { ScreenBoundary } from './components/ScreenBoundary';
 
 import { HomeScreen } from './screens/Home';
 
@@ -70,14 +71,37 @@ function BootDone() {
   return null;
 }
 
-/** Після старту у вільний час підвантажуємо екрани вкладок — перший перехід без очікування. */
+/**
+ * Після старту у вільний час підвантажуємо екрани — по одному, від найімовірнішого переходу
+ * (урок і карта з головної) до рідших. Не все разом: перші секунди мережа потрібна даним екрана.
+ * У режимі заощадження трафіку або на 2G нічого наперед не вантажимо.
+ */
+const PREFETCH_ORDER = [
+  () => import('./screens/Lesson'),
+  () => import('./screens/Map'),
+  () => import('./screens/Learn'),
+  () => import('./screens/Quests'),
+  () => import('./screens/Profile'),
+  () => import('./screens/Missions'),
+  () => import('./screens/Mission'),
+  () => import('./screens/Dictionary'),
+];
+let prefetched = false;
 function prefetchScreens() {
-  const load = () => {
-    for (const f of [() => import('./screens/Map'), () => import('./screens/Learn'), () => import('./screens/Lesson'), () => import('./screens/Quests'), () => import('./screens/Profile'), () => import('./screens/Dictionary'), () => import('./screens/Missions'), () => import('./screens/Mission')]) void f();
-  };
+  if (prefetched) return;
+  prefetched = true;
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (conn?.saveData || /(^|-)2g$/.test(conn?.effectiveType ?? '')) return;
   const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void };
-  if (w.requestIdleCallback) w.requestIdleCallback(load, { timeout: 2500 });
-  else setTimeout(load, 1200);
+  const idle = (cb: () => void) => (w.requestIdleCallback ? w.requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 600));
+  const queue = [...PREFETCH_ORDER];
+  const next = () => {
+    const load = queue.shift();
+    if (!load) return;
+    // Помилку не показуємо: це лише попереднє завантаження, справжній перехід обробить ScreenBoundary.
+    load().catch(() => {}).finally(() => idle(next));
+  };
+  idle(next);
 }
 
 export function App() {
@@ -116,17 +140,28 @@ export function App() {
     if (me.data) bootMark('profile');
   }, [me.data]);
 
+  // Профіль не завантажився через мережу — коли зв'язок повернеться, пробуємо знову самі.
+  const failed = !!me.error;
+  useEffect(() => {
+    if (!failed) return;
+    const retry = () => void me.refetch();
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [failed]); // eslint-disable-line react-hooks/exhaustive-deps
+
   let body;
-  if (me.isLoading) body = <Splash />;
+  if (me.isLoading) body = <SplashScene loading onRetry={() => void me.refetch()} />;
   else if (me.error) {
     const banned = me.error instanceof ApiError && me.error.code === 'banned';
     body = banned ? <ErrorState error={new Error('banned')} /> : <SplashScene error onRetry={() => me.refetch()} />;
   } else if (me.data && !me.data.onboarded && !loc.pathname.startsWith('/lesson')) {
     body = (
-      <Suspense fallback={<Splash />}>
-        <BootDone />
-        <Onboarding />
-      </Suspense>
+      <ScreenBoundary resetKey="onboarding">
+        <Suspense fallback={<Splash />}>
+          <BootDone />
+          <Onboarding />
+        </Suspense>
+      </ScreenBoundary>
     );
   } else {
     body = (
@@ -139,6 +174,7 @@ export function App() {
             transition={{ duration: 0.12 }}
             className={showNav ? 'nav-pad' : ''}
           >
+            <ScreenBoundary resetKey={loc.pathname}>
             <Suspense fallback={<ScreenSkeleton />}>
               <BootDone />
               <Routes location={loc}>
@@ -168,6 +204,7 @@ export function App() {
                 <Route path="*" element={<HomeScreen />} />
               </Routes>
             </Suspense>
+            </ScreenBoundary>
           </motion.main>
         {showNav && <BottomNav badge={badges} />}
       </>

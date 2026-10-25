@@ -91,7 +91,8 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
     <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
       <Beaver mood="sad" size={120} />
       <h2 className="text-xl font-black">{t('error_title')}</h2>
-      <p className="muted text-sm font-semibold">{offline ? t('error_offline') : (error as Error)?.message}</p>
+      {/* Сирий текст помилки (коди API, стек) людині не показуємо. */}
+      <p className="muted text-sm font-semibold">{code === 'banned' || (error as Error)?.message === 'banned' ? t('error_banned') : offline ? t('error_offline') : t('error_generic')}</p>
       {onRetry && (
         <button className="btn btn-primary mt-2" onClick={onRetry}>
           {t('error_retry')}
