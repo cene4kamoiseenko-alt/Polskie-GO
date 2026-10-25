@@ -13,7 +13,19 @@ function pick(dir: string, name: string): string | null {
   return files[`../assets/${dir}/${name}.webp`] ?? files[`../assets/${dir}/${name}.png`] ?? null;
 }
 
-export const beaverAsset = (mood: string) => pick('beaver', mood);
+const BEAVER_POSES: Record<string, string> = {
+  happy: 'wave', wave: 'wave', travel: 'wave', wait: 'think', think: 'think',
+  celebrate: 'celebrate', cheer: 'celebrate', gift: 'celebrate',
+  read: 'read', learn: 'read', explain: 'think', mic: 'think', surprised: 'think', sad: 'think', map: 'read',
+};
+export const beaverAsset = (mood: string) => pick('beaver', BEAVER_POSES[mood] ?? mood);
+/** Composed art contains this exact outfit. Never hide another equipped item. */
+export function supportsBeaverArt(outfit: Record<string, string | undefined>): boolean {
+  if (outfit.BACKPACK !== 'backpack-travel') return false;
+  return Object.entries(outfit).every(([slot, value]) => !value || value === 'none'
+    ? slot !== 'JACKET' && slot !== 'BACKPACK'
+    : slot === 'FRAME' || (slot === 'JACKET' && value === 'hoodie-red') || (slot === 'BACKPACK' && value === 'backpack-travel'));
+}
 export const cityAsset = (slug: string) => pick('cities', slug);
 export const iconAsset = (name: string) => pick('icons', name);
 export const brandAsset = (name: string) => pick('brand', name);

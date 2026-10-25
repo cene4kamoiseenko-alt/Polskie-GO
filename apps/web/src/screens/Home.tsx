@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { brandAsset } from '../lib/assets';
+import { brandAsset, cityAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import type { VocabEntry } from '../lib/types';
 import { Beaver } from '../components/Beaver';
@@ -104,7 +104,7 @@ export function HomeScreen() {
   const cityOfDay = cityPool.length ? cityPool[day % cityPool.length] : undefined;
   const rank = rankFor(me.progress.level);
   // Розмір бобра — від ширини екрана (360 → 176, 430 → 200), щоб картки праворуч не перекривали персонажа.
-  const heroBeaver = Math.round(Math.min(200, Math.max(168, (typeof window === 'undefined' ? 390 : window.innerWidth) * 0.49)));
+  const heroBeaver = 188;
 
   const claimChest = async () => {
     if (claiming) return;
@@ -128,20 +128,20 @@ export function HomeScreen() {
 
       {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія */}
       <div className="hero-card mx-4">
-        <CityHero slug={current?.slug ?? 'warszawa'} color={current?.color ?? '#36B9FF'} name={current?.namePl ?? 'Warszawa'} height={254}>
+        <CityHero slug={current?.slug ?? 'warszawa'} color={current?.color ?? '#36B9FF'} name={current?.namePl ?? 'Warszawa'} height={256}>
           <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.38), transparent 55%)' }} />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-[#07182c]/45 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#07182c]/50 to-transparent" />
           {/* Бобек у поточному образі — головний персонаж банера, картки його не закривають */}
-          <motion.div className="absolute -bottom-5 -left-1" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
+          <motion.div className="home-hero-beaver absolute bottom-0 -left-1" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
             <Beaver mood="wave" size={heroBeaver} outfit={me.outfit.wear} />
           </motion.div>
           <div className="absolute right-2.5 top-2.5 w-[52%] space-y-2">
             <button onClick={() => { haptic.tap(); nav('/map'); }} className="glass-card flex w-full items-center gap-1.5 px-2.5 py-2 text-left">
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-black text-[#cfe0f2]">{t('home_cur_city')}</div>
-                <div className="flex min-w-0 items-center gap-1 text-[21px] font-black leading-tight text-white">
-                  <Icon name="pin" size={17} className="shrink-0 text-coral" filled /> <span className="min-w-0 break-words">{current?.namePl ?? '—'}</span>
+                <div className="flex min-w-0 items-center gap-1 text-[18px] font-black leading-tight text-white">
+                  <Icon name="pin" size={17} className="shrink-0 text-coral" filled /> <span className="min-w-0" lang="pl" style={{ fontSize: (current?.namePl.length ?? 0) > 10 ? 15 : undefined }}>{current?.namePl ?? '—'}</span>
                 </div>
               </div>
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/25 text-white"><Icon name="chevron-right" size={16} /></span>
@@ -161,7 +161,7 @@ export function HomeScreen() {
             whileTap={{ scale: 0.96 }}
             whileHover={{ y: -1 }}
             onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : '/map'); }}
-            className="btn btn-red btn-glow absolute bottom-3 right-2.5 w-[57%] !min-h-[50px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
+            className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[57%] !min-h-[50px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
           >
             <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{next ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
           </motion.button>
@@ -246,14 +246,16 @@ export function HomeScreen() {
               transition={{ delay: 0.05 + i * 0.05 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => { haptic.tap(); nav(to); }}
-              className="qs-tile relative h-[118px] overflow-hidden rounded-[20px] p-2.5 text-left"
+              className="qs-tile relative h-[142px] overflow-hidden rounded-[20px] p-2.5 text-left"
               style={{ background: bg }}
             >
+              {cityAsset(current?.slug ?? 'warszawa') && <img src={cityAsset(current?.slug ?? 'warszawa')!} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-luminosity" />}
+              <span className="absolute inset-0 bg-gradient-to-t from-[#07182c]/85 via-transparent to-transparent" />
               <svg viewBox="0 0 120 40" className="absolute inset-x-0 bottom-0 w-full opacity-25" aria-hidden><path d="M0 40 V26 h10 v-8 h8 v8 h10 V14 l6 -8 l6 8 v12 h12 v-10 h10 v10 h14 V10 l4 -6 l4 6 v16 h12 v-6 h12 V40 Z" fill="#07182c" /></svg>
-              <span className="absolute -right-1.5 -top-1.5 drop-shadow-[0_6px_10px_rgba(0,0,0,0.35)]"><Art name={art} size={66} /></span>
+              <span className="absolute right-1 top-1 drop-shadow-[0_6px_10px_rgba(0,0,0,0.35)]"><Art name={art} size={76} /></span>
               <span className="absolute bottom-2 left-2.5 right-2">
                 <span className="block text-[17px] font-black leading-tight text-white drop-shadow">{t(title)}</span>
-                <span className="block pr-6 text-[10.5px] font-bold leading-tight text-white/85">{t(sub)}</span>
+                <span className="block min-h-[28px] pr-5 text-[10.5px] font-bold leading-tight text-white/85">{t(sub)}</span>
               </span>
               <span className="absolute bottom-2 right-2 grid h-6 w-6 place-items-center rounded-full bg-black/25 text-white"><Icon name="chevron-right" size={14} /></span>
             </motion.button>
@@ -281,7 +283,7 @@ export function HomeScreen() {
           {wod.data ? (
             <>
               <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="truncate text-[22px] font-black leading-none text-white">{wod.data.pl}</span>
+                <span className="break-words text-[clamp(15px,4.7vw,20px)] font-black leading-tight text-white">{wod.data.pl}</span>
                 <SpeakButton text={wod.data.pl} url={wod.data.audioUrl} size="sm" />
               </div>
               <div className="mt-1 line-clamp-2 pr-10 text-[12px] font-bold leading-tight text-[#cfe0f2]">{tr(wod.data.translations)}</div>

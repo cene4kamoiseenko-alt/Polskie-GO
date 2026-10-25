@@ -22,12 +22,13 @@ export function ttsProvider(): Provider | null {
       voice,
       synth: async (text, rate) => {
         const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(env.GOOGLE_TTS_API_KEY!)}`, {
-          method: 'POST',
+          method: 'POST', signal: AbortSignal.timeout(10_000),
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ input: { text }, voice: { languageCode: 'pl-PL', name: voice }, audioConfig: { audioEncoding: 'MP3', speakingRate: SPEECH_RATES[rate] } }),
         });
         if (!res.ok) throw new HttpError(502, 'tts_failed', `Google TTS ${res.status}`);
-        const { audioContent } = (await res.json()) as { audioContent: string };
+        const { audioContent } = (await res.json()) as { audioContent?: string };
+        if (typeof audioContent !== 'string' || !audioContent.length) throw new HttpError(502, 'tts_failed');
         return Uint8Array.from(Buffer.from(audioContent, 'base64')).buffer;
       },
     };
@@ -42,7 +43,7 @@ export function ttsProvider(): Provider | null {
         const pct = Math.round((SPEECH_RATES[rate] - 1) * 100);
         const ssml = `<speak version="1.0" xml:lang="pl-PL"><voice name="${voice}"><prosody rate="${pct}%">${esc}</prosody></voice></speak>`;
         const res = await fetch(`https://${env.AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`, {
-          method: 'POST',
+          method: 'POST', signal: AbortSignal.timeout(10_000),
           headers: {
             'Ocp-Apim-Subscription-Key': env.AZURE_SPEECH_KEY!,
             'content-type': 'application/ssml+xml',
@@ -64,7 +65,7 @@ export function ttsProvider(): Provider | null {
       voice: `${voice}/${model}`,
       synth: async (text, rate) => {
         const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_64`, {
-          method: 'POST',
+          method: 'POST', signal: AbortSignal.timeout(10_000),
           headers: { 'xi-api-key': env.ELEVENLABS_API_KEY!, 'content-type': 'application/json', accept: 'audio/mpeg' },
           body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.55, similarity_boost: 0.8, speed: rate === 'slow' ? 0.8 : 1 } }),
         });
@@ -95,7 +96,10 @@ export async function synthesize(rawText: string, rate: SpeechRate): Promise<{ d
   const key = createHash('sha256').update(`${provider.id}|${provider.voice}|${rate}|${text}`).digest('hex');
   const hit = await db.query.ttsCache.findFirst({ where: eq(ttsCache.key, key) });
   if (hit) return { data: new Uint8Array(hit.data), mime: hit.mime, cached: true };
-  const audio = new Uint8Array(await provider.synth(text, rate));
+  let audio: Uint8Array;
+  try { audio = new Uint8Array(await provider.synth(text, rate)); }
+  catch { throw new HttpError(502, 'tts_failed'); }
+  if (!audio.length) throw new HttpError(502, 'tts_failed');
   await db.insert(ttsCache).values({ key, text, voice: `${provider.id}:${provider.voice}`, rate, mime: 'audio/mpeg', data: Buffer.from(audio) }).onConflictDoNothing();
   return { data: audio, mime: 'audio/mpeg', cached: false };
 }

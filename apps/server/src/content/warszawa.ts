@@ -46,7 +46,7 @@ export const WARSZAWA: CityContent = {
             wordChoice('vocab.greetings', 'Cześć', [t('Привіт', 'Привет', 'Hi'), t('Дякую', 'Спасибо', 'Thank you'), t('Ні', 'Нет', 'No')]),
             wordChoice('vocab.greetings', 'Dzień dobry', [t('Добрий день', 'Добрый день', 'Good morning'), t('На добраніч', 'Спокойной ночи', 'Good night'), t('Вибачте', 'Извините', 'Sorry')]),
             listen('listening.greetings', 'Dobry wieczór', ['Dobry wieczór', 'Dzień dobry', 'Dobranoc']),
-            reverseChoice('vocab.greetings', t('До побачення', 'До свидания', 'Goodbye'), ['Do widzenia', 'Dzień dobry', 'Na razie'],
+            reverseChoice('vocab.greetings', t('Формальне «до побачення»', 'Формальное «до свидания»', 'Formal goodbye'), ['Do widzenia', 'Dzień dobry', 'Na razie'],
               t('**Do widzenia** — формальне прощання. **Na razie** — неформальне «бувай».', '**Do widzenia** — формальное прощание. **Na razie** — неформальное «пока».', '**Do widzenia** is formal. **Na razie** is an informal "see you".')),
             match('vocab.greetings', [
               ['Cześć', t('Привіт', 'Привет', 'Hi')],
@@ -58,7 +58,7 @@ export const WARSZAWA: CityContent = {
               t('Продавчиня в магазині о 10:00 ранку', 'Продавщица в магазине в 10:00 утра', 'A shop assistant at 10 a.m.'),
               t('У магазині з незнайомими вітаються формально: **Dzień dobry**.', 'В магазине с незнакомыми здороваются формально: **Dzień dobry**.', 'In a shop you greet strangers formally: **Dzień dobry**.')),
             oddOne('vocab.greetings', ['Cześć', 'Dzień dobry', 'Dobry wieczór', 'Dobranoc'], 3,
-              t('**Dobranoc** — це не привітання, а побажання перед сном.', '**Dobranoc** — не приветствие, а пожелание перед сном.', '**Dobranoc** is not a greeting — it is said before sleep.')),
+              t('**Dobranoc** — це не привітання, а побажання перед сном.', '**Dobranoc** — не приветствие, а пожелание перед сном.', '**Dobranoc** is not a greeting — it is said before sleep.'), t("Що кажуть перед сном?", "Что говорят перед сном?", "What do you say before going to bed?")),
             speak('speaking.greetings', 'Dzień dobry', t('Добрий день', 'Добрый день', 'Good morning')),
             dialogue('dialogue.greetings', ANIA, [
               { npc: 'Cześć!', tr: t('Привіт!', 'Привет!', 'Hi!'), choose: [['Cześć!', t('Привіт!', 'Привет!', 'Hi!')], ['Dobranoc!', t('На добраніч!', 'Спокойной ночи!', 'Good night!')]], feedback: t('Ania вітається неформально — відповідай так само: **Cześć!**', 'Аня здоровается неформально — отвечай так же: **Cześć!**', 'Ania greets you informally — answer the same: **Cześć!**') },
@@ -223,7 +223,7 @@ export const WARSZAWA: CityContent = {
               ['dziesięć', t('10', '10', '10')],
             ]),
             reverseChoice('vocab.numbers', t('9 — дев\'ять', '9 — девять', '9 — nine'), ['dziewięć', 'dziesięć', 'siedem']),
-            oddOne('vocab.numbers', ['dwa', 'trzy', 'kot', 'pięć'], 2, t('**kot** — це кіт, а не число.', '**kot** — это кот, а не число.', '**kot** is a cat, not a number.')),
+            oddOne('vocab.numbers', ['dwa', 'trzy', 'kot', 'pięć'], 2, t('**kot** — це кіт, а не число.', '**kot** — это кот, а не число.', '**kot** is a cat, not a number.'), t("Яке слово НЕ є числівником?", "Какое слово НЕ является числительным?", "Which word is NOT a number?")),
             fillGap('vocab.numbers', 'jeden, dwa, trzy, ___, pięć', ['cztery', 'sześć', 'osiem'], t('один, два, три, …, п\'ять', 'один, два, три, …, пять', 'one, two, three, …, five')),
             dictation('writing.numbers', 'sześć', t('шість', 'шесть', 'six')),
             listen('listening.numbers', 'Mój numer to siedem, osiem, dwa.', ['7 8 2', '6 8 2', '7 9 2']),

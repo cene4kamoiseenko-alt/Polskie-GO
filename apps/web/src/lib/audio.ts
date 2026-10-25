@@ -69,31 +69,53 @@ if (el && typeof document !== 'undefined') {
 }
 
 const blobCache = new Map<string, string>();
+const pendingAudio = new Map<string, Promise<string>>();
 async function serverAudio(text: string, slow: boolean): Promise<string> {
   const k = keyOf(text, slow);
   const hit = blobCache.get(k);
   if (hit) return hit;
-  const blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}`);
-  const url = URL.createObjectURL(blob);
-  blobCache.set(k, url);
-  if (blobCache.size > 300) {
-    const [first] = blobCache.keys();
-    URL.revokeObjectURL(blobCache.get(first)!);
-    blobCache.delete(first);
-  }
-  return url;
+  const pending = pendingAudio.get(k);
+  if (pending) return pending;
+  const task = (async () => {
+    const blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}`);
+    if (!blob.size) throw new Error('empty_audio');
+    const url = URL.createObjectURL(blob);
+    blobCache.set(k, url);
+    if (blobCache.size > 300) {
+      const [first] = blobCache.keys();
+      URL.revokeObjectURL(blobCache.get(first)!);
+      blobCache.delete(first);
+    }
+    return url;
+  })();
+  pendingAudio.set(k, task);
+  try { return await task; } finally { pendingAudio.delete(k); }
 }
+
+let cancelPlayback: (() => void) | null = null;
 
 function playElement(src: string, rate: number, onStart: () => void): Promise<void> {
   if (!el) return Promise.reject(new Error('no_audio'));
   return new Promise((resolve, reject) => {
     let playing = false;
-    el.onended = () => resolve();
+    const timer = setTimeout(() => { finish(new Error('playback')); el.pause(); }, 15_000);
+    let finished = false;
+    const finish = (error?: Error) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      el.onended = el.onpause = el.onerror = el.onplaying = el.onloadedmetadata = null;
+      cancelPlayback = null;
+      error ? reject(error) : resolve();
+    };
+    cancelPlayback = () => { finish(); el.pause(); };
+    el.onended = () => finish();
     // Пауза рахується лише після початку саме цього відтворення (зміна src теж генерує pause).
-    el.onpause = () => playing && resolve();
-    el.onerror = () => reject(new Error('playback'));
+    el.onpause = () => { if (playing) finish(); };
+    el.onerror = () => finish(new Error('playback'));
     el.onplaying = () => {
       playing = true;
+      clearTimeout(timer);
       onStart();
     };
     el.src = src;
@@ -103,7 +125,7 @@ function playElement(src: string, rate: number, onStart: () => void): Promise<vo
       el.playbackRate = rate;
     };
     (el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true;
-    el.play().catch((e: Error) => reject(e.name === 'NotAllowedError' ? new Error('blocked') : e));
+    el.play().catch((e: Error) => finish(e.name === 'NotAllowedError' ? new Error('blocked') : e));
   });
 }
 
@@ -136,15 +158,15 @@ export async function devicePolishVoice() {
   return pickPolishVoice(await deviceVoices());
 }
 
-async function speakDevice(text: string, slow: boolean, onStart: () => void): Promise<void> {
+async function speakDevice(text: string, slow: boolean, onStart: () => void, active: () => boolean): Promise<void> {
   if (!ttsAvailable()) throw new Error('no_polish_voice');
   // Якщо голоси вже завантажені — без await: iOS не втрачає жест користувача.
   const ready = speechSynthesis.getVoices();
   const voices = ready.length ? ready : await deviceVoices();
   const voice = pickPolishVoice(voices);
-  // Список голосів не порожній, але польського немає — не читаємо чужим голосом.
-  // Порожній список (iOS WebView не завжди його віддає) — просимо систему саме pl-PL.
-  if (!voice && voices.length) throw new Error('no_polish_voice');
+  // Без підтвердженого польського голосу показуємо помилку: мовний fallback системи може бути чужим.
+  if (!voice) throw new Error('no_polish_voice');
+  if (!active()) return;
   return new Promise((resolve, reject) => {
     // WebKit іноді «ковтає» репліку, якщо speak() викликати одразу після cancel() під час мовлення.
     const busy = speechSynthesis.speaking || speechSynthesis.pending;
@@ -153,11 +175,23 @@ async function speakDevice(text: string, slow: boolean, onStart: () => void): Pr
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? 'pl-PL';
     u.rate = slow ? 0.7 : 0.95;
-    u.onstart = onStart;
-    u.onend = () => resolve();
-    u.onerror = (e) => (e.error === 'interrupted' || e.error === 'canceled' ? resolve() : reject(new Error('playback')));
-    if (busy) setTimeout(() => speechSynthesis.speak(u), 80);
-    else speechSynthesis.speak(u);
+    const timer = setTimeout(() => { finish(new Error('playback')); speechSynthesis.cancel(); }, 15_000);
+    let finished = false;
+    const finish = (error?: Error) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      u.onstart = u.onend = u.onerror = null;
+      cancelPlayback = null;
+      error ? reject(error) : resolve();
+    };
+    cancelPlayback = () => finish();
+    u.onstart = () => { clearTimeout(timer); onStart(); };
+    u.onend = () => finish();
+    u.onerror = (e) => finish(e.error === 'interrupted' || e.error === 'canceled' ? undefined : new Error('playback'));
+    if (busy) setTimeout(() => { if (active()) speechSynthesis.speak(u); else finish(); }, 80);
+    else if (active()) speechSynthesis.speak(u);
+    else finish();
   });
 }
 
@@ -171,6 +205,7 @@ let seq = 0;
 
 export function stopSpeech() {
   seq++;
+  cancelPlayback?.();
   if (ttsAvailable()) speechSynthesis.cancel();
   if (el && !el.paused) el.pause();
   if (state.status !== 'idle') set({ key: null, status: 'idle', issue: null });
@@ -198,9 +233,9 @@ export async function speak(text: string, opts: { url?: string | null; slow?: bo
       }
       if (!mine()) return;
       if (src) await playElement(src, 1, started);
-      else await speakDevice(text, slow, started).catch((e: Error) => Promise.reject(e.message === 'no_polish_voice' ? new Error('network') : e));
+      else await speakDevice(text, slow, started, mine).catch((e: Error) => Promise.reject(e.message === 'no_polish_voice' ? new Error('network') : e));
     } else {
-      await speakDevice(text, slow, started);
+      await speakDevice(text, slow, started, mine);
     }
     if (mine()) set({ key: null, status: 'idle', issue: null });
   } catch (e) {
@@ -241,45 +276,4 @@ export const sfx = {
   coin: () => tone([988, 1319], 0.09, 'square', 0.03),
 };
 
-type Recognition = {
-  lang: string;
-  interimResults: boolean;
-  maxAlternatives: number;
-  start(): void;
-  stop(): void;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-};
-
-export function speechRecognitionAvailable() {
-  const w = window as unknown as Record<string, unknown>;
-  return !!(w.SpeechRecognition || w.webkitSpeechRecognition);
-}
-
-/** Розпізнати польське мовлення. Це розпізнавання тексту, не фонетична оцінка вимови. */
-export function recognizePolish(): { promise: Promise<string>; stop: () => void } {
-  const w = window as unknown as Record<string, new () => Recognition>;
-  const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
-  if (!Ctor) return { promise: Promise.reject(new Error('unsupported')), stop: () => {} };
-  const rec = new Ctor();
-  rec.lang = 'pl-PL';
-  rec.interimResults = false;
-  rec.maxAlternatives = 1;
-  const promise = new Promise<string>((resolve, reject) => {
-    let done = false;
-    rec.onresult = (e) => {
-      done = true;
-      resolve(e.results[0]?.[0]?.transcript ?? '');
-    };
-    rec.onerror = (e) => {
-      done = true;
-      reject(new Error(e.error));
-    };
-    rec.onend = () => {
-      if (!done) resolve('');
-    };
-  });
-  rec.start();
-  return { promise, stop: () => rec.stop() };
-}
+export { recognizePolish, speechRecognitionAvailable } from './recognition';

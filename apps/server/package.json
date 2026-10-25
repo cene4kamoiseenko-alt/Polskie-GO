@@ -8,9 +8,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "seed:sql": "tsx scripts/build-seed.ts",
-    "seed:sql:force": "tsx scripts/build-seed.ts --force",
-    "db:local": "tsx scripts/build-seed.ts && wrangler d1 migrations apply polski-go --local -c ../../wrangler.jsonc && wrangler d1 execute polski-go --local -c ../../wrangler.jsonc --file seed.sql --yes",
+    "seed:sql": "node --import tsx scripts/build-seed.ts",
+    "seed:sql:force": "node --import tsx scripts/build-seed.ts --force",
+    "db:local": "node --import tsx scripts/build-seed.ts && wrangler d1 migrations apply polski-go --local -c ../../wrangler.jsonc && wrangler d1 execute polski-go --local -c ../../wrangler.jsonc --file seed.sql --yes",
     "bot:setup": "node --env-file-if-exists=.env scripts/setup-bot.mjs"
   },
   "dependencies": {

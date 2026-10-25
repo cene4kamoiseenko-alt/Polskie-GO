@@ -167,7 +167,7 @@ export default function ShopScreen() {
           <div className="absolute inset-x-0 bottom-[42px] flex justify-center">
             <AnimatePresence mode="popLayout">
               <motion.div key={picked?.id ?? 'base'} initial={{ scale: 0.92, opacity: 0.4, y: 6 }} animate={{ scale: 1, opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 18 }}>
-                <Beaver size={196} outfit={preview} mood={picked ? 'cheer' : 'happy'} vectorOnly />
+                <Beaver size={196} outfit={preview} mood={picked ? 'cheer' : 'happy'} />
               </motion.div>
             </AnimatePresence>
           </div>

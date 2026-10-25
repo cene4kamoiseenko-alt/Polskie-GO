@@ -31,6 +31,15 @@ describe('перевірка відповідей', () => {
     expect(checkAnswer(choice, { optionId: 'b' }).correct).toBe(false);
   });
 
+  it('аудіювання й диктант без звуку: пропуск без зарахування', () => {
+    const listening: ExerciseItem = { key: 'l', type: 'LISTENING', skill: 's', data: { audioText: 'Dobranoc', options: [{ id: 'o0', text: 'Dobranoc' }, { id: 'o1', text: 'Dzień dobry' }], answer: 'o0' } };
+    expect(checkAnswer(listening, { skipped: true } as never)).toMatchObject({ correct: false, skipped: true, done: true, correctAnswer: 'o0' });
+    const dictation: ExerciseItem = { key: 'd', type: 'DICTATION', skill: 's', data: { audioText: 'Dzień dobry', accepted: ['Dzień dobry'] } };
+    expect(checkAnswer(dictation, { skipped: true } as never)).toMatchObject({ correct: false, skipped: true, correctAnswer: 'Dzień dobry' });
+    // Порожня відповідь не зараховується.
+    expect(checkAnswer(dictation, { text: '   ' }).correct).toBe(false);
+  });
+
   it('публічна версія не містить відповіді', () => {
     const pub = toPublicItem(choice);
     expect(JSON.stringify(pub)).not.toContain('"answer"');
@@ -46,6 +55,21 @@ describe('перевірка відповідей', () => {
     expect(matchText('tak', ['nie']).match).toBe('wrong');
     // Коротке слово з одруківкою — не зараховується
     expect(matchText('kot', ['kod']).match).toBe('wrong');
+  });
+
+  it('does not forgive changed numbers, endings or short words as a typo', () => {
+    expect(matchText('Mam 21 lat', ['Mam 20 lat']).match).toBe('wrong');
+    expect(matchText('Nie lubię herbatę', ['Nie lubię herbaty']).match).toBe('wrong');
+    expect(matchText('Mam na imię Olu', ['Mam na imię Ola']).match).toBe('wrong');
+    expect(matchText('Przeprasam', ['Przepraszam'], { allowTypos: false }).match).toBe('wrong');
+    expect(matchText('dzień'.normalize('NFD'), ['dzień']).match).toBe('exact');
+    // Пропущені знаки — «майже»; інший знак робить інше слово (część — «частина») — помилка.
+    expect(matchText('czesc', ['Cześć']).match).toBe('diacritics');
+    expect(matchText('część', ['Cześć']).match).toBe('wrong');
+    expect(matchText('zle', ['źle']).match).toBe('diacritics');
+    expect(matchText('żle', ['źle']).match).toBe('wrong');
+    const item: ExerciseItem = { key: 'negative', type: 'PRONUNCIATION', skill: 's', data: { text: 'Nie lubię herbaty z mlekiem', translation: { uk: '...' } } };
+    expect(checkAnswer(item, { transcript: 'Lubię herbaty z mlekiem' }).correct).toBe(false);
   });
 
   it('складання речення з альтернативами', () => {

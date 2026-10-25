@@ -16,13 +16,14 @@
     "test": "npm run test -w @polski-go/shared && npm run test -w @polski-go/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:local": "npm run db:local -w @polski-go/server",
-    "e2e": "node scripts/e2e.cjs"
+    "e2e": "node --import tsx scripts/browser-check.ts"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",
-    "drizzle-orm": "0.45.4"
+    "drizzle-orm": "0.45.4",
+    "playwright": "^1.61.1"
   }
 }

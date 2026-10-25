@@ -274,7 +274,7 @@ export const MISSIONS: Mission[] = [
           T(t('33,40 zł'), false, t('trzydzieści = 30, а тут dwadzieścia = 20.', 'trzydzieści = 30, а здесь dwadzieścia = 20.', 'trzydzieści = 30, but you heard dwadzieścia = 20.')),
           T(t('23,14 zł'), false, t('czterdzieści = 40, czternaście = 14.', 'czterdzieści = 40, czternaście = 14.', 'czterdzieści = 40, czternaście = 14.')),
         ],
-        { hint: t('dwadzieścia trzy — 23, czterdzieści — 40.', 'dwadzieścia trzy — 23, czterdzieści — 40.', '23 and 40.'), explain: t('Після 2, 3, 4 кажуть «złote»: dwa złote, dwadzieścia trzy złote; після 5+ — «złotych».', 'После 2, 3, 4 говорят «złote»: dwa złote, dwadzieścia trzy złote; после 5+ — «złotych».', 'After 2–4: złote; after 5+: złotych.'), words: ['dwadzieścia', 'trzy'] }),
+        { hint: t('dwadzieścia trzy — 23, czterdzieści — 40.', 'dwadzieścia trzy — 23, czterdzieści — 40.', '23 and 40.'), explain: t('Після 2, 3, 4 кажуть «złote»: dwa złote, dwadzieścia trzy złote; після 5–21 — «złotych».', 'После 2, 3, 4 говорят «złote»: dwa złote, dwadzieścia trzy złote; после 5–21 — «złotych».', 'After 2–4: złote; after 5–21: złotych.'), words: ['dwadzieścia', 'trzy'] }),
       choice('bye', npc('Proszę paragon. Do widzenia!', 'Ось чек. До побачення!', 'Вот чек. До свидания!', 'Here’s your receipt. Goodbye!'),
         t('Попрощайся.', 'Попрощайся.', 'Say goodbye.'),
         [
@@ -855,7 +855,7 @@ export const MISSIONS: Mission[] = [
         { hint: t('alejka — прохід між полицями.', 'alejka — проход между полками.', 'alejka = aisle.'), explain: t('w alejce numer pięć — у проході №5; obok makaronu — поруч із макаронами.', 'w alejce numer pięć — в проходе №5; obok makaronu — рядом с макаронами.', 'aisle 5, next to pasta.'), words: ['alejka', 'obok', 'pięć'] }),
       build('eggs', undefined, t('Склади: «Беру десять яєць».', 'Составь: «Беру десять яиц».', 'Build: “I’m taking ten eggs.”'),
         'Biorę dziesięć jajek.', ['jajka', 'dziesięciu'],
-        { hint: t('Після 5+ — родовий множини: jajek.', 'После 5+ — родительный множественного: jajek.', 'After 5+: genitive plural jajek.'), explain: t('dwa / trzy / cztery jajka, але pięć, dziesięć jajek.', 'dwa / trzy / cztery jajka, но pięć, dziesięć jajek.', '2–4 jajka, 5+ jajek.'), words: ['jajko', 'dziesięć'] }),
+        { hint: t('Після 5–21 — родовий множини: jajek.', 'После 5–21 — родительный множественного: jajek.', 'After 5–21: genitive plural jajek.'), explain: t('dwa / trzy / cztery jajka, але pięć, dziesięć jajek.', 'dwa / trzy / cztery jajka, но pięć, dziesięć jajek.', '2–4 jajka, 5–21 jajek.'), words: ['jajko', 'dziesięć'] }),
       choice('selfcheckout', narr('Kasa samoobsługowa: „Zeskanuj produkt”.', 'Каса самообслуговування: «Відскануй товар».', 'Касса самообслуживания: «Отсканируй товар».', 'Self-checkout: “Scan the item.”'),
         t('Що просить каса?', 'Что просит касса?', 'What does the machine ask?'),
         [

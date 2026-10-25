@@ -28,7 +28,7 @@ export const CityHero = memo(function CityHero({ slug, color, name, height = 236
   if (photo) {
     return (
       <div className={`${pos} overflow-hidden ${className}`} style={{ height }}>
-        <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+        <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" decoding="async" draggable={false} />
         {children}
       </div>
     );

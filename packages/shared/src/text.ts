@@ -5,6 +5,7 @@ const DIACRITICS: Record<string, string> = {
 /** Нормалізація для порівняння відповідей: регістр, пробіли, пунктуація. */
 export function normalize(s: string): string {
   return s
+    .normalize('NFC')
     .toLowerCase()
     .replace(/[’`]/g, "'")
     .replace(/[.,!?;:"„”“«»…()\-–—]/g, ' ')
@@ -43,19 +44,45 @@ export function similarity(a: string, b: string): number {
 export type TextMatch = 'exact' | 'diacritics' | 'typo' | 'wrong';
 
 /** Порівнює введений текст з прийнятими відповідями. */
-export function matchText(input: string, accepted: string[]): { match: TextMatch; best: string } {
+export function matchText(input: string, accepted: string[], opts: { allowTypos?: boolean } = {}): { match: TextMatch; best: string } {
   const n = normalize(input);
   let best = accepted[0] ?? '';
   for (const a of accepted) if (normalize(a) === n) return { match: 'exact', best: a };
+  // Пропущені польські знаки (czesc замість cześć) — «майже», з підказкою.
+  // Зайвий або інший знак (część замість cześć) — це інше слово, тому відповідь неправильна.
   for (const a of accepted) {
-    if (stripDiacritics(normalize(a)) === stripDiacritics(n)) return { match: 'diacritics', best: a };
+    if (onlyMissingDiacritics(normalize(a), n)) return { match: 'diacritics', best: a };
   }
-  for (const a of accepted) {
-    const na = normalize(a);
-    // Одна одруківка дозволена лише для довших відповідей, щоб не зараховувати інше слово.
-    if (na.length >= 8 && levenshtein(stripDiacritics(na), stripDiacritics(n)) <= 1) {
-      return { match: 'typo', best: a };
-    }
+  if (opts.allowTypos !== false) for (const a of accepted) {
+    const expected = stripDiacritics(normalize(a)).split(' ');
+    const actual = stripDiacritics(n).split(' ');
+    if (expected.length !== actual.length) continue;
+    const changed = expected.map((word, i) => ({ word, input: actual[i] })).filter(x => x.word !== x.input);
+    if (changed.length !== 1) continue;
+    const { word, input: typed } = changed[0];
+    // Tolerate one internal typo in a long word, never a changed number,
+    // a short grammatical word, a dropped word or a changed inflectional ending.
+    if (word.length >= 8 && typed.length >= 7 && !/\d/.test(word + typed)
+      && word[0] === typed[0] && word.slice(-2) === typed.slice(-2)
+      && levenshtein(word, typed) === 1) return { match: 'typo', best: a };
   }
   return { match: 'wrong', best };
+}
+
+/** true, якщо введення відрізняється від зразка лише відсутніми діакритичними знаками. */
+export function onlyMissingDiacritics(expected: string, input: string): boolean {
+  const e = [...expected], i = [...input];
+  if (e.length !== i.length || expected === input) return false;
+  return e.every((ch, k) => ch === i[k] || (stripDiacritics(ch) === i[k] && stripDiacritics(i[k]) === i[k]));
+}
+
+/** Speech matching must not accept an opposite meaning or a changed written number. */
+export function sameSpeechPolarityAndNumbers(a: string, b: string): boolean {
+  const words = (s: string) => normalize(s).split(' ');
+  const negations = new Set(['nie', 'nigdy', 'nikt', 'nic', 'nikogo', 'nigdzie', 'żaden', 'żadna', 'żadne']);
+  const negatives = (s: string) => words(s).filter(w => negations.has(w)).sort().join('|');
+  const numbers = (s: string) => s.match(/\d+/g)?.join('|') ?? '';
+  const x = numbers(a), y = numbers(b);
+  // A recognizer may spell a number out or render it as digits; compare digits only when both use them.
+  return negatives(a) === negatives(b) && (!x || !y || x === y);
 }

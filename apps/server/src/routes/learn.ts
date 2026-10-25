@@ -1,5 +1,6 @@
 /** Карта, уроки, навчальні сесії, словник, граматика, іспити. */
 import { Hono } from 'hono';
+import { readSpeechBody, sttStatus, transcribeSpeech } from '../services/stt';
 import { and, asc, count, desc, eq, exists, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { dayKey } from '@polski-go/shared';
@@ -48,6 +49,10 @@ r.post('/sessions/:id/finish', async (c) => c.json(await finishSession(c.get('us
 
 // ── Озвучка (серверний синтез pl-PL, кеш у D1) ──
 r.get('/tts/status', (c) => c.json(ttsStatus()));
+r.get('/speech/status', (c) => c.json(sttStatus()));
+r.post('/speech/transcribe', rateLimit(6, 60_000, 'speech'), async (c) => {
+  return c.json(await transcribeSpeech(await readSpeechBody(c.req.raw)));
+});
 r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {
   const q = z.object({ text: z.string().min(1).max(300), rate: z.enum(['normal', 'slow']).default('normal') }).parse(query(c));
   const audio = await synthesize(q.text, q.rate);

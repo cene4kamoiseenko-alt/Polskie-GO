@@ -1,3 +1,4 @@
+import { sttStatus } from './stt';
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
 import { dayKey, effectiveStreak, levelFromXp, type Cefr } from '@polski-go/shared';
 import { and, count, desc, eq, gt, inArray, isNotNull, lte, or } from 'drizzle-orm';
@@ -87,7 +88,7 @@ export async function getMe(userId: string) {
     ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay },
     rewards: { exerciseXp: cfg.exerciseXp },
     /** Чи доступна серверна польська озвучка (інакше — лише польський голос пристрою). */
-    audio: { server: ttsConfigured(), ...ttsStatus() },
+    audio: { server: ttsConfigured(), ...ttsStatus(), recognition: { server: sttStatus().configured, ...sttStatus() } },
   };
 }
 

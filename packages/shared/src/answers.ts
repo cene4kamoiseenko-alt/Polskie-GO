@@ -12,7 +12,7 @@ import {
   type PronunciationData,
   type TextData,
 } from './types';
-import { matchText, normalize, similarity } from './text';
+import { matchText, normalize, similarity, sameSpeechPolarityAndNumbers } from './text';
 
 export type AnswerPayload =
   | { optionId: string }
@@ -113,6 +113,12 @@ export function checkAnswer(item: ExerciseItem, payload: AnswerPayload): CheckRe
   const t = item.type;
   const p = payload as Record<string, unknown>;
 
+  // Аудіювання й диктант, коли звук недоступний: пропуск без XP і без помилки (не вгадування за текстом).
+  if ((t === 'LISTENING' || t === 'DICTATION') && p.skipped === true) {
+    const correctAnswer = t === 'LISTENING' ? (item.data as ChoiceData).answer : (item.data as TextData).accepted[0];
+    return { correct: false, skipped: true, done: true, correctAnswer };
+  }
+
   if (CHOICE_TYPES.includes(t)) {
     const d = item.data as ChoiceData;
     const correct = typeof p.optionId === 'string' && p.optionId === d.answer;
@@ -122,7 +128,7 @@ export function checkAnswer(item: ExerciseItem, payload: AnswerPayload): CheckRe
   if (TEXT_TYPES.includes(t)) {
     const d = item.data as TextData;
     const input = typeof p.text === 'string' ? p.text.slice(0, 500) : '';
-    const { match, best } = matchText(input, d.accepted);
+    const { match, best } = matchText(input, d.accepted, { allowTypos: t !== 'GRAMMAR' });
     return { correct: match !== 'wrong', almost: match === 'diacritics' || match === 'typo', done: true, correctAnswer: best };
   }
 
@@ -153,7 +159,7 @@ export function checkAnswer(item: ExerciseItem, payload: AnswerPayload): CheckRe
     if (p.skipped === true) return { correct: false, skipped: true, done: true, correctAnswer: d.text };
     const transcript = typeof p.transcript === 'string' ? p.transcript.slice(0, 300) : '';
     const sim = similarity(transcript, d.text);
-    return { correct: sim >= SPEECH_THRESHOLD, similarity: Math.round(sim * 100) / 100, done: true, correctAnswer: d.text };
+    return { correct: !!transcript.trim() && sim >= SPEECH_THRESHOLD && sameSpeechPolarityAndNumbers(transcript, d.text), similarity: Math.round(sim * 100) / 100, done: true, correctAnswer: d.text };
   }
 
   if (DIALOGUE_TYPES.includes(t)) {

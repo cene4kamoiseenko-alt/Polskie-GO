@@ -334,7 +334,8 @@ export function SpeakButton({ text, url, size = 'md', slow = false }: { text: st
   const { status, issue } = useSpeechState(text, slow);
   const lastIssue = useRef<string | null>(null);
   useEffect(() => {
-    if (status !== 'error' || !issue || lastIssue.current === issue) return;
+    if (status !== 'error') { lastIssue.current = null; return; }
+    if (!issue || lastIssue.current === issue) return;
     lastIssue.current = issue;
     toast(t(issue === 'no_polish_voice' ? 'audio_no_voice' : issue === 'blocked' ? 'audio_blocked' : 'audio_error'), '🔇');
   }, [status, issue, toast, t]);
@@ -348,8 +349,9 @@ export function SpeakButton({ text, url, size = 'md', slow = false }: { text: st
         void speak(text, { url: url ?? undefined, slow });
       }}
       className={cx(
-        'relative grid shrink-0 place-items-center rounded-2xl text-white transition-transform active:scale-90',
-        status === 'error' ? 'bg-[#B9C1CB] shadow-[0_3px_0_#8D97A3]' : slow ? 'bg-elev text-sky-dark shadow-[0_3px_0_var(--border)]' : 'bg-sky shadow-[0_3px_0_var(--color-sky-dark)]',
+        'relative grid shrink-0 place-items-center rounded-2xl transition-transform active:scale-90',
+        // Колір іконки задається лише одним класом: інакше text-white перекривав text-sky-dark і «повільна» кнопка була порожньою.
+        status === 'error' ? 'bg-[#B9C1CB] text-white shadow-[0_3px_0_#8D97A3]' : slow ? 'bg-elev text-sky-dark shadow-[0_3px_0_var(--border)]' : 'bg-sky text-white shadow-[0_3px_0_var(--color-sky-dark)]',
         dims,
       )}
       aria-label={slow ? t('ex_slow') : t('audio_listen')}

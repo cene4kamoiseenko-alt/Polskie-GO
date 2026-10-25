@@ -6,7 +6,7 @@ import { useT } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
-import { prefetchSpeech, sfx } from '../lib/audio';
+import { prefetchSpeech, sfx, stopSpeech } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
 import { Icon, type LineIconName } from '../components/Icon';
@@ -78,6 +78,9 @@ export default function LessonScreen() {
   // Повторне коло помилок починається після початкової черги (при продовженні вона коротша).
   const isRetry = item ? pos >= (session?.items.length ?? 0) - resumed : false;
   const speed = session?.mode === 'SPEED';
+
+  // Stop playback on exercise changes, result/intro screens and leaving the lesson.
+  useEffect(() => () => stopSpeech(), [key, phase]);
 
   // Озвучка поточного й наступного завдання завантажується заздалегідь.
   useEffect(() => {

@@ -58,15 +58,15 @@ export function picture(skill: string, image: string, options: string[], explana
 }
 
 /** Знайди помилку: речення розбите на слова, errorIndex — слово з помилкою. */
-export function findError(skill: string, words: string[], errorIndex: number, translation: I18n, explanation: I18n): ExerciseSeed {
+export function findError(skill: string, words: string[], errorIndex: number, translation: I18n, explanation: I18n, question?: I18n): ExerciseSeed {
   const opts = words.map((text, i) => ({ id: `w${i}`, text }));
-  return { type: 'FIND_ERROR', skill, data: { pl: words.join(' '), translation, options: opts, answer: `w${errorIndex}` }, explanation };
+  return { type: 'FIND_ERROR', skill, data: { pl: words.join(' '), translation, options: opts, answer: `w${errorIndex}`, ...(question ? { question } : {}) }, explanation };
 }
 
 /** Знайди зайве слово. odd — індекс зайвого. */
-export function oddOne(skill: string, words: string[], odd: number, explanation: I18n): ExerciseSeed {
+export function oddOne(skill: string, words: string[], odd: number, explanation: I18n, question: I18n): ExerciseSeed {
   const opts = words.map((text, i) => ({ id: `w${i}`, text }));
-  return { type: 'ODD_ONE_OUT', skill, data: { options: opts, answer: `w${odd}` }, explanation };
+  return { type: 'ODD_ONE_OUT', skill, data: { question, options: opts, answer: `w${odd}` }, explanation };
 }
 
 /** Прочитай текст і дай відповідь. options[0] — правильний. */

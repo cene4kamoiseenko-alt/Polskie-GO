@@ -23,6 +23,8 @@ export type Bindings = {
   /** Серверна озвучка: Google Cloud Text-to-Speech (ключ API) або Azure Speech. */
   GOOGLE_TTS_API_KEY?: string;
   GOOGLE_TTS_VOICE?: string;
+  /** Enable short microphone transcription explicitly; off by default. */
+  AZURE_STT_ENABLED?: string;
   AZURE_SPEECH_KEY?: string;
   AZURE_SPEECH_REGION?: string;
   AZURE_SPEECH_VOICE?: string;

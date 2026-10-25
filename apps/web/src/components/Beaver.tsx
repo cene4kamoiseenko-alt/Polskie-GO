@@ -7,7 +7,7 @@
  */
 import { motion, useReducedMotion } from 'framer-motion';
 import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { beaverAsset } from '../lib/assets';
+import { beaverAsset, supportsBeaverArt } from '../lib/assets';
 
 /**
  * Стани: привітання (wave), правильна відповідь (cheer), підтримка після помилки (sad),
@@ -798,11 +798,10 @@ function Arm({ side, pose, sleeve, anim }: { side: -1 | 1; pose: ArmPose; sleeve
 export const Beaver = memo(function Beaver({ mood = 'happy', outfit = {}, size = 160, className, animate = true, vectorOnly, lively }: Props) {
   const reduce = useReducedMotion();
   const anim = animate && !reduce;
-  // Растровий ассет має лише фірмовий образ, тож вибраний одяг завжди малюємо вектором.
-  const customized = Object.entries(outfit).some(([k, v]) => v && !(k === 'JACKET' && v === 'hoodie-red'));
-  const raster = vectorOnly || customized ? null : beaverAsset(mood);
+  // Composed base art is allowed only for the exact supported outfit; custom wear stays visible.
+  const raster = vectorOnly || !supportsBeaverArt(outfit) ? null : beaverAsset(mood);
   if (raster) {
-    const img = <img src={raster} alt="" width={size} height={size * (260 / 220)} className={className} style={{ objectFit: 'contain' }} draggable={false} />;
+    const img = <img src={raster} alt="" width={size} height={size * (260 / 220)} className={className} decoding="async" style={{ objectFit: 'contain' }} draggable={false} />;
     return anim ? (
       <motion.div className="inline-block" style={{ lineHeight: 0 }} animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 2.6 }}>
         {img}

@@ -5,7 +5,7 @@ import { MotionConfig, motion } from 'framer-motion';
 import { I18nProvider, guessLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
 import { useMe } from './lib/queries';
-import { configureAudio, setSoundEnabled } from './lib/audio';
+import { configureAudio, setSoundEnabled, stopSpeech } from './lib/audio';
 import { ApiError } from './lib/api';
 import { bootMark } from './lib/boot';
 import { BottomNav, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
@@ -84,6 +84,7 @@ export function App() {
   const me = useMe();
   const loc = useLocation();
   const nav = useNavigate();
+  useEffect(() => () => stopSpeech(), [loc.pathname]);
   const lang = me.data?.settings.uiLanguage ?? guessLang(tg?.initDataUnsafe.user?.language_code);
   useTheme(me.data?.settings.theme);
   useEffect(() => {

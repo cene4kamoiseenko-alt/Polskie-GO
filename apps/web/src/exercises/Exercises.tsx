@@ -8,9 +8,12 @@ import type { I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import type { AnswerResult, PublicItem } from '../lib/types';
 import { assetUrl } from '../lib/api';
-import { recognizePolish, sfx, speak, speechRecognitionAvailable } from '../lib/audio';
+import { recognizePolish, sfx, speak, speechRecognitionAvailable, stopSpeech, useSpeechState } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Icon } from '../components/Icon';
+import { useMe } from '../lib/queries';
+import { microphoneRecordingAvailable, recognizeRecordedPolish } from '../lib/recorder';
+import { ApiError } from '../lib/api';
 import { SpeakButton, cx } from '../components/ui';
 
 export type Payload = Record<string, unknown>;
@@ -129,7 +132,29 @@ function PromptCard({ children }: { children: ReactNode }) {
   return <div className="card prompt-card flex min-w-0 flex-wrap items-center justify-center gap-3 p-4">{children}</div>;
 }
 
-function ChoiceExercise({ item, result, onChange }: ExProps) {
+/**
+ * Аудіювання без звуку не можна чесно пройти: на пристрої немає польського голосу або озвучка не завантажилась.
+ * Тоді завдання можна пропустити — без XP і без помилки (сервер приймає { skipped: true } лише для звукових типів).
+ */
+function CantListen({ text, onSkip }: { text: string; onSkip: () => void }) {
+  const { t } = useT();
+  const { status, issue } = useSpeechState(text);
+  const failed = status === 'error';
+  return (
+    <div className={cx('text-center', failed && 'rounded-2xl bg-muted p-3')}>
+      {failed && (
+        <p className="mb-2 text-sm font-bold">
+          {t(issue === 'no_polish_voice' ? 'ex_audio_missing' : issue === 'blocked' ? 'audio_blocked' : 'audio_error')}
+        </p>
+      )}
+      <button className="text-sm font-black text-sky-dark underline" onClick={() => { stopSpeech(); onSkip(); }}>
+        {t(failed ? 'ex_audio_skip' : 'ex_cant_listen')}
+      </button>
+    </div>
+  );
+}
+
+function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
   const { tr } = useT();
   const data = d<{ pl?: string; translation?: I18n; passage?: string; question?: I18n; audioText?: string; audioUrl?: string; image?: string; options: Opt[] }>(item);
   const [sel, setSel] = useState<string | null>(null);
@@ -228,6 +253,7 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
         </div>
       )}
+      {item.type === 'LISTENING' && data.audioText && !result && <CantListen text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
       {/* Читання: текст як справжня записка, оголошення чи меню */}
       {item.type === 'READING' && data.passage && (
         <div className="reading-paper relative p-4 pt-5 text-[16.5px] font-semibold leading-relaxed">
@@ -294,7 +320,7 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
 // ───────── Введення тексту ─────────
 const POLISH = ['ą', 'ć', 'ę', 'ł', 'ń', 'ó', 'ś', 'ź', 'ż'];
 
-function TextExercise({ item, result, onChange }: ExProps) {
+function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
   const { t, tr } = useT();
   const data = d<{ source?: I18n; pl?: string; base?: string; audioText?: string; audioUrl?: string; translation?: I18n }>(item);
   const [value, setValue] = useState('');
@@ -337,6 +363,7 @@ function TextExercise({ item, result, onChange }: ExProps) {
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
         </div>
       )}
+      {item.type === 'DICTATION' && data.audioText && !result && <CantListen text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
       <textarea
         ref={ref}
         value={value}
@@ -515,21 +542,42 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [heard, setHeard] = useState<string | null>(null);
-  const available = useMemo(() => speechRecognitionAvailable(), []);
+  const serverRecognition = !!useMe().data?.audio?.recognition?.server;
+  const available = useMemo(() => serverRecognition ? microphoneRecordingAvailable() : speechRecognitionAvailable(), [serverRecognition]);
+  const [processing, setProcessing] = useState(false);
+  const run = useRef<ReturnType<typeof recognizePolish> | null>(null);
+  const attempt = useRef(0);
+  const reduced = useReducedMotion();
+  const cancel = () => {
+    attempt.current++;
+    run.current?.cancel();
+    run.current = null;
+  };
+  useEffect(() => () => { cancel(); stopSpeech(); }, [item.key]);
   const record = async (practice: boolean) => {
+    if (run.current) return;
+    const id = ++attempt.current;
     setError(null);
     setListening(true);
+    stopSpeech();
     haptic.tap();
     try {
-      const { promise } = recognizePolish();
-      const transcript = await promise;
+      const current = serverRecognition ? recognizeRecordedPolish(() => { if (id === attempt.current) setProcessing(true); }) : recognizePolish();
+      run.current = current;
+      const transcript = await current.promise;
+      if (id !== attempt.current) return;
       setHeard(transcript);
-      // Перша спроба зараховується сервером; повтори — лише для тренування.
       if (!practice) onSubmit({ transcript });
     } catch (e) {
-      setError((e as Error).message);
+      if (id !== attempt.current) return;
+      const code = e instanceof ApiError ? e.code : (e as Error).message;
+      setError(t(code === 'not-allowed' || code === 'service-not-allowed' ? 'ex_mic_permission'
+        : code === 'no-speech' || code === 'stt_no_speech' ? 'ex_mic_no_speech'
+        : code === 'stt_not_configured' ? 'ex_mic_not_configured'
+        : ['network', 'network_error', 'stt_unavailable'].includes(code) ? 'ex_mic_network'
+        : code === 'timeout' || code === 'network_timeout' ? 'ex_mic_timeout' : 'ex_mic_failed'));
     } finally {
-      setListening(false);
+      if (id === attempt.current) { run.current = null; setListening(false); setProcessing(false); }
     }
   };
   const diff = heard !== null ? wordDiff(data.text, heard) : null;
@@ -549,14 +597,14 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
       </div>
       {available ? (
         <div className="relative grid place-items-center">
-          {listening && [0, 1, 2].map((i) => (
+          {listening && !processing && !reduced && [0, 1, 2].map((i) => (
             <motion.span key={i} className="absolute h-28 w-28 rounded-full bg-coral/30" initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 1.9, opacity: 0 }} transition={{ repeat: Infinity, duration: 1.6, delay: i * 0.5 }} />
           ))}
           <motion.button
             whileTap={{ scale: 0.92 }}
-            disabled={listening}
-            onClick={() => record(!!result)}
-            aria-label={t('ex_mic_start')}
+            disabled={processing}
+            onClick={() => listening ? run.current?.stop() : void record(!!result)}
+            aria-label={t(processing ? 'ex_mic_processing' : listening ? 'ex_mic_stop' : 'ex_mic_start')}
             className={cx('relative grid h-28 w-28 place-items-center rounded-full text-white', listening ? 'bg-coral' : 'bg-pl-red')}
             style={{ boxShadow: `0 6px 0 var(--color-coral-dark)` }}
           >
@@ -566,7 +614,7 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
       ) : (
         <p className="rounded-2xl bg-muted p-3 font-bold">{t('ex_mic_unavailable')}</p>
       )}
-      <div className="font-black">{listening ? t('ex_mic_listening') : available ? t(result ? 'ex_mic_again' : 'ex_mic_start') : ''}</div>
+      <div className="font-black">{processing ? t('ex_mic_processing') : listening ? t('ex_mic_stop') : available ? t(result ? 'ex_mic_again' : 'ex_mic_start') : ''}</div>
       {diff && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="w-full rounded-2xl bg-muted p-3 text-left">
           <div className="muted text-xs font-black uppercase tracking-wide">{t('ex_mic_heard')}</div>
@@ -584,9 +632,10 @@ function PronunciationExercise({ item, result, onSubmit }: ExProps) {
       )}
       {error && <p className="text-sm font-bold text-coral">{error}</p>}
       <p className="muted text-xs font-semibold">{t('ex_speech_note')}</p>
+      {serverRecognition && <p className="muted text-xs">{t('ex_mic_server_note')}</p>}
       {!result && (
-        <button className="text-sm font-black text-sky-dark underline" onClick={() => onSubmit({ skipped: true })}>
-          {t('lesson_skip_mic')}
+        <button className="text-sm font-black text-sky-dark underline" onClick={() => { cancel(); setListening(false); setProcessing(false); onSubmit({ skipped: true }); }}>
+          {t(available ? 'lesson_skip_mic' : 'ex_mic_continue')}
         </button>
       )}
     </div>

@@ -93,4 +93,21 @@ describe('Серверна польська озвучка', () => {
       delete env.ELEVENLABS_VOICE_ID;
     }
   });
+  it('does not cache an empty provider response or leak provider failure details', async () => {
+    const { env } = await getEnv(); env.GOOGLE_TTS_API_KEY = 'test-key';
+    try {
+      const realFetch = globalThis.fetch;
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+        if (!String(url).startsWith('https://texttospeech.googleapis.com/')) return realFetch(url as never, init);
+        return new Response(JSON.stringify({ audioContent: '' }));
+      });
+      const { call } = await login();
+      const before = (await db.select({ n: count() }).from(ttsCache))[0].n;
+      const response = await call('GET', `/api/tts?text=${encodeURIComponent('Test pustego nagrania.')}`);
+      expect(response.status).toBe(502);
+      expect(response.body.error).toBe('tts_failed');
+      expect((await db.select({ n: count() }).from(ttsCache))[0].n).toBe(before);
+    } finally { delete env.GOOGLE_TTS_API_KEY; }
+  });
+
 });

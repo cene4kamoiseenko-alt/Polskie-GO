@@ -34,6 +34,7 @@ const I18nCtx = createContext<Ctx | null>(null);
 
 export function I18nProvider({ lang, children }: { lang: UiLang; children: ReactNode }) {
   const [loaded, setLoaded] = useState(0);
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
   useEffect(() => {
     if (!DICTS[lang]) void preloadLang(lang).then(() => setLoaded((n) => n + 1));
   }, [lang]);

@@ -6,3 +6,4 @@ export * from './srs';
 export * from './dates';
 export * from './progression';
 export * from './speech';
+export * from './wav';

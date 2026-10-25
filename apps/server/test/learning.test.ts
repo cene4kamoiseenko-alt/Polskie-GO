@@ -141,6 +141,22 @@ describe('Уроки та нагороди', () => {
     expect((await call('POST', `/api/sessions/${s2.body.sessionId}/finish`)).body.error).toBe('too_fast');
   });
 
+  it('аудіювання й диктант без звуку можна пропустити без помилки й без XP', async () => {
+    const { call } = await login();
+    const s = await call('POST', '/api/sessions', { lessonId: await lessonId('waw-1-czesc') });
+    const items = await sessionItems(s.body.sessionId);
+    for (const type of ['LISTENING', 'DICTATION']) {
+      const item = items.find((x) => x.type === type)!;
+      const r = await call('POST', `/api/sessions/${s.body.sessionId}/answer`, { key: item.key, answer: { skipped: true } });
+      expect(r.status).toBe(200);
+      expect(r.body).toMatchObject({ correct: false, skipped: true });
+    }
+    // Для звичайного вибору пропуск не є відповіддю: це помилка, а не обхід завдання.
+    const choice = items.find((x) => x.type === 'WORD_TRANSLATION')!;
+    const r = await call('POST', `/api/sessions/${s.body.sessionId}/answer`, { key: choice.key, answer: { skipped: true } });
+    expect(r.body.skipped).toBeFalsy();
+  });
+
   it('чужу сесію використати не можна', async () => {
     const a = await login();
     const b = await login();

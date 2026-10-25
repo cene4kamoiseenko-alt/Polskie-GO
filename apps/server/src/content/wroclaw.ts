@@ -92,8 +92,8 @@ export const WROCLAW: CityContent = {
             wordChoice('vocab.shopping', 'sklep', [t('магазин', 'магазин', 'shop'), t('склеп', 'склеп', 'crypt'), t('склад', 'склад', 'warehouse')],
               t('Хибний друг: **sklep** — це магазин.', 'Ложный друг: **sklep** — это магазин.', 'False friend: **sklep** means shop.')),
             wordChoice('vocab.shopping', 'Ile kosztuje?', [t('Скільки коштує?', 'Сколько стоит?', 'How much is it?'), t('Котра година?', 'Который час?', 'What time is it?'), t('Де каса?', 'Где касса?', 'Where is the till?')]),
-            fillGap('grammar.instrumental', 'Płacę ___.', ['kartą', 'karta', 'kartę'], t('Я плачу карткою.', 'Я плачу картой.', 'I pay by card.'),
-              t('Чим платиш? Орудний відмінок: karta → **kartą**.', 'Чем платишь? Творительный падеж: karta → **kartą**.', 'Paying with what? Instrumental: karta → **kartą**.')),
+            fillGap('grammar.instrumental', 'Za zakupy płacę ___.', ['gotówką', 'gotówka', 'gotówkę'], t('За покупки я плачу готівкою.', 'За покупки я плачу наличными.', 'I pay for the shopping in cash.'),
+              t('Чим платиш? Орудний відмінок: gotówka → **gotówką**.', 'Чем платишь? Творительный падеж: gotówka → **gotówką**.', 'Paying with what? Instrumental: gotówka → **gotówką**.')),
             match('vocab.shopping', [
               ['gotówka', t('готівка', 'наличные', 'cash')],
               ['paragon', t('чек', 'чек', 'receipt')],
@@ -126,9 +126,9 @@ export const WROCLAW: CityContent = {
           cefr: 'A1',
           difficulty: 3,
           explanation: t(
-            '30 **trzydzieści**, 40 **czterdzieści**, 50 **pięćdziesiąt**, 100 **sto**. Складені числа — як в українській: 25 = **dwadzieścia pięć**.\nФорма слова **złoty** залежить від числа (як «гривня»):\n1 — **złoty**, 2–4 — **złote**, 5–21 — **złotych**, 22–24 — **złote**, 25+ — **złotych**.\n**grosz** — 1/100 злотого: 2 grosze, 5 groszy.',
-            '30 **trzydzieści**, 40 **czterdzieści**, 50 **pięćdziesiąt**, 100 **sto**. Составные числа — как в русском: 25 = **dwadzieścia pięć**.\nФорма слова **złoty** зависит от числа (как «рубль»):\n1 — **złoty**, 2–4 — **złote**, 5–21 — **złotych**, 22–24 — **złote**, 25+ — **złotych**.\n**grosz** — 1/100 злотого: 2 grosze, 5 groszy.',
-            '30 **trzydzieści**, 40 **czterdzieści**, 50 **pięćdziesiąt**, 100 **sto**. Compound numbers: 25 = **dwadzieścia pięć**.\nThe form of **złoty** depends on the number:\n1 — **złoty**, 2–4 — **złote**, 5–21 — **złotych**, 22–24 — **złote**, 25+ — **złotych**.\n**grosz** — 1/100 zloty: 2 grosze, 5 groszy.',
+            '30 **trzydzieści**, 40 **czterdzieści**, 50 **pięćdziesiąt**, 100 **sto**. Складені числа — як в українській: 25 = **dwadzieścia pięć**.\nФорма слова **złoty** залежить від числа (як «гривня»):\n1 — **złoty**, 2–4 — **złote**, 5–21 — **złotych**, 22–24 — **złote**, 25–31 — **złotych**, 32–34 — **złote**, 35–41 — **złotych**.\n**grosz** — 1/100 злотого: 2 grosze, 5 groszy.',
+            '30 **trzydzieści**, 40 **czterdzieści**, 50 **pięćdziesiąt**, 100 **sto**. Составные числа — как в русском: 25 = **dwadzieścia pięć**.\nФорма слова **złoty** зависит от числа (как «рубль»):\n1 — **złoty**, 2–4 — **złote**, 5–21 — **złotych**, 22–24 — **złote**, 25–31 — **złotych**, 32–34 — **złote**, 35–41 — **złotych**.\n**grosz** — 1/100 злотого: 2 grosze, 5 groszy.',
+            '30 **trzydzieści**, 40 **czterdzieści**, 50 **pięćdziesiąt**, 100 **sto**. Compound numbers: 25 = **dwadzieścia pięć**.\nThe form of **złoty** depends on the number:\n1 — **złoty**, 2–4 — **złote**, 5–21 — **złotych**, 22–24 — **złote**, 25–31 — **złotych**, 32–34 — **złote**, 35–41 — **złotych**.\n**grosz** — 1/100 zloty: 2 grosze, 5 groszy.',
           ),
           examples: [
             { pl: 'To kosztuje dwadzieścia dwa złote.', tr: t('Це коштує двадцять два злотих.', 'Это стоит двадцать два злотых.', 'It costs twenty-two zlotys.') },
@@ -238,7 +238,7 @@ export const WROCLAW: CityContent = {
             listen('listening.prices', 'Razem trzydzieści dwa złote', ['32 zł', '23 zł', '30 zł']),
             reverseChoice('vocab.shopping', t('чек', 'чек', 'receipt'), ['paragon', 'rachunek', 'karta'],
               t('**paragon** — чек у магазині; **rachunek** — рахунок у ресторані.', '**paragon** — чек в магазине; **rachunek** — счёт в ресторане.', '**paragon** — a shop receipt; **rachunek** — a restaurant bill.')),
-            oddOne('vocab.cafe', ['kawa', 'herbata', 'sok', 'torba'], 3, t('**torba** — пакет, а не напій.', '**torba** — пакет, а не напиток.', '**torba** is a bag, not a drink.')),
+            oddOne('vocab.cafe', ['kawa', 'herbata', 'sok', 'torba'], 3, t('**torba** — пакет, а не напій.', '**torba** — пакет, а не напиток.', '**torba** is a bag, not a drink.'), t("Що НЕ є напоєм?", "Что НЕ является напитком?", "Which is NOT a drink?")),
             findError('grammar.accusative', ['Poproszę', 'herbata', 'i', 'ciasto'], 1, t('Чай і тістечко, будь ласка.', 'Чай и пирожное, пожалуйста.', 'Tea and cake, please.'),
               t('Після **poproszę**: herbata → **herbatę**.', 'После **poproszę**: herbata → **herbatę**.', 'After **poproszę**: herbata → **herbatę**.')),
             reading('reading.menu', 'MENU: zupa pomidorowa — 14 zł, pierogi ruskie — 22 zł, kawa — 9 zł, sok — 7 zł.',

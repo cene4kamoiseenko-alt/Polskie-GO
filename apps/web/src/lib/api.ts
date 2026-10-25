@@ -24,6 +24,9 @@ export class ApiError extends Error {
 async function timedFetch(url: string, init: RequestInit = {}, ms = 15_000): Promise<Response> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
+  const abort = () => ctrl.abort();
+  init.signal?.addEventListener('abort', abort, { once: true });
+  if (init.signal?.aborted) ctrl.abort();
   try {
     return await fetch(url, { ...init, signal: ctrl.signal });
   } catch (e) {
@@ -31,6 +34,7 @@ async function timedFetch(url: string, init: RequestInit = {}, ms = 15_000): Pro
     throw new ApiError(0, 'network_error');
   } finally {
     clearTimeout(timer);
+    init.signal?.removeEventListener('abort', abort);
   }
 }
 
@@ -128,3 +132,17 @@ export async function downloadExport() {
 
 /** Полный адрес файла, загруженного в админке (/uploads/...), — он хранится на API-сервере. */
 export const assetUrl = (u: string) => (u.startsWith('/uploads/') ? `${API_BASE}${u}` : u);
+
+/** Authenticated short microphone clip. No automatic retry or duplicate paid request. */
+export async function transcribeAudio(bytes: Uint8Array, signal: AbortSignal): Promise<string> {
+  await ensureAuth();
+  const res = await timedFetch(`${API_BASE}/api/speech/transcribe`, {
+    method: 'POST', signal,
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'audio/wav' },
+    body: new Blob([new Uint8Array(bytes)]),
+  }, 18_000);
+  const result = await res.json() as { transcript?: string; error?: string };
+  if (!res.ok) throw new ApiError(res.status, result.error ?? 'stt_unavailable');
+  if (!result.transcript?.trim()) throw new Error('no-speech');
+  return result.transcript;
+}

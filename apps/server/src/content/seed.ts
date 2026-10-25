@@ -6,6 +6,8 @@
  */
 import { DEFAULT_REWARDS } from '@polski-go/shared';
 import { resetIds } from './builders';
+import { CONTINUATION_TEXT_FIXES } from './continuation-fixes';
+import { EXERCISE_FIXES } from './exercise-fixes';
 import { LESSON_MOVES, TEXT_FIXES } from './fixes';
 import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
@@ -172,7 +174,7 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   lessonSql(EXAM_A1, 0, null);
 
   // ── Явні виправлення текстів (лише якщо в БД досі старе значення з коду) ──
-  for (const f of TEXT_FIXES) {
+  for (const f of [...TEXT_FIXES, ...CONTINUATION_TEXT_FIXES]) {
     out.push(`UPDATE ${f.table} SET "${f.column}" = ${lit(f.to)} WHERE slug = ${lit(f.slug)} AND "${f.column}" = ${lit(f.from)};`);
   }
   // ── Перенесення уроків між локаціями (лише з очікуваної старої локації) ──
@@ -180,6 +182,9 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
     const route = (slug: string) => ref('city_routes', { slug }).sql;
     out.push(`UPDATE lessons SET route_id = ${route(m.to)}, "order" = ${m.order} WHERE slug = ${lit(m.lesson)} AND route_id = ${route(m.from)};`);
   }
+
+  // Exact-match corrections preserve IDs, admin edits, and historical session snapshots.
+  out.push(...exerciseFixSql());
 
   // ── Косметика ──
   for (const [i, item] of ITEMS.entries()) {
@@ -230,4 +235,14 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
     );
   }
   return out;
+}
+
+/** Safe on an existing database; a second run changes nothing. No global force. */
+export function exerciseFixSql(): string[] {
+  return EXERCISE_FIXES.map((f) => {
+    const old = f.from;
+    const next = f.to;
+    const target = ref('lessons', { slug: f.lesson }).sql;
+    return `UPDATE exercises SET type = ${lit(next.type)}, skill = ${lit(next.skill)}, data = ${lit(next.data)}, explanation = ${lit(next.explanation)} WHERE lesson_id = ${target} AND "order" = ${f.order} AND type = ${lit(old.type)} AND skill = ${lit(old.skill)} AND data = ${lit(old.data)} AND explanation IS ${lit(old.explanation)};`;
+  });
 }

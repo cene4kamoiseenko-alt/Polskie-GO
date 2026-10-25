@@ -46,7 +46,7 @@ export const WAW2_MORE = [
     t('Після **może pan** — інфінітив: **powtórzyć**.', 'После **może pan** — инфинитив: **powtórzyć**.', 'After **może pan** use the infinitive: **powtórzyć**.')),
   listen('listening.politeness', 'Proszę mówić wolniej', ['Proszę mówić wolniej', 'Proszę mówić głośniej', 'Proszę iść wolniej']),
   oddOne('vocab.politeness', ['proszę', 'dziękuję', 'przepraszam', 'pomidor'], 3,
-    t('Три — «чарівні слова», а **pomidor** — помідор.', 'Три — «волшебные слова», а **pomidor** — помидор.', 'Three are "magic words"; **pomidor** is a tomato.')),
+    t('Три — «чарівні слова», а **pomidor** — помідор.', 'Три — «волшебные слова», а **pomidor** — помидор.', 'Three are "magic words"; **pomidor** is a tomato.'), t("Що НЕ є ввічливим словом для прохання, подяки чи вибачення?", "Что НЕ является словом просьбы, благодарности или извинения?", "Which is NOT an expression for a request, thanks or an apology?")),
   dialogue('situation.info-fast', INFO, [
     { npc: 'Pociąg do Gdańska odjeżdża z peronu czwartego, przy torze dwunastym.', tr: t('Потяг до Гданська відправляється з четвертої платформи, колія дванадцята.', 'Поезд до Гданьска отправляется с четвёртой платформы, путь двенадцатый.', 'The train to Gdańsk leaves from platform four, track twelve.'),
       choose: [['Przepraszam, nie rozumiem. Proszę mówić wolniej.', t('Вибачте, не розумію. Говоріть повільніше.', 'Извините, не понимаю. Говорите медленнее.', 'Sorry, I don\'t understand. Please speak more slowly.')], ['Dziękuję, dobranoc!', t('Дякую, на добраніч!', 'Спасибо, спокойной ночи!', 'Thanks, good night!')]],
@@ -97,7 +97,7 @@ export const WAW4_MORE = [
     { npc: 'Lwów jest piękny! Witaj w Warszawie!', tr: t('Львів гарний! Ласкаво просимо до Варшави!', 'Львов красивый! Добро пожаловать в Варшаву!', 'Lviv is beautiful! Welcome to Warsaw!') },
   ]),
   oddOne('vocab.origin', ['po polsku', 'po angielsku', 'po ukraińsku', 'po południu'], 3,
-    t('Три — мови, а **po południu** — після обіду.', 'Три — языки, а **po południu** — после обеда.', 'Three are languages; **po południu** means in the afternoon.')),
+    t('Три — мови, а **po południu** — після обіду.', 'Три — языки, а **po południu** — после обеда.', 'Three are languages; **po południu** means in the afternoon.'), t("Який вираз означає час, а не мову?", "Какое выражение обозначает время, а не язык?", "Which expression refers to time rather than a language?")),
   wordOrder('grammar.origin', 'Mówię po angielsku i trochę po polsku', t('Я говорю англійською і трохи польською.', 'Я говорю по-английски и немного по-польски.', 'I speak English and a little Polish.')),
 ];
 
@@ -162,7 +162,7 @@ export const WAW_P5_MISJA: LessonSeed = {
     build('grammar.intro', 'Jestem z Ukrainy i mówię trochę po polsku', t('Я з України й трохи говорю польською', 'Я из Украины и немного говорю по-польски', 'I\'m from Ukraine and speak a little Polish'), ['polski', 'jest']),
     wordOrder('grammar.intro', 'Do zobaczenia jutro w kawiarni', t('До зустрічі завтра в кав\'ярні.', 'До встречи завтра в кафе.', 'See you tomorrow at the café.')),
     oddOne('vocab.greetings', ['Na razie', 'Do zobaczenia', 'Do widzenia', 'Dziękuję'], 3,
-      t('Три — прощання, а **Dziękuję** — дякую.', 'Три — прощания, а **Dziękuję** — спасибо.', 'Three are goodbyes; **Dziękuję** means thank you.')),
+      t('Три — прощання, а **Dziękuję** — дякую.', 'Три — прощания, а **Dziękuję** — спасибо.', 'Three are goodbyes; **Dziękuję** means thank you.'), t("Який вираз означає подяку, а не прощання?", "Какое выражение означает благодарность, а не прощание?", "Which expression gives thanks rather than says goodbye?")),
     translate('writing.intro', t('Приємно, я з України.', 'Приятно, я из Украины.', 'Nice to meet you, I\'m from Ukraine.'), ['Miło mi, jestem z Ukrainy', 'Miło mi. Jestem z Ukrainy']),
     dialogue('situation.mission-bye', ANIA, [
       { npc: 'Muszę już iść na zajęcia. Spotkamy się jutro?', tr: t('Мені вже треба на пари. Зустрінемося завтра?', 'Мне уже пора на пары. Встретимся завтра?', 'I have to go to class. Shall we meet tomorrow?'),
@@ -194,7 +194,7 @@ export const WAW5_MORE = [
     t('**Kod do domofonu**: dwa, pięć, dziewięć.', '**Kod do domofonu**: dwa, pięć, dziewięć.', '**Kod do domofonu**: two, five, nine.')),
   listen('listening.numbers', 'Peron drugi, tor szósty', ['Peron drugi, tor szósty', 'Peron trzeci, tor szósty', 'Peron drugi, tor siódmy'],
     t('Номери платформ кажуть порядковими: **drugi** (другий), **szósty** (шостий).', 'Номера платформ называют порядковыми: **drugi** (второй), **szósty** (шестой).', 'Platforms use ordinals: **drugi** (second), **szósty** (sixth).')),
-  oddOne('vocab.numbers', ['jeden', 'dwa', 'trzy', 'tak'], 3, t('**tak** — так, а не число.', '**tak** — да, а не число.', '**tak** means yes, not a number.')),
+  oddOne('vocab.numbers', ['jeden', 'dwa', 'trzy', 'tak'], 3, t('**tak** — так, а не число.', '**tak** — да, а не число.', '**tak** means yes, not a number.'), t("Яке слово НЕ є числівником?", "Какое слово НЕ является числительным?", "Which word is NOT a number?")),
   build('vocab.numbers', 'Mój numer to pięć, sześć, siedem', t('Мій номер — п\'ять, шість, сім', 'Мой номер — пять, шесть, семь', 'My number is five, six, seven'), ['szósty']),
   translate('writing.numbers', t('три, чотири, п\'ять', 'три, четыре, пять', 'three, four, five'), ['trzy, cztery, pięć', 'trzy cztery pięć']),
 ];
@@ -204,7 +204,7 @@ export const WAW6_MORE = [
   listen('listening.numbers', 'siedemnaście', ['siedemnaście', 'siedemdziesiąt', 'siedem']),
   reverseChoice('vocab.numbers', t('18 — вісімнадцять', '18 — восемнадцать', '18 — eighteen'), ['osiemnaście', 'osiemdziesiąt', 'osiem']),
   fillGap('grammar.age', 'Syn ma rok, a córka pięć ___.', ['lat', 'lata', 'roku'], t('Синові рік, а доньці п\'ять років.', 'Сыну год, а дочке пять лет.', 'The son is one and the daughter is five.'),
-    t('Від 5 → **lat**: pięć lat.', 'От 5 → **lat**: pięć lat.', '5+ → **lat**: pięć lat.')),
+    t('Для 5–21 → **lat**: pięć lat.', 'Для 5–21 → **lat**: pięć lat.', '5–21 → **lat**: pięć lat.')),
   reading('reading.age', 'Rodzina Kowalskich: tata Marek — 45 lat, mama Ola — 41 lat, syn Kuba — 12 lat, córka Zosia — 3 lata.',
     t('Скільки років Зосі?', 'Сколько лет Зосе?', 'How old is Zosia?'), ['3', '12', '41']),
   dialogue('dialogue.siblings', ANIA, [
@@ -231,7 +231,7 @@ export const WAW_BOSS_MORE = [
   reading('reading.prices', 'WARZYWNIAK (ceny przykładowe) · pomidory 9,99 zł/kg · ogórki 6 zł/kg · ziemniaki 3,50 zł/kg',
     t('Скільки коштує кілограм огірків?', 'Сколько стоит килограмм огурцов?', 'How much is a kilo of cucumbers?'), ['6 zł', '9,99 zł', '3,50 zł']),
   fillGap('grammar.prices', 'To kosztuje pięć ___.', ['złotych', 'złote', 'złoty'], t('Це коштує п\'ять злотих.', 'Это стоит пять злотых.', 'It costs five złoty.'),
-    t('Від 5 → **złotych**.', 'От 5 → **złotych**.', '5+ → **złotych**.')),
+    t('Для 5–21 → **złotych**.', 'Для 5–21 → **złotych**.', '5–21 → **złotych**.')),
   dialogue('dialogue.boss-directions', TURYSTA, [
     { npc: 'Przepraszam, którędy na plac Zamkowy?', tr: t('Перепрошую, як пройти на Замкову площу?', 'Извините, как пройти на Замковую площадь?', 'Excuse me, which way to Castle Square?'),
       choose: [['Proszę iść prosto, a potem w lewo.', t('Ідіть прямо, а потім ліворуч.', 'Идите прямо, а потом налево.', 'Go straight, then left.')], ['Poproszę kawę z mlekiem.', t('Каву з молоком, будь ласка.', 'Кофе с молоком, пожалуйста.', 'Coffee with milk, please.')]],
