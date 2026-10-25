@@ -174,3 +174,23 @@ export function checkAnswer(item: ExerciseItem, payload: AnswerPayload): CheckRe
 export function describeChoiceAnswer(item: ExerciseItem): string {
   return optionText(item.data as ChoiceData, (item.data as ChoiceData).answer);
 }
+
+/**
+ * Порядок завдань без довгих серій однієї механіки: не більше `maxRun` однакових типів поспіль.
+ * Стабільно й детерміновано: завдання лише зсуваються вперед-назад, жодне не губиться.
+ */
+export function spreadByType<T extends { type: string }>(items: T[], maxRun = 3): T[] {
+  const rest = items.slice();
+  const out: T[] = [];
+  while (rest.length) {
+    const tail = out.slice(-maxRun);
+    const blocked = tail.length === maxRun && tail.every((x) => x.type === tail[0].type) ? tail[0].type : null;
+    let idx = 0;
+    if (blocked !== null && rest[0].type === blocked) {
+      const alt = rest.findIndex((x) => x.type !== blocked);
+      if (alt > 0) idx = alt;
+    }
+    out.push(rest.splice(idx, 1)[0]);
+  }
+  return out;
+}

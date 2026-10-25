@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  spreadByType,
   checkAnswer,
   toPublicItem,
   matchText,
@@ -177,5 +178,18 @@ describe('Польська озвучка', () => {
     expect(pickPolishVoice([{ lang: 'en-US', name: 'Alex', default: true }, { lang: 'ru-RU', name: 'Yuri' }])).toBeNull();
     expect(pickPolishVoice([{ lang: 'pt-BR', name: 'Luciana' }])).toBeNull();
     expect(pickPolishVoice([])).toBeNull();
+  });
+});
+
+describe('spreadByType', () => {
+  it('не більше трьох однакових механік поспіль, усі завдання на місці', () => {
+    const items = ['A', 'A', 'A', 'A', 'A', 'B', 'C', 'C', 'C', 'C', 'D'].map((type, i) => ({ type, i }));
+    const out = spreadByType(items);
+    expect(out.map((x) => x.i).sort((a, b) => a - b)).toEqual(items.map((x) => x.i));
+    let run = 1;
+    for (let k = 1; k < out.length; k++) {
+      run = out[k].type === out[k - 1].type ? run + 1 : 1;
+      expect(run).toBeLessThanOrEqual(3);
+    }
   });
 });

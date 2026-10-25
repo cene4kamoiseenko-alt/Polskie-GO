@@ -8,7 +8,7 @@ import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, no
 import {
   BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO, isMissionSlug,
   checkAnswer, dayDiff, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
-  seededRandom, shuffle, toPublicItem,
+  seededRandom, shuffle, spreadByType, toPublicItem,
   type AnswerPayload, type Cefr, type CheckResult, type ExerciseItem, type ExerciseType, type I18n,
 } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
@@ -228,7 +228,8 @@ export async function startSession(userId: string, input: { lessonId?: string; m
         .orderBy(asc(lessonWords.order)),
       lessonPlace(lesson),
     ]);
-    items = lessonToItems(exRows);
+    // Черга уроку: не більше трьох однакових механік поспіль (порядок у БД не змінюється).
+    items = spreadByType(lessonToItems(exRows));
     words = lw;
     place = lp;
 

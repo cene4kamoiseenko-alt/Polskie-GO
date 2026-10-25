@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkAnswer, EXERCISE_TYPES, type ExerciseItem, type OrderData, type ChoiceData } from '@polski-go/shared';
+import { checkAnswer, EXERCISE_TYPES, spreadByType, type ExerciseItem, type OrderData, type ChoiceData } from '@polski-go/shared';
 import { CITY_CONTENT } from '../src/content/seed';
 import { PLACEMENT, EXAM_A1 } from '../src/content/exams';
 import { VOCAB } from '../src/content/vocab';
@@ -142,5 +142,18 @@ describe('Оновлення засіяного контенту', () => {
     }
     const waw = CITY_CONTENT.find((c) => c.city === 'warszawa')!.routes.find((r) => r.slug === 'waw-egzamin')!;
     expect(waw.description.uk).toContain('Лодзі');
+  });
+});
+
+describe('Різноманітність механік', () => {
+  it('у черзі будь-якого уроку міста не більше трьох однакових механік поспіль', () => {
+    for (const l of CITY_CONTENT.flatMap((c) => c.routes.flatMap((r) => r.lessons))) {
+      const order = spreadByType(l.exercises);
+      let run = 1;
+      for (let i = 1; i < order.length; i++) {
+        run = order[i].type === order[i - 1].type ? run + 1 : 1;
+        expect(run, `${l.slug}: ${order[i].type}`).toBeLessThanOrEqual(3);
+      }
+    }
   });
 });
