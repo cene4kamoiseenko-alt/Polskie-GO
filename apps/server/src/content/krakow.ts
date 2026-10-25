@@ -5,6 +5,7 @@ import {
 } from './builders';
 import type { CityContent } from './types';
 import { KRK_DWORZEC } from './krakow-dworzec';
+import { KRK_ZABKA } from './krakow-zabka';
 
 const KASIA = { name: 'Kasia', emoji: '👩🏻‍🦰', role: t('подруга з Кракова', 'подруга из Кракова', 'a friend from Kraków') };
 
@@ -12,6 +13,7 @@ export const KRAKOW: CityContent = {
   city: 'krakow',
   routes: [
     KRK_DWORZEC,
+    KRK_ZABKA,
     {
       slug: 'krk-rodzina',
       title: t('Сім\'я', 'Семья', 'Family'),
