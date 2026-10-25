@@ -161,4 +161,21 @@ describe('Speech playback lifecycle (simulated browser, no real TTS)', () => {
         await task;
     });
 
+    it('a lone letter (preposition w / z) is never voiced on its own: a voice would say its name, "duże wu"', async () => {
+        const zosia = { name: 'Zosia', lang: 'pl-PL', localService: true, default: false };
+        const { audio, synth } = await setup([zosia]);
+        audio.configureAudio({ server: true });
+        for (const x of ['W', 'w', 'z', 'I']) expect(await audio.speak(x)).toEqual({ played: false, source: null, issue: null });
+        expect(synth.speak).not.toHaveBeenCalled();
+        const { apiBlob } = await import('../../web/src/lib/api');
+        expect(apiBlob).not.toHaveBeenCalled();
+    });
+    it('reports which source really started playing (health check by playback, not by request)', async () => {
+        const { audio } = await setup();
+        const task = audio.speak('Dzień dobry', { url: '/recording.mp3' });
+        await vi.waitFor(() => expect(FakeAudio.latest.onplaying).toBeTypeOf('function'));
+        FakeAudio.latest.onplaying();
+        FakeAudio.latest.onended();
+        expect(await task).toEqual({ played: true, source: 'recording', issue: null });
+    });
 });

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { pickPolishVoice, speechText } from '@polski-go/shared';
+import { isLoneLetter, pickPolishVoice, speechText } from '@polski-go/shared';
 import { apiBlob, assetUrl } from './api';
 
 /**
@@ -264,7 +264,7 @@ async function speakDevice(text: string, slow: boolean, onStart: (unverified: bo
 /** Попереднє завантаження озвучки найближчих фраз (лише серверний синтез, з бюджетом запитів; помилки ігноруються). */
 export function prefetchSpeech(texts: (string | null | undefined)[]) {
   if (!serverTts) return;
-  for (const t of texts.slice(0, 6)) if (t && speechText(t)) void serverAudio(t, false, true).catch(() => {});
+  for (const t of texts.slice(0, 6)) if (t && speechText(t) && !isLoneLetter(t)) void serverAudio(t, false, true).catch(() => {});
 }
 
 let seq = 0;
@@ -278,15 +278,27 @@ export function stopSpeech() {
 }
 
 /** Озвучити польський текст. Повторне натискання перезапускає, а не ставить у чергу. */
-export async function speak(text: string, opts: { url?: string | null; slow?: boolean } = {}): Promise<void> {
+/** Звідки реально пішов звук (подія playing / onstart), а не лише «запит успішний». */
+export type SpeechSource = 'recording' | 'server' | 'device';
+export type SpeechOutcome = { played: boolean; source: SpeechSource | null; issue: SpeechIssue };
+
+export async function speak(text: string, opts: { url?: string | null; slow?: boolean } = {}): Promise<SpeechOutcome> {
   const slow = !!opts.slow;
   const k = keyOf(text, slow);
-  if (!speechText(text)) return;
+  // Окрему літеру голос прочитав би як її назву («duże wu»), а не як прийменник — не озвучуємо.
+  if (!speechText(text) || isLoneLetter(text)) return { played: false, source: null, issue: null };
   stopSpeech();
   const my = ++seq;
   const mine = () => my === seq;
   set({ key: k, status: 'loading', issue: null });
-  const started = (unverified = false) => mine() && set({ key: k, status: 'playing', issue: unverified ? 'unverified_voice' : null });
+  let source: SpeechSource | null = null;
+  let unverifiedVoice = false;
+  const started = (from: SpeechSource, unverified = false) => {
+    if (!mine()) return;
+    source = from;
+    unverifiedVoice = unverified;
+    set({ key: k, status: 'playing', issue: unverified ? 'unverified_voice' : null });
+  };
   // Серверний синтез → голос пристрою. Якщо сервер був, але не відповів, а голосу пристрою немає, — це мережа.
   const synthesize = async () => {
     if (serverTts) {
@@ -299,22 +311,22 @@ export async function speak(text: string, opts: { url?: string | null; slow?: bo
       if (!mine()) return;
       if (src) {
         try {
-          await playElement(src, 1, started);
+          await playElement(src, 1, () => started('server'));
           return;
         } catch (e) {
           // Автовідтворення заборонене — голос пристрою теж не допоможе; інакше пробуємо пристрій.
           if ((e as Error).message === 'blocked' || !mine()) throw e;
         }
       }
-      await speakDevice(text, slow, started, mine).catch((e: Error) => Promise.reject(e.message === 'no_polish_voice' ? new Error('network') : e));
+      await speakDevice(text, slow, (u) => started('device', u), mine).catch((e: Error) => Promise.reject(e.message === 'no_polish_voice' ? new Error('network') : e));
     } else {
-      await speakDevice(text, slow, started, mine);
+      await speakDevice(text, slow, (u) => started('device', u), mine);
     }
   };
   try {
     if (opts.url) {
       try {
-        await playElement(assetUrl(opts.url), slow ? 0.8 : 1, started);
+        await playElement(assetUrl(opts.url), slow ? 0.8 : 1, () => started('recording'));
       } catch (e) {
         // Запис не відтворився (немає файлу, мережа, формат) — та сама фраза із синтезу.
         if ((e as Error).message === 'blocked' || !mine()) throw e;
@@ -324,10 +336,12 @@ export async function speak(text: string, opts: { url?: string | null; slow?: bo
       await synthesize();
     }
     if (mine()) set({ key: null, status: 'idle', issue: null });
+    return { played: source !== null, source, issue: unverifiedVoice ? 'unverified_voice' : null };
   } catch (e) {
-    if (!mine()) return;
     const msg = (e as Error).message;
-    set({ key: k, status: 'error', issue: msg === 'no_polish_voice' ? 'no_polish_voice' : msg === 'blocked' ? 'blocked' : 'network' });
+    const issue: SpeechIssue = msg === 'no_polish_voice' ? 'no_polish_voice' : msg === 'blocked' ? 'blocked' : 'network';
+    if (mine()) set({ key: k, status: 'error', issue });
+    return { played: source !== null, source, issue };
   }
 }
 

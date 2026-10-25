@@ -4,13 +4,13 @@
  */
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { alignSpeechWords, type I18n } from '@polski-go/shared';
+import { alignSpeechWords, isLoneLetter, type I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import type { AnswerResult, PublicItem } from '../lib/types';
 import { assetUrl } from '../lib/api';
 import { recognizePolish, sfx, speak, speechRecognitionAvailable, stopSpeech, useSpeechState } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { Icon } from '../components/Icon';
+import { Icon, type LineIconName } from '../components/Icon';
 import { useMe } from '../lib/queries';
 import { microphoneRecordingAvailable, recognizeRecordedPolish } from '../lib/recorder';
 import type { RecognitionRun } from '../lib/recognition';
@@ -166,7 +166,10 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
     sfx.tap();
     setSel(id);
     onChange({ optionId: id });
-    if (typeof text === 'string' && item.type !== 'FIND_ERROR' && item.type !== 'READING') speak(text);
+    if (typeof text === 'string' && item.type !== 'FIND_ERROR' && item.type !== 'READING') {
+      // Однолітерний варіант (w, z, i) звучить у фразі: окремо голос назвав би літеру («duże wu»).
+      speak(isLoneLetter(text) && data.pl?.includes('___') ? data.pl.replace(/_{2,}/, text) : text);
+    }
   };
   const state = (id: string) => {
     if (!result) return sel === id ? 'selected' : undefined;
@@ -399,7 +402,18 @@ function OrderExercise({ item, result, onChange }: ExProps) {
   const data = d<{ tokens: string[]; translation?: I18n }>(item);
   const [picked, setPicked] = useState<number[]>([]);
   const reduced = useReducedMotion();
+  // Однолітерний прийменник чи сполучник чекає на наступне слово й звучить разом із ним («w» + «domu»).
+  const carry = useRef<string | null>(null);
+  const say = (tok: string) => {
+    const text = carry.current ? `${carry.current} ${tok}` : tok;
+    if (isLoneLetter(tok)) carry.current = text;
+    else {
+      carry.current = null;
+      speak(text);
+    }
+  };
   const update = (next: number[]) => {
+    if (next.length < picked.length) carry.current = null;
     setPicked(next);
     onChange(next.length ? { tokens: next.map((i) => data.tokens[i]) } : null);
   };
@@ -438,7 +452,7 @@ function OrderExercise({ item, result, onChange }: ExProps) {
                 onClick={() => {
                   haptic.select();
                   sfx.tap();
-                  speak(tok);
+                  say(tok);
                   update([...picked, i]);
                 }}
                 className="rounded-xl border-2 border-soft bg-elev px-3 py-2 text-lg font-bold shadow-[0_3px_0_var(--border)]"
@@ -520,29 +534,98 @@ function MatchExercise({ item, result, onChange }: ExProps) {
 }
 
 // ───────── Вимова ─────────
+type MicStatus = 'ready' | 'starting' | 'recording' | 'processing' | 'permission' | 'silence' | 'offline' | 'not_configured' | 'unavailable' | 'blocked' | 'busy' | 'network' | 'timeout' | 'failed';
+
+/** Що бачить людина в кожному стані запису: заголовок, пояснення й піктограма. */
+const MIC_STATUS: Record<MicStatus, { title: TKey; text?: TKey; icon: LineIconName; warn?: boolean }> = {
+  ready: { title: 'mic_st_ready', icon: 'mic' },
+  starting: { title: 'mic_st_starting', icon: 'clock' },
+  recording: { title: 'mic_st_recording', icon: 'mic' },
+  processing: { title: 'ex_mic_processing', icon: 'clock' },
+  permission: { title: 'mic_st_permission', text: 'ex_mic_permission', icon: 'lock', warn: true },
+  silence: { title: 'mic_st_silence', text: 'mic_st_silence_text', icon: 'alert', warn: true },
+  offline: { title: 'mic_st_offline', text: 'mic_st_offline_text', icon: 'wifi-off', warn: true },
+  not_configured: { title: 'mic_st_not_configured', text: 'ex_mic_not_configured', icon: 'alert', warn: true },
+  unavailable: { title: 'mic_st_unavailable', text: 'mic_st_unavailable_text', icon: 'alert', warn: true },
+  blocked: { title: 'mic_st_blocked', text: 'mic_st_blocked_text', icon: 'lock', warn: true },
+  busy: { title: 'mic_st_busy', text: 'mic_st_busy_text', icon: 'clock', warn: true },
+  network: { title: 'mic_st_network', text: 'ex_mic_network', icon: 'wifi-off', warn: true },
+  timeout: { title: 'mic_st_timeout', text: 'ex_mic_timeout', icon: 'clock', warn: true },
+  failed: { title: 'mic_st_failed', text: 'ex_mic_failed', icon: 'alert', warn: true },
+};
+
+/** Код помилки запису/розпізнавання (браузер, рекордер або API) → стан для людини. */
+export function micStatusFromError(code: string, online: boolean): MicStatus {
+  if (code === 'not-allowed') return 'permission';
+  // WKWebView (Telegram на iPhone) може мати SpeechRecognition, але система забороняє його в цьому вікні.
+  if (code === 'service-not-allowed') return 'blocked';
+  if (code === 'silence' || code === 'no-speech' || code === 'stt_no_speech') return 'silence';
+  if (code === 'unsupported' || code === 'audio-capture' || code === 'start-failed') return 'unavailable';
+  if (code === 'stt_not_configured') return 'not_configured';
+  if (code === 'rate_limited') return 'busy';
+  if (['network', 'network_error', 'stt_unavailable'].includes(code)) return online ? 'network' : 'offline';
+  if (code === 'timeout' || code === 'network_timeout') return 'timeout';
+  return 'failed';
+}
+
+function useOnline() {
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine !== false);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    };
+  }, []);
+  return online;
+}
+
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
 function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
   const { t, tr } = useT();
   const data = d<{ text: string; translation: I18n; audioUrl?: string }>(item);
-  const [listening, setListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<MicStatus>('ready');
   const [heard, setHeard] = useState<string | null>(null);
+  const [level, setLevel] = useState(0);
+  const [secs, setSecs] = useState(0);
+  const online = useOnline();
   const serverRecognition = !!useMe().data?.audio?.recognition?.server;
-  const available = useMemo(() => serverRecognition ? microphoneRecordingAvailable() : speechRecognitionAvailable(), [serverRecognition]);
-  const [processing, setProcessing] = useState(false);
+  // Сервер відповів «не підключено» — далі лише тренування розпізнаванням пристрою (якщо воно є).
+  const [serverOff, setServerOff] = useState(false);
+  const mode = useMemo<'server' | 'device' | 'none'>(
+    () => (serverRecognition && !serverOff && microphoneRecordingAvailable() ? 'server' : speechRecognitionAvailable() ? 'device' : 'none'),
+    [serverRecognition, serverOff],
+  );
   const run = useRef<RecognitionRun<Transcription> | null>(null);
   const attempt = useRef(0);
   const reduced = useReducedMotion();
+  const live = status === 'starting' || status === 'recording';
   const cancel = () => {
     attempt.current++;
     run.current?.cancel();
     run.current = null;
   };
   useEffect(() => () => { cancel(); stopSpeech(); }, [item.key]);
+  // Мережа повернулась — стан «немає мережі» знімається сам.
+  useEffect(() => {
+    if (online) setStatus((st) => (st === 'offline' || st === 'network' ? 'ready' : st));
+  }, [online]);
+  useEffect(() => {
+    if (status !== 'recording') return;
+    setSecs(0);
+    const id = setInterval(() => setSecs((x) => x + 1), 1000);
+    return () => clearInterval(id);
+  }, [status]);
   const record = async (practice: boolean) => {
-    if (run.current) return;
+    if (run.current || mode === 'none') return;
+    if (mode === 'server' && !online) { setStatus('offline'); return; }
     const id = ++attempt.current;
-    setError(null);
-    setListening(true);
+    const mine = () => id === attempt.current;
+    setStatus(mode === 'server' ? 'starting' : 'recording');
+    setLevel(0);
     stopSpeech();
     haptic.tap();
     try {
@@ -550,29 +633,38 @@ function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
       // Браузерне розпізнавання і повтори після відповіді — тренування без XP.
       const bind = !practice && sessionId ? { session: sessionId, item: item.key } : undefined;
       let current: RecognitionRun<Transcription>;
-      if (serverRecognition) current = recognizeRecordedPolish(() => { if (id === attempt.current) setProcessing(true); }, bind);
-      else {
+      if (mode === 'server') {
+        current = recognizeRecordedPolish({
+          bind,
+          onStart: () => { if (mine()) setStatus('recording'); },
+          onLevel: (l) => { if (mine()) setLevel(l); },
+          onProcessing: () => { if (mine()) setStatus('processing'); },
+        });
+      } else {
         const device = recognizePolish();
         current = { ...device, promise: device.promise.then((transcript) => ({ transcript })) };
       }
       run.current = current;
       const heardNow = await current.promise;
-      if (id !== attempt.current) return;
+      if (!mine()) return;
+      setStatus('ready');
       setHeard(heardNow.transcript);
       if (!practice) onSubmit(heardNow.attempt ? { attempt: heardNow.attempt } : { transcript: heardNow.transcript });
     } catch (e) {
-      if (id !== attempt.current) return;
+      if (!mine()) return;
       const code = e instanceof ApiError ? e.code : (e as Error).message;
-      setError(t(code === 'not-allowed' || code === 'service-not-allowed' ? 'ex_mic_permission'
-        : code === 'no-speech' || code === 'stt_no_speech' ? 'ex_mic_no_speech'
-        : code === 'stt_not_configured' ? 'ex_mic_not_configured'
-        : ['network', 'network_error', 'stt_unavailable'].includes(code) ? 'ex_mic_network'
-        : code === 'timeout' || code === 'network_timeout' ? 'ex_mic_timeout' : 'ex_mic_failed'));
+      if (code === 'aborted') { setStatus('ready'); return; }
+      if (code === 'stt_not_configured') setServerOff(true);
+      setStatus(micStatusFromError(code, typeof navigator === 'undefined' || navigator.onLine !== false));
     } finally {
-      if (id === attempt.current) { run.current = null; setListening(false); setProcessing(false); }
+      if (mine()) { run.current = null; setLevel(0); }
     }
   };
   const diff = heard !== null ? alignSpeechWords(data.text, heard) : null;
+  // Без мережі серверний запис не почнеться — показуємо це ще до натискання.
+  const shown: MicStatus = mode === 'none' ? 'unavailable' : status === 'ready' && mode === 'server' && !online ? 'offline' : status;
+  const info = MIC_STATUS[shown];
+  const showPanel = shown !== 'ready' || !result;
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <div className="flex w-full items-end gap-1">
@@ -587,26 +679,45 @@ function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
           </div>
         </div>
       </div>
-      {available ? (
+      {showPanel && (
+        <div role="status" aria-live="polite" data-mic={shown} className={cx('flex w-full items-start gap-2.5 rounded-2xl p-3 text-left', info.warn ? 'bg-coral/10' : 'bg-muted')}>
+          <span className={cx('grid h-8 w-8 shrink-0 place-items-center rounded-full', info.warn ? 'bg-coral/15 text-coral-dark' : live ? 'bg-pl-red text-white' : 'bg-sky/15 text-sky-dark')}>
+            <Icon name={info.icon} size={17} />
+          </span>
+          <div className="min-w-0">
+            <div className="font-black leading-tight">{t(info.title, { s: clock(secs) })}</div>
+            {info.text && <div className="mt-0.5 text-sm font-semibold">{t(info.text)}</div>}
+          </div>
+        </div>
+      )}
+      {mode !== 'none' && (
         <div className="relative grid place-items-center">
-          {listening && !processing && !reduced && [0, 1, 2].map((i) => (
+          {status === 'recording' && mode === 'device' && !reduced && [0, 1, 2].map((i) => (
             <motion.span key={i} className="absolute h-28 w-28 rounded-full bg-coral/30" initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 1.9, opacity: 0 }} transition={{ repeat: Infinity, duration: 1.6, delay: i * 0.5 }} />
           ))}
+          {/* Рівень сигналу: коло росте з голосом — видно, що мікрофон тебе чує. */}
+          {status === 'recording' && mode === 'server' && (
+            <span aria-hidden className="absolute h-28 w-28 rounded-full bg-coral/30" style={{ transform: `scale(${1 + level * 0.55})`, transition: reduced ? undefined : 'transform 100ms linear' }} />
+          )}
           <motion.button
             whileTap={{ scale: 0.92 }}
-            disabled={processing}
-            onClick={() => listening ? run.current?.stop() : void record(!!result)}
-            aria-label={t(processing ? 'ex_mic_processing' : listening ? 'ex_mic_stop' : 'ex_mic_start')}
-            className={cx('relative grid h-28 w-28 place-items-center rounded-full text-white', listening ? 'bg-coral' : 'bg-pl-red')}
+            disabled={status === 'processing'}
+            onClick={() => (live ? run.current?.stop() : void record(!!result))}
+            aria-label={t(status === 'processing' ? 'ex_mic_processing' : live ? 'ex_mic_stop' : 'ex_mic_start')}
+            className={cx('relative grid h-28 w-28 place-items-center rounded-full text-white', live ? 'bg-coral' : 'bg-pl-red')}
             style={{ boxShadow: `0 6px 0 var(--color-coral-dark)` }}
           >
-            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" /></svg>
+            {status === 'processing'
+              ? <span className="block h-10 w-10 animate-spin rounded-full border-4 border-white border-t-transparent motion-reduce:animate-none" />
+              : <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" /></svg>}
           </motion.button>
         </div>
-      ) : (
-        <p className="rounded-2xl bg-muted p-3 font-bold">{t('ex_mic_unavailable')}</p>
       )}
-      <div className="font-black">{processing ? t('ex_mic_processing') : listening ? t('ex_mic_stop') : available ? t(result ? 'ex_mic_again' : 'ex_mic_start') : ''}</div>
+      {mode !== 'none' && (
+        <div className="font-black">
+          {status === 'processing' ? t('ex_mic_processing') : live ? t('ex_mic_stop') : info.warn ? t('error_retry') : t(result ? 'ex_mic_again' : 'ex_mic_start')}
+        </div>
+      )}
       {diff && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="w-full rounded-2xl bg-muted p-3 text-left">
           <div className="muted text-xs font-black uppercase tracking-wide">{t('ex_mic_heard')}</div>
@@ -625,12 +736,11 @@ function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
       {result && !result.skipped && result.similarity !== undefined && (
         <div className="font-bold">{t('ex_similarity', { n: Math.round(result.similarity * 100) })}</div>
       )}
-      {error && <p className="text-sm font-bold text-coral">{error}</p>}
       <p className="muted text-xs font-semibold">{t('ex_speech_note')}</p>
-      {serverRecognition ? <p className="muted text-xs">{t('ex_mic_server_note')}</p> : available && <p className="muted text-xs">{t('ex_mic_device_note')}</p>}
+      {mode === 'server' ? <p className="muted text-xs">{t('ex_mic_server_note')}</p> : mode === 'device' && <p className="muted text-xs">{t('ex_mic_device_note')}</p>}
       {!result && (
-        <button className="text-sm font-black text-sky-dark underline" onClick={() => { cancel(); setListening(false); setProcessing(false); onSubmit({ skipped: true }); }}>
-          {t(available ? 'lesson_skip_mic' : 'ex_mic_continue')}
+        <button className="text-sm font-black text-sky-dark underline" onClick={() => { cancel(); setStatus('ready'); onSubmit({ skipped: true }); }}>
+          {t(mode !== 'none' ? 'lesson_skip_mic' : 'ex_mic_continue')}
         </button>
       )}
     </div>

@@ -7,7 +7,7 @@ import { memo, type ReactNode } from 'react';
 export type LineIconName =
   | 'home' | 'map' | 'book' | 'target' | 'user' | 'flame' | 'coin' | 'star' | 'check' | 'lock' | 'play' | 'arrow-right'
   | 'refresh' | 'alert' | 'clock' | 'bolt' | 'headphones' | 'chevron-right' | 'pin' | 'gift' | 'settings' | 'crown' | 'chat'
-  | 'trophy' | 'layers' | 'x' | 'search';
+  | 'trophy' | 'layers' | 'x' | 'search' | 'mic' | 'wifi-off';
 
 const P: Record<LineIconName, ReactNode> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
@@ -37,6 +37,8 @@ const P: Record<LineIconName, ReactNode> = {
   trophy: <><path d="M7.5 4.5h9v4a4.5 4.5 0 01-9 0z" /><path d="M7.5 6.5H4.5a3 3 0 003 3.5M16.5 6.5h3a3 3 0 01-3 3.5M12 13v3.5M8.5 20h7M9.5 16.5h5V20h-5z" /></>,
   layers: <><path d="M12 4l8.5 4.5L12 13 3.5 8.5z" /><path d="M3.5 12.5L12 17l8.5-4.5M3.5 16L12 20.5l8.5-4.5" /></>,
   x: <path d="M6 6l12 12M18 6L6 18" />,
+  mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21M8.5 21h7" /></>,
+  'wifi-off': <><path d="M3 3l18 18" /><path d="M8.5 16.5a5 5 0 017 0M5 12.5a10 10 0 015.5-2.8M13.5 9.7A10 10 0 0119 12.5M2 9a14.5 14.5 0 014.5-2.7M10.5 5.6A14.5 14.5 0 0122 9" /><circle cx="12" cy="20" r=".6" /></>,
 };
 
 const FILLED = new Set<LineIconName>(['play', 'star', 'flame', 'bolt']);

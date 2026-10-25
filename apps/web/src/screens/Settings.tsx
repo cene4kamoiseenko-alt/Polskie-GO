@@ -2,30 +2,51 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import type { UiLang } from '@polski-go/shared';
 import { useNavigate } from 'react-router-dom';
-import { useT } from '../i18n';
+import { useT, type TKey } from '../i18n';
 import { api, downloadExport } from '../lib/api';
 import { tg } from '../lib/telegram';
 import { useMe, useUpdateSettings } from '../lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Me } from '../lib/types';
-import { Card, Modal, ScreenHeader, SpeakButton, Toggle, cx, useToast } from '../components/ui';
-import { devicePolishVoice } from '../lib/audio';
+import { Card, Modal, ScreenHeader, Toggle, cx, useToast } from '../components/ui';
+import { devicePolishVoice, speak, type SpeechOutcome } from '../lib/audio';
 
-/** Звідки береться польська озвучка на цьому пристрої + перевірка на слух. */
+/**
+ * Звідки береться польська озвучка на цьому пристрої + перевірка справжнім відтворенням:
+ * показуємо джерело, з якого звук реально почав грати, або причину, чому не почав.
+ * Чи почула людина звук (гучність, беззвучний режим), застосунок знати не може — про це підказка.
+ */
 function AudioDiagnostics({ server, provider }: { server: boolean; provider: string | null }) {
   const { t } = useT();
   const [voice, setVoice] = useState<string | null | undefined>(undefined);
+  const [check, setCheck] = useState<SpeechOutcome | 'running' | null>(null);
   useEffect(() => {
     void devicePolishVoice().then((v) => setVoice(v ? `${v.name} (${v.lang})` : null));
   }, []);
   const label = server ? `${t('audio_source_server')}: ${provider ?? ''}` : voice ? t('audio_source_device', { name: voice }) : voice === null ? t('audio_source_none') : '…';
+  const run = async () => {
+    setCheck('running');
+    setCheck(await speak('Dzień dobry! Dziękuję, do widzenia.'));
+  };
+  const result = check && check !== 'running' ? check : null;
   return (
-    <div className="flex items-center gap-3 py-2">
-      <div className="min-w-0 flex-1">
-        <div className="font-bold">{t('audio_source')}</div>
-        <div className={cx('text-xs font-semibold', !server && voice === null ? 'text-coral-dark' : 'muted')}>{label}</div>
+    <div className="py-2">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="font-bold">{t('audio_source')}</div>
+          <div className={cx('text-xs font-semibold', !server && voice === null ? 'text-coral-dark' : 'muted')}>{label}</div>
+        </div>
+        <button className="chip shrink-0 px-3 py-2" disabled={check === 'running'} aria-busy={check === 'running'} onClick={() => void run()}>
+          {t('audio_check')}
+        </button>
       </div>
-      <SpeakButton text="Dzień dobry! Dziękuję, do widzenia." size="sm" />
+      {result && (
+        <p role="status" className={cx('mt-2 text-xs font-bold', result.played ? 'muted' : 'text-coral-dark')}>
+          {result.played
+            ? t('audio_check_ok', { source: t(`audio_src_${result.source}` as TKey) }) + (result.issue === 'unverified_voice' ? ` ${t('audio_check_unverified')}` : '')
+            : t(result.issue === 'no_polish_voice' ? 'ex_audio_missing' : result.issue === 'blocked' ? 'audio_blocked' : 'audio_error')}
+        </p>
+      )}
     </div>
   );
 }

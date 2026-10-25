@@ -175,7 +175,7 @@ describe('прогресія', () => {
   });
 });
 
-import { pickPolishVoice, speechText } from '../src/speech';
+import { isLoneLetter, pickPolishVoice, speechText } from '../src/speech';
 
 describe('Польська озвучка', () => {
   it('зберігає діакритику (NFC) і прибирає пропуски', () => {
@@ -246,5 +246,14 @@ describe('alignSpeechWords: розмітка розпізнаних слів', (
   });
   it('порожнє розпізнавання — усі слова не розпізнані', () => {
     expect(marks('Do widzenia', '')).toBe('Do:miss widzenia:miss');
+  });
+});
+
+describe('isLoneLetter: однолітерні прийменники не озвучуються окремо', () => {
+  it('окрема літера, зокрема велика й з розділовим знаком', () => {
+    for (const x of ['w', 'W', 'z', 'i', 'a', 'o', 'u', 'ó', ' W ', 'w,']) expect(isLoneLetter(x)).toBe(true);
+  });
+  it('слова й фрази — не окремі літери', () => {
+    for (const x of ['we', 'ze', 'w domu', 'Wrocław', 'ul.', '', '…']) expect(isLoneLetter(x)).toBe(false);
   });
 });

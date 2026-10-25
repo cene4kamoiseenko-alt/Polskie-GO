@@ -37,3 +37,32 @@ export function validSpeechWav(bytes: Uint8Array): boolean {
     && v.getUint32(24, true) === SPEECH_SAMPLE_RATE && v.getUint32(28, true) === SPEECH_SAMPLE_RATE * 2
     && v.getUint16(32, true) === 2 && v.getUint16(34, true) === 16 && v.getUint32(40, true) === bytes.length - 44;
 }
+
+/** Поріг RMS кадру (≈ −44 dBFS): тихіше — фон або клацання, а не мовлення. Не перевірено на реальному мікрофоні iPhone. */
+export const VOICE_RMS_THRESHOLD = 0.006;
+
+/**
+ * Чи є в записі голос: щонайменше три 20-мілісекундні кадри з RMS вище порога.
+ * Тишу клієнт не надсилає платному розпізнаванню, а показує стан «тиша».
+ */
+export function hasVoiceActivity(chunks: readonly Float32Array[], sampleRate: number, threshold = VOICE_RMS_THRESHOLD): boolean {
+  const frame = Math.max(1, Math.round(sampleRate * 0.02));
+  let sum = 0, n = 0, loud = 0;
+  for (const chunk of chunks) {
+    for (let i = 0; i < chunk.length; i++) {
+      const x = Number.isFinite(chunk[i]) ? chunk[i] : 0;
+      sum += x * x;
+      if (++n < frame) continue;
+      if (Math.sqrt(sum / n) >= threshold && ++loud >= 3) return true;
+      sum = 0; n = 0;
+    }
+  }
+  return false;
+}
+
+/** Рівень сигналу блоку 0..1 для індикатора запису (RMS, підсилений для наочності). */
+export function blockLevel(block: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < block.length; i++) sum += block[i] * block[i];
+  return Math.min(1, Math.sqrt(sum / Math.max(1, block.length)) * 8);
+}

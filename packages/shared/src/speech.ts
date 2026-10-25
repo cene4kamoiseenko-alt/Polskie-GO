@@ -18,6 +18,15 @@ export function speechText(text: string): string {
     .slice(0, 300);
 }
 
+/**
+ * Окрема літера («w», «z», «i», «W»). Синтезатор читає її як назву літери — «wu», «zet», а велику
+ * «W» як «duże wu» («дужеву»), — а не як прийменник чи сполучник. Такий текст окремо не озвучуємо:
+ * прийменник звучить разом із сусіднім словом або в цілій фразі.
+ */
+export function isLoneLetter(text: string): boolean {
+  return /^\p{L}$/u.test(text.normalize('NFC').replace(/[.,!?;:…"„”«»()]/g, '').trim());
+}
+
 const QUALITY_HINTS = ['neural', 'natural', 'online', 'google', 'microsoft', 'zofia', 'marek', 'agnieszka', 'ewa', 'paulina', 'krzysztof'];
 
 /**

@@ -24,3 +24,28 @@ describe('Short speech WAV', () => {
     expect(validSpeechWav(new Uint8Array(MAX_SPEECH_BYTES + 2))).toBe(false);
   });
 });
+
+import { hasVoiceActivity } from '../src/wav';
+
+describe('hasVoiceActivity: тиша не йде в розпізнавання', () => {
+  const tone = (seconds: number, amp: number, rate = 48000) => {
+    const a = new Float32Array(Math.round(seconds * rate));
+    for (let i = 0; i < a.length; i++) a[i] = amp * Math.sin((2 * Math.PI * 220 * i) / rate);
+    return a;
+  };
+  it('цифрова тиша і тихий фон — без голосу', () => {
+    expect(hasVoiceActivity([new Float32Array(48000)], 48000)).toBe(false);
+    expect(hasVoiceActivity([tone(1, 0.003)], 48000)).toBe(false);
+  });
+  it('одиночне клацання не вважається мовленням', () => {
+    const a = new Float32Array(48000);
+    a.fill(0.9, 1000, 1200);
+    expect(hasVoiceActivity([a], 48000)).toBe(false);
+  });
+  it('звичайна гучність голосу розпізнається, зокрема розбита на блоки по 128 семплів', () => {
+    const t = tone(0.5, 0.1);
+    const blocks: Float32Array[] = [];
+    for (let i = 0; i < t.length; i += 128) blocks.push(t.slice(i, i + 128));
+    expect(hasVoiceActivity(blocks, 48000)).toBe(true);
+  });
+});
