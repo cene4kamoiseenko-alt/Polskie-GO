@@ -7,6 +7,7 @@ import { t } from './builders';
 import { LIFE_VOCAB } from './vocab-life';
 import { EDU_VOCAB } from './vocab-education';
 import { KRAKOW_VOCAB } from './vocab-krakow';
+import { WARSZAWA_VOCAB } from './vocab-warszawa';
 
 export type VocabSeed = {
   pl: string;
@@ -330,4 +331,5 @@ export const VOCAB: VocabSeed[] = [
   ...LIFE_VOCAB,
   ...EDU_VOCAB,
   ...KRAKOW_VOCAB,
+  ...WARSZAWA_VOCAB,
 ];

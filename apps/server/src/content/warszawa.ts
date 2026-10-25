@@ -1,9 +1,16 @@
-/** Варшава — A0: перші слова і знайомство. */
+/**
+ * Варшава — A0→A1, шість локацій: перше знайомство, Warszawa Centralna й транспорт, числа й покупки,
+ * Старе Місто, кав'ярня й пекарня, сусіди й повсякдення, і іспит міста.
+ * Перші уроки (3.x) збережено з тими самими slug; нові завдання дописані в кінець.
+ */
 import {
   t, wordChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading,
   translate, grammar, dictation, build, wordOrder, match, speak, dialogue,
 } from './builders';
 import type { CityContent } from './types';
+import { WAW1_MORE, WAW2_MORE, WAW3_MORE, WAW4_MORE, WAW5_MORE, WAW6_MORE, WAW_BOSS_MORE, WAW_P5_MISJA } from './warszawa-extra';
+import { WAW_CENTRALNA_LESSONS } from './warszawa-centralna';
+import { WAW_K3, WAW_K4 } from './warszawa-zakupy';
 
 const ANIA = { name: 'Ania', emoji: '👩🏼', role: t('студентка з Варшави', 'студентка из Варшавы', 'a student from Warsaw') };
 
@@ -12,8 +19,8 @@ export const WARSZAWA: CityContent = {
   routes: [
     {
       slug: 'waw-powitania',
-      title: t('Привітання', 'Приветствия', 'Greetings'),
-      description: t('Перші польські слова: як привітатися і попрощатися', 'Первые польские слова: как поздороваться и попрощаться', 'First Polish words: hello and goodbye'),
+      title: t('Перше знайомство', 'Первое знакомство', 'First meeting'),
+      description: t('Привітання, ввічливість, ім\'я та звідки ти — перша розмова у Варшаві', 'Приветствия, вежливость, имя и откуда ты — первый разговор в Варшаве', 'Greetings, politeness, your name and where you\'re from — your first chat in Warsaw'),
       icon: '👋',
       lessons: [
         {
@@ -55,6 +62,7 @@ export const WARSZAWA: CityContent = {
               { npc: 'Muszę iść. Na razie!', tr: t('Мені треба йти. Бувай!', 'Мне надо идти. Пока!', 'I have to go. See you!'), choose: [['Na razie!', t('Бувай!', 'Пока!', 'See you!')], ['Dzień dobry!', t('Добрий день!', 'Добрый день!', 'Good morning!')]], feedback: t('Ania прощається. **Dzień dobry** — це привітання.', 'Аня прощается. **Dzień dobry** — это приветствие.', 'Ania is saying goodbye. **Dzień dobry** is a greeting.') },
             ]),
             dictation('writing.greetings', 'Do widzenia', t('До побачення', 'До свидания', 'Goodbye')),
+            ...WAW1_MORE,
           ],
         },
         {
@@ -93,16 +101,9 @@ export const WARSZAWA: CityContent = {
               { npc: 'Nic nie szkodzi.', tr: t('Нічого страшного.', 'Ничего страшного.', 'No problem.') },
             ], { situation: true, scene: t('Ти випадково штовхнув пана Марека на вулиці.', 'Ты случайно толкнул пана Марека на улице.', 'You accidentally bumped into Mr Marek on the street.') }),
             speak('speaking.politeness', 'Dziękuję', t('Дякую', 'Спасибо', 'Thank you')),
+            ...WAW2_MORE,
           ],
         },
-      ],
-    },
-    {
-      slug: 'waw-przedstawianie',
-      title: t('Знайомство', 'Знакомство', 'Introductions'),
-      description: t('Розкажи, як тебе звати і звідки ти', 'Расскажи, как тебя зовут и откуда ты', 'Say your name and where you are from'),
-      icon: '🤝',
-      lessons: [
         {
           slug: 'waw-3-imie',
           title: t('Як тебе звати?', 'Как тебя зовут?', 'What is your name?'),
@@ -138,6 +139,7 @@ export const WARSZAWA: CityContent = {
             ]),
             translate('writing.intro', t('Мене звати Оля.', 'Меня зовут Оля.', 'My name is Ola.'), ['Mam na imię Ola', 'Jestem Ola']),
             speak('speaking.intro', 'Miło mi', t('Приємно', 'Приятно', 'Nice to meet you')),
+            ...WAW3_MORE,
           ],
         },
         {
@@ -173,15 +175,26 @@ export const WARSZAWA: CityContent = {
               t('**Teraz mieszkam w Warszawie** — зараз живу у Варшаві. Зі Львова вона родом.', '**Teraz mieszkam w Warszawie** — сейчас живу в Варшаве. Из Львова она родом.', '**Teraz mieszkam w Warszawie** — she lives in Warsaw now; she is from Lviv.')),
             translate('writing.origin', t('Я з України.', 'Я из Украины.', 'I am from Ukraine.'), ['Jestem z Ukrainy']),
             speak('speaking.origin', 'Nie rozumiem', t('Я не розумію', 'Я не понимаю', 'I don\'t understand')),
+            ...WAW4_MORE,
           ],
         },
+        WAW_P5_MISJA,
+      ],
+    },
+    {
+      slug: 'waw-przedstawianie',
+      title: t('Warszawa Centralna й транспорт', 'Warszawa Centralna и транспорт', 'Warszawa Centralna & transport'),
+      description: t('Вокзал, квитки, метро M1 і M2 та пересадка', 'Вокзал, билеты, метро M1 и M2 и пересадка', 'The station, tickets, metro lines M1 and M2, transfers'),
+      icon: '🚇',
+      lessons: [
+        ...WAW_CENTRALNA_LESSONS,
       ],
     },
     {
       slug: 'waw-liczby',
-      title: t('Числа', 'Числа', 'Numbers'),
-      description: t('Рахуємо до двадцяти і називаємо вік', 'Считаем до двадцати и называем возраст', 'Count to twenty and say your age'),
-      icon: '🔢',
+      title: t('Числа й прості покупки', 'Числа и простые покупки', 'Numbers & simple shopping'),
+      description: t('Числа до 100, ціни, ринок і крамниця біля дому', 'Числа до 100, цены, рынок и магазин у дома', 'Numbers to 100, prices, the market and the local shop'),
+      icon: '🛒',
       lessons: [
         {
           slug: 'waw-5-liczby',
@@ -212,6 +225,7 @@ export const WARSZAWA: CityContent = {
             dictation('writing.numbers', 'sześć', t('шість', 'шесть', 'six')),
             listen('listening.numbers', 'Mój numer to siedem, osiem, dwa.', ['7 8 2', '6 8 2', '7 9 2']),
             speak('speaking.numbers', 'trzy', t('три', 'три', 'three')),
+            ...WAW5_MORE,
           ],
         },
         {
@@ -246,8 +260,11 @@ export const WARSZAWA: CityContent = {
             ]),
             translate('writing.age', t('Мені двадцять років.', 'Мне двадцать лет.', 'I am twenty years old.'), ['Mam dwadzieścia lat']),
             speak('speaking.numbers', 'dwadzieścia', t('двадцять', 'двадцать', 'twenty')),
+            ...WAW6_MORE,
           ],
         },
+        WAW_K3,
+        WAW_K4,
       ],
     },
     {
@@ -303,6 +320,7 @@ export const WARSZAWA: CityContent = {
             ]),
             translate('writing.politeness', t('Дуже дякую!', 'Большое спасибо!', 'Thank you very much!'), ['Dziękuję bardzo', 'Bardzo dziękuję']),
             dictation('writing.intro', 'Miło mi', t('Приємно', 'Приятно', 'Nice to meet you')),
+            ...WAW_BOSS_MORE,
           ],
         },
       ],

@@ -138,7 +138,8 @@ describe('Оновлення засіяного контенту', () => {
       const line = sql.split('\n').find((l) => l.startsWith(`UPDATE ${f.table} SET "${f.column}"`) && l.includes(`slug = '${f.slug}'`));
       expect(line, f.slug).toBeTruthy();
       // оновлюємо лише рядок, у якому досі старий текст із коду
-      expect(line).toContain(`AND "${f.column}" = '${JSON.stringify(f.from)}'`);
+      const from = typeof f.from === 'string' ? f.from : JSON.stringify(f.from);
+      expect(line).toContain(`AND "${f.column}" = '${from}'`);
     }
     const waw = CITY_CONTENT.find((c) => c.city === 'warszawa')!.routes.find((r) => r.slug === 'waw-egzamin')!;
     expect(waw.description.uk).toContain('Лодзі');

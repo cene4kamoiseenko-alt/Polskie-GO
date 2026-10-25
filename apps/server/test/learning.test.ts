@@ -3,6 +3,7 @@ import { and, count, eq } from 'drizzle-orm';
 import { db } from '../src/db';
 import { cities, gameConfig, playerProgress, reviewSchedule, userAchievements, achievements } from '../src/db/schema';
 import { validateInitData, signInitData } from '../src/lib/telegram';
+import { resetRateLimits } from '../src/hono';
 import { correctAnswers, disposeEnv, lessonId, login, playSession, request, sessionItems } from './helpers';
 
 afterAll(disposeEnv);
@@ -150,13 +151,15 @@ describe('Уроки та нагороди', () => {
   it('непройдений урок (менше 50%) не дає XP, а помилки йдуть у «Мої помилки»', async () => {
     const { call, user } = await login();
     const s = await call('POST', '/api/sessions', { lessonId: await lessonId('waw-1-czesc') });
-    const fin = await playSession(call, s.body.sessionId, { wrong: 7 });
+    const wrong = Math.floor((await sessionItems(s.body.sessionId)).length / 2) + 1;
+    const fin = await playSession(call, s.body.sessionId, { wrong });
     expect(fin.body.passed).toBe(false);
     expect(fin.body.xp).toBe(0);
-    expect(await reviews(user.id, 'EXERCISE')).toBe(7);
+    expect(await reviews(user.id, 'EXERCISE')).toBe(wrong);
     const mistakes = await call('POST', '/api/sessions', { mode: 'MISTAKES' });
     expect(mistakes.status).toBe(200);
-    expect(mistakes.body.items.length).toBe(7);
+    // «Мої помилки» беруть до 8 найважчих завдань за раз
+    expect(mistakes.body.items.length).toBe(Math.min(wrong, 8));
   });
 
   it('бос міста відкриває наступне місто, видає сувеніри та переносить бобра', async () => {
@@ -164,6 +167,7 @@ describe('Уроки та нагороди', () => {
     const j0 = await call('GET', '/api/journey');
     const lessons = j0.body.cities[0].routes.flatMap((r: { lessons: { id: string; kind: string }[] }) => r.lessons);
     for (const l of lessons.filter((x: { kind: string }) => x.kind === 'LESSON')) {
+      resetRateLimits();
       const s = await call('POST', '/api/sessions', { lessonId: l.id });
       expect(s.status).toBe(200);
       expect((await playSession(call, s.body.sessionId)).body.passed).toBe(true);
@@ -191,7 +195,7 @@ describe('Уроки та нагороди', () => {
     expect(waw.note.uk).toContain('ЮНЕСКО');
     expect(next.stampedAt).toBeNull();
     expect(next.note).toBeNull();
-  });
+  }, 240_000);
 
   it('вхідний тест відкриває міста як рекомендацію, але не підтверджує рівень', async () => {
     const { call, user } = await login();

@@ -28,6 +28,8 @@ export const query = (c: Context) => c.req.query();
  * Ключ — токен авторизації або IP.
  */
 const buckets = new Map<string, { n: number; reset: number }>();
+/** Для тестів, які проходять місто повністю швидше, ніж це можливо вручну. */
+export const resetRateLimits = () => buckets.clear();
 export function rateLimit(max: number, windowMs: number, scope = 'g') {
   return createMiddleware<AppEnv>(async (c, next) => {
     const who = (c.req.header('authorization') ?? c.req.header('cf-connecting-ip') ?? 'anon').slice(-48);
