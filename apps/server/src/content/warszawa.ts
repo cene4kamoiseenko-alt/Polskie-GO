@@ -11,6 +11,9 @@ import type { CityContent } from './types';
 import { WAW1_MORE, WAW2_MORE, WAW3_MORE, WAW4_MORE, WAW5_MORE, WAW6_MORE, WAW_BOSS_MORE, WAW_P5_MISJA } from './warszawa-extra';
 import { WAW_CENTRALNA_LESSONS } from './warszawa-centralna';
 import { WAW_K3, WAW_K4 } from './warszawa-zakupy';
+import { WAW_STARE_MIASTO_LESSONS } from './warszawa-stare-miasto';
+import { WAW_KAWIARNIA_LESSONS } from './warszawa-kawiarnia';
+import { WAW_SASIEDZI_LESSONS } from './warszawa-sasiedzi';
 
 const ANIA = { name: 'Ania', emoji: '👩🏼', role: t('студентка з Варшави', 'студентка из Варшавы', 'a student from Warsaw') };
 
@@ -268,6 +271,27 @@ export const WARSZAWA: CityContent = {
       ],
     },
     {
+      slug: 'waw-stare-miasto',
+      title: t('Старе Місто й орієнтування', 'Старый город и ориентирование', 'Old Town & finding your way'),
+      description: t('Замкова площа, Русалка й Барбакан; як спитати дорогу й читати мапу', 'Замковая площадь, Русалка и Барбакан; как спросить дорогу и читать карту', 'Castle Square, the Mermaid and the Barbican; asking the way and reading a map'),
+      icon: '🏰',
+      lessons: WAW_STARE_MIASTO_LESSONS,
+    },
+    {
+      slug: 'waw-kawiarnia',
+      title: t('Кав\'ярня й пекарня', 'Кафе и пекарня', 'Café & bakery'),
+      description: t('Замовити каву, купити булки й вузетку, розповісти, що любиш', 'Заказать кофе, купить булки и вузетку, рассказать, что любишь', 'Order coffee, buy rolls and a wuzetka, say what you like'),
+      icon: '☕',
+      lessons: WAW_KAWIARNIA_LESSONS,
+    },
+    {
+      slug: 'waw-sasiedzi',
+      title: t('Сусіди й повсякдення', 'Соседи и повседневность', 'Neighbours & daily life'),
+      description: t('Знайомство із сусідами, правила будинку, сортування сміття й плани на тиждень', 'Знакомство с соседями, правила дома, сортировка мусора и планы на неделю', 'Meeting neighbours, house rules, recycling and weekly plans'),
+      icon: '🏘️',
+      lessons: WAW_SASIEDZI_LESSONS,
+    },
+    {
       slug: 'waw-egzamin',
       title: t('Іспит Варшави', 'Экзамен Варшавы', 'Warsaw exam'),
       description: t('Фінальне випробування: пройди, щоб отримати квиток до Лодзі', 'Финальное испытание: пройди, чтобы получить билет в Лодзь', 'Final challenge: pass it to get a ticket to Łódź'),
@@ -277,13 +301,13 @@ export const WARSZAWA: CityContent = {
           slug: 'waw-boss',
           kind: 'BOSS',
           title: t('Бос: Варшавська зустріч', 'Босс: Варшавская встреча', 'Boss: Meeting in Warsaw'),
-          topic: t('Привітання, ввічливість, знайомство, числа', 'Приветствия, вежливость, знакомство, числа', 'Greetings, politeness, introductions, numbers'),
+          topic: t('Знайомство, транспорт, покупки, Старе Місто, кав\'ярня, сусіди', 'Знакомство, транспорт, покупки, Старый город, кафе, соседи', 'Introductions, transport, shopping, the Old Town, cafés, neighbours'),
           cefr: 'A0',
           difficulty: 3,
           explanation: t(
-            'Фінальний іспит Варшави. Потрібно **70%** правильних відповідей.\nПовтори привітання, «чарівні слова», знайомство та числа. Powodzenia! (Успіхів!)',
-            'Финальный экзамен Варшавы. Нужно **70%** правильных ответов.\nПовтори приветствия, «волшебные слова», знакомство и числа. Powodzenia! (Удачи!)',
-            'The final Warsaw exam. You need **70%** correct answers.\nReview greetings, magic words, introductions and numbers. Powodzenia! (Good luck!)',
+            'Фінальний іспит Варшави. Потрібно **70%** правильних відповідей.\nПовтори знайомство й «чарівні слова», квитки й метро, ціни, дорогу Старим Містом, замовлення в кав\'ярні й розмову із сусідами. Powodzenia! (Успіхів!)',
+            'Финальный экзамен Варшавы. Нужно **70%** правильных ответов.\nПовтори знакомство и «волшебные слова», билеты и метро, цены, дорогу по Старому городу, заказ в кафе и разговор с соседями. Powodzenia! (Удачи!)',
+            'The final Warsaw exam. You need **70%** correct answers.\nReview introductions and magic words, tickets and the metro, prices, finding your way in the Old Town, ordering at a café and chatting with neighbours. Powodzenia! (Good luck!)',
           ),
           examples: [],
           words: [],

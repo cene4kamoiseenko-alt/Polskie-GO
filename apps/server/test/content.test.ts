@@ -96,7 +96,11 @@ import { KRK_HOTEL } from '../src/content/krakow-hotel';
 import { KRK_UNIWERSYTET } from '../src/content/krakow-uniwersytet';
 
 describe('Локації міст (3.0)', () => {
-  const LOCATIONS = [KRK_DWORZEC, KRK_ZABKA, KRK_RYNEK, KRK_RESTAURACJA, KRK_TRAMWAJ, KRK_HOTEL, KRK_UNIWERSYTET];
+  const WARSZAWA = CITY_CONTENT.find((c) => c.city === 'warszawa')!.routes;
+  const LOCATIONS = [
+    KRK_DWORZEC, KRK_ZABKA, KRK_RYNEK, KRK_RESTAURACJA, KRK_TRAMWAJ, KRK_HOTEL, KRK_UNIWERSYTET,
+    ...WARSZAWA.filter((r) => r.slug !== 'waw-egzamin'),
+  ];
   it('у локації 3–6 уроків, звичайний урок 15–20 завдань, місія 20–30; щонайменше 5 різних механік', () => {
     for (const loc of LOCATIONS) {
       expect(loc.lessons.length, loc.slug).toBeGreaterThanOrEqual(3);
@@ -111,6 +115,13 @@ describe('Локації міст (3.0)', () => {
         expect(mech.size, `${l.slug}: ${[...mech].join(',')}`).toBeGreaterThanOrEqual(mission ? 8 : 5);
       }
     }
+  });
+
+  it('Варшава: шість локацій перед іспитом, іспит 25–30 завдань', () => {
+    expect(WARSZAWA.map((r) => r.slug)).toEqual(['waw-powitania', 'waw-przedstawianie', 'waw-liczby', 'waw-stare-miasto', 'waw-kawiarnia', 'waw-sasiedzi', 'waw-egzamin']);
+    const boss = WARSZAWA.at(-1)!.lessons[0];
+    expect(boss.exercises.length).toBeGreaterThanOrEqual(25);
+    expect(boss.exercises.length).toBeLessThanOrEqual(30);
   });
 
   it('у місті немає однакових завдань', () => {

@@ -5,7 +5,7 @@
 import { t } from './builders';
 import type { I18n } from '@polski-go/shared';
 
-export type TextFix = { table: 'city_routes' | 'lessons'; slug: string; column: 'title' | 'description' | 'icon'; from: I18n | string; to: I18n | string };
+export type TextFix = { table: 'city_routes' | 'lessons'; slug: string; column: 'title' | 'description' | 'icon' | 'topic' | 'explanation'; from: I18n | string; to: I18n | string };
 
 /** Перенесення уроку між локаціями — лише якщо урок досі в старій локації (ручне перенесення з адмінки не чіпаємо). */
 export type LessonMove = { lesson: string; from: string; to: string; order: number };
@@ -60,6 +60,25 @@ export const TEXT_FIXES: TextFix[] = [
     to: t('Числа до 100, ціни, ринок і крамниця біля дому', 'Числа до 100, цены, рынок и магазин у дома', 'Numbers to 100, prices, the market and the local shop'),
   },
   { table: 'city_routes', slug: 'waw-liczby', column: 'icon', from: '🔢', to: '🛒' },
+  // Іспит Варшави тепер охоплює всі шість локацій.
+  {
+    table: 'lessons', slug: 'waw-boss', column: 'topic',
+    from: t('Привітання, ввічливість, знайомство, числа', 'Приветствия, вежливость, знакомство, числа', 'Greetings, politeness, introductions, numbers'),
+    to: t('Знайомство, транспорт, покупки, Старе Місто, кав\'ярня, сусіди', 'Знакомство, транспорт, покупки, Старый город, кафе, соседи', 'Introductions, transport, shopping, the Old Town, cafés, neighbours'),
+  },
+  {
+    table: 'lessons', slug: 'waw-boss', column: 'explanation',
+    from: t(
+      'Фінальний іспит Варшави. Потрібно **70%** правильних відповідей.\nПовтори привітання, «чарівні слова», знайомство та числа. Powodzenia! (Успіхів!)',
+      'Финальный экзамен Варшавы. Нужно **70%** правильных ответов.\nПовтори приветствия, «волшебные слова», знакомство и числа. Powodzenia! (Удачи!)',
+      'The final Warsaw exam. You need **70%** correct answers.\nReview greetings, magic words, introductions and numbers. Powodzenia! (Good luck!)',
+    ),
+    to: t(
+      'Фінальний іспит Варшави. Потрібно **70%** правильних відповідей.\nПовтори знайомство й «чарівні слова», квитки й метро, ціни, дорогу Старим Містом, замовлення в кав\'ярні й розмову із сусідами. Powodzenia! (Успіхів!)',
+      'Финальный экзамен Варшавы. Нужно **70%** правильных ответов.\nПовтори знакомство и «волшебные слова», билеты и метро, цены, дорогу по Старому городу, заказ в кафе и разговор с соседями. Powodzenia! (Удачи!)',
+      'The final Warsaw exam. You need **70%** correct answers.\nReview introductions and magic words, tickets and the metro, prices, finding your way in the Old Town, ordering at a café and chatting with neighbours. Powodzenia! (Good luck!)',
+    ),
+  },
 ];
 
 export const LESSON_MOVES: LessonMove[] = [
