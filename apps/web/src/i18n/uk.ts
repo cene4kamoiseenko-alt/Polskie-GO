@@ -218,6 +218,8 @@ export const uk = {
   lesson_almost: 'Майже! Зверни увагу на написання',
   lesson_wrong: 'Не зовсім',
   lesson_correct_answer: 'Правильна відповідь:',
+  lesson_listen_pl: "Послухати польською",
+  lesson_saved_review: "Додано в «Мої помилки» — повторимо",
   lesson_skip_mic: 'Не можу зараз говорити',
   lesson_quit: 'Вийти з уроку?',
   lesson_quit_text: 'Прогрес цього уроку не збережеться.',

@@ -247,6 +247,75 @@ textarea {
     border-color: rgb(54 185 255 / 0.28);
     box-shadow: var(--shadow-deep), 0 0 20px -10px rgb(54 185 255 / 0.55);
   }
+  /* Варіант-плашка слова (пропуск у реченні) */
+  .option-chip {
+    min-width: 92px;
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+  .gap-fill {
+    background: color-mix(in srgb, var(--color-sky) 22%, transparent);
+    border-bottom: 3px solid var(--color-sky);
+    color: var(--text);
+  }
+  .gap-fill.is-correct {
+    background: color-mix(in srgb, var(--color-brand) 24%, transparent);
+    border-color: var(--color-brand);
+  }
+  .gap-fill.is-wrong {
+    background: color-mix(in srgb, var(--color-coral) 22%, transparent);
+    border-color: var(--color-coral);
+  }
+  /* Аудіокартка */
+  .audio-card {
+    border-radius: 22px;
+    border: 2px solid rgb(54 185 255 / 0.35);
+    background: radial-gradient(120% 140% at 50% 0%, rgb(54 185 255 / 0.22), transparent 60%), var(--bg-elev);
+    box-shadow: var(--shadow-deep), 0 0 24px -10px rgb(54 185 255 / 0.7);
+  }
+  /* Записка для читання */
+  .reading-paper {
+    border-radius: 14px;
+    color: #2b2116;
+    background: repeating-linear-gradient(180deg, transparent 0 27px, rgb(120 90 50 / 0.12) 27px 28px), linear-gradient(180deg, #fff8e6 0%, #f6e7c4 100%);
+    box-shadow: 0 6px 0 rgb(0 0 0 / 0.25), 0 14px 24px -14px rgb(0 0 0 / 0.7);
+    transform: rotate(-0.6deg);
+  }
+  .reading-pin {
+    position: absolute;
+    left: 50%;
+    top: -7px;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 35%, #ff9aa4, #e5384b 60%, #a3202e);
+    box-shadow: 0 2px 3px rgb(0 0 0 / 0.4);
+  }
+  /* Флешкартка слова */
+  .flash-card {
+    border-radius: 22px;
+    border: 2px solid var(--border);
+    background: linear-gradient(180deg, var(--bg-elev-2) 0%, var(--bg-elev) 100%);
+    box-shadow: 0 6px 0 rgb(3 12 26 / 0.55), 0 16px 26px -14px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  }
+  .flash-tag {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    color: #fff;
+    background: #e5384b;
+    box-shadow: inset 0 3px 0 rgb(255 255 255 / 0.9);
+    border: 1.5px solid rgb(255 255 255 / 0.7);
+  }
+  .flash-tag.is-target {
+    background: var(--color-sky);
+  }
   /* Панель результату відповіді */
   .feedback-panel.is-correct {
     background: linear-gradient(180deg, #0f3b3a 0%, #0c2f33 100%);

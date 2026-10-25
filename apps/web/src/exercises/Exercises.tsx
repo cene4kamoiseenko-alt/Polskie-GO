@@ -46,17 +46,71 @@ export function correctAnswerText(item: PublicItem, result: AnswerResult, tr: (v
   return null;
 }
 
-function Highlight({ text }: { text: string }) {
+/**
+ * Польська фраза для прослуховування після відповіді: речення з правильним словом у пропуску,
+ * польське слово завдання або правильна польська відповідь. null — якщо польського тексту немає.
+ */
+export function polishForFeedback(item: PublicItem, caText: string | null): string | null {
+  const data = d<{ pl?: string; audioText?: string; options?: Opt[]; source?: unknown }>(item);
+  switch (item.type) {
+    case 'FILL_GAP':
+      return data.pl && caText ? data.pl.replace('___', caText) : null;
+    case 'LISTENING':
+    case 'DICTATION':
+      return data.audioText ?? null;
+    case 'WORD_TRANSLATION':
+      return data.pl ?? caText;
+    case 'BUILD_SENTENCE':
+    case 'WORD_ORDER':
+    case 'SENTENCE_TRANSLATION':
+    case 'GRAMMAR':
+      return caText;
+    default:
+      return data.audioText ?? null;
+  }
+}
+
+function Highlight({ text, fill, state }: { text: string; fill?: string; state?: string }) {
   const parts = text.split('___');
   return (
     <>
       {parts.map((p, i) => (
         <span key={i}>
           {p}
-          {i < parts.length - 1 && <span className="mx-1 inline-block min-w-[56px] border-b-4 border-dashed border-sky align-baseline" />}
+          {i < parts.length - 1 &&
+            (fill ? (
+              <motion.span
+                key={fill}
+                initial={{ y: 8, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className={cx('gap-fill mx-1 inline-block rounded-lg px-2 align-baseline', state === 'correct' ? 'is-correct' : state === 'wrong' ? 'is-wrong' : '')}
+              >
+                {fill}
+              </motion.span>
+            ) : (
+              <span className="mx-1 inline-block min-w-[56px] border-b-4 border-dashed border-sky align-baseline" />
+            ))}
         </span>
       ))}
     </>
+  );
+}
+
+/** Анімований еквалайзер аудіокартки (без руху при reduced motion). */
+function Equalizer() {
+  const reduce = useReducedMotion();
+  return (
+    <span className="flex h-10 items-end gap-1" aria-hidden>
+      {[0.5, 0.9, 0.65, 1, 0.55, 0.8, 0.45].map((h, i) => (
+        <motion.span
+          key={i}
+          className="w-1.5 rounded-full bg-sky"
+          style={{ height: `${h * 100}%` }}
+          animate={reduce ? undefined : { scaleY: [1, 0.45, 1] }}
+          transition={{ repeat: Infinity, duration: 0.9 + (i % 3) * 0.2, delay: i * 0.08 }}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -166,41 +220,49 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
           )}
         </div>
       )}
+      {/* Аудіювання: аудіокартка з еквалайзером, звичайна й повільна швидкість */}
       {item.type === 'LISTENING' && data.audioText && (
-        <PromptCard>
+        <div className="audio-card flex items-center justify-center gap-4 p-4">
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" />
+          <Equalizer />
           <SpeakButton text={data.audioText} url={data.audioUrl} size="lg" slow />
-        </PromptCard>
+        </div>
       )}
+      {/* Читання: текст як справжня записка, оголошення чи меню */}
       {item.type === 'READING' && data.passage && (
-        <div className="card p-4 text-[17px] font-semibold leading-relaxed">
-          <div className="mb-1 flex justify-end">
+        <div className="reading-paper relative p-4 pt-5 text-[16.5px] font-semibold leading-relaxed">
+          <span className="reading-pin" aria-hidden />
+          <div className="absolute right-2 top-2">
             <SpeakButton text={data.passage} size="sm" />
           </div>
-          {data.passage}
+          <div className="pr-8">{data.passage}</div>
         </div>
       )}
       {data.question && <p className="text-center text-lg font-black">{tr(data.question)}</p>}
+      {/* Переклад слова: флешкартка з польським словом */}
       {data.pl && item.type === 'WORD_TRANSLATION' && (
-        <PromptCard>
+        <div className="flash-card relative flex items-center justify-center gap-3 px-4 pb-5 pt-6">
+          <span className="flash-tag">PL</span>
           <SpeakButton text={data.audioText ?? data.pl} url={data.audioUrl} />
           <span className="text-[28px] font-black leading-tight">{data.pl}</span>
-        </PromptCard>
+        </div>
       )}
       {!data.pl && item.type === 'WORD_TRANSLATION' && data.translation && (
-        <PromptCard>
+        <div className="flash-card relative flex items-center justify-center px-4 pb-5 pt-6">
+          <span className="flash-tag is-target">→ PL</span>
           <span className="text-[26px] font-black leading-tight">{tr(data.translation)}</span>
-        </PromptCard>
+        </div>
       )}
+      {/* Пропуск: обране слово одразу стає в речення */}
       {item.type === 'FILL_GAP' && data.pl && (
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-black leading-snug">
-            <Highlight text={data.pl} />
+        <div className="card prompt-card p-4 text-center">
+          <p className="text-[23px] font-black leading-snug">
+            <Highlight text={data.pl} fill={sel ? tr(data.options.find((o) => o.id === sel)?.text ?? '') : undefined} state={sel ? state(sel) : undefined} />
           </p>
           {data.translation && <p className="muted mt-2 font-bold">{tr(data.translation)}</p>}
         </div>
       )}
-      <div className={cx(grid ? 'grid grid-cols-2 gap-3' : 'space-y-3')}>
+      <div className={cx(item.type === 'FILL_GAP' ? 'flex flex-wrap justify-center gap-2.5 pt-1' : grid ? 'grid grid-cols-2 gap-3' : 'space-y-3')}>
         {data.options.map((o, i) => (
           <motion.button
             key={o.id}
@@ -210,9 +272,17 @@ function ChoiceExercise({ item, result, onChange }: ExProps) {
             whileTap={{ scale: 0.97 }}
             data-state={state(o.id)}
             onClick={() => pick(o.id, o.text)}
-            className={cx('option flex items-center gap-3', grid && 'justify-center text-center')}
+            className={cx(
+              'option flex items-center gap-3',
+              item.type === 'FILL_GAP' && 'option-chip !w-auto justify-center',
+              grid && 'justify-center text-center',
+            )}
           >
-            {!grid && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-2 border-soft text-sm font-black">{String.fromCharCode(65 + i)}</span>}
+            {item.type === 'LISTENING' ? (
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sky/15 text-sky"><Icon name="headphones" size={16} /></span>
+            ) : (
+              !grid && item.type !== 'FILL_GAP' && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-2 border-soft text-sm font-black">{String.fromCharCode(65 + i)}</span>
+            )}
             <span>{tr(o.text)}</span>
           </motion.button>
         ))}

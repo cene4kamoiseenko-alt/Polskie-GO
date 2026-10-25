@@ -65,6 +65,8 @@ export default function AchievementsScreen() {
                   <Badge icon={a.icon} unlocked={!!a.unlockedAt} size={64} tier={achTier(a.zlotki)} />
                   <TierChip tier={achTier(a.zlotki)} />
                   <div className="line-clamp-2 text-[13px] font-black leading-tight">{tr(a.title)}</div>
+                  {/* умова — коротко на самій картці, повністю у деталях */}
+                  <div className="muted line-clamp-3 min-h-[2.4em] px-0.5 text-[10.5px] font-bold leading-tight">{tr(a.description)}</div>
                   {a.unlockedAt ? (
                     <div className="text-[11px] font-black text-brand-dark">{date(a.unlockedAt)}</div>
                   ) : (

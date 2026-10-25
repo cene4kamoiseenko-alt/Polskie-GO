@@ -208,6 +208,8 @@ export const ru: Dict = {
   lesson_almost: 'Почти! Обрати внимание на написание',
   lesson_wrong: 'Не совсем',
   lesson_correct_answer: 'Правильный ответ:',
+  lesson_listen_pl: "Послушать по-польски",
+  lesson_saved_review: "Добавлено в «Мои ошибки» — повторим",
   lesson_skip_mic: 'Не могу сейчас говорить',
   lesson_quit: 'Выйти из урока?',
   lesson_quit_text: 'Прогресс этого урока не сохранится.',

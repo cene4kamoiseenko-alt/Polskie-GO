@@ -13,7 +13,7 @@ import { Icon, type LineIconName } from '../components/Icon';
 import { Badge, Stamp } from '../components/Illustrations';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
-import { ExerciseView, correctAnswerText, instructionKey, type Payload } from '../exercises/Exercises';
+import { ExerciseView, correctAnswerText, instructionKey, polishForFeedback, type Payload } from '../exercises/Exercises';
 import { LessonStage, sceneForRoute, type StageMood } from '../components/LessonStage';
 import { Scene } from '../components/Illustrations';
 import { isMissionSlug } from '@polski-go/shared';
@@ -273,6 +273,7 @@ export default function LessonScreen() {
   const isDialogue = item.type === 'DIALOGUE' || item.type === 'SITUATION';
   const praise = t('lesson_correct_alt').split('|');
   const caText = result ? correctAnswerText(item, result, tr) : null;
+  const feedbackPl = result && !result.correct ? polishForFeedback(item, caText) : null;
   const stageMood: StageMood = result ? (result.correct ? 'correct' : result.skipped ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
 
   return (
@@ -372,6 +373,20 @@ export default function LessonScreen() {
                   {result.explanation && (
                     <div className="mt-1 text-sm font-semibold">
                       <RichText text={tr(result.explanation)} />
+                    </div>
+                  )}
+                  {!result.correct && !result.skipped && !result.retry && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {feedbackPl && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/20 py-0.5 pl-0.5 pr-3 text-[13px] font-black">
+                          <SpeakButton text={feedbackPl} size="sm" /> {t('lesson_listen_pl')}
+                        </span>
+                      )}
+                      {session.lesson && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-black/20 px-2.5 py-1 text-[12px] font-bold">
+                          <Icon name="refresh" size={13} /> {t('lesson_saved_review')}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

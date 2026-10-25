@@ -208,6 +208,8 @@ export const pl: Dict = {
   lesson_almost: 'Prawie! Uważaj na pisownię',
   lesson_wrong: 'Nie całkiem',
   lesson_correct_answer: 'Poprawna odpowiedź:',
+  lesson_listen_pl: "Posłuchaj po polsku",
+  lesson_saved_review: "Dodano do „Moich błędów” — powtórzymy",
   lesson_skip_mic: 'Nie mogę teraz mówić',
   lesson_quit: 'Wyjść z lekcji?',
   lesson_quit_text: 'Postęp tej lekcji nie zostanie zapisany.',

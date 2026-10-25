@@ -208,6 +208,8 @@ export const en: Dict = {
   lesson_almost: 'Almost! Mind the spelling',
   lesson_wrong: 'Not quite',
   lesson_correct_answer: 'Correct answer:',
+  lesson_listen_pl: "Hear it in Polish",
+  lesson_saved_review: "Saved to “My mistakes” — we'll review it",
   lesson_skip_mic: 'Can\'t speak now',
   lesson_quit: 'Quit the lesson?',
   lesson_quit_text: 'Your progress in this lesson won\'t be saved.',
