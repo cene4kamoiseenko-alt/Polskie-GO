@@ -324,21 +324,39 @@ const BADGE_ART: Record<string, { item: ItemName; color: string }> = {
   'beaver-map': { item: 'beaver-map', color: P.coral },
 };
 
-/** Значок досягнення: медальйон з унікальною ілюстрацією; незароблений — сірий із замком. */
-export const Badge = memo(function Badge({ icon, unlocked, size = 72 }: { icon: string; unlocked: boolean; size?: number }) {
+export type Tier = 'bronze' | 'silver' | 'gold' | 'legendary';
+/** Рівень досягнення за винагородою: бронза < 20, срібло < 50, золото < 100, легенда ≥ 100 Złotki. */
+export const achTier = (zlotki: number): Tier => (zlotki >= 100 ? 'legendary' : zlotki >= 50 ? 'gold' : zlotki >= 20 ? 'silver' : 'bronze');
+const TIER_COLORS: Record<Tier, [string, string, string]> = {
+  bronze: ['#F6C29A', '#C06A33', '#7A3A12'],
+  silver: ['#F4F8FC', '#A9B8CA', '#55657A'],
+  gold: ['#FFE38A', '#EE9F1E', '#8A5200'],
+  legendary: ['#C9A6FF', '#7A4CF0', '#3A1F86'],
+};
+
+/** Значок досягнення: медальйон з унікальною ілюстрацією; рамка за рівнем; незароблений — сірий із замком. */
+export const Badge = memo(function Badge({ icon, unlocked, size = 72, tier }: { icon: string; unlocked: boolean; size?: number; tier?: Tier }) {
   const art = BADGE_ART[icon];
   const color = art?.color ?? P.yellow;
+  const tc = tier ? TIER_COLORS[tier] : null;
+  const gid = `bdg-${tier ?? 'none'}`;
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <div className="relative shrink-0" style={{ width: size, height: size, filter: unlocked && tier === 'legendary' ? 'drop-shadow(0 0 8px rgba(157,105,255,0.75))' : unlocked && tier === 'gold' ? 'drop-shadow(0 0 7px rgba(255,200,87,0.6))' : undefined }}>
       <svg viewBox="0 0 80 80" width={size} height={size} aria-hidden style={unlocked ? undefined : { filter: 'grayscale(1)', opacity: 0.55 }}>
-        <path d="M40 4l9 6 11-1 4 10 10 5-1 11 6 9-6 9 1 11-10 5-4 10-11-1-9 6-9-6-11 1-4-10-10-5 1-11-6-9 6-9-1-11 10-5 4-10 11 1z" fill={color} stroke={INK} strokeWidth={2} strokeLinejoin="round" />
-        <circle cx="40" cy="40" r="27" fill={P.cream} stroke={INK} strokeWidth={2} />
-        <circle cx="40" cy="40" r="23" fill="none" stroke={color} strokeWidth={1.6} strokeDasharray="2 3" />
+        {tc && (
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor={tc[0]} /><stop offset="1" stopColor={tc[1]} /></linearGradient>
+          </defs>
+        )}
+        <path d="M40 4l9 6 11-1 4 10 10 5-1 11 6 9-6 9 1 11-10 5-4 10-11-1-9 6-9-6-11 1-4-10-10-5 1-11-6-9 6-9-1-11 10-5 4-10 11 1z" fill={tc ? `url(#${gid})` : color} stroke={tc ? tc[2] : INK} strokeWidth={2.2} strokeLinejoin="round" />
+        {tc && <path d="M22 16 Q40 6 58 16" stroke="#fff" strokeWidth="2.4" fill="none" opacity="0.55" strokeLinecap="round" />}
+        <circle cx="40" cy="40" r="27" fill={P.cream} stroke={tc ? tc[2] : INK} strokeWidth={2} />
+        <circle cx="40" cy="40" r="23" fill="none" stroke={tc ? tc[1] : color} strokeWidth={1.6} strokeDasharray="2 3" />
         {art ? <g transform="translate(19 19) scale(0.66)">{ITEMS[art.item]}</g> : <text x="40" y="49" textAnchor="middle" fontSize="26">{icon}</text>}
       </svg>
       {!unlocked && (
         <span className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full bg-elev shadow" aria-hidden>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg>
         </span>
       )}
     </div>

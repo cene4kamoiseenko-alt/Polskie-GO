@@ -6,7 +6,7 @@ import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { haptic } from '../lib/telegram';
 import { ErrorState, Progress, ScreenHeader, ScreenSkeleton, Sheet, cx } from '../components/ui';
-import { Badge } from '../components/Illustrations';
+import { Badge, achTier, type Tier } from '../components/Illustrations';
 import { Icon } from '../components/Icon';
 
 type Ach = { slug: string; title: never; description: never; icon: string; metric: string; threshold: number; progress: number; unlockedAt: string | null; isNew: boolean; zlotki: number };
@@ -19,6 +19,19 @@ const GROUPS: { id: 'life' | 'learning' | 'travel'; key: TKey }[] = [
   { id: 'learning', key: 'ach_group_learning' },
   { id: 'travel', key: 'ach_group_travel' },
 ];
+
+const TIER_STYLE: Record<Tier, [string, string]> = {
+  bronze: ['#C06A33', '#F6C29A'],
+  silver: ['#7D8DA3', '#F4F8FC'],
+  gold: ['#E39A14', '#FFE38A'],
+  legendary: ['#7A4CF0', '#E3D3FF'],
+};
+
+function TierChip({ tier }: { tier: Tier }) {
+  const { t } = useT();
+  const [bg, fg] = TIER_STYLE[tier];
+  return <span className="rounded-full px-1.5 py-px text-[9.5px] font-black uppercase tracking-wide" style={{ background: `${bg}33`, color: fg, border: `1px solid ${bg}88` }}>{t(`tier_${tier}` as TKey)}</span>;
+}
 
 export default function AchievementsScreen() {
   const { t, tr, date } = useT();
@@ -49,7 +62,8 @@ export default function AchievementsScreen() {
                   whileTap={{ scale: 0.96 }}
                   onClick={() => { haptic.tap(); setOpen(a); }}
                 >
-                  <Badge icon={a.icon} unlocked={!!a.unlockedAt} size={64} />
+                  <Badge icon={a.icon} unlocked={!!a.unlockedAt} size={64} tier={achTier(a.zlotki)} />
+                  <TierChip tier={achTier(a.zlotki)} />
                   <div className="line-clamp-2 text-[13px] font-black leading-tight">{tr(a.title)}</div>
                   {a.unlockedAt ? (
                     <div className="text-[11px] font-black text-brand-dark">{date(a.unlockedAt)}</div>
@@ -69,7 +83,8 @@ export default function AchievementsScreen() {
       <Sheet open={!!open} onClose={() => setOpen(null)}>
         {open && (
           <div className="flex flex-col items-center pb-4 text-center">
-            <Badge icon={open.icon} unlocked={!!open.unlockedAt} size={120} />
+            <Badge icon={open.icon} unlocked={!!open.unlockedAt} size={120} tier={achTier(open.zlotki)} />
+            <div className="mt-1"><TierChip tier={achTier(open.zlotki)} /></div>
             <h2 className="mt-2 text-2xl font-black leading-tight">{tr(open.title)}</h2>
             <div className="card mt-4 w-full p-4 text-left">
               <div className="muted text-xs font-black uppercase tracking-wide">{t('ach_condition')}</div>

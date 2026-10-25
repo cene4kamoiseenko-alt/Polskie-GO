@@ -1,16 +1,25 @@
+/**
+ * Профіль (референси «Профіль» і «Статистика»): картка мандрівника з містом, рівень польської
+ * (лише через іспити), лічильники, гардероб, швидкі розділи, медалі за рівнями,
+ * статистика 7/30/90 днів за реальними даними, шість навичок та історія занять.
+ */
 import { useState } from 'react';
-import { ItemPreview } from '../components/ItemPreview';
-import { Badge } from '../components/Illustrations';
-import { Icon, type LineIconName } from '../components/Icon';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useT } from '../i18n';
+import { ItemPreview } from '../components/ItemPreview';
+import { Badge, achTier } from '../components/Illustrations';
+import { Icon, type LineIconName } from '../components/Icon';
+import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { useJourney, useMe, useShop } from '../lib/queries';
-import { Beaver, ITEM_ICONS } from '../components/Beaver';
+import { haptic } from '../lib/telegram';
+import { Beaver } from '../components/Beaver';
+import { Art, type ArtName } from '../components/GameArt';
+import { CityHero } from '../components/CityHero';
 import { LEVEL_COLORS } from './Onboarding';
 import { XpChart } from '../components/XpChart';
-import { Card, EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
+import { EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
 import { rankFor, TopStats } from './Home';
 
 type Stats = {
@@ -20,9 +29,17 @@ type Stats = {
   vocabulary: Record<string, number>;
   history: { id: string; mode: string; lesson: { title: never; kind: string } | null; correct: number; total: number; xp: number; finishedAt: string }[];
 };
-type Ach = { slug: string; title: never; icon: string; unlockedAt: string | null; isNew: boolean };
+type Ach = { slug: string; title: never; description: never; icon: string; threshold: number; progress: number; unlockedAt: string | null; isNew: boolean; zlotki: number };
 
-const SKILL_ICONS: Record<string, string> = { vocab: '📖', grammar: '🧩', listening: '🎧', speaking: '🎤', writing: '✍️', reading: '📰', dialogue: '💬', situation: '🎭', usage: '🗣️', review: '🔁' };
+/** Шість навичок: групи вправ зводяться до основних мовних умінь. */
+const SKILLS: { id: string; key: TKey; groups: string[]; icon: LineIconName; color: string }[] = [
+  { id: 'vocab', key: 'sk_vocab', groups: ['vocab', 'review'], icon: 'book', color: '#F2884B' },
+  { id: 'grammar', key: 'sk_grammar', groups: ['grammar', 'usage'], icon: 'layers', color: '#9D69FF' },
+  { id: 'listening', key: 'sk_listening', groups: ['listening'], icon: 'headphones', color: '#FF5265' },
+  { id: 'speaking', key: 'sk_speaking', groups: ['speaking', 'dialogue', 'situation'], icon: 'chat', color: '#25D79B' },
+  { id: 'reading', key: 'sk_reading', groups: ['reading'], icon: 'book', color: '#36B9FF' },
+  { id: 'writing', key: 'sk_writing', groups: ['writing'], icon: 'target', color: '#FFC857' },
+];
 
 export default function ProfileScreen() {
   const { t, tr, date } = useT();
@@ -35,127 +52,148 @@ export default function ProfileScreen() {
   const journey = useJourney();
   const shop = useShop();
   const citiesDone = journey.data?.cities.filter((c) => c.completed).length ?? 0;
+  const city = me.progress.currentCity;
+  const cityRow = journey.data?.cities.find((c) => c.slug === city?.slug);
   const WEAR = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME'];
-  const wardrobe = (shop.data?.items ?? []).filter((i) => i.owned && WEAR.includes(i.slot)).sort((a, b) => Number(b.equipped) - Number(a.equipped));
+  const owned = (shop.data?.items ?? []).filter((i) => i.owned && WEAR.includes(i.slot)).sort((a, b) => Number(b.equipped) - Number(a.equipped));
 
-  // Агрегуємо навички за групою (vocab.*, grammar.* …), показуємо найслабші першими.
-  const skillGroups = Object.entries(
-    (stats.data?.skills ?? []).reduce<Record<string, { sum: number; n: number }>>((acc, s) => {
-      const g = s.skill.split('.')[0];
-      acc[g] ??= { sum: 0, n: 0 };
-      acc[g].sum += s.mastery;
-      acc[g].n += 1;
-      return acc;
-    }, {}),
-  ).map(([g, v]) => ({ g, mastery: Math.round(v.sum / v.n) }));
+  const skillValue = (groups: string[]) => {
+    const rows = (stats.data?.skills ?? []).filter((s) => groups.includes(s.skill.split('.')[0]));
+    return rows.length ? Math.round(rows.reduce((s, r) => s + r.mastery, 0) / rows.length) : 0;
+  };
+  const medals = [...(ach.data ?? [])]
+    .sort((a, b) => Number(!!b.unlockedAt) - Number(!!a.unlockedAt) || b.progress / b.threshold - a.progress / a.threshold)
+    .slice(0, 4);
 
   return (
     <div className="space-y-5 pb-4">
       <TopStats compact />
-      <div className="mx-4 flex items-center gap-4 rounded-[28px] p-4" style={{ background: 'linear-gradient(135deg,#FFE3E3,#FFF4D6)' }}>
-        <div className="relative">
-          {me.photoUrl ? (
-            <img src={me.photoUrl} alt="" className={cx('h-20 w-20 rounded-full border-4 object-cover', me.outfit.wear.FRAME === 'frame-gold' ? 'border-xp' : me.outfit.wear.FRAME === 'frame-green' ? 'border-brand' : 'border-white')} />
-          ) : (
-            <div className="grid h-20 w-20 place-items-center rounded-full border-4 border-white bg-white">
-              <Beaver size={60} outfit={me.outfit.wear} animate={false} />
+
+      {/* Картка мандрівника */}
+      <div className="hero-card relative mx-4">
+        <CityHero slug={city?.slug ?? 'krakow'} color={cityRow?.color ?? '#36B9FF'} name="" sign={false} evening height={150} className="absolute inset-0 !h-full" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(56,38,120,0.97) 0%, rgba(38,66,156,0.9) 44%, rgba(20,50,110,0.25) 78%, rgba(20,50,110,0) 100%)' }} />
+        <div className="relative flex items-center gap-3 p-3.5">
+          <button onClick={() => { haptic.tap(); nav('/shop'); }} className="relative shrink-0" aria-label={t('profile_wardrobe')}>
+            <span className={cx('block h-[84px] w-[84px] overflow-hidden rounded-full border-[3px] bg-gradient-to-b from-[#8FD3F5] to-[#FFF1DA] shadow-lg', me.outfit.wear.FRAME === 'frame-gold' ? 'border-xp' : me.outfit.wear.FRAME === 'frame-green' ? 'border-brand' : 'border-white')}>
+              {me.photoUrl ? <img src={me.photoUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-end justify-center"><Beaver size={78} outfit={me.outfit.wear} animate={false} /></span>}
+            </span>
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-sky text-[#07182c] shadow">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20l4-1 10-10-3-3L5 16z" /></svg>
+            </span>
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[24px] font-black leading-tight text-white drop-shadow">{name}</h1>
+            <div className="truncate text-[14px] font-black text-[#cfe0f2]">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rankFor(me.progress.level)}</span></div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={9} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
+              <span className="shrink-0 text-[11px] font-black text-white">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
             </div>
-          )}
-          {me.premium.active && <span className="absolute -right-1 -top-1 text-2xl">👑</span>}
-        </div>
-        <div className="min-w-0 flex-1 text-ink">
-          <h1 className="truncate text-2xl font-black">{name}</h1>
-          <div className="text-sm font-black">
-            {t('level')} {me.progress.level} · {rankFor(me.progress.level)}
+            {city && <div className="mt-1 flex items-center gap-1 text-[13px] font-bold text-white"><Icon name="pin" size={14} className="text-coral" filled /> {city.namePl}</div>}
           </div>
-          <div className="mt-1 flex items-center gap-2">
-            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/70">
-              <div className="h-full rounded-full bg-brand" style={{ width: `${(me.progress.levelXp / me.progress.levelXpNeeded) * 100}%` }} />
-            </div>
-            <span className="text-[11px] font-black opacity-70">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
-          </div>
-          {me.progress.currentCity && <div className="mt-1 text-xs font-bold opacity-80">📍 {me.progress.currentCity.namePl}</div>}
+          <button onClick={() => nav('/settings')} className="glass-card absolute right-2.5 top-2.5 grid h-9 w-9 place-items-center !rounded-full text-white" aria-label={t('profile_settings')}>
+            <Icon name="settings" size={18} />
+          </button>
+          {me.premium.active && <span className="absolute left-2 top-1"><Art name="crown" size={24} /></span>}
         </div>
-        <button onClick={() => nav('/settings')} className="self-start text-2xl" aria-label={t('profile_settings')}>⚙️</button>
       </div>
 
-      {/* Рівень польської */}
-      <Card className="mx-4 flex items-center gap-3 p-3" onClick={() => nav('/exams')}>
-        <span className="grid h-12 w-12 place-items-center rounded-xl text-lg font-black text-white" style={{ background: LEVEL_COLORS[me.progress.languageLevel] }}>
+      {/* Рівень польської — лише за іспитами */}
+      <button onClick={() => nav('/exams')} className="stat-card mx-4 w-[calc(100%-2rem)] !gap-3 !p-3">
+        <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[22px] font-black text-white shadow-[inset_0_-4px_0_rgb(0_0_0/0.2)]" style={{ background: LEVEL_COLORS[me.progress.languageLevel] }}>
           {me.progress.languageLevel}
+          <span className="absolute -right-2 -top-3"><Art name="grad" size={26} /></span>
         </span>
-        <div className="flex-1">
-          <div className="font-black">{t('profile_language')}</div>
-          <div className="muted text-xs font-bold">{t('profile_language_note')}</div>
-        </div>
-        <span className="muted text-xl">›</span>
-      </Card>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block text-[16px] font-black">{t('profile_language')}</span>
+          <span className="muted block text-[12px] font-bold">{t('profile_language_note')}</span>
+        </span>
+        <Art name="book" size={44} />
+      </button>
 
+      {/* Лічильники */}
       <div className="grid grid-cols-4 gap-2 px-4">
         {(
           [
-            ['flame', '#E2701F', me.progress.streak, t('profile_streak')],
-            ['book', '#35C88A', me.progress.lessonsCompleted, t('profile_lessons')],
-            ['star', '#E39A14', me.progress.wordsLearned, t('profile_words')],
-            ['trophy', '#F45159', citiesDone, t('profile_cities')],
-          ] as [LineIconName, string, number, string][]
-        ).map(([icon, color, v, l]) => (
-          <Card key={String(l)} className="px-1 py-3 text-center">
-            <div className="flex justify-center" style={{ color }}><Icon name={icon} size={22} /></div>
-            <div className="text-lg font-black">{v}</div>
-            <div className="muted text-[10px] font-bold leading-tight">{l}</div>
-          </Card>
+            ['flame', me.progress.streak, t('profile_streak'), '#FF8A3D'],
+            ['book', me.progress.lessonsCompleted, t('profile_lessons'), '#25D79B'],
+            ['star', me.progress.wordsLearned, t('profile_words'), '#FFC857'],
+            ['trophy', citiesDone, t('profile_cities'), '#FF5265'],
+          ] as [ArtName, number, string, string][]
+        ).map(([art, v, l, c]) => (
+          <div key={l} className="relative overflow-hidden rounded-[18px] border px-1 pb-2 pt-2.5 text-center" style={{ borderColor: `${c}55`, background: `linear-gradient(180deg, ${c}26 0%, var(--bg-elev) 70%)`, boxShadow: `0 0 16px -8px ${c}` }}>
+            <div className="flex justify-center"><Art name={art} size={30} /></div>
+            <div className="text-[20px] font-black leading-tight">{v}</div>
+            <div className="muted text-[10.5px] font-bold leading-tight">{l}</div>
+          </div>
         ))}
       </div>
 
       {/* Мій гардероб */}
-      <Section title={t('profile_my_wardrobe')} action={<button className="text-sm font-black text-sky-dark" onClick={() => nav('/shop')}>{t('home_see_all')} →</button>}>
-        <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-          {wardrobe.map((i) => (
-            <button key={i.id} onClick={() => nav('/shop')} className={cx('card grid h-20 w-20 shrink-0 place-items-center', i.equipped && 'ring-4 ring-brand')}>
-              <ItemPreview slot={i.slot} assetKey={i.assetKey} size={68} />
+      <Section title={t('profile_my_wardrobe')} action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => nav('/shop')}>{t('home_see_all')} <Icon name="arrow-right" size={16} /></button>}>
+        <div className="no-scrollbar flex gap-2.5 overflow-x-auto pb-1">
+          <button onClick={() => nav('/shop')} className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[20px] border-2 border-brand bg-gradient-to-b from-[#8FD3F5] to-[#CDEFD0] shadow-[0_0_14px_-4px_rgb(37_215_155/0.8)]" aria-label={t('profile_current_look')}>
+            <span className="absolute inset-x-0 bottom-0 flex justify-center"><Beaver size={84} outfit={me.outfit.wear} animate={false} /></span>
+            <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-[#07182c]"><Icon name="check" size={12} strokeWidth={3.2} /></span>
+          </button>
+          {owned.slice(0, 4).map((i) => (
+            <button key={i.id} onClick={() => nav('/shop')} className={cx('section-tile grid h-[92px] w-[92px] shrink-0 place-items-center rounded-[20px]', i.equipped && 'ring-2 ring-brand')}>
+              <ItemPreview slot={i.slot} assetKey={i.assetKey} size={66} />
             </button>
           ))}
-          <button onClick={() => nav('/shop')} className="grid h-20 w-20 shrink-0 place-items-center rounded-[22px] border-2 border-dashed border-soft text-3xl muted">+</button>
+          <button onClick={() => nav('/shop')} className="grid h-[92px] w-[92px] shrink-0 place-items-center rounded-[20px] border-2 border-dashed border-[var(--border)] text-3xl font-black text-[var(--text-muted)]">+</button>
         </div>
       </Section>
 
-      {/* Бобер і швидкі переходи */}
-      <div className="mx-4 flex items-center gap-3">
-        <Card className="grid flex-1 place-items-center py-2" onClick={() => nav('/shop')}>
-          <Beaver size={120} outfit={me.outfit.wear} mood="happy" />
-          <div className="pb-1 font-black">{t('profile_wardrobe')}</div>
-        </Card>
-        <div className="flex flex-1 flex-col gap-2">
+      {/* Великий гардероб + швидкі розділи */}
+      <div className="grid grid-cols-[1.05fr_1fr] gap-2.5 px-4">
+        <button onClick={() => { haptic.tap(); nav('/shop'); }} className="hero-card relative h-[212px] text-left">
+          <CityHero slug={city?.slug ?? 'krakow'} color={cityRow?.color ?? '#36B9FF'} name="" sign={false} height={212} className="absolute inset-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#07182c]/90 via-transparent to-transparent" />
+          <div className="absolute inset-x-0 bottom-10 flex justify-center"><Beaver size={116} outfit={me.outfit.wear} mood="wave" /></div>
+          <div className="absolute inset-x-2.5 bottom-2 flex items-center gap-1.5">
+            <Icon name="user" size={18} className="text-sky" />
+            <span className="flex-1 text-[18px] font-black text-white">{t('profile_wardrobe')}</span>
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-[#07182c]/70 text-white"><Icon name="chevron-right" size={16} /></span>
+          </div>
+        </button>
+        <div className="flex flex-col gap-2">
           {(
             [
-              ['map', '/passport', t('passport_title')],
-              ['home', '/house', t('profile_house')],
-              ['book', '/diary', t('profile_diary')],
+              ['passport', '/passport', t('passport_title')],
+              ['house', '/house', t('profile_house')],
+              ['diary', '/diary', t('profile_diary')],
               ['trophy', '/social', t('home_leaderboard')],
-            ] as [LineIconName, string, string][]
-          ).map(([icon, to, label]) => (
-            <Card key={to} className="flex items-center gap-2 px-3 py-2.5 text-sm font-black" onClick={() => nav(to)}>
-              <Icon name={icon} size={18} className="shrink-0 text-sky-dark" /> {label}
-            </Card>
+            ] as [ArtName, string, string][]
+          ).map(([art, to, label]) => (
+            <button key={to} onClick={() => { haptic.tap(); nav(to); }} className="stat-card !min-h-[47px] !gap-2 !px-2 !py-1.5">
+              <Art name={art} size={30} />
+              <span className="min-w-0 flex-1 text-left text-[13px] font-black leading-tight">{label}</span>
+              <Icon name="chevron-right" size={16} className="shrink-0 text-[var(--text-muted)]" />
+            </button>
           ))}
         </div>
       </div>
 
       {/* Досягнення */}
-      <Section title={t('profile_achievements')} action={<button className="text-sm font-black text-sky-dark" onClick={() => nav('/achievements')}>{t('home_see_all')} →</button>}>
+      <Section title={t('profile_achievements')} action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => nav('/achievements')}>{t('home_see_all')} <Icon name="arrow-right" size={16} /></button>}>
         {ach.isLoading ? (
-          <Skeleton className="h-24" />
+          <Skeleton className="h-32" />
         ) : (
-          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-            {[...(ach.data ?? [])].sort((a, b) => Number(!!b.unlockedAt) - Number(!!a.unlockedAt)).map((a) => (
-              <button key={a.slug} onClick={() => nav('/achievements')} className="flex w-20 shrink-0 flex-col items-center gap-1 text-center">
-                <div className="relative">
-                  <Badge icon={a.icon} unlocked={!!a.unlockedAt} size={64} />
-                  {a.isNew && <span className="absolute -right-1 -top-1 rounded-full bg-pl-red px-1.5 text-[10px] font-black text-white">{t('new')}</span>}
-                </div>
-                <div className="text-[11px] font-black leading-tight">{tr(a.title)}</div>
-              </button>
+          <div className="grid grid-cols-4 gap-2">
+            {medals.map((a, i) => (
+              <motion.button
+                key={a.slug}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => nav('/achievements')}
+                className={cx('task-card flex flex-col items-center gap-1 px-1 pb-2 pt-2 text-center', a.unlockedAt && 'is-done')}
+              >
+                <Badge icon={a.icon} unlocked={!!a.unlockedAt} size={56} tier={achTier(a.zlotki)} />
+                <span className="line-clamp-2 text-[11.5px] font-black leading-tight">{tr(a.title)}</span>
+                <span className="muted line-clamp-2 text-[9.5px] font-bold leading-tight">{tr(a.description)}</span>
+              </motion.button>
             ))}
           </div>
         )}
@@ -165,66 +203,90 @@ export default function ProfileScreen() {
       <Section
         title={t('profile_stats')}
         action={
-          <div className="flex gap-1">
+          <div className="flex rounded-full border border-[var(--border)] bg-elev p-0.5">
             {([7, 30, 90] as const).map((d) => (
-              <button key={d} onClick={() => setRange(d)} className={cx('chip px-2.5 py-0.5 text-xs', range === d && 'bg-brand text-white')}>
+              <button key={d} onClick={() => { haptic.select(); setRange(d); }} className={cx('rounded-full px-2.5 py-1 text-[12px] font-black transition-colors', range === d ? 'bg-sky text-[#07182c] shadow-[0_0_12px_-2px_rgb(54_185_255/0.8)]' : 'text-[var(--text-muted)]')}>
                 {t(`stats_${d}` as 'stats_7')}
               </button>
             ))}
           </div>
         }
       >
-        <Card className="p-4">
-          {stats.isLoading ? (
-            <Skeleton className="h-40" />
-          ) : stats.data && stats.data.totals.xp > 0 ? (
-            <>
-              <div className="mb-2 grid grid-cols-3 text-center">
-                <div><div className="text-xl font-black">{stats.data.totals.xp}</div><div className="muted text-xs font-bold">{t('stats_xp')}</div></div>
-                <div><div className="text-xl font-black">{stats.data.totals.minutes}</div><div className="muted text-xs font-bold">{t('stats_minutes')}</div></div>
-                <div><div className="text-xl font-black">{stats.data.totals.accuracy}%</div><div className="muted text-xs font-bold">{t('stats_accuracy')}</div></div>
-              </div>
+        {stats.isLoading ? (
+          <Skeleton className="h-56" />
+        ) : stats.data && stats.data.totals.xp > 0 ? (
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  ['flame', `${stats.data.totals.xp} XP`, t('stats_xp_period')],
+                  ['clock', t('stats_min_n', { n: stats.data.totals.minutes }), t('stats_time')],
+                  ['target', `${stats.data.totals.accuracy}%`, t('stats_acc')],
+                ] as [ArtName, string, string][]
+              ).map(([art, v, l]) => (
+                <div key={l} className="stat-card !gap-1.5 !px-2">
+                  <Art name={art} size={28} />
+                  <span className="min-w-0"><span className="block truncate text-[15px] font-black leading-tight">{v}</span><span className="muted block text-[10px] font-bold leading-tight">{l}</span></span>
+                </div>
+              ))}
+            </div>
+            <div className="stat-card !block !p-3">
               <XpChart days={stats.data.days} unit="XP" />
-            </>
-          ) : (
-            <EmptyState text={t('stats_empty')} />
-          )}
-        </Card>
+            </div>
+          </div>
+        ) : (
+          <div className="stat-card !block"><EmptyState text={t('stats_empty')} /></div>
+        )}
       </Section>
 
-      {skillGroups.length > 0 && (
-        <Section title={t('profile_skills')}>
-          <Card className="space-y-3 p-4">
-            {skillGroups.map((s) => (
-              <div key={s.g} className="flex items-center gap-3">
-                <span className="w-8 text-xl">{SKILL_ICONS[s.g] ?? '•'}</span>
-                <span className="w-24 truncate text-sm font-black capitalize">{s.g}</span>
-                <Progress value={s.mastery} height={10} color={s.mastery < 40 ? 'var(--color-coral)' : 'var(--color-brand)'} />
-                <span className="w-10 text-right text-sm font-black">{s.mastery}</span>
-              </div>
-            ))}
-            <div className="muted text-xs font-bold">
-              📖 {stats.data?.vocabulary.LEARNED ?? 0} {t('profile_vocab_learned')} · {stats.data?.vocabulary.LEARNING ?? 0} {t('profile_vocab_learning')}
-            </div>
-          </Card>
-        </Section>
-      )}
+      {/* Навички */}
+      <Section title={t('profile_skills')}>
+        <div className="stat-card !items-stretch !gap-3 !p-3">
+          <div className="min-w-0 flex-1 space-y-2.5">
+            {SKILLS.map((s) => {
+              const v = skillValue(s.groups);
+              return (
+                <div key={s.id} className="flex items-center gap-2">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white shadow-[inset_0_-2px_0_rgb(0_0_0/0.2)]" style={{ background: s.color }}><Icon name={s.icon} size={15} /></span>
+                  <span className="w-[88px] shrink-0 truncate text-[12px] font-black">{t(s.key)}</span>
+                  <Progress value={v} height={9} color={s.color} />
+                  <span className="w-7 shrink-0 text-right text-[12.5px] font-black">{v}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex w-[80px] shrink-0 flex-col items-center justify-center border-l border-[var(--border)] pl-2 text-center">
+            <div className="relative"><Art name="books" size={60} /><span className="absolute -right-2 -top-3"><Art name="grad" size={30} /></span></div>
+            <div className="mt-1 text-[11px] font-black leading-tight">{stats.data?.vocabulary.LEARNED ?? 0} {t('profile_vocab_learned')}</div>
+            <div className="muted text-[11px] font-bold leading-tight">{stats.data?.vocabulary.LEARNING ?? 0} {t('profile_vocab_learning')}</div>
+          </div>
+        </div>
+      </Section>
 
+      {/* Історія */}
       {stats.data && stats.data.history.length > 0 && (
         <Section title={t('profile_history')}>
-          <Card className="divide-y divide-[var(--border)]">
-            {stats.data.history.slice(0, 8).map((h) => (
-              <div key={h.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                <span>{h.mode === 'LESSON' ? '📘' : h.mode === 'EXAM' ? '🎓' : '🔁'}</span>
-                <span className="flex-1 truncate font-bold">{h.lesson ? tr(h.lesson.title) : h.mode}</span>
-                <span className="font-black">{h.correct}/{h.total}</span>
-                <span className="w-14 text-right font-black text-xp-dark">+{h.xp}</span>
-              </div>
-            ))}
-          </Card>
+          <div className="stat-card !block divide-y divide-[var(--border)] !p-0">
+            {stats.data.history.slice(0, 8).map((h) => {
+              const kind = h.mode === 'LESSON' ? 'hist_lesson' : h.mode === 'EXAM' || h.mode === 'PLACEMENT' ? 'hist_test' : 'hist_practice';
+              return (
+                <div key={h.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: kind === 'hist_lesson' ? '#2C7BE5' : kind === 'hist_test' ? '#9D69FF' : '#25A87A' }}>
+                    <Icon name={kind === 'hist_lesson' ? 'book' : kind === 'hist_test' ? 'layers' : 'refresh'} size={20} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] font-black">{h.lesson ? tr(h.lesson.title) : t(kind as TKey)}</span>
+                    <span className="muted block text-[11px] font-bold">{t(kind as TKey)} · {date(h.finishedAt)}</span>
+                  </span>
+                  <span className="text-[14px] font-black">{h.correct}/{h.total}</span>
+                  <span className={cx('rounded-full px-2 py-0.5 text-[12px] font-black', h.xp > 0 ? 'bg-brand/20 text-brand' : 'bg-elev text-[var(--text-muted)]')}>+{h.xp} XP</span>
+                </div>
+              );
+            })}
+          </div>
         </Section>
       )}
-      {me.premium.active && me.premium.expiresAt && <p className="muted px-4 text-center text-sm font-bold">👑 {t('profile_premium_until', { date: date(me.premium.expiresAt) })}</p>}
+      {me.premium.active && me.premium.expiresAt && <p className="muted px-4 text-center text-sm font-bold">{t('profile_premium_until', { date: date(me.premium.expiresAt) })}</p>}
     </div>
   );
 }

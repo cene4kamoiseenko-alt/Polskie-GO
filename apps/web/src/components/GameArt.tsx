@@ -10,7 +10,8 @@ const SW = 2.4;
 
 export type ArtName =
   | 'gift' | 'book' | 'chat' | 'gamepad' | 'scroll' | 'map-pin' | 'suitcase' | 'flame' | 'coin' | 'crown'
-  | 'shield' | 'trophy' | 'medal-gold' | 'medal-silver' | 'medal-bronze' | 'lock' | 'sprout' | 'star' | 'books' | 'clock' | 'target' | 'plane';
+  | 'shield' | 'trophy' | 'medal-gold' | 'medal-silver' | 'medal-bronze' | 'lock' | 'sprout' | 'star' | 'books' | 'clock' | 'target' | 'plane'
+  | 'passport' | 'house' | 'diary' | 'grad';
 
 type Grad = (id: string, a: string, b: string, vertical?: boolean) => ReactNode;
 const lin: Grad = (id, a, b, vertical = true) => (
@@ -225,6 +226,51 @@ function art(name: ArtName, u: (s: string) => string, label?: string): ReactNode
           <circle cx="32" cy="32" r="26" fill={f('ck')} stroke={INK} strokeWidth={SW} />
           <circle cx="32" cy="32" r="19" fill="#EFFFF8" stroke={INK} strokeWidth="1.8" />
           <path d="M32 19 V32 L41 37" stroke={INK} strokeWidth="3.2" strokeLinecap="round" fill="none" />
+        </>
+      );
+    case 'passport':
+      return (
+        <>
+          <defs>{lin(u('pp'), '#3F8BEA', '#1B4FA8')}</defs>
+          <rect x="12" y="6" width="40" height="52" rx="5" fill={f('pp')} stroke={INK} strokeWidth={SW} />
+          <rect x="12" y="6" width="7" height="52" rx="3" fill="#163F86" />
+          <circle cx="34" cy="28" r="10" fill="none" stroke="#FFD86B" strokeWidth="2.4" />
+          <path d="M24 28 h20 M34 18 c-5 5 -5 15 0 20 c5 -5 5 -15 0 -20" stroke="#FFD86B" strokeWidth="1.8" fill="none" />
+          <rect x="24" y="44" width="20" height="3" rx="1.5" fill="#FFD86B" />
+          <path d="M42 10 h6" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" opacity="0.5" />
+        </>
+      );
+    case 'house':
+      return (
+        <>
+          <defs>{lin(u('hw'), '#FFF1DA', '#F2D3A0')}{lin(u('hr'), '#FF7A5A', '#C9472F')}</defs>
+          <rect x="12" y="28" width="40" height="28" rx="2" fill={f('hw')} stroke={INK} strokeWidth={SW} />
+          <path d="M6 30 L32 8 L58 30 Z" fill={f('hr')} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
+          <rect x="26" y="38" width="12" height="18" rx="2" fill="#2BB3A3" stroke={INK} strokeWidth="2" />
+          <rect x="15" y="34" width="8" height="8" rx="1.5" fill="#BFE6FF" stroke={INK} strokeWidth="1.6" />
+          <rect x="41" y="34" width="8" height="8" rx="1.5" fill="#BFE6FF" stroke={INK} strokeWidth="1.6" />
+          <path d="M44 14 v-6 h6 v11" fill="#B9472F" stroke={INK} strokeWidth="2" />
+          <ellipse cx="32" cy="58" rx="26" ry="3" fill="#2F9A55" />
+        </>
+      );
+    case 'diary':
+      return (
+        <>
+          <defs>{lin(u('dc'), '#9D69FF', '#5B33C4')}</defs>
+          <rect x="12" y="6" width="40" height="52" rx="5" fill={f('dc')} stroke={INK} strokeWidth={SW} />
+          <rect x="18" y="12" width="28" height="40" rx="3" fill="#F4EEFF" stroke={INK} strokeWidth="1.6" />
+          <path d="M22 20 h20 M22 27 h20 M22 34 h14" stroke="#9D8BCB" strokeWidth="2" strokeLinecap="round" />
+          <path d="M40 6 v16 l4 -3 4 3 V6" fill="#E5383B" stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M28 42 l4 4 8 -9" stroke="#25D79B" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      );
+    case 'grad':
+      return (
+        <>
+          <path d="M4 24 L32 12 L60 24 L32 36 Z" fill="#22364A" stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
+          <path d="M16 30 v12 c0 6 32 6 32 0 V30 L32 36 Z" fill="#33475E" stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
+          <path d="M54 26 v14" stroke="#FFC857" strokeWidth="2.6" />
+          <circle cx="54" cy="42" r="3.4" fill="#FFC857" stroke={INK} strokeWidth="1.4" />
         </>
       );
     case 'target':
