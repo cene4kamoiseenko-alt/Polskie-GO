@@ -48,9 +48,22 @@ const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAA
 if (el && typeof document !== 'undefined') {
   el.preload = 'auto';
   const unlock = () => {
-    if (el.src) return;
-    el.src = SILENT;
-    void el.play().catch(() => {});
+    if (!el.src) {
+      el.src = SILENT;
+      void el.play().catch(() => {});
+    }
+    // iOS дозволяє speechSynthesis лише після першого виклику в обробнику жесту:
+    // «розблоковуємо» синтез беззвучною реплікою, тоді наступні фрази звучать і з асинхронного коду.
+    try {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(' ');
+        u.volume = 0;
+        u.lang = 'pl-PL';
+        speechSynthesis.speak(u);
+      }
+    } catch {
+      /* синтез недоступний */
+    }
   };
   document.addEventListener('pointerdown', unlock, { once: true, capture: true });
 }
@@ -85,6 +98,10 @@ function playElement(src: string, rate: number, onStart: () => void): Promise<vo
     };
     el.src = src;
     el.playbackRate = rate;
+    // Safari скидає швидкість після завантаження нового джерела — повторюємо, коли метадані готові.
+    el.onloadedmetadata = () => {
+      el.playbackRate = rate;
+    };
     (el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true;
     el.play().catch((e: Error) => reject(e.name === 'NotAllowedError' ? new Error('blocked') : e));
   });
@@ -121,12 +138,16 @@ export async function devicePolishVoice() {
 
 async function speakDevice(text: string, slow: boolean, onStart: () => void): Promise<void> {
   if (!ttsAvailable()) throw new Error('no_polish_voice');
-  const voices = await deviceVoices();
+  // Якщо голоси вже завантажені — без await: iOS не втрачає жест користувача.
+  const ready = speechSynthesis.getVoices();
+  const voices = ready.length ? ready : await deviceVoices();
   const voice = pickPolishVoice(voices);
   // Список голосів не порожній, але польського немає — не читаємо чужим голосом.
   // Порожній список (iOS WebView не завжди його віддає) — просимо систему саме pl-PL.
   if (!voice && voices.length) throw new Error('no_polish_voice');
   return new Promise((resolve, reject) => {
+    // WebKit іноді «ковтає» репліку, якщо speak() викликати одразу після cancel() під час мовлення.
+    const busy = speechSynthesis.speaking || speechSynthesis.pending;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(speechText(text));
     if (voice) u.voice = voice;
@@ -135,7 +156,8 @@ async function speakDevice(text: string, slow: boolean, onStart: () => void): Pr
     u.onstart = onStart;
     u.onend = () => resolve();
     u.onerror = (e) => (e.error === 'interrupted' || e.error === 'canceled' ? resolve() : reject(new Error('playback')));
-    speechSynthesis.speak(u);
+    if (busy) setTimeout(() => speechSynthesis.speak(u), 80);
+    else speechSynthesis.speak(u);
   });
 }
 
