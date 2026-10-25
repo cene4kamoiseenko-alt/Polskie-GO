@@ -11,6 +11,7 @@ import { notFound } from '../lib/errors';
 import { getJourney } from '../services/journey';
 import { answerItem, assertSpeechItem, finishSession, startSession } from '../services/sessions';
 import { issueSpeechAttempt } from '../services/speech-attempts';
+import { consumeQuota } from '../services/quota';
 import { synthesize, ttsStatus } from '../services/tts';
 import { TOPICS } from '../content/vocab';
 import { GRAMMAR } from '../content/grammar';
@@ -58,13 +59,13 @@ r.post('/speech/transcribe', rateLimit(6, 60_000, 'speech'), async (c) => {
   const bind = z.object({ session: z.string().max(64), item: z.string().max(100) }).partial().parse(query(c));
   const userId = c.get('userId');
   if (bind.session && bind.item) await assertSpeechItem(userId, bind.session, bind.item);
-  const result = await transcribeSpeech(await readSpeechBody(c.req.raw));
+  const result = await transcribeSpeech(await readSpeechBody(c.req.raw), { meter: () => consumeQuota(userId, 'stt') });
   if (!bind.session || !bind.item) return c.json(result);
   return c.json({ ...result, attempt: issueSpeechAttempt({ userId, sessionId: bind.session, key: bind.item, transcript: result.transcript }) });
 });
 r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {
   const q = z.object({ text: z.string().min(1).max(300), rate: z.enum(['normal', 'slow']).default('normal') }).parse(query(c));
-  const audio = await synthesize(q.text, q.rate);
+  const audio = await synthesize(q.text, q.rate, { meter: () => consumeQuota(c.get('userId'), 'tts') });
   return c.body(new Uint8Array(audio.data), 200, { 'content-type': audio.mime, 'cache-control': 'private, max-age=31536000, immutable', 'x-tts-cache': audio.cached ? 'hit' : 'miss' });
 });
 

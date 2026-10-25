@@ -805,3 +805,19 @@ export const userAchievementsRelations = relations(userAchievements, ({ one }) =
   achievement: one(achievements, { fields: [userAchievements.achievementId], references: [achievements.id] }),
 }));
 export const adminAuditLogsRelations = relations(adminAuditLogs, ({ one }) => ({ admin: one(adminUsers, { fields: [adminAuditLogs.adminId], references: [adminUsers.id] }) }));
+
+/**
+ * Постійні добові лічильники платних звернень користувача (розпізнавання мовлення, синтез без кешу).
+ * Обмеження в пам'яті ізоляту Worker (rateLimit) — лише від сплесків: ізолятів багато, і вони перезапускаються.
+ */
+export const usageCounters = sqliteTable(
+  'usage_counters',
+  {
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['stt', 'tts'] }).notNull(),
+    /** Доба UTC, YYYY-MM-DD. */
+    day: text('day').notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.kind, t.day] }), index('usage_counters_day_idx').on(t.day)],
+);

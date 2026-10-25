@@ -455,6 +455,7 @@ function OrderExercise({ item, result, onChange }: ExProps) {
                   say(tok);
                   update([...picked, i]);
                 }}
+                data-token
                 className="rounded-xl border-2 border-soft bg-elev px-3 py-2 text-lg font-bold shadow-[0_3px_0_var(--border)]"
               >
                 {tok}
@@ -516,14 +517,14 @@ function MatchExercise({ item, result, onChange }: ExProps) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-3">
           {data.left.map((o) => (
-            <button key={o.id} data-state={leftState(o.id)} onClick={() => tapLeft(o.id)} className="option text-center" style={!result && colorOf(o.id) ? { borderColor: colorOf(o.id)!, boxShadow: `0 3px 0 ${colorOf(o.id)}` } : undefined}>
+            <button key={o.id} data-pair="left" data-state={leftState(o.id)} onClick={() => tapLeft(o.id)} className="option text-center" style={!result && colorOf(o.id) ? { borderColor: colorOf(o.id)!, boxShadow: `0 3px 0 ${colorOf(o.id)}` } : undefined}>
               {tr(o.text)}
             </button>
           ))}
         </div>
         <div className="space-y-3">
           {data.right.map((o) => (
-            <button key={o.id} data-state={rightState(o.id)} onClick={() => tapRight(o.id)} className="option text-center" style={!result && colorOf(o.id) ? { borderColor: colorOf(o.id)!, boxShadow: `0 3px 0 ${colorOf(o.id)}` } : undefined}>
+            <button key={o.id} data-pair="right" data-state={rightState(o.id)} onClick={() => tapRight(o.id)} className="option text-center" style={!result && colorOf(o.id) ? { borderColor: colorOf(o.id)!, boxShadow: `0 3px 0 ${colorOf(o.id)}` } : undefined}>
               {tr(o.text)}
             </button>
           ))}
@@ -534,7 +535,7 @@ function MatchExercise({ item, result, onChange }: ExProps) {
 }
 
 // ───────── Вимова ─────────
-type MicStatus = 'ready' | 'starting' | 'recording' | 'processing' | 'permission' | 'silence' | 'offline' | 'not_configured' | 'unavailable' | 'blocked' | 'busy' | 'network' | 'timeout' | 'failed';
+type MicStatus = 'ready' | 'starting' | 'recording' | 'processing' | 'permission' | 'silence' | 'offline' | 'not_configured' | 'unavailable' | 'blocked' | 'busy' | 'quota' | 'network' | 'timeout' | 'failed';
 
 /** Що бачить людина в кожному стані запису: заголовок, пояснення й піктограма. */
 const MIC_STATUS: Record<MicStatus, { title: TKey; text?: TKey; icon: LineIconName; warn?: boolean }> = {
@@ -549,6 +550,7 @@ const MIC_STATUS: Record<MicStatus, { title: TKey; text?: TKey; icon: LineIconNa
   unavailable: { title: 'mic_st_unavailable', text: 'mic_st_unavailable_text', icon: 'alert', warn: true },
   blocked: { title: 'mic_st_blocked', text: 'mic_st_blocked_text', icon: 'lock', warn: true },
   busy: { title: 'mic_st_busy', text: 'mic_st_busy_text', icon: 'clock', warn: true },
+  quota: { title: 'mic_st_quota', text: 'mic_st_quota_text', icon: 'clock', warn: true },
   network: { title: 'mic_st_network', text: 'ex_mic_network', icon: 'wifi-off', warn: true },
   timeout: { title: 'mic_st_timeout', text: 'ex_mic_timeout', icon: 'clock', warn: true },
   failed: { title: 'mic_st_failed', text: 'ex_mic_failed', icon: 'alert', warn: true },
@@ -563,6 +565,7 @@ export function micStatusFromError(code: string, online: boolean): MicStatus {
   if (code === 'unsupported' || code === 'audio-capture' || code === 'start-failed') return 'unavailable';
   if (code === 'stt_not_configured') return 'not_configured';
   if (code === 'rate_limited') return 'busy';
+  if (code === 'quota_exceeded') return 'quota';
   if (['network', 'network_error', 'stt_unavailable'].includes(code)) return online ? 'network' : 'offline';
   if (code === 'timeout' || code === 'network_timeout') return 'timeout';
   return 'failed';
@@ -739,7 +742,7 @@ function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
       <p className="muted text-xs font-semibold">{t('ex_speech_note')}</p>
       {mode === 'server' ? <p className="muted text-xs">{t('ex_mic_server_note')}</p> : mode === 'device' && <p className="muted text-xs">{t('ex_mic_device_note')}</p>}
       {!result && (
-        <button className="text-sm font-black text-sky-dark underline" onClick={() => { cancel(); setStatus('ready'); onSubmit({ skipped: true }); }}>
+        <button className="text-sm font-black text-sky-dark underline" data-action="skip" onClick={() => { cancel(); setStatus('ready'); onSubmit({ skipped: true }); }}>
           {t(mode !== 'none' ? 'lesson_skip_mic' : 'ex_mic_continue')}
         </button>
       )}

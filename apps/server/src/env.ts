@@ -28,6 +28,9 @@ export type Bindings = {
   AZURE_SPEECH_KEY?: string;
   AZURE_SPEECH_REGION?: string;
   AZURE_SPEECH_VOICE?: string;
+  /** Добові квоти на користувача (типово 60 записів і 300 нових фраз синтезу). */
+  STT_DAILY_LIMIT?: string;
+  TTS_DAILY_LIMIT?: string;
   ELEVENLABS_API_KEY?: string;
   ELEVENLABS_VOICE_ID?: string;
   ELEVENLABS_MODEL?: string;

@@ -8,9 +8,11 @@ export function sttStatus() {
   const configured = e.AZURE_STT_ENABLED === 'true' && !!e.AZURE_SPEECH_KEY && /^[a-z0-9-]{2,40}$/.test(e.AZURE_SPEECH_REGION ?? '');
   return { configured, provider: configured ? 'azure' : null, language: 'pl-PL' };
 }
-export async function transcribeSpeech(bytes: Uint8Array): Promise<{ transcript: string; language: string }> {
+/** meter — облік платного звернення (квота); викликається лише для справжнього запиту до провайдера. */
+export async function transcribeSpeech(bytes: Uint8Array, opts: { meter?: () => Promise<unknown> } = {}): Promise<{ transcript: string; language: string }> {
   if (!sttStatus().configured) throw new HttpError(503, 'stt_not_configured');
   if (!validSpeechWav(bytes)) throw new HttpError(400, 'stt_bad_audio');
+  await opts.meter?.();
   const e = getBindings();
   let res: Response;
   try {

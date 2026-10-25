@@ -12,7 +12,7 @@ import { Beaver } from '../components/Beaver';
 import { Icon, type LineIconName } from '../components/Icon';
 import { Badge, Stamp } from '../components/Illustrations';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
-import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
+import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton, useToast } from '../components/ui';
 import { ExerciseView, correctAnswerText, instructionKey, polishForFeedback, type Payload } from '../exercises/Exercises';
 
 /** Підзаголовок завдання (де інструкція потребує уточнення). */
@@ -36,6 +36,7 @@ export default function LessonScreen() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [session, setSession] = useState<SessionStart | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const toast = useToast();
   const [queue, setQueue] = useState<string[]>([]);
   const [retried, setRetried] = useState<Set<string>>(new Set());
   const [pos, setPos] = useState(0);
@@ -98,17 +99,27 @@ export default function LessonScreen() {
     prefetchSpeech(texts);
   }, [item, pos, queue, items]);
 
+  const [finishFailed, setFinishFailed] = useState(false);
   const doFinish = useCallback(async () => {
     if (!session) return;
     setPhase('finishing');
+    setFinishFailed(false);
+    const finishOnce = () => api<FinishResult>(`/sessions/${session.sessionId}/finish`, { body: {} });
     try {
-      const r = await api<FinishResult>(`/sessions/${session.sessionId}/finish`, { body: {} });
+      // Завершення на сервері ідемпотентне: якщо відповідь загубилась (мережа, 5xx), один раз повторюємо —
+      // сервер поверне той самий підсумок без нових нагород.
+      const r = await finishOnce().catch(async (e) => {
+        if (!(e instanceof ApiError) || (e.status !== 0 && e.status < 500)) throw e;
+        await new Promise((ok) => setTimeout(ok, 1200));
+        return finishOnce();
+      });
       setFinish(r);
       setPhase('result');
       if (r.passed) sfx.win();
       await refresh();
     } catch (e) {
       setError(e);
+      setFinishFailed(true);
       setPhase('error');
     }
   }, [session, refresh]);
@@ -150,8 +161,9 @@ export default function LessonScreen() {
       }
       if (!r.retry) setFirstDone((n) => n + 1);
       if (speed) setTimeout(() => next(), r.correct ? 450 : 900);
-    } catch (e) {
-      setError(e);
+    } catch {
+      // Відповідь не дійшла: кажемо про це (раніше помилка мовчки губилась), відповідь можна надіслати ще раз.
+      toast(t(typeof navigator !== 'undefined' && navigator.onLine === false ? 'error_offline' : 'answer_failed'), '⚠️');
     } finally {
       setChecking(false);
     }
@@ -181,7 +193,8 @@ export default function LessonScreen() {
       nav('/premium', { replace: true });
       return null;
     }
-    return <ErrorState error={error} onRetry={() => window.location.reload()} />;
+    // Не вдалося завершити: повторюємо саме завершення (відповіді вже на сервері), а не весь урок.
+    return <ErrorState error={error} onRetry={finishFailed ? () => void doFinish() : () => window.location.reload()} />;
   }
   if (!session) return null;
 
@@ -254,7 +267,7 @@ export default function LessonScreen() {
         </div>
         <div className="h-24" />
         <div className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto max-w-xl bg-gradient-to-t from-[var(--bg)] via-[var(--bg)] to-transparent px-4 pt-6">
-          <button className="btn btn-primary mb-2 w-full text-lg" onClick={() => { haptic.tap(); setPhase('play'); }}>
+          <button className="btn btn-primary mb-2 w-full text-lg" data-action="start" onClick={() => { haptic.tap(); setPhase('play'); }}>
             {t('start')} →
           </button>
         </div>
@@ -411,17 +424,17 @@ export default function LessonScreen() {
         </AnimatePresence>
         <div className={cx('px-4 pb-3 pt-3', result && !speed ? cx('feedback-panel', result.correct ? 'is-correct' : result.skipped ? 'is-skipped' : 'is-wrong') : 'bg-[var(--bg)]')}>
           {isDialogue ? (
-            <button className="btn btn-primary w-full text-lg" disabled={!dialogueDone} onClick={next}>
+            <button className="btn btn-primary w-full text-lg" data-action="next" disabled={!dialogueDone} onClick={next}>
               {t('next')}
             </button>
           ) : result ? (
             !speed && (
-              <button className={cx('btn w-full text-lg', result.correct ? 'btn-primary' : 'btn-red')} onClick={next}>
+              <button className={cx('btn w-full text-lg', result.correct ? 'btn-primary' : 'btn-red')} data-action="next" onClick={next}>
                 {t('next')}
               </button>
             )
           ) : item.type === 'PRONUNCIATION' ? null : (
-            <button className="btn btn-primary w-full text-lg" disabled={!payload || checking} aria-busy={checking} onClick={() => check()}>
+            <button className="btn btn-primary w-full text-lg" data-action="check" disabled={!payload || checking} aria-busy={checking} onClick={() => check()}>
               {checking ? <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[3px] border-white border-t-transparent" /> : t('lesson_check')}
             </button>
           )}
@@ -501,7 +514,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
   }, []);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col px-5 pb-6 pt-6">
+    <div className="flex min-h-[100dvh] flex-col px-5 pb-6 pt-6" data-lesson-result={r.passed ? 'passed' : 'failed'}>
       <Confetti run={r.passed} />
       <XpBurst from={beaverRef} target={xpRef} run={burst && r.xp > 0} onArrive={() => setPulse((p) => p + 1)} />
       <div className="flex flex-1 flex-col items-center gap-4 text-center">
@@ -596,7 +609,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
             <Icon name="refresh" size={20} /> {t('res_again')}
           </button>
         ) : null}
-        <button className="btn btn-ghost w-full" onClick={() => nav('/', { replace: true })}>
+        <button className="btn btn-ghost w-full" data-action="home" onClick={() => nav('/', { replace: true })}>
           {t('res_continue')}
         </button>
       </div>

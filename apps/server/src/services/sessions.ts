@@ -454,7 +454,25 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   return { ...result, explanation: item.explanation ?? null, retry, answered: answeredCount, total: items.length };
 }
 
-export async function finishSession(userId: string, sessionId: string) {
+type FinishResult = Awaited<ReturnType<typeof finishOnce>>;
+
+/**
+ * Завершення сесії ідемпотентне: якщо відповідь загубилась у мережі й клієнт повторює запит,
+ * повертається той самий збережений підсумок (replayed) — без нових нагород і без «session_closed».
+ */
+export async function finishSession(userId: string, sessionId: string): Promise<FinishResult & { replayed?: boolean }> {
+  try {
+    return await finishOnce(userId, sessionId);
+  } catch (e) {
+    if (!(e instanceof HttpError) || e.code !== 'session_closed') throw e;
+    const s = await db.query.learningSessions.findFirst({ where: eq(learningSessions.id, sessionId) });
+    const saved = s?.userId === userId && s.status === 'FINISHED' ? (s.state as { finishResult?: FinishResult }).finishResult : undefined;
+    if (!saved) throw e;
+    return { ...saved, replayed: true };
+  }
+}
+
+async function finishOnce(userId: string, sessionId: string) {
   const [cfg, s, ctx] = await Promise.all([getRewards(), loadSession(userId, sessionId), loadCtx(userId)]);
   const items = s.items as ExerciseItem[];
   const state = s.state as unknown as SessionState;
@@ -671,7 +689,7 @@ export async function finishSession(userId: string, sessionId: string) {
 
   const mistakes = counted.filter((i) => state.answers[i.key].firstCorrect === false).map((i) => ({ key: i.key, type: i.type, skill: i.skill }));
 
-  return {
+  const response = {
     mode: s.mode,
     passed,
     perfect,
@@ -692,6 +710,12 @@ export async function finishSession(userId: string, sessionId: string) {
     achievements: ach.unlocked,
     durationSec: Math.round(elapsed / 1000),
   };
+  // Підсумок зберігається в сесії для повторного запиту завершення (версія: +1 до вже закритої сесії).
+  await db
+    .update(learningSessions)
+    .set({ state: { ...state, finishResult: response } as unknown as Record<string, unknown>, version: s.version + 2 })
+    .where(eq(learningSessions.id, s.id));
+  return response;
 }
 
 /** Іспит міста складено: квиток до наступного міста, сувеніри, подорож. */

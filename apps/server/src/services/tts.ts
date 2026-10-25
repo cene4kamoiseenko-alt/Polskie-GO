@@ -88,7 +88,8 @@ export const ttsConfigured = () => !!ttsProvider();
 /** Допустимий текст: польські літери, цифри, розділові знаки. Захист від використання ключа для довільних текстів. */
 const ALLOWED = /^[\p{Script=Latin}0-9\s.,!?;:'"„”«»…()\-–—/%]+$/u;
 
-export async function synthesize(rawText: string, rate: SpeechRate): Promise<{ data: Uint8Array; mime: string; cached: boolean }> {
+/** meter — облік платного синтезу (квота); кешовані фрази не рахуються. */
+export async function synthesize(rawText: string, rate: SpeechRate, opts: { meter?: () => Promise<unknown> } = {}): Promise<{ data: Uint8Array; mime: string; cached: boolean }> {
   const provider = ttsProvider();
   if (!provider) throw new HttpError(503, 'tts_not_configured', 'Серверну озвучку не підключено');
   const text = speechText(rawText);
@@ -96,6 +97,7 @@ export async function synthesize(rawText: string, rate: SpeechRate): Promise<{ d
   const key = createHash('sha256').update(`${provider.id}|${provider.voice}|${rate}|${text}`).digest('hex');
   const hit = await db.query.ttsCache.findFirst({ where: eq(ttsCache.key, key) });
   if (hit) return { data: new Uint8Array(hit.data), mime: hit.mime, cached: true };
+  await opts.meter?.();
   let audio: Uint8Array;
   try { audio = new Uint8Array(await provider.synth(text, rate)); }
   catch { throw new HttpError(502, 'tts_failed'); }

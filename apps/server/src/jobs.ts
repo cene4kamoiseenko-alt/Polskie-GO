@@ -10,6 +10,7 @@ import { db } from './db';
 import { notificationCampaigns, notificationLog, playerProgress, userSettings, users } from './db/schema';
 import { botApi } from './lib/telegram';
 import { config } from './env';
+import { pruneUsage } from './services/quota';
 
 /** Безкоштовний Worker має ліміт 50 підзапитів за виклик — лишаємо запас на запити до БД. */
 const SEND_BUDGET = 35;
@@ -122,6 +123,7 @@ export async function sendCampaignChunk(budget = SEND_BUDGET) {
 }
 
 export async function runScheduled(now = new Date()) {
+  await pruneUsage(now);
   if (!config.botToken) return;
   const campaign = await sendCampaignChunk();
   await sendReminders(now, SEND_BUDGET - campaign);

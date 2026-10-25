@@ -124,14 +124,24 @@ describe('Уроки та нагороди', () => {
     expect(p.lessonsCompleted).toBe(1);
   });
 
-  it('сесію не можна завершити двічі, з недовиконаними вправами чи надто швидко', async () => {
+  it('повторне завершення повертає той самий підсумок без нагород; недовиконану чи надто швидку сесію не завершити', async () => {
     const { call } = await login();
     const lid = await lessonId('waw-1-czesc');
     const s = await call('POST', '/api/sessions', { lessonId: lid });
     expect((await call('POST', `/api/sessions/${s.body.sessionId}/finish`)).body.error).toBe('not_finished');
     const fin = await playSession(call, s.body.sessionId);
     expect(fin.status).toBe(200);
-    expect((await call('POST', `/api/sessions/${s.body.sessionId}/finish`)).body.error).toBe('session_closed');
+    // Повтор завершення (відповідь загубилась у мережі) — той самий підсумок, без нових нагород.
+    const xpBefore = (await call('GET', '/api/me')).body.progress.xpTotal;
+    const again = await call('POST', `/api/sessions/${s.body.sessionId}/finish`);
+    expect(again.status).toBe(200);
+    expect(again.body.replayed).toBe(true);
+    expect(again.body.xp).toBe(fin.body.xp);
+    expect(again.body.accuracy).toBe(fin.body.accuracy);
+    expect((await call('GET', '/api/me')).body.progress.xpTotal).toBe(xpBefore);
+    // Чужу сесію повтором не отримати.
+    const other = await login();
+    expect((await other.call('POST', `/api/sessions/${s.body.sessionId}/finish`)).status).toBe(404);
 
     // Надто швидке проходження (бот) — відхиляється.
     const s2 = await call('POST', '/api/sessions', { lessonId: lid });
