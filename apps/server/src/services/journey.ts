@@ -12,7 +12,7 @@ import { atomic, db } from '../db';
 import { badRequest, notFound } from '../lib/errors';
 import { getRewards } from './gameConfig';
 import { grantXp, grantZlotki, loadCtx } from './rewards';
-import { LEGACY_CITY_LESSONS } from '../content/legacy';
+import { LEGACY_BEFORE_EXPANSION, LEGACY_CITY_LESSONS } from '../content/legacy';
 import { cities, cityRoutes, lessons, playerProgress, userCities, userLessonProgress, xpEvents } from '../db/schema';
 
 export type LessonState = 'locked' | 'available' | 'completed';
@@ -110,10 +110,13 @@ export async function getJourney(userId: string) {
     const regular = all.filter((l) => l.kind === 'LESSON');
     const regularDone = regular.filter((l) => lp.get(l.id)?.firstCompletedAt).length;
     const ticket = city.ticketLessons > 0 ? Math.min(city.ticketLessons, regular.length) : regular.length;
-    // Хто пройшов усі уроки міста до розширення курсу, не втрачає доступ до іспиту. «До розширення» — раніше,
-    // ніж з'явився перший новий урок міста (created_at); хто проходить старі уроки після розширення, проходить і нові.
+    // Хто пройшов усі уроки міста до розширення курсу, не втрачає доступ до іспиту. Для LEGACY_BEFORE_EXPANSION
+    // «до розширення» — раніше, ніж з'явився перший новий урок міста (created_at); хто проходить старі уроки
+    // після розширення, проходить і нові. Решта міст — старі уроки в будь-який час (правило 3.x).
     const legacy = LEGACY_CITY_LESSONS[city.slug];
-    const added = legacy ? regular.filter((l) => !legacy.includes(l.slug)).map((l) => l.createdAt.getTime()) : [];
+    const added = legacy && LEGACY_BEFORE_EXPANSION.has(city.slug)
+      ? regular.filter((l) => !legacy.includes(l.slug)).map((l) => l.createdAt.getTime())
+      : [];
     const expandedAt = added.length ? Math.min(...added) : Infinity;
     const legacyDone = !!legacy && legacy.every((slug) => {
       const l = all.find((x) => x.slug === slug);
