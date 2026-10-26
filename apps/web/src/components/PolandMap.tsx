@@ -6,7 +6,7 @@ import { animate, motion, useReducedMotion } from '../lib/motion';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { JourneyCity } from '../lib/types';
 import { CITY_LANDMARKS, Cloud, Landmark } from './Scenery';
-import { Beaver } from './Beaver';
+import { beaverAsset } from '../lib/assets';
 import { Stamp } from './Illustrations';
 
 const W = 1000;
@@ -124,9 +124,14 @@ type Props = {
   soonLabel?: string;
   /** Підсвітити міста одного рівня (інші приглушені). */
   level?: string | null;
+  /**
+   * Растровий образ Бобека на маркері. Не задано — поза з листа (`wave` на поточному місті, `travel` у дорозі).
+   * Точка розширення: сюди підставляється образ користувача з загальної моделі зовнішнього вигляду.
+   */
+  beaverHref?: string | null;
 };
 
-export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel, hereLabel, soonLabel, level }: Props) {
+export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel, hereLabel, soonLabel, level, beaverHref }: Props) {
   const reduce = useReducedMotion();
   const outline = useMemo(() => path(OUTLINE, true), []);
   const sorted = useMemo(() => [...cities].sort((a, b) => a.order - b.order), [cities]);
@@ -331,14 +336,14 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
       })}
 
       {/* Бобер на карті */}
-      {current && !travel && <BeaverPin x={current.mapX - 46} y={current.mapY - (compact ? 90 : 112)} />}
-      {travel && <TravelPin route={sorted} from={travel.from} to={travel.to} />}
+      {current && !travel && <BeaverPin x={current.mapX - 46} y={current.mapY - (compact ? 90 : 112)} href={beaverHref} />}
+      {travel && <TravelPin route={sorted} from={travel.from} to={travel.to} href={beaverHref} />}
     </svg>
   );
 });
 
 /** Подорож: бобер іде ділянкою маршруту (через усі проміжні міста), у кінці з'являється штамп міста. */
-function TravelPin({ route, from, to }: { route: JourneyCity[]; from: JourneyCity; to: JourneyCity }) {
+function TravelPin({ route, from, to, href }: { route: JourneyCity[]; from: JourneyCity; to: JourneyCity; href?: string | null }) {
   const reduce = useReducedMotion();
   const pathRef = useRef<SVGPathElement>(null);
   const [pt, setPt] = useState({ x: from.mapX, y: from.mapY });
@@ -378,23 +383,50 @@ function TravelPin({ route, from, to }: { route: JourneyCity[]; from: JourneyCit
         </motion.g>
       )}
       <g transform={`translate(${pt.x - 46} ${pt.y - 112})`}>
-        <BeaverPin x={0} y={0} vehicle />
+        <BeaverPin x={0} y={0} vehicle href={href} />
       </g>
     </g>
   );
 }
 
-/** Бобер на поточному етапі: стоїть на кораловій «платформі» над містом. */
-function BeaverPin({ x, y, vehicle }: { x: number; y: number; vehicle?: boolean }) {
+/**
+ * Сторона квадратного кадру растру на карті (SVG-одиниці) і низ кадру. Платформа: еліпс cy 118 (± 11), світла середина cy 114.
+ * Під ногами в растрах різне прозоре поле (wave ≈ 6 % кадру, travel ≈ 1 %), тож низ кадру трохи нижче центру платформи:
+ * ноги wave стають на її середину (~116), крок travel — на передню половину (~122), жодна поза не «висить» над краєм.
+ */
+const PIN_SIZE = 116;
+const PIN_FOOT = 123;
+
+/**
+ * Бобер на поточному етапі: стоїть на кораловій «платформі» над містом. Персонаж — лише живописний растр
+ * (SVG-елемент <image>, без foreignObject: у WebKit/iOS WebView він ламає трансформації). Плаский векторний
+ * бобер для маркера не використовується: якщо растру немає, лишається платформа й dev-попередження.
+ * `href` — точка розширення для образу користувача; без нього береться поза за станом (`wave` / `travel`).
+ */
+function BeaverPin({ x, y, vehicle, href }: { x: number; y: number; vehicle?: boolean; href?: string | null }) {
   const reduce = useReducedMotion();
+  const mood = vehicle ? 'travel' : 'wave';
+  const src = href ?? beaverAsset(mood);
+  useEffect(() => {
+    if (!src && import.meta.env.DEV) console.warn(`[PolandMap] немає растру Бобека для стану «${mood}» (src/assets/beaver): на маркері лише платформа.`);
+  }, [src, mood]);
   return (
     <g transform={`translate(${x - 4} ${y - 18})`} style={{ pointerEvents: 'none' }}>
       <motion.g animate={reduce ? undefined : { y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}>
         <ellipse cx="50" cy="118" rx="38" ry="11" fill="#F45159" stroke="#fff" strokeWidth="4" />
         <ellipse cx="50" cy="114" rx="26" ry="6" fill="#FF7B80" />
-        <g transform="translate(6 0)">
-          <Beaver mood={vehicle ? 'travel' : 'wave'} size={88} animate={false} vectorOnly />
-        </g>
+        {src && (
+          <image
+            data-map-beaver={vehicle ? 'travel' : 'current'}
+            href={src}
+            x={50 - PIN_SIZE / 2}
+            y={PIN_FOOT - PIN_SIZE}
+            width={PIN_SIZE}
+            height={PIN_SIZE}
+            preserveAspectRatio="xMidYMax meet"
+            aria-hidden="true"
+          />
+        )}
       </motion.g>
     </g>
   );

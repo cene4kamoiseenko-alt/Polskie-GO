@@ -14,6 +14,10 @@
  *  - A2 головна, блок «Сегодня»: стани error (з повтором), empty, done, offline, active; скелетонів поза loading немає;
  *  - A3 шторка міста на /map (360/390/430): остання тема й CTA у viewport, прокрутка не закриває, ✕ / Escape / drag за ручку
  *    закривають; знімки — test-results/screens/sheet-{ширина}.png.
+ *  - A4 маркер Бобека на /map (360/390/430): живописний растр <image data-map-beaver> із ненульовим розміром, стоїть над своїм
+ *    містом, цілком у видимій області SVG і прокручуваної карти, справді декодується й малюється; поточне місто та подорож
+ *    (/map?travel=from,to, з емуляцією prefers-reduced-motion — путник одразу в кінцевому місті);
+ *    знімки — test-results/screens/map-beaver-{ширина}.png і map-beaver-travel-{ширина}.png.
  *
  * Запуск: npm run e2e   (знімки — test-results/screens, підсумок — test-results/browser-results.json)
  */
@@ -456,7 +460,128 @@ async function main() {
       });
     }
     await sheetUser.context.close();
-    results.push({ stage: 'A2/A3', softFailures, softSkipped });
+
+    // ── A4: Бобек на маркере карты. Раньше внутри SVG стоял HTML-<div> (0×0, невидим). Теперь маркер — SVG-<image> с живописным растром.
+    // Проверяется не только getBoundingClientRect (у <image> он ненулевой и без загруженной картинки), но и что файл декодируется
+    // и что картинка реально рисуется (снимок области с маркером отличается от снимка с visibility:hidden).
+    console.log('A4: Бобек на маркере карты');
+    const pinUser = await userPage('880009');
+    const pn = pinUser.page;
+    // tsx (esbuild keepNames) оборачивает именованные функции в __name(); в браузере такого помощника нет, а проба ниже содержит вложенные функции.
+    await pn.addInitScript(() => { (window as unknown as { __name: (f: unknown) => unknown }).__name = (f) => f; });
+    type PinCity = { id: string; order: number; mapX: number; namePl: string };
+    const pinJourney = (await pinUser.call('GET', '/api/journey')).body as { cities: PinCity[]; currentCityId: string };
+    const orderedCities = [...pinJourney.cities].sort((a, b) => a.order - b.order);
+    const pinHome = pinJourney.cities.find((c) => c.id === pinJourney.currentCityId);
+    check(pinHome && orderedCities.length >= 2, `A4 есть текущий город (${pinHome?.namePl}) и минимум два города для проверки поездки (${orderedCities.length} шт.)`);
+    /** Экранная X города (SVG-координата mapX через getScreenCTM карты) — над ней должен стоять центр маркера. */
+    const cityScreenX = (kind: 'current' | 'travel', mapX: number) =>
+      pn.locator(`image[data-map-beaver="${kind}"]`).evaluate((el, x) => new DOMPoint(x, 0).matrixTransform((el as SVGGraphicsElement).ownerSVGElement!.getScreenCTM()!).x, mapX);
+    /** Размеры маркера, его видимая область (viewport ∩ все контейнеры с overflow: SVG, прокручиваемая карта) и результат декодирования файла. */
+    const probePin = (kind: 'current' | 'travel') =>
+      pn.locator(`image[data-map-beaver="${kind}"]`).evaluate(async (el, k) => {
+        const rectOf = () => {
+          const r = el.getBoundingClientRect();
+          return { x: r.x, y: r.y, w: r.width, h: r.height };
+        };
+        const clipOf = () => {
+          let l = 0, t = 0, r = innerWidth, b = innerHeight;
+          for (let n = el.parentElement; n; n = n.parentElement) {
+            const cs = getComputedStyle(n);
+            if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+            const bb = n.getBoundingClientRect();
+            // У HTML-контейнера обрезает padding-box (без рамки и полосы прокрутки), у SVG — его собственный прямоугольник.
+            const box = n instanceof HTMLElement ? { l: bb.left + n.clientLeft, t: bb.top + n.clientTop, r: bb.left + n.clientLeft + n.clientWidth, b: bb.top + n.clientTop + n.clientHeight } : { l: bb.left, t: bb.top, r: bb.right, b: bb.bottom };
+            l = Math.max(l, box.l); t = Math.max(t, box.t); r = Math.min(r, box.r); b = Math.min(b, box.b);
+          }
+          return { l, t, r, b };
+        };
+        const inside = (a: ReturnType<typeof rectOf>, c: ReturnType<typeof clipOf>) => a.x >= c.l - 1 && a.y >= c.t - 1 && a.x + a.w <= c.r + 1 && a.y + a.h <= c.b + 1;
+        // Рамку карты (контейнер с прокруткой) приводим в окно по вертикали; саму карту при этом не двигаем.
+        let frame: HTMLElement | null = null;
+        for (let n = el.parentElement; n; n = n.parentElement) {
+          if (n instanceof HTMLElement && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) { frame = n; break; }
+        }
+        frame?.scrollIntoView({ block: 'center' });
+        await new Promise((ok) => requestAnimationFrame(() => ok(null)));
+        const visibleBeforeScroll = inside(rectOf(), clipOf());
+        // В дороге маркер может быть вне центрированной на «текущем» городе области — тогда подводим карту к нему (информативно, не провал).
+        if (k === 'travel' && !visibleBeforeScroll) {
+          el.scrollIntoView({ block: 'center', inline: 'center' });
+          await new Promise((ok) => requestAnimationFrame(() => ok(null)));
+        }
+        const rect = rectOf();
+        const clip = clipOf();
+        const href = (el as SVGImageElement).href.baseVal;
+        const probe = new Image();
+        probe.src = href;
+        let natural: { w: number; h: number } | null = null;
+        try {
+          await probe.decode();
+          natural = { w: probe.naturalWidth, h: probe.naturalHeight };
+        } catch { /* файл не загрузился */ }
+        const htmlRoot = document.documentElement;
+        return { rect, clip, visibleBeforeScroll, inside: inside(rect, clip), href, natural, viewport: { w: innerWidth, h: innerHeight }, overflowX: htmlRoot.scrollWidth > innerWidth, tag: el.tagName.toLowerCase() };
+      }, kind);
+
+    async function checkPin(tag: string, kind: 'current' | 'travel', city: PinCity, vp: { width: number; height: number }, file: string) {
+      const pin = await probePin(kind);
+      const r = pin.rect;
+      check(pin.tag === 'image', `${tag}.1 маркер — SVG-<image>, а не HTML-элемент внутри SVG`);
+      check(r.w > 20 && r.h > 20, `${tag}.1 [data-map-beaver] имеет размер ${Math.round(r.w)}×${Math.round(r.h)} px (> 20×20)`);
+      const cx = await cityScreenX(kind, city.mapX);
+      check(Math.abs(r.x + r.w / 2 - cx) < 2, `${tag}.1 маркер стоит над городом ${city.namePl} (центр ${Math.round(r.x + r.w / 2)} px, город ${Math.round(cx)} px)`);
+      check(pin.inside, `${tag}.2 маркер целиком в видимой области SVG и карты (x ${Math.round(r.x)}–${Math.round(r.x + r.w)}, y ${Math.round(r.y)}–${Math.round(r.y + r.h)}; область ${Math.round(pin.clip.l)}–${Math.round(pin.clip.r)} × ${Math.round(pin.clip.t)}–${Math.round(pin.clip.b)})`);
+      check(r.x >= 0 && r.x + r.w <= vp.width, `${tag}.2 маркер внутри ширины viewport ${vp.width}`);
+      check(!pin.overflowX, `${tag}.2 нет горизонтального переполнения страницы`);
+      check(pin.natural && pin.natural.w > 0 && pin.natural.h > 0, `${tag}.3 растр ${pin.href} загружается и декодируется (${pin.natural?.w}×${pin.natural?.h})`);
+      await pn.screenshot({ path: `${SCREENS}/${file}` });
+      console.log(`  · ${tag}.4 скриншот: test-results/screens/${file}${kind === 'travel' ? `; маркер в дороге виден без прокрутки карты: ${pin.visibleBeforeScroll ? 'да' : 'нет'}` : ''}`);
+      const clip = { x: Math.max(0, r.x - 6), y: Math.max(0, r.y - 6), width: Math.min(vp.width, r.w + 12), height: Math.min(vp.height, r.h + 12) };
+      const loc = pn.locator(`image[data-map-beaver="${kind}"]`);
+      const shown = await pn.screenshot({ clip });
+      await loc.evaluate((el) => { el.style.visibility = 'hidden'; });
+      const hidden = await pn.screenshot({ clip });
+      await loc.evaluate((el) => { el.style.visibility = ''; });
+      check(!shown.equals(hidden), `${tag}.4 картинка маркера реально рисуется (область с ним отличается от области без него)`);
+    }
+
+    for (const width of [360, 390, 430]) {
+      const tag = `A4 ${width}`;
+      const vp = { width, height: 844 };
+      await pn.setViewportSize(vp);
+      await soft(`${tag}.current поточный город`, async () => {
+        await pn.goto(pinUser.url('/map'), { waitUntil: 'networkidle' });
+        await pn.locator('[data-current-city]').waitFor({ timeout: 20_000 });
+        await pn.locator('image[data-map-beaver="current"]').waitFor({ timeout: 10_000 });
+        await pn.waitForTimeout(400); // карта центрируется на текущем городе в requestAnimationFrame
+        await checkPin(`${tag}.current`, 'current', pinHome, vp, `map-beaver-${width}.png`);
+      });
+      // Поездка: /map?travel=<from>,<to> — штатный вход экрана (после экзамена города). TravelPin берёт useReducedMotion() — системную
+      // настройку, а не «Меньше анимаций» из профиля, поэтому включаем prefers-reduced-motion штатной эмуляцией Playwright: путник сразу
+      // в конечном городе, проверка детерминирована. Экран сам завершает поездку через 4,2 с — проверки укладываются в это окно.
+      const to = orderedCities[1];
+      await soft(`${tag}.travel поездка`, async () => {
+        await pn.emulateMedia({ reducedMotion: 'reduce' });
+        try {
+          await pn.goto(pinUser.url('/map') + `&travel=${orderedCities[0].id},${to.id}`, { waitUntil: 'domcontentloaded' });
+          const traveller = pn.locator('image[data-map-beaver="travel"]');
+          await traveller.waitFor({ timeout: 20_000 });
+          await traveller.evaluate((el, x) => new Promise<void>((done) => {
+            const svg = (el as SVGGraphicsElement).ownerSVGElement!;
+            const at = () => { const r = el.getBoundingClientRect(); return Math.abs(r.x + r.width / 2 - new DOMPoint(x, 0).matrixTransform(svg.getScreenCTM()!).x) < 2; };
+            const t0 = performance.now();
+            const tick = () => (at() || performance.now() - t0 > 2000 ? done() : requestAnimationFrame(tick));
+            tick();
+          }), to.mapX);
+          await checkPin(`${tag}.travel`, 'travel', to, vp, `map-beaver-travel-${width}.png`);
+        } finally {
+          await pn.emulateMedia({ reducedMotion: null });
+        }
+      });
+    }
+    await pinUser.context.close();
+    results.push({ stage: 'A2/A3/A4', softFailures, softSkipped });
 
     // ── Розпізнавання пристрою (сервер STT вимкнено): лише тренування.
     console.log('Розпізнавання пристрою');
@@ -560,8 +685,8 @@ async function main() {
     check(
       softFailures.length === 0 && softSkipped.length === 0,
       softFailures.length || softSkipped.length
-        ? `A2/A3: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
-        : 'A2/A3: все сценарии пройдены',
+        ? `A2/A3/A4: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
+        : 'A2/A3/A4: все сценарии пройдены',
     );
   } finally {
     globalThis.fetch = realFetch;
