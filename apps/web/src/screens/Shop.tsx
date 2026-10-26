@@ -5,7 +5,7 @@
  * Купівля й одягання — лише через сервер. У режимі «Домик» (?house=1) — меблі, декор і сувеніри.
  */
 import { AnimatePresence, motion } from '../lib/motion';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { ApiError, api } from '../lib/api';
@@ -21,7 +21,7 @@ import { Icon } from '../components/Icon';
 import { Art } from '../components/GameArt';
 import { ErrorState, ScreenSkeleton, cx, useBackButton, useToast } from '../components/ui';
 import { costumeAsset, costumeScene, travellerScene } from '../lib/assets';
-import { resolveLook, tryOn, unequip } from '@polski-go/shared';
+import { resolveLook, toLookItemId, tryOn, unequip } from '@polski-go/shared';
 import { isVisualPending, shopVisualStatus, useWear } from '../lib/look';
 
 const WARDROBE_SLOTS = ['JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'HAT', 'GLASSES', 'SCARF', 'COSTUME', 'FRAME'];
@@ -139,9 +139,13 @@ export default function ShopScreen() {
   const tab: Tab = houseMode || params.get('tab') === 'shop' ? 'shop' : 'rewards';
   const slots = houseMode ? HOUSE_SLOTS : WARDROBE_SLOTS;
   const [slot, setSlot] = useState(slots[0]);
-  const [picked, setPicked] = useState<ShopItem | null>(null);
+  // Вибрана річ — за id: після покупки картка бере свіжий стан із сервера (owned) і показує «Вдягнути».
+  const [pickedId, setPickedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useBackButton(useCallback(() => nav(-1), [nav]));
+  // Захист від подвійного натискання: стан busy оновлюється лише з наступним рендером.
+  const lock = useRef(false);
+  // «Назад» спершу скасовує примірку, а вже потім виходить з гардероба.
+  useBackButton(useCallback(() => (pickedId ? setPickedId(null) : nav(-1)), [pickedId, nav]));
 
   const all = shop.data?.items ?? [];
   const equippedCostume = all.find((i) => i.slot === 'COSTUME' && i.equipped) ?? null;
@@ -150,21 +154,34 @@ export default function ShopScreen() {
   const rewardCostumes = useMemo(() => [traveller, ...all.filter((i) => i.slot === 'COSTUME' && i.rewardOnly)], [all, traveller]);
   const otherRewards = useMemo(() => all.filter((i) => i.rewardOnly && i.slot !== 'COSTUME' && WARDROBE_SLOTS.includes(i.slot)), [all]);
   const items = useMemo(() => all.filter((i) => i.slot === slot && (houseMode || !i.rewardOnly)), [all, slot, houseMode]);
+  const picked = pickedId === TRAVELLER_ID ? traveller : all.find((i) => i.id === pickedId) ?? null;
   // Примірка (ядро образу, ADR-005): нічого не зберігає, запис — лише кнопкою «Вдягнути». Без вибору — поточний образ.
-  // «Мандрівник» — поточний образ без костюма. Речі без живописного шару (pending) на Бобеку не з'являються.
+  // Уже вдягнена річ показується як є; «Мандрівник» — поточний образ без костюма.
+  const preview = useMemo(
+    () => (picked && picked.id !== TRAVELLER_ID && !picked.equipped && WEAR_SLOTS.includes(picked.slot) ? tryOn(wear, picked.assetKey, { mood: 'cheer' }) : null),
+    [wear, picked],
+  );
   const stageLook = useMemo(() => {
     if (picked?.id === TRAVELLER_ID) {
       const eq = equippedCostume ? unequip(wear, equippedCostume.assetKey).equipment : wear;
       return resolveLook(null, eq, { mood: 'cheer', preview: true });
     }
-    if (picked && WEAR_SLOTS.includes(picked.slot)) return tryOn(wear, picked.assetKey, { mood: 'cheer' }).after;
-    return resolveLook(null, wear, { mood: 'happy' });
-  }, [wear, picked, equippedCostume]);
+    return preview ? preview.after : resolveLook(null, wear, { mood: picked ? 'cheer' : 'happy' });
+  }, [wear, picked, preview, equippedCostume]);
+  // Що зніме підтвердження (вирішує те саме правило equip(), що й сервер): назви з каталогу.
+  const nameByLook = useMemo(() => new Map(all.map((i) => [toLookItemId(i.assetKey), tr(i.name)])), [all, tr]);
+  const willRemove = (picked?.id === TRAVELLER_ID ? (equippedCostume ? [toLookItemId(equippedCostume.assetKey)] : []) : preview?.removed ?? [])
+    .map((id) => nameByLook.get(id))
+    .filter((n): n is string => !!n);
+  // Чому обраної речі не видно на Бобеку: «візуал готується» або «під костюмом не видно».
+  const hiddenReason = preview && !preview.candidateVisible
+    ? preview.candidateReason === 'covered-by-whole-look' ? t('look_hidden_by_costume') : t('look_visual_pending')
+    : null;
 
   const pick = (i: ShopItem | null) => {
     haptic.select();
     if (i) sfx.tap();
-    setPicked(i);
+    setPickedId(i?.id ?? null);
   };
   const stepList = tab === 'rewards' ? [...rewardCostumes, ...otherRewards] : items;
   const step = (d: number) => {
@@ -174,11 +191,14 @@ export default function ShopScreen() {
   };
   const setTab = (next: Tab) => {
     haptic.select();
-    setPicked(null);
+    setPickedId(null);
     setParams(next === 'shop' ? { tab: 'shop' } : {}, { replace: true });
   };
 
-  const act = async (fn: () => Promise<unknown>, okText: string) => {
+  /** Запит до сервера. Після покупки картка лишається відкритою (тепер «Вдягнути»), після вдягання — закривається. */
+  const act = async (fn: () => Promise<unknown>, okText: string, keepPicked = false) => {
+    if (lock.current) return;
+    lock.current = true;
     setBusy(true);
     try {
       await fn();
@@ -186,13 +206,14 @@ export default function ShopScreen() {
       haptic.success();
       toast(okText, '✨');
       await refresh();
-      setPicked(null);
+      if (!keepPicked) setPickedId(null);
     } catch (e) {
       if (e instanceof ApiError && e.code === 'visual_pending') {
         toast(t('err_visual_pending'), '⚠️');
         void shop.refetch();
       } else toast(t('toast_error', { msg: (e as Error).message }), '⚠️');
     } finally {
+      lock.current = false;
       setBusy(false);
     }
   };
@@ -309,7 +330,7 @@ export default function ShopScreen() {
           <div className="absolute inset-0">
             <DressingRoom />
             <div className="absolute inset-x-0 bottom-[30px] flex justify-center">
-              <BeaverLook look={stageLook} size={176} />
+              <BeaverLook look={stageLook} size={210} />
             </div>
           </div>
           <div className="wardrobe-stage-shade" />
@@ -320,8 +341,11 @@ export default function ShopScreen() {
             </>
           )}
           {picked && (
-            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="glass-card absolute bottom-3 left-1/2 max-w-[80%] -translate-x-1/2 truncate px-3 py-1 text-[12px] font-black text-white">
-              {t('shop_trying')}: {tr(picked.name)}
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} data-try-caption className="glass-card absolute bottom-3 left-1/2 max-w-[86%] -translate-x-1/2 px-3 py-1 text-center text-white">
+              <div className="truncate text-[12px] font-black">{picked.equipped ? t('shop_wearing') : t('shop_trying')}: {tr(picked.name)}</div>
+              {!picked.equipped && (
+                <div data-try-note={hiddenReason ? 'hidden' : 'hint'} className="truncate text-[10.5px] font-bold opacity-85">{hiddenReason ?? t('wardrobe_try_hint')}</div>
+              )}
             </motion.div>
           )}
         </div>
@@ -356,7 +380,7 @@ export default function ShopScreen() {
             {slots.map((s) => (
               <button
                 key={s}
-                onClick={() => { haptic.select(); setSlot(s); setPicked(null); }}
+                onClick={() => { haptic.select(); setSlot(s); setPickedId(null); }}
                 aria-pressed={s === slot}
                 className={cx('chip-tab', s === slot && 'is-active')}
               >
@@ -386,6 +410,9 @@ export default function ShopScreen() {
                   {!picked.owned && (picked.rewardOnly || (picked.isPremium && !pickedSoon)) ? unlockText(picked) : `${t(`rarity_${picked.rarity}` as TKey)}${picked.city ? ` · ${tr(picked.city.name)}` : ''}`}
                 </div>
                 {pickedSoon && <div className="mt-0.5"><VisualSoon label={t('look_visual_pending')} /></div>}
+                {!picked.equipped && willRemove.length > 0 && (
+                  <div data-will-remove className="muted line-clamp-2 text-[11px] font-bold leading-tight">{t('wardrobe_will_remove', { items: willRemove.join(', ') })}</div>
+                )}
               </div>
               {isTraveller ? (
                 <button
@@ -406,7 +433,7 @@ export default function ShopScreen() {
               ) : pickedSoon ? null : picked.isPremium && !shop.data!.premium ? (
                 <button className="btn btn-xp min-h-[46px] px-4" onClick={() => nav('/premium')}>{t('shop_premium_only')}</button>
               ) : (
-                <button className="btn btn-primary min-h-[46px] px-4" disabled={busy || balance < picked.price} onClick={() => act(() => api('/shop/buy', { body: { itemId: picked.id } }), t('shop_bought'))}>
+                <button className="btn btn-primary min-h-[46px] px-4" disabled={busy || balance < picked.price} onClick={() => act(() => api('/shop/buy', { body: { itemId: picked.id } }), t('shop_bought'), true)}>
                   {balance < picked.price ? t('shop_no_money') : <><Art name="coin" size={20} /> {picked.price}</>}
                 </button>
               )}

@@ -32,7 +32,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromiumPath, startStand } from './lib/stand';
-import { lookDataAttributes, resolveLook, toLookItemId } from '../packages/shared/src/look/index';
+import { equipmentFromWear, lookDataAttributes, resolveLook, toLookItemId, tryOn } from '../packages/shared/src/look/index';
 
 const root = process.cwd();
 const require = createRequire(root + '/package.json');
@@ -692,7 +692,76 @@ async function main() {
       check(bought.status === 409 && bought.body.error === 'visual_pending' && after.balance === shopBody.balance, `L2 покупка вещи без визуала: ${bought.status} ${bought.body.error}, баланс ${shopBody.balance} → ${after.balance}`);
       await u.context.close();
     });
-    results.push({ stage: 'A2/A3/A4/L1', softFailures, softSkipped });
+
+    // ── M2: примерка не сохраняет, отмена возвращает образ, «Снимет: …» = правило equip() сервера, двойной тап по «Купить» — одна покупка.
+    console.log('M2: примерка, подтверждение и покупка');
+    await soft('M2 примерка и покупка', async () => {
+      type ShopRow = { id: string; slot: string; assetKey: string; name: { ru: string }; price: number; owned: boolean; equipped: boolean; visualStatus?: string };
+      const u = await userPage('880013');
+      const page = u.page;
+      for (const [slug, on] of [['costume-chef', 1], ['jacket-denim', 0]] as const) {
+        await env.DB.prepare("INSERT INTO user_inventory (user_id, item_id, equipped, source) SELECT ?, id, ?, 'e2e' FROM cosmetic_items WHERE slug = ?").bind(u.user.id, on, slug).run();
+      }
+      await env.DB.prepare('UPDATE game_wallets SET balance = 500 WHERE user_id = ?').bind(u.user.id).run();
+      const wear0 = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
+      const shop0 = (await u.call('GET', '/api/shop')).body as { balance: number; items: ShopRow[] };
+      const by = (key: string) => shop0.items.find((i) => i.assetKey === key)!;
+      const jacket = by('jacket-denim');
+      const chef = by('costume-chef');
+      const winter = by('costume-winter');
+      check(jacket?.owned && !jacket.equipped && chef?.equipped && shop0.balance === 500, 'M2 исходно: костюм повара надет, джинсовая куртка куплена и не надета, 500 Złotki');
+      const buys: string[] = [];
+      page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/api/shop/buy')) buys.push(r.url()); });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(u.url('/shop') + '&tab=shop', { waitUntil: 'networkidle' });
+      const stage = page.locator('.wardrobe-stage [data-look]').first();
+      const sheet = page.locator('.action-sheet');
+      const card = page.locator('button.item-card', { hasText: jacket.name.ru });
+      await card.waitFor({ timeout: 20_000 });
+
+      // Примерка и отмена
+      await card.click();
+      await sheet.waitFor({ timeout: 5_000 });
+      const expected = tryOn(wear0, jacket.assetKey);
+      check(await stage.getAttribute('data-look-preview') === 'true', 'M2 примерка помечена data-look-preview="true"');
+      const removeText = (await sheet.locator('[data-will-remove]').textContent()) ?? '';
+      check(expected.removed.includes(toLookItemId(chef.assetKey)) && removeText.includes(chef.name.ru), `M2 «Снимет: …» по правилу equip(): «${removeText}», ядро: ${expected.removed.join(', ')}`);
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: `${SCREENS}/wardrobe-try-390.png` });
+      await sheet.getByRole('button', { name: 'Отменить примерку' }).click();
+      await sheet.waitFor({ state: 'detached', timeout: 5_000 });
+      const wear1 = (await u.call('GET', '/api/me')).body.outfit.wear;
+      check(JSON.stringify(wear1) === JSON.stringify(wear0) && (await stage.getAttribute('data-look-preview')) !== 'true', 'M2 отмена: на сервере образ не изменился, примерка снята со сцены');
+
+      // Надеть: сервер снимает то же, что показала примерка
+      await card.click();
+      await sheet.waitFor({ timeout: 5_000 });
+      await sheet.getByRole('button', { name: 'Надеть' }).click();
+      await sheet.waitFor({ state: 'detached', timeout: 10_000 });
+      const wear2 = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
+      check(JSON.stringify(equipmentFromWear(wear2)) === JSON.stringify(expected.equipment), `M2 «Надеть»: на сервере ${equipmentFromWear(wear2).join(', ')} = примерка ${expected.equipment.join(', ')}`);
+      await page.waitForTimeout(300);
+      check(await stage.getAttribute('data-look-equipped') === lookDataAttributes(resolveLook(null, wear2))['data-look-equipped'], 'M2 после «Надеть» сцена показывает сохранённый образ');
+
+      // Покупка двойным тапом: один запрос, одно списание, панель остаётся с кнопкой «Надеть»
+      check(['ready', 'legacy-whole-look'].includes(winter?.visualStatus ?? ''), `M2 зимний образ продаётся (visualStatus ${winter?.visualStatus})`);
+      await page.locator('.chip-tab', { hasText: 'Костюмы' }).click();
+      const wcard = page.locator('article.costume-card', { hasText: winter.name.ru });
+      await wcard.waitFor({ timeout: 10_000 });
+      await wcard.getByRole('button', { name: 'Примерить' }).click();
+      await sheet.waitFor({ timeout: 5_000 });
+      // Два клика в одном такте: React ещё не перерисовал кнопку disabled — как быстрый двойной тап на телефоне.
+      await sheet.locator('button.btn-primary').evaluate((b: HTMLButtonElement) => { b.click(); b.click(); });
+      await sheet.getByRole('button', { name: 'Надеть' }).waitFor({ timeout: 10_000 });
+      const shop3 = (await u.call('GET', '/api/shop')).body as { balance: number; items: ShopRow[] };
+      // Баланс может вырасти на награду достижения «первая покупка», поэтому сверяется само списание.
+      const tx = await env.DB.prepare("SELECT amount FROM wallet_transactions WHERE user_id = ? AND amount < 0").bind(u.user.id).all<{ amount: number }>();
+      const debits = tx.results.map((r) => r.amount);
+      check(buys.length === 1 && debits.length === 1 && debits[0] === -winter.price, `M2 двойной тап «Купить»: запросов ${buys.length}, списаний ${debits.length} (${debits.join(', ')}), баланс 500 → ${shop3.balance}`);
+      await page.screenshot({ path: `${SCREENS}/wardrobe-bought-390.png` });
+      await u.context.close();
+    });
+    results.push({ stage: 'A2/A3/A4/L1/M2', softFailures, softSkipped });
 
     // ── Розпізнавання пристрою (сервер STT вимкнено): лише тренування.
     console.log('Розпізнавання пристрою');
@@ -796,8 +865,8 @@ async function main() {
     check(
       softFailures.length === 0 && softSkipped.length === 0,
       softFailures.length || softSkipped.length
-        ? `A2/A3/A4/L1: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
-        : 'A2/A3/A4/L1: все сценарии пройдены',
+        ? `A2/A3/A4/L1/M2: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
+        : 'A2/A3/A4/L1/M2: все сценарии пройдены',
     );
   } finally {
     globalThis.fetch = realFetch;
