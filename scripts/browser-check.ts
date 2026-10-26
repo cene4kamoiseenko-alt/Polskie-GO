@@ -14,6 +14,8 @@
  *  - A2 головна, блок «Сегодня»: стани error (з повтором), empty, done, offline, active; скелетонів поза loading немає;
  *  - A3 шторка міста на /map (360/390/430): остання тема й CTA у viewport, прокрутка не закриває, ✕ / Escape / drag за ручку
  *    закривають; знімки — test-results/screens/sheet-{ширина}.png.
+ *    A3.8 (390): три окремі стани міста в шторці — оформлення (CITY_ART), уроки, доступ; Gorzów без малюнка — «скоро»,
+ *    без кнопки «Учить»; Łódź — тимчасовий малюнок lazy зі srcset 640w. Знімки — sheet-status-{gorzow,lodz}-390.png.
  *  - A4 маркер Бобека на /map (360/390/430): живописний растр <image data-map-beaver> із ненульовим розміром, стоїть над своїм
  *    містом, цілком у видимій області SVG і прокручуваної карти, справді декодується й малюється; поточне місто та подорож
  *    (/map?travel=from,to, з емуляцією prefers-reduced-motion — путник одразу в кінцевому місті);
@@ -467,6 +469,36 @@ async function main() {
         check(await closed(), `${tag}.6 перетаскивание ручки вниз на 160 px закрывает шторку`);
       });
     }
+
+    // A3.8: у шторці три окремі стани міста (V9 §7): оформлення (CITY_ART), уроки, доступ. Порожній маршрут не відкривається.
+    await soft('A3.8 статусы города', async () => {
+      await sp.setViewportSize({ width: 390, height: 844 });
+      await sp.goto(sheetUser.url('/map'), { waitUntil: 'networkidle' });
+      await sp.locator('[data-current-city]').waitFor({ timeout: 20_000 });
+      const state = () => dialog.locator('[data-status]').evaluateAll((els) => Object.fromEntries(els.map((e) => [e.getAttribute('data-status'), e.getAttribute('data-ok')])));
+      const openCity = async (name: string) => {
+        if (await dialog.count()) { await sp.keyboard.press('Escape'); await closed(); }
+        await sp.getByRole('button', { name, exact: true }).click();
+        await dialog.waitFor({ state: 'visible', timeout: 10_000 });
+        await settle();
+      };
+      await openSheet();
+      const cur = await state();
+      check(cur.art === 'true' && cur.lessons === 'true' && cur.access === 'true', `A3.8 текущий город: оформление, уроки и доступ готовы ${JSON.stringify(cur)}`);
+      await openCity('Gorzów Wielkopolski');
+      const gw = await state();
+      check(gw.art === 'false' && gw.lessons === 'false' && gw.access === 'false', `A3.8 Gorzów: рисунка нет («скоро»), уроков нет, город закрыт ${JSON.stringify(gw)}`);
+      check(await dialog.locator('[data-city-art="missing"]').count() === 1, 'A3.8 Gorzów: баннер помечен data-city-art="missing", общая сцена не выдаётся за рисунок');
+      check(await dialog.locator('[data-city-go]').count() === 0, 'A3.8 Gorzów: кнопки «Учить» нет — пустой маршрут не открывается');
+      await sp.screenshot({ path: `${SHEETS}/sheet-status-gorzow-390.png` });
+      await openCity('Łódź');
+      const lz = await state();
+      const img = dialog.locator('[data-city-art="interim"] img');
+      check(lz.art === 'true' && lz.lessons === 'true' && await img.count() === 1, `A3.8 Łódź: временный рисунок с доски и уроки есть ${JSON.stringify(lz)}`);
+      check(await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0 && el.loading === 'lazy' && el.srcset.includes('640w')), 'A3.8 Łódź: картинка декодирована, lazy, srcset с вариантом 640w');
+      check((lz.access === 'true') === (await dialog.locator('[data-city-go]').count() === 1), `A3.8 Łódź: кнопка «Учить» есть только при открытом доступе (доступ ${lz.access})`);
+      await sp.screenshot({ path: `${SHEETS}/sheet-status-lodz-390.png` });
+    });
     await sheetUser.context.close();
 
     // ── A4: Бобек на маркере карты. Раньше внутри SVG стоял HTML-<div> (0×0, невидим). Теперь маркер — SVG-<image> с живописным растром.

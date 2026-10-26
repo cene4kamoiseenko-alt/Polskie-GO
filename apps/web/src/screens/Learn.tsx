@@ -123,7 +123,7 @@ export default function LearnScreen() {
 
       {/* Герой міста */}
       <div className="hero-card relative mx-4">
-        <CityHero slug={city.slug} color={city.color} name={city.namePl} sign={false} height={176}>
+        <CityHero slug={city.slug} color={city.color} name={city.namePl} sign={false} height={176} eager>
           <div className="glass-card absolute left-3 top-3 px-3 py-1.5">
             <div className="flex items-baseline gap-2">
               <span className="text-[22px] font-black text-white">{city.namePl}</span>

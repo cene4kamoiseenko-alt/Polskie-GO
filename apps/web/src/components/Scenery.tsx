@@ -3,7 +3,8 @@
  * пагорби та дерева. Векторні — легко замінюються растровими фонами з адмінки.
  */
 import { memo } from 'react';
-import { cityAsset } from '../lib/assets';
+import { CITY_ART } from '@polski-go/shared';
+import { cityArtImage } from '../lib/assets';
 
 type House = { x: number; w: number; h: number; color: string; roof: 'gable' | 'step' | 'flat' };
 
@@ -398,12 +399,12 @@ export function Landmark({ kind, color, muted }: { kind: LandmarkKind; color: st
  * Банер міста: растрова панорама (src/assets/cities/<slug>.webp), якщо є,
  * інакше — ілюстрована сцена з небом, старим містом і пам'яткою в кольорі міста.
  */
-export function CityBanner({ slug, color, height = 150, className, children, shade = true }: { slug: string; color: string; height?: number; className?: string; children?: React.ReactNode; shade?: boolean }) {
-  const img = cityAsset(slug);
+export function CityBanner({ slug, color, height = 150, className, children, shade = true, sizes = '100vw' }: { slug: string; color: string; height?: number; className?: string; children?: React.ReactNode; shade?: boolean; /** Ширина на екрані для вибору варіанта з srcset. */ sizes?: string }) {
+  const img = cityArtImage(slug);
   return (
-    <div className={`relative overflow-hidden ${className ?? ''}`} style={{ height }}>
+    <div className={`relative overflow-hidden ${className ?? ''}`} style={{ height }} data-city-art={CITY_ART[slug]?.status ?? 'missing'}>
       {img ? (
-        <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+        <img src={img.src} srcSet={img.srcSet} sizes={img.srcSet ? sizes : undefined} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" draggable={false} />
       ) : (
         <>
           <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, #8ED3F7 0%, #D8F0FF 55%, ${color}55 100%)` }} />

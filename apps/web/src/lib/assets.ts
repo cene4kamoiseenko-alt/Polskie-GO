@@ -3,14 +3,14 @@
  *   src/assets/beaver/<поза>.webp      — цілісні пози Бобека (legacy-base маніфесту образу, ADR-005)
  *   src/assets/costumes/<костюм>.webp   — Бобек у цілісному костюмі (legacy-whole-look), <костюм>-scene.webp — сцена картки
  *   src/assets/look/<ракурс>/<предмет>/<частина>-<поза>.webp — шари на спільному полотні 1024 (з'являться з пайплайна)
- *   src/assets/cities/<slug>.webp       — панорама міста (наприклад warszawa.webp), бажано 1200×600
+ *   src/assets/cities/<slug>.webp       — панорама міста і <slug>@640.webp; статуси й розміри — CITY_ART (@polski-go/shared)
  *   src/assets/icons/<name>.webp        — ігрові іконки (lessons, quests, map, profile, leaderboard, streak, zlotki, level, …)
  *   src/assets/brand/<name>.webp        — логотип (logo) і портрет Бобека для аватара (avatar)
  *
  * Варіант ширини доставки — файл `<ключ>@<ширина>.webp` (256, 512, 1024) поруч з основним; якщо його немає,
  * береться основний файл. Який Бобек малювати, вирішує не цей файл, а resolveLook (@polski-go/shared, lib/look.ts).
  */
-import { LOOK_CANVAS, LOOK_MANIFEST } from '@polski-go/shared';
+import { CITY_ART, CITY_ART_SMALL, LOOK_CANVAS, LOOK_MANIFEST } from '@polski-go/shared';
 
 const files = import.meta.glob('../assets/**/*.{webp,png}', { eager: true, import: 'default' }) as Record<string, string>;
 
@@ -59,5 +59,17 @@ export const costumeScene = (key: string) => pick('costumes', `${costumeName(key
 export const travellerScene = () => pick('costumes', 'traveller-scene');
 
 export const cityAsset = (slug: string) => pick('cities', slug);
+
+/**
+ * Панорама міста для <img>: основний файл і варіант `<slug>@640.webp` у srcset (ширини — з інвентаря CITY_ART),
+ * щоб мініатюри й вузькі екрани не тягнули файл на 1440 px. Немає файлу → null (клієнт малює загальну сцену).
+ */
+export function cityArtImage(slug: string): { src: string; srcSet?: string; small: string } | null {
+  const src = pick('cities', slug);
+  if (!src) return null;
+  const small = files[`../assets/cities/${slug}@${CITY_ART_SMALL}.webp`];
+  const width = CITY_ART[slug]?.width;
+  return small && width ? { src, srcSet: `${small} ${CITY_ART_SMALL}w, ${src} ${width}w`, small } : { src, small: src };
+}
 export const iconAsset = (name: string) => pick('icons', name);
 export const brandAsset = (name: string) => pick('brand', name);

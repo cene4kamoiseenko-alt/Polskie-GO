@@ -9,3 +9,4 @@ export * from './speech';
 export * from './wav';
 export * from './pron';
 export * from './look';
+export * from './cityArt';

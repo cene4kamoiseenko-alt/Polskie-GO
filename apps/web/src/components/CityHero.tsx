@@ -5,7 +5,7 @@
  */
 import { memo, type ReactNode } from 'react';
 import { CityLayers } from './CityScenes';
-import { cityAsset } from '../lib/assets';
+import { cityArtImage } from '../lib/assets';
 import { FarCityArt, MidCityArt, PlazaArt } from './SplashWorld';
 
 function Signpost({ name }: { name: string }) {
@@ -20,15 +20,15 @@ function Signpost({ name }: { name: string }) {
   );
 }
 
-export const CityHero = memo(function CityHero({ slug, color, name, height = 236, className = '', children, evening, sign = true, skyline }: { slug: string; color: string; name: string; height?: number; className?: string; children?: ReactNode; evening?: boolean; sign?: boolean; /** Невисока картка: панорама з пам'ятками праворуч (без площі на передньому плані). */ skyline?: boolean }) {
+export const CityHero = memo(function CityHero({ slug, color, name, height = 236, className = '', children, evening, sign = true, skyline, eager, sizes = '100vw' }: { slug: string; color: string; name: string; height?: number; className?: string; children?: ReactNode; evening?: boolean; sign?: boolean; /** Невисока картка: панорама з пам'ятками праворуч (без площі на передньому плані). */ skyline?: boolean; /** Перший екран (банер головної, уроків): без lazy. */ eager?: boolean; /** Ширина на екрані для вибору варіанта з srcset. */ sizes?: string }) {
   const krakow = slug === 'krakow';
-  const photo = cityAsset(slug);
+  const photo = cityArtImage(slug);
   // Позиціонування задає батько (absolute) або сам банер (relative) — обидва класи разом конфліктують.
   const pos = /\babsolute\b/.test(className) ? '' : 'relative';
   if (photo) {
     return (
       <div className={`${pos} overflow-hidden ${className}`} style={{ height }}>
-        <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" decoding="async" draggable={false} />
+        <img src={photo.src} srcSet={photo.srcSet} sizes={photo.srcSet ? sizes : undefined} alt="" className="absolute inset-0 h-full w-full object-cover" loading={eager ? 'eager' : 'lazy'} decoding="async" draggable={false} />
         {children}
       </div>
     );

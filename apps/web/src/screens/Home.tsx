@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { brandAsset, cityAsset } from '../lib/assets';
+import { brandAsset, cityArtImage } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import type { VocabEntry } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
@@ -107,6 +107,8 @@ export function HomeScreen() {
   const rank = rankFor(me.progress.level);
   // Розмір бобра — від ширини екрана (360 → 176, 430 → 200), щоб картки праворуч не перекривали персонажа.
   const heroBeaver = 188;
+  // Плитки швидкого старту ~115 px завширшки: досить варіанта 640 px.
+  const tileArt = cityArtImage(current?.slug ?? 'warszawa')?.small;
 
   return (
     <div className="space-y-5 pb-2">
@@ -114,7 +116,7 @@ export function HomeScreen() {
 
       {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія */}
       <div className="hero-card mx-4">
-        <CityHero slug={current?.slug ?? 'warszawa'} color={current?.color ?? '#36B9FF'} name={current?.namePl ?? 'Warszawa'} height={256}>
+        <CityHero slug={current?.slug ?? 'warszawa'} color={current?.color ?? '#36B9FF'} name={current?.namePl ?? 'Warszawa'} height={256} eager>
           <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.38), transparent 55%)' }} />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-night/45 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-night/50 to-transparent" />
@@ -196,7 +198,7 @@ export function HomeScreen() {
               className="qs-tile relative h-[142px] overflow-hidden rounded-[20px] p-2.5 text-left"
               style={{ background: bg }}
             >
-              {cityAsset(current?.slug ?? 'warszawa') && <img src={cityAsset(current?.slug ?? 'warszawa')!} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-luminosity" />}
+              {tileArt && <img src={tileArt} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-luminosity" />}
               <span className="absolute inset-0 bg-gradient-to-t from-night/85 via-transparent to-transparent" />
               <svg viewBox="0 0 120 40" className="absolute inset-x-0 bottom-0 w-full opacity-25" aria-hidden><path d="M0 40 V26 h10 v-8 h8 v8 h10 V14 l6 -8 l6 8 v12 h12 v-10 h10 v10 h14 V10 l4 -6 l4 6 v16 h12 v-6 h12 V40 Z" fill="#07182c" /></svg>
               <span className="absolute right-1 top-1 drop-shadow-[0_6px_10px_rgba(0,0,0,0.35)]"><Art name={art} size={76} /></span>
@@ -215,7 +217,7 @@ export function HomeScreen() {
       <div className={cx('grid gap-2.5 px-4', cityOfDay || journey.isLoading ? 'grid-cols-[1.12fr_1fr]' : 'grid-cols-1')}>
         {cityOfDay ? (
           <button onClick={() => { haptic.tap(); nav('/map'); }} className="hero-card relative block h-[150px] overflow-hidden text-left">
-            <CityHero slug={cityOfDay.slug} color={cityOfDay.color} name="" height={150} evening sign={false} className="absolute inset-0" />
+            <CityHero slug={cityOfDay.slug} color={cityOfDay.color} name="" height={150} evening sign={false} sizes="55vw" className="absolute inset-0" />
             <div className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-transparent" />
             <div className="absolute left-2.5 top-2 flex items-center gap-1 text-[12px] font-black text-white"><Art name="star" size={18} /> {t('home_city_of_day')}</div>
             <div className="absolute inset-x-2.5 bottom-2">

@@ -10,6 +10,7 @@ import { Icon } from '../components/Icon';
 import { ErrorState, Progress, ScreenSkeleton, Sheet, cx, useToast } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { iconAsset } from '../lib/assets';
+import { CITY_ART } from '@polski-go/shared';
 import { TopStats } from './Home';
 import { haptic } from '../lib/telegram';
 import { sfx } from '../lib/audio';
@@ -171,7 +172,7 @@ export default function MapScreen() {
 
       {current && (
         <button data-current-city onClick={() => setSelected(current)} className="mx-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-3xl bg-elev p-3 text-left shadow-[var(--shadow-card)]">
-          <CityBanner slug={current.slug} color={current.color} height={56} className="w-20 shrink-0 rounded-2xl" />
+          <CityBanner slug={current.slug} color={current.color} height={56} sizes="80px" className="w-20 shrink-0 rounded-2xl" />
           <div className="min-w-0 flex-1">
             <div className="font-black">{current.namePl}</div>
             <div className="muted mb-1 text-xs font-bold">{t('map_lessons', { done: current.lessonsDone, total: current.lessonsTotal })}</div>
@@ -215,6 +216,7 @@ export default function MapScreen() {
               <div className="font-black muted">{tr(sel.theme)}</div>
               <p className="mt-1 text-sm font-semibold muted">{tr(sel.description)}</p>
             </div>
+            <CityStatus city={sel} />
             {sel.hasContent && (
               <div>
                 <div className="mb-1 flex justify-between text-sm font-black">
@@ -262,6 +264,33 @@ export default function MapScreen() {
           </div>
         )}
       </Sheet>
+    </div>
+  );
+}
+
+/**
+ * Три окремі стани міста, які не змішуються: оформлення (є малюнок, CITY_ART), уроки (є контент),
+ * доступ (місто відкрите цьому користувачу). Карта не відкриває порожній маршрут заради малюнка.
+ */
+function CityStatus({ city }: { city: JourneyCity }) {
+  const { t } = useT();
+  const art = CITY_ART[city.slug]?.status ?? 'missing';
+  const items = [
+    { key: 'art', label: t('map_st_art'), ok: art !== 'missing', value: art !== 'missing' ? t('map_st_ready') : t('map_soon'), icon: art !== 'missing' ? 'check' : 'clock' },
+    { key: 'lessons', label: t('map_st_lessons'), ok: city.hasContent, value: city.hasContent ? String(city.lessonsTotal) : t('map_soon'), icon: city.hasContent ? 'book' : 'clock' },
+    { key: 'access', label: t('map_st_access'), ok: city.unlocked, value: city.unlocked ? t('map_st_open') : t('map_st_locked'), icon: city.unlocked ? 'check' : 'lock' },
+  ] as const;
+  return (
+    <div data-city-status className="grid grid-cols-3 gap-1.5">
+      {items.map((s) => (
+        <div key={s.key} data-status={s.key} data-ok={s.ok} className="rounded-2xl bg-[var(--bg)] px-1.5 py-2 text-center">
+          <div className="muted text-[11px] font-bold leading-tight">{s.label}</div>
+          <div className="mt-0.5 flex items-center justify-center gap-1 text-[13px] font-black leading-tight">
+            <Icon name={s.icon} size={13} strokeWidth={2.6} className={s.ok ? 'shrink-0 text-brand' : 'shrink-0 muted'} />
+            <span className={cx('min-w-0 truncate', !s.ok && 'muted')}>{s.value}</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
