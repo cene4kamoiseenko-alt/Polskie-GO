@@ -3,7 +3,7 @@
  * відпустка й лікарняний, тіло й здоров'я, аптека, ранок і час, вечір на Piotrkowskiej.
  * Кожне слово має природний приклад із перекладом. Приблизне прочитання будується за правилами (pron.ts).
  */
-import { polishCyrillic } from '@polski-go/shared';
+import { polishCyrillic, type Cefr } from '@polski-go/shared';
 import { t } from './builders';
 import type { VocabSeed } from './vocab';
 
@@ -12,8 +12,34 @@ type Ex = [pl: string, uk: string, ru: string, en: string];
 /** Абревіатури читаються за назвами літер, а не за правилами: CV — «це-фау». */
 const SPELLED: Record<string, string> = { CV: 'це-фау' };
 
+/** Рівень, з яким словник Лодзі вперше засіяно (усі 77 слів). Від нього рахуються точкові правки в БД. */
+export const LODZ_SEEDED_CEFR: Cefr = 'A1';
+
+/**
+ * Рівень CEFR кожного слова — за складністю самого слова, а не за рівнем уроку.
+ * Критерії й обґрунтування по словах — docs/CONTENT_AUDIT_RU.md, «Łódź: рівні CEFR словника».
+ * Слова, яких тут немає, — A1. Уже засіяні рядки оновлює VOCAB_FIXES (vocab-fixes.ts).
+ */
+export const LODZ_CEFR: Record<string, Cefr> = {
+  // Робота: установа, сфера найму, рідкісні професії (CEFR A2: employment)
+  budowa: 'A2', firma: 'A2', magazynier: 'A2', 'oferta pracy': 'A2', CV: 'A2', 'agencja pracy': 'A2', 'na godzinę': 'A2', stawka: 'A2',
+  'prawo jazdy': 'A2', 'od kiedy': 'A2', grafik: 'A2', pensja: 'A2', urlop: 'A2', wolne: 'A2', 'dzień wolny': 'A2',
+  // Спецодяг і приміщення на виробництві
+  kask: 'A2', rękawice: 'A2', kamizelka: 'A2', szatnia: 'A2', apteczka: 'A2',
+  // Дієслова доконаного виду / зворотні поза базовим «мій день», вищий ступінь прислівника
+  zacząć: 'A2', 'spóźnić się': 'A2', 'budzić się': 'A2', 'golić się': 'A2', 'spotkać się': 'A2', wcześniej: 'A2',
+  // Здоров'я: симптоми, поліклініка, аптека (поза рамкою «boli mnie + частина тіла»)
+  gardło: 'A2', plecy: 'A2', gorączka: 'A2', przychodnia: 'A2', rejestracja: 'A2', kaszel: 'A2', katar: 'A2',
+  tabletka: 'A2', syrop: 'A2', 'bez recepty': 'A2', 'dwa razy dziennie': 'A2', 'po jedzeniu': 'A2',
+  // Час і місто
+  'wpół do': 'A2', kwadrans: 'A2', punktualnie: 'A2', deptak: 'A2',
+  // Терміни трудового права й медичних документів, абстрактні поняття сфери праці (CEFR B1: work)
+  doświadczenie: 'B1', 'rozmowa kwalifikacyjna': 'B1', 'pełny etat': 'B1', nadgodziny: 'B1', 'umowa o pracę': 'B1', 'umowa zlecenie': 'B1',
+  brutto: 'B1', netto: 'B1', 'zwolnienie lekarskie': 'B1', skierowanie: 'B1', 'wyjście awaryjne': 'B1', 'zamienić się': 'B1',
+};
+
 const w = (pl: string, pos: string, uk: string, ru: string, en: string, topics: string[], ex: Ex, forms?: Record<string, string>): VocabSeed => ({
-  pl, pos, tr: t(uk, ru, en), pron: SPELLED[pl] ?? polishCyrillic(pl, 'uk').replace(/́/g, ''), cefr: 'A1', topics, forms,
+  pl, pos, tr: t(uk, ru, en), pron: SPELLED[pl] ?? polishCyrillic(pl, 'uk').replace(/́/g, ''), cefr: LODZ_CEFR[pl] ?? LODZ_SEEDED_CEFR, topics, forms,
   examples: [{ pl: ex[0], tr: t(ex[1], ex[2], ex[3]) }],
 });
 
@@ -22,7 +48,8 @@ export const LODZ_VOCAB: VocabSeed[] = [
   w('fabryka', 'noun', 'фабрика, завод', 'фабрика, завод', 'factory', ['work', 'factory'],
     ['Mój wujek pracuje w fabryce mebli.', 'Мій дядько працює на меблевій фабриці.', 'Мой дядя работает на мебельной фабрике.', 'My uncle works in a furniture factory.'], { loc: 'w fabryce' }),
   w('biuro', 'noun', 'офіс, бюро', 'офис, бюро', 'office', ['work'],
-    ['Biuro jest na trzecim piętrze.', 'Офіс на четвертому поверсі.', 'Офис на четвёртом этаже.', 'The office is on the third floor.'], { loc: 'w biurze' }),
+    // Поверхи в Польщі рахують від parter: trzecie piętro = третій поверх над партером = наш четвертий.
+    ['Biuro jest na trzecim piętrze.', 'Офіс на третьому поверсі — у Польщі перший поверх (parter) не рахують, тож у нас це четвертий.', 'Офис на третьем этаже — в Польше первый этаж (parter) не считают, так что по-нашему это четвёртый.', 'The office is on the third floor (the ground floor, parter, is not counted).'], { loc: 'w biurze' }),
   w('szpital', 'noun', 'лікарня', 'больница', 'hospital', ['work', 'medicine'],
     ['Szpital jest blisko dworca.', 'Лікарня недалеко від вокзалу.', 'Больница недалеко от вокзала.', 'The hospital is near the station.'], { loc: 'w szpitalu' }),
   w('budowa', 'noun', 'будова, будівництво', 'стройка', 'building site', ['work'],

@@ -152,7 +152,7 @@ export const OPOLE: CityContent = {
               ['Wyluzuj.', t('Spokojnie.', 'Spokojnie.', 'Spokojnie.')],
               ['Mam wywalone.', t('Nie obchodzi mnie to.', 'Nie obchodzi mnie to.', 'Nie obchodzi mnie to.')],
             ]),
-            fillGap('register.slang', '(Колезі) Spóźnię się 5 minut, ___ to za mnie?', ['ogarniesz', 'ogarnij się', 'masz wywalone'], t('Я запізнюся на 5 хвилин, розрулиш це за мене?', 'Я опоздаю на 5 минут, разрулишь это за меня?', 'I\'ll be 5 minutes late, can you handle it for me?'),
+            fillGap('register.slang', 'Spóźnię się 5 minut, ___ to za mnie?', ['ogarniesz', 'ogarnij się', 'masz wywalone'], t('Колезі: «Я запізнюся на 5 хвилин, розрулиш це за мене?»', 'Коллеге: «Я опоздаю на 5 минут, разрулишь это за меня?»', 'To a colleague: "I\'ll be 5 minutes late, can you handle it for me?"'),
               t('Прохання до колеги: **Ogarniesz to?** «Ogarnij się» — різке «візьми себе в руки».', 'Просьба к коллеге: **Ogarniesz to?** «Ogarnij się» — резкое «возьми себя в руки».', 'A request: **Ogarniesz to?**')),
             fillGap('vocab.slang', '— Przepraszam, zepsułem twój długopis! — ___, to tylko długopis.', ['Daj spokój', 'Ogarnij się', 'Co ty gadasz'], t('— Вибач, я зламав твою ручку! — Та годі, це лише ручка.', '— Извини, я сломал твою ручку! — Да брось, это всего лишь ручка.', '— Sorry, I broke your pen! — Come on, it\'s just a pen.'),
               t('Заспокоїти людину → **Daj spokój**.', 'Успокоить человека → **Daj spokój**.', 'To reassure → **Daj spokój**.')),
@@ -240,7 +240,7 @@ export const OPOLE: CityContent = {
                 feedback: t('**nigdzie** + **nie**.', '**nigdzie** + **nie**.', '**nigdzie** + **nie**.') },
             ], { situation: true, scene: t('Вечір на фестивалі в Ополі', 'Вечер на фестивале в Ополе', 'An evening at the Opole festival') }),
             wordChoice('register.boss', 'Ogarnij się!', [t('різко: «візьми себе в руки»', 'резко: «возьми себя в руки»', 'harsh: "get a grip"'), t('ввічливе прохання', 'вежливая просьба', 'a polite request'), t('привітання', 'приветствие', 'a greeting')]),
-            fillGap('register.boss', '(Лист до керівниці) Dzień dobry, niestety ___ rozumiem tego zadania.', ['nie', 'nie ogarniam', 'mam wywalone'], t('Добрий день, на жаль, я не розумію цього завдання.', 'Добрый день, к сожалению, я не понимаю этого задания.', 'Hello, unfortunately I don\'t understand this task.'),
+            fillGap('register.boss', 'Dzień dobry, niestety ___ rozumiem tego zadania.', ['nie', 'nie ogarniam', 'mam wywalone'], t('Лист до керівниці: «Добрий день, на жаль, я не розумію цього завдання.»', 'Письмо руководительнице: «Добрый день, к сожалению, я не понимаю этого задания.»', 'Email to your manager: "Hello, unfortunately I don\'t understand this task."'),
               t('В офіційному листі — нейтрально: **nie rozumiem**.', 'В официальном письме — нейтрально: **nie rozumiem**.', 'Formal letter — **nie rozumiem**.')),
             fillGap('grammar.boss', 'Nikt ___ wie, gdzie jest Ania.', ['nie', 'tak', 'nic'], t('Ніхто не знає, де Аня.', 'Никто не знает, где Аня.', 'Nobody knows where Ania is.'), t('**nikt nie** wie.', '**nikt nie** wie.', '**nikt nie** wie.')),
             match('register.boss', [

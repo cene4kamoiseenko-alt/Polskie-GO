@@ -2,7 +2,7 @@
  * Внутрішні тести: вхідний (placement) і пробний іспит A1.
  * Це тренувальні тести POLSKI GO, а не державна сертифікація.
  */
-import { t, fillGap, listen, reading, translate, grammar, dictation, wordChoice, findError, build } from './builders';
+import { t, fillGap, listen, reading, translate, grammar, dictation, wordChoice, reverseChoice, findError, build } from './builders';
 import type { LessonSeed } from './types';
 
 export const PLACEMENT: LessonSeed = {
@@ -19,15 +19,20 @@ export const PLACEMENT: LessonSeed = {
   ),
   examples: [],
   words: [],
+  // #0, #4, #6, #7 замінено (аудит 2026-10-26): були точними копіями завдань уроків waw-2-uprzejmosc#0,
+  // krk-1-rodzina#5, wro-1-kawa#4, wro-3-ceny#2. Навик і місце в тесті ті самі; у БД — через EXERCISE_FIXES.
   exercises: [
-    wordChoice('vocab.greetings', 'Dziękuję', [t('Дякую', 'Спасибо', 'Thank you'), t('Будь ласка', 'Пожалуйста', 'Please'), t('Вибачте', 'Извините', 'Sorry')]),
+    wordChoice('vocab.greetings', 'Do widzenia', [t('До побачення', 'До свидания', 'Goodbye'), t('Добрий вечір', 'Добрый вечер', 'Good evening'), t('Дякую', 'Спасибо', 'Thank you')]),
     wordChoice('vocab.numbers', 'siedem', [t('7', '7', '7'), t('6', '6', '6'), t('17', '17', '17')]),
     fillGap('grammar.intro', 'Mam na ___ Ola.', ['imię', 'nazwisko', 'lat'], t('Мене звати Оля.', 'Меня зовут Оля.', 'My name is Ola.')),
     fillGap('grammar.genitive', 'Jestem z ___.', ['Ukrainy', 'Ukraina', 'Ukrainę'], t('Я з України.', 'Я из Украины.', 'I\'m from Ukraine.')),
-    fillGap('grammar.gender', 'To jest ___ siostra.', ['moja', 'mój', 'moje'], t('Це моя сестра.', 'Это моя сестра.', 'This is my sister.')),
+    findError('grammar.gender', ['To', 'jest', 'moja', 'mieszkanie'], 2, t('Це моя квартира.', 'Это моя квартира.', 'This is my flat.'),
+      t('**mieszkanie** — середній рід (закінчення **-e**), тому **moje mieszkanie**, хоча «квартира» — жіночого роду.', '**mieszkanie** — средний род (окончание **-e**), поэтому **moje mieszkanie**, хотя «квартира» — женского рода.', '**mieszkanie** is neuter (ending **-e**), so it is **moje mieszkanie**.')),
     fillGap('grammar.być', 'Oni ___ w domu.', ['są', 'jest', 'jesteśmy'], t('Вони вдома.', 'Они дома.', 'They are at home.')),
-    fillGap('grammar.accusative', 'Poproszę ___.', ['kawę', 'kawa', 'kawy'], t('Каву, будь ласка.', 'Кофе, пожалуйста.', 'A coffee, please.')),
-    fillGap('grammar.numerals', 'To kosztuje pięć ___.', ['złotych', 'złote', 'złoty'], t('Це коштує п\'ять злотих.', 'Это стоит пять злотых.', 'It costs five zlotys.')),
+    reverseChoice('grammar.accusative', t('Я читаю книжку.', 'Я читаю книгу.', 'I\'m reading a book.'), ['Czytam książkę.', 'Czytam książka.', 'Czytam książką.'],
+      t('**czytać** + знахідний відмінок: książka → **książkę**.', '**czytać** + винительный падеж: książka → **książkę**.', '**czytać** takes the accusative: książka → **książkę**.')),
+    reverseChoice('grammar.numerals', t('У мене п\'ять квитків.', 'У меня пять билетов.', 'I have five tickets.'), ['Mam pięć biletów.', 'Mam pięć bilety.', 'Mam pięć bilet.'],
+      t('Після 5–21 — родовий відмінок множини: **pięć biletów**.', 'После 5–21 — родительный падеж множественного числа: **pięć biletów**.', 'After 5–21 use the genitive plural: **pięć biletów**.')),
     fillGap('grammar.past', 'Wczoraj ___ w kinie.', ['byłem', 'jestem', 'będę'], t('Вчора я був у кіно.', 'Вчера я был в кино.', 'Yesterday I was at the cinema.')),
     fillGap('grammar.instrumental', 'Jestem ___.', ['nauczycielem', 'nauczyciel', 'nauczyciela'], t('Я вчитель.', 'Я учитель.', 'I am a teacher.')),
   ],
@@ -75,7 +80,9 @@ export const EXAM_A1: LessonSeed = {
     listen('listening.exam', 'Przepraszam, nie rozumiem. Proszę mówić wolniej.', ['Przepraszam, nie rozumiem. Proszę mówić wolniej.', 'Przepraszam, rozumiem. Proszę mówić szybciej.', 'Dziękuję, rozumiem wszystko.']),
     // Письмо
     translate('writing.exam', t('Я з України і живу в Польщі.', 'Я из Украины и живу в Польше.', 'I am from Ukraine and I live in Poland.'), ['Jestem z Ukrainy i mieszkam w Polsce']),
-    translate('writing.exam', t('Рахунок, будь ласка.', 'Счёт, пожалуйста.', 'The bill, please.'), ['Poproszę rachunek', 'Rachunek proszę', 'Proszę rachunek']),
+    // Замінено (аудит 2026-10-26): «Рахунок, будь ласка» дослівно повторювало wro-4-restauracja#9.
+    translate('writing.exam', t('Вибачте, де тут аптека?', 'Извините, где здесь аптека?', 'Excuse me, where is the pharmacy here?'),
+      ['Przepraszam, gdzie tu jest apteka', 'Przepraszam, gdzie jest tu apteka', 'Przepraszam, gdzie tutaj jest apteka', 'Przepraszam, gdzie jest apteka']),
     dictation('writing.exam', 'Mam na imię Anna i mam dwadzieścia lat', t('Мене звати Анна, і мені двадцять років', 'Меня зовут Анна, и мне двадцать лет', 'My name is Anna and I am twenty')),
     build('grammar.sentence', 'W niedzielę jestem u babci', t('У неділю я в бабусі', 'В воскресенье я у бабушки', 'On Sunday I am at grandma\'s'), ['niedziela'], ['Jestem u babci w niedzielę']),
   ],

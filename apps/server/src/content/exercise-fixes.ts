@@ -5192,5 +5192,443 @@ export const EXERCISE_FIXES = [
         "en": "5–21 → genitive plural: **książek**."
       }
     }
+  },
+  {
+    "lesson": "placement-test",
+    "order": 0,
+    "from": {
+      "type": "WORD_TRANSLATION",
+      "skill": "vocab.greetings",
+      "data": {
+        "pl": "Dziękuję",
+        "audioText": "Dziękuję",
+        "options": [
+          {
+            "id": "o0",
+            "text": {
+              "uk": "Дякую",
+              "ru": "Спасибо",
+              "en": "Thank you"
+            }
+          },
+          {
+            "id": "o1",
+            "text": {
+              "uk": "Будь ласка",
+              "ru": "Пожалуйста",
+              "en": "Please"
+            }
+          },
+          {
+            "id": "o2",
+            "text": {
+              "uk": "Вибачте",
+              "ru": "Извините",
+              "en": "Sorry"
+            }
+          }
+        ],
+        "answer": "o0"
+      }
+    },
+    "to": {
+      "type": "WORD_TRANSLATION",
+      "skill": "vocab.greetings",
+      "data": {
+        "pl": "Do widzenia",
+        "audioText": "Do widzenia",
+        "options": [
+          {
+            "id": "o0",
+            "text": {
+              "uk": "До побачення",
+              "ru": "До свидания",
+              "en": "Goodbye"
+            }
+          },
+          {
+            "id": "o1",
+            "text": {
+              "uk": "Добрий вечір",
+              "ru": "Добрый вечер",
+              "en": "Good evening"
+            }
+          },
+          {
+            "id": "o2",
+            "text": {
+              "uk": "Дякую",
+              "ru": "Спасибо",
+              "en": "Thank you"
+            }
+          }
+        ],
+        "answer": "o0"
+      }
+    }
+  },
+  {
+    "lesson": "placement-test",
+    "order": 4,
+    "from": {
+      "type": "FILL_GAP",
+      "skill": "grammar.gender",
+      "data": {
+        "pl": "To jest ___ siostra.",
+        "translation": {
+          "uk": "Це моя сестра.",
+          "ru": "Это моя сестра.",
+          "en": "This is my sister."
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "moja"
+          },
+          {
+            "id": "o1",
+            "text": "mój"
+          },
+          {
+            "id": "o2",
+            "text": "moje"
+          }
+        ],
+        "answer": "o0"
+      }
+    },
+    "to": {
+      "type": "FIND_ERROR",
+      "skill": "grammar.gender",
+      "data": {
+        "pl": "To jest moja mieszkanie",
+        "translation": {
+          "uk": "Це моя квартира.",
+          "ru": "Это моя квартира.",
+          "en": "This is my flat."
+        },
+        "options": [
+          {
+            "id": "w0",
+            "text": "To"
+          },
+          {
+            "id": "w1",
+            "text": "jest"
+          },
+          {
+            "id": "w2",
+            "text": "moja"
+          },
+          {
+            "id": "w3",
+            "text": "mieszkanie"
+          }
+        ],
+        "answer": "w2"
+      },
+      "explanation": {
+        "uk": "**mieszkanie** — середній рід (закінчення **-e**), тому **moje mieszkanie**, хоча «квартира» — жіночого роду.",
+        "ru": "**mieszkanie** — средний род (окончание **-e**), поэтому **moje mieszkanie**, хотя «квартира» — женского рода.",
+        "en": "**mieszkanie** is neuter (ending **-e**), so it is **moje mieszkanie**."
+      }
+    }
+  },
+  {
+    "lesson": "placement-test",
+    "order": 6,
+    "from": {
+      "type": "FILL_GAP",
+      "skill": "grammar.accusative",
+      "data": {
+        "pl": "Poproszę ___.",
+        "translation": {
+          "uk": "Каву, будь ласка.",
+          "ru": "Кофе, пожалуйста.",
+          "en": "A coffee, please."
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "kawę"
+          },
+          {
+            "id": "o1",
+            "text": "kawa"
+          },
+          {
+            "id": "o2",
+            "text": "kawy"
+          }
+        ],
+        "answer": "o0"
+      }
+    },
+    "to": {
+      "type": "WORD_TRANSLATION",
+      "skill": "grammar.accusative",
+      "data": {
+        "translation": {
+          "uk": "Я читаю книжку.",
+          "ru": "Я читаю книгу.",
+          "en": "I'm reading a book."
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "Czytam książkę."
+          },
+          {
+            "id": "o1",
+            "text": "Czytam książka."
+          },
+          {
+            "id": "o2",
+            "text": "Czytam książką."
+          }
+        ],
+        "answer": "o0"
+      },
+      "explanation": {
+        "uk": "**czytać** + знахідний відмінок: książka → **książkę**.",
+        "ru": "**czytać** + винительный падеж: książka → **książkę**.",
+        "en": "**czytać** takes the accusative: książka → **książkę**."
+      }
+    }
+  },
+  {
+    "lesson": "placement-test",
+    "order": 7,
+    "from": {
+      "type": "FILL_GAP",
+      "skill": "grammar.numerals",
+      "data": {
+        "pl": "To kosztuje pięć ___.",
+        "translation": {
+          "uk": "Це коштує п'ять злотих.",
+          "ru": "Это стоит пять злотых.",
+          "en": "It costs five zlotys."
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "złotych"
+          },
+          {
+            "id": "o1",
+            "text": "złote"
+          },
+          {
+            "id": "o2",
+            "text": "złoty"
+          }
+        ],
+        "answer": "o0"
+      }
+    },
+    "to": {
+      "type": "WORD_TRANSLATION",
+      "skill": "grammar.numerals",
+      "data": {
+        "translation": {
+          "uk": "У мене п'ять квитків.",
+          "ru": "У меня пять билетов.",
+          "en": "I have five tickets."
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "Mam pięć biletów."
+          },
+          {
+            "id": "o1",
+            "text": "Mam pięć bilety."
+          },
+          {
+            "id": "o2",
+            "text": "Mam pięć bilet."
+          }
+        ],
+        "answer": "o0"
+      },
+      "explanation": {
+        "uk": "Після 5–21 — родовий відмінок множини: **pięć biletów**.",
+        "ru": "После 5–21 — родительный падеж множественного числа: **pięć biletów**.",
+        "en": "After 5–21 use the genitive plural: **pięć biletów**."
+      }
+    }
+  },
+  {
+    "lesson": "exam-a1",
+    "order": 14,
+    "from": {
+      "type": "SENTENCE_TRANSLATION",
+      "skill": "writing.exam",
+      "data": {
+        "source": {
+          "uk": "Рахунок, будь ласка.",
+          "ru": "Счёт, пожалуйста.",
+          "en": "The bill, please."
+        },
+        "accepted": [
+          "Poproszę rachunek",
+          "Rachunek proszę",
+          "Proszę rachunek"
+        ]
+      }
+    },
+    "to": {
+      "type": "SENTENCE_TRANSLATION",
+      "skill": "writing.exam",
+      "data": {
+        "source": {
+          "uk": "Вибачте, де тут аптека?",
+          "ru": "Извините, где здесь аптека?",
+          "en": "Excuse me, where is the pharmacy here?"
+        },
+        "accepted": [
+          "Przepraszam, gdzie tu jest apteka",
+          "Przepraszam, gdzie jest tu apteka",
+          "Przepraszam, gdzie tutaj jest apteka",
+          "Przepraszam, gdzie jest apteka"
+        ]
+      }
+    }
+  },
+  {
+    "lesson": "opo-3-ogarniac",
+    "order": 4,
+    "from": {
+      "type": "FILL_GAP",
+      "skill": "register.slang",
+      "data": {
+        "pl": "(Колезі) Spóźnię się 5 minut, ___ to za mnie?",
+        "translation": {
+          "uk": "Я запізнюся на 5 хвилин, розрулиш це за мене?",
+          "ru": "Я опоздаю на 5 минут, разрулишь это за меня?",
+          "en": "I'll be 5 minutes late, can you handle it for me?"
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "ogarniesz"
+          },
+          {
+            "id": "o1",
+            "text": "ogarnij się"
+          },
+          {
+            "id": "o2",
+            "text": "masz wywalone"
+          }
+        ],
+        "answer": "o0"
+      },
+      "explanation": {
+        "uk": "Прохання до колеги: **Ogarniesz to?** «Ogarnij się» — різке «візьми себе в руки».",
+        "ru": "Просьба к коллеге: **Ogarniesz to?** «Ogarnij się» — резкое «возьми себя в руки».",
+        "en": "A request: **Ogarniesz to?**"
+      }
+    },
+    "to": {
+      "type": "FILL_GAP",
+      "skill": "register.slang",
+      "data": {
+        "pl": "Spóźnię się 5 minut, ___ to za mnie?",
+        "translation": {
+          "uk": "Колезі: «Я запізнюся на 5 хвилин, розрулиш це за мене?»",
+          "ru": "Коллеге: «Я опоздаю на 5 минут, разрулишь это за меня?»",
+          "en": "To a colleague: \"I'll be 5 minutes late, can you handle it for me?\""
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "ogarniesz"
+          },
+          {
+            "id": "o1",
+            "text": "ogarnij się"
+          },
+          {
+            "id": "o2",
+            "text": "masz wywalone"
+          }
+        ],
+        "answer": "o0"
+      },
+      "explanation": {
+        "uk": "Прохання до колеги: **Ogarniesz to?** «Ogarnij się» — різке «візьми себе в руки».",
+        "ru": "Просьба к коллеге: **Ogarniesz to?** «Ogarnij się» — резкое «возьми себя в руки».",
+        "en": "A request: **Ogarniesz to?**"
+      }
+    }
+  },
+  {
+    "lesson": "opo-boss",
+    "order": 2,
+    "from": {
+      "type": "FILL_GAP",
+      "skill": "register.boss",
+      "data": {
+        "pl": "(Лист до керівниці) Dzień dobry, niestety ___ rozumiem tego zadania.",
+        "translation": {
+          "uk": "Добрий день, на жаль, я не розумію цього завдання.",
+          "ru": "Добрый день, к сожалению, я не понимаю этого задания.",
+          "en": "Hello, unfortunately I don't understand this task."
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "nie"
+          },
+          {
+            "id": "o1",
+            "text": "nie ogarniam"
+          },
+          {
+            "id": "o2",
+            "text": "mam wywalone"
+          }
+        ],
+        "answer": "o0"
+      },
+      "explanation": {
+        "uk": "В офіційному листі — нейтрально: **nie rozumiem**.",
+        "ru": "В официальном письме — нейтрально: **nie rozumiem**.",
+        "en": "Formal letter — **nie rozumiem**."
+      }
+    },
+    "to": {
+      "type": "FILL_GAP",
+      "skill": "register.boss",
+      "data": {
+        "pl": "Dzień dobry, niestety ___ rozumiem tego zadania.",
+        "translation": {
+          "uk": "Лист до керівниці: «Добрий день, на жаль, я не розумію цього завдання.»",
+          "ru": "Письмо руководительнице: «Добрый день, к сожалению, я не понимаю этого задания.»",
+          "en": "Email to your manager: \"Hello, unfortunately I don't understand this task.\""
+        },
+        "options": [
+          {
+            "id": "o0",
+            "text": "nie"
+          },
+          {
+            "id": "o1",
+            "text": "nie ogarniam"
+          },
+          {
+            "id": "o2",
+            "text": "mam wywalone"
+          }
+        ],
+        "answer": "o0"
+      },
+      "explanation": {
+        "uk": "В офіційному листі — нейтрально: **nie rozumiem**.",
+        "ru": "В официальном письме — нейтрально: **nie rozumiem**.",
+        "en": "Formal letter — **nie rozumiem**."
+      }
+    }
   }
 ];

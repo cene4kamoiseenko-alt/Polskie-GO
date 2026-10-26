@@ -4,10 +4,12 @@
  * Мовну правильність і однозначність цей скрипт не доводить — лише підсвічує місця для ручної перевірки.
  */
 import { writeFileSync } from 'node:fs';
-import { normalize, stripDiacritics, spreadByType, type I18n } from '@polski-go/shared';
+import { CEFR_LEVELS, normalize, stripDiacritics, spreadByType, type I18n } from '@polski-go/shared';
 import { CITY_CONTENT } from '../apps/server/src/content/seed';
 import { PLACEMENT, EXAM_A1 } from '../apps/server/src/content/exams';
-import { VOCAB } from '../apps/server/src/content/vocab';
+import { TOPICS, VOCAB } from '../apps/server/src/content/vocab';
+import { LODZ_CEFR, LODZ_VOCAB } from '../apps/server/src/content/vocab-lodz';
+import { VOCAB_FIXES } from '../apps/server/src/content/vocab-fixes';
 import { MISSIONS } from '../apps/server/src/content/missions';
 import type { LessonSeed } from '../apps/server/src/content/types';
 
@@ -20,7 +22,9 @@ for (const c of CITY_CONTENT) for (const r of c.routes) for (const l of r.lesson
 for (const l of [PLACEMENT, EXAM_A1]) { lessons.push({ city: 'exams', l }); l.exercises.forEach((ex, i) => refs.push({ city: 'exams', lesson: l.slug, i, ex: ex as Ex })); }
 
 const out: string[] = [];
-const section = (title: string, rows: string[]) => { out.push(`\n## ${title} (${rows.length})`, ...rows); };
+const summary: string[] = [];
+const notes: string[] = [];
+const section = (title: string, rows: string[]) => { out.push(`\n## ${title} (${rows.length})`, ...rows); summary.push(`## ${title} (${rows.length})`); };
 const id = (r: Ref) => `${r.lesson}#${r.i}`;
 const txt = (x: unknown): string => (typeof x === 'string' ? x : x && typeof x === 'object' && 'uk' in (x as object) ? (x as I18n).uk : '');
 
@@ -42,17 +46,54 @@ for (const { l } of lessons) for (const k of ['title', 'topic', 'explanation'] a
 section('Відсутні переклади', missing);
 
 // ── 2. Аудіо не збігається з правильною відповіддю ──
+// «Почуй число — обери цифри»: аудіо словами, відповідь цифрами («czterdzieści pięć złotych» → «45 zł»).
+// Такі завдання звіряються за значенням: числівники з аудіо перетворюються на числа й порівнюються з цифрами відповіді.
+const NUM: Record<string, number> = {
+  zero: 0, jeden: 1, jedna: 1, jedno: 1, dwa: 2, dwie: 2, trzy: 3, cztery: 4, piec: 5, szesc: 6, siedem: 7, osiem: 8, dziewiec: 9,
+  dziesiec: 10, jedenascie: 11, dwanascie: 12, trzynascie: 13, czternascie: 14, pietnascie: 15, szesnascie: 16, siedemnascie: 17,
+  osiemnascie: 18, dziewietnascie: 19, dwadziescia: 20, trzydziesci: 30, czterdziesci: 40, piecdziesiat: 50, szescdziesiat: 60,
+  siedemdziesiat: 70, osiemdziesiat: 80, dziewiecdziesiat: 90, sto: 100, dwiescie: 200, trzysta: 300, czterysta: 400, piecset: 500,
+  szescset: 600, siedemset: 700, osiemset: 800, dziewiecset: 900,
+};
+/** Числа, названі словами: «siedem, osiem, dwa» → [7, 8, 2]; «dwadzieścia cztery» → [24]. */
+const spokenNumbers = (s: string): number[] => {
+  const nums: number[] = [];
+  for (const part of s.split(/[,.;:!?]/)) {
+    let cur: number | null = null;
+    let last = 0;
+    for (const raw of part.toLowerCase().split(/\s+/)) {
+      const v = NUM[stripDiacritics(raw)];
+      if (v === undefined) { if (cur !== null) nums.push(cur); cur = null; continue; }
+      // «czterdzieści pięć» = 45: молодший розряд додається до старшого; «siedem osiem» — два окремі числа.
+      if (cur !== null && last >= 20 && v < last && String(v).length < String(last).length) { cur += v; last = v; continue; }
+      if (cur !== null) nums.push(cur);
+      cur = v;
+      last = v;
+    }
+    if (cur !== null) nums.push(cur);
+  }
+  return nums;
+};
 const audio: string[] = [];
+let audioNumeric = 0;
 for (const r of refs) {
   const d = r.ex.data;
   if (r.ex.type === 'LISTENING') {
     const ok = d.options.find((o: any) => o.id === d.answer);
-    if (normalize(txt(ok?.text)) !== normalize(d.audioText)) audio.push(`${id(r)} audio «${d.audioText}» ≠ відповідь «${txt(ok?.text)}»`);
+    const answer = txt(ok?.text);
+    if (normalize(answer) === normalize(d.audioText)) continue;
+    const written = (answer.match(/\d+/g) ?? []).map(Number);
+    const spoken = spokenNumbers(d.audioText);
+    const sameNumbers = written.length > 0 && written.length === spoken.length && written.every((n, i) => n === spoken[i]);
+    const sameCurrency = !/zł/.test(answer) || /złot/i.test(d.audioText);
+    if (sameNumbers && sameCurrency) { audioNumeric++; continue; }
+    audio.push(`${id(r)} audio «${d.audioText}» ≠ відповідь «${answer}»`);
   }
   if (r.ex.type === 'DICTATION' && normalize(d.accepted[0]) !== normalize(d.audioText)) audio.push(`${id(r)} диктант «${d.audioText}» ≠ accepted[0] «${d.accepted[0]}»`);
   if (r.ex.type === 'WORD_TRANSLATION' && d.pl && d.audioText && normalize(d.pl) !== normalize(d.audioText)) audio.push(`${id(r)} слово «${d.pl}» ≠ аудіо «${d.audioText}»`);
 }
 section('Аудіо ≠ відповідь', audio);
+notes.push(`Аудіо словами ↔ відповідь цифрами: ${audioNumeric} завдань звірено за значенням (числа збігаються)`);
 
 // ── 3. Структура: порожні тексти, однакові варіанти, ___ у пропуску, токени ──
 const struct: string[] = [];
@@ -80,6 +121,30 @@ const addWord = (w: string) => { const n = w.toLowerCase(); if (!/[ąćęłńó�
 for (const v of VOCAB) { v.pl.split(/[\s,.!?;:()«»„”"]+/).forEach(addWord); for (const e of v.examples ?? []) e.pl.split(/[\s,.!?;:()«»„”"]+/).forEach(addWord); }
 // Слова, що законно існують і без знаків (інше значення) — не помилка.
 const ALSO_PLAIN = new Set(['laska', 'pan', 'tak', 'ze', 'sie', 'co', 'czy', 'a', 'o', 'z', 'na', 'w', 'i', 'kot', 'las', 'mam', 'pies', 'stol', 'go', 'je', 'ja', 'ta', 'te', 'to', 'zle', 'dzis', 'bede', 'moze', 'juz', 'zona', 'pol', 'sa', 'ida', 'kon', 'koncu', 'lato', 'stoj', 'pole', 'raz', 'rak', 'swieta', 'kasa', 'sol', 'lza', 'pracuje', 'karta']);
+// Перевірені вручну хибні спрацювання (аудит 2026-10-26, docs/CONTENT_AUDIT_RU.md): слово без діакритики тут правильне.
+// Ключ — «завдання слово»: та сама форма в іншому завданні знову потрапить у звіт і буде перевірена окремо.
+const PLAIN_OK: Record<string, string[]> = {
+  'Називний відмінок або форма, що збігається з ним: woda (не wodą — орудний), jedna stacja, cisza nocna, zupa pomidorowa, zupa jest zimna; pomoc — іменник «допомога» (знахідний = називному), pomóc — інше слово, дієслово': [
+    'krk-d3-bilet#7 woda', 'krk-z1-produkty#4 woda', 'krk-z1-produkty#13 woda', 'krk-z1-produkty#16 woda', 'krk-z2-ceny#5 woda', 'krk-z2-ceny#9 woda',
+    'krk-z5-misja#4 woda', 'krk-z5-misja#4 niegazowana', 'krk-z5-misja#12 woda', 'krk-z5-misja#18 woda', 'waw-k4-misja#3 woda', 'wro-1-kawa#0 woda', 'wro-1-kawa#6 woda',
+    'waw-c3-metro#11 jedna', 'waw-c4-misja#2 jedna', 'waw-c4-misja#3 jedna', 'waw-c2-bilety#2 miejska', 'waw-p5-misja#7 poczta',
+    'waw-n2-blok#3 nocna', 'waw-n2-blok#4 nocna', 'waw-n2-blok#7 nocna', 'waw-n4-misja#4 nocna', 'waw-n4-misja#6 nocna',
+    'krk-re1-dania#10 pomidorowa', 'wro-boss#8 pomidorowa', 'krk-re3-kelner#5 zimna', 'krk-re3-kelner#10 zimna', 'waw-f3-gusty#6 zimna',
+    'waw-s4-misja#8 pomoc', 'krk-r4-droga#8 pomoc', 'opo-1-siema#4 pomoc', 'waw-n4-misja#17 pomoc',
+  ],
+  '3-тя особа однини (on/ona/Kuba/Bobek …): chce, pije, kupuje, zostaje; форма на -ę — це 1-ша особа': [
+    'exam-a1#3 chce', 'waw-f4-misja#3 chce', 'wro-4-restauracja#4 chce', 'waw-f3-gusty#9 pije', 'waw-f3-gusty#10 pije', 'kat-4-te-ta#0 kupuje', 'lodz-1-alfabet#0 zostaje',
+  ],
+  'Навмисний неправильний варіант на відмінок (називний замість знахідного чи орудного); правильна відповідь — інший варіант': [
+    'waw-f1-kawa#4 cytryna', 'krk-z1-produkty#7 woda', 'krk-z1-produkty#14 woda', 'krk-z5-misja#3 woda', 'krk-z5-misja#5 woda', 'krk-re2-zamawianie#4 pomidorowa',
+  ],
+  'Вправа на розрізнення літер: варіант без діакритики — навмисний дистрактор (ż / z, rz / r)': [
+    'lodz-1-alfabet#6 zaba', 'lodz-2-dwuznaki#2 reka', 'lodz-boss#1 reka',
+  ],
+};
+const plainOk = new Map<string, string>();
+for (const [why, keys] of Object.entries(PLAIN_OK)) for (const k of keys) plainOk.set(k, why);
+const plainOkUsed = new Set<string>();
 const diac: string[] = [];
 const plFields = (r: Ref): string[] => {
   const d = r.ex.data;
@@ -95,10 +160,16 @@ for (const r of refs) {
     const w = raw.toLowerCase();
     if (!w || /[ąćęłńóśźż]/.test(w) || ALSO_PLAIN.has(w)) continue;
     const cand = dict.get(w);
-    if (cand) diac.push(`${id(r)} «${raw}» → можливо ${[...cand].join(' / ')}  (${s.slice(0, 70)})`);
+    if (!cand) continue;
+    const key = `${id(r)} ${w}`;
+    if (plainOk.has(key)) { plainOkUsed.add(key); continue; }
+    diac.push(`${id(r)} «${raw}» → можливо ${[...cand].join(' / ')}  (${s.slice(0, 70)})`);
   }
 }
 section('Можливі пропущені діакритики', diac);
+// Запис allowlist, що більше нічого не збігається (завдання змінили чи прибрали), — прибрати або перевірити заново.
+section('Застарілі записи allowlist діакритики', [...plainOk.keys()].filter((k) => !plainOkUsed.has(k)));
+notes.push(`Діакритика: ${plainOkUsed.size} пар «завдання слово» перевірено вручну як законні форми (PLAIN_OK у скрипті)`);
 
 // ── 5. Кирилиця або змішані алфавіти в польських полях ──
 const cyr: string[] = [];
@@ -165,9 +236,39 @@ for (const m of MISSIONS) for (const [i, s] of m.steps.entries()) {
 }
 section('Місії', mis);
 
+// ── 11. Словник: ключі, на які посилаються уроки, місії й seed ──
+// seed шукає слово уроку за `pl` (lessonSql падає, якщо слова немає); точкові правки — за (pl, pos).
+const vocabRefs: string[] = [];
+const byPl = new Map<string, string[]>();
+for (const v of VOCAB) byPl.set(v.pl, [...(byPl.get(v.pl) ?? []), v.pos]);
+for (const [pl, poses] of byPl) if (poses.length > 1) vocabRefs.push(`словник: «${pl}» має ${poses.length} записи (${poses.join(', ')}) — seed не знає, який узяти для уроку`);
+for (const { l } of lessons) for (const w of l.words) if (!byPl.has(w)) vocabRefs.push(`${l.slug}: слово «${w}» відсутнє у словнику`);
+for (const m of MISSIONS) for (const [i, s] of m.steps.entries()) for (const w of (s as { words?: string[] }).words ?? []) if (!byPl.has(w)) vocabRefs.push(`${m.slug}#${i}: слово «${w}» відсутнє у словнику`);
+const offTopics = new Map<string, number>();
+for (const v of VOCAB) {
+  if (!(CEFR_LEVELS as readonly string[]).includes(v.cefr)) vocabRefs.push(`словник: «${v.pl}» — невідомий рівень ${v.cefr}`);
+  for (const tp of v.topics) if (!(tp in TOPICS)) offTopics.set(tp, (offTopics.get(tp) ?? 0) + 1);
+}
+// Теги тем поза TOPICS не ламають seed, але фільтр словника за темою їх не показує. Довідково, не знахідка.
+notes.push(`Теги тем словника поза TOPICS: ${offTopics.size} тегів у ${[...offTopics.values()].reduce((a, n) => a + n, 0)} записах (${[...offTopics.keys()].slice(0, 6).join(', ')}…)`);
+for (const pl of Object.keys(LODZ_CEFR)) if (!LODZ_VOCAB.some((v) => v.pl === pl)) vocabRefs.push(`LODZ_CEFR: «${pl}» немає у словнику Лодзі`);
+for (const f of VOCAB_FIXES) {
+  const v = VOCAB.find((x) => x.pl === f.pl && x.pos === f.pos);
+  if (!v) { vocabRefs.push(`VOCAB_FIXES: немає слова «${f.pl}» (${f.pos})`); continue; }
+  const now = f.column === 'cefr' ? v.cefr : v.examples ?? [];
+  if (JSON.stringify(now) !== JSON.stringify(f.to)) vocabRefs.push(`VOCAB_FIXES: «${f.pl}».${f.column} у коді не збігається з цільовим значенням правки`);
+  if (JSON.stringify(f.from) === JSON.stringify(f.to)) vocabRefs.push(`VOCAB_FIXES: «${f.pl}».${f.column} — старе й нове значення однакові`);
+}
+section('Словник: відсутні ключі та розбіжності', vocabRefs);
+const lodzUsed = new Set(lessons.filter(({ city }) => city === 'lodz').flatMap(({ l }) => l.words));
+const lodzLevels = LODZ_VOCAB.reduce<Record<string, number>>((a, v) => ({ ...a, [v.cefr]: (a[v.cefr] ?? 0) + 1 }), {});
+notes.push(`Словник Лодзі: ${LODZ_VOCAB.length} слів, рівні ${Object.entries(lodzLevels).map(([k, n]) => `${k} ${n}`).join(', ')}; в уроках Лодзі — ${LODZ_VOCAB.filter((v) => lodzUsed.has(v.pl)).length}, решта лише в словнику`);
+
 const counts = new Map<string, number>();
 for (const r of refs) counts.set(r.city, (counts.get(r.city) ?? 0) + 1);
-out.unshift(`# Content lint — ${refs.length} завдань: ${[...counts.entries()].map(([c, n]) => `${c} ${n}`).join(', ')}; місій ${MISSIONS.length}`);
+const head = `# Content lint — ${refs.length} завдань: ${[...counts.entries()].map(([c, n]) => `${c} ${n}`).join(', ')}; місій ${MISSIONS.length}`;
+out.unshift(head, ...notes.map((n) => `> ${n}`));
 const file = process.argv[2] ?? 'content-lint.txt';
 writeFileSync(file, out.join('\n'));
-console.log(out.filter((l) => l.startsWith('#')).join('\n'));
+// Код виходу завжди 0: це звіт. Числа за категоріями друкуються, щоб «0 помилок» не плутали з «немає попереджень».
+console.log([head, ...summary, ...notes.map((n) => `> ${n}`)].join('\n'));

@@ -11,6 +11,7 @@ import { EXERCISE_FIXES } from './exercise-fixes';
 import { LESSON_MOVES, ROUTE_ICON_FIXES, TEXT_FIXES } from './fixes';
 import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
+import { VOCAB_FIXES } from './vocab-fixes';
 import { WARSZAWA } from './warszawa';
 import { KRAKOW } from './krakow';
 import { WROCLAW } from './wroclaw';
@@ -189,6 +190,8 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
 
   // Exact-match corrections preserve IDs, admin edits, and historical session snapshots.
   out.push(...exerciseFixSql());
+  // Те саме для словника: рівень і приклади оновлюються лише там, де досі старе значення з коду.
+  out.push(...vocabFixSql());
 
   // ── Косметика ──
   for (const [i, item] of ITEMS.entries()) {
@@ -267,4 +270,11 @@ export function exerciseFixSql(): string[] {
     const target = ref('lessons', { slug: f.lesson }).sql;
     return `UPDATE exercises SET type = ${lit(next.type)}, skill = ${lit(next.skill)}, data = ${lit(next.data)}, explanation = ${lit(next.explanation)} WHERE lesson_id = ${target} AND "order" = ${f.order} AND type = ${lit(old.type)} AND skill = ${lit(old.skill)} AND data = ${lit(old.data)} AND explanation IS ${lit(old.explanation)};`;
   });
+}
+
+/** Точкові правки словника: ключ (pl, pos) і старе значення колонки. Безпечно для наявної БД, повтор нічого не змінює. */
+export function vocabFixSql(): string[] {
+  return VOCAB_FIXES.map(
+    (f) => `UPDATE vocabulary_entries SET "${f.column}" = ${lit(f.to)} WHERE pl = ${lit(f.pl)} AND pos = ${lit(f.pos)} AND "${f.column}" = ${lit(f.from)};`,
+  );
 }
