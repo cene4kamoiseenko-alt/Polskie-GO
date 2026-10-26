@@ -2,6 +2,7 @@
 name: audio
 description: Аудио POLSKI GO — польский TTS, распознавание речи (STT), микрофон, состояния микрофона и честная награда за произношение.
 model: sonnet
+effort: xhigh
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 

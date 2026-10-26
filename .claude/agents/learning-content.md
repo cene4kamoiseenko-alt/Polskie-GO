@@ -2,6 +2,7 @@
 name: learning-content
 description: Контент уроков POLSKI GO — польский язык, CEFR, упражнения, городские маршруты, редактура RU/UK/EN/PL, баланс 16–18 уроков на город.
 model: sonnet
+effort: xhigh
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
