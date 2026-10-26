@@ -117,19 +117,20 @@ describe('Магазин і гардероб', () => {
   it('покупка списує Złotki атомарно, предмет з’являється на бобрі', async () => {
     const { call, user } = await login();
     const shop = await call('GET', '/api/shop');
-    const cap = shop.body.items.find((i: { slug: string }) => i.slug === 'cap-green');
-    expect((await call('POST', '/api/shop/buy', { itemId: cap.id })).body.error).toBe('insufficient_funds');
+    // Купити за Złotki можна лише річ із живописним зображенням (ADR-005 §12): цілісний костюм.
+    const winter = shop.body.items.find((i: { slug: string }) => i.slug === 'costume-winter');
+    expect((await call('POST', '/api/shop/buy', { itemId: winter.id })).body.error).toBe('insufficient_funds');
 
-    await setBalance(user.id, 50);
-    const buys = await Promise.all([call('POST', '/api/shop/buy', { itemId: cap.id }), call('POST', '/api/shop/buy', { itemId: cap.id })]);
+    await setBalance(user.id, 130);
+    const buys = await Promise.all([call('POST', '/api/shop/buy', { itemId: winter.id }), call('POST', '/api/shop/buy', { itemId: winter.id })]);
     expect(buys.filter((b) => b.status === 200)).toHaveLength(1);
-    // 50 − 40 + 10 за досягнення «Модник».
+    // 130 − 120 + 10 за досягнення «Модник».
     expect(await balance(user.id)).toBe(20);
 
-    const eq = await call('POST', '/api/inventory/equip', { itemId: cap.id, equipped: true });
-    expect(eq.body.wear.HAT).toBe('cap-green');
+    const eq = await call('POST', '/api/inventory/equip', { itemId: winter.id, equipped: true });
+    expect(eq.body.wear.COSTUME).toBe('costume-winter');
     const me = await call('GET', '/api/me');
-    expect(me.body.outfit.wear.HAT).toBe('cap-green');
+    expect(me.body.outfit.wear.COSTUME).toBe('costume-winter');
   });
 
   it('предмети-нагороди та Premium-предмети не продаються звичайним користувачам', async () => {
@@ -137,7 +138,7 @@ describe('Магазин і гардероб', () => {
     await setBalance(user.id, 1000);
     const shop = await call('GET', '/api/shop');
     const reward = shop.body.items.find((i: { slug: string }) => i.slug === 'hat-krasnal');
-    const premium = shop.body.items.find((i: { slug: string }) => i.slug === 'crown-gold');
+    const premium = shop.body.items.find((i: { slug: string }) => i.slug === 'frame-gold');
     expect((await call('POST', '/api/shop/buy', { itemId: reward.id })).body.error).toBe('reward_only');
     expect((await call('POST', '/api/shop/buy', { itemId: premium.id })).body.error).toBe('premium_required');
     expect((await call('POST', '/api/inventory/equip', { itemId: reward.id, equipped: true })).body.error).toBe('not_owned');
@@ -227,8 +228,8 @@ describe('Premium через Telegram Stars', () => {
 
     // Premium-предмет тепер можна купити
     await setBalance(user.id, 500);
-    const crown = (await call('GET', '/api/shop')).body.items.find((i: { slug: string }) => i.slug === 'crown-gold');
-    expect((await call('POST', '/api/shop/buy', { itemId: crown.id })).status).toBe(200);
+    const dragon = (await call('GET', '/api/shop')).body.items.find((i: { slug: string }) => i.slug === 'costume-dragon');
+    expect((await call('POST', '/api/shop/buy', { itemId: dragon.id })).status).toBe(200);
 
     // Скасування автопродовження — Premium діє до кінця періоду
     const cancel = await call('POST', '/api/premium/cancel');
