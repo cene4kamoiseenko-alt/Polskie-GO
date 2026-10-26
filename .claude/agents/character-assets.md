@@ -1,7 +1,8 @@
 ---
 name: character-assets
 description: Персонаж Бобек — единая слоистая модель, костюмы и предметы, QA-галерея, спецификация ассетов. Один Бобек во всём приложении.
-model: sonnet
+model: opus
+effort: xhigh
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 

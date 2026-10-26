@@ -1,7 +1,8 @@
 ---
 name: qa
 description: QA POLSKI GO — unit, e2e (Chromium), a11y, perf, скриншоты 360/390/430. Запускает проверки по одной, фиксирует результаты как есть.
-model: sonnet
+model: opus
+effort: xhigh
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 

@@ -1,7 +1,8 @@
 ---
 name: ui-ux
 description: UI/UX POLSKI GO — экраны, состояния (загрузка, пусто, ошибка, офлайн, готово), жесты шторок, адаптивность 360/390/430, safe-area, доступность.
-model: sonnet
+model: opus
+effort: xhigh
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 

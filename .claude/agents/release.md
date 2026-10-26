@@ -1,7 +1,8 @@
 ---
 name: release
 description: Релиз POLSKI GO — Cloudflare Workers Builds (D1 миграции, seed), чек-лист релиза, мобильный задел (iOS/Android roadmaps). Пуш в ветку деплоит — проверять до пуша.
-model: sonnet
+model: opus
+effort: xhigh
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 

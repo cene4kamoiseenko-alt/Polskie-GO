@@ -2,6 +2,7 @@
 name: architecture
 description: Архитектура POLSKI GO — React/TS, API, D1/Drizzle, безопасность, сложные решения (слои Бобека, миграции, права доступа). Ревьюит архитектурные изменения.
 model: opus
+effort: xhigh
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
