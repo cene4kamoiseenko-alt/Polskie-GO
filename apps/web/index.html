@@ -7,7 +7,7 @@
     <title>POLSKI GO</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- Панорама заставки вантажиться паралельно з JS (вона ж потрібна головній у Варшаві). -->
-    <link rel="preload" as="image" href="/src/assets/cities/warszawa.webp" />
+    <link rel="preload" as="image" href="/src/assets/splash/warszawa-portrait-900.webp" imagesrcset="/src/assets/splash/warszawa-portrait-900.webp 900w, /src/assets/splash/warszawa-portrait-1400.webp 1400w" imagesizes="(max-aspect-ratio: 9/16) 56vh, 100vw" />
     <script>
       // Профіль запитуємо одразу, паралельно із завантаженням JS: збереженим токеном і лише для того ж
       // власника, що й api.ts (authOwner). Без токена чи для іншого користувача — нічого не робимо.

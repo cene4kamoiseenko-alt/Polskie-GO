@@ -34,7 +34,7 @@ async function main() {
       await u.call('PATCH', '/api/me/settings', { theme, reducedMotion: !!opts.reduced });
     }
     const id = String(++devUser);
-    const context = await browser.newContext({ viewport: { width, height: width === 360 ? 780 : 844 }, deviceScaleFactor: 2, colorScheme: theme, locale: 'ru-RU', reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
+    const context = await browser.newContext({ viewport: { width, height: width === 360 ? 780 : width === 430 ? 932 : 844 }, deviceScaleFactor: 2, colorScheme: theme, locale: 'ru-RU', reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
     const p = await context.newPage();
     await p.addInitScript(({ token, id }) => {
       localStorage.setItem('pg_auth', JSON.stringify({ token, owner: `dev:${id}`, exp: Date.now() + 86_400_000 }));
@@ -59,7 +59,8 @@ async function main() {
 
   try {
     for (const theme of ['light', 'dark'] as const) {
-      for (const width of [360, 390]) {
+      // 430 — лише заставка, «немає зв'язку» і знайомство (A–C): вертикальна композиція на широкому телефоні.
+      for (const width of [360, 390, 430]) {
         const tag = `${theme}-${width}`;
         console.log(tag);
         // A — завантаження (профіль затримано, щоб застати заставку з прогресом).
@@ -93,6 +94,7 @@ async function main() {
           await shot(c.p, `C-intro-${tag}`);
           await c.context.close();
         }
+        if (width === 430) continue;
         // D — голосове завдання.
         if ('D-voice'.includes(filter) || !filter) {
           const d = await page(theme, width);

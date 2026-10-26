@@ -1,5 +1,6 @@
 /**
- * Заставка POLSKI GO за новим дизайном: панорама Варшави з листа міст, логотип із листа бренду,
+ * Заставка POLSKI GO за новим дизайном: вертикальна Варшава (Замкова площа й колона Зиґмунта; смуга панорами з листа міст,
+ * збільшена вчетверо Real-ESRGAN, два розміри через srcset — без розтягування на телефонах із DPR 3), логотип із листа бренду,
  * бобер-мандрівник (растр «привітання») і скляна картка з реальним прогресом запуску.
  * Анімації дешеві: лише transform і opacity; панорама робить один повільний наїзд, безкінечних рухів
  * два (бобер легко погойдується, по смузі пробігає відблиск), обидва вимикаються при reduced motion.
@@ -9,12 +10,14 @@
 import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useT, type TKey } from '../i18n';
-import { beaverAsset, brandAsset, cityAsset, iconAsset } from '../lib/assets';
+import { beaverAsset, brandAsset, iconAsset } from '../lib/assets';
+import pano900 from '../assets/splash/warszawa-portrait-900.webp';
+import pano1400 from '../assets/splash/warszawa-portrait-1400.webp';
 import { Icon } from './Icon';
 import { bootState, useBootProgress, type BootStage } from '../lib/boot';
 
 /** Іконка з листа до кожної фрази завантаження (15 — фінальна «бобер уже чекає»). */
-const MSG_ICONS = ['lessons', 'streak', 'shopping', 'zlotki', 'food', 'cafe', 'map', 'profile', 'dictionary', 'transport', 'pronunciation', 'quests', 'dragon', 'passport', 'gift'];
+const MSG_ICONS = ['lessons', 'streak', 'shopping', 'zlotki', 'food', 'cafe', 'map', 'profile', 'dictionary', 'transport', 'pronunciation', 'map', 'dragon', 'passport', 'gift'];
 const ROTATING = 14;
 
 // Стан між перемонтуваннями (заставка показується і до, і після завантаження профілю).
@@ -118,7 +121,16 @@ export function SplashScene({ slogan, steps, loading, error, onRetry, heroBottom
 
   return (
     <div className={`splash relative min-h-[100dvh] overflow-hidden ${intro ? 'is-intro' : ''}`}>
-      <img className="splash-pano" src={cityAsset('warszawa') ?? undefined} alt="" decoding="async" draggable={false} />
+      {/* Ширина кадру 9:16: на вузьких екранах cover бере висоту (56vh ≈ потрібна ширина), на широких — ширину екрана. */}
+      <img
+        className="splash-pano"
+        src={pano900}
+        srcSet={`${pano900} 900w, ${pano1400} 1400w`}
+        sizes="(max-aspect-ratio: 9/16) 56vh, 100vw"
+        alt=""
+        decoding="async"
+        draggable={false}
+      />
       <div className="splash-shade" aria-hidden />
       <header className="splash-head absolute inset-x-0 top-0 z-30 flex flex-col items-center px-6">
         {/* Той самий логотип, що й у миттєвій заставці index.html, на тому ж місці: без стрибка. */}
