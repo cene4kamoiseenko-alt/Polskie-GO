@@ -32,7 +32,7 @@ const PICTO: Record<string, Spec> = {
   '☕': ['coffee', 'drink'], '🍵': ['tea', 'drink'], '🧃': ['cup-soda', 'drink'], '💧': ['droplet', 'drink'], '🥛': ['milk', 'drink'], '🍾': ['wine', 'drink'],
   // Місця й будівлі
   '🏰': ['castle', 'place'], '⛪': ['church', 'place'], '🌉': ['bridge', 'place'], '⛲': ['fountain', 'place'], '🗽': ['monument', 'place'], '🏛️': ['landmark', 'place'],
-  '🏦': ['banknote', 'place'], '🏫': ['school', 'place'], '🏪': ['store', 'place'], '🏥': ['hospital', 'place'], '🏨': ['hotel', 'place'], '📚': ['library', 'place'],
+  '🏦': ['banknote', 'place'], '🏭': ['factory', 'place'], '🏫': ['school', 'place'], '🏪': ['store', 'place'], '🏥': ['hospital', 'place'], '🏨': ['hotel', 'place'], '📚': ['library', 'place'],
   '🏟️': ['stadium', 'place'], '🍽️': ['utensils', 'place'], '🏠': ['house', 'home'], '🗺️': ['map', 'place'],
   // Напрямки
   '➡️': ['arrow-right', 'way'], '⬅️': ['arrow-left', 'way'], '⬆️': ['arrow-up', 'way'], '↩️': ['undo-2', 'way'],

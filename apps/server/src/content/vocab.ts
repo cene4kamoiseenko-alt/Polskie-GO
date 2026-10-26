@@ -8,6 +8,7 @@ import { LIFE_VOCAB } from './vocab-life';
 import { EDU_VOCAB } from './vocab-education';
 import { KRAKOW_VOCAB } from './vocab-krakow';
 import { WARSZAWA_VOCAB } from './vocab-warszawa';
+import { LODZ_VOCAB } from './vocab-lodz';
 
 export type VocabSeed = {
   pl: string;
@@ -44,6 +45,7 @@ export const TOPICS: Record<string, I18n> = {
   home: t('Дім і житло', 'Дом и жильё', 'Home'),
   rent: t('Оренда житла', 'Аренда жилья', 'Renting'),
   daily: t('Мій день', 'Мой день', 'Daily life'),
+  time: t('Час і графік', 'Время и график', 'Time & schedules'),
   food: t('Їжа', 'Еда', 'Food'),
   cafe: t('Кафе', 'Кафе', 'Café'),
   restaurants: t('Ресторани', 'Рестораны', 'Restaurants'),
@@ -332,4 +334,5 @@ export const VOCAB: VocabSeed[] = [
   ...EDU_VOCAB,
   ...KRAKOW_VOCAB,
   ...WARSZAWA_VOCAB,
+  ...LODZ_VOCAB,
 ];

@@ -59,7 +59,9 @@ const struct: string[] = [];
 for (const r of refs) {
   const d = r.ex.data;
   if (Array.isArray(d.options)) {
-    const texts = d.options.map((o: any) => normalize(txt(o.text)));
+    // У завданнях на наголос великі літери й дефіси і є відповіддю (her-BA-ta / HER-ba-ta), тож їх не нормалізуємо.
+    const stress = r.ex.skill === 'pronunciation.stress';
+    const texts = d.options.map((o: any) => (stress ? txt(o.text).trim() : normalize(txt(o.text))));
     if (new Set(texts).size !== texts.length) struct.push(`${id(r)} однакові варіанти після нормалізації: ${texts.join(' / ')}`);
     if (texts.some((x: string) => !x)) struct.push(`${id(r)} порожній варіант`);
     if (d.options.filter((o: any) => o.id === d.answer).length !== 1) struct.push(`${id(r)} відповідь не вказує на один варіант`);
@@ -77,7 +79,7 @@ const dict = new Map<string, Set<string>>();
 const addWord = (w: string) => { const n = w.toLowerCase(); if (!/[ąćęłńóśźż]/.test(n)) return; const k = stripDiacritics(n); if (!dict.has(k)) dict.set(k, new Set()); dict.get(k)!.add(n); };
 for (const v of VOCAB) { v.pl.split(/[\s,.!?;:()«»„”"]+/).forEach(addWord); for (const e of v.examples ?? []) e.pl.split(/[\s,.!?;:()«»„”"]+/).forEach(addWord); }
 // Слова, що законно існують і без знаків (інше значення) — не помилка.
-const ALSO_PLAIN = new Set(['laska', 'pan', 'tak', 'ze', 'sie', 'co', 'czy', 'a', 'o', 'z', 'na', 'w', 'i', 'kot', 'las', 'mam', 'pies', 'stol', 'go', 'je', 'ja', 'ta', 'te', 'to', 'zle', 'dzis', 'bede', 'moze', 'juz', 'zona', 'pol', 'sa', 'ida', 'kon', 'koncu', 'lato', 'stoj', 'pole', 'raz', 'rak', 'swieta', 'kasa', 'sol', 'lza']);
+const ALSO_PLAIN = new Set(['laska', 'pan', 'tak', 'ze', 'sie', 'co', 'czy', 'a', 'o', 'z', 'na', 'w', 'i', 'kot', 'las', 'mam', 'pies', 'stol', 'go', 'je', 'ja', 'ta', 'te', 'to', 'zle', 'dzis', 'bede', 'moze', 'juz', 'zona', 'pol', 'sa', 'ida', 'kon', 'koncu', 'lato', 'stoj', 'pole', 'raz', 'rak', 'swieta', 'kasa', 'sol', 'lza', 'pracuje', 'karta']);
 const diac: string[] = [];
 const plFields = (r: Ref): string[] => {
   const d = r.ex.data;

@@ -110,9 +110,16 @@ export async function getJourney(userId: string) {
     const regular = all.filter((l) => l.kind === 'LESSON');
     const regularDone = regular.filter((l) => lp.get(l.id)?.firstCompletedAt).length;
     const ticket = city.ticketLessons > 0 ? Math.min(city.ticketLessons, regular.length) : regular.length;
-    // Хто пройшов усі уроки міста до розширення курсу, не втрачає доступ до іспиту.
+    // Хто пройшов усі уроки міста до розширення курсу, не втрачає доступ до іспиту. «До розширення» — раніше,
+    // ніж з'явився перший новий урок міста (created_at); хто проходить старі уроки після розширення, проходить і нові.
     const legacy = LEGACY_CITY_LESSONS[city.slug];
-    const legacyDone = !!legacy && legacy.every((slug) => { const l = all.find((x) => x.slug === slug); return !!l && !!lp.get(l.id)?.firstCompletedAt; });
+    const added = legacy ? regular.filter((l) => !legacy.includes(l.slug)).map((l) => l.createdAt.getTime()) : [];
+    const expandedAt = added.length ? Math.min(...added) : Infinity;
+    const legacyDone = !!legacy && legacy.every((slug) => {
+      const l = all.find((x) => x.slug === slug);
+      const at = l && lp.get(l.id)?.firstCompletedAt;
+      return !!at && at.getTime() <= expandedAt;
+    });
     const bossAvailable = unlocked && (regularDone >= ticket || legacyDone);
 
     let prevDone = true;

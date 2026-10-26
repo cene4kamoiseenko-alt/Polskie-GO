@@ -4,6 +4,7 @@
  * практика різних типів → самостійне застосування (переклад/побудова) → перевірка.
  */
 import { t, wordChoice, reverseChoice, fillGap, listen, findError, oddOne, reading, translate, grammar, dictation, build, match, speak, dialogue } from './builders';
+import { LODZ_5, LODZ_6, LODZ_7, LODZ_8 } from './lodz-praca';
 import type { CityContent } from './types';
 
 const KASIA = { name: 'Kasia', emoji: '👩🏼', role: t('студентка з Лодзі', 'студентка из Лодзи', 'a student from Łódź') };
@@ -207,6 +208,13 @@ export const LODZ: CityContent = {
           ],
         },
       ],
+    },
+    {
+      slug: 'lodz-praca',
+      title: t('Praca w Łodzi', 'Работа в Лодзи', 'Work in Łódź'),
+      description: t('Пошук роботи, співбесіда і перший день на складі', 'Поиск работы, собеседование и первый день на складе', 'Job search, an interview and your first day at the warehouse'),
+      icon: 'profile',
+      lessons: [LODZ_5, LODZ_6, LODZ_7, LODZ_8],
     },
     {
       slug: 'lodz-egzamin',
