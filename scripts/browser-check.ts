@@ -10,6 +10,11 @@
  *    «Нужно разрешение»; тиша → «Тишина» без запиту до STT; запис → підписана спроба → зараховано з XP.
  * Це не перевірка реального мікрофона, iPhone чи Telegram.
  *
+ * Інтерфейс:
+ *  - A2 головна, блок «Сегодня»: стани error (з повтором), empty, done, offline, active; скелетонів поза loading немає;
+ *  - A3 шторка міста на /map (360/390/430): остання тема й CTA у viewport, прокрутка не закриває, ✕ / Escape / drag за ручку
+ *    закривають; знімки — test-results/screens/sheet-{ширина}.png.
+ *
  * Запуск: npm run e2e   (знімки — test-results/screens, підсумок — test-results/browser-results.json)
  */
 import { createRequire } from 'node:module';
@@ -39,6 +44,21 @@ function toneWav(path: string, seconds = 6, rate = 48000) {
 function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`E2E: ${msg}`);
   console.log(`  ✓ ${msg}`);
+}
+
+/** Сценарии A2/A3: падение (check или таймаут Playwright) не обрывает остальные, а копится и поднимается в конце прогона. */
+const softFailures: string[] = [];
+const softSkipped: string[] = [];
+async function soft(name: string, fn: () => Promise<void>): Promise<boolean> {
+  try {
+    await fn();
+    return true;
+  } catch (e) {
+    const msg = (e as Error).message.split('\n')[0];
+    softFailures.push(`${name}: ${msg}`);
+    console.log(`  ✗ ${name}: ${msg}`);
+    return false;
+  }
 }
 
 async function main() {
@@ -231,6 +251,213 @@ async function main() {
     check(await boot.page.getByRole('button', { name: 'Перезагрузить' }).count() === 1, 'недовантажений екран — межа помилок з «Перезагрузить», а не порожня сторінка');
     await boot.context.close();
 
+    // ── A2: головна, блок «Сегодня». Кожен стан має свій data-today (loading | error | offline | empty | active | done);
+    // скелетони допустимі лише в loading. Сценарии A2/A3 идут через soft(): падение одного не обрывает остальные,
+    // но в конце прогона все падения собираются в одну ошибку (код выхода ≠ 0).
+    console.log('A2: главная, «Сегодня»');
+    type QuestsBody = { daily: { status: string }[]; [k: string]: unknown };
+    const today = await userPage('880007');
+    const tp = today.page;
+    await tp.setViewportSize({ width: 390, height: 844 });
+    const todaySection = tp.locator('section').filter({ has: tp.locator('[data-today]') });
+    const todayState = (s: string) => tp.locator(`[data-today="${s}"]`);
+    const noSkeleton = async () => (await todaySection.locator('.skeleton').count()) === 0;
+    /** Реальный ответ /api/quests, пропущенный через mutate (без `response:` — иначе content-length исходника не совпадёт с телом). */
+    const mockQuests = (mutate: (body: QuestsBody) => QuestsBody) =>
+      tp.route('**/api/quests', async (route) => {
+        const res = await route.fetch();
+        const body = (await res.json()) as QuestsBody;
+        await route.fulfill({ status: res.status(), contentType: 'application/json', body: JSON.stringify(mutate(body)) });
+      });
+    const clearQuestsRoute = () => tp.unroute('**/api/quests').catch(() => {});
+
+    await soft('A2.1 ошибка и повтор', async () => {
+      try {
+        await tp.route('**/api/quests', (r) => r.abort('failed'));
+        await tp.goto(today.url('/'));
+        await todayState('error').waitFor({ timeout: 20_000 });
+        check(true, 'A2.1 запрос заданий упал — «Сегодня» в состоянии error, а не вечный скелетон');
+        const retry = todayState('error').getByRole('button', { name: 'Попробовать ещё', exact: true });
+        check(await retry.count() === 1, 'A2.1 в состоянии error есть кнопка «Попробовать ещё»');
+        check(await noSkeleton(), 'A2.5 error: в секции «Сегодня» нет скелетонов');
+        await tp.unroute('**/api/quests');
+        await retry.click();
+        await todayState('active').waitFor({ timeout: 20_000 });
+        const n = await todayState('active').locator('.task-card').count();
+        check(n > 0, `A2.1 после повтора появились задания (${n} шт.), состояние active`);
+        check(await noSkeleton(), 'A2.5 active: в секции «Сегодня» нет скелетонов');
+      } finally {
+        await clearQuestsRoute();
+      }
+    });
+
+    await soft('A2.2 пустой день', async () => {
+      try {
+        await mockQuests((b) => ({ ...b, daily: [] }));
+        await tp.goto(today.url('/'));
+        await todayState('empty').waitFor({ timeout: 20_000 });
+        check(await todayState('empty').getByText('На сегодня заданий нет').count() === 1, 'A2.2 daily: [] — состояние empty с текстом «На сегодня заданий нет…»');
+        check(await noSkeleton(), 'A2.5 empty: в секции «Сегодня» нет скелетонов');
+      } finally {
+        await clearQuestsRoute();
+      }
+    });
+
+    await soft('A2.3 всё выполнено', async () => {
+      try {
+        await mockQuests((b) => ({ ...b, daily: b.daily.map((q) => ({ ...q, status: 'COMPLETED' })) }));
+        await tp.goto(today.url('/'));
+        await todayState('done').waitFor({ timeout: 20_000 });
+        check(await todaySection.getByText('Все задания на сегодня выполнены!').isVisible(), 'A2.3 все daily COMPLETED — состояние done и видна строка «Все задания на сегодня выполнены!»');
+        check(await noSkeleton(), 'A2.5 done: в секции «Сегодня» нет скелетонов');
+      } finally {
+        await clearQuestsRoute();
+      }
+    });
+
+    // Офлайн: документ главной без сети не загрузить, поэтому страница открыта заранее (/map — без запроса заданий),
+    // сеть выключается и в приложение «Главная» переходим по нижней навигации; Home не lazy, чанк не нужен.
+    await soft('A2.4 офлайн', async () => {
+      await tp.goto(today.url('/map'), { waitUntil: 'networkidle' });
+      await tp.locator('[data-current-city]').waitFor({ timeout: 20_000 });
+      await today.context.setOffline(true);
+      try {
+        await tp.locator('nav a[href="/"]').click();
+        await todayState('offline').waitFor({ timeout: 15_000 });
+        check(await todayState('offline').getByText('Нет связи').count() === 1, 'A2.4 без сети — состояние offline с текстом «Нет связи…»');
+        check(await noSkeleton(), 'A2.5 offline: в секции «Сегодня» нет скелетонов');
+      } finally {
+        await today.context.setOffline(false);
+      }
+      await todayState('active').waitFor({ timeout: 20_000 });
+      check(true, 'A2.4 сеть вернулась — «Сегодня» само загрузило задания (active)');
+    });
+    await today.context.close();
+
+    // ── A3: шторка города на карте. Прокрутка содержимого и жест закрытия разделены: тянуть можно только за ручку.
+    console.log('A3: шторка города');
+    const SHEETS = SCREENS;
+    mkdirSync(SHEETS, { recursive: true });
+    const sheetUser = await userPage('880008');
+    const sp = sheetUser.page;
+    const dialog = sp.locator('[role="dialog"]').filter({ has: sp.locator('[data-sheet]') });
+    /** Ждём, пока пружина шторки остановится (положение верха не меняется). */
+    const settle = async () => {
+      let prev = Number.NaN;
+      for (let i = 0; i < 40; i++) {
+        const top = await sp.locator('[data-sheet]').evaluate((el) => el.getBoundingClientRect().top).catch(() => Number.NaN);
+        if (Math.abs(top - prev) < 0.5) return;
+        prev = top;
+        await sp.waitForTimeout(100);
+      }
+    };
+    const openSheet = async () => {
+      await sp.locator('[data-current-city]').click();
+      await dialog.waitFor({ state: 'visible', timeout: 10_000 });
+      await settle();
+    };
+    const ensureOpen = async () => { if (!(await dialog.count())) await openSheet(); };
+    const closed = async () => {
+      await dialog.waitFor({ state: 'detached', timeout: 4_000 }).catch(() => {});
+      return (await dialog.count()) === 0;
+    };
+
+    for (const width of [360, 390, 430]) {
+      const tag = `A3 ${width}`;
+      const vp = { width, height: 844 };
+      await sp.setViewportSize(vp);
+      const opened = await soft(`${tag}.1 открытие`, async () => {
+        await sp.goto(sheetUser.url('/map'), { waitUntil: 'networkidle' });
+        await sp.locator('[data-current-city]').waitFor({ timeout: 20_000 });
+        await openSheet();
+        check(await dialog.count() === 1 && await dialog.locator('[data-sheet-scroll]').isVisible(), `${tag}.1 клик по [data-current-city] открывает шторку (role=dialog)`);
+      });
+      if (!opened) {
+        softSkipped.push(`${tag}.2–7: не запускались (шторка не открылась)`);
+        continue;
+      }
+      const scroll = dialog.locator('[data-sheet-scroll]');
+
+      await soft(`${tag}.2 прокрутка до последней темы`, async () => {
+        await scroll.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+        await sp.waitForTimeout(250);
+        const m = await scroll.evaluate((el) => ({ top: el.scrollTop, max: el.scrollHeight - el.clientHeight }));
+        check(m.top >= m.max - 1, `${tag}.2 содержимое прокручено до конца (${Math.round(m.top)} из ${Math.round(m.max)} px)`);
+        const routes = dialog.locator('[data-route]');
+        const n = await routes.count();
+        check(n > 0, `${tag}.2 в шторке есть строки тем [data-route] (${n} шт.)`);
+        const last = await routes.nth(n - 1).boundingBox();
+        const area = await scroll.boundingBox();
+        check(last && area, `${tag}.2 у последней темы и области прокрутки есть размеры`);
+        check(last.y >= area.y - 1 && last.y + last.height <= area.y + area.height + 1, `${tag}.2 последняя тема целиком в видимой области шторки`);
+        check(last.x >= 0 && last.y >= 0 && last.x + last.width <= vp.width && last.y + last.height <= vp.height, `${tag}.2 последняя тема целиком внутри viewport ${vp.width}×${vp.height}`);
+      });
+
+      await soft(`${tag}.3 CTA не перекрыт`, async () => {
+        const go = dialog.locator('[data-city-go]');
+        check(await go.isVisible(), `${tag}.3 кнопка [data-city-go] видна в футере шторки`);
+        const b = await go.boundingBox();
+        check(b, `${tag}.3 у [data-city-go] есть размеры`);
+        check(b.x >= 0 && b.y >= 0 && b.x + b.width <= vp.width && b.y + b.height <= vp.height, `${tag}.3 [data-city-go] целиком внутри viewport (y ${Math.round(b.y)}–${Math.round(b.y + b.height)} из ${vp.height})`);
+        const top = await go.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          return !!hit && el.contains(hit);
+        });
+        check(top, `${tag}.3 в центре [data-city-go] нажимается сама кнопка — её ничто не перекрывает`);
+      });
+
+      await soft(`${tag}.4 прокрутка не закрывает`, async () => {
+        await sp.waitForTimeout(400);
+        check(await dialog.count() === 1, `${tag}.4 после прокрутки содержимого шторка осталась открытой`);
+        // Дополнительно: жест вниз по содержимому (не за ручку) тоже не должен закрывать шторку.
+        const area = await scroll.boundingBox();
+        check(area, `${tag}.4 у области прокрутки есть размеры`);
+        const x = area.x + 10;
+        const y = area.y + 20;
+        await sp.mouse.move(x, y);
+        await sp.mouse.down();
+        for (let i = 1; i <= 16; i++) { await sp.mouse.move(x, y + i * 10); await sp.waitForTimeout(16); }
+        await sp.mouse.up();
+        await sp.waitForTimeout(600);
+        check(await dialog.count() === 1, `${tag}.4 жест вниз на 160 px по содержимому (не за ручку) не закрывает шторку`);
+      });
+
+      await soft(`${tag}.7 скриншот`, async () => {
+        await ensureOpen();
+        await settle();
+        await sp.screenshot({ path: `${SHEETS}/sheet-${width}.png` });
+        check(true, `${tag}.7 скриншот шторки: test-results/screens/sheet-${width}.png`);
+      });
+
+      await soft(`${tag}.5a закрытие ✕`, async () => {
+        await ensureOpen();
+        await dialog.locator('[data-sheet-close]').click();
+        check(await closed(), `${tag}.5 клик по [data-sheet-close] закрывает шторку`);
+      });
+
+      await soft(`${tag}.5b закрытие Escape`, async () => {
+        await ensureOpen();
+        await sp.keyboard.press('Escape');
+        check(await closed(), `${tag}.5 клавиша Escape закрывает повторно открытую шторку`);
+      });
+
+      await soft(`${tag}.6 drag за ручку`, async () => {
+        await ensureOpen();
+        const gb = await dialog.locator('[data-sheet-grip]').boundingBox();
+        check(gb, `${tag}.6 у ручки [data-sheet-grip] есть размеры`);
+        const x = gb.x + gb.width / 2;
+        const y = gb.y + gb.height / 2;
+        await sp.mouse.move(x, y);
+        await sp.mouse.down();
+        for (let i = 1; i <= 16; i++) { await sp.mouse.move(x, y + i * 10); await sp.waitForTimeout(16); }
+        await sp.mouse.up();
+        check(await closed(), `${tag}.6 перетаскивание ручки вниз на 160 px закрывает шторку`);
+      });
+    }
+    await sheetUser.context.close();
+    results.push({ stage: 'A2/A3', softFailures, softSkipped });
+
     // ── Розпізнавання пристрою (сервер STT вимкнено): лише тренування.
     console.log('Розпізнавання пристрою');
     const device = await userPage('880002', () => {
@@ -330,6 +557,12 @@ async function main() {
     const unexpected = errors.filter((e) => !e.includes('/src/screens/Shop.tsx'));
     check(unexpected.length === 0, `без несподіваних помилок сторінки${unexpected.length ? ': ' + unexpected.join(' | ') : ''}`);
     writeFileSync(resolve(OUT, 'browser-results.json'), JSON.stringify({ results, errors }, null, 2));
+    check(
+      softFailures.length === 0 && softSkipped.length === 0,
+      softFailures.length || softSkipped.length
+        ? `A2/A3: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
+        : 'A2/A3: все сценарии пройдены',
+    );
   } finally {
     globalThis.fetch = realFetch;
     await browser.close();
