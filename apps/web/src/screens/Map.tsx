@@ -1,5 +1,5 @@
 import { motion } from '../lib/motion';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
 import { useJourney, useRefreshAll } from '../lib/queries';
@@ -67,6 +67,8 @@ export default function MapScreen() {
     setSelected(to);
   };
   const skipTravel = () => travel && finishTravel(travel.to);
+  // Стабільний обробник: Sheet перевішує системну BackButton лише при зміні функції.
+  const closeSheet = useCallback(() => setSelected(null), []);
 
   // Центруємо видиму область на поточному місті (нативний скрол — швидко навіть на слабких телефонах).
   const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
@@ -168,7 +170,7 @@ export default function MapScreen() {
       </div>
 
       {current && (
-        <button onClick={() => setSelected(current)} className="mx-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-3xl bg-elev p-3 text-left shadow-[var(--shadow-card)]">
+        <button data-current-city onClick={() => setSelected(current)} className="mx-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-3xl bg-elev p-3 text-left shadow-[var(--shadow-card)]">
           <CityBanner slug={current.slug} color={current.color} height={56} className="w-20 shrink-0 rounded-2xl" />
           <div className="min-w-0 flex-1">
             <div className="font-black">{current.namePl}</div>
@@ -179,7 +181,20 @@ export default function MapScreen() {
         </button>
       )}
 
-      <Sheet open={!!selected} onClose={() => setSelected(null)}>
+      <Sheet
+        open={!!selected}
+        onClose={closeSheet}
+        label={sel?.namePl}
+        footer={
+          sel && sel.unlocked && sel.hasContent ? (
+            <button data-city-go className="btn btn-red w-full text-lg" onClick={() => nav(`/learn?city=${sel.id}`)}>
+              {sel.completed ? `${t('map_completed')} · ` : ''}
+              {t('map_go_learn')}
+              <Icon name="arrow-right" size={22} strokeWidth={2.6} />
+            </button>
+          ) : undefined
+        }
+      >
         {sel && (
           <div className="space-y-4">
             <CityBanner slug={sel.slug} color={sel.color} height={140} shade={false} className="-mx-1 rounded-3xl">
@@ -217,7 +232,7 @@ export default function MapScreen() {
                     const done = r.lessons.filter((l) => l.state === 'completed').length;
                     const full = done === r.lessons.length;
                     return (
-                      <div key={r.id} className={cx('card flex items-center gap-3 px-3 py-2.5', !sel.unlocked && 'opacity-60')}>
+                      <div key={r.id} data-route={r.slug} className={cx('card flex items-center gap-3 px-3 py-2.5', !sel.unlocked && 'opacity-60')}>
                         <span className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-black', full ? 'bg-brand text-white' : 'bg-[var(--bg)] text-navy')}>
                           {full ? <Icon name="check" size={18} strokeWidth={3} /> : i + 1}
                         </span>
@@ -242,13 +257,7 @@ export default function MapScreen() {
               </div>
             ) : !sel.hasContent ? (
               <div className="rounded-2xl bg-[var(--bg)] p-3 text-center text-sm font-bold">{t('map_soon_full')}</div>
-            ) : (
-              <button className="btn btn-red w-full text-lg" onClick={() => nav(`/learn?city=${sel.id}`)}>
-                {sel.completed ? `${t('map_completed')} · ` : ''}
-                {t('map_go_learn')}
-                <Icon name="arrow-right" size={22} strokeWidth={2.6} />
-              </button>
-            )}
+            ) : null}
             {!sel.hasContent && !sel.unlocked && <p className="muted text-center text-xs font-bold">{t('map_soon_full')}</p>}
           </div>
         )}

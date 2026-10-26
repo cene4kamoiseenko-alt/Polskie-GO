@@ -1,5 +1,5 @@
 import { motion } from '../lib/motion';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
@@ -7,10 +7,10 @@ import { api } from '../lib/api';
 import { brandAsset, cityAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import type { VocabEntry } from '../lib/types';
-import { Beaver } from '../components/Beaver';
+import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon, type LineIconName } from '../components/Icon';
-import { Progress, Section, Skeleton, SpeakButton, cx, useToast } from '../components/ui';
+import { Progress, Section, Skeleton, SpeakButton, cx, isOfflineError, useToast } from '../components/ui';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
@@ -95,42 +95,18 @@ function CitySign({ name }: { name: string }) {
 export function HomeScreen() {
   const { t, tr } = useT();
   const nav = useNavigate();
-  const toast = useToast();
-  const refresh = useRefreshAll();
   const me = useMe().data!;
   const journey = useJourney();
-  const quests = useQuests();
   const wod = useQuery({ queryKey: ['wod'], queryFn: () => api<VocabEntry | null>('/vocab/word-of-day'), staleTime: 3600_000 });
-  const [claiming, setClaiming] = useState(false);
 
   const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
   const next = journey.data?.nextLesson;
-  const daily = quests.data?.daily ?? [];
-  const chest = quests.data?.chest;
-  const taskAction = (slug: string) =>
-    slug === 'd-listening-5' || slug === 'd-reviews-15' ? '/practice/FIVE_MIN' : slug === 'd-dialogue-1' ? '/life' : next ? `/lesson/${next.id}` : '/learn';
   const day = Math.floor(Date.now() / 86_400_000);
   const cityPool = journey.data?.cities.filter((c) => c.hasContent) ?? [];
   const cityOfDay = cityPool.length ? cityPool[day % cityPool.length] : undefined;
   const rank = rankFor(me.progress.level);
   // Розмір бобра — від ширини екрана (360 → 176, 430 → 200), щоб картки праворуч не перекривали персонажа.
   const heroBeaver = 188;
-
-  const claimChest = async () => {
-    if (claiming) return;
-    setClaiming(true);
-    try {
-      const r = await api<{ xp: number; zlotki: number }>('/quests/daily-chest/claim', { body: {} });
-      haptic.success();
-      sfx.win();
-      toast(t('home_chest_got', { xp: r.xp, zl: r.zlotki }), '🎁');
-      await refresh();
-    } catch {
-      await refresh();
-    } finally {
-      setClaiming(false);
-    }
-  };
 
   return (
     <div className="space-y-5 pb-2">
@@ -198,48 +174,7 @@ export function HomeScreen() {
       </div>
 
       {/* Сьогодні: щоденні завдання + велика нагорода */}
-      <Section title={t('home_today')} action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => nav('/quests')}>{t('home_all_tasks')} <Icon name="arrow-right" size={16} /></button>}>
-        <div className="relative grid grid-cols-4 gap-2">
-          <div className="pointer-events-none absolute left-[8%] right-[33%] top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-brand/70 to-sky/40" />
-          {daily.slice(0, 3).map((q, i) => {
-            const done = q.status !== 'ACTIVE' && q.status !== 'NEW';
-            return (
-              <motion.button
-                key={q.slug}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.06 * i }}
-                onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
-                className={cx('task-card relative flex flex-col items-center gap-1 px-1 pb-2 pt-3 text-center', done && 'is-done')}
-              >
-                <span className={cx('absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full border-2', done ? 'border-brand bg-brand text-night' : 'border-white/40')}>
-                  {done && <Icon name="check" size={12} strokeWidth={3.2} />}
-                </span>
-                <Art name={TASK_ART[q.slug] ?? 'star'} size={40} />
-                <span className="line-clamp-2 min-h-[28px] text-[11.5px] font-black leading-tight">{tr(q.title)}</span>
-                <span className="on-dark flex items-center gap-0.5 rounded-full bg-night/80 px-1.5 py-0.5 text-[11px] font-black text-xp"><Art name="coin" size={13} />+{q.zlotki}</span>
-              </motion.button>
-            );
-          })}
-          {!daily.length && [0, 1, 2].map((i) => <Skeleton key={i} className="h-[118px]" />)}
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            onClick={() => (chest?.ready && !chest.claimed ? void claimChest() : nav('/quests'))}
-            className={cx('chest-card relative flex flex-col items-center px-1 pb-2 pt-1.5 text-center', chest?.ready && !chest.claimed && 'is-ready')}
-            aria-label={t('home_big_reward')}
-          >
-            <motion.span animate={chest?.ready && !chest.claimed ? { rotate: [0, -8, 8, -4, 0], scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 1.6, repeatDelay: 0.6 }}>
-              <Art name="gift" size={48} />
-            </motion.span>
-            <span className="text-[11px] font-black leading-tight text-white">{t('home_big_reward')}</span>
-            <span className="mt-0.5 text-[9.5px] font-bold leading-tight text-mist">
-              {chest?.claimed ? `✓ ${t('home_claimed')}` : chest?.ready ? t('home_claim') : `${chest?.done ?? 0}/${chest?.total ?? 3} · ${t('home_big_reward_d')}`}
-            </span>
-          </motion.button>
-        </div>
-      </Section>
+      <TodayTasks lessonId={next?.id} />
 
       {/* Швидкий старт */}
       <Section title={t('home_quick_start')}>
@@ -276,7 +211,8 @@ export function HomeScreen() {
       </Section>
 
       {/* Місто дня + слово дня */}
-      <div className="grid grid-cols-[1.12fr_1fr] gap-2.5 px-4">
+      {/* Без даних про міста (немає зв'язку, помилка) плитку міста ховаємо, а не тримаємо вічний скелетон. */}
+      <div className={cx('grid gap-2.5 px-4', cityOfDay || journey.isLoading ? 'grid-cols-[1.12fr_1fr]' : 'grid-cols-1')}>
         {cityOfDay ? (
           <button onClick={() => { haptic.tap(); nav('/map'); }} className="hero-card relative block h-[150px] overflow-hidden text-left">
             <CityHero slug={cityOfDay.slug} color={cityOfDay.color} name="" height={150} evening sign={false} className="absolute inset-0" />
@@ -287,9 +223,9 @@ export function HomeScreen() {
               <div className="line-clamp-2 text-[11px] font-bold leading-tight text-mist">{tr(cityOfDay.theme)}</div>
             </div>
           </button>
-        ) : (
+        ) : journey.isLoading ? (
           <Skeleton className="h-[150px]" />
-        )}
+        ) : null}
         <div className="wod-card relative h-[150px] overflow-hidden p-2.5">
           <div className="flex items-center gap-1 text-[12px] font-black text-white"><Art name="book" size={18} /> {t('home_word_of_day')}</div>
           {wod.data ? (
@@ -300,8 +236,14 @@ export function HomeScreen() {
               </div>
               <div className="mt-1 line-clamp-2 pr-10 text-[12px] font-bold leading-tight text-mist">{tr(wod.data.translations)}</div>
             </>
-          ) : (
+          ) : wod.isLoading ? (
             <Skeleton className="mt-2 h-10" />
+          ) : wod.isError || wod.isPaused ? (
+            <button className="mt-1.5 pr-12 text-left text-[12px] font-bold leading-tight text-mist" onClick={() => void wod.refetch()}>
+              {isOfflineError(wod.error) || wod.isPaused ? t('error_offline') : t('error_generic')} · <span className="text-sky">{t('error_retry')}</span>
+            </button>
+          ) : (
+            <button className="mt-1.5 pr-12 text-left text-[12px] font-bold leading-tight text-sky" onClick={() => nav('/dictionary')}>{t('home_tile_dict')} →</button>
           )}
           <span className="absolute -bottom-1 -right-1"><Art name="suitcase" size={58} /></span>
         </div>
@@ -346,6 +288,144 @@ export function HomeScreen() {
   );
 }
 
+/**
+ * «Сьогодні»: три щоденні завдання й скриня. Кожен стан окремий — завантаження, немає зв'язку,
+ * помилка з повтором, порожній день, усе виконано, — щоб на головній не висіли вічні скелетони.
+ */
+function TodayTasks({ lessonId }: { lessonId?: string }) {
+  const { t, tr } = useT();
+  const nav = useNavigate();
+  const toast = useToast();
+  const refresh = useRefreshAll();
+  const quests = useQuests();
+  const [claiming, setClaiming] = useState(false);
+  const taskAction = (slug: string) =>
+    slug === 'd-listening-5' || slug === 'd-reviews-15' ? '/practice/FIVE_MIN' : slug === 'd-dialogue-1' ? '/life' : lessonId ? `/lesson/${lessonId}` : '/learn';
+
+  const claimChest = async () => {
+    if (claiming) return;
+    setClaiming(true);
+    try {
+      const r = await api<{ xp: number; zlotki: number }>('/quests/daily-chest/claim', { body: {} });
+      haptic.success();
+      sfx.win();
+      toast(t('home_chest_got', { xp: r.xp, zl: r.zlotki }), '🎁');
+      await refresh();
+    } catch {
+      await refresh();
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const data = quests.data;
+  const daily = data?.daily.slice(0, 3) ?? [];
+  const chest = data?.chest;
+  const isDone = (status: string) => status !== 'ACTIVE' && status !== 'NEW';
+  const allDone = daily.length > 0 && daily.every((q) => isDone(q.status));
+  const hours = data ? Math.max(1, Math.ceil((new Date(data.resetsAt).getTime() - Date.now()) / 3600_000)) : 0;
+
+  let body: ReactNode;
+  if (!data) {
+    // Без даних: помилка (з повтором), запит на паузі без мережі (повториться сам), або справжнє завантаження.
+    body = quests.isError ? (
+      <TodayNote state="error" mood="sad" text={isOfflineError(quests.error) ? t('home_today_offline') : t('home_today_error')} onRetry={() => void quests.refetch()} />
+    ) : quests.isPaused ? (
+      <TodayNote state="offline" mood="sleep" text={t('home_today_offline')} />
+    ) : (
+      <div className="grid grid-cols-4 gap-2" data-today="loading" aria-busy="true">
+        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[118px]" />)}
+      </div>
+    );
+  } else if (!daily.length) {
+    body = (
+      <TodayNote
+        state="empty"
+        mood="think"
+        text={t('home_today_empty')}
+        action={<button className="mt-1.5 text-sm font-black text-sky" onClick={() => nav(lessonId ? `/lesson/${lessonId}` : '/learn')}>{t('home_continue_lesson')} →</button>}
+      />
+    );
+  } else {
+    body = (
+      <>
+        <div className="relative grid grid-cols-4 gap-2" data-today={allDone ? 'done' : 'active'}>
+          <div className="pointer-events-none absolute left-[8%] right-[33%] top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-brand/70 to-sky/40" />
+          {daily.map((q, i) => {
+            const done = isDone(q.status);
+            return (
+              <motion.button
+                key={q.slug}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 * i }}
+                onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
+                className={cx('task-card relative flex flex-col items-center gap-1 px-1 pb-2 pt-3 text-center', done && 'is-done')}
+              >
+                <span className={cx('absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full border-2', done ? 'border-brand bg-brand text-night' : 'border-white/40')}>
+                  {done && <Icon name="check" size={12} strokeWidth={3.2} />}
+                </span>
+                <Art name={TASK_ART[q.slug] ?? 'star'} size={40} />
+                <span className="line-clamp-2 min-h-[28px] text-[11.5px] font-black leading-tight">{tr(q.title)}</span>
+                <span className="on-dark flex items-center gap-0.5 rounded-full bg-night/80 px-1.5 py-0.5 text-[11px] font-black text-xp"><Art name="coin" size={13} />+{q.zlotki}</span>
+              </motion.button>
+            );
+          })}
+          {/* Якщо сервер віддав менше трьох завдань — порожні клітинки замість скелетонів. */}
+          {Array.from({ length: 3 - daily.length }, (_, i) => <div key={`gap-${i}`} aria-hidden />)}
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            onClick={() => (chest?.ready && !chest.claimed ? void claimChest() : nav('/quests'))}
+            className={cx('chest-card relative flex flex-col items-center px-1 pb-2 pt-1.5 text-center', chest?.ready && !chest.claimed && 'is-ready')}
+            aria-label={t('home_big_reward')}
+          >
+            <motion.span animate={chest?.ready && !chest.claimed ? { rotate: [0, -8, 8, -4, 0], scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 1.6, repeatDelay: 0.6 }}>
+              <Art name="gift" size={48} />
+            </motion.span>
+            <span className="text-[11px] font-black leading-tight text-white">{t('home_big_reward')}</span>
+            <span className="mt-0.5 text-[9.5px] font-bold leading-tight text-mist">
+              {chest?.claimed ? `✓ ${t('home_claimed')}` : chest?.ready ? t('home_claim') : `${chest?.done ?? 0}/${chest?.total ?? daily.length} · ${t('home_big_reward_d')}`}
+            </span>
+          </motion.button>
+        </div>
+        {allDone && (
+          <p className="mt-2 flex items-center gap-1.5 text-[12.5px] font-bold leading-tight" role="status">
+            <Icon name="check" size={15} strokeWidth={3} className="shrink-0 text-brand" />
+            <span>{t('home_today_done')} <span className="muted">{t('home_today_next', { h: hours })}</span></span>
+          </p>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <Section title={t('home_today')} action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => nav('/quests')}>{t('home_all_tasks')} <Icon name="arrow-right" size={16} /></button>}>
+      {body}
+    </Section>
+  );
+}
+
+/** Компактне повідомлення в секції головної: бобер, текст і, за потреби, дія або повтор. */
+function TodayNote({ state, mood, text, action, onRetry }: { state?: string; mood: BeaverMood; text: string; action?: ReactNode; onRetry?: () => void }) {
+  const { t } = useT();
+  return (
+    <div className="card flex items-center gap-3 p-3" data-today={state} role="status">
+      <Beaver mood={mood} size={64} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-bold leading-snug">{text}</p>
+        {action}
+        {onRetry && (
+          <button className="btn btn-primary mt-2 !min-h-[38px] !px-4 text-sm" onClick={onRetry}>
+            {t('error_retry')}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Місія дня: перша ще не пройдена місія (або по черзі, якщо пройдено всі) + паспорт і досягнення. */
 function DailyMission() {
   const { t } = useT();
@@ -356,7 +436,13 @@ function DailyMission() {
   const pick = list.find((m) => m.inProgress !== null) ?? list.find((m) => !m.completions) ?? list[day % Math.max(1, list.length)];
   return (
     <Section title={t('life_daily')} action={<button className="text-sm font-black text-pl-red" onClick={() => nav('/life')}>{t('home_all_missions')}</button>}>
-      {pick ? <MissionCard m={pick} compact onOpen={() => nav(`/life/${pick.slug}`)} /> : <Skeleton className="h-40" />}
+      {pick ? (
+        <MissionCard m={pick} compact onOpen={() => nav(`/life/${pick.slug}`)} />
+      ) : q.isLoading ? (
+        <Skeleton className="h-40" />
+      ) : q.isError || q.isPaused ? (
+        <TodayNote mood="sad" text={isOfflineError(q.error) || q.isPaused ? t('error_offline') : t('error_generic')} onRetry={q.isError ? () => void q.refetch() : undefined} />
+      ) : null}
       <div className="mt-3 grid grid-cols-2 gap-3">
         <button onClick={() => { haptic.tap(); nav('/passport'); }} className="card flex items-center gap-2.5 p-3 text-left active:scale-[0.98]">
           <Item name="map" size={40} />

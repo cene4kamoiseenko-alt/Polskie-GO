@@ -1,5 +1,5 @@
 /** Базові компоненти дизайн-системи. */
-import { AnimatePresence, motion } from '../lib/motion';
+import { AnimatePresence, motion, useDragControls } from '../lib/motion';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
@@ -83,10 +83,16 @@ export function EmptyState({ text, action }: { text: string; action?: ReactNode 
   );
 }
 
+/** Помилка через відсутність зв'язку (а не через сервер). */
+export function isOfflineError(error: unknown) {
+  const code = (error as { code?: string } | null)?.code;
+  return (typeof navigator !== 'undefined' && !navigator.onLine) || code === 'network_timeout' || code === 'network_error';
+}
+
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useT();
   const code = (error as { code?: string } | null)?.code;
-  const offline = (typeof navigator !== 'undefined' && !navigator.onLine) || code === 'network_timeout' || code === 'network_error';
+  const offline = isOfflineError(error);
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
       <Beaver mood="sad" size={120} />
@@ -146,29 +152,71 @@ export function useBackButton(onBack: (() => void) | null) {
   }, [onBack]);
 }
 
-/** Нижня шторка. */
-export function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
-  useBackButton(open ? onClose : null);
+/**
+ * Нижня шторка. Жест закриття і прокрутка розділені: тягнути вниз можна лише за верхню смугу з ручкою
+ * (drag запускається вручну через dragControls), а вміст — окремий контейнер прокрутки з touch-action: pan-y.
+ * Раніше drag="y" і overflow-y-auto були на одному елементі: framer-motion ставить йому touch-action: pan-x,
+ * і на сенсорному екрані вертикальний жест рухав шторку замість прокрутки — нижні теми міста були недосяжні.
+ * footer — дія, що завжди видима над нижнім краєм (не перекриває вміст і не ховається за прокруткою).
+ */
+export function Sheet({ open, onClose, children, footer, label }: { open: boolean; onClose: () => void; children: ReactNode; footer?: ReactNode; label?: string }) {
+  const { t } = useT();
+  const drag = useDragControls();
+  // Стабільний обробник: екрани передають onClose стрілкою, а BackButton і слухачі не мають перевішуватися на кожен рендер.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const close = useCallback(() => closeRef.current(), []);
+  useBackButton(open ? close : null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, close]);
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50">
-          <motion.div className="absolute inset-0 bg-black/45" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={label}>
+          <motion.div className="absolute inset-0 touch-none bg-black/45" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} />
           <motion.div
-            className="safe-bottom absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[28px] px-5 pt-3"
+            data-sheet
+            className="sheet-panel absolute inset-x-0 bottom-0 flex flex-col rounded-t-[28px]"
             style={{ background: 'var(--bg)' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
             drag="y"
+            dragListener={false}
+            dragControls={drag}
             dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.6 }}
-            onDragEnd={(_, info) => info.offset.y > 120 && onClose()}
+            dragElastic={{ top: 0, bottom: 1 }}
+            dragMomentum={false}
+            onDragEnd={(_, info) => (info.offset.y > 90 || info.velocity.y > 600) && close()}
           >
-            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full" style={{ background: 'var(--border)' }} />
-            {children}
-            <div className="h-3" />
+            <div data-sheet-grip className="relative flex h-11 shrink-0 cursor-grab touch-none items-start justify-center pt-2.5 active:cursor-grabbing" onPointerDown={(e) => drag.start(e)}>
+              <span className="h-1.5 w-12 rounded-full" style={{ background: 'var(--border)' }} />
+              <button
+                type="button"
+                data-sheet-close
+                aria-label={t('close')}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={close}
+                className="absolute right-3 top-1.5 grid h-9 w-9 place-items-center rounded-full bg-elev text-[var(--text-muted)] shadow-[var(--shadow-card)] active:scale-95"
+              >
+                <Icon name="x" size={18} strokeWidth={2.6} />
+              </button>
+            </div>
+            <div data-sheet-scroll className={cx('min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 [touch-action:pan-y]', footer ? 'pb-3' : 'safe-bottom')}>
+              {children}
+              {!footer && <div className="h-3" />}
+            </div>
+            {footer && <div data-sheet-footer className="safe-bottom shrink-0 border-t border-[var(--border)] px-5 pt-3">{footer}</div>}
           </motion.div>
         </div>
       )}
