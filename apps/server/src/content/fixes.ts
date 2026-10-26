@@ -79,6 +79,22 @@ export const TEXT_FIXES: TextFix[] = [
       'The final Warsaw exam. You need **70%** correct answers.\nReview introductions and magic words, tickets and the metro, prices, finding your way in the Old Town, ordering at a café and chatting with neighbours. Powodzenia! (Good luck!)',
     ),
   },
+  // Лодзь, друге розширення (уроки 9–16): іспит охоплює нові теми; пояснення без роду («Перевір усе з Лодзі»).
+  {
+    table: 'city_routes', slug: 'lodz-egzamin', column: 'description',
+    from: t('Звуки, być і oni/one', 'Звуки, być и oni/one', 'Sounds, być and oni/one'),
+    to: t('Звуки, być, робота, час і здоров\'я', 'Звуки, być, работа, время и здоровье', 'Sounds, być, work, time and health'),
+  },
+  {
+    table: 'lessons', slug: 'lodz-boss', column: 'topic',
+    from: t('Звуки, професії, oni/one', 'Звуки, профессии, oni/one', 'Sounds, jobs, oni/one'),
+    to: t('Звуки, професії, oni/one, графік, час, здоров\'я', 'Звуки, профессии, oni/one, график, время, здоровье', 'Sounds, jobs, oni/one, rotas, time, health'),
+  },
+  {
+    table: 'lessons', slug: 'lodz-boss', column: 'explanation',
+    from: t('Перевір усе, що вивчив у Лодзі: літери, наголос, być + орудний відмінок, oni / one.', 'Проверь всё, что изучил в Лодзи: буквы, ударение, być + творительный падеж, oni / one.', 'Check everything from Łódź: letters, stress, być + instrumental, oni / one.'),
+    to: t('Перевір усе з Лодзі: літери, наголос, być + орудний відмінок, oni / one, робота й графік, котра година, ранок, самопочуття, поліклініка й аптека.', 'Проверь всё из Лодзи: буквы, ударение, być + творительный падеж, oni / one, работа и график, который час, утро, самочувствие, поликлиника и аптека.', 'Check everything from Łódź: letters, stress, być + instrumental, oni / one, work and rotas, telling the time, mornings, health, the clinic and the pharmacy.'),
+  },
 ];
 
 export const LESSON_MOVES: LessonMove[] = [

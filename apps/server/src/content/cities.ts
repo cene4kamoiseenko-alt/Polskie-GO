@@ -32,7 +32,7 @@ export const CITIES: CitySeed[] = [
   { slug: 'warszawa', namePl: 'Warszawa', name: t('Варшава', 'Варшава', 'Warsaw'), theme: t('Знайомство, транспорт і перші справи', 'Знакомство, транспорт и первые дела', 'Introductions, transport & first errands'),
     description: t('Столиця Польщі, де живе Варшавська Сирена. Тут починається твоя подорож!', 'Столица Польши, где живёт Варшавская Русалка. Здесь начинается твоё путешествие!', 'The capital, home of the Warsaw Mermaid. Your journey starts here!'),
     cefr: 'A1', lon: 21.01, lat: 52.23, emoji: '🧜‍♀️', color: '#E5484D' },
-  { slug: 'lodz', namePl: 'Łódź', name: t('Лодзь', 'Лодзь', 'Łódź'), theme: t('Звуки, літери й професії', 'Звуки, буквы и профессии', 'Sounds, letters & jobs'),
+  { slug: 'lodz', namePl: 'Łódź', name: t('Лодзь', 'Лодзь', 'Łódź'), theme: t('Звуки, робота, час і здоров\'я', 'Звуки, работа, время и здоровье', 'Sounds, work, time & health'),
     description: t('Колишня фабрична столиця з вулицею Пйотрковською.', 'Бывшая фабричная столица с улицей Пётрковской.', 'The former factory capital with Piotrkowska Street.'),
     cefr: 'A1', lon: 19.46, lat: 51.76, emoji: '🏭', color: '#EB5757' },
   { slug: 'krakow', namePl: 'Kraków', name: t('Краків', 'Краков', 'Kraków'), theme: t('Вокзал, покупки й місто', 'Вокзал, покупки и город', 'Station, shopping & the city'),

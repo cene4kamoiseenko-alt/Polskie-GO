@@ -5,9 +5,11 @@
  */
 import { t, wordChoice, reverseChoice, fillGap, listen, findError, oddOne, reading, translate, grammar, dictation, build, match, speak, dialogue } from './builders';
 import { LODZ_5, LODZ_6, LODZ_7, LODZ_8 } from './lodz-praca';
+import { LODZ_9, LODZ_10, LODZ_11, LODZ_12, LODZ_13, LODZ_14, LODZ_15, LODZ_16 } from './lodz-zycie';
 import type { CityContent } from './types';
 
 const KASIA = { name: 'Kasia', emoji: '👩🏼', role: t('студентка з Лодзі', 'студентка из Лодзи', 'a student from Łódź') };
+const BOSS_ROTA = 'Grafik na przyszły tydzień: poniedziałek i wtorek — druga zmiana, 14:00–22:00. Środa — dzień wolny. Czwartek i piątek — pierwsza zmiana, 6:00–14:00. Kto chce się zamienić, pisze do pana Tomasza.';
 const MAREK = { name: 'Pan Marek', emoji: '👨🏻', role: t('сусід', 'сосед', 'a neighbour') };
 
 export const LODZ: CityContent = {
@@ -57,6 +59,8 @@ export const LODZ: CityContent = {
             dictation('pronunciation.letters', 'góra', t('гора', 'гора', 'mountain'), ['Góra']),
             dictation('pronunciation.letters', 'łóżko', t('ліжко', 'кровать', 'bed'), ['Łóżko']),
             speak('speaking.letters', 'Łóżko jest duże', t('Ліжко велике', 'Кровать большая', 'The bed is big')),
+            listen('pronunciation.letters', 'źle', ['źle', 'żle', 'zle'],
+              t('**ź** — м\'яке «зь»: **źle** — погано; **ż** — тверде «ж», **z** — «з».', '**ź** — мягкое «зь»: **źle** — плохо; **ż** — твёрдое «ж», **z** — «з».', '**ź** is a soft "zh": **źle** — badly; **ż** is a hard "zh", **z** is "z".')),
           ],
         },
         {
@@ -160,6 +164,7 @@ export const LODZ: CityContent = {
             translate('writing.narzednik', t('Я студент.', 'Я студент.', 'I am a student.'), ['Jestem studentem', 'Ja jestem studentem', 'Jestem studentką', 'Ja jestem studentką'],
               t('Можна без «ja»: **Jestem studentem** (жінка — **studentką**).', 'Можно без «ja»: **Jestem studentem** (женщина — **studentką**).', 'Without "ja": **Jestem studentem** (a woman: **studentką**).')),
             speak('speaking.narzednik', 'Jestem programistą', t('Я програміст', 'Я программист', 'I\'m a programmer')),
+            listen('listening.zawody', 'Mój tata jest kierowcą', ['Mój tata jest kierowcą', 'Mój tata jest lekarzem', 'Moja mama jest kierowcą']),
           ],
         },
         {
@@ -205,6 +210,8 @@ export const LODZ: CityContent = {
             translate('writing.oni', t('Вони (Петро й Анна) вдома.', 'Они (Пётр и Анна) дома.', 'They (Piotr and Anna) are at home.'), ['Oni są w domu', 'Są w domu'],
               t('Є чоловік — **oni**: Oni są w domu.', 'Есть мужчина — **oni**: Oni są w domu.', 'A man is present — **oni**.')),
             speak('speaking.oni', 'One są w szkole, a oni są w pracy', t('Вони (жінки) в школі, а вони (чоловіки) на роботі', 'Они (женщины) в школе, а они (мужчины) на работе', 'They (f) are at school and they (m) are at work')),
+            reverseChoice('grammar.oni', t('Вони (Оля й Марек) з Польщі.', 'Они (Оля и Марек) из Польши.', 'They (Ola and Marek) are from Poland.'), ['Oni są z Polski', 'One są z Polski', 'Ono jest z Polski'],
+              t('У групі є чоловік (Marek) — **oni**.', 'В группе есть мужчина (Marek) — **oni**.', 'There\'s a man in the group (Marek), so **oni**.')),
           ],
         },
       ],
@@ -217,19 +224,40 @@ export const LODZ: CityContent = {
       lessons: [LODZ_5, LODZ_6, LODZ_7, LODZ_8],
     },
     {
+      slug: 'lodz-dzien',
+      title: t('День і графік', 'День и график', 'Your day and your rota'),
+      description: t('Котра година, ранок, зміни, зарплата, відпустка', 'Который час, утро, смены, зарплата, отпуск', 'Telling the time, mornings, shifts, pay and leave'),
+      icon: 'quests',
+      lessons: [LODZ_9, LODZ_10, LODZ_11, LODZ_12],
+    },
+    {
+      slug: 'lodz-zdrowie',
+      title: t('Здоров\'я', 'Здоровье', 'Health'),
+      description: t('Що болить, поліклініка й аптека', 'Что болит, поликлиника и аптека', 'What hurts, the clinic and the pharmacy'),
+      icon: 'house',
+      lessons: [LODZ_13, LODZ_14, LODZ_15],
+    },
+    {
+      slug: 'lodz-powtorka',
+      title: t('Повторення: вечір у Лодзі', 'Повторение: вечер в Лодзи', 'Review: an evening in Łódź'),
+      description: t('Домовитися про зустріч і повторити все місто', 'Договориться о встрече и повторить весь город', 'Arrange to meet and review the whole city'),
+      icon: 'explore',
+      lessons: [LODZ_16],
+    },
+    {
       slug: 'lodz-egzamin',
       title: t('Іспит Лодзі', 'Экзамен Лодзи', 'Łódź exam'),
-      description: t('Звуки, być і oni/one', 'Звуки, być и oni/one', 'Sounds, być and oni/one'),
+      description: t('Звуки, być, робота, час і здоров\'я', 'Звуки, być, работа, время и здоровье', 'Sounds, być, work, time and health'),
       icon: 'achievements',
       lessons: [
         {
           slug: 'lodz-boss',
           kind: 'BOSS',
           title: t('Бос: Вечір на Пйотрковській', 'Босс: Вечер на Пётрковской', 'Boss: An evening on Piotrkowska'),
-          topic: t('Звуки, професії, oni/one', 'Звуки, профессии, oni/one', 'Sounds, jobs, oni/one'),
+          topic: t('Звуки, професії, oni/one, графік, час, здоров\'я', 'Звуки, профессии, oni/one, график, время, здоровье', 'Sounds, jobs, oni/one, rotas, time, health'),
           cefr: 'A1',
           difficulty: 3,
-          explanation: t('Перевір усе, що вивчив у Лодзі: літери, наголос, być + орудний відмінок, oni / one.', 'Проверь всё, что изучил в Лодзи: буквы, ударение, być + творительный падеж, oni / one.', 'Check everything from Łódź: letters, stress, być + instrumental, oni / one.'),
+          explanation: t('Перевір усе з Лодзі: літери, наголос, być + орудний відмінок, oni / one, робота й графік, котра година, ранок, самопочуття, поліклініка й аптека.', 'Проверь всё из Лодзи: буквы, ударение, być + творительный падеж, oni / one, работа и график, который час, утро, самочувствие, поликлиника и аптека.', 'Check everything from Łódź: letters, stress, być + instrumental, oni / one, work and rotas, telling the time, mornings, health, the clinic and the pharmacy.'),
           examples: [],
           words: [],
           exercises: [
@@ -257,6 +285,25 @@ export const LODZ: CityContent = {
             translate('writing.boss', t('Вона вчителька.', 'Она учительница.', 'She is a teacher.'), ['Ona jest nauczycielką', 'Jest nauczycielką']),
             dictation('pronunciation.boss', 'Nie mam czasu', t('Не маю часу', 'Нет времени', 'I have no time'), ['Nie mam czasu.']),
             speak('speaking.boss', 'Jestem studentem i mieszkam w Łodzi', t('Я студент і живу в Лодзі', 'Я студент и живу в Лодзи', 'I\'m a student and I live in Łódź')),
+            // Друге розширення: час, ранок, графік, здоров'я (уроки 9–16).
+            match('grammar.boss', [
+              ['kwadrans po ósmej', t('8:15')],
+              ['wpół do dziewiątej', t('8:30')],
+              ['za kwadrans dziewiąta', t('8:45')],
+              ['dziewiąta', t('9:00')],
+            ]),
+            grammar('grammar.boss', 'Codziennie ___ się o szóstej.', 'budzić', ['budzę'],
+              t('Щодня я прокидаюся о шостій.', 'Каждый день я просыпаюсь в шесть.', 'I wake up at six every day.'),
+              t('ja → **budzę się**.', 'ja → **budzę się**.', 'ja → **budzę się**.')),
+            reading('reading.boss', BOSS_ROTA, t('Коли вихідний?', 'Когда выходной?', 'When is the day off?'),
+              [t('У середу', 'В среду', 'On Wednesday'), t('У понеділок', 'В понедельник', 'On Monday'), t('У п\'ятницю', 'В пятницу', 'On Friday')],
+              t('**Środa — dzień wolny.**', '**Środa — dzień wolny.**', '**Środa — dzień wolny.** — Wednesday is the day off.')),
+            listen('listening.boss', 'Bolą mnie plecy i mam gorączkę', ['Bolą mnie plecy i mam gorączkę', 'Boli mnie głowa i mam gorączkę', 'Bolą mnie plecy i mam katar']),
+            fillGap('grammar.boss', 'Mam zwolnienie lekarskie do ___.', ['środy', 'środa', 'środę'],
+              t('У мене лікарняний до середи.', 'У меня больничный до среды.', 'I\'m on sick leave until Wednesday.'),
+              t('**do** + родовий: środa → **do środy**.', '**do** + родительный: środa → **do środy**.', '**do** + genitive: środa → **do środy**.')),
+            translate('writing.boss', t('Дайте, будь ласка, щось від головного болю.', 'Дайте, пожалуйста, что-нибудь от головной боли.', 'Something for a headache, please.'), ['Poproszę coś na ból głowy', 'Proszę coś na ból głowy'],
+              t('**coś na ból głowy** — польською «на біль голови».', '**coś na ból głowy** — по-польски «на боль головы».', '**coś na ból głowy**.')),
           ],
         },
       ],

@@ -1,19 +1,24 @@
 /**
- * Уроки міст до розширення курсу. Хто пройшов їх усі, зберігає доступ до іспиту міста, навіть якщо після
+ * Уроки міст до розширень курсу: для кожного розширення — повний список звичайних уроків, що були до нього.
+ * Хто пройшов усі уроки будь-якого такого знімка, зберігає доступ до іспиту міста, навіть якщо після
  * розширення в місті з'явилися нові уроки: оновлення не закриває вже заслужений іспит.
  * Нові уроки лишаються доступними для проходження; відкриті міста (user_cities) не змінюються.
  */
-export const LEGACY_CITY_LESSONS: Record<string, string[]> = {
-  warszawa: ['waw-1-czesc', 'waw-2-uprzejmosc', 'waw-3-imie', 'waw-4-skad', 'waw-5-liczby', 'waw-6-wiek'],
-  krakow: ['krk-1-rodzina', 'krk-2-mam', 'krk-3-dom', 'krk-4-tydzien', 'krk-5-byc'],
-  lodz: ['lodz-1-alfabet', 'lodz-2-dwuznaki', 'lodz-3-zawody', 'lodz-4-oni-one'],
+const LODZ_1_4 = ['lodz-1-alfabet', 'lodz-2-dwuznaki', 'lodz-3-zawody', 'lodz-4-oni-one'];
+const LODZ_5_8 = ['lodz-5-gdzie-pracujesz', 'lodz-6-szukam-pracy', 'lodz-7-rozmowa', 'lodz-8-pierwszy-dzien'];
+
+export const LEGACY_CITY_LESSONS: Record<string, string[][]> = {
+  warszawa: [['waw-1-czesc', 'waw-2-uprzejmosc', 'waw-3-imie', 'waw-4-skad', 'waw-5-liczby', 'waw-6-wiek']],
+  krakow: [['krk-1-rodzina', 'krk-2-mam', 'krk-3-dom', 'krk-4-tydzien', 'krk-5-byc']],
+  // Лодзь: до теми «Praca w Łodzi» (уроки 1–4) і до тем про графік, здоров'я та день (уроки 1–8).
+  lodz: [LODZ_1_4, [...LODZ_1_4, ...LODZ_5_8]],
 };
 
 /**
  * Міста, де старі уроки рахуються, лише якщо пройдені ДО розширення (раніше за created_at першого нового
- * уроку міста): хто проходить їх після розширення, відкриває іспит звичайним квитком.
+ * уроку, якого немає в знімку): хто проходить їх після розширення, відкриває іспит звичайним квитком.
  * Варшава й Краків лишаються на правилі 3.x (старі уроки в будь-який час): за ним іспит уже відкрився тим,
  * хто пройшов їх після тодішнього розширення, і нове правило не має його закривати.
- * Розширення Лодзі (тема lodz-praca) — 2026-10.
+ * Розширення Лодзі: тема lodz-praca (уроки 5–8) і теми уроків 9–16 — обидва 2026-10.
  */
 export const LEGACY_BEFORE_EXPANSION: ReadonlySet<string> = new Set(['lodz']);

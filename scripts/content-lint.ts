@@ -134,6 +134,7 @@ const PLAIN_OK: Record<string, string[]> = {
   ],
   '3-тя особа однини (on/ona/Kuba/Bobek …): chce, pije, kupuje, zostaje; форма на -ę — це 1-ша особа': [
     'exam-a1#3 chce', 'waw-f4-misja#3 chce', 'wro-4-restauracja#4 chce', 'waw-f3-gusty#9 pije', 'waw-f3-gusty#10 pije', 'kat-4-te-ta#0 kupuje', 'lodz-1-alfabet#0 zostaje',
+    'lodz-10-poranek#6 pije', 'lodz-16-plany#5 zostaje', 'lodz-16-plany#6 zostaje', 'lodz-boss#14 chce',
   ],
   'Навмисний неправильний варіант на відмінок (називний замість знахідного чи орудного); правильна відповідь — інший варіант': [
     'waw-f1-kawa#4 cytryna', 'krk-z1-produkty#7 woda', 'krk-z1-produkty#14 woda', 'krk-z5-misja#3 woda', 'krk-z5-misja#5 woda', 'krk-re2-zamawianie#4 pomidorowa',
@@ -183,10 +184,17 @@ const norm = (v: any): any => {
   if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).filter(([k]) => !['id', 'answer', 'l', 'r'].includes(k)).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, norm(x)]));
   return v;
 };
+// Текст поля або undefined, якщо поля немає: інакше `??` зупинявся на порожньому рядку, і запит ODD_ONE_OUT / READING /
+// SENTENCE_TRANSLATION завжди був «» — у групу потрапляли будь-які завдання з тією самою відповіддю (аудит 2026-10-26).
+const field = (x: unknown): string | undefined => (typeof x === 'string' ? x : x && typeof x === 'object' && 'uk' in (x as object) ? (x as I18n).uk : undefined);
 const promptOf = (r: Ref): string => {
   const d = r.ex.data;
   const ans = Array.isArray(d.options) ? txt(d.options.find((o: any) => o.id === d.answer)?.text) : Array.isArray(d.accepted) ? d.accepted[0] : Array.isArray(d.answer) ? d.answer.join(' ') : d.text ?? '';
-  const prompt = d.pl ?? d.audioText ?? txt(d.translation) ?? txt(d.source) ?? txt(d.question) ?? d.text ?? '';
+  // «Знайди зайве» — це критерій разом із набором слів; «читання» — текст разом із питанням.
+  const prompt =
+    r.ex.type === 'ODD_ONE_OUT' ? `${field(d.question) ?? ''} [${d.options.map((o: any) => normalize(txt(o.text))).sort().join(', ')}]`
+    : r.ex.type === 'READING' ? `${d.passage} ⟶ ${field(d.question) ?? ''}`
+    : d.pl ?? d.audioText ?? field(d.translation) ?? field(d.source) ?? field(d.question) ?? d.text ?? d.image ?? '';
   return `${r.ex.type}|${normalize(String(prompt))}|${normalize(String(ans))}`;
 };
 const groups = new Map<string, Ref[]>();

@@ -15,6 +15,7 @@ const WAW = ['waw-1-czesc', 'waw-2-uprzejmosc', 'waw-3-imie', 'waw-4-skad', 'waw
 const KRK = ['krk-1-rodzina', 'krk-2-mam', 'krk-3-dom', 'krk-4-tydzien', 'krk-5-byc'];
 const LODZ_OLD = ['lodz-1-alfabet', 'lodz-2-dwuznaki', 'lodz-3-zawody', 'lodz-4-oni-one'];
 const LODZ_NEW = ['lodz-5-gdzie-pracujesz', 'lodz-6-szukam-pracy', 'lodz-7-rozmowa', 'lodz-8-pierwszy-dzien'];
+const LODZ_9_16 = ['lodz-9-ktora-godzina', 'lodz-10-poranek', 'lodz-11-grafik', 'lodz-12-urlop', 'lodz-13-boli-mnie', 'lodz-14-przychodnia', 'lodz-15-apteka', 'lodz-16-plany'];
 
 async function openCity(userId: string, slug: string) {
   const city = (await db.query.cities.findFirst({ where: eq(cities.slug, slug) }))!;
@@ -88,6 +89,28 @@ describe('Доступ до іспиту за старими уроками (leg
     const city = await cityOf(after.call, 'lodz');
     expect(city.bossAvailable).toBe(false);
     expect(city.routes.flatMap((r) => r.lessons).find((l) => l.slug === LODZ_NEW[0])!.state).toBe('available');
+  });
+
+  it('Лодзь, друге розширення: уроки 1–8 до появи 9–16 відкривають іспит, після — ні; дев\'ятий урок відкритий', async () => {
+    const at = await expandedAt(LODZ_9_16);
+    const before = await login();
+    await openCity(before.user.id, 'lodz');
+    await completedAt(before.user.id, [...LODZ_OLD, ...LODZ_NEW], new Date(at.getTime() - 86_400_000));
+    const opened = await cityOf(before.call, 'lodz');
+    expect(opened.bossAvailable).toBe(true);
+    expect(bossOf(opened).state).toBe('available');
+    const lessonsOf = (c: City) => c.routes.flatMap((r) => r.lessons);
+    expect(lessonsOf(opened).find((l) => l.slug === LODZ_9_16[0])!.state).toBe('available');
+    expect(lessonsOf(opened).find((l) => l.slug === LODZ_9_16[1])!.state).toBe('locked');
+    resetRateLimits();
+    expect((await before.call('POST', '/api/sessions', { lessonId: bossOf(opened).id })).status).toBe(200);
+
+    const after = await login();
+    await openCity(after.user.id, 'lodz');
+    await completedAt(after.user.id, [...LODZ_OLD, ...LODZ_NEW], new Date(at.getTime() + 60_000));
+    const city = await cityOf(after.call, 'lodz');
+    expect(city.bossAvailable).toBe(false);
+    expect(lessonsOf(city).find((l) => l.slug === LODZ_9_16[0])!.state).toBe('available');
   });
 
   it('повторне проходження старого уроку не забирає доступ і не зсуває дату першого проходження', async () => {
