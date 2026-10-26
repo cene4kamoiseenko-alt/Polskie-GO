@@ -315,19 +315,19 @@ E2E «один образ на всех экранах» сравнивает `d
    - `packages/shared/src/look/*` и тесты.
    - Строка экспорта в `packages/shared/src/index.ts`.
    - В web и server ничего не подключено.
-2. **M1 — «персонаж» (web).**
+2. **M1 — «персонаж» (web).** Сделано: `apps/web/src/lib/look.ts`, `components/Beaver.tsx` (`Beaver`, `BeaverLook`), QA-галерея `/__gallery` (только dev-сборка), e2e L1 «один образ на всех экранах» и L2 «вещь без визуала».
    - Новый компонент рендера `ResolvedLook` и хук `useLook`.
    - Все вызовы `<Beaver` переходят на `mood/size/view`: 57 строк в 22 файлах по `grep` на момент ADR (в handoff указано 47 — считались иначе).
    - Векторное тело и `vectorOnly` убираются из пути рендера.
    - Убираются подмены в `Exams`, `Lesson`, `Premium`, `Onboarding`, `Profile` и `ItemPreview`.
    - Бобёр на карте — HTML-слой поверх SVG или `<image>` в SVG, без вложенного SVG 0×0.
    - `apps/server/test/asset-selection.test.js` заменяется тестами ядра.
-3. **M2 — «экраны» (гардероб).**
+3. **M2 — «экраны» (гардероб).** В работе (V9, этап 3). Отклонение: значки вещей в карточках (`BeaverPart`) остаются — это пиктограмма товара, а не персонаж; на Бобеке они не рисуются. Живописные значки заменят их вместе со слоями.
    - Примерка через `tryOn`.
    - Метки «скоро» по `visualStatusOf`.
    - Список «снимется: …» из `removed`.
    - Карточки предметов — сцена костюма или карточка «скоро» вместо SVG-деталей `BeaverPart`.
-4. **M3 — сервер.**
+4. **M3 — сервер.** Сделано: `2a30c6e`, ADR-007 в `docs/ARCHITECTURE_DECISIONS.md`, тесты `apps/server/test/shop-look.test.ts`.
    - `equipItem` использует `equip()`.
    - `buyItem` использует `canPurchase` (блокировка `pending` — решение владельца).
    - Формат `outfit` не меняется.
