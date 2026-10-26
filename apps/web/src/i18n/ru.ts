@@ -763,6 +763,8 @@ export const ru: Dict = {
   wardrobe_traveller: "Путешественник",
   wardrobe_go_mission: "К миссии",
   wardrobe_take_off: "Снять костюм",
+  look_visual_pending: "Визуал готовится",
+  err_visual_pending: "Эту вещь ещё рисуют — купить можно будет, как только она появится. Złotki не списаны.",
   unlock_mission: "Пройди миссию «{title}»",
   unlock_city: "Сдай экзамен города {title}",
   unlock_achievement: "Достижение «{title}»",

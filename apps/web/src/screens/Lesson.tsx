@@ -213,7 +213,7 @@ export default function LessonScreen() {
                 {session.place.cityName} · {tr(session.place.routeTitle)}
               </div>
             )}
-            <div className="absolute bottom-0 left-1 -mb-3"><Beaver mood="explain" size={124} outfit={me?.outfit.wear} /></div>
+            <div className="absolute bottom-0 left-1 -mb-3"><Beaver mood="explain" size={124} /></div>
           </div>
           <div>
             <div className="mb-1.5 flex flex-wrap gap-1.5">
@@ -281,7 +281,7 @@ export default function LessonScreen() {
     return (
       <div className="grid min-h-[100dvh] place-items-center">
         <div className="flex flex-col items-center gap-3">
-          <Beaver mood="think" size={140} outfit={me?.outfit.wear} />
+          <Beaver mood="think" size={140} />
           <div className="font-black">{t('lesson_finishing')}</div>
         </div>
       </div>
@@ -341,7 +341,6 @@ export default function LessonScreen() {
               evening={session.lesson?.kind === 'BOSS' || isMissionSlug(session.lesson?.slug)}
               mood={stageMood}
               place={session.place?.cityName}
-              outfit={me?.outfit.wear}
             />
             {/* Заголовок завдання мовою інтерфейсу (на сцені Бобек говорить польською) */}
             <div className="mb-4 mt-4 text-center">
@@ -494,7 +493,6 @@ function Stat({ icon, label, value, color, delay = 0 }: { icon: LineIconName; la
 function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) {
   const { t, tr } = useT();
   const nav = useNavigate();
-  const me = useMe().data;
   const journey = useJourney();
   const [levelModal, setLevelModal] = useState(!!r.levelUp);
   const boss = session.lesson?.kind === 'BOSS';
@@ -523,7 +521,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
       <XpBurst from={beaverRef} target={xpRef} run={burst && r.xp > 0} onArrive={() => setPulse((p) => p + 1)} />
       <div className="flex flex-1 flex-col items-center gap-4 text-center">
         <div ref={beaverRef}>
-          <Beaver mood={r.passed ? 'celebrate' : 'sad'} size={170} outfit={me?.outfit.wear} />
+          <Beaver mood={r.passed ? 'celebrate' : 'sad'} size={170} />
         </div>
         <h1 className={cx('text-3xl font-black', r.passed ? 'text-brand-dark' : 'text-coral-dark')}>{title}</h1>
         {!r.passed && <p className="muted font-semibold">{t('res_fail_text', { n: passRatio })}</p>}
@@ -619,7 +617,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
       </div>
 
       <Modal open={levelModal} onClose={() => setLevelModal(false)}>
-        <Beaver mood="celebrate" size={130} outfit={{ ...me?.outfit.wear, HAT: 'crown-gold' }} />
+        <Beaver mood="celebrate" size={130} />
         <h2 className="mt-2 text-2xl font-black">{t('res_level_up', { n: r.levelUp ?? '' })}</h2>
         <button className="btn btn-xp mt-4 w-full" onClick={() => setLevelModal(false)}>
           {t('continue')}

@@ -164,7 +164,14 @@ export type ShopItem = {
   unlock: { kind: 'mission' | 'city' | 'achievement' | 'quest'; title: I18n; slug?: string } | null;
   owned: boolean;
   equipped: boolean;
+  /**
+   * Живописний стан предмета (сервер, ADR-005 §12): за Złotki продаються лише `ready`, `legacy-whole-look`
+   * і `not-wearable` (домик); `pending` і `unknown` — «візуал готується», купити не можна. Вже отримані такі речі
+   * лишаються в гардеробі й надягаються, Бобек їх просто не малює. Старий сервер поля не віддає — див. shopVisualStatus.
+   */
+  visualStatus?: ShopVisualStatus;
 };
+export type ShopVisualStatus = 'ready' | 'legacy-whole-look' | 'not-wearable' | 'pending' | 'unknown';
 
 export type VocabEntry = {
   id: string;

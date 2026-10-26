@@ -763,6 +763,8 @@ export const en: Dict = {
   wardrobe_traveller: "Traveller",
   wardrobe_go_mission: "Go to mission",
   wardrobe_take_off: "Take off the outfit",
+  look_visual_pending: "Art in progress",
+  err_visual_pending: "This item is still being drawn — you can buy it as soon as it’s ready. No Złotki were charged.",
   unlock_mission: "Complete the mission “{title}”",
   unlock_city: "Pass the {title} city exam",
   unlock_achievement: "Achievement “{title}”",

@@ -8,7 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
 import { useJourney, useMe } from '../lib/queries';
 import type { JourneyLesson } from '../lib/types';
-import { Beaver, type BeaverOutfit } from '../components/Beaver';
+import { Beaver } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { CityHero } from '../components/CityHero';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, Sheet, cx } from '../components/ui';
@@ -31,7 +31,7 @@ function Connector({ from, to, done }: { from: number; to: number; done: boolean
   );
 }
 
-function LessonNode({ lesson, index, onClick, isNext, outfit }: { lesson: JourneyLesson; index: number; onClick: () => void; isNext: boolean; outfit?: BeaverOutfit }) {
+function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson; index: number; onClick: () => void; isNext: boolean }) {
   const { t, tr } = useT();
   const boss = lesson.kind === 'BOSS';
   const locked = lesson.state === 'locked';
@@ -55,7 +55,7 @@ function LessonNode({ lesson, index, onClick, isNext, outfit }: { lesson: Journe
           </motion.div>
           {/* Бобек стоїть поруч із наступним уроком — з протилежного від вигину боку. */}
           <div className="pointer-events-none absolute top-0" style={off >= 0 ? { right: '100%', marginRight: 6 } : { left: '100%', marginLeft: 6 }}>
-            <Beaver mood="wave" size={64} outfit={outfit} />
+            <Beaver mood="wave" size={64} />
           </div>
         </>
       )}
@@ -162,7 +162,7 @@ export default function LearnScreen() {
               return (
                 <div key={l.id} ref={l.id === nextId ? nextRef : undefined} className="flex flex-col items-center">
                   {li > 0 && <Connector from={i - 1} to={i} done={r.lessons[li - 1].state === 'completed'} />}
-                  <LessonNode lesson={l} index={i} isNext={l.id === nextId} outfit={me?.outfit.wear} onClick={() => { haptic.tap(); setPicked(l); }} />
+                  <LessonNode lesson={l} index={i} isNext={l.id === nextId} onClick={() => { haptic.tap(); setPicked(l); }} />
                 </div>
               );
             })}
@@ -170,7 +170,7 @@ export default function LearnScreen() {
         </section>
       ))}
       <div className="flex justify-center pb-6">
-        <Beaver mood={city.completed ? 'celebrate' : 'travel'} outfit={me?.outfit.wear} size={110} />
+        <Beaver mood={city.completed ? 'celebrate' : 'travel'} size={110} />
       </div>
 
       <Sheet open={!!picked} onClose={() => setPicked(null)}>

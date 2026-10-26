@@ -38,7 +38,7 @@ export default function HouseScreen() {
           );
         })}
         <div className="absolute bottom-[6%] left-1/2 -translate-x-1/2">
-          <Beaver size={110} outfit={me.outfit.wear} mood={new Date().getHours() >= 22 || new Date().getHours() < 6 ? 'sleep' : 'happy'} />
+          <Beaver size={110} mood={new Date().getHours() >= 22 || new Date().getHours() < 6 ? 'sleep' : 'happy'} />
         </div>
       </div>
       {placed.length <= 1 && <EmptyState text={t('house_empty')} />}

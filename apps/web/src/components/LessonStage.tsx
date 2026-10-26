@@ -6,7 +6,7 @@
 import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { memo } from 'react';
 import { NpcFace } from './pictograms/Pictogram';
-import { Beaver, type BeaverMood, type BeaverOutfit } from './Beaver';
+import { Beaver, type BeaverMood } from './Beaver';
 import { Icon, type LineIconName } from './Icon';
 import { Item, SCENE_ITEM_POOLS, Scene, type ItemName, type SceneName } from './Illustrations';
 import { CityBanner } from './Scenery';
@@ -146,10 +146,9 @@ type Props = {
   mood: StageMood;
   /** Назва міста для мітки сцени; без неї (тренування) показується механіка. */
   place?: string | null;
-  outfit?: BeaverOutfit;
 };
 
-export const LessonStage = memo(function LessonStage({ item, index, routeSlug, citySlug, color = '#36B9FF', evening, mood, place, outfit }: Props) {
+export const LessonStage = memo(function LessonStage({ item, index, routeSlug, citySlug, color = '#36B9FF', evening, mood, place }: Props) {
   const { t } = useT();
   const reduce = useReducedMotion();
   const scene = sceneForRoute(routeSlug);
@@ -215,7 +214,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
           }
           transition={{ duration: mood === 'correct' ? 0.6 : 0.4 }}
         >
-          <Beaver mood={MOOD[mood]} size={112} outfit={outfit} animate={mood === 'idle'} />
+          <Beaver mood={MOOD[mood]} size={112} animate={mood === 'idle'} />
         </motion.div>
         <AnimatePresence mode="wait">
           <motion.div

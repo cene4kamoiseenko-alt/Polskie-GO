@@ -44,7 +44,7 @@ function PlayerAvatar({ row, size }: { row: Row; size: number }) {
   if (row.isMe && !row.photoUrl) {
     return (
       <span className="inline-grid shrink-0 place-items-end overflow-hidden rounded-full bg-gradient-to-b from-dawn-sky to-dawn-sand" style={{ width: size, height: size, boxShadow: '0 0 0 3px #FFC857' }}>
-        <Beaver size={size * 0.95} outfit={me?.outfit.wear} animate={false} />
+        <Beaver size={size * 0.95} animate={false} />
       </span>
     );
   }
@@ -81,7 +81,7 @@ function Podium({ rows }: { rows: Row[] }) {
               <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 * place, type: 'spring', stiffness: 220, damping: 16 }} className="relative mb-1 flex flex-col items-center">
                 {row ? (
                   row.isMe && !row.photoUrl && big ? (
-                    <Beaver size={112} outfit={me?.outfit.wear} mood="cheer" />
+                    <Beaver size={112} mood="cheer" />
                   ) : (
                     <PlayerAvatar row={row} size={big ? 78 : 60} />
                   )
@@ -253,7 +253,7 @@ export default function SocialScreen() {
                   <div className="flex items-center gap-2 text-[22px] font-black text-white"><Art name="plane" size={28} /> {t('friends_invite')}</div>
                   <p className="mt-1 text-[14px] font-bold leading-snug text-mist">{t('friends_invite_desc')}</p>
                 </div>
-                <Beaver size={86} mood="wave" outfit={me?.outfit.wear} />
+                <Beaver size={86} mood="wave" />
               </div>
               <button className="btn btn-sky w-full text-[17px]" onClick={() => share(friends.data!.inviteLink, t('friends_invite_text'))}>
                 <Art name="plane" size={22} /> {t('friends_invite')}
@@ -281,7 +281,7 @@ export default function SocialScreen() {
               <div className="absolute inset-0 bg-gradient-to-b from-night/40 to-night/90" />
               <div className="absolute inset-x-0 top-6 flex justify-center">
                 <div className="relative">
-                  <Beaver size={130} mood="think" outfit={me?.outfit.wear} />
+                  <Beaver size={130} mood="think" />
                   <motion.span animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 2.4 }} className="absolute -right-12 -top-2 grid h-14 w-16 place-items-center rounded-[50%] bg-white ink-sky shadow-lg">
                     <Icon name="user" size={22} /><span className="absolute -bottom-2 left-2 h-3 w-3 rounded-full bg-white" />
                   </motion.span>

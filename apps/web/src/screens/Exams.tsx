@@ -22,7 +22,7 @@ export default function ExamsScreen() {
     <div className="space-y-5 pb-6">
       <ScreenHeader title={t('exams_title')} subtitle={t('exams_subtitle')} />
       <div className="mx-4 flex items-center gap-3 rounded-3xl bg-muted p-4">
-        <Beaver size={80} mood="think" outfit={{ ...me.outfit.wear, GLASSES: 'glasses-round' }} animate={false} />
+        <Beaver size={80} mood="think" animate={false} />
         <div>
           <div className="text-sm font-black">{t('profile_language')}: <span className="text-2xl text-pl-red">{me.progress.languageLevel}</span></div>
           <p className="muted text-xs font-bold">{t('exams_disclaimer')}</p>

@@ -122,7 +122,7 @@ export function HomeScreen() {
           <CitySign name={current?.namePl ?? 'Warszawa'} />
           {/* Бобек у поточному образі — головний персонаж банера, картки його не закривають */}
           <motion.div className="home-hero-beaver absolute bottom-0 -left-1" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
-            <Beaver mood="happy" size={heroBeaver} outfit={me.outfit.wear} />
+            <Beaver mood="happy" size={heroBeaver} />
           </motion.div>
           <div className="absolute right-2.5 top-2.5 w-[52%] space-y-2">
             <button onClick={() => { haptic.tap(); nav('/map'); }} className="glass-card flex w-full items-center gap-1.5 px-2.5 py-2 text-left">

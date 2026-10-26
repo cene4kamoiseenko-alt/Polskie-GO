@@ -18,6 +18,13 @@
  *    містом, цілком у видимій області SVG і прокручуваної карти, справді декодується й малюється; поточне місто та подорож
  *    (/map?travel=from,to, з емуляцією prefers-reduced-motion — путник одразу в кінцевому місті);
  *    знімки — test-results/screens/map-beaver-{ширина}.png і map-beaver-travel-{ширина}.png.
+ *  - L1 «один образ на всіх екранах» (ADR-005 §10; 360/390/430): у користувача костюм кухаря, ковпак і окуляри без живописного
+ *    шару (pending). На головній, у профілі, гардеробі, на карті й в уроці кожен корінь [data-look] без data-look-preview="true"
+ *    має ті самі data-look-equipped і data-look-items, що й resolveLook ядра для його me.outfit.wear; Бобек ненульового розміру,
+ *    кожен шар (<img> або SVG-<image>) справді декодується. Те саме — для стартового образу (390).
+ *    Знімки — test-results/screens/look-{екран}-390.png і look-default-{екран}-390.png.
+ *  - L2 гардероб, річ без живописного шару (visualStatus pending): на картці мітка «Визуал готовится» замість ціни, у панелі
+ *    дії немає кнопок покупки й Premium; POST /shop/buy → 409 visual_pending, баланс не змінився. Знімок — look-wardrobe-pending-390.png.
  *
  * Запуск: npm run e2e   (знімки — test-results/screens, підсумок — test-results/browser-results.json)
  */
@@ -25,6 +32,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromiumPath, startStand } from './lib/stand';
+import { lookDataAttributes, resolveLook, toLookItemId } from '../packages/shared/src/look/index';
 
 const root = process.cwd();
 const require = createRequire(root + '/package.json');
@@ -581,7 +589,110 @@ async function main() {
       });
     }
     await pinUser.context.close();
-    results.push({ stage: 'A2/A3/A4', softFailures, softSkipped });
+
+    // ── L1: один образ на всех экранах (ADR-005 §10). Ожидаемые атрибуты считает то же ядро (resolveLook) по me.outfit.wear,
+    // а экраны сравниваются и с ним, и между собой. Примерка (data-look-preview="true") в сравнение не входит.
+    console.log('L1: один образ на всех экранах');
+    type LookRoot = { tag: string; equipped: string | null; items: string | null; pending: string | null; mode: string | null; w: number; h: number; layers: { src: string; ok: boolean; w: number }[] };
+    async function lookScreens(devUser: string, grant: string[], shotPrefix: string, widths: number[]) {
+      const u = await userPage(devUser);
+      const page = u.page;
+      await page.addInitScript(() => { (window as unknown as { __name: (f: unknown) => unknown }).__name = (f) => f; });
+      for (const slug of grant) {
+        await env.DB.prepare("INSERT INTO user_inventory (user_id, item_id, equipped, source) SELECT ?, id, 1, 'e2e' FROM cosmetic_items WHERE slug = ?").bind(u.user.id, slug).run();
+      }
+      const wear = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
+      const want = lookDataAttributes(resolveLook(null, wear));
+      const tag0 = `L1 ${shotPrefix}`;
+      check(grant.every((g) => Object.values(wear).includes(g)), `${tag0} надето на сервере: ${Object.values(wear).sort().join(' ')}`);
+      const lessonId = (await u.call('GET', '/api/journey')).body.nextLesson.id as string;
+      const screens: [string, string, string][] = [
+        ['home', '/', '[data-today]'],
+        ['profile', '/profile', '[data-look]'],
+        ['wardrobe', '/shop', '[role="tablist"]'],
+        ['map', '/map', 'image[data-map-beaver="current"]'],
+        ['lesson', `/lesson/${lessonId}`, '[data-action="start"]'],
+      ];
+      const seen: { screen: string; equipped: string | null; items: string | null }[] = [];
+      for (const width of widths) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const [name, path, ready] of screens) {
+          const tag = `${tag0} ${width} ${name}`;
+          await soft(tag, async () => {
+            await page.goto(u.url(path), { waitUntil: 'networkidle' });
+            await page.locator(ready).first().waitFor({ timeout: 20_000 });
+            await page.locator('[data-look]:not([data-look-preview="true"])').first().waitFor({ state: 'attached', timeout: 20_000 });
+            await page.waitForTimeout(300);
+            const roots: LookRoot[] = await page.evaluate(async () => {
+              const out: LookRoot[] = [];
+              for (const el of Array.from(document.querySelectorAll('[data-look]'))) {
+                if (el.getAttribute('data-look-preview') === 'true') continue;
+                const r = el.getBoundingClientRect();
+                const layers = await Promise.all(Array.from(el.querySelectorAll('[data-look-layer]')).map(async (l) => {
+                  const src = l instanceof HTMLImageElement ? l.currentSrc || l.src : (l as SVGImageElement).href.baseVal;
+                  const img = l instanceof HTMLImageElement ? l : Object.assign(new Image(), { src });
+                  try {
+                    await img.decode();
+                  } catch {
+                    return { src, ok: false, w: 0 };
+                  }
+                  return { src, ok: img.naturalWidth > 0 && img.naturalHeight > 0, w: img.naturalWidth };
+                }));
+                out.push({ tag: el.tagName.toLowerCase(), equipped: el.getAttribute('data-look-equipped'), items: el.getAttribute('data-look-items'), pending: el.getAttribute('data-look-pending'), mode: el.getAttribute('data-look-mode'), w: r.width, h: r.height, layers });
+              }
+              return out;
+            });
+            check(roots.length > 0, `${tag}: на экране есть Бобек с data-look (${roots.length} шт., ${roots.map((x) => `${x.tag}:${x.mode}`).join(', ')})`);
+            for (const [i, x] of roots.entries()) {
+              check(x.equipped === want['data-look-equipped'], `${tag} #${i}: data-look-equipped «${x.equipped}» = ядро «${want['data-look-equipped']}»`);
+              check(x.items === want['data-look-items'], `${tag} #${i}: data-look-items «${x.items}» = ядро «${want['data-look-items']}»`);
+              check(x.pending === want['data-look-pending'], `${tag} #${i}: data-look-pending «${x.pending}» = ядро «${want['data-look-pending']}»`);
+              check(x.w > 0 && x.h > 0, `${tag} #${i}: Бобек ненулевого размера (${Math.round(x.w)}×${Math.round(x.h)})`);
+              check(x.layers.length > 0 && x.layers.every((l) => l.ok), `${tag} #${i}: растр декодирован (${x.layers.map((l) => `${l.src.split('/').pop()} ${l.w}px ${l.ok ? 'ok' : 'НЕТ'}`).join(', ')})`);
+              seen.push({ screen: `${name}@${width}`, equipped: x.equipped, items: x.items });
+            }
+            if (width === 390) {
+              await page.evaluate(() => Promise.all(Array.from(document.images).map((i) => i.decode().catch(() => {}))));
+              await page.screenshot({ path: `${SCREENS}/${shotPrefix}-${name}-390.png`, fullPage: name === 'profile' });
+            }
+          });
+        }
+      }
+      const keys = new Set(seen.map((x) => `${x.equipped}|${x.items}`));
+      check(keys.size === 1 && new Set(seen.map((x) => x.screen.split('@')[0])).size === screens.length, `${tag0}: один и тот же образ на ${screens.map((x) => x[0]).join(', ')} (${seen.length} корней, ${widths.join('/')} px)`);
+      await u.context.close();
+    }
+    await soft('L1 костюм', () => lookScreens('880010', ['costume-chef', 'hat-chef', 'glasses-round'], 'look', [360, 390, 430]));
+    await soft('L1 стартовый образ', () => lookScreens('880011', [], 'look-default', [390]));
+
+    await soft('L2 гардероб: вещь без визуала', async () => {
+      type ShopRow = { id: string; slot: string; assetKey: string; name: { ru: string }; price: number; rewardOnly: boolean; owned: boolean; isPremium: boolean; visualStatus?: string };
+      const u = await userPage('880012');
+      const page = u.page;
+      const shopBody = (await u.call('GET', '/api/shop')).body as { balance: number; items: ShopRow[] };
+      check(shopBody.items.every((i) => typeof i.visualStatus === 'string'), 'L2 /shop отдаёт visualStatus у каждой вещи');
+      const target = shopBody.items.find((i) => i.slot === 'JACKET' && i.visualStatus === 'pending' && !i.rewardOnly && !i.owned);
+      check(target, `L2 есть куртка без живописного слоя в продаже (${target?.id})`);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(u.url('/shop') + '&tab=shop', { waitUntil: 'networkidle' });
+      const card = page.locator('button.item-card', { hasText: target.name.ru });
+      await card.waitFor({ timeout: 20_000 });
+      check(await card.locator('[data-visual-status="pending"]').count() === 1 && await card.locator('.item-price').count() === 0, `L2 карточка «${target.name.ru}»: метка «Визуал готовится» вместо цены`);
+      await card.click();
+      const sheet = page.locator('.action-sheet');
+      await sheet.waitFor({ timeout: 5_000 });
+      check(await sheet.locator('[data-visual-status="pending"]').count() === 1, 'L2 в панели действия метка «Визуал готовится»');
+      check(await sheet.locator('button.btn-primary, button.btn-xp').count() === 0, 'L2 в панели действия нет кнопок покупки и Premium');
+      const preview = await page.locator('[data-look][data-look-preview="true"]').first().getAttribute('data-look-pending');
+      check(preview === toLookItemId(target.assetKey), `L2 примерка помечена data-look-preview, вещь в data-look-pending (${preview}), на Бобеке не рисуется`);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: `${SCREENS}/look-wardrobe-pending-390.png` });
+      const bought = await u.call('POST', '/api/shop/buy', { itemId: target.id });
+      const after = (await u.call('GET', '/api/shop')).body as { balance: number };
+      check(bought.status === 409 && bought.body.error === 'visual_pending' && after.balance === shopBody.balance, `L2 покупка вещи без визуала: ${bought.status} ${bought.body.error}, баланс ${shopBody.balance} → ${after.balance}`);
+      await u.context.close();
+    });
+    results.push({ stage: 'A2/A3/A4/L1', softFailures, softSkipped });
 
     // ── Розпізнавання пристрою (сервер STT вимкнено): лише тренування.
     console.log('Розпізнавання пристрою');
@@ -685,8 +796,8 @@ async function main() {
     check(
       softFailures.length === 0 && softSkipped.length === 0,
       softFailures.length || softSkipped.length
-        ? `A2/A3/A4: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
-        : 'A2/A3/A4: все сценарии пройдены',
+        ? `A2/A3/A4/L1: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
+        : 'A2/A3/A4/L1: все сценарии пройдены',
     );
   } finally {
     globalThis.fetch = realFetch;

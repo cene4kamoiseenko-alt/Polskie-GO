@@ -1,6 +1,6 @@
 /**
- * Гардероб (макет «Цільовий візуал», екран 03): угорі — сцена образу (костюм у своєму місті
- * або примірочна з живим бобром для окремих речей), вкладки «Нагороди» / «Магазин»,
+ * Гардероб (макет «Цільовий візуал», екран 03): угорі — примірочна з Бобеком у поточному образі або в примірці
+ * (resolveLook / tryOn, ADR-005; примірка нічого не зберігає), вкладки «Нагороди» / «Магазин»,
  * картки костюмів зі сценою, описом, умовою отримання і кнопкою «Приміряти».
  * Купівля й одягання — лише через сервер. У режимі «Домик» (?house=1) — меблі, декор і сувеніри.
  */
@@ -8,18 +8,21 @@ import { AnimatePresence, motion } from '../lib/motion';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
-import { api } from '../lib/api';
-import { useMe, useRefreshAll, useShop } from '../lib/queries';
+import { ApiError, api } from '../lib/api';
+import { useRefreshAll, useShop } from '../lib/queries';
 import type { ShopItem } from '../lib/types';
 import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { Beaver, BeaverPart } from '../components/Beaver';
+import { BeaverLook } from '../components/Beaver';
+import { BeaverPart } from '../components/BeaverPart';
 import { ITEM_PICTO, PictoTile } from '../components/pictograms/Pictogram';
 import { WEAR_SLOTS } from '../components/ItemPreview';
 import { Icon } from '../components/Icon';
 import { Art } from '../components/GameArt';
 import { ErrorState, ScreenSkeleton, cx, useBackButton, useToast } from '../components/ui';
-import { costumeAsset, costumeScene, supportsBeaverArt, travellerScene } from '../lib/assets';
+import { costumeAsset, costumeScene, travellerScene } from '../lib/assets';
+import { resolveLook, tryOn, unequip } from '@polski-go/shared';
+import { isVisualPending, shopVisualStatus, useWear } from '../lib/look';
 
 const WARDROBE_SLOTS = ['JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'HAT', 'GLASSES', 'SCARF', 'COSTUME', 'FRAME'];
 const HOUSE_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR'];
@@ -92,11 +95,10 @@ function DressingRoom() {
 }
 
 function ItemArt({ item, size }: { item: ShopItem; size: number }) {
-  // Костюм без бобра розпадається на частини — показуємо бобра в костюмі (растр, якщо є).
+  // Костюм — цілісна живописна картинка (legacy-whole-look); без неї — лише значок предмета, не векторний бобер.
   if (item.slot === 'COSTUME') {
     const art = costumeAsset(item.assetKey);
     if (art) return <img src={art} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
-    return <Beaver size={size * 0.92} outfit={{ COSTUME: item.assetKey }} animate={false} vectorOnly />;
   }
   if (WEAR_SLOTS.includes(item.slot)) return <BeaverPart slot={item.slot} kind={item.assetKey} size={size} />;
   return <PictoTile spec={ITEM_PICTO[item.assetKey] ?? null} size={size * 0.8} />;
@@ -106,8 +108,21 @@ function ItemArt({ item, size }: { item: ShopItem; size: number }) {
 const TRAVELLER_ID = '__traveller';
 const travellerItem = (name: string, equipped: boolean): ShopItem => ({
   id: TRAVELLER_ID, slug: 'traveller', slot: 'COSTUME', name: { uk: name, ru: name, en: name }, assetKey: 'costume-traveller', price: 0,
-  rarity: 'common', isPremium: false, rewardOnly: false, city: null, unlock: null, owned: true, equipped,
+  rarity: 'common', isPremium: false, rewardOnly: false, city: null, unlock: null, owned: true, equipped, visualStatus: 'legacy-whole-look',
 });
+
+/**
+ * Річ без живописного зображення (visualStatus pending/unknown): замість ціни й кнопки покупки — мітка.
+ * Złotki за неї не беруться (сервер відповість 409 visual_pending); отримана річ лишається й надягається.
+ */
+function VisualSoon({ label }: { label: string }) {
+  return (
+    <span data-visual-status="pending" className="costume-card-cond">
+      <Icon name="clock" size={13} strokeWidth={3} />
+      <span className="line-clamp-2">{label}</span>
+    </span>
+  );
+}
 const costumeKey = (i: ShopItem) => (i.id === TRAVELLER_ID ? 'traveller' : i.assetKey.replace(/^costume-/, ''));
 
 type Tab = 'rewards' | 'shop';
@@ -118,7 +133,7 @@ export default function ShopScreen() {
   const houseMode = params.get('house') === '1';
   const nav = useNavigate();
   const shop = useShop();
-  const me = useMe().data;
+  const wear = useWear();
   const refresh = useRefreshAll();
   const toast = useToast();
   const tab: Tab = houseMode || params.get('tab') === 'shop' ? 'shop' : 'rewards';
@@ -135,15 +150,16 @@ export default function ShopScreen() {
   const rewardCostumes = useMemo(() => [traveller, ...all.filter((i) => i.slot === 'COSTUME' && i.rewardOnly)], [all, traveller]);
   const otherRewards = useMemo(() => all.filter((i) => i.rewardOnly && i.slot !== 'COSTUME' && WARDROBE_SLOTS.includes(i.slot)), [all]);
   const items = useMemo(() => all.filter((i) => i.slot === slot && (houseMode || !i.rewardOnly)), [all, slot, houseMode]);
-  // Примірка: бобер одразу показує вибраний предмет — ще до покупки.
-  const preview = useMemo(() => {
-    const wear: Record<string, string | undefined> = { ...(me?.outfit.wear ?? {}) };
-    if (picked?.id === TRAVELLER_ID) delete wear.COSTUME;
-    else if (picked && WEAR_SLOTS.includes(picked.slot)) wear[picked.slot] = picked.assetKey;
-    return wear;
-  }, [me, picked]);
-  // Сцена образу: костюм — у своєму місті; фірмовий образ без інших речей — «Мандрівник».
-  const scene = preview.COSTUME ? costumeScene(preview.COSTUME) : supportsBeaverArt(preview) ? travellerScene() : null;
+  // Примірка (ядро образу, ADR-005): нічого не зберігає, запис — лише кнопкою «Вдягнути». Без вибору — поточний образ.
+  // «Мандрівник» — поточний образ без костюма. Речі без живописного шару (pending) на Бобеку не з'являються.
+  const stageLook = useMemo(() => {
+    if (picked?.id === TRAVELLER_ID) {
+      const eq = equippedCostume ? unequip(wear, equippedCostume.assetKey).equipment : wear;
+      return resolveLook(null, eq, { mood: 'cheer', preview: true });
+    }
+    if (picked && WEAR_SLOTS.includes(picked.slot)) return tryOn(wear, picked.assetKey, { mood: 'cheer' }).after;
+    return resolveLook(null, wear, { mood: 'happy' });
+  }, [wear, picked, equippedCostume]);
 
   const pick = (i: ShopItem | null) => {
     haptic.select();
@@ -172,7 +188,10 @@ export default function ShopScreen() {
       await refresh();
       setPicked(null);
     } catch (e) {
-      toast(t('toast_error', { msg: (e as Error).message }), '⚠️');
+      if (e instanceof ApiError && e.code === 'visual_pending') {
+        toast(t('err_visual_pending'), '⚠️');
+        void shop.refetch();
+      } else toast(t('toast_error', { msg: (e as Error).message }), '⚠️');
     } finally {
       setBusy(false);
     }
@@ -190,7 +209,12 @@ export default function ShopScreen() {
     const key = costumeKey(i);
     const art = i.id === TRAVELLER_ID ? travellerScene() : costumeScene(i.assetKey);
     const selected = picked?.id === i.id;
-    const status = i.id === TRAVELLER_ID ? t('unlock_starter') : i.owned ? t('wardrobe_owned') : i.rewardOnly || (i.isPremium && !shop.data!.premium) ? unlockText(i) : null;
+    const soon = isVisualPending(shopVisualStatus(i));
+    const status =
+      i.id === TRAVELLER_ID ? t('unlock_starter')
+      : i.owned ? t('wardrobe_owned')
+      : i.rewardOnly || (i.isPremium && !shop.data!.premium && !soon) ? unlockText(i)
+      : null;
     return (
       <motion.article
         key={i.id}
@@ -206,15 +230,16 @@ export default function ShopScreen() {
         <div className="flex flex-1 flex-col gap-1.5 p-3 pt-2.5">
           <h3 className="text-[15px] font-black leading-tight">{tr(i.name)}</h3>
           <p className="muted line-clamp-2 text-[12px] font-bold leading-snug">{t(`costume_desc_${key}` as TKey)}</p>
-          <div className="mt-auto flex min-h-[30px] items-center gap-1.5 pt-1">
+          <div className="mt-auto flex min-h-[30px] flex-wrap items-center gap-1.5 pt-1">
+            {soon && <VisualSoon label={t('look_visual_pending')} />}
             {status ? (
               <span className={cx('costume-card-cond', i.owned && 'is-owned')}>
                 {i.owned ? <Icon name="check" size={13} strokeWidth={3.2} /> : <Art name={i.unlock?.kind === 'mission' ? 'scroll' : i.unlock?.kind === 'city' ? 'passport' : i.isPremium ? 'crown' : 'medal-gold'} size={18} />}
                 <span className="line-clamp-3">{status}</span>
               </span>
-            ) : (
+            ) : !soon ? (
               <span className="costume-card-cond"><Art name="coin" size={18} /> {i.price}</span>
-            )}
+            ) : null}
           </div>
           <button
             type="button"
@@ -232,6 +257,7 @@ export default function ShopScreen() {
   const itemCard = (i: ShopItem, n: number) => {
     const color = i.equipped ? 'var(--color-brand)' : `var(--rarity-${i.rarity}, var(--rarity-common))`;
     const selected = picked?.id === i.id;
+    const soon = isVisualPending(shopVisualStatus(i));
     return (
       <motion.button
         key={i.id}
@@ -253,13 +279,14 @@ export default function ShopScreen() {
           </span>
         </span>
         <span className="line-clamp-2 min-h-[38px] text-center text-[15px] font-black leading-tight">{tr(i.name)}</span>
+        {soon && <VisualSoon label={t('look_visual_pending')} />}
         {i.owned ? (
           <span className={cx('grid h-8 min-w-[40px] place-items-center rounded-lg px-2', i.equipped ? 'item-equipped' : 'border border-brand/60 text-brand')}>
             {i.equipped ? <Icon name="check" size={20} strokeWidth={3.2} /> : <span className="text-[12px] font-black">{t('shop_owned')}</span>}
           </span>
         ) : i.rewardOnly ? (
           <span className="line-clamp-2 px-1 text-center text-[11.5px] font-black leading-tight text-grape">{unlockText(i)}</span>
-        ) : (
+        ) : soon ? null : (
           <span className="item-price flex items-center gap-1.5 rounded-full px-4 py-1 text-[17px] font-black"><Art name="coin" size={22} /> {i.price}</span>
         )}
       </motion.button>
@@ -267,6 +294,7 @@ export default function ShopScreen() {
   };
 
   const isTraveller = picked?.id === TRAVELLER_ID;
+  const pickedSoon = !!picked && isVisualPending(shopVisualStatus(picked));
   return (
     <div className="pb-36">
       {/* Заголовок */}
@@ -275,30 +303,15 @@ export default function ShopScreen() {
         <span className="hud-pill !h-11 !px-4 !text-[18px]"><Art name="coin" size={26} /> {balance}</span>
       </div>
 
-      {/* Сцена образу або примірочна */}
+      {/* Примірочна: той самий Бобек, що й на інших екранах; примірка позначена data-look-preview="true" */}
       {!houseMode && (
         <div className="wardrobe-stage relative mx-4 mt-3 overflow-hidden">
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={scene ?? 'room'}
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              {scene ? (
-                <img src={scene} alt="" className="h-full w-full object-cover" draggable={false} />
-              ) : (
-                <>
-                  <DressingRoom />
-                  <div className="absolute inset-x-0 bottom-[30px] flex justify-center">
-                    <Beaver size={176} outfit={preview} mood={picked ? 'cheer' : 'happy'} />
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </AnimatePresence>
+          <div className="absolute inset-0">
+            <DressingRoom />
+            <div className="absolute inset-x-0 bottom-[30px] flex justify-center">
+              <BeaverLook look={stageLook} size={176} />
+            </div>
+          </div>
           <div className="wardrobe-stage-shade" />
           {stepList.length > 1 && (
             <>
@@ -365,13 +378,14 @@ export default function ShopScreen() {
           <motion.div initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-xl px-3">
             <div className="action-sheet flex items-center gap-3 rounded-[22px] p-3">
               <span className="action-sheet-art grid h-14 w-14 shrink-0 place-items-center rounded-2xl">
-                {isTraveller ? <Beaver size={50} mood="happy" outfit={{ JACKET: 'hoodie-red', BACKPACK: 'backpack-travel' }} animate={false} /> : <ItemArt item={picked} size={50} />}
+                {isTraveller ? <BeaverLook look={stageLook} size={50} animate={false} /> : <ItemArt item={picked} size={50} />}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="line-clamp-2 text-[15px] font-black leading-tight">{tr(picked.name)}</div>
                 <div className="line-clamp-2 text-[11px] font-black" style={{ color: `var(--rarity-${picked.rarity}, var(--rarity-common))` }}>
-                  {!picked.owned && (picked.rewardOnly || picked.isPremium) ? unlockText(picked) : `${t(`rarity_${picked.rarity}` as TKey)}${picked.city ? ` · ${tr(picked.city.name)}` : ''}`}
+                  {!picked.owned && (picked.rewardOnly || (picked.isPremium && !pickedSoon)) ? unlockText(picked) : `${t(`rarity_${picked.rarity}` as TKey)}${picked.city ? ` · ${tr(picked.city.name)}` : ''}`}
                 </div>
+                {pickedSoon && <div className="mt-0.5"><VisualSoon label={t('look_visual_pending')} /></div>}
               </div>
               {isTraveller ? (
                 <button
@@ -389,7 +403,7 @@ export default function ShopScreen() {
                 picked.unlock?.kind === 'mission' && picked.unlock.slug ? (
                   <button className="btn btn-sky min-h-[46px] px-4" onClick={() => nav(`/life/${picked.unlock!.slug}`)}>{t('wardrobe_go_mission')}</button>
                 ) : null
-              ) : picked.isPremium && !shop.data!.premium ? (
+              ) : pickedSoon ? null : picked.isPremium && !shop.data!.premium ? (
                 <button className="btn btn-xp min-h-[46px] px-4" onClick={() => nav('/premium')}>{t('shop_premium_only')}</button>
               ) : (
                 <button className="btn btn-primary min-h-[46px] px-4" disabled={busy || balance < picked.price} onClick={() => act(() => api('/shop/buy', { body: { itemId: picked.id } }), t('shop_bought'))}>

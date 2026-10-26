@@ -6,7 +6,9 @@ import { animate, motion, useReducedMotion } from '../lib/motion';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { JourneyCity } from '../lib/types';
 import { CITY_LANDMARKS, Cloud, Landmark } from './Scenery';
-import { beaverAsset } from '../lib/assets';
+import { LOOK_CANVAS, layerDataAttributes, lookDataAttributes, type LookRenderLayer } from '@polski-go/shared';
+import { lookAssetUrl, lookDeliveryWidth } from '../lib/assets';
+import { useLook } from '../lib/look';
 import { Stamp } from './Illustrations';
 
 const W = 1000;
@@ -124,14 +126,9 @@ type Props = {
   soonLabel?: string;
   /** Підсвітити міста одного рівня (інші приглушені). */
   level?: string | null;
-  /**
-   * Растровий образ Бобека на маркері. Не задано — поза з листа (`wave` на поточному місті, `travel` у дорозі).
-   * Точка розширення: сюди підставляється образ користувача з загальної моделі зовнішнього вигляду.
-   */
-  beaverHref?: string | null;
 };
 
-export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel, hereLabel, soonLabel, level, beaverHref }: Props) {
+export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCityClick, compact, travel, hereLabel, soonLabel, level }: Props) {
   const reduce = useReducedMotion();
   const outline = useMemo(() => path(OUTLINE, true), []);
   const sorted = useMemo(() => [...cities].sort((a, b) => a.order - b.order), [cities]);
@@ -336,14 +333,14 @@ export const PolandMap = memo(function PolandMap({ cities, currentCityId, onCity
       })}
 
       {/* Бобер на карті */}
-      {current && !travel && <BeaverPin x={current.mapX - 46} y={current.mapY - (compact ? 90 : 112)} href={beaverHref} />}
-      {travel && <TravelPin route={sorted} from={travel.from} to={travel.to} href={beaverHref} />}
+      {current && !travel && <BeaverPin x={current.mapX - 46} y={current.mapY - (compact ? 90 : 112)} />}
+      {travel && <TravelPin route={sorted} from={travel.from} to={travel.to} />}
     </svg>
   );
 });
 
 /** Подорож: бобер іде ділянкою маршруту (через усі проміжні міста), у кінці з'являється штамп міста. */
-function TravelPin({ route, from, to, href }: { route: JourneyCity[]; from: JourneyCity; to: JourneyCity; href?: string | null }) {
+function TravelPin({ route, from, to }: { route: JourneyCity[]; from: JourneyCity; to: JourneyCity }) {
   const reduce = useReducedMotion();
   const pathRef = useRef<SVGPathElement>(null);
   const [pt, setPt] = useState({ x: from.mapX, y: from.mapY });
@@ -383,7 +380,7 @@ function TravelPin({ route, from, to, href }: { route: JourneyCity[]; from: Jour
         </motion.g>
       )}
       <g transform={`translate(${pt.x - 46} ${pt.y - 112})`}>
-        <BeaverPin x={0} y={0} vehicle href={href} />
+        <BeaverPin x={0} y={0} vehicle />
       </g>
     </g>
   );
@@ -398,35 +395,55 @@ const PIN_SIZE = 116;
 const PIN_FOOT = 123;
 
 /**
- * Бобер на поточному етапі: стоїть на кораловій «платформі» над містом. Персонаж — лише живописний растр
- * (SVG-елемент <image>, без foreignObject: у WebKit/iOS WebView він ламає трансформації). Плаский векторний
- * бобер для маркера не використовується: якщо растру немає, лишається платформа й dev-попередження.
- * `href` — точка розширення для образу користувача; без нього береться поза за станом (`wave` / `travel`).
+ * Бобер на поточному етапі: стоїть на кораловій «платформі» над містом. Персонаж — той самий образ користувача,
+ * що й на інших екранах (useLook, ADR-005): шари ResolvedLook як SVG-елементи <image> (без foreignObject: у WebKit/iOS
+ * WebView він ламає трансформації) на квадратному полотні PIN_SIZE. Корінь <g> має атрибути data-look-*.
+ * Плаский векторний бобер для маркера не використовується: якщо растру немає, лишається платформа й dev-попередження.
+ * `data-map-beaver` — на найбільшому шарі (у режимах legacy-* він єдиний), ним користується e2e A4.
  */
-function BeaverPin({ x, y, vehicle, href }: { x: number; y: number; vehicle?: boolean; href?: string | null }) {
+function BeaverPin({ x, y, vehicle }: { x: number; y: number; vehicle?: boolean }) {
   const reduce = useReducedMotion();
   const mood = vehicle ? 'travel' : 'wave';
-  const src = href ?? beaverAsset(mood);
+  const look = useLook(mood);
+  const width = lookDeliveryWidth(PIN_SIZE);
+  const box = { x: 50 - PIN_SIZE / 2, y: PIN_FOOT - PIN_SIZE };
+  const area = (l: LookRenderLayer) => (l.fit === 'canvas' && l.rect ? l.rect.w * l.rect.h : LOOK_CANVAS.width * LOOK_CANVAS.height);
+  const main = look.layers.reduce<LookRenderLayer | null>((m, l) => (!m || area(l) > area(m) ? l : m), null);
+  const missing = look.layers.length === 0 || look.layers.some((l) => !lookAssetUrl(l.asset, width));
   useEffect(() => {
-    if (!src && import.meta.env.DEV) console.warn(`[PolandMap] немає растру Бобека для стану «${mood}» (src/assets/beaver): на маркері лише платформа.`);
-  }, [src, mood]);
+    if (missing && import.meta.env.DEV) console.warn(`[PolandMap] немає растру Бобека для «${look.key}»: на маркері лише платформа.`);
+  }, [missing, look.key]);
   return (
     <g transform={`translate(${x - 4} ${y - 18})`} style={{ pointerEvents: 'none' }}>
       <motion.g animate={reduce ? undefined : { y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}>
         <ellipse cx="50" cy="118" rx="38" ry="11" fill="#F45159" stroke="#fff" strokeWidth="4" />
         <ellipse cx="50" cy="114" rx="26" ry="6" fill="#FF7B80" />
-        {src && (
-          <image
-            data-map-beaver={vehicle ? 'travel' : 'current'}
-            href={src}
-            x={50 - PIN_SIZE / 2}
-            y={PIN_FOOT - PIN_SIZE}
-            width={PIN_SIZE}
-            height={PIN_SIZE}
-            preserveAspectRatio="xMidYMax meet"
-            aria-hidden="true"
-          />
-        )}
+        <g {...lookDataAttributes(look)}>
+          {look.layers.map((l) => {
+            const href = lookAssetUrl(l.asset, width);
+            if (!href) return null;
+            const k = PIN_SIZE / LOOK_CANVAS.width;
+            const canvas = l.fit === 'canvas' && l.rect;
+            const r = canvas ? { x: box.x + l.rect!.x * k, y: box.y + l.rect!.y * k, w: l.rect!.w * k, h: l.rect!.h * k } : { x: box.x, y: box.y, w: PIN_SIZE, h: PIN_SIZE };
+            const rotate = canvas && l.rotate ? `rotate(${l.rotate} ${r.x + (l.origin?.x ?? l.rect!.w / 2) * k} ${r.y + (l.origin?.y ?? l.rect!.h / 2) * k})` : undefined;
+            return (
+              <image
+                key={l.id}
+                {...layerDataAttributes(l)}
+                data-map-beaver={l === main ? (vehicle ? 'travel' : 'current') : undefined}
+                href={href}
+                x={r.x}
+                y={r.y}
+                width={r.w}
+                height={r.h}
+                transform={rotate}
+                opacity={l.opacity}
+                preserveAspectRatio={canvas ? 'none' : 'xMidYMax meet'}
+                aria-hidden="true"
+              />
+            );
+          })}
+        </g>
       </motion.g>
     </g>
   );

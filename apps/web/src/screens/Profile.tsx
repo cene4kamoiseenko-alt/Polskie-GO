@@ -13,7 +13,8 @@ import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { useJourney, useMe, useShop } from '../lib/queries';
 import { haptic } from '../lib/telegram';
-import { Beaver } from '../components/Beaver';
+import { Beaver, BeaverLook } from '../components/Beaver';
+import { useTryOn } from '../lib/look';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { LEVEL_COLORS } from './Onboarding';
@@ -40,6 +41,16 @@ const SKILLS: { id: string; key: TKey; groups: string[]; icon: LineIconName; col
   { id: 'reading', key: 'sk_reading', groups: ['reading'], icon: 'book', color: '#36B9FF' },
   { id: 'writing', key: 'sk_writing', groups: ['writing'], icon: 'target', color: '#FFC857' },
 ];
+
+/**
+ * Костюм з гардероба на поточному образі — примірка (tryOn, data-look-preview="true"), нічого не зберігає.
+ * Якщо саме цей костюм показати нічим (живописного зображення ще немає), тайл не видає поточний образ за костюм.
+ */
+function CostumeTry({ costume, soon }: { costume: string; soon: string }) {
+  const preview = useTryOn(costume);
+  if (!preview?.candidateVisible) return <span className="muted grid h-full place-items-center px-1 text-center text-[11px] font-black">{soon}</span>;
+  return <span className="absolute inset-x-0 bottom-0 flex justify-center"><BeaverLook look={preview.after} size={84} animate={false} /></span>;
+}
 
 export default function ProfileScreen() {
   const { t, tr, date } = useT();
@@ -78,7 +89,7 @@ export default function ProfileScreen() {
         <div className="relative flex items-center gap-3 p-3.5 pr-12">
           <button onClick={() => { haptic.tap(); nav('/shop'); }} className="relative shrink-0" aria-label={t('profile_wardrobe')}>
             <span className={cx('block h-[84px] w-[84px] overflow-hidden rounded-full border-[3px] bg-gradient-to-b from-dawn-sky to-dawn-sand shadow-lg', me.outfit.wear.FRAME === 'frame-gold' ? 'border-xp' : me.outfit.wear.FRAME === 'frame-green' ? 'border-brand' : 'border-white')}>
-              {me.photoUrl ? <img src={me.photoUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-end justify-center"><Beaver size={78} outfit={me.outfit.wear} animate={false} /></span>}
+              {me.photoUrl ? <img src={me.photoUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-end justify-center"><Beaver size={78} animate={false} /></span>}
             </span>
             <span className="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-sky text-night shadow">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20l4-1 10-10-3-3L5 16z" /></svg>
@@ -135,13 +146,13 @@ export default function ProfileScreen() {
       <Section title={t('profile_my_wardrobe')} action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => nav('/shop')}>{t('home_see_all')} <Icon name="arrow-right" size={16} /></button>}>
         <div className="no-scrollbar flex gap-2.5 overflow-x-auto pb-1">
           <button onClick={() => nav('/shop')} className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[20px] border-2 border-brand bg-gradient-to-b from-dawn-sky to-dawn-mint shadow-[0_0_14px_-4px_rgb(37_215_155/0.8)]" aria-label={t('profile_current_look')}>
-            <span className="absolute inset-x-0 bottom-0 flex justify-center"><Beaver size={84} outfit={me.outfit.wear} animate={false} /></span>
+            <span className="absolute inset-x-0 bottom-0 flex justify-center"><Beaver size={84} animate={false} /></span>
             <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-brand text-night"><Icon name="check" size={12} strokeWidth={3.2} /></span>
           </button>
           {/* Образи — костюми, що вже є в гардеробі (кожен помітно відрізняється силуетом) */}
           {owned.filter((i) => i.slot === 'COSTUME').slice(0, 4).map((i) => (
             <button key={i.id} onClick={() => nav('/shop')} className={cx('section-tile relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[20px]', i.equipped && 'ring-2 ring-brand')} aria-label={tr(i.name)}>
-              <span className="absolute inset-x-0 bottom-0 flex justify-center"><Beaver size={84} outfit={{ COSTUME: i.assetKey }} animate={false} /></span>
+              <CostumeTry costume={i.assetKey} soon={t('soon')} />
             </button>
           ))}
           <button onClick={() => nav('/shop')} className="grid h-[92px] w-[92px] shrink-0 place-items-center rounded-[20px] border-2 border-dashed border-[var(--border)] text-3xl font-black text-[var(--text-muted)]">+</button>
@@ -153,7 +164,7 @@ export default function ProfileScreen() {
         <button onClick={() => { haptic.tap(); nav('/shop'); }} className="hero-card relative h-[212px] text-left">
           <CityHero slug={city?.slug ?? 'krakow'} color={cityRow?.color ?? '#36B9FF'} name="" sign={false} height={212} className="absolute inset-0" />
           <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-transparent to-transparent" />
-          <div className="absolute inset-x-0 bottom-10 flex justify-center"><Beaver size={116} outfit={me.outfit.wear} mood="wave" /></div>
+          <div className="absolute inset-x-0 bottom-10 flex justify-center"><Beaver size={116} mood="wave" /></div>
           <div className="absolute inset-x-2.5 bottom-2 flex items-center gap-1.5">
             <Icon name="user" size={18} className="text-sky" />
             <span className="flex-1 text-[18px] font-black text-white">{t('profile_wardrobe')}</span>

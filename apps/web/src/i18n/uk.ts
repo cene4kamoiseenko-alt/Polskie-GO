@@ -797,6 +797,8 @@ export const uk = {
   wardrobe_traveller: "Мандрівник",
   wardrobe_go_mission: "До місії",
   wardrobe_take_off: "Зняти костюм",
+  look_visual_pending: "Візуал готується",
+  err_visual_pending: "Цю річ ще малюють — купити можна буде, щойно вона з’явиться. Złotki не списано.",
   unlock_mission: "Пройди місію «{title}»",
   unlock_city: "Склади іспит міста {title}",
   unlock_achievement: "Досягнення «{title}»",

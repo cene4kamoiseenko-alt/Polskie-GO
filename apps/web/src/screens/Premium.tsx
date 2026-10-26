@@ -68,7 +68,7 @@ export default function PremiumScreen() {
       <Confetti run={status === 'paid'} />
       <ScreenHeader title={t('prem_title')} subtitle={t('prem_subtitle')} />
       <div className="mx-4 flex flex-col items-center rounded-[28px] p-5 text-center" style={{ background: 'linear-gradient(160deg,#FFE3E3,#FFF4D6 60%,#E9DDFF)' }}>
-        <Beaver size={150} mood="celebrate" outfit={{ ...me.outfit.wear, HAT: 'crown-gold', COSTUME: undefined }} />
+        <Beaver size={150} mood="celebrate" />
         <div className="text-3xl font-black">
           <span className="text-pl-red">POLSKI GO</span> <span className="text-xp-dark">PREMIUM</span>
         </div>

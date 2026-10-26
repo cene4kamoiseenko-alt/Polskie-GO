@@ -7,7 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import type { I18n } from '@polski-go/shared';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
-import { useMe, useRefreshAll } from '../lib/queries';
+import { useRefreshAll } from '../lib/queries';
 import { sfx, speak } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
@@ -24,7 +24,6 @@ export default function StoryScreen() {
   const { slug } = useParams();
   const { t, tr } = useT();
   const nav = useNavigate();
-  const me = useMe().data;
   const refresh = useRefreshAll();
   const [st, setSt] = useState<State | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -87,14 +86,14 @@ export default function StoryScreen() {
           <div className="relative h-44 overflow-hidden rounded-[28px] shadow-[var(--shadow-card)]">
             <Scene name={STORY_SCENE[st.slug] ?? 'tram-stop'} className="absolute inset-0 h-full w-full" />
             <div className="absolute bottom-0 right-4">
-              <Beaver size={110} outfit={me?.outfit.wear} mood={st.result && !st.result.ok ? 'sad' : 'travel'} />
+              <Beaver size={110} mood={st.result && !st.result.ok ? 'sad' : 'travel'} />
             </div>
           </div>
         )}
         <Confetti run={done} />
         {done ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-            <Beaver mood="celebrate" size={170} outfit={me?.outfit.wear} />
+            <Beaver mood="celebrate" size={170} />
             <h2 className="text-3xl font-black text-brand-dark">{t('story_complete')}</h2>
             <p className="muted font-bold">{t('story_mistakes', { n: st.mistakes })}</p>
             <button className="btn btn-xp w-full" onClick={() => nav('/quests', { replace: true })}>
@@ -106,7 +105,7 @@ export default function StoryScreen() {
             <motion.div key={node.pl} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div className="flex items-end gap-3">
                 {node.speaker === 'beaver' ? (
-                  <Beaver mood="happy" size={96} outfit={me?.outfit.wear} />
+                  <Beaver mood="happy" size={96} />
                 ) : node.speaker === 'npc' ? (
                   <SceneAvatar scene={STORY_NPC[st.slug] ?? 'meeting'} size={76} />
                 ) : (

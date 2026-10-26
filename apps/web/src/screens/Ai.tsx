@@ -123,7 +123,7 @@ export default function AiScreen() {
         <ScreenHeader title={t('ai_title')} subtitle={t('ai_subtitle')} right={<GameIcon name="ai" size={40} />} />
         <div className="relative mx-4 overflow-hidden rounded-[28px] p-4 shadow-[var(--shadow-card)]" style={{ background: 'linear-gradient(160deg, #DFF3FF 0%, #EDE4FF 100%)' }}>
           <div className="flex items-end gap-3">
-            <Beaver mood="learn" size={110} outfit={me.outfit.wear} />
+            <Beaver mood="learn" size={110} />
             <div className="min-w-0 flex-1 space-y-2 pb-2">
               <div className="rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm font-bold shadow-sm">{t('ai_welcome')}</div>
               {status}
@@ -205,7 +205,7 @@ export default function AiScreen() {
       {info.data && !info.data.configured && <div className="mx-4 mb-2 rounded-xl bg-xp/25 px-3 py-2 text-xs font-bold">{t('ai_offline_note')}</div>}
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-2">
         <div className="flex items-end gap-2">
-          {mode === 'roleplay' ? <SceneAvatar scene={scene} size={48} /> : <Beaver size={56} mood="wave" outfit={me.outfit.wear} animate={false} />}
+          {mode === 'roleplay' ? <SceneAvatar scene={scene} size={48} /> : <Beaver size={56} mood="wave" animate={false} />}
           <div className="card rounded-bl-md px-4 py-3 font-semibold">{t('ai_welcome')}</div>
         </div>
         {msgs.map((m, i) => (
