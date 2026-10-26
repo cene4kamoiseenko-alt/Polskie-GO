@@ -536,7 +536,7 @@ function MatchExercise({ item, result, onChange }: ExProps) {
 }
 
 // ───────── Вимова ─────────
-type MicStatus = 'ready' | 'starting' | 'recording' | 'processing' | 'permission' | 'silence' | 'offline' | 'not_configured' | 'unavailable' | 'blocked' | 'busy' | 'quota' | 'network' | 'timeout' | 'failed';
+type MicStatus = 'ready' | 'starting' | 'recording' | 'processing' | 'permission' | 'silence' | 'short' | 'offline' | 'not_configured' | 'unavailable' | 'blocked' | 'busy' | 'quota' | 'network' | 'timeout' | 'failed';
 
 /** Що бачить людина в кожному стані запису: заголовок, пояснення й піктограма. */
 const MIC_STATUS: Record<MicStatus, { title: TKey; text?: TKey; icon: LineIconName; warn?: boolean }> = {
@@ -546,6 +546,7 @@ const MIC_STATUS: Record<MicStatus, { title: TKey; text?: TKey; icon: LineIconNa
   processing: { title: 'ex_mic_processing', icon: 'clock' },
   permission: { title: 'mic_st_permission', text: 'ex_mic_permission', icon: 'lock', warn: true },
   silence: { title: 'mic_st_silence', text: 'mic_st_silence_text', icon: 'alert', warn: true },
+  short: { title: 'mic_st_short', text: 'mic_st_short_text', icon: 'clock', warn: true },
   offline: { title: 'mic_st_offline', text: 'mic_st_offline_text', icon: 'wifi-off', warn: true },
   not_configured: { title: 'mic_st_not_configured', text: 'ex_mic_not_configured', icon: 'alert', warn: true },
   unavailable: { title: 'mic_st_unavailable', text: 'mic_st_unavailable_text', icon: 'alert', warn: true },
@@ -563,6 +564,7 @@ export function micStatusFromError(code: string, online: boolean): MicStatus {
   // WKWebView (Telegram на iPhone) може мати SpeechRecognition, але система забороняє його в цьому вікні.
   if (code === 'service-not-allowed') return 'blocked';
   if (code === 'silence' || code === 'no-speech' || code === 'stt_no_speech') return 'silence';
+  if (code === 'too-short') return 'short';
   if (code === 'unsupported' || code === 'audio-capture' || code === 'start-failed') return 'unavailable';
   if (code === 'stt_not_configured') return 'not_configured';
   if (code === 'rate_limited') return 'busy';
@@ -613,6 +615,18 @@ function PronunciationExercise({ item, result, onSubmit, sessionId }: ExProps) {
     run.current = null;
   };
   useEffect(() => () => { cancel(); stopSpeech(); }, [item.key]);
+  // Застосунок згорнули під час запису: мікрофон вимикається одразу, недописана спроба не надсилається.
+  useEffect(() => {
+    if (!live) return;
+    const onHide = () => {
+      if (document.visibilityState !== 'hidden') return;
+      cancel();
+      setStatus('ready');
+      setLevel(0);
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [live]);
   // Мережа повернулась — стан «немає мережі» знімається сам.
   useEffect(() => {
     if (online) setStatus((st) => (st === 'offline' || st === 'network' ? 'ready' : st));

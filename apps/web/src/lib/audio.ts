@@ -23,9 +23,12 @@ let serverTts = false;
  */
 export type DeviceVoicePolicy = 'strict' | 'soft';
 let deviceVoicePolicy: DeviceVoicePolicy = 'strict';
-export function configureAudio(opts: { server: boolean; deviceVoice?: DeviceVoicePolicy }) {
+/** Відбиток серверного голосу (провайдер, модель, голос, версія — /api/me audio.fingerprint): частина ключів кешу, щоб після зміни голосу не грати старі записи. */
+let voiceTag = '';
+export function configureAudio(opts: { server: boolean; deviceVoice?: DeviceVoicePolicy; voice?: string | null }) {
   serverTts = opts.server;
   if (opts.deviceVoice) deviceVoicePolicy = opts.deviceVoice;
+  voiceTag = opts.voice ?? '';
 }
 
 export type SpeechStatus = 'idle' | 'loading' | 'playing' | 'error';
@@ -81,12 +84,25 @@ if (el && typeof document !== 'undefined') {
 // ── Кеш серверного синтезу ──
 // 1) blobCache — object URL у пам'яті (миттєво в межах сесії);
 // 2) Cache Storage — переживає перезапуск Mini App. Будь-яка помилка сховища = промах, не збій озвучки.
-const TTS_CACHE = 'pg-tts-v1';
+// 3) Ключі обох кешів і адреса запиту містять відбиток голосу: старий голос не грає після зміни провайдера.
+const TTS_CACHE = 'pg-tts-v2';
 const TTS_CACHE_MAX = 800;
-const storeKey = (text: string, slow: boolean) => `${location.origin}/__tts/${slow ? 'slow' : 'normal'}/${encodeURIComponent(speechText(text))}`;
+const storeKey = (text: string, slow: boolean) => `${location.origin}/__tts/${voiceTag || 'default'}/${slow ? 'slow' : 'normal'}/${encodeURIComponent(speechText(text))}`;
+let oldStoreDropped = false;
 async function ttsStore(): Promise<Cache | null> {
   try {
-    return typeof caches === 'undefined' ? null : await caches.open(TTS_CACHE);
+    if (typeof caches === 'undefined') return null;
+    // Записи pg-tts-v1 не знають, яким голосом зроблені: прибираємо їх один раз.
+    // Збій прибирання не заважає відкрити новий кеш.
+    if (!oldStoreDropped) {
+      oldStoreDropped = true;
+      try {
+        void caches.delete('pg-tts-v1').catch(() => {});
+      } catch {
+        /* немає delete — нема чого прибирати */
+      }
+    }
+    return await caches.open(TTS_CACHE);
   } catch {
     return null;
   }
@@ -130,7 +146,7 @@ function prefetchBudget(): boolean {
 const blobCache = new Map<string, string>();
 const pendingAudio = new Map<string, Promise<string>>();
 async function serverAudio(text: string, slow: boolean, prefetch = false): Promise<string> {
-  const k = keyOf(text, slow);
+  const k = `${voiceTag}|${keyOf(text, slow)}`;
   const hit = blobCache.get(k);
   if (hit) return hit;
   const pending = pendingAudio.get(k);
@@ -139,7 +155,7 @@ async function serverAudio(text: string, slow: boolean, prefetch = false): Promi
     let blob = await readStored(text, slow);
     if (!blob) {
       if (prefetch && !prefetchBudget()) throw new Error('prefetch_budget');
-      blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}`);
+      blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}${voiceTag ? `&v=${voiceTag}` : ''}`);
       if (!blob.size) throw new Error('empty_audio');
       void writeStored(text, slow, blob);
     }

@@ -147,6 +147,30 @@ describe('Speech playback lifecycle (simulated browser, no real TTS)', () => {
         expect(api2).not.toHaveBeenCalled();
         second.audio.stopSpeech(); await task;
     });
+    it('a different server voice (fingerprint) is not served from the old cache and drops the unlabeled pg-tts-v1 once', async () => {
+        const store = new Map();
+        const cache = { match: vi.fn(async (k) => store.get(k)), put: vi.fn(async (k, r) => { store.set(k, new Response(await r.blob())); }), keys: vi.fn(async () => [...store.keys()]), delete: vi.fn() };
+        const storage = { open: vi.fn(async () => cache), delete: vi.fn(async () => true) };
+        const { audio } = await setup();
+        vi.stubGlobal('caches', storage);
+        vi.stubGlobal('location', { origin: 'https://app.test' });
+        const { apiBlob } = await import('../../web/src/lib/api');
+        apiBlob.mockReset().mockImplementation(async () => new Blob(['audio'], { type: 'audio/mpeg' }));
+        audio.configureAudio({ server: true, voice: 'aaa111' });
+        audio.prefetchSpeech(['Smacznego']);
+        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledOnce());
+        expect(String(apiBlob.mock.calls[0][0])).toContain('&v=aaa111');
+        // Той самий голос — з кешу; новий голос — новий запит з новим відбитком.
+        audio.prefetchSpeech(['Smacznego']);
+        audio.configureAudio({ server: true, voice: 'bbb222' });
+        audio.prefetchSpeech(['Smacznego']);
+        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledTimes(2));
+        expect(apiBlob).toHaveBeenCalledTimes(2);
+        expect(String(apiBlob.mock.calls[1][0])).toContain('&v=bbb222');
+        expect(new Set(store.keys()).size).toBe(2);
+        expect(storage.delete).toHaveBeenCalledOnce();
+        expect(storage.delete).toHaveBeenCalledWith('pg-tts-v1');
+    });
     it('soft device-voice policy (prepared, off by default) speaks pl-PL and marks the voice as unverified', async () => {
         vi.useFakeTimers();
         const { audio, synth } = await setup();
@@ -164,10 +188,11 @@ describe('Speech playback lifecycle (simulated browser, no real TTS)', () => {
     it('a lone letter (preposition w / z) is never voiced on its own: a voice would say its name, "duże wu"', async () => {
         const zosia = { name: 'Zosia', lang: 'pl-PL', localService: true, default: false };
         const { audio, synth } = await setup([zosia]);
+        const { apiBlob } = await import('../../web/src/lib/api');
+        apiBlob.mockReset();
         audio.configureAudio({ server: true });
         for (const x of ['W', 'w', 'z', 'I']) expect(await audio.speak(x)).toEqual({ played: false, source: null, issue: null });
         expect(synth.speak).not.toHaveBeenCalled();
-        const { apiBlob } = await import('../../web/src/lib/api');
         expect(apiBlob).not.toHaveBeenCalled();
     });
     it('reports which source really started playing (health check by playback, not by request)', async () => {

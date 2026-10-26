@@ -17,7 +17,11 @@ import { HttpError, badRequest, notFound } from '../lib/errors';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signToken } from '../lib/token';
 import { invalidateRewards } from '../services/gameConfig';
-import { contentPhrases, synthesize, ttsConfigured } from '../services/tts';
+import {
+  TTS_PROVIDER_IDS, cacheLabel, contentPhrases, listPolishVoices, migrateLegacyCacheKeys, synthesize, ttsCacheStats, ttsConfigured, ttsInputText, ttsProvider, ttsRuntime, ttsStatus,
+} from '../services/tts';
+import { estimateUsd, priceFor } from '../services/tts-catalog';
+import { benchmarkPlan } from '../services/tts-benchmark';
 
 const i18n = z.object({ uk: z.string().min(1), ru: z.string().optional(), en: z.string().optional(), pl: z.string().optional() });
 const status = z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
@@ -490,6 +494,45 @@ a.post('/tts/warm', async (c) => {
   }
   const next = offset + chunk.length;
   return c.json({ total: phrases.length, next, done: next >= phrases.length, synthesized, failed });
+});
+
+// ── Діагностика озвучки: що реально грає, кеш, оцінка прогріву. Без синтезу і без ключів у відповіді ──
+a.get('/tts/status', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const p = ttsProvider();
+  const [cache, phrases] = await Promise.all([ttsCacheStats(), contentPhrases()]);
+  // Прогрів синтезує кожну фразу на двох швидкостях; уже закешоване поточним голосом не оплачується.
+  const chars = phrases.reduce((n, text) => n + [...ttsInputText(text)].length, 0) * 2;
+  const label = p ? cacheLabel(p) : null;
+  const cachedChars = cache.groups.filter((g) => g.label === label).reduce((n, g) => n + g.chars, 0);
+  const price = p ? priceFor(p.provider, p.model) : null;
+  const left = Math.max(0, chars - cachedChars);
+  return c.json({
+    ...ttsStatus(),
+    runtime: ttsRuntime(),
+    cache,
+    warm: { phrases: phrases.length, chars, cachedChars, left, price, usd: price ? { freeTierLeft: estimateUsd(left, price), freeTierUsed: estimateUsd(left, price, price.freeCharsPerMonth) } : null },
+  });
+});
+
+/** План сліпого тесту голосів (dry-run): кандидати, попередження, ціни, приклад запиту без ключа. */
+a.get('/tts/benchmark', (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  return c.json(benchmarkPlan({ region: getBindings().AZURE_SPEECH_REGION || undefined }));
+});
+
+/** Польські голоси, які реально віддає провайдер (список, не синтез). */
+a.get('/tts/voices', rateLimit(10, 60_000, 'tts-voices'), async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const { provider } = z.object({ provider: z.enum(TTS_PROVIDER_IDS) }).parse(query(c));
+  return c.json({ provider, voices: await listPolishVoices(provider) });
+});
+
+/** Перенос старих ключів кешу (до моделі й версії в ключі) без синтезу, частинами. */
+a.post('/tts/migrate-cache', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const { cursor } = z.object({ cursor: z.string().max(80).nullish() }).parse(await body(c));
+  return c.json(await migrateLegacyCacheKeys({ cursor, limit: 200 }));
 });
 
 // ── Розсилки: надсилаються частинами за розкладом (cron) ──

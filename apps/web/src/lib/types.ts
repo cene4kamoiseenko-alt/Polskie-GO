@@ -49,7 +49,7 @@ export type Me = {
   /** Може бути відсутнім, якщо сервер старіший за клієнт. */
   rewards?: { exerciseXp: number };
   /** server — серверна польська озвучка доступна. */
-  audio?: { server: boolean; provider?: string | null; voice?: string | null; recognition?: { server: boolean; provider?: string | null } };
+  audio?: { server: boolean; provider?: string | null; voice?: string | null; model?: string | null; fingerprint?: string | null; warnings?: string[]; recognition?: { server: boolean; provider?: string | null } };
 };
 
 export type LessonState = 'locked' | 'available' | 'completed';

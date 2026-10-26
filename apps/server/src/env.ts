@@ -20,7 +20,11 @@ export type Bindings = {
   AI_MONTHLY_OUTPUT_TOKENS?: string;
   INIT_DATA_MAX_AGE?: string;
   ADMIN_EMAIL?: string;
-  /** Серверна озвучка: Google Cloud Text-to-Speech (ключ API) або Azure Speech. */
+  /**
+   * Серверна озвучка: auto (типово — перший провайдер із ключем: Google → Azure → ElevenLabs), google, azure, elevenlabs
+   * або off (аварійний вимикач витрат). Див. services/tts.ts і docs/POLISH_TTS_BENCHMARK.md.
+   */
+  TTS_PROVIDER?: string;
   GOOGLE_TTS_API_KEY?: string;
   GOOGLE_TTS_VOICE?: string;
   /** Enable short microphone transcription explicitly; off by default. */

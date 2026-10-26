@@ -31,17 +31,24 @@ describe('Microphone capture lifecycle (simulated hardware)', () => {
     const run = recognizeRecordedPolish({ onProcessing, onStart, onLevel, bind });
     await vi.waitFor(() => expect(Worklet.last).toBeDefined());
     expect(onStart).toHaveBeenCalledOnce();
-    Worklet.last.port.onmessage({ data: new Float32Array(16000).fill(0.2) });
+    Worklet.last.port.onmessage({ data: new Float32Array(48000).fill(0.2) });
     expect(onLevel).toHaveBeenCalled(); expect(onLevel.mock.calls[0][0]).toBeGreaterThan(0.5);
     run.stop(); await expect(run.promise).resolves.toEqual({ transcript: 'Dzień dobry', attempt: 'signed-attempt' });
     expect(track.stop).toHaveBeenCalled(); expect(onProcessing).toHaveBeenCalledOnce();
     expect(transcribeAudio.mock.calls[0][0].length).toBeGreaterThan(3200);
     expect(transcribeAudio.mock.calls[0][2]).toEqual(bind);
   });
-  it('does not upload an empty clip', async () => {
+  it('does not upload an empty clip (accidental tap: too short)', async () => {
     setup(); const run = recognizeRecordedPolish();
     await vi.waitFor(() => expect(Worklet.last).toBeDefined());
-    const check = expect(run.promise).rejects.toThrow('silence'); run.stop(); await check;
+    const check = expect(run.promise).rejects.toThrow('too-short'); run.stop(); await check;
+    expect(transcribeAudio).not.toHaveBeenCalled(); expect(track.stop).toHaveBeenCalled();
+  });
+  it('a loud but too short clip (0.3 s) is "too short", not silence, and is not uploaded', async () => {
+    setup(); const run = recognizeRecordedPolish();
+    await vi.waitFor(() => expect(Worklet.last).toBeDefined());
+    Worklet.last.port.onmessage({ data: new Float32Array(14400).fill(0.2) });
+    const check = expect(run.promise).rejects.toThrow('too-short'); run.stop(); await check;
     expect(transcribeAudio).not.toHaveBeenCalled(); expect(track.stop).toHaveBeenCalled();
   });
   it('does not upload a long but silent clip (background hiss only)', async () => {

@@ -871,6 +871,32 @@ async function main() {
     await server.page.locator('[data-mic="silence"]').waitFor();
     check(transcribes.length === 0 && sttCalls === 0, 'тиша — стан «Тишина», запис не надіслано до STT');
 
+    // Застосунок згорнули під час запису: доріжки мікрофона зупинені одразу, запис не надіслано.
+    await server.page.evaluate(() => {
+      const md = navigator.mediaDevices as MediaDevices & { __real?: MediaDevices['getUserMedia']; __last?: MediaStream };
+      md.getUserMedia = async (c) => (md.__last = await md.__real!(c));
+    });
+    await b.mic.click();
+    await server.page.locator('[data-mic="recording"]').waitFor();
+    // Рядком: tsx обгортає геттер у __name, якого на сторінці немає.
+    const hiddenTracks: string[] = await server.page.evaluate(`(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get() { return 'hidden'; } });
+      document.dispatchEvent(new Event('visibilitychange'));
+      const states = navigator.mediaDevices.__last.getTracks().map((t) => t.readyState);
+      delete document.visibilityState;
+      document.dispatchEvent(new Event('visibilitychange'));
+      return states;
+    })()`);
+    await server.page.locator('[data-mic="ready"]').waitFor();
+    check(hiddenTracks.length > 0 && hiddenTracks.every((s) => s === 'ended') && transcribes.length === 0, `згорнули під час запису — мікрофон вимкнено (${hiddenTracks.join(',')}), запис не надіслано`);
+
+    // Випадкове коротке натискання: «Занадто коротко», не «Тиша», без запиту до STT.
+    await b.mic.click();
+    await server.page.locator('[data-mic="recording"]').waitFor();
+    await b.mic.click();
+    await server.page.locator('[data-mic="short"]').waitFor();
+    check(transcribes.length === 0 && sttCalls === 0, 'запис коротший за 0,5 с — стан «Слишком коротко», запис не надіслано');
+
     await server.page.evaluate(() => {
       const md = navigator.mediaDevices as MediaDevices & { __real?: MediaDevices['getUserMedia'] };
       md.getUserMedia = md.__real!;

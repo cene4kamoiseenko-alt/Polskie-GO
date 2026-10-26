@@ -83,7 +83,7 @@ describe('Серверна польська озвучка', () => {
     try {
       const { call, token } = await login();
       const st = await call('GET', '/api/tts/status');
-      expect(st.body).toEqual({ configured: true, provider: 'elevenlabs', voice: 'voice123/eleven_multilingual_v2' });
+      expect(st.body).toMatchObject({ configured: true, provider: 'elevenlabs', voice: 'voice123/eleven_multilingual_v2', voiceId: 'voice123', model: 'eleven_multilingual_v2', warnings: [] });
       const res = await app.request(`/api/tts?text=${encodeURIComponent('Byłem we Wrocławiu.')}&rate=slow`, { headers: { authorization: `Bearer ${token}` } }, env);
       expect(res.status).toBe(200);
       expect(sent[0]).toMatchObject({ text: 'Byłem we Wrocławiu.', speed: 0.8 });

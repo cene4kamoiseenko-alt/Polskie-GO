@@ -1,6 +1,8 @@
 /** Portable canonical mono PCM16 WAV for short speech clips (no browser/Node dependencies). */
 export const SPEECH_SAMPLE_RATE = 16_000;
 export const MAX_SPEECH_SECONDS = 30;
+/** Коротший запис — випадкове натискання: клієнт показує «Занадто коротко» і не надсилає його. */
+export const MIN_SPEECH_SECONDS = 0.5;
 export const MAX_SPEECH_BYTES = 44 + SPEECH_SAMPLE_RATE * MAX_SPEECH_SECONDS * 2;
 export function encodeSpeechWav(chunks: readonly Float32Array[], sampleRate: number): Uint8Array {
   if (!Number.isFinite(sampleRate) || sampleRate < 8000 || sampleRate > 192000) throw new Error('bad_sample_rate');

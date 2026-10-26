@@ -107,8 +107,8 @@ export function App() {
   useTheme(me.data?.settings.theme);
   useEffect(() => {
     setSoundEnabled(me.data?.settings.soundEnabled ?? true);
-    configureAudio({ server: !!me.data?.audio?.server });
-  }, [me.data?.settings.soundEnabled, me.data?.audio?.server]);
+    configureAudio({ server: !!me.data?.audio?.server, voice: me.data?.audio?.fingerprint });
+  }, [me.data?.settings.soundEnabled, me.data?.audio?.server, me.data?.audio?.fingerprint]);
 
   // Глибокі посилання: startapp=lesson_<id>, story_<slug>, premium
   useEffect(() => {

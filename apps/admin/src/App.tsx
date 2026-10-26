@@ -74,11 +74,31 @@ function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: st
   );
 }
 
-/** Попередній синтез польської озвучки для всього контенту (частинами). */
+const TTS_WARNINGS: Record<string, string> = {
+  voice_not_in_official_list: 'голосу немає в офіційному списку провайдера',
+  voice_not_polish: 'голос не польський',
+  premade_english_voice: 'англійський готовий голос — польська звучатиме з акцентом',
+  model_without_polish: 'модель не підтримує польську',
+};
+const TTS_FALLBACK: Record<string, string> = {
+  invalid_tts_provider: 'TTS_PROVIDER має невідоме значення — працює auto',
+  requested_provider_not_configured: 'для TTS_PROVIDER немає ключа — працює auto',
+  no_provider_configured: 'ключів немає — клієнт говорить польським голосом пристрою',
+  disabled: 'TTS_PROVIDER=off — серверну озвучку вимкнено',
+};
+
+/** Попередній синтез польської озвучки для всього контенту (частинами). Спершу показує, який голос і скільки це коштує. */
 function WarmAudio() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const { data: st, reload } = useLoad<any>(() => api('/tts/status'), []);
   const run = async () => {
+    const w = st?.warm;
+    const cost = w?.usd ? `≈ $${w.usd.freeTierLeft} у межах безкоштовного обсягу, ≈ $${w.usd.freeTierUsed}, якщо він уже витрачений` : 'ціна невідома';
+    const ask = w
+      ? `Голос: ${st.provider} · ${st.voiceId} (${st.model}).\nДо синтезу: до ${w.left.toLocaleString('uk')} символів (${w.phrases} фраз × 2 швидкості, без уже закешованого).\nОрієнтовно ${cost}.\n\nЦе платні запити до провайдера. Продовжити?`
+      : 'Це платні запити до провайдера. Продовжити?';
+    if (!window.confirm(ask)) return;
     setBusy(true);
     let offset = 0;
     let made = 0;
@@ -94,15 +114,53 @@ function WarmAudio() {
       setMsg((e as Error).message);
     } finally {
       setBusy(false);
+      reload();
+    }
+  };
+  const migrate = async () => {
+    setBusy(true);
+    let cursor: string | null = null;
+    let moved = 0;
+    try {
+      for (;;) {
+        const r: any = await api('/tts/migrate-cache', { body: { cursor } });
+        moved += r.migrated;
+        setMsg(`Перенесено записів кешу: ${moved}`);
+        if (r.done) break;
+        cursor = r.next;
+      }
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+      reload();
     }
   };
   return (
-    <div className="panel flex flex-wrap items-center gap-3 p-4">
-      <div className="flex-1">
-        <div className="font-bold">Польська озвучка контенту</div>
-        <div className="text-sm text-slate-500">{msg || 'Синтезує й кешує всі слова та фрази (звичайна і сповільнена швидкість). Потрібен ключ Google TTS або Azure Speech.'}</div>
+    <div className="panel space-y-3 p-4" data-tts-status={st?.provider ?? 'none'}>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1">
+          <div className="font-bold">Польська озвучка контенту</div>
+          <div className="text-sm text-slate-500">{msg || 'Синтезує й кешує всі слова та фрази (звичайна і сповільнена швидкість). Перед запуском покаже голос і оцінку вартості.'}</div>
+        </div>
+        <button className="btn-p" disabled={busy || !st?.configured} onClick={run}>{busy ? 'Зачекайте…' : 'Озвучити весь контент'}</button>
       </div>
-      <button className="btn-p" disabled={busy} onClick={run}>{busy ? 'Озвучую…' : 'Озвучити весь контент'}</button>
+      {st && (
+        <div className="grid gap-1 text-sm md:grid-cols-2">
+          <div>
+            Зараз грає: <b>{st.configured ? `${st.provider} · ${st.voiceId} · ${st.model}` : 'голос пристрою (серверного синтезу немає)'}</b>
+            {' '}<span className="text-slate-500">({st.selection === 'explicit' ? `TTS_PROVIDER=${st.requested}` : st.selection})</span>
+          </div>
+          <div>
+            Кеш: {st.cache.rows} записів, {(st.cache.bytes / 1048576).toFixed(1)} МБ
+            {st.cache.legacyRows > 0 && <> · старих ключів: {st.cache.legacyRows} <button className="underline" disabled={busy} onClick={migrate}>перенести</button></>}
+          </div>
+          {st.fallbackReason && <div className="text-amber-700">{TTS_FALLBACK[st.fallbackReason] ?? st.fallbackReason}</div>}
+          {st.warnings.map((w: string) => <div key={w} className="text-rose-600">Увага: {TTS_WARNINGS[w] ?? w}</div>)}
+          {st.lastError && <div className="text-rose-600">Остання помилка провайдера: {st.lastError.reason} ({new Date(st.lastError.at).toLocaleString('uk')})</div>}
+          {st.warm && <div className="text-slate-500">Прогрів: {st.warm.phrases} фраз, до синтезу до {st.warm.left.toLocaleString('uk')} символів</div>}
+        </div>
+      )}
     </div>
   );
 }

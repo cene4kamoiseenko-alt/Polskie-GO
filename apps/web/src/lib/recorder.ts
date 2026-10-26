@@ -1,4 +1,4 @@
-import { blockLevel, encodeSpeechWav, hasVoiceActivity, MAX_SPEECH_SECONDS } from '@polski-go/shared';
+import { blockLevel, encodeSpeechWav, hasVoiceActivity, MAX_SPEECH_SECONDS, MIN_SPEECH_SECONDS } from '@polski-go/shared';
 import workletUrl from './recorder.worklet.js?url';
 import { transcribeAudio, type Transcription } from './api';
 import type { RecognitionRun } from './recognition';
@@ -18,7 +18,7 @@ export type RecordingHooks = {
 
 /**
  * Explicit recording only; cancellation releases hardware even if permission resolves later.
- * Тиша (немає кадрів із голосом) не надсилається на сервер: помилка 'silence'.
+ * Тиша (немає кадрів із голосом) не надсилається на сервер: помилка 'silence'; запис коротший за MIN_SPEECH_SECONDS — 'too-short'.
  */
 export function recognizeRecordedPolish({ onStart, onLevel, onProcessing, bind }: RecordingHooks = {}): RecognitionRun<Transcription> {
   const ctrl = new AbortController();
@@ -45,8 +45,10 @@ export function recognizeRecordedPolish({ onStart, onLevel, onProcessing, bind }
     cleanup(); // Release mic before waiting for network.
     onProcessing?.();
     try {
+      const seconds = chunks.reduce((n, c) => n + c.length, 0) / rate;
+      if (seconds < MIN_SPEECH_SECONDS) throw new Error('too-short');
+      if (!hasVoiceActivity(chunks, rate)) throw new Error('silence');
       const wav = encodeSpeechWav(chunks, rate);
-      if (wav.length < 3244 || !hasVoiceActivity(chunks, rate)) throw new Error('silence');
       settle(await transcribeAudio(wav, ctrl.signal, bind));
     } catch (e) { settle(undefined, e as Error); }
   };
