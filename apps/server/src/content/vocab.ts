@@ -9,6 +9,7 @@ import { EDU_VOCAB } from './vocab-education';
 import { KRAKOW_VOCAB } from './vocab-krakow';
 import { WARSZAWA_VOCAB } from './vocab-warszawa';
 import { KATOWICE_VOCAB } from './vocab-katowice';
+import { OPOLE_VOCAB } from './vocab-opole';
 import { LODZ_VOCAB } from './vocab-lodz';
 import { WROCLAW_VOCAB } from './vocab-wroclaw';
 
@@ -69,6 +70,7 @@ export const TOPICS: Record<string, I18n> = {
   parcel: t('Посилки', 'Посылки', 'Parcels'),
   city: t('Місто', 'Город', 'City'),
   grammar: t('Граматика', 'Грамматика', 'Grammar'),
+  music: t('Музика й концерти', 'Музыка и концерты', 'Music & concerts'),
 };
 
 const BYC = { ja: 'jestem', ty: 'jesteś', 'on/ona': 'jest', my: 'jesteśmy', wy: 'jesteście', oni: 'są' };
@@ -339,5 +341,6 @@ export const VOCAB: VocabSeed[] = [
   ...WARSZAWA_VOCAB,
   ...LODZ_VOCAB,
   ...KATOWICE_VOCAB,
+  ...OPOLE_VOCAB,
   ...WROCLAW_VOCAB,
 ];

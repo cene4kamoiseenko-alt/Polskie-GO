@@ -4,6 +4,7 @@
  * Сленг завжди подається з нейтральною альтернативою.
  */
 import { t, wordChoice, fillGap, listen, findError, oddOne, reading, translate, build, match, speak, dialogue } from './builders';
+import { OPOLE_ROUTES_5_10 } from './opole-5-10';
 import type { CityContent } from './types';
 
 const KUBA = { name: 'Kuba', emoji: '🧑🏼', role: t('друг-студент', 'друг-студент', 'a student friend') };
@@ -214,6 +215,7 @@ export const OPOLE: CityContent = {
         },
       ],
     },
+    ...OPOLE_ROUTES_5_10,
     {
       slug: 'opo-egzamin',
       title: t('Іспит Ополя', 'Экзамен Ополе', 'Opole exam'),

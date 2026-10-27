@@ -41,6 +41,8 @@ const ROUTE_SCENES: Record<string, SceneName> = {
   'kat-mieszkanie': 'flat',
   'kat-rozmowa': 'train-station',
   'opo-zywy': 'street-food',
+  'opo-rozmowy': 'cafe-pierogi',
+  'opo-festiwal': 'market-square',
   'wro-kawiarnia': 'bakery',
   'wro-sklep': 'shop-corner',
   'wro-restauracja': 'milk-bar',

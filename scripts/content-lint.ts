@@ -145,6 +145,9 @@ const PLAIN_OK: Record<string, string[]> = {
     'kat-8-poczta#1 paczka', 'kat-8-poczta#2 paczka', 'kat-8-poczta#3 poczta', 'kat-8-poczta#11 poczta', 'kat-8-poczta#8 chce', 'kat-8-poczta#9 potrzebuje',
     'krk-d4-peron#12 dwunasta',
   ],
+  'Ополе: навмисний неправильний варіант (називний замість місцевого після o: dwunasta) і жіночий називний jaka («яка музика»), а не знахідний jaką': [
+    'opo-5-weekend#5 dwunasta', 'opo-7-zdanie#4 jaka',
+  ],
   'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': [
     'krk-h1-recepcja#11 maja', 'krk-h1-recepcja#12 maja', 'krk-h5-misja#3 maja', 'krk-u4-biblioteka#10 maja', 'krk-u4-biblioteka#14 maja',
   ],

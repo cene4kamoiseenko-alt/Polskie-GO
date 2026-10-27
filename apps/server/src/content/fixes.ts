@@ -22,6 +22,12 @@ export const TEXT_FIXES: TextFix[] = [
     from: t('Iść, chodzić, jechać, jeździć', 'Iść, chodzić, jechać, jeździć', 'Iść, chodzić, jechać, jeździć'),
     to: t('Іти, ходити, їхати, їздити', 'Идти, ходить, ехать, ездить', 'Walking and going by vehicle'),
   },
+  // Ополе: назва локації «Żywy polski» була польською в усіх мовах (аудит 2026-10-27).
+  {
+    table: 'city_routes', slug: 'opo-zywy', column: 'title',
+    from: t('Żywy polski', 'Żywy polski', 'Żywy polski'),
+    to: t('Живий польський', 'Живой польский', 'Living Polish'),
+  },
   // Квиток з іспиту веде до наступного міста маршруту (Warszawa → Łódź → Kraków → Katowice → Opole → Wrocław → Poznań).
   {
     table: 'city_routes', slug: 'waw-egzamin', column: 'description',
