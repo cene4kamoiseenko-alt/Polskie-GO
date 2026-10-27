@@ -97,11 +97,17 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 
 ### 3. Бот
 
+Подробно (команды, картинки, напоминания, проверка после деплоя) — [`docs/TELEGRAM_BOT.md`](docs/TELEGRAM_BOT.md).
+
 1. В [@BotFather](https://t.me/BotFather): `/newapp` → URL `https://polskie-go.<аккаунт>.workers.dev`.
-2. Webhook (бот, Stars, `/start`): открыть в браузере
-   `https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=https://polskie-go.<аккаунт>.workers.dev/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>&allowed_updates=["message","pre_checkout_query"]`
-   или локально: `PUBLIC_URL=… WEB_APP_URL=… TELEGRAM_BOT_TOKEN=… TELEGRAM_WEBHOOK_SECRET=… npm run bot:setup -w @polski-go/server`.
-3. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`, цены тарифов — в админке.
+2. После деплоя один раз (токен и адреса — из окружения или `.env`, в вывод не попадают):
+   `WEB_APP_URL=https://polskie-go.<аккаунт>.workers.dev TELEGRAM_BOT_TOKEN=… npm run bot:setup -w @polski-go/server`
+   — регистрирует девять команд (ru + uk/pl/en) и кнопку меню Mini App. Описание бота, Description Picture, токен и webhook не меняются.
+   `--dry-run` показывает вызовы без сети.
+3. Webhook нужен один раз (бот, Stars, `/start`): добавить флаг `--webhook` и переменные `PUBLIC_URL`, `TELEGRAM_WEBHOOK_SECRET`
+   (`allowed_updates=["message","pre_checkout_query"]`, ожидающие обновления не сбрасываются).
+4. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`, цены тарифов — в админке.
+5. Картинки команд — `apps/web/public/bot/commands/*.jpg`, публикуются вместе с приложением. `WEB_APP_URL` должен быть `https`, иначе бот отвечает без фото.
 
 ### Лимиты бесплатного плана
 

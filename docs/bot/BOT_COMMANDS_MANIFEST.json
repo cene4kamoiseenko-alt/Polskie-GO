@@ -1,0 +1,38 @@
+{
+  "start": {
+    "image": "/bot/commands/start.jpg",
+    "landing_route": "/"
+  },
+  "lesson": {
+    "image": "/bot/commands/lesson.jpg",
+    "landing_route": "/learn"
+  },
+  "map": {
+    "image": "/bot/commands/map.jpg",
+    "landing_route": "/map"
+  },
+  "words": {
+    "image": "/bot/commands/words.jpg",
+    "landing_route": "/dictionary"
+  },
+  "quests": {
+    "image": "/bot/commands/quests.jpg",
+    "landing_route": "/quests"
+  },
+  "profile": {
+    "image": "/bot/commands/profile.jpg",
+    "landing_route": "/profile"
+  },
+  "settings": {
+    "image": "/bot/commands/settings.jpg",
+    "landing_route": "/settings"
+  },
+  "help": {
+    "image": "/bot/commands/help.jpg",
+    "landing_route": "/"
+  },
+  "stop": {
+    "image": "/bot/commands/stop.jpg",
+    "landing_route": "/settings"
+  }
+}
