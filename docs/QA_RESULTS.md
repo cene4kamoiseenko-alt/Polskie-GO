@@ -26,7 +26,7 @@
 | E2E | `npm run e2e` | Код выхода 0. 363 проверки, 0 провалов. Новые сценарии B1.1–B1.3: девять вкладок по `bot_screen` на 390×844 и 360×800, подделки (`evil`, `/admin`, URL, `..`, регистр, пусто) остаются на главной, `startapp=screen_`/`ref_`/`premium`, первый запуск (знакомство → экран) и повторный, обычная навигация не перебивается |
 | Контент-lint | `node --import tsx scripts/content-lint.ts` | Код выхода 0. 1689 заданий, структура 0 |
 | Сборка | `npm run build` | Код выхода 0. `dist-cf/bot/commands/` — 12 JPEG |
-| Картинки из сборки | `wrangler dev --local` + curl | 12 из 12: `200 image/jpeg`; отсутствующий файл: `200 text/html`. Только локально, боевой origin не проверялся |
+| Картинки из сборки | `wrangler dev --local` + curl | 12 из 12: `200 image/jpeg`; отсутствующий файл: `200 text/html`. Локально. Боевой origin `polskie-go.cene4kamoiseenko.workers.dev` (2026-10-27): `/api/health` 200, 12 из 12 `200 image/jpeg` с теми же размерами |
 
 Не проверено: реальные iOS/Android Telegram (эмуляция Chromium, `window.Telegram.WebApp` подменён), реальный `sendPhoto` и боевые HTTPS-адреса картинок, cron на проде, `npm run a11y`/`screens`/`perf` для этих изменений.
 

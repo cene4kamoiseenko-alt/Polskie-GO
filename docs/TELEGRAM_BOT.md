@@ -137,11 +137,13 @@ Cron `*/15 * * * *`. Три сценария, выбираются по реал
 
 Прогон 2026-10-27 (код выхода 0 у всех): `npm run typecheck`; `npm test` — shared 152 из 152 (4 файла), server 265 из 265 (28 файлов); `node --import tsx scripts/content-lint.ts` (1689 заданий, структура 0); `npm run build`; `npm run e2e` — 363 проверки, 0 провалов («A2/A3/A4/L1/M2/B1: все сценарии пройдены»).
 
-Локально собранное приложение (`wrangler dev --local`, `dist-cf`) отдаёт все двенадцать `/bot/commands/*.jpg` как `200 image/jpeg` с размерами файлов; несуществующий файл даёт `200 text/html` (SPA-замещение). Это локальный сервер, **не** боевой origin.
+Локально собранное приложение (`wrangler dev --local`, `dist-cf`) отдаёт все двенадцать `/bot/commands/*.jpg` как `200 image/jpeg` с размерами файлов; несуществующий файл даёт `200 text/html` (SPA-замещение). Это локальный сервер.
+
+Боевой origin `https://polskie-go.cene4kamoiseenko.workers.dev` (проверка 2026-10-27, с моей стороны через `curl`): `/api/health` → `200 application/json` `{"ok":true}`; все двенадцать `/bot/commands/*.jpg` → `200 image/jpeg`, размеры совпадают с файлами (start 232570, lesson 218946, map 250423, words 244523, quests 218946, profile 205457, settings 232570, help 281348, stop 217602, reminder-lesson 218946, reminder-streak 205457, reminder-return 217602 байт). Это подтверждает, что сборка с картинками выложена; какой именно коммит выложен, по этой проверке не видно.
 
 **Не проверено (честно):**
 * Реальные iOS/Android Telegram: e2e идёт в Chromium с подменой `window.Telegram.WebApp`; сообщения бота на настоящих клиентах не смотрели.
-* Реальный `sendPhoto` в Telegram и публичные HTTPS-адреса картинок (HTTP-статусы) — до деплоя недоступны; проверка — шаг 7 выше.
+* Реальный `sendPhoto` в Telegram (HTTPS-адреса картинок и их статусы проверены, см. выше; сама отправка в Telegram — нет).
 * Реальная доставка напоминаний (cron в production), реальный 403/429 от Telegram.
 * Массовые отправки по-прежнему только с согласия владельца.
 
