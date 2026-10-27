@@ -1302,3 +1302,23 @@ html.reduced-motion .chest-ready { animation: none; }
 /* Плашка рівня досягнення: у світлій темі — темний відтінок рівня (світлий текст на блідому тлі губився). */
 .tier-chip { color: var(--tier-ink); }
 html.dark .tier-chip { color: var(--tier-fg); }
+
+/* Рух шарів образу (ADR-005, поле motion): моргання і змах лапою — лише в «живого» Бобека (.is-live:
+   видимий, від 96 px, один на екрані, без «Менше анімацій» і prefers-reduced-motion). Повіки поза анімацією сховані. */
+.beaver-look .look-motion-blink { opacity: 0; }
+.beaver-look.is-live .look-motion-blink { animation: look-blink 4.6s linear infinite; }
+.beaver-look.is-live .look-motion-wave { animation: look-wave 1.3s ease-in-out infinite; }
+@keyframes look-blink {
+  0%, 92%, 100% { opacity: 0; }
+  93.5%, 96% { opacity: 1; }
+}
+@keyframes look-wave {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(9deg); }
+}
+html.reduced-motion .beaver-look .look-motion-blink,
+html.reduced-motion .beaver-look .look-motion-wave { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .beaver-look.is-live .look-motion-blink,
+  .beaver-look.is-live .look-motion-wave { animation: none; }
+}

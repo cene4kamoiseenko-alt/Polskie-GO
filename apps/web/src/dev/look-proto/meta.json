@@ -1,0 +1,161 @@
+{
+  "canvas": 1024,
+  "eyeDistance": 187,
+  "eyes": {
+    "x": 512,
+    "y": 330
+  },
+  "poses": {
+    "idle": {
+      "file": "front",
+      "angle": -3.5,
+      "scale": 1.652,
+      "eyesSrc": [
+        [
+          254,
+          153
+        ],
+        [
+          367,
+          146
+        ]
+      ],
+      "anchors": {
+        "eyes": {
+          "x": 512,
+          "y": 330
+        },
+        "head-top": {
+          "x": 505,
+          "y": 214
+        }
+      }
+    },
+    "wave": {
+      "file": "wave",
+      "angle": -8.2,
+      "scale": 1.332,
+      "eyesSrc": [
+        [
+          368,
+          232
+        ],
+        [
+          507,
+          212
+        ]
+      ],
+      "arm": {
+        "pivot": {
+          "x": 694,
+          "y": 604
+        },
+        "top": true
+      },
+      "anchors": {
+        "eyes": {
+          "x": 512,
+          "y": 330
+        },
+        "head-top": {
+          "x": 495,
+          "y": 215
+        }
+      }
+    },
+    "think": {
+      "file": "think",
+      "angle": -17.7,
+      "scale": 1.291,
+      "eyesSrc": [
+        [
+          388,
+          234
+        ],
+        [
+          526,
+          190
+        ]
+      ],
+      "anchors": {
+        "eyes": {
+          "x": 512,
+          "y": 330
+        },
+        "head-top": {
+          "x": 477,
+          "y": 220
+        }
+      }
+    },
+    "happy": {
+      "file": "correct",
+      "angle": -6.7,
+      "scale": 1.673,
+      "eyesSrc": [
+        [
+          224,
+          153
+        ],
+        [
+          335,
+          140
+        ]
+      ],
+      "anchors": {
+        "eyes": {
+          "x": 512,
+          "y": 330
+        },
+        "head-top": {
+          "x": 499,
+          "y": 215
+        }
+      }
+    },
+    "celebrate": {
+      "file": "celebrate",
+      "angle": -11.5,
+      "scale": 1.282,
+      "eyesSrc": [
+        [
+          355,
+          225
+        ],
+        [
+          498,
+          196
+        ]
+      ],
+      "anchors": {
+        "eyes": {
+          "x": 512,
+          "y": 330
+        },
+        "head-top": {
+          "x": 489,
+          "y": 216
+        }
+      }
+    }
+  },
+  "sizes": {},
+  "cap": {
+    "w": 430,
+    "h": 234,
+    "pivot": {
+      "x": 215,
+      "y": 161
+    },
+    "source": "отрисована в scripts/look-prototype.mjs (прототип, не живописный слой)"
+  },
+  "glasses": {
+    "w": 383,
+    "h": 168,
+    "pivot": {
+      "x": 192,
+      "y": 84
+    }
+  },
+  "bytes": 1123246
+}

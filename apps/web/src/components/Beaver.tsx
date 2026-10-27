@@ -69,9 +69,11 @@ function useLoopSlot(eligible: boolean, size: number): boolean {
 
 const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 
+type AssetResolver = (key: string, width: number) => string | null;
+
 /** Один шар: `canvas` — позиція й розмір у відсотках полотна 1024; `contain` — на все полотно. */
-function LayerImg({ layer, width }: { layer: LookRenderLayer; width: number }) {
-  const src = lookAssetUrl(layer.asset, width);
+function LayerImg({ layer, width, resolve }: { layer: LookRenderLayer; width: number; resolve: AssetResolver }) {
+  const src = resolve(layer.asset, width);
   useEffect(() => {
     if (!src && import.meta.env.DEV) console.warn(`[Beaver] немає файлу для шару «${layer.id}» (${layer.asset})`);
   }, [src, layer.id, layer.asset]);
@@ -88,7 +90,12 @@ function LayerImg({ layer, width }: { layer: LookRenderLayer; width: number }) {
     Object.assign(style, { inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom' });
   }
   if (layer.opacity !== undefined) style.opacity = layer.opacity;
-  return <img {...layerDataAttributes(layer)} src={src} alt="" decoding="async" draggable={false} style={style} />;
+  // Рух шару (моргання, змах лапою) — CSS-анімація з index.css; точка повороту — у відсотках rect шару.
+  if (layer.motion === 'wave' && layer.motionOrigin && layer.rect) {
+    style.transformOrigin = `${pct(layer.motionOrigin.x - layer.rect.x, layer.rect.w)} ${pct(layer.motionOrigin.y - layer.rect.y, layer.rect.h)}`;
+  }
+  const className = layer.motion ? `look-motion-${layer.motion}` : undefined;
+  return <img {...layerDataAttributes(layer)} className={className} src={src} alt="" decoding="async" draggable={false} style={style} />;
 }
 
 type ViewProps = {
@@ -99,7 +106,13 @@ type ViewProps = {
 };
 
 /** Малює ResolvedLook. Корінь має атрибути data-look-*, кожен шар — data-look-layer/slot/owner. */
-export const BeaverLook = memo(function BeaverLook({ look, size = 160, className, animate = true }: ViewProps & { look: ResolvedLook }) {
+export const BeaverLook = memo(function BeaverLook({
+  look,
+  size = 160,
+  className,
+  animate = true,
+  resolveAsset = lookAssetUrl,
+}: ViewProps & { look: ResolvedLook; /** URL ассета шару; за замовчуванням — src/assets (прототип передає свій). */ resolveAsset?: AssetResolver }) {
   const reduce = useReducedMotion();
   const anim = animate && !reduce;
   const root = useRef<HTMLDivElement>(null);
@@ -110,7 +123,7 @@ export const BeaverLook = memo(function BeaverLook({ look, size = 160, className
     <div
       ref={root}
       {...lookDataAttributes(look)}
-      className={className ? `beaver-look ${className}` : 'beaver-look'}
+      className={['beaver-look', loops ? 'is-live' : '', className ?? ''].filter(Boolean).join(' ')}
       style={{ position: 'relative', display: 'inline-block', width: size, height: size * BEAVER_BOX_RATIO, lineHeight: 0, flexShrink: 0, pointerEvents: 'none' }}
       aria-hidden="true"
     >
@@ -128,7 +141,7 @@ export const BeaverLook = memo(function BeaverLook({ look, size = 160, className
           transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
         >
           {look.layers.map((l) => (
-            <LayerImg key={l.id} layer={l} width={width} />
+            <LayerImg key={l.id} layer={l} width={width} resolve={resolveAsset} />
           ))}
         </motion.div>
       </motion.div>

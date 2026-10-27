@@ -97,6 +97,13 @@ export type LookPose = {
 };
 
 /**
+ * Рух шару: `blink` — повіки, видно лише мить кожні кілька секунд; `wave` — лапа, що махає навколо `motionOrigin`.
+ * Анімує рендерер (CSS) лише в «живого» Бобека: видимий, від 96 px, без «Менше анімацій» / prefers-reduced-motion.
+ */
+export const LOOK_MOTIONS = ['blink', 'wave'] as const;
+export type LookMotion = (typeof LOOK_MOTIONS)[number];
+
+/**
  * Шар живописного зображення на спільному полотні.
  * `registered` — намальований прямо на полотні бази (rect — де він лежить);
  * `anchored` — жорсткий предмет, що ставиться точкою `pivot` на якір пози (реквізит, окуляри).
@@ -119,6 +126,9 @@ export type LookLayer = {
   /** Точка шару (відносно rect), що збігається з якорем; для `anchored`. */
   pivot?: LookPoint;
   opacity?: number;
+  motion?: LookMotion;
+  /** Точка повороту руху `wave` у координатах полотна (плече). */
+  motionOrigin?: LookPoint;
 };
 
 export type LookCompatibility = {
@@ -239,6 +249,9 @@ export type LookRenderLayer = {
   rotate?: number;
   origin?: LookPoint;
   opacity?: number;
+  motion?: LookMotion;
+  /** Точка повороту руху у координатах полотна. */
+  motionOrigin?: LookPoint;
 };
 
 export type LookItemReason =

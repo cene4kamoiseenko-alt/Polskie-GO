@@ -16,8 +16,14 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 60_000 } },
 });
 
-// Службова галерея станів маскота — лише в режимі розробки.
-const Gallery = import.meta.env.DEV && location.pathname === '/__gallery' ? React.lazy(() => import('./dev/Gallery')) : null;
+// Службові сторінки: галерея станів маскота — лише в розробці; прототип єдиного Бобека (/__look-prototype) — і в збірці,
+// щоб його можна було відкрити на staging. Окремий lazy-чанк: ні код, ні шари прототипу не потрапляють у застосунок.
+const Gallery =
+  location.pathname === '/__look-prototype'
+    ? React.lazy(() => import('./dev/LookPrototype'))
+    : import.meta.env.DEV && location.pathname === '/__gallery'
+      ? React.lazy(() => import('./dev/Gallery'))
+      : null;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   Gallery ? (

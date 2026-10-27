@@ -50,6 +50,8 @@ function isLegacyOnly(it: LookItem) {
 function placeLayer(l: LookLayer, owner: string, pose: LookPose | null, m: LookManifest): LookRenderLayer {
   const base: LookRenderLayer = { id: l.id, asset: l.asset, owner, slot: l.slot, z: lookZ(l.band, l.z ?? 0), fit: 'canvas', rect: { ...l.rect } };
   if (l.opacity !== undefined) base.opacity = l.opacity;
+  if (l.motion) base.motion = l.motion;
+  if (l.motionOrigin) base.motionOrigin = { ...l.motionOrigin };
   if (l.placement !== 'anchored' || !l.anchor) return base;
   const a = pose?.anchors?.[l.anchor] ?? m.anchors[l.view]?.[l.anchor];
   if (!a) return base;
