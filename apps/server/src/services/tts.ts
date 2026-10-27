@@ -75,14 +75,15 @@ export function configuredProviders(env: Env = getBindings()): TtsProviderId[] {
 }
 
 function googleProvider(voice: string, key: string): TtsProvider {
-  const url = (k: string) => `https://texttospeech.googleapis.com/v1/text:synthesize?key=${k}`;
-  const headers = { 'content-type': 'application/json' };
+  // Ключ — в заголовке, не в адресе: адреса попадают в журналы прокси и сообщения об ошибках.
+  const url = 'https://texttospeech.googleapis.com/v1/text:synthesize';
+  const headers = (k: string) => ({ 'content-type': 'application/json', 'X-Goog-Api-Key': k });
   const body = (text: string, rate: SpeechRate) =>
     JSON.stringify({ input: { text }, voice: { languageCode: 'pl-PL', name: voice }, audioConfig: { audioEncoding: 'MP3', speakingRate: SPEECH_RATES[rate] } });
   return {
     provider: 'google', voice, model: googleModel(voice), legacyVoice: voice,
-    request: (text, rate) => ({ url: url(encodeURIComponent(key)), init: { method: 'POST', headers, body: body(text, rate) } }),
-    preview: (text, rate) => ({ method: 'POST', url: url('<GOOGLE_TTS_API_KEY>'), headers, body: body(text, rate) }),
+    request: (text, rate) => ({ url, init: { method: 'POST', headers: headers(key), body: body(text, rate) } }),
+    preview: (text, rate) => ({ method: 'POST', url, headers: headers('<GOOGLE_TTS_API_KEY>'), body: body(text, rate) }),
     parse: async (res) => {
       const { audioContent } = (await res.json()) as { audioContent?: string };
       if (typeof audioContent !== 'string' || !audioContent.length) throw new TtsProviderError('empty_audio');

@@ -187,7 +187,8 @@ describe('TTS: голоси й бенчмарк', () => {
     expect(plan.candidates).toHaveLength(CANDIDATES.length);
     expect(JSON.stringify(plan)).not.toContain('dry-run');
     const by = (id: string) => plan.candidates.find((c) => c.id === id)!;
-    expect(by('g-chirp-kore').sample?.url).toBe('https://texttospeech.googleapis.com/v1/text:synthesize?key=<GOOGLE_TTS_API_KEY>');
+    expect(by('g-chirp-kore').sample?.url).toBe('https://texttospeech.googleapis.com/v1/text:synthesize');
+    expect(by('g-chirp-kore').sample?.headers['X-Goog-Api-Key']).toBe('<GOOGLE_TTS_API_KEY>');
     expect(by('az-marek').sample?.url).toBe('https://polandcentral.tts.speech.microsoft.com/cognitiveservices/v1');
     expect(by('az-marek').sample?.headers['Ocp-Apim-Subscription-Key']).toBe('<AZURE_SPEECH_KEY>');
     expect(by('g-wavenet-a').warnings).toEqual(['voice_not_in_official_list']);

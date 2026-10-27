@@ -34,6 +34,12 @@ export type Bindings = {
   AZURE_SPEECH_KEY?: string;
   AZURE_SPEECH_REGION?: string;
   AZURE_SPEECH_VOICE?: string;
+  /** Google Speech-to-Text: так само лише явно (`GOOGLE_STT_ENABLED=true`); ключ — окремий або ключ TTS. */
+  GOOGLE_STT_ENABLED?: string;
+  GOOGLE_STT_API_KEY?: string;
+  GOOGLE_STT_MODEL?: string;
+  /** auto (типово: Azure, потім Google), azure, google або off. */
+  STT_PROVIDER?: string;
   /** Добові квоти на користувача (типово 60 записів і 300 нових фраз синтезу). */
   STT_DAILY_LIMIT?: string;
   TTS_DAILY_LIMIT?: string;
