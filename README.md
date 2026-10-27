@@ -107,7 +107,7 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 3. Webhook нужен один раз (бот, Stars, `/start`): добавить флаг `--webhook` и переменные `PUBLIC_URL`, `TELEGRAM_WEBHOOK_SECRET`
    (`allowed_updates=["message","pre_checkout_query"]`, ожидающие обновления не сбрасываются).
 4. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`, цены тарифов — в админке.
-5. Картинки команд — `apps/web/public/bot/commands/*.jpg`, публикуются вместе с приложением. `WEB_APP_URL` должен быть `https`, иначе бот отвечает без фото.
+5. Картинки команд — `apps/web/public/bot/commands/*.jpg`, публикуются вместе с приложением. `WEB_APP_URL` — полный адрес с `https://` (без схемы или с `http://` сервер и `bot:setup` приведут его к `https://`).
 
 ### Лимиты бесплатного плана
 

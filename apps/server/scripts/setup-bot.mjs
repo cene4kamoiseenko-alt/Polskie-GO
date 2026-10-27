@@ -22,18 +22,29 @@ const catalog = JSON.parse(readFileSync(new URL('../src/bot/commands.json', impo
 export const LOCALIZED = ['uk', 'pl', 'en'];
 export const DESCRIPTION = 'POLSKI GO — вивчай польську, подорожуючи Польщею разом з бобром Бобеком! 🦫🇵🇱';
 
+/** Та же нормализация адреса, что в `src/env.ts` (`normalizeWebAppUrl`): без схемы → https, http на боевом адресе → https, localhost остаётся на http. */
+export function normalizeUrl(raw) {
+  const value = String(raw ?? '').trim();
+  if (!value) return '';
+  const local = (rest) => /^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:[/?#]|$)/i.test(rest);
+  const scheme = /^([a-z][a-z0-9+.-]*):\/\/(.*)$/i.exec(value);
+  if (scheme) return scheme[1].toLowerCase() === 'http' && !local(scheme[2]) ? `https://${scheme[2]}` : value;
+  const bare = value.replace(/^\/\//, '');
+  return local(bare) ? `http://${bare}` : `https://${bare}`;
+}
+
 /** Список вызовов Bot API для заданных переменных окружения и флагов (без обращения к сети). */
 export function buildCalls(env, flags = {}) {
   const calls = [];
   const list = (lang) => catalog.commands.map((c) => ({ command: c.command, description: c.description[lang] }));
   calls.push({ method: 'setMyCommands', params: { commands: list('ru') } });
   for (const lang of LOCALIZED) calls.push({ method: 'setMyCommands', params: { commands: list(lang), language_code: lang } });
-  if (env.WEB_APP_URL) calls.push({ method: 'setChatMenuButton', params: { menu_button: { type: 'web_app', text: 'POLSKI GO', web_app: { url: env.WEB_APP_URL } } } });
+  if (env.WEB_APP_URL) calls.push({ method: 'setChatMenuButton', params: { menu_button: { type: 'web_app', text: 'POLSKI GO', web_app: { url: normalizeUrl(env.WEB_APP_URL) } } } });
   if (flags.webhook) {
     calls.push({
       method: 'setWebhook',
       params: {
-        url: `${env.PUBLIC_URL.replace(/\/$/, '')}/telegram/webhook`,
+        url: `${normalizeUrl(env.PUBLIC_URL).replace(/\/$/, '')}/telegram/webhook`,
         secret_token: env.TELEGRAM_WEBHOOK_SECRET,
         allowed_updates: ['message', 'pre_checkout_query'],
         drop_pending_updates: false,
@@ -50,6 +61,9 @@ const redact = (params) => JSON.parse(JSON.stringify(params, (k, v) => (k === 's
 async function main() {
   const flags = { webhook: process.argv.includes('--webhook'), description: process.argv.includes('--description'), dryRun: process.argv.includes('--dry-run') };
   const env = process.env;
+  for (const name of ['WEB_APP_URL', 'PUBLIC_URL']) {
+    if (env[name] && normalizeUrl(env[name]) !== env[name].trim()) console.log(`${name}: адрес приведён к виду ${normalizeUrl(env[name])} (в Telegram нужен https)`);
+  }
   const token = env.TELEGRAM_BOT_TOKEN;
   if (!flags.dryRun && !token) throw new Error('Set TELEGRAM_BOT_TOKEN');
   if (!env.WEB_APP_URL) throw new Error('Set WEB_APP_URL (Mini App address for the menu button)');

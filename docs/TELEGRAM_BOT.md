@@ -103,7 +103,7 @@ Cron `*/15 * * * *`. Три сценария, выбираются по реал
 
 1. **Тесты, typecheck, content-lint** перед пушем (см. ниже). Пуш в ветку запускает Cloudflare Workers Builds и деплоит.
 2. Деплой (`npm run deploy:cf` или Workers Builds) применяет миграцию 0008 к D1 **после** `wrangler deploy`. Окно между выкладкой кода и миграцией: до миграции у `notification_log` нет новых колонок — напоминания и дедупликация в это время могут давать ошибку; Telegram повторит обновления сам, а Cron повторит запуск через 15 минут. Если деплой идёт вручную, применить миграцию сразу: `wrangler d1 migrations apply polski-go --remote`.
-3. Переменные Cloudflare (не менять без причины): `WEB_APP_URL` (**обязательно https**, иначе фото не уходят), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_APP_SHORT_NAME`.
+3. Переменные Cloudflare (не менять без причины): `WEB_APP_URL` (полный адрес с `https://`; если указан без схемы или с `http://`, сервер и `bot:setup` сами приведут его к `https://`, `localhost` остаётся на http и тогда фото не уходят), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_APP_SHORT_NAME`.
 4. После деплоя владелец один раз запускает локально (секреты берутся из окружения/`.env`, в вывод не попадают):
    ```
    WEB_APP_URL=https://<origin> TELEGRAM_BOT_TOKEN=… npm run bot:setup -w @polski-go/server
@@ -135,7 +135,7 @@ Cron `*/15 * * * *`. Три сценария, выбираются по реал
 | Файлы картинок: 12 шт., 1280×720 JPEG | vitest (читает SOF-маркер) | `bot-copy.test.ts` |
 | `setup-bot.mjs`: список вызовов, описание/webhook без флагов не трогаются | vitest (`buildCalls`) + ручной `--dry-run` | `bot-copy.test.ts` |
 
-Прогон 2026-10-27 (код выхода 0 у всех): `npm run typecheck`; `npm test` — shared 152 из 152 (4 файла), server 246 из 246 (28 файлов); `node --import tsx scripts/content-lint.ts` (1689 заданий, структура 0); `npm run build`; `npm run e2e` — 363 проверки, 0 провалов («A2/A3/A4/L1/M2/B1: все сценарии пройдены»).
+Прогон 2026-10-27 (код выхода 0 у всех): `npm run typecheck`; `npm test` — shared 152 из 152 (4 файла), server 265 из 265 (28 файлов); `node --import tsx scripts/content-lint.ts` (1689 заданий, структура 0); `npm run build`; `npm run e2e` — 363 проверки, 0 провалов («A2/A3/A4/L1/M2/B1: все сценарии пройдены»).
 
 Локально собранное приложение (`wrangler dev --local`, `dist-cf`) отдаёт все двенадцать `/bot/commands/*.jpg` как `200 image/jpeg` с размерами файлов; несуществующий файл даёт `200 text/html` (SPA-замещение). Это локальный сервер, **не** боевой origin.
 

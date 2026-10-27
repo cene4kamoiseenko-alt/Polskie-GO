@@ -53,6 +53,24 @@ export function getBindings() {
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
+/**
+ * Адрес Mini App из переменной окружения приводится к рабочему виду: Telegram открывает только https,
+ * а `new URL()` на значении без схемы бросает исключение (бот молчал бы). Пробелы убираются, `//host` и `host` получают `https://`,
+ * `http://` на боевом адресе заменяется на `https://`; localhost и 127.0.0.1 остаются на http для разработки.
+ */
+export function normalizeWebAppUrl(raw: string): string {
+  const value = raw.trim();
+  if (!value) return '';
+  const local = (rest: string) => /^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:[/?#]|$)/i.test(rest);
+  const scheme = /^([a-z][a-z0-9+.-]*):\/\/(.*)$/i.exec(value);
+  if (scheme) {
+    const [, proto, rest] = scheme;
+    return proto.toLowerCase() === 'http' && !local(rest) ? `https://${rest}` : value;
+  }
+  const bare = value.replace(/^\/\//, '');
+  return local(bare) ? `http://${bare}` : `https://${bare}`;
+}
+
 export const config = {
   get isProd() {
     return str(env.ENVIRONMENT) === 'production';
@@ -61,7 +79,7 @@ export const config = {
     return str(env.ENVIRONMENT) === 'test';
   },
   get webAppUrl() {
-    return str(env.WEB_APP_URL) || 'http://localhost:5173';
+    return normalizeWebAppUrl(str(env.WEB_APP_URL)) || 'http://localhost:5173';
   },
   get corsOrigins() {
     return (str(env.CORS_ORIGINS) || 'http://localhost:5173,http://localhost:5174').split(',').map((s) => s.trim()).filter(Boolean);

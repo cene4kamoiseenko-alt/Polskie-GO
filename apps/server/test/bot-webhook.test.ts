@@ -382,3 +382,35 @@ describe('сбой базы данных', () => {
     expect(p.calls[0].params.caption).not.toContain('появятся после первых уроков');
   });
 });
+
+describe('WEB_APP_URL, заданный не по форме: бот не молчит', () => {
+  const restore = async () => {
+    const { env } = await getEnv();
+    env.WEB_APP_URL = BASE;
+  };
+  afterEach(restore);
+
+  it.each([
+    ['без схемы', 'polski.example/app', 'https://polski.example/app'],
+    ['с http на боевом адресе', 'http://polski.example/app', 'https://polski.example/app'],
+    ['с пробелами и переводом строки', '  https://polski.example/app \n', 'https://polski.example/app'],
+    ['с протокол-относительным адресом', '//polski.example/app', 'https://polski.example/app'],
+  ])('адрес %s: фото уходит с https-адреса, кнопки ведут на https', async (_name, raw, expectedBase) => {
+    const { env } = await getEnv();
+    env.WEB_APP_URL = raw;
+    const { res, calls } = await say(from(8_200_001, 'ru'), '/lesson');
+    expect(res.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe('sendPhoto');
+    expect(calls[0].params.photo).toBe('https://polski.example/bot/commands/lesson.jpg');
+    expect(urls(calls[0])).toContain(`${expectedBase}?bot_screen=learn`);
+  });
+
+  it('локальный адрес без схемы остаётся http, фото не отправляется', async () => {
+    const { env } = await getEnv();
+    env.WEB_APP_URL = 'localhost:5173';
+    const { calls } = await say(from(8_200_002, 'ru'), '/help');
+    expect(calls[0].method).toBe('sendMessage');
+    expect(urls(calls[0])).toContain('http://localhost:5173/?bot_screen=settings');
+  });
+});

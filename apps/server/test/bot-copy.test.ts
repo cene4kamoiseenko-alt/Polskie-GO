@@ -11,7 +11,8 @@ import { escapeHtml, safeName } from '../src/bot/html';
 import { pickLang } from '../src/bot/data';
 import { parseCommand } from '../src/bot/handler';
 import { CAPTION_LIMIT, splitCaption } from '../src/bot/send';
-import { buildCalls, DESCRIPTION, LOCALIZED } from '../scripts/setup-bot.mjs';
+import { buildCalls, DESCRIPTION, LOCALIZED, normalizeUrl } from '../scripts/setup-bot.mjs';
+import { normalizeWebAppUrl } from '../src/env';
 
 const IMAGES = new URL('../../web/public/bot/commands/', import.meta.url);
 
@@ -203,6 +204,38 @@ describe('setup-bot: что именно уходит в Telegram', () => {
     });
     const desc = buildCalls(env, { description: true }).find((c) => c.method === 'setMyDescription')!;
     expect(desc.params.description).toBe(DESCRIPTION);
+  });
+});
+
+describe('адрес приложения из переменной окружения', () => {
+  const CASES: [string, string][] = [
+    ['https://polski.example', 'https://polski.example'],
+    ['https://polski.example/app/?v=1', 'https://polski.example/app/?v=1'],
+    ['polskie-go.acc.workers.dev', 'https://polskie-go.acc.workers.dev'],
+    ['//polskie-go.acc.workers.dev/app', 'https://polskie-go.acc.workers.dev/app'],
+    ['http://polskie-go.acc.workers.dev', 'https://polskie-go.acc.workers.dev'],
+    ['  https://polski.example \n', 'https://polski.example'],
+    ['HTTP://Polski.Example', 'https://Polski.Example'],
+    ['localhost:5173', 'http://localhost:5173'],
+    ['http://localhost:5173', 'http://localhost:5173'],
+    ['http://127.0.0.1:8787/x', 'http://127.0.0.1:8787/x'],
+    ['', ''],
+    ['   ', ''],
+  ];
+
+  it.each(CASES)('«%s» → «%s»', (raw, expected) => {
+    expect(normalizeWebAppUrl(raw)).toBe(expected);
+    expect(() => new URL(normalizeWebAppUrl(raw) || 'http://localhost')).not.toThrow();
+  });
+
+  it('скрипт setup-bot нормализует так же, как сервер', () => {
+    for (const [raw] of CASES) expect(normalizeUrl(raw)).toBe(normalizeWebAppUrl(raw));
+  });
+
+  it('кнопка меню и webhook получают https, даже если переменные заданы без схемы', () => {
+    const calls = buildCalls({ WEB_APP_URL: 'polski.example', PUBLIC_URL: 'polski.example/', TELEGRAM_WEBHOOK_SECRET: 's' }, { webhook: true });
+    expect(calls.find((c) => c.method === 'setChatMenuButton')!.params.menu_button.web_app.url).toBe('https://polski.example');
+    expect(calls.find((c) => c.method === 'setWebhook')!.params.url).toBe('https://polski.example/telegram/webhook');
   });
 });
 
