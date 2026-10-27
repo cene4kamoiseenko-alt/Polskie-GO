@@ -180,3 +180,143 @@
 - Миграция 0009 (только CREATE) проверена на копии данных; деплой применяет миграции до выкладки кода.
 - Опубликовано: сборка Workers Builds `6a516d59` — success (версия `85a4eab5`). Production и Telegram из среды недоступны — работа на телефоне не подтверждена.
 - Google STT: код и тесты, выключен до решения владельца о биллинге.
+
+## HAIKU COMPLETED — 2026-10-27
+
+Задание — «POLSKI GO — HAIKU: CONTENT & ASSET PREPARATION». Подготовка материалов для Sonnet и Opus. Агенты не запускались. Изменения закоммичены отдельным коммитом, **пуш не делался**: пуш в ветку запускает Workers Builds, а задание требовало без production push.
+
+Сделано:
+- Инвентаризация картинок бота: `assets/telegram/asset-manifest.json` (18 обязательных сцен и одна дополнительная).
+- Реестр городов: `assets/cities/CITY_ASSET_MANIFEST.json` (20 городов, список берётся из `CITIES`).
+- Черновики уроков Вроцлава 5–16: `apps/server/src/content/drafts/wroclaw-5-10.ts`, `apps/server/src/content/drafts/wroclaw-11-16.ts`. Проверка: `apps/server/test/wroclaw-drafts.test.ts` (4 теста). Не подключены к `CITY_CONTENT`.
+- Каталог гардероба: `assets/wardrobe/WARDROBE_CATALOG.json` (32 предмета гардероба и 15 вне гардероба). Сгенерирован скриптом из `ITEMS`, `LOOK_ITEMS` и источников наград, цены не менялись.
+- Исходники владельца сохранены в `docs/design/a10/` (26 WebP): 14 досок бота (`telegram/`), 8 панорам городов (`cities/`), 4 листа-коллажа (`sheets/`, только превью). Четыре доски из повторной загрузки совпадают с сохранёнными по пикселям.
+- План следующих городов — ниже, в разделе «SONNET NEXT TASKS».
+
+Проверки (по факту запуска):
+- `npm run typecheck` — без ошибок (все пакеты).
+- `npm test` — код 0: shared **156/156**, server **345/345** (32 файла; было 341, добавлено 4 теста черновиков).
+- `node --import tsx scripts/content-lint.ts` — код 0. Линт не видит черновики Вроцлава (они не в `CITY_CONTENT`), их проверяет отдельный тест.
+- E2E не запускались: изменений в веб-приложении нет.
+
+Найдено при проверке:
+- На досках владельца цифры не совпадают с кодом: «+20 XP» на «Отлично!» (правильный квиз = `QUIZ_XP` = 10); «+15 XP» на «Завершение урока» (урок = `lessonXp` 20 + 5 за верное задание + 10 за идеальный результат).
+- В `apps/web/public/bot/commands/` четыре группы одинаковых файлов по байтам: `start`=`settings`, `stop`=`reminder-return`, `lesson`=`quests`=`reminder-lesson`, `profile`=`reminder-streak`. `profile.jpg` содержит надпись «TWOJA SERIA!».
+- Польские надписи на картинках бота («CZAS NA POLSKI!», «TWOJA SERIA!», «BOBEK CZEKA!») видны пользователям всех языков.
+- Товарные знаки на досках: żabka, MPK Wrocław, названия сетей Biedronka и Lidl в примере квиза. Нужна проверка прав.
+- Заголовки уроков Ополя и Катовице: в полях `uk`, `ru`, `en` стоит польский текст (`opole.ts`, `katowice.ts`).
+- Комментарий в `apps/server/src/bot/catalog.ts` указывает 640×360 для `ru/*.jpg`, фактически 1280×720.
+- В описании Кракова в `cities.ts` «найбільший ринок Європи» — завышено.
+- В `gamification.ts` у мебели «Kanapa» и «Dywan» поля `uk` и `ru` содержат польское слово с пояснением («(диван!)», «(килим!)»). Исправить текст, цены не трогать.
+
+## TELEGRAM ASSETS
+
+Манифест — `assets/telegram/asset-manifest.json`. Изображения в коде — `apps/web/public/bot/commands/*.jpg` (12, с повторами) и `apps/web/public/bot/ru/*.jpg` (11, только русский интерфейс). Все они 1280×720 JPEG, без альфы, с размытыми боковыми полосами только в `ru/`.
+
+- В коде используются 14 из 18 сцен. Не используются: `quick_question`, `correct_answer`, `travel_passport`, `lesson_complete`.
+- Новые доски владельца (1672×941, WebP): `docs/design/a10/telegram/tg-*.webp`, 14 файлов. Все с русским текстом на картинке (ru-only); `tg-practice` не входит в 18 сцен.
+- Для `map`, `quests`, `help`, `reminder`, `profile` в комплекте владельца от 2026-10-27 новых досок нет. Остаются прежние кадры.
+- Нужны версии без текста для uk/pl/en: welcome, lessons, words, settings, streak, return, quick_question, correct_answer, shopping, food, transport, lesson_complete. Для map, quests, profile, reminder и help — новые сцены.
+- Ни одна новая доска не подключена к коду. Это кандидаты.
+
+## CITY ASSETS
+
+Манифест — `assets/cities/CITY_ASSET_MANIFEST.json`. Статусы из `packages/shared/src/cityArt.ts`: final — 3 (warszawa, krakow, wroclaw), interim — 15, missing — 2 (gorzow, gdynia).
+
+Кандидаты владельца полного размера (1774×887, ≈2:1), по одному файлу на город, в `docs/design/a10/cities/`:
+- Закрывают пропуски: `city-gorzow.webp` и `city-gdynia.webp` (файлов нет), `city-lodz.webp` (Piotrkowska), `city-wroclaw.webp` (Rynek с гномами), `city-poznan.webp` (козлики видны), `city-bialystok.webp` (дворец).
+- Улучшают интерим: `city-gdansk.webp`, `city-opole.webp`.
+- Для 10 городов полноразмерного кандидата нет: Katowice, Zielona Góra, Szczecin, Bydgoszcz, Toruń, Olsztyn, Lublin, Rzeszów, Kielce, Zakopane. Есть только превью на листах владельца.
+
+Листы владельца `sheets/sheet-cities-grid-1.webp`, `sheets/sheet-cities-wide-grid-2.webp` и `sheets/sheet-bobek-wardrobe-clean.webp` — коллажи. Отдельными исходниками они не считаются и не нарезаются.
+
+Правила:
+- Отсутствующий фон нельзя подменять случайной картинкой.
+- Интеграция кандидатов — после подтверждения владельца.
+- Здание в Białystok похоже на Wilanów, а не на Pałac Branickich. Подпись на листе владельца — Białystok. Подтвердить владельцем.
+- Прогресс пользователей не проверен: доступа к базе из среды нет.
+
+## WROCLAW CONTENT
+
+Что есть в проекте: `wro-1-kawa`, `wro-2-zabka`, `wro-3-ceny`, `wro-4-restauracja` и экзамен `wro-boss`. Словарь `WROCLAW_VOCAB` (≈70 слов, `apps/server/src/content/vocab-wroclaw.ts`) не подключён.
+
+Что добавлено — черновики уроков 5–16, не подключены к seed:
+
+| Маршрут (иконка) | Урок | Тема | Заданий |
+|---|---|---|---|
+| `wro-ubrania` (shopping) | `wro-5-ubrania` | одежда, цвета, прилагательные по роду | 10 |
+| | `wro-6-przymierzalnia` | примерочная, `za` + прилагательное | 9 |
+| | `wro-7-zwrot` | возврат, рекламация, вежливая просьба | 10 |
+| `wro-targ` (food) | `wro-8-targ` | Hala Targowa: кг, упаковки, цена | 10 |
+| | `wro-9-lista` | список покупок, родительный падеж | 10 |
+| | `wro-10-tysiac` | цены 200–1000, `złotych`, разменять | 9 |
+| `wro-wieczor` (cafe) | `wro-11-rezerwacja` | столик, `na` + винительный | 9 |
+| | `wro-12-smaki` | вкусы, `smakuje mi` | 9 |
+| | `wro-13-krasnale` | гномы, `szukam` + родительный | 8 |
+| `wro-prezenty` (gift) | `wro-14-prezent` | `podoba mi się`, `dla` | 8 |
+| | `wro-15-porownanie` | сравнительная степень, `niż` | 8 |
+| `wro-powtorka` (lessons) | `wro-16-powtorka` | повторение, без новых слов | 9 |
+
+Файлы: `apps/server/src/content/drafts/wroclaw-5-10.ts` (маршруты `WROCLAW_DRAFT_ROUTES_5_10`), `apps/server/src/content/drafts/wroclaw-11-16.ts` (`WROCLAW_DRAFT_ROUTES_11_16`).
+
+Проверка — `apps/server/test/wroclaw-drafts.test.ts`, 4 теста, зелёные: порядок и состав маршрутов и уроков; CEFR, примеры, слова из `VOCAB` и `WROCLAW_VOCAB`; 8–15 заданий, не меньше 5 механик, серии одной механики не длиннее трёх; польский без кириллицы, переводы uk/ru/en, варианты уникальны, пропуск `___` один, правильный вариант первым там, где это правило действует.
+
+Не проверено тестом: грамматика и естественность фраз. Это проверяет носитель или Content Agent. ID заданий создаёт DSL при seed. В черновиках их ещё нет. Озвучка новых фраз — через TTS при подключении: проверить после подключения.
+
+## WARDROBE ITEMS
+
+Каталог — `assets/wardrobe/WARDROBE_CATALOG.json`, сгенерирован из кода (`apps/server/src/content/gamification.ts` ITEMS, `packages/shared/src/look/manifest.ts` LOOK_ITEMS, источники наград из `missions.ts` и `gamification.ts`).
+
+- Гардероб: 32 предмета (одежда, головные уборы, очки, аксессуары, обувь, рюкзаки, костюмы). Вне гардероба: 15 (мебель, декор, сувениры, рамки профиля).
+- Статусы ресурса: требует переделки — 9 (`hoodie-red` и `backpack-travel` вшиты в базовый образ, 7 цельных костюмов без слоёв); отсутствует — 23; готов — 0 в гардеробе (рамки рисует интерфейс).
+- Цены — текущие из кода, в злотках. Новых балансов не вводилось.
+- Цвет взят из названия предмета. Если в названии его нет, стоит «не зазначено»: вигадувати цвет нельзя.
+- Превью на листе владельца есть у 10 предметов (`cap-red`, `beanie-blue`, `glasses-sun`, `camera`, `map-paper`, `sneakers-white`, `boots-mountain`, `flag-pl`, `jacket-rain`, `jacket-denim`). Это превью, не исходник.
+- Замечания: `costume-syrenka` — нет ни картинки, ни слоя. `costume-artist` и `costume-winter` продаются за 180 и 120 злотков, а ресурса тоже нет. У `hat-krasnal` и `obwarzanek` награды привязаны к событиям (см. поле `unlock` в каталоге).
+
+## SONNET NEXT TASKS
+
+Порядок:
+1. Подключить черновики Вроцлава 5–16: маршруты из `drafts/` вставить в `wroclaw.ts` перед `wro-egzamin`; `WROCLAW_VOCAB` добавить в `VOCAB`; тег `clothes` добавить в `TOPICS`; снимок в `LEGACY_BEFORE_EXPANSION`; тест расширения по образцу `lodz-expansion.test.ts`; `ROUTE_SCENES` для новых маршрутов; `content-lint` без новых находок; затем удалить каталог `drafts/`.
+2. Перевести заголовки уроков и маршрутов Ополя и Катовице (поля uk/ru/en сейчас польские).
+3. Катовице: подключить `vocab-katowice.ts` (54 слова) и дописать уроки по плану ниже.
+4. Ополе: написать словарь (файла нет) и дописать уроки по плану ниже.
+5. Картинки бота: убрать числа «+20 XP», «+15 XP», «WARSZAWA», «7» из кадров, которые пойдут в бот. Для uk/pl/en сделать версии без текста.
+6. `apps/server/src/bot/catalog.ts`: исправить комментарий «640×360» на 1280×720.
+7. Заменить дубли в `apps/web/public/bot/commands/` (см. «Найдено при проверке»). Кадр профиля — без текста про серию.
+8. После подтверждения владельца подключить кандидатов из `docs/design/a10/cities/` и обновить статусы в `packages/shared/src/cityArt.ts`. Порядок: lodz, wroclaw, poznan, bialystok; затем gorzow и gdynia (нужны новые файлы в `apps/web/src/assets/cities/`).
+9. Города без уроков — по одному городу за раз, не массово (план ниже).
+
+План следующих городов. Максимум 12 новых уроков на город, теги тем и цели — по `cities.ts`. Уроки проверяет носитель или Content Agent, особенно сленг и культурные детали.
+
+| Город (CEFR) | Тема (`cities.ts`) | Сейчас | Предложение: маршруты и цели |
+|---|---|---|---|
+| Katowice (A1) | Транспорт і рух містом | 4 урока + экзамен | `kat-ruch` +2 (квиток, розклад); `kat-pary` +2 (mówić/powiedzieć, brać/wziąć); новый `kat-miasto`: Spodek, dzielnice, praca. Цели: `grammar.verbs`, `grammar.locative` |
+| Opole (A1) | Живий розмовний польський | 4 урока + экзамен | `opo-zywy` +4; новые: «Rozmowy na co dzień», «Festiwal» (фестиваль польской песни), «Slang» только после проверки носителем. Регистр помечать явно |
+| Poznań (A1) | Місто, транспорт і робота | 0 | `pzn-miasto` (Stary Rynek, козлы), `pzn-praca` (`jako` + творительный), `pzn-targi` |
+| Zielona Góra (A2) | Свята і традиції | 0 | `zg-swieta` (`Wesołych Świąt`, родительный), `zg-wino`, `zg-tradycje` |
+| Gorzów Wielkopolski (A2) | Погода і природа | 0 | `gor-pogoda` (безличные: zimno mi), `gor-natura` (Warta), экзамен-репетиция B2 |
+| Szczecin (A2) | Робота і професії | 0 | `szc-praca` (творительный профессий), `szc-cv`, `szc-port` |
+| Gdańsk (A2) | Подорожі і відпочинок | 0 | `gdn-podroz` (przyszłość), `gdn-plaza`, `gdn-zegluga`; отели не дублировать с Краковом |
+| Gdynia (A2) | Спорт і хобі | 0 | `gdy-sport` (grać w + винительный), `gdy-hobby` (lubić + инфинитив), `gdy-kluby` |
+| Bydgoszcz (B1) | Минулий час і розповіді | 0 | `byd-wczoraj` (czas przeszły), `byd-historia`, `byd-rzeka` |
+| Toruń (B1) | Плани і майбутнє | 0 | `tor-plany` (przyszłość), `tor-kopernik`, `tor-pierniki` |
+| Olsztyn (B1) | Розуміння мовлення | 0 | `ols-komunikaty`, `ols-jeziora`, `ols-zamek` — упор на аудирование |
+| Białystok (B1) | Повсякденні ситуації | 0 | `bia-dzien` (czasowniki zwrotne), `bia-uslugi`, `bia-puszcza` (żubr) |
+| Lublin (B1) | Документи та установи | 0 | `lub-urzad`, `lub-bank`, `lub-zamek` |
+| Rzeszów (B2) | Державні послуги | 0 | `rze-sluzby` (strona bierna), `rze-innowacje`, `rze-lotnisko` |
+| Kielce (B2) | Закріплення знань | 0 | `kie-powtorka` (A1–B1), `kie-legendy`, `kie-gory` |
+| Zakopane (B2) | Фінал: культура і подорожі | 0 | `zak-gory`, `zak-kultura` (góral), `zak-finał` (tryb warunkowy) |
+
+## OPUS NEXT TASKS
+
+1. Политика картинок бота: для uk/pl/en — только версии без текста; русские доски оставить для ru. Подтвердить владельцем.
+2. Товарные знаки: żabka, MPK Wrocław, Biedronka, Lidl. Решение о показе — владелец, при необходимости юрист.
+3. Гардероб: статус 7 цельных костюмов («требует переделки»), план слоёв по ADR-005 (шаблоны etalon-1 и etalon-2), судьба `costume-syrenka` (нет ни картинки, ни слоя).
+4. Экономика: цены не менять. Проверить, что премиум-предметы `costume-dragon` (200) и `crown-gold` (150) остаются по решению владельца.
+5. Города: владелец подтверждает 8 кандидатов. Решить, что ставить вместо интерима для 10 городов без полноразмерного кандидата.
+6. Вопросы владельцу: идентичность дворца в Białystok; подписи Opole и Gorzów на листе; разрешение на интеграцию Gorzów и Gdynia.
+7. Утвердить порядок Sonnet (пункты 1–9) и решить, входят ли 12 уроков Вроцлава в основной маршрут: это меняет длину экзамена и доступ к нему.
+8. Прогресс пользователей и продакшен (`/api/health`, админка «Бот», `/quiz` на телефоне): проверяет владелец, из среды это не видно.
+
+Коммит этого этапа не пушился. Пуш в ветку деплоит на продакшен; решение о пуше — за владельцем.

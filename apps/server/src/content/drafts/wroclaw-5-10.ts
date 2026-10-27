@@ -1,0 +1,228 @@
+/**
+ * Вроцлав, уроки 5–10 — ЧЕРНОВИК (не подключён к CITY_CONTENT, не попадает в seed).
+ * Проверяется тестом apps/server/test/wroclaw-drafts.test.ts. Подключение — задача Sonnet/Opus:
+ * добавить маршруты в wroclaw.ts перед wro-egzamin, слова — в VOCAB, затем content-lint и тест расширения.
+ *
+ * Маршруты: wro-ubrania (5–7), wro-targ (8–10). Иконки — существующие ключи apps/web/src/assets/icons.
+ */
+import { t, wordChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue } from '../builders';
+import type { RouteSeed } from '../types';
+
+export const WROCLAW_DRAFT_ROUTES_5_10: RouteSeed[] = [
+  {
+    slug: 'wro-ubrania',
+    title: t('Одяг і примірочна', 'Одежда и примерочная', 'Clothes and the fitting room'),
+    description: t('Одяг, кольори, розміри й повернення', 'Одежда, цвета, размеры и возврат', 'Clothes, colours, sizes and returns'),
+    icon: 'shopping',
+    lessons: [
+      {
+        slug: 'wro-5-ubrania',
+        title: t('Одяг і кольори', 'Одежда и цвета', 'Clothes and colours'),
+        topic: t('Одяг, кольори, прикметник за родом', 'Одежда, цвета, прилагательное по роду', 'Clothes, colours, adjective agreement'),
+        cefr: 'A1',
+        difficulty: 2,
+        explanation: t(
+          'Прикметник узгоджується з іменником: **czerwony sweter** (чоловічий рід), **czerwona kurtka** (жіночий), **czerwone buty** (множина). Після **jest** так само: **Ta kurtka jest czerwona.**',
+          'Прилагательное согласуется с существительным: **czerwony sweter** (мужской род), **czerwona kurtka** (женский), **czerwone buty** (множественное число). После **jest** так же: **Ta kurtka jest czerwona.**',
+          'The adjective agrees with the noun: **czerwony sweter** (masculine), **czerwona kurtka** (feminine), **czerwone buty** (plural). After **jest** it agrees the same way: **Ta kurtka jest czerwona.**',
+        ),
+        examples: [
+          { pl: 'Ta kurtka jest czerwona.', tr: t('Ця куртка червона.', 'Эта куртка красная.', 'This jacket is red.') },
+          { pl: 'Mam czarne spodnie.', tr: t('У мене чорні штани.', 'У меня чёрные брюки.', 'I have black trousers.') },
+        ],
+        words: ['sukienka', 'spodnie', 'koszula', 'sweter', 'buty', 'kurtka', 'szalik', 'torebka', 'kolor', 'czerwony', 'czarny', 'biały'],
+        exercises: [
+          picture('vocab.clothes', '👕', ['koszula', 'sweter', 'kurtka']),
+          wordChoice('vocab.clothes', 'kurtka', [t('куртка', 'куртка', 'jacket'), t('пальто', 'пальто', 'coat'), t('штани', 'брюки', 'trousers')]),
+          reverseChoice('vocab.clothes', t('спідниця', 'юбка', 'skirt'), ['spódnica', 'sukienka', 'spodnie']),
+          fillGap('grammar.adjectives', 'To jest ___ sukienka.', ['czerwona', 'czerwony', 'czerwone'], t('Це червона сукня.', 'Это красное платье.', 'This is a red dress.')),
+          fillGap('grammar.adjectives', 'Chcę te ___ buty.', ['czerwone', 'czerwona', 'czerwony'], t('Я хочу ці червоні черевики.', 'Я хочу эти красные ботинки.', 'I want these red shoes.')),
+          findError('grammar.adjectives', ['Ten', 'sweter', 'jest', 'czerwona'], 3, t('Цей светр червоний.', 'Этот свитер красный.', 'This sweater is red.'),
+            t('**sweter** — чоловічий рід, тому **czerwony**, а не **czerwona**.', '**sweter** — мужской род, поэтому **czerwony**, а не **czerwona**.', '**sweter** is masculine, so **czerwony**, not **czerwona**.')),
+          oddOne('vocab.clothes', ['kurtka', 'sweter', 'koszula', 'kolor'], 3, t('**kolor** — колір, а не одяг.', '**kolor** — цвет, а не одежда.', '**kolor** is a colour, not clothing.'), t('Що зайве? (одяг)', 'Что лишнее? (одежда)', 'Which one is not clothing?')),
+          build('vocab.clothes', 'Mam czarne spodnie.', t('У мене є чорні штани.', 'У меня есть чёрные брюки.', 'I have black trousers.'), ['biały', 'szalik']),
+          translate('writing.clothes', t('Ця сукня чорна.', 'Это платье чёрное.', 'This dress is black.'), ['Ta sukienka jest czarna.', 'Ta sukienka jest czarna']),
+          match('vocab.clothes', [['biały', t('білий', 'белый', 'white')], ['czarny', t('чорний', 'чёрный', 'black')], ['zielony', t('зелений', 'зелёный', 'green')], ['żółty', t('жовтий', 'жёлтый', 'yellow')]]),
+        ],
+      },
+      {
+        slug: 'wro-6-przymierzalnia',
+        title: t('У примірочній', 'В примерочной', 'In the fitting room'),
+        topic: t('Примірка, розміри, za + прикметник', 'Примерка, размеры, za + прилагательное', 'Fitting, sizes, za + adjective'),
+        cefr: 'A2',
+        difficulty: 3,
+        explanation: t(
+          'Щоб сказати «завелике» або «замале», ставимо **za** перед прикметником: **za duży** (чоловічий рід), **za duża** (жіночий), **za duże** (середній рід і множина).\nНаприклад: **Ta koszula jest za mała.** — «Ця сорочка замала».',
+          'Чтобы сказать «слишком большой» или «слишком маленький», ставим **za** перед прилагательным: **za duży** (мужской род), **za duża** (женский), **za duże** (средний род и множественное число).\nНапример: **Ta koszula jest za mała.** — «Эта рубашка маловата».',
+          'To say "too big" or "too small", put **za** before the adjective: **za duży** (masculine), **za duża** (feminine), **za duże** (neuter and plural).\nFor example: **Ta koszula jest za mała.** — "This shirt is too small."',
+        ),
+        examples: [{ pl: 'Czy mogę to przymierzyć?', tr: t('Чи можу я це приміряти?', 'Можно это примерить?', 'May I try this on?') }],
+        words: ['przymierzalnia', 'przymierzyć', 'rozmiar', 'za duży', 'za mały', 'pasować', 'większy', 'mniejszy', 'wygodny'],
+        exercises: [
+          wordChoice('vocab.fitting', 'przymierzalnia', [t('примірочна', 'примерочная', 'fitting room'), t('каса', 'касса', 'checkout'), t('вхід', 'вход', 'entrance')]),
+          reverseChoice('vocab.fitting', t('розмір', 'размер', 'size'), ['rozmiar', 'kolor', 'cena']),
+          fillGap('grammar.adjectives', 'Ta sukienka jest ___.', ['za duża', 'za duży', 'za duże'], t('Ця сукня завелика.', 'Это платье слишком большое.', 'This dress is too big.')),
+          fillGap('grammar.adjectives', 'Te buty są ___.', ['za małe', 'za mała', 'za mały'], t('Ці черевики замалі.', 'Эти ботинки маловаты.', 'These shoes are too small.')),
+          wordChoice('vocab.fitting', 'większy', [t('більший', 'больший', 'bigger'), t('менший', 'меньший', 'smaller'), t('дешевший', 'дешевле', 'cheaper')]),
+          listen('listening.fitting', 'Czy mogę to przymierzyć?', ['Czy mogę to przymierzyć?', 'Czy mogę to zapłacić?', 'Czy mogę to zwrócić?']),
+          build('vocab.fitting', 'Czy jest większy rozmiar?', t('Чи є більший розмір?', 'Есть ли больший размер?', 'Is there a bigger size?'), ['mniejszy', 'paragon']),
+          findError('grammar.adjectives', ['Ta', 'koszula', 'jest', 'za', 'mały'], 4, t('Ця сорочка замала.', 'Эта рубашка маловата.', 'This shirt is too small.'),
+            t('**koszula** — жіночий рід: **za mała**.', '**koszula** — женский род: **za mała**.', '**koszula** is feminine: **za mała**.')),
+          oddOne('vocab.fitting', ['przymierzalnia', 'rozmiar', 'paragon', 'przymierzyć'], 2, t('**paragon** — чек, а не про примірку.', '**paragon** — чек, а не про примерку.', '**paragon** is a receipt, not about fitting.'), t('Що зайве, якщо говорити про примірку?', 'Что лишнее, если говорить о примерке?', 'Which one is not about trying clothes on?')),
+        ],
+      },
+      {
+        slug: 'wro-7-zwrot',
+        title: t('Повернення й рекламація', 'Возврат и рекламация', 'Returns and complaints'),
+        topic: t('Повернення, обмін, ввічлива просьба', 'Возврат, обмен, вежливая просьба', 'Returns, exchanges, polite requests'),
+        cefr: 'A2',
+        difficulty: 3,
+        explanation: t(
+          'Ввічлива просьба починається з **Chciałbym** (чоловік) або **Chciałabym** (жінка): **Chciałbym zwrócić…** — «Я б хотів повернути…». Після **zwrócić** і **wymienić** — знахідний відмінок: **tę koszulę**, **te buty**.\nДля повернення зазвичай потрібен **paragon** (чек).',
+          'Вежливая просьба начинается с **Chciałbym** (мужчина) или **Chciałabym** (женщина): **Chciałbym zwrócić…** — «Я бы хотел вернуть…». После **zwrócić** и **wymienić** — винительный падеж: **tę koszulę**, **te buty**.\nДля возврата обычно нужен **paragon** (чек).',
+          'A polite request starts with **Chciałbym** (said by a man) or **Chciałabym** (said by a woman): **Chciałbym zwrócić…** — "I would like to return…". After **zwrócić** and **wymienić** the accusative is used: **tę koszulę**, **te buty**.\nFor a return you usually need the **paragon** (receipt).',
+        ),
+        examples: [
+          { pl: 'Chciałbym zwrócić tę koszulę.', tr: t('Я б хотів повернути цю сорочку.', 'Я бы хотел вернуть эту рубашку.', 'I would like to return this shirt.') },
+          { pl: 'Chciałabym wymienić buty.', tr: t('Я б хотіла обміняти черевики.', 'Я бы хотела обменять ботинки.', 'I would like to exchange these shoes.') },
+        ],
+        words: ['zwrócić', 'wymienić', 'reklamacja', 'zepsuty', 'gwarancja', 'paragon'],
+        exercises: [
+          wordChoice('vocab.returns', 'zwrócić', [t('повернути', 'вернуть', 'to return (an item)'), t('купити', 'купить', 'to buy'), t('приміряти', 'примерить', 'to try on')]),
+          reverseChoice('vocab.returns', t('чек', 'чек', 'receipt'), ['paragon', 'reklamacja', 'gwarancja']),
+          fillGap('grammar.adjectives', 'Ten telefon jest ___.', ['zepsuty', 'zepsuta', 'zepsute'], t('Цей телефон зламаний.', 'Этот телефон сломан.', 'This phone is broken.')),
+          grammar('grammar.conditional', 'Ja ___ zwrócić tę koszulę.', 'chciałbym', ['chciałbym'], t('Я б хотів повернути цю сорочку.', 'Я бы хотел вернуть эту рубашку.', 'I would like to return this shirt.'),
+            t('**Chciałbym** — для чоловіка; жінка скаже **chciałabym**.', '**Chciałbym** — для мужчины; женщина скажет **chciałabym**.', '**Chciałbym** is for a man; a woman says **chciałabym**.')),
+          findError('grammar.accusative', ['Chciałbym', 'zwrócić', 'ta', 'koszulę'], 2, t('Я б хотів повернути цю сорочку.', 'Я бы хотел вернуть эту рубашку.', 'I would like to return this shirt.'),
+            t('Після **zwrócić** — знахідний відмінок: **ta** → **tę**.', 'После **zwrócić** — винительный падеж: **ta** → **tę**.', 'After **zwrócić** the accusative is used: **ta** → **tę**.')),
+          reading('reading.returns', 'Klient: Chciałbym zwrócić buty. Sprzedawczyni: Ma pan paragon? Klient: Tak, proszę bardzo.',
+            t('Що клієнт показує продавчині?', 'Что клиент показывает продавщице?', 'What does the customer show the shop assistant?'),
+            [t('Чек', 'Чек', 'The receipt'), t('Паспорт', 'Паспорт', 'A passport'), t('Картку лояльності', 'Карту лояльности', 'A loyalty card')]),
+          dialogue('situation.return', { name: 'Pani Ola', emoji: '👩🏼‍💼', role: t('продавчиня', 'продавщица', 'a shop assistant') }, [
+            {
+              npc: 'Dzień dobry, w czym mogę pomóc?',
+              tr: t('Добрий день, чим можу допомогти?', 'Добрый день, чем могу помочь?', 'Hello, how can I help?'),
+              choose: [
+                ['Chciałbym zwrócić tę koszulę.', t('Я б хотів повернути цю сорочку.', 'Я бы хотел вернуть эту рубашку.', 'I would like to return this shirt.')],
+                ['Chciałbym kupić tę koszulę.', t('Я б хотів купити цю сорочку.', 'Я бы хотел купить эту рубашку.', 'I would like to buy this shirt.')],
+              ],
+              feedback: t('Так! **zwrócić** — повернути. «Купити» — це **kupić**.', 'Да! **zwrócić** — вернуть. «Купить» — это **kupić**.', 'Yes! **zwrócić** means "to return". "To buy" is **kupić**.'),
+            },
+          ]),
+          build('vocab.returns', 'Czy mogę wymienić to na większy rozmiar?', t('Чи можу я обміняти це на більший розмір?', 'Могу ли я обменять это на больший размер?', 'Can I exchange this for a bigger size?'), ['zwrócić', 'kupić']),
+          match('vocab.returns', [['gwarancja', t('гарантія', 'гарантия', 'warranty')], ['reklamacja', t('рекламація', 'рекламация', 'complaint')], ['zepsuty', t('зламаний', 'сломанный', 'broken')], ['zwrócić', t('повернути', 'вернуть', 'to return')]]),
+          dictation('writing.returns', 'Chciałabym wymienić buty.', t('Я б хотіла обміняти черевики.', 'Я бы хотела обменять ботинки.', 'I would like to exchange the shoes.')),
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'wro-targ',
+    title: t('Hala Targowa', 'Hala Targowa', 'Hala Targowa'),
+    description: t('Ринок: вага, упаковки, ціни', 'Рынок: вес, упаковки, цены', 'Market: weights, packs, prices'),
+    icon: 'food',
+    lessons: [
+      {
+        slug: 'wro-8-targ',
+        title: t('На ринку Hala Targowa', 'На рынке Hala Targowa', 'At the Hala Targowa market'),
+        topic: t('Ринок: кілограм, упаковки, ціна', 'Рынок: килограмм, упаковки, цена', 'Market: kilo, packs, price'),
+        cefr: 'A1',
+        difficulty: 3,
+        explanation: t(
+          'Вагу називають **kilo** (кілограм), **pół kilo** (півкілограма), **deko** (10 г). **Kilo** після числівника не змінюється: **dwa kilo**, **trzy kilo**.\nДля пляшок і банок: **dwie butelki** (дві пляшки), **trzy puszki** (три банки). Ціну питають: **Po ile…?**',
+          'Вес называют **kilo** (килограмм), **pół kilo** (полкилограмма), **deko** (10 г). **Kilo** после числительного не меняется: **dwa kilo**, **trzy kilo**.\nДля бутылок и банок: **dwie butelki** (две бутылки), **trzy puszki** (три банки). Цену спрашивают: **Po ile…?**',
+          'At the market weight is given in **kilo** (kilogram), **pół kilo** (half a kilo), **deko** (10 grams). **Kilo** does not change after a number: **dwa kilo**, **trzy kilo**.\nFor bottles and tins: **dwie butelki** (two bottles), **trzy puszki** (three tins). To ask the price: **Po ile…?**',
+        ),
+        examples: [
+          { pl: 'Po ile są truskawki?', tr: t('Скільки коштують полуниці?', 'Сколько стоит клубника?', 'How much are the strawberries?') },
+          { pl: 'Poproszę pół kilo pomidorów.', tr: t('Півкіло помідорів, будь ласка.', 'Полкило помидоров, пожалуйста.', 'Half a kilo of tomatoes, please.') },
+        ],
+        words: ['targ', 'kilo', 'deko', 'butelka', 'puszka', 'truskawki', 'śmietana', 'szynka', 'po ile?'],
+        exercises: [
+          wordChoice('vocab.market', 'targ', [t('ринок', 'рынок', 'open-air market'), t('магазин', 'магазин', 'shop'), t('кафе', 'кафе', 'café')]),
+          reverseChoice('vocab.market', t('сметана', 'сметана', 'sour cream'), ['śmietana', 'szynka', 'ser']),
+          fillGap('vocab.market', 'Po ___ są truskawki?', ['ile', 'co', 'gdzie'], t('Скільки коштують полуниці?', 'Сколько стоит клубника?', 'How much are the strawberries?')),
+          fillGap('grammar.numerals', 'Poproszę dwie ___ wody.', ['butelki', 'butelka', 'butelek'], t('Дві пляшки води, будь ласка.', 'Две бутылки воды, пожалуйста.', 'Two bottles of water, please.')),
+          findError('grammar.numerals', ['Poproszę', 'dwa', 'butelki', 'wody'], 1, t('Дві пляшки води, будь ласка.', 'Две бутылки воды, пожалуйста.', 'Two bottles of water, please.'),
+            t('**butelka** — жіночий рід: **dwie butelki**, а не **dwa**.', '**butelka** — женский род: **dwie butelki**, а не **dwa**.', '**butelka** is feminine: **dwie butelki**, not **dwa**.')),
+          oddOne('vocab.market', ['truskawki', 'śmietana', 'szynka', 'bankomat'], 3, t('**bankomat** — банкомат, а не продукт.', '**bankomat** — банкомат, а не продукт.', '**bankomat** is a cash machine, not food.'), t('Що зайве? (продукти)', 'Что лишнее? (продукты)', 'Which one does not belong? (food)')),
+          listen('listening.market', 'pół kilo', ['pół kilo', 'pół litra', 'dwa kilo']),
+          build('vocab.market', 'Poproszę pół kilo truskawek.', t('Півкіло полуниці, будь ласка.', 'Полкило клубники, пожалуйста.', 'Half a kilo of strawberries, please.'), ['deko', 'kawa']),
+          translate('writing.market', t('Скільки коштує кілограм помідорів?', 'Сколько стоит килограмм помидоров?', 'How much is a kilo of tomatoes?'), ['Po ile są pomidory?', 'Ile kosztuje kilo pomidorów?']),
+          dialogue('situation.market', { name: 'Pani Halina', emoji: '👩🏼', role: t('продавчиня', 'продавщица', 'a stallholder') }, [
+            {
+              npc: 'Dzień dobry! Co podać?',
+              tr: t('Добрий день! Що дати?', 'Здравствуйте! Что дать?', 'Hello! What can I get you?'),
+              choose: [
+                ['Poproszę kilo ogórków.', t('Кілограм огірків, будь ласка.', 'Килограмм огурцов, пожалуйста.', 'A kilo of cucumbers, please.')],
+                ['Poproszę kilo ogórki.', t('(помилка у відмінку)', '(ошибка в падеже)', '(wrong case)')],
+              ],
+              feedback: t('**kilo** + родовий множини: **ogórków**.', '**kilo** + родительный падеж множественного числа: **ogórków**.', '**kilo** + genitive plural: **ogórków**.'),
+            },
+          ]),
+        ],
+      },
+      {
+        slug: 'wro-9-lista',
+        title: t('Список покупок', 'Список покупок', 'The shopping list'),
+        topic: t('Potrzebuję + родовий відмінок, dużo і mało', 'Potrzebuję + родительный падеж, dużo и mało', 'Potrzebuję + genitive, dużo and mało'),
+        cefr: 'A1',
+        difficulty: 2,
+        explanation: t(
+          'Після **potrzebuję** (мені потрібно) і **nie mam** (у мене немає) іменник стає в родовому відмінку: **mąka → mąki**, **sól → soli**, **woda → wody**, **masło → masła**.\n**dużo** (багато) і **mało** (мало) теж стоять перед родовим: **dużo wody**, **mało mąki**.',
+          'После **potrzebuję** (мне нужно) и **nie mam** (у меня нет) существительное ставится в родительный падеж: **mąka → mąki**, **sól → soli**, **woda → wody**, **masło → masła**.\n**dużo** (много) и **mało** (мало) тоже стоят перед родительным: **dużo wody**, **mało mąki**.',
+          'After **potrzebuję** (I need) and **nie mam** (I don\'t have) the noun goes into the genitive: **mąka → mąki**, **sól → soli**, **woda → wody**, **masło → masła**.\n**dużo** (a lot of) and **mało** (little) also take the genitive: **dużo wody**, **mało mąki**.',
+        ),
+        examples: [
+          { pl: 'Potrzebuję mąki i soli.', tr: t('Мені потрібні борошно й сіль.', 'Мне нужны мука и соль.', 'I need flour and salt.') },
+          { pl: 'Nie mam masła.', tr: t('У мене немає масла.', 'У меня нет масла.', 'I don\'t have any butter.') },
+        ],
+        words: ['potrzebować', 'dużo', 'mało', 'zakupy', 'koszyk', 'lista zakupów', 'mąka', 'sól'],
+        exercises: [
+          wordChoice('vocab.shopping', 'koszyk', [t('кошик', 'корзина', 'shopping basket'), t('пакет', 'пакет', 'bag'), t('чек', 'чек', 'receipt')]),
+          picture('vocab.shopping', '🛍️', ['zakupy', 'paragon', 'reszta']),
+          fillGap('grammar.genitive', 'Potrzebuję ___.', ['mąki', 'mąka', 'mąkę'], t('Мені потрібне борошно.', 'Мне нужна мука.', 'I need flour.')),
+          fillGap('grammar.genitive', 'Nie mam ___.', ['masła', 'masło', 'masłem'], t('У мене немає масла.', 'У меня нет масла.', 'I don\'t have any butter.')),
+          reverseChoice('vocab.shopping', t('мало', 'мало', 'little, not much'), ['mało', 'dużo', 'trochę']),
+          listen('listening.shopping', 'Potrzebuję dużo wody', ['Potrzebuję dużo wody', 'Potrzebuję dużo mleka', 'Potrzebuję mało wody']),
+          findError('grammar.genitive', ['Potrzebuję', 'mąka', 'i', 'soli'], 1, t('Мені потрібні борошно й сіль.', 'Мне нужны мука и соль.', 'I need flour and salt.'),
+            t('Після **potrzebuję**: **mąka → mąki**.', 'После **potrzebuję**: **mąka → mąki**.', 'After **potrzebuję**: **mąka → mąki**.')),
+          oddOne('vocab.shopping', ['koszyk', 'zakupy', 'mąka', 'paragon'], 2, t('**mąka** — борошно, продукт. Інші слова — про сам процес покупок.', '**mąka** — мука, продукт. Остальные слова — о самом процессе покупок.', '**mąka** is flour, a product. The other words are about the shopping process.'), t('Що зайве?', 'Что лишнее?', 'Which one does not belong?')),
+          build('vocab.shopping', 'Mam listę zakupów.', t('У мене є список покупок.', 'У меня есть список покупок.', 'I have a shopping list.'), ['mąki', 'szalik']),
+          dictation('writing.shopping', 'Potrzebuję dużo wody.', t('Мені потрібно багато води.', 'Мне нужно много воды.', 'I need a lot of water.')),
+        ],
+      },
+      {
+        slug: 'wro-10-tysiac',
+        title: t('Ціни до тисячі', 'Цены до тысячи', 'Prices up to a thousand'),
+        topic: t('Числівники 200–1000, «złotych», розмін', 'Числительные 200–1000, «złotych», разменять', 'Numerals 200–1000, «złotych», changing money'),
+        cefr: 'A2',
+        difficulty: 4,
+        explanation: t(
+          'Сотні: **dwieście** (200), **trzysta** (300), **czterysta** (400), **pięćset** (500), **sześćset** (600), **siedemset** (700), **osiemset** (800), **dziewięćset** (900), **tysiąc** (1000).\nПісля сотень і числівників від 5 — **złotych**: **dwieście złotych**, **pięćset złotych**. Після двох, трьох, чотирьох — **złote**: **dwa złote**.',
+          'Сотни: **dwieście** (200), **trzysta** (300), **czterysta** (400), **pięćset** (500), **sześćset** (600), **siedemset** (700), **osiemset** (800), **dziewięćset** (900), **tysiąc** (1000).\nПосле сотен и чисел от 5 — **złotych**: **dwieście złotych**, **pięćset złotych**. После двух, трёх, четырёх — **złote**: **dwa złote**.',
+          'Hundreds: **dwieście** (200), **trzysta** (300), **czterysta** (400), **pięćset** (500), **sześćset** (600), **siedemset** (700), **osiemset** (800), **dziewięćset** (900), **tysiąc** (1000).\nAfter hundreds and numbers from 5 up, the currency word is **złotych**: **dwieście złotych**, **pięćset złotych**. After two, three, four it is **złote**: **dwa złote**.',
+        ),
+        examples: [
+          { pl: 'Ta kurtka kosztuje dwieście złotych.', tr: t('Ця куртка коштує двісті злотих.', 'Эта куртка стоит двести злотых.', 'This jacket costs two hundred zloty.') },
+          { pl: 'Czy może pan rozmienić pięćset złotych?', tr: t('Чи можете ви розміняти п\'ятсот злотих?', 'Вы можете разменять пятьсот злотых?', 'Can you change five hundred zloty?') },
+        ],
+        words: ['dwieście', 'trzysta', 'pięćset', 'tysiąc', 'drobne', 'rozmienić'],
+        exercises: [
+          wordChoice('vocab.numbers', 'dwieście', [t('двісті', 'двести', 'two hundred'), t('двадцять', 'двадцать', 'twenty'), t('дві тисячі', 'две тысячи', 'two thousand')]),
+          fillGap('vocab.numbers', 'Ta kurtka kosztuje ___ złotych.', ['dwieście', 'dwa', 'dwóch'], t('Ця куртка коштує двісті злотих.', 'Эта куртка стоит двести злотых.', 'This jacket costs two hundred zloty.')),
+          reverseChoice('vocab.money', t('дрібні гроші', 'мелочь', 'small change, coins'), ['drobne', 'reszta', 'paragon']),
+          listen('listening.prices', 'tysiąc złotych', ['1000 zł', '100 zł', '10 zł']),
+          oddOne('vocab.numbers', ['dwieście', 'trzysta', 'pięćset', 'pięć'], 3, t('**pięć** — п\'ять. Інші слова — сотні.', '**pięć** — пять. Остальные слова — сотни.', '**pięć** is five. The others are hundreds.'), t('Що зайве? (числа)', 'Что лишнее? (числа)', 'Which one is not a hundred?')),
+          findError('grammar.numerals', ['Ta', 'kurtka', 'kosztuje', 'dwieście', 'złote'], 4, t('Ця куртка коштує двісті злотих.', 'Эта куртка стоит двести злотых.', 'This jacket costs two hundred zloty.'),
+            t('Після **dwieście** — **złotych**, а не **złote**.', 'После **dwieście** — **złotych**, а не **złote**.', 'After **dwieście** it is **złotych**, not **złote**.')),
+          reading('reading.prices', 'Wyprzedaż: kurtka 450 zł, buty 299 zł, koszula 120 zł.', t('Що найдешевше?', 'Что дешевле всего?', 'What is the cheapest?'),
+            [t('Сорочка (120 zł)', 'Рубашка (120 zł)', 'The shirt (120 zł)'), t('Черевики (299 zł)', 'Ботинки (299 zł)', 'The shoes (299 zł)'), t('Куртка (450 zł)', 'Куртка (450 zł)', 'The jacket (450 zł)')],
+            t('**koszula** — 120 zł, найменша ціна серед трьох.', '**koszula** — 120 zł, самая низкая цена из трёх.', '**koszula** costs 120 zł, the lowest of the three.')),
+          translate('writing.prices', t('Скільки коштує ця сорочка?', 'Сколько стоит эта рубашка?', 'How much is this shirt?'), ['Ile kosztuje ta koszula?', 'Ile kosztuje ta koszula']),
+          build('vocab.money', 'Czy może pan rozmienić pięćset złotych?', t('Чи можете ви розміняти п\'ятсот злотих?', 'Вы можете разменять пятьсот злотых?', 'Can you change five hundred zloty?'), ['drobne', 'paragon']),
+        ],
+      },
+    ],
+  },
+];

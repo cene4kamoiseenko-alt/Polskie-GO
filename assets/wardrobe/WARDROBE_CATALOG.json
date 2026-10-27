@@ -1,0 +1,1642 @@
+{
+  "version": 1,
+  "generated_from": [
+    "apps/server/src/content/gamification.ts (ITEMS)",
+    "packages/shared/src/look/manifest.ts (LOOK_ITEMS)",
+    "apps/server/src/content/missions.ts и gamification.ts (rewardItem)"
+  ],
+  "currency": "злотки (ігрова валюта); ціни беруться з коду, нові баланси не вводилися",
+  "status_legend": {
+    "готов": "шар або картинка існує й малюється",
+    "требует переделки": "є лише цілісна картинка або вшито в базу, шару немає",
+    "отсутствует": "немає ресурсу"
+  },
+  "items": [
+    {
+      "id": "hoodie-red",
+      "category": "одяг",
+      "catalog_slot": "JACKET",
+      "names": {
+        "ru": "Красное худи с орлом",
+        "uk": "Червоне худі з орлом",
+        "pl": "Czerwona bluza z orłem",
+        "en": "Red eagle hoodie"
+      },
+      "color": "червоний",
+      "rarity": "common",
+      "look_slots": [
+        "top"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "jacket-denim",
+        "jacket-rain",
+        "vest-krakowiak",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "стартовий, безкоштовно",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": "вшито в базовий образ apps/web/src/assets/beaver/*.webp (14 поз)",
+        "look_status": "legacy-whole-look",
+        "scene": null
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Впечатане в усі 14 поз legacy-base. Шар — у еталоні etalon-1."
+    },
+    {
+      "id": "backpack-travel",
+      "category": "рюкзаки",
+      "catalog_slot": "BACKPACK",
+      "names": {
+        "ru": "Рюкзак путешественника",
+        "uk": "Рюкзак мандрівника",
+        "pl": "Plecak podróżnika",
+        "en": "Traveller backpack"
+      },
+      "color": "зелений (за описом бази)",
+      "rarity": "common",
+      "look_slots": [
+        "backpack"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "backpack-map"
+      ],
+      "unlock": {
+        "text": "стартовий, безкоштовно",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": "вшито в базовий образ apps/web/src/assets/beaver/*.webp (14 поз)",
+        "look_status": "legacy-whole-look",
+        "scene": null
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Впечатаний в усі 14 поз legacy-base. Шар — у еталоні etalon-1."
+    },
+    {
+      "id": "cap-green",
+      "category": "головні убори",
+      "catalog_slot": "HAT",
+      "names": {
+        "ru": "Зелёная кепка",
+        "uk": "Зелена кепка",
+        "pl": "Zielona czapka",
+        "en": "Green cap"
+      },
+      "color": "зелений",
+      "rarity": "common",
+      "look_slots": [
+        "headwear"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "cap-red",
+        "beanie-blue",
+        "hat-chef",
+        "hat-krasnal",
+        "crown-gold",
+        "costume-conductor",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 40 злотків",
+        "price_zlotki": 40,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "cap-red",
+      "category": "головні убори",
+      "catalog_slot": "HAT",
+      "names": {
+        "ru": "Красная кепка",
+        "uk": "Червона кепка",
+        "pl": "Czerwona czapka",
+        "en": "Red cap"
+      },
+      "color": "червоний",
+      "rarity": "common",
+      "look_slots": [
+        "headwear"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "cap-green",
+        "beanie-blue",
+        "hat-chef",
+        "hat-krasnal",
+        "crown-gold",
+        "costume-conductor",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 40 злотків",
+        "price_zlotki": 40,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "червоний кепка з «PL»",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "beanie-blue",
+      "category": "головні убори",
+      "catalog_slot": "HAT",
+      "names": {
+        "ru": "Синяя шапка",
+        "uk": "Синя шапка",
+        "pl": "Niebieska czapka zimowa",
+        "en": "Blue beanie"
+      },
+      "color": "синій",
+      "rarity": "common",
+      "look_slots": [
+        "headwear"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [
+        "tuft"
+      ],
+      "incompatible_with": [
+        "cap-green",
+        "cap-red",
+        "hat-chef",
+        "hat-krasnal",
+        "crown-gold",
+        "costume-conductor",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 60 злотків",
+        "price_zlotki": 60,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "синя шапка",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "hat-chef",
+      "category": "головні убори",
+      "catalog_slot": "HAT",
+      "names": {
+        "ru": "Колпак повара",
+        "uk": "Ковпак кухаря",
+        "pl": "Czapka kucharza",
+        "en": "Chef hat"
+      },
+      "color": "білий",
+      "rarity": "rare",
+      "look_slots": [
+        "headwear"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "cap-green",
+        "cap-red",
+        "beanie-blue",
+        "hat-krasnal",
+        "crown-gold",
+        "costume-conductor",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 80 злотків",
+        "price_zlotki": 80,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "hat-krasnal",
+      "category": "головні убори",
+      "catalog_slot": "HAT",
+      "names": {
+        "ru": "Колпак вроцлавского гнома",
+        "uk": "Ковпачок вроцлавського гнома",
+        "pl": "Czapeczka wrocławskiego krasnala",
+        "en": "Wrocław gnome hat"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "epic",
+      "look_slots": [
+        "headwear"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [
+        "tuft"
+      ],
+      "incompatible_with": [
+        "cap-green",
+        "cap-red",
+        "beanie-blue",
+        "hat-chef",
+        "crown-gold",
+        "costume-conductor",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "нагорода: Бобер загубився у Вроцлаві",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": "wroclaw",
+        "sources": [
+          {
+            "source": "gamification.STORY_QUESTS",
+            "slug": "s-wroclaw-zgubiony",
+            "title": "Бобер загубився у Вроцлаві"
+          }
+        ]
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "crown-gold",
+      "category": "головні убори",
+      "catalog_slot": "HAT",
+      "names": {
+        "ru": "Золотая корона",
+        "uk": "Золота корона",
+        "pl": "Złota korona",
+        "en": "Golden crown"
+      },
+      "color": "золотий",
+      "rarity": "legendary",
+      "look_slots": [
+        "headwear"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "cap-green",
+        "cap-red",
+        "beanie-blue",
+        "hat-chef",
+        "hat-krasnal",
+        "costume-conductor",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "тільки Premium; ціна 150 злотків",
+        "price_zlotki": 150,
+        "premium": true,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "glasses-round",
+      "category": "окуляри",
+      "catalog_slot": "GLASSES",
+      "names": {
+        "ru": "Круглые очки",
+        "uk": "Круглі окуляри",
+        "pl": "Okrągłe okulary",
+        "en": "Round glasses"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "common",
+      "look_slots": [
+        "glasses"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "glasses-sun",
+        "glasses-star"
+      ],
+      "unlock": {
+        "text": "магазин, 50 злотків",
+        "price_zlotki": 50,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": [
+          {
+            "source": "gamification.ACHIEVEMENTS",
+            "slug": "perfect-10",
+            "title": "Майстер квізів"
+          }
+        ]
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "glasses-sun",
+      "category": "окуляри",
+      "catalog_slot": "GLASSES",
+      "names": {
+        "ru": "Солнцезащитные очки",
+        "uk": "Сонячні окуляри",
+        "pl": "Okulary przeciwsłoneczne",
+        "en": "Sunglasses"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "rare",
+      "look_slots": [
+        "glasses"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "glasses-round",
+        "glasses-star"
+      ],
+      "unlock": {
+        "text": "магазин, 70 злотків",
+        "price_zlotki": 70,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": [
+          {
+            "source": "gamification.ACHIEVEMENTS",
+            "slug": "streak-7",
+            "title": "7 днів поспіль"
+          }
+        ]
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "сонцезахисні окуляри",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "glasses-star",
+      "category": "окуляри",
+      "catalog_slot": "GLASSES",
+      "names": {
+        "ru": "Очки-звёзды",
+        "uk": "Окуляри-зірки",
+        "pl": "Okulary w gwiazdki",
+        "en": "Star glasses"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "epic",
+      "look_slots": [
+        "glasses"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "glasses-round",
+        "glasses-sun"
+      ],
+      "unlock": {
+        "text": "тільки Premium; ціна 120 злотків",
+        "price_zlotki": 120,
+        "premium": true,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "scarf-pl",
+      "category": "аксесуари",
+      "catalog_slot": "SCARF",
+      "names": {
+        "ru": "Бело-красный шарф",
+        "uk": "Біло-червоний шарф",
+        "pl": "Biało-czerwony szalik",
+        "en": "White-red scarf"
+      },
+      "color": "біло-червоний",
+      "rarity": "rare",
+      "look_slots": [
+        "neck"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "scarf-ua",
+        "scarf-green",
+        "costume-chef",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 60 злотків",
+        "price_zlotki": 60,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": [
+          {
+            "source": "gamification.STORY_QUESTS",
+            "slug": "s-warszawa-dworzec",
+            "title": "Бобер прибуває до Варшави"
+          }
+        ]
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "scarf-ua",
+      "category": "аксесуари",
+      "catalog_slot": "SCARF",
+      "names": {
+        "ru": "Сине-жёлтый шарф",
+        "uk": "Синьо-жовтий шарф",
+        "pl": "Niebiesko-żółty szalik",
+        "en": "Blue-yellow scarf"
+      },
+      "color": "синьо-жовтий",
+      "rarity": "rare",
+      "look_slots": [
+        "neck"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "scarf-pl",
+        "scarf-green",
+        "costume-chef",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 60 злотків",
+        "price_zlotki": 60,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "scarf-green",
+      "category": "аксесуари",
+      "catalog_slot": "SCARF",
+      "names": {
+        "ru": "Зелёный шарф",
+        "uk": "Зелений шарф",
+        "pl": "Zielony szalik",
+        "en": "Green scarf"
+      },
+      "color": "зелений",
+      "rarity": "common",
+      "look_slots": [
+        "neck"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "scarf-pl",
+        "scarf-ua",
+        "costume-chef",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 40 злотків",
+        "price_zlotki": 40,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "jacket-denim",
+      "category": "одяг",
+      "catalog_slot": "JACKET",
+      "names": {
+        "ru": "Джинсовая куртка",
+        "uk": "Джинсова куртка",
+        "pl": "Kurtka jeansowa",
+        "en": "Denim jacket"
+      },
+      "color": "синій (джинс)",
+      "rarity": "common",
+      "look_slots": [
+        "top"
+      ],
+      "replaces_layers": [
+        "torso"
+      ],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "jacket-rain",
+        "vest-krakowiak",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 90 злотків",
+        "price_zlotki": 90,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "синя куртка",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "jacket-rain",
+      "category": "одяг",
+      "catalog_slot": "JACKET",
+      "names": {
+        "ru": "Жёлтый дождевик",
+        "uk": "Жовтий дощовик",
+        "pl": "Żółty płaszcz przeciwdeszczowy",
+        "en": "Yellow raincoat"
+      },
+      "color": "жовтий",
+      "rarity": "common",
+      "look_slots": [
+        "top"
+      ],
+      "replaces_layers": [
+        "torso"
+      ],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "jacket-denim",
+        "vest-krakowiak",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 70 злотків",
+        "price_zlotki": 70,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "жовтий дощовик",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "vest-krakowiak",
+      "category": "одяг",
+      "catalog_slot": "JACKET",
+      "names": {
+        "ru": "Краковский жилет",
+        "uk": "Краківська камізелька",
+        "pl": "Krakowska kamizelka",
+        "en": "Kraków folk vest"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "epic",
+      "look_slots": [
+        "top"
+      ],
+      "replaces_layers": [
+        "torso"
+      ],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "jacket-denim",
+        "jacket-rain",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "нагорода: іспит міста krakow",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": "krakow",
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "backpack-map",
+      "category": "рюкзаки",
+      "catalog_slot": "BACKPACK",
+      "names": {
+        "ru": "Рюкзак с картой",
+        "uk": "Рюкзак з картою",
+        "pl": "Plecak z mapą",
+        "en": "Map backpack"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "rare",
+      "look_slots": [
+        "backpack"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "backpack-travel"
+      ],
+      "unlock": {
+        "text": "магазин, 80 злотків",
+        "price_zlotki": 80,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": [
+          {
+            "source": "gamification.ACHIEVEMENTS",
+            "slug": "city-3",
+            "title": "Відкривач Польщі"
+          }
+        ]
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "sneakers-white",
+      "category": "взуття",
+      "catalog_slot": "SHOES",
+      "names": {
+        "ru": "Белые кроссовки",
+        "uk": "Білі кросівки",
+        "pl": "Białe sneakersy",
+        "en": "White sneakers"
+      },
+      "color": "білий",
+      "rarity": "common",
+      "look_slots": [
+        "shoes"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "boots-mountain",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 40 злотків",
+        "price_zlotki": 40,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "білі кросівки",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "boots-mountain",
+      "category": "взуття",
+      "catalog_slot": "SHOES",
+      "names": {
+        "ru": "Горные ботинки",
+        "uk": "Гірські черевики",
+        "pl": "Górskie buty",
+        "en": "Mountain boots"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "common",
+      "look_slots": [
+        "shoes"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "sneakers-white",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 60 злотків",
+        "price_zlotki": 60,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "черевики",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "flag-pl",
+      "category": "аксесуари",
+      "catalog_slot": "ACCESSORY",
+      "names": {
+        "ru": "Флажок Польши",
+        "uk": "Прапорець Польщі",
+        "pl": "Flaga Polski",
+        "en": "Polish flag"
+      },
+      "color": "біло-червоний",
+      "rarity": "common",
+      "look_slots": [
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "camera",
+        "map-paper",
+        "obwarzanek",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist"
+      ],
+      "unlock": {
+        "text": "магазин, 30 злотків",
+        "price_zlotki": 30,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "прапорець",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "camera",
+      "category": "аксесуари",
+      "catalog_slot": "ACCESSORY",
+      "names": {
+        "ru": "Фотоаппарат",
+        "uk": "Фотоапарат",
+        "pl": "Aparat fotograficzny",
+        "en": "Camera"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "common",
+      "look_slots": [
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "flag-pl",
+        "map-paper",
+        "obwarzanek",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist"
+      ],
+      "unlock": {
+        "text": "магазин, 70 злотків",
+        "price_zlotki": 70,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "фотоапарат",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "map-paper",
+      "category": "аксесуари",
+      "catalog_slot": "ACCESSORY",
+      "names": {
+        "ru": "Бумажная карта",
+        "uk": "Паперова карта",
+        "pl": "Papierowa mapa",
+        "en": "Paper map"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "common",
+      "look_slots": [
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "flag-pl",
+        "camera",
+        "obwarzanek",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist"
+      ],
+      "unlock": {
+        "text": "магазин, 40 злотків",
+        "price_zlotki": 40,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": {
+        "file": "docs/design/a10/sheets/sheet-bobek-wardrobe-clean.webp",
+        "what": "паперова карта",
+        "note": "превью на коллажі, не окремий исходник"
+      },
+      "note": null
+    },
+    {
+      "id": "obwarzanek",
+      "category": "аксесуари",
+      "catalog_slot": "ACCESSORY",
+      "names": {
+        "ru": "Краковский обважанек",
+        "uk": "Краківський обважанек",
+        "pl": "Krakowski obwarzanek",
+        "en": "Kraków pretzel"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "common",
+      "look_slots": [
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "flag-pl",
+        "camera",
+        "map-paper",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist"
+      ],
+      "unlock": {
+        "text": "нагорода: іспит міста krakow",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": "krakow",
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": null
+    },
+    {
+      "id": "costume-dragon",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Костюм Вавельского дракона",
+        "uk": "Костюм Вавельського дракона",
+        "pl": "Strój smoka wawelskiego",
+        "en": "Wawel dragon costume"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "legendary",
+      "look_slots": [
+        "body",
+        "head"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "costume-syrenka"
+      ],
+      "unlock": {
+        "text": "тільки Premium; ціна 200 злотків",
+        "price_zlotki": 200,
+        "premium": true,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": "apps/web/src/assets/costumes/dragon.webp",
+        "look_status": "legacy-whole-look",
+        "scene": "apps/web/src/assets/costumes/dragon-scene.webp"
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Комбінезон з крилами й капюшон. Коричневий ремінь сумки на плечі — лише на картинці."
+    },
+    {
+      "id": "costume-syrenka",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Костюм Варшавской русалки",
+        "uk": "Костюм Варшавської сирени",
+        "pl": "Strój warszawskiej syrenki",
+        "en": "Warsaw mermaid costume"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "epic",
+      "look_slots": [
+        "body"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "costume-dragon"
+      ],
+      "unlock": {
+        "text": "нагорода: іспит міста warszawa",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": "warszawa",
+        "sources": []
+      },
+      "resource": {
+        "path": null,
+        "look_status": "pending",
+        "scene": null
+      },
+      "status": "отсутствует",
+      "owner_preview": null,
+      "note": "Живописної картинки немає ні цілісної, ні шарової."
+    },
+    {
+      "id": "costume-barista",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Костюм бариста",
+        "uk": "Костюм баристи",
+        "pl": "Strój baristy",
+        "en": "Barista outfit"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "rare",
+      "look_slots": [
+        "top",
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "jacket-denim",
+        "jacket-rain",
+        "vest-krakowiak",
+        "flag-pl",
+        "camera",
+        "map-paper",
+        "obwarzanek",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "нагорода: Кава на ORLEN",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": null,
+        "sources": [
+          {
+            "source": "missions.MISSIONS",
+            "slug": "orlen-coffee",
+            "title": "Кава на ORLEN"
+          }
+        ]
+      },
+      "resource": {
+        "path": "apps/web/src/assets/costumes/barista.webp",
+        "look_status": "legacy-whole-look",
+        "scene": "apps/web/src/assets/costumes/barista-scene.webp"
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Сорочка, фартух, краватка, чашка. На картинці зелений рюкзак мандрівника; ноги обрізані."
+    },
+    {
+      "id": "costume-chef",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Костюм повара",
+        "uk": "Костюм кухаря",
+        "pl": "Strój kucharza",
+        "en": "Chef outfit"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "rare",
+      "look_slots": [
+        "top",
+        "neck",
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "scarf-pl",
+        "scarf-ua",
+        "scarf-green",
+        "jacket-denim",
+        "jacket-rain",
+        "vest-krakowiak",
+        "flag-pl",
+        "camera",
+        "map-paper",
+        "obwarzanek",
+        "costume-barista",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "нагорода: Pierogi у Кракові",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": null,
+        "sources": [
+          {
+            "source": "missions.MISSIONS",
+            "slug": "krakow-pierogi",
+            "title": "Pierogi у Кракові"
+          }
+        ]
+      },
+      "resource": {
+        "path": "apps/web/src/assets/costumes/chef.webp",
+        "look_status": "legacy-whole-look",
+        "scene": "apps/web/src/assets/costumes/chef-scene.webp"
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Кухарський кітель, хустка, ложка. Ковпак — окремий предмет hat-chef, на картинці він є."
+    },
+    {
+      "id": "costume-conductor",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Костюм проводника",
+        "uk": "Костюм провідника",
+        "pl": "Strój konduktora",
+        "en": "Train conductor outfit"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "epic",
+      "look_slots": [
+        "headwear",
+        "top",
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "cap-green",
+        "cap-red",
+        "beanie-blue",
+        "hat-chef",
+        "hat-krasnal",
+        "crown-gold",
+        "jacket-denim",
+        "jacket-rain",
+        "vest-krakowiak",
+        "flag-pl",
+        "camera",
+        "map-paper",
+        "obwarzanek",
+        "costume-barista",
+        "costume-chef",
+        "costume-krasnal",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "нагорода: Квиток до Вроцлава",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": null,
+        "sources": [
+          {
+            "source": "missions.MISSIONS",
+            "slug": "train-wroclaw",
+            "title": "Квиток до Вроцлава"
+          }
+        ]
+      },
+      "resource": {
+        "path": "apps/web/src/assets/costumes/conductor.webp",
+        "look_status": "legacy-whole-look",
+        "scene": "apps/web/src/assets/costumes/conductor-scene.webp"
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Кашкет, форма, квиток — власних предметів у каталозі немає. Сумка через плече — лише на картинці."
+    },
+    {
+      "id": "costume-krasnal",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Костюм гнома из Вроцлава",
+        "uk": "Костюм гнома з Вроцлава",
+        "pl": "Strój wrocławskiego krasnala",
+        "en": "Wrocław gnome outfit"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "legendary",
+      "look_slots": [
+        "top",
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "jacket-denim",
+        "jacket-rain",
+        "vest-krakowiak",
+        "flag-pl",
+        "camera",
+        "map-paper",
+        "obwarzanek",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-artist",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "нагорода: іспит міста wroclaw",
+        "price_zlotki": 0,
+        "premium": false,
+        "reward_only": true,
+        "city": "wroclaw",
+        "sources": []
+      },
+      "resource": {
+        "path": "apps/web/src/assets/costumes/krasnal.webp",
+        "look_status": "legacy-whole-look",
+        "scene": "apps/web/src/assets/costumes/krasnal-scene.webp"
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Камізелька, сорочка, ліхтар. Ковпак вважаємо hat-krasnal — потребує підтвердження власника."
+    },
+    {
+      "id": "costume-artist",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Костюм художника",
+        "uk": "Костюм художника",
+        "pl": "Strój artysty",
+        "en": "Artist outfit"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "epic",
+      "look_slots": [
+        "headwear",
+        "neck",
+        "top",
+        "accessory"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "cap-green",
+        "cap-red",
+        "beanie-blue",
+        "hat-chef",
+        "hat-krasnal",
+        "crown-gold",
+        "scarf-pl",
+        "scarf-ua",
+        "scarf-green",
+        "jacket-denim",
+        "jacket-rain",
+        "vest-krakowiak",
+        "flag-pl",
+        "camera",
+        "map-paper",
+        "obwarzanek",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-winter"
+      ],
+      "unlock": {
+        "text": "магазин, 180 злотків",
+        "price_zlotki": 180,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": "apps/web/src/assets/costumes/artist.webp",
+        "look_status": "legacy-whole-look",
+        "scene": "apps/web/src/assets/costumes/artist-scene.webp"
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Берет, шарф, блуза, палітра й пензель — власних предметів немає."
+    },
+    {
+      "id": "costume-winter",
+      "category": "костюми",
+      "catalog_slot": "COSTUME",
+      "names": {
+        "ru": "Зимний образ",
+        "uk": "Зимовий образ",
+        "pl": "Zimowy strój",
+        "en": "Winter look"
+      },
+      "color": "не зазначено (уточнити за малюнком)",
+      "rarity": "rare",
+      "look_slots": [
+        "headwear",
+        "neck",
+        "top",
+        "shoes"
+      ],
+      "replaces_layers": [],
+      "hides_layers": [],
+      "incompatible_with": [
+        "hoodie-red",
+        "cap-green",
+        "cap-red",
+        "beanie-blue",
+        "hat-chef",
+        "hat-krasnal",
+        "crown-gold",
+        "scarf-pl",
+        "scarf-ua",
+        "scarf-green",
+        "jacket-denim",
+        "jacket-rain",
+        "vest-krakowiak",
+        "sneakers-white",
+        "boots-mountain",
+        "costume-barista",
+        "costume-chef",
+        "costume-conductor",
+        "costume-krasnal",
+        "costume-artist"
+      ],
+      "unlock": {
+        "text": "магазин, 120 злотків",
+        "price_zlotki": 120,
+        "premium": false,
+        "reward_only": false,
+        "city": null,
+        "sources": []
+      },
+      "resource": {
+        "path": "apps/web/src/assets/costumes/winter.webp",
+        "look_status": "legacy-whole-look",
+        "scene": "apps/web/src/assets/costumes/winter-scene.webp"
+      },
+      "status": "требует переделки",
+      "owner_preview": null,
+      "note": "Шапка, шарф, пуховик з рукавицями, черевики — власних предметів немає. Коричневий рюкзак — лише на картинці."
+    }
+  ],
+  "outside_wardrobe": [
+    {
+      "id": "bed-basic",
+      "slot": "FURNITURE",
+      "price": 0,
+      "premium": false,
+      "name_ru": "Простая кровать"
+    },
+    {
+      "id": "bed-cozy",
+      "slot": "FURNITURE",
+      "price": 120,
+      "premium": false,
+      "name_ru": "Уютная кровать"
+    },
+    {
+      "id": "desk",
+      "slot": "FURNITURE",
+      "price": 100,
+      "premium": false,
+      "name_ru": "Письменный стол"
+    },
+    {
+      "id": "bookshelf",
+      "slot": "FURNITURE",
+      "price": 90,
+      "premium": false,
+      "name_ru": "Книжная полка"
+    },
+    {
+      "id": "sofa",
+      "slot": "FURNITURE",
+      "price": 150,
+      "premium": false,
+      "name_ru": "Kanapa (диван!)"
+    },
+    {
+      "id": "lamp",
+      "slot": "FURNITURE",
+      "price": 60,
+      "premium": false,
+      "name_ru": "Лампа"
+    },
+    {
+      "id": "plant",
+      "slot": "DECOR",
+      "price": 40,
+      "premium": false,
+      "name_ru": "Растение"
+    },
+    {
+      "id": "rug-red",
+      "slot": "DECOR",
+      "price": 80,
+      "premium": false,
+      "name_ru": "Dywan (ковёр!)"
+    },
+    {
+      "id": "poster-poland",
+      "slot": "DECOR",
+      "price": 50,
+      "premium": false,
+      "name_ru": "Постер «Польша»"
+    },
+    {
+      "id": "map-wall",
+      "slot": "DECOR",
+      "price": 70,
+      "premium": false,
+      "name_ru": "Карта на стене"
+    },
+    {
+      "id": "souvenir-syrenka",
+      "slot": "SOUVENIR",
+      "price": 0,
+      "premium": false,
+      "name_ru": "Фигурка Русалки"
+    },
+    {
+      "id": "souvenir-dragon",
+      "slot": "SOUVENIR",
+      "price": 0,
+      "premium": false,
+      "name_ru": "Фигурка дракона"
+    },
+    {
+      "id": "souvenir-krasnal",
+      "slot": "SOUVENIR",
+      "price": 0,
+      "premium": false,
+      "name_ru": "Бронзовый гномик"
+    },
+    {
+      "id": "frame-green",
+      "slot": "FRAME",
+      "price": 100,
+      "premium": false,
+      "name_ru": "Зелёная рамка"
+    },
+    {
+      "id": "frame-gold",
+      "slot": "FRAME",
+      "price": 150,
+      "premium": true,
+      "name_ru": "Золотая рамка"
+    }
+  ],
+  "counts": {
+    "wardrobe": 32,
+    "outside_wardrobe": 15,
+    "status": {
+      "требует переделки": 9,
+      "отсутствует": 23
+    }
+  }
+}
