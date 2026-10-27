@@ -190,6 +190,7 @@ export const en: Dict = {
   map_st_lessons: 'Lessons',
   map_st_access: 'Access',
   map_st_ready: 'ready',
+  map_st_interim: 'temporary',
   map_st_open: 'open',
   map_st_locked: 'locked',
   map_completed: 'City complete',

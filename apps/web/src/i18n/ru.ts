@@ -190,6 +190,7 @@ export const ru: Dict = {
   map_st_lessons: 'Уроки',
   map_st_access: 'Доступ',
   map_st_ready: 'готово',
+  map_st_interim: 'временное',
   map_st_open: 'открыт',
   map_st_locked: 'закрыт',
   map_completed: 'Город пройден',

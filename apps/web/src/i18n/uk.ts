@@ -196,6 +196,7 @@ export const uk = {
   map_st_lessons: 'Уроки',
   map_st_access: 'Доступ',
   map_st_ready: 'готове',
+  map_st_interim: 'тимчасове',
   map_st_open: 'відкрито',
   map_st_locked: 'закрито',
   map_completed: 'Місто пройдено',

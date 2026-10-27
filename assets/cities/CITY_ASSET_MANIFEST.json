@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "checked": "2026-10-27",
   "sources": {
     "cities": "apps/server/src/content/cities.ts (CITIES; REMOVED_CITIES = sopot, czestochowa)",
@@ -9,183 +9,598 @@
   },
   "note": "Число городов не зашито: состав берётся из CITIES. Сейчас 20 городов. Прогресс пользователей не проверялся: доступа к базе из среды нет.",
   "status_legend": {
-    "final": "финальная иллюстрация",
+    "final": "финальная иллюстрация: повнорозмерная панорама владельца, уменьшенная без растяжения (1440×720)",
     "interim": "тимчасовий кадр з дошки власника (фрагмент, Real-ESRGAN ×4); заменить мастер-файлом",
     "missing": "файла нет; клиент показывает общую сцену с подписью «Малюнок готується»"
   },
   "owner_candidate_rule": "Кандидат не подключён и не перерисован. Интеграция — после подтверждения владельцем; подменять отсутствующий фон случайной картинкой нельзя.",
   "cities": [
     {
-      "city_id": "warszawa", "name_pl": "Warszawa", "name_ru": "Варшава", "cefr": "A1",
-      "routes": 7, "lessons": 25, "exam": true, "tasks_per_lesson": "17–23",
-      "image": { "repo": "apps/web/src/assets/cities/warszawa.webp", "status": "final", "declared_size": "1440×720", "shows": "Старе місто, Замкова площа, колона Сигізмунда", "gap": null, "owner_candidate": null },
+      "city_id": "warszawa",
+      "name_pl": "Warszawa",
+      "name_ru": "Варшава",
+      "cefr": "A1",
+      "routes": 7,
+      "lessons": 25,
+      "exam": true,
+      "tasks_per_lesson": "17–23",
+      "image": {
+        "repo": "apps/web/src/assets/cities/warszawa.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Старе місто, Замкова площа, колона Сигізмунда",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "колона Сигізмунда, Замок — совпадает с описанием",
       "missing_content": "нет основного блока; проверить, что route-stats = 25 уроков, а не 26 из старого расчёта",
       "progress": "не проверено (нет доступа к базе)"
     },
     {
-      "city_id": "lodz", "name_pl": "Łódź", "name_ru": "Лодзь", "cefr": "A1",
-      "routes": 7, "lessons": 16, "exam": true, "tasks_per_lesson": "12–16",
-      "image": { "repo": "apps/web/src/assets/cities/lodz.webp", "status": "interim", "declared_size": "984×512", "shows": "Manufaktura: цегляний фасад з вивіскою, пам'ятник", "gap": "Piotrkowska (на кадрі немає)", "owner_candidate": "docs/design/a10/cities/city-lodz.webp" },
-      "landmarks": "кандидат показывает Piotrkowska с фабричной трубой и модерн-фасадами — закрывает указанный пробел",
+      "city_id": "lodz",
+      "name_pl": "Łódź",
+      "name_ru": "Лодзь",
+      "cefr": "A1",
+      "routes": 7,
+      "lessons": 16,
+      "exam": true,
+      "tasks_per_lesson": "12–16",
+      "image": {
+        "repo": "apps/web/src/assets/cities/lodz.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Piotrkowska: фасады модерна с кафе, кирпичная фабричная труба Manufaktura в перспективе улицы",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-lodz.webp (1774×887)",
+        "kb": {
+          "main": 209,
+          "640": 58
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Piotrkowska и фабричная труба видны; закрывает пробел «Piotrkowska»",
       "missing_content": "уроков 16 — полный набор; интерим-кадр заменить кандидатом после подтверждения",
       "progress": "не проверено"
     },
     {
-      "city_id": "krakow", "name_pl": "Kraków", "name_ru": "Краков", "cefr": "A1",
-      "routes": 11, "lessons": 40, "exam": true, "tasks_per_lesson": "10–23",
-      "image": { "repo": "apps/web/src/assets/cities/krakow.webp", "status": "final", "declared_size": "1440×720", "shows": "Rynek, Sukiennice, Mariacki", "gap": null, "owner_candidate": null },
+      "city_id": "krakow",
+      "name_pl": "Kraków",
+      "name_ru": "Краков",
+      "cefr": "A1",
+      "routes": 11,
+      "lessons": 40,
+      "exam": true,
+      "tasks_per_lesson": "10–23",
+      "image": {
+        "repo": "apps/web/src/assets/cities/krakow.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Rynek, Sukiennice, Mariacki",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "Рынок, Суконные ряды, Мариацкий костёл — совпадает",
       "missing_content": "описание города в CITIES называет рынок «найбільшим ринком Європи» — формулировка завышена; уточнить (например, «одна з найбільших середньовічних площ»)",
       "progress": "не проверено"
     },
     {
-      "city_id": "katowice", "name_pl": "Katowice", "name_ru": "Катовице", "cefr": "A1",
-      "routes": 3, "lessons": 4, "exam": true, "tasks_per_lesson": "11–12",
-      "image": { "repo": "apps/web/src/assets/cities/katowice.webp", "status": "interim", "declared_size": "1176×488", "shows": "Spodek на тлі хмарочосів", "gap": null, "owner_candidate": null },
+      "city_id": "katowice",
+      "name_pl": "Katowice",
+      "name_ru": "Катовице",
+      "cefr": "A1",
+      "routes": 3,
+      "lessons": 4,
+      "exam": true,
+      "tasks_per_lesson": "11–12",
+      "image": {
+        "repo": "apps/web/src/assets/cities/katowice.webp",
+        "status": "interim",
+        "declared_size": "1176×488",
+        "shows": "Spodek на тлі хмарочосів",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "Spodek — совпадает; полноразмерного кандидата от владельца нет (есть только превью)",
       "missing_content": "⚠ 4 урока из 16 обычных; вокабуляр katowice (54 слова) не подключён; 12 уроков не написаны — см. PROJECT_PROGRESS.md",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-katowice.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Spodek (арена-«НЛО») на закате; рядом шахтный копёр музея Силезии и красно-кирпичный NOSPR; современные высотки Rondo."
+      }
     },
     {
-      "city_id": "opole", "name_pl": "Opole", "name_ru": "Ополе", "cefr": "A1",
-      "routes": 2, "lessons": 4, "exam": true, "tasks_per_lesson": "11–12",
-      "image": { "repo": "apps/web/src/assets/cities/opole.webp", "status": "interim", "declared_size": "1024×520", "shows": "Ратуша, кам'яниці, міст над Одрою", "gap": null, "owner_candidate": "docs/design/a10/cities/city-opole.webp" },
-      "landmarks": "кандидат: башня Пяста, мост через Одру, амфитеатр — проверить подпись владельца и соответствие описанию в cityArt",
+      "city_id": "opole",
+      "name_pl": "Opole",
+      "name_ru": "Ополе",
+      "cefr": "A1",
+      "routes": 2,
+      "lessons": 4,
+      "exam": true,
+      "tasks_per_lesson": "11–12",
+      "image": {
+        "repo": "apps/web/src/assets/cities/opole.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Кирпичная Башня Пястов, набережная, белый изогнутый навес амфитеатра, мост",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-opole.webp (1774×887)",
+        "kb": {
+          "main": 213,
+          "640": 58
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Башня Пястов и амфитеатр Opole узнаваемы",
       "missing_content": "⚠ 4 урока из 16; 2 маршрута; тема «Живой разговорный польский» — нужны уроки 5–16",
       "progress": "не проверено"
     },
     {
-      "city_id": "wroclaw", "name_pl": "Wrocław", "name_ru": "Вроцлав", "cefr": "A1",
-      "routes": 4, "lessons": 4, "exam": true, "tasks_per_lesson": "10–11",
-      "image": { "repo": "apps/web/src/assets/cities/wroclaw.webp", "status": "final", "declared_size": "1440×720", "shows": "Острів Тумський: собор, Тумський міст, гномик", "gap": "Rynek (на кадрі нет)", "owner_candidate": "docs/design/a10/cities/city-wroclaw.webp" },
-      "landmarks": "кандидат: Рынок с ратушей и бронзовыми гномами — закрывает пробел «Rynek»",
+      "city_id": "wroclaw",
+      "name_pl": "Wrocław",
+      "name_ru": "Вроцлав",
+      "cefr": "A1",
+      "routes": 4,
+      "lessons": 4,
+      "exam": true,
+      "tasks_per_lesson": "10–11",
+      "image": {
+        "repo": "apps/web/src/assets/cities/wroclaw.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Rynek: готическая ратуша с астрономическими часами, цветные каменицы, бронзовые гномы на переднем плане",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-wroclaw.webp (1774×887)",
+        "kb": {
+          "main": 216,
+          "640": 57
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Ратуша и краснали (гномы) узнаваемы; закрывает пробел «Rynek»",
       "missing_content": "⚠ 4 урока из 16; черновики уроков 5–16 готовы: apps/server/src/content/drafts/wroclaw-5-10.ts и wroclaw-11-16.ts (не подключены)",
       "progress": "не проверено"
     },
     {
-      "city_id": "poznan", "name_pl": "Poznań", "name_ru": "Познань", "cefr": "A1",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/poznan.webp", "status": "interim", "declared_size": "1200×456", "shows": "Ратуша і кам'яниці Старого Ринку", "gap": "козлики на вежі ратуші не видно", "owner_candidate": "docs/design/a10/cities/city-poznan.webp" },
-      "landmarks": "кандидат: Ратуша с козлами на башне, кам'яницы — закрывает пробел",
+      "city_id": "poznan",
+      "name_pl": "Poznań",
+      "name_ru": "Познань",
+      "cefr": "A1",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/poznan.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Ратуша с аркадами и двумя козлами над часами, цветные каменицы Старого Рынка",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-poznan.webp (1774×887)",
+        "kb": {
+          "main": 214,
+          "640": 58
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Козлы на башне ратуши видны; закрывает пробел",
       "missing_content": "уроков 0; тема города «Місто, транспорт і робота» — не начата",
       "progress": "не проверено"
     },
     {
-      "city_id": "zielona-gora", "name_pl": "Zielona Góra", "name_ru": "Зелёна-Гура", "cefr": "A2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/zielona-gora.webp", "status": "interim", "declared_size": "1472×660", "shows": "Ратуша з вежею, площа, виноградна лоза", "gap": null, "owner_candidate": null },
+      "city_id": "zielona-gora",
+      "name_pl": "Zielona Góra",
+      "name_ru": "Зелёна-Гура",
+      "cefr": "A2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/zielona-gora.webp",
+        "status": "interim",
+        "declared_size": "1472×660",
+        "shows": "Ратуша з вежею, площа, виноградна лоза",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "виноградники на превью владельца совпадают; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Свята і традиції»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-zielona-gora.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Рынок с ратушей и башней, виноградные склоны, статуя Бахуса; тёплый вечер, гроздья винограда на переднем плане."
+      }
     },
     {
-      "city_id": "gorzow", "name_pl": "Gorzów Wielkopolski", "name_ru": "Гожув-Велькопольский", "cefr": "A2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": null, "status": "missing", "declared_size": null, "shows": "—", "gap": "Варта і центр міста: на дошках владельца цього міста немає", "owner_candidate": "docs/design/a10/cities/city-gorzow.webp" },
-      "landmarks": "кандидат: готический кирпичный собор на Варте, железнодорожный виадук, лодки — закрывает пропуск; подпись владельца «Gorzów Wielkopolski» на листе совпадает",
+      "city_id": "gorzow",
+      "name_pl": "Gorzów Wielkopolski",
+      "name_ru": "Гожув-Велькопольский",
+      "cefr": "A2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/gorzow.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Кирпичный готический собор с башней на берегу Варты, набережная, железнодорожный виадук, лодки",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-gorzow.webp (1774×887)",
+        "kb": {
+          "main": 215,
+          "640": 58
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Все ориентиры промпта на кадре",
       "missing_content": "уроков 0; финальная остановка B2 — тема «Погода і природа» не начата; нужен файл в apps/web/src/assets/cities/ после подтверждения",
       "progress": "не проверено"
     },
     {
-      "city_id": "szczecin", "name_pl": "Szczecin", "name_ru": "Щецин", "cefr": "A2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/szczecin.webp", "status": "interim", "declared_size": "776×504", "shows": "Wały Chrobrego над Одрою, кораблі", "gap": null, "owner_candidate": null },
+      "city_id": "szczecin",
+      "name_pl": "Szczecin",
+      "name_ru": "Щецин",
+      "cefr": "A2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/szczecin.webp",
+        "status": "interim",
+        "declared_size": "776×504",
+        "shows": "Wały Chrobrego над Одрою, кораблі",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "набережная и суда на превью владельца совпадают; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Робота і професії»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-szczecin.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Wały Chrobrego над Одрой с террасами, Замок Померанских князей, белое здание Филармонии, корабли на реке."
+      }
     },
     {
-      "city_id": "gdansk", "name_pl": "Gdańsk", "name_ru": "Гданьск", "cefr": "A2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/gdansk.webp", "status": "interim", "declared_size": "896×576", "shows": "Żuraw над Мотлавою, цегляна брама", "gap": null, "owner_candidate": "docs/design/a10/cities/city-gdansk.webp" },
-      "landmarks": "кандидат: Żuraw, фасады Długie Pobrzeże, парусники — совпадает с описанием; Нептуна в кадре нет (он в описании города)",
+      "city_id": "gdansk",
+      "name_pl": "Gdańsk",
+      "name_ru": "Гданьск",
+      "cefr": "A2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/gdansk.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Żuraw (средневековый портовый кран), фасады Długie Pobrzeże, парусник на Мотлаве",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-gdansk.webp (1774×887)",
+        "kb": {
+          "main": 216,
+          "640": 58
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Żuraw и фасады узнаваемы",
       "missing_content": "уроков 0; тема «Подорожі і відпочинок». Кандидат — апгрейд интерима, не новый город",
       "progress": "не проверено"
     },
     {
-      "city_id": "gdynia", "name_pl": "Gdynia", "name_ru": "Гдыня", "cefr": "A2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": null, "status": "missing", "declared_size": null, "shows": "—", "gap": "Порт: на дошках владельца цього міста немає", "owner_candidate": "docs/design/a10/cities/city-gdynia.webp" },
-      "landmarks": "кандидат: «Дар Поморья», небоскрёбы, эсминец в порту — закрывает пропуск",
+      "city_id": "gdynia",
+      "name_pl": "Gdynia",
+      "name_ru": "Гдыня",
+      "cefr": "A2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/gdynia.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Белый парусник «Дар Поморья», эсминец, комплекс Sea Towers, портовые краны",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-gdynia.webp (1774×887)",
+        "kb": {
+          "main": 209,
+          "640": 58
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Все три ориентира промпта на кадре",
       "missing_content": "уроков 0; тема «Спорт і хобі». Нужен файл в apps/web/src/assets/cities/ после подтверждения",
       "progress": "не проверено"
     },
     {
-      "city_id": "bydgoszcz", "name_pl": "Bydgoszcz", "name_ru": "Быдгощ", "cefr": "B1",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/bydgoszcz.webp", "status": "interim", "declared_size": "1620×668", "shows": "Фахверкові зерносховища над Брдою, теплохід", "gap": null, "owner_candidate": null },
+      "city_id": "bydgoszcz",
+      "name_pl": "Bydgoszcz",
+      "name_ru": "Быдгощ",
+      "cefr": "B1",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/bydgoszcz.webp",
+        "status": "interim",
+        "declared_size": "1620×668",
+        "shows": "Фахверкові зерносховища над Брдою, теплохід",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "спихлери і набережна на превью владельца совпадают; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Минулий час і розповіді»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-bydgoszcz.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Остров Млынска: фахверковые зернохранилища над Брдой, мост-ферма, лодки, «Przechodzący przez rzekę»; без людей крупным планом."
+      }
     },
     {
-      "city_id": "torun", "name_pl": "Toruń", "name_ru": "Торунь", "cefr": "B1",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/torun.webp", "status": "interim", "declared_size": "1448×668", "shows": "Готичне Старе місто над Віслою, ратуша", "gap": null, "owner_candidate": null },
+      "city_id": "torun",
+      "name_pl": "Toruń",
+      "name_ru": "Торунь",
+      "cefr": "B1",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/torun.webp",
+        "status": "interim",
+        "declared_size": "1448×668",
+        "shows": "Готичне Старе місто над Віслою, ратуша",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "памятник Копернику на превью владельца есть; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Плани і майбутнє»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-torun.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Готическая Староместская ратуша, памятник Копернику, Кривая башня, городская стена на берегу Вислы; пряничный мотив на переднем плане."
+      }
     },
     {
-      "city_id": "olsztyn", "name_pl": "Olsztyn", "name_ru": "Ольштын", "cefr": "B1",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/olsztyn.webp", "status": "interim", "declared_size": "1480×660", "shows": "Замок вармійської капітули, озеро з вітрилами", "gap": null, "owner_candidate": null },
+      "city_id": "olsztyn",
+      "name_pl": "Olsztyn",
+      "name_ru": "Ольштын",
+      "cefr": "B1",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/olsztyn.webp",
+        "status": "interim",
+        "declared_size": "1480×660",
+        "shows": "Замок вармійської капітули, озеро з вітрилами",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "замок над озером на превью владельца совпадает; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Розуміння мовлення»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-olsztyn.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Замок вармийской капитулы, Высокая брама, река Лына, озеро Укель с парусами."
+      }
     },
     {
-      "city_id": "bialystok", "name_pl": "Białystok", "name_ru": "Белосток", "cefr": "B1",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/bialystok.webp", "status": "interim", "declared_size": "1440×668", "shows": "Архикафедральний собор і біла вежа", "gap": "палацу Браницьких на кадрі немає", "owner_candidate": "docs/design/a10/cities/city-bialystok.webp" },
-      "landmarks": "кандидат: барочный дворец с французским садом и фонтанами; подпись владельца «Białystok» на листе. Идентичность (Pałac Branickich) не проверена: здание похоже на Wilanów — подтвердить владельцем",
+      "city_id": "bialystok",
+      "name_pl": "Białystok",
+      "name_ru": "Белосток",
+      "cefr": "B1",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/bialystok.webp",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Барочный дворец с центральной башней, французский сад, фонтаны, подстриженные кусты",
+        "gap": null,
+        "master": "docs/design/a10/cities/city-bialystok.webp (1774×887)",
+        "kb": {
+          "main": 202,
+          "640": 58
+        },
+        "integrated": "2026-10-27"
+      },
+      "landmarks": "Совпадает с описанием дворца Браницких в промпте docs/CITY_ART_INVENTORY.md; фасад жёлто-кремовый, а не белый — отметка для владельца",
       "missing_content": "уроков 0; тема «Повсякденні ситуації»",
       "progress": "не проверено"
     },
     {
-      "city_id": "lublin", "name_pl": "Lublin", "name_ru": "Люблин", "cefr": "B1",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/lublin.webp", "status": "interim", "declared_size": "1000×448", "shows": "Люблінський замок (неоготичний фасад з брамою)", "gap": null, "owner_candidate": null },
+      "city_id": "lublin",
+      "name_pl": "Lublin",
+      "name_ru": "Люблин",
+      "cefr": "B1",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/lublin.webp",
+        "status": "interim",
+        "declared_size": "1000×448",
+        "shows": "Люблінський замок (неоготичний фасад з брамою)",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "замок на превью владельца есть; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Документи та установи»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-lublin.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Краковские ворота, неоготический Люблинский замок, площадь Старого Города с Трибуналом; вечерний свет."
+      }
     },
     {
-      "city_id": "rzeszow", "name_pl": "Rzeszów", "name_ru": "Жешув", "cefr": "B2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/rzeszow.webp", "status": "interim", "declared_size": "1460×668", "shows": "Rynek з ратушею і парасольками кав'ярень", "gap": null, "owner_candidate": null },
+      "city_id": "rzeszow",
+      "name_pl": "Rzeszów",
+      "name_ru": "Жешув",
+      "cefr": "B2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/rzeszow.webp",
+        "status": "interim",
+        "declared_size": "1460×668",
+        "shows": "Rynek з ратушею і парасольками кав'ярень",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "Rynek с кафе на превью владельца совпадает; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Державні послуги»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-rzeszow.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Rynek с ратушей и фонтаном, зонтики кафе, дворец Любомирских на заднем плане."
+      }
     },
     {
-      "city_id": "kielce", "name_pl": "Kielce", "name_ru": "Кельце", "cefr": "B2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/kielce.webp", "status": "interim", "declared_size": "1560×660", "shows": "Палац краківських єпископів", "gap": null, "owner_candidate": null },
+      "city_id": "kielce",
+      "name_pl": "Kielce",
+      "name_ru": "Кельце",
+      "cefr": "B2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/kielce.webp",
+        "status": "interim",
+        "declared_size": "1560×660",
+        "shows": "Палац краківських єпископів",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "палац с садом на превью владельца совпадает; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Закріплення знань»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-kielce.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Дворец краковских епископов с садом, кафедральный собор, амфитеатр Kadzielnia в известняковом карьере."
+      }
     },
     {
-      "city_id": "zakopane", "name_pl": "Zakopane", "name_ru": "Закопане", "cefr": "B2",
-      "routes": 0, "lessons": 0, "exam": false, "tasks_per_lesson": null,
-      "image": { "repo": "apps/web/src/assets/cities/zakopane.webp", "status": "interim", "declared_size": "1640×688", "shows": "Татри, дерев'яні будинки в снігу", "gap": null, "owner_candidate": null },
+      "city_id": "zakopane",
+      "name_pl": "Zakopane",
+      "name_ru": "Закопане",
+      "cefr": "B2",
+      "routes": 0,
+      "lessons": 0,
+      "exam": false,
+      "tasks_per_lesson": null,
+      "image": {
+        "repo": "apps/web/src/assets/cities/zakopane.webp",
+        "status": "interim",
+        "declared_size": "1640×688",
+        "shows": "Татри, дерев'яні будинки в снігу",
+        "gap": null,
+        "owner_candidate": null
+      },
       "landmarks": "Татры и деревянные дома на превью владельца совпадают; полноразмерного кандидата нет",
       "missing_content": "уроков 0; тема «Фінал: культура і подорожі»",
-      "progress": "не проверено"
+      "progress": "не проверено",
+      "needed_art": {
+        "file": "docs/design/a10/cities/city-zakopane.webp",
+        "format": "2:1, от 1774×887 (лучше 2880×1440), без текста, логотипов, Бобека и людей крупным планом",
+        "scene": "Гора Гевонт, деревянные виллы в стиле закопане, улица Krupówki, фуникулёр на Губалувку; снег и золотой час."
+      }
     }
   ],
   "summary": {
     "cities": 20,
-    "final": 3,
-    "interim": 15,
-    "missing_in_repo": 2,
+    "final": 10,
+    "interim": 10,
+    "missing_in_repo": 0,
     "owner_candidates_full_size": 8,
-    "candidates_closing_gaps": ["lodz (Piotrkowska)", "wroclaw (Rynek)", "poznan (козлики)", "bialystok (палац, идентичность проверить)", "gorzow (missing)", "gdynia (missing)"],
-    "candidates_upgrades": ["gdansk", "opole"],
-    "cities_with_lessons": ["warszawa 25", "lodz 16", "krakow 40", "katowice 4 ⚠", "opole 4 ⚠", "wroclaw 4 ⚠"],
+    "cities_with_lessons": [
+      "warszawa 25",
+      "lodz 16",
+      "krakow 40",
+      "katowice 4 ⚠",
+      "opole 4 ⚠",
+      "wroclaw 4 ⚠"
+    ],
     "cities_without_lessons": 14,
-    "exam_cities": ["warszawa", "lodz", "krakow", "katowice", "opole", "wroclaw"]
+    "exam_cities": [
+      "warszawa",
+      "lodz",
+      "krakow",
+      "katowice",
+      "opole",
+      "wroclaw"
+    ],
+    "final_cities": [
+      "warszawa",
+      "lodz",
+      "krakow",
+      "opole",
+      "wroclaw",
+      "poznan",
+      "gorzow",
+      "gdansk",
+      "gdynia",
+      "bialystok"
+    ],
+    "interim_cities": [
+      "katowice",
+      "zielona-gora",
+      "szczecin",
+      "bydgoszcz",
+      "torun",
+      "olsztyn",
+      "lublin",
+      "rzeszow",
+      "kielce",
+      "zakopane"
+    ],
+    "need_new_art": [
+      "katowice",
+      "zielona-gora",
+      "szczecin",
+      "bydgoszcz",
+      "torun",
+      "olsztyn",
+      "lublin",
+      "rzeszow",
+      "kielce",
+      "zakopane"
+    ],
+    "integrated_from_owner_candidates": [
+      "bialystok",
+      "gdansk",
+      "gdynia",
+      "gorzow",
+      "lodz",
+      "opole",
+      "poznan",
+      "wroclaw"
+    ]
+  },
+  "updated": "2026-10-27 (Sonnet, этап 2)",
+  "pipeline": {
+    "masters": "docs/design/a10/cities/city-<slug>.webp — полноразмерные панорамы владельца 1774×887 (2:1). Хранятся отдельно, приложение их не грузит. Меньше рекомендованных 2880×1440: не растягиваются.",
+    "build": "node scripts/build-city-art.mjs → apps/web/src/assets/cities/<slug>.webp (1440×720, ≤ 220 КБ) и <slug>@640.webp (640×320, ≤ 60 КБ). Lanczos, без blur, WebP q72–78 по бюджету.",
+    "registry": "packages/shared/src/cityArt.ts (CITY_ART); тест apps/server/test/city-art.test.ts звіряє размер, вес, статус и docs/CITY_ART_INVENTORY.md",
+    "style": "Premium 2.5D cartoon travel-game environment, cinematic golden-hour lighting, colorful Polish architecture, high detail, vibrant colors, crisp edges"
   }
 }

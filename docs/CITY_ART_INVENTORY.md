@@ -1,6 +1,6 @@
 # Фоны городов — инвентарь
 
-Состояние на 2026-10-26 (V9, этап 5). Источник правды в коде — `CITY_ART` в `packages/shared/src/cityArt.ts`; тест `apps/server/test/city-art.test.ts` сверяет его с 20 городами seed, с файлами и с этим документом.
+Состояние на 2026-10-27 (V9, этап 5; Sonnet, этап 2: панорамы владельца). Источник правды в коде — `CITY_ART` в `packages/shared/src/cityArt.ts`; тест `apps/server/test/city-art.test.ts` сверяет его с 20 городами seed, с файлами и с этим документом.
 
 Статусы:
 
@@ -8,7 +8,7 @@
 - **interim** — временный кадр с доски владельца: фрагмент панели без Бобека и подписи, увеличенный Real-ESRGAN ×4. Узнаваем, но детализация ниже мастер-файла. Заменяется мастером без правок кода (см. «Как заменить»).
 - **missing** — файла нет. Клиент рисует общую векторную сцену, а в шторке города пишет «Оформление: скоро». Отсутствие файла не выдаётся за готовую графику.
 
-Итог: **3 final, 15 interim, 2 missing** (Gorzów, Gdynia — их нет на досках владельца).
+Итог: **10 final, 10 interim, 0 missing.** Восемь городов (Łódź, Opole, Wrocław, Poznań, Gdańsk, Gdynia, Gorzów, Białystok) получили `final` из полноразмерных панорам владельца 1774×887 (`docs/design/a10/cities/`, мастера хранятся отдельно от приложения). Остальные десять — прежние `interim`: полноразмерных кадров для них нет.
 
 ## Таблица
 
@@ -17,21 +17,21 @@
 | slug | Исходник | Варианты | Размер | Вес, КБ | Источник / права | Статус | Что изображено; чего нет |
 |---|---|---|---|---|---|---|---|
 | `warszawa` | архив владельца | webp, @640 | 1440×720 | 140 / 38 | владелец проекта | final | Старый город, Замковая площадь, колонна Сигизмунда |
-| `lodz` | доска 1, панель «Łódź» | webp, @640 | 984×512 | 55 / 33 | владелец; апскейл BSD-3 | interim | Manufaktura: фасад с вывеской, памятник; нет Piotrkowska |
+| `lodz` | панорама владельца `city-lodz.webp` 1774×887 | webp, @640 | 1440×720 | 209 / 58 | владелец проекта | final | Piotrkowska: фасады модерна, кирпичная фабричная труба |
 | `krakow` | архив владельца | webp, @640 | 1440×720 | 194 / 52 | владелец проекта | final | Rynek, Sukiennice, Mariacki |
 | `katowice` | доска 1, «Katowice» | webp, @640 | 1176×488 | 49 / 24 | владелец; апскейл BSD-3 | interim | Spodek на фоне высоток |
-| `opole` | доска 1, «Opole» | webp, @640 | 1024×520 | 56 / 33 | владелец; апскейл BSD-3 | interim | Ратуша, каменицы, мост над Одрой |
-| `wroclaw` | архив владельца | webp, @640 | 1440×720 | 168 / 49 | владелец проекта | final | Остров Тумский: собор, Тумский мост, гномик; нет Rynek |
-| `poznan` | доска 1, «Poznań» | webp, @640 | 1200×456 | 48 / 23 | владелец; апскейл BSD-3 | interim | Ратуша и каменицы Старого Рынка; козлики не различимы |
+| `opole` | панорама `city-opole.webp` 1774×887 | webp, @640 | 1440×720 | 213 / 58 | владелец проекта | final | Башня Пястов, набережная, амфитеатр |
+| `wroclaw` | панорама `city-wroclaw.webp` 1774×887 | webp, @640 | 1440×720 | 216 / 57 | владелец проекта | final | Rynek: ратуша с часами, каменицы, бронзовые гномы |
+| `poznan` | панорама `city-poznan.webp` 1774×887 | webp, @640 | 1440×720 | 214 / 58 | владелец проекта | final | Ратуша с козлами на башне, цветные каменицы Старого Рынка |
 | `zielona-gora` | доска 2, «Zielona Góra» | webp, @640 | 1472×660 | 114 / 46 | владелец; апскейл BSD-3 | interim | Ратуша с башней, площадь, виноградная лоза |
-| `gorzow` | — | — | — | — | — | missing | Нужны Варта и центр города (промпт ниже) |
+| `gorzow` | панорама `city-gorzow.webp` 1774×887 | webp, @640 | 1440×720 | 215 / 58 | владелец проекта | final | Кафедра на Варте, набережная, железнодорожный виадук |
 | `szczecin` | доска 1, «Szczecin» | webp, @640 | 776×504 | 45 / 35 | владелец; апскейл BSD-3 | interim | Wały Chrobrego над Одрой, корабли; самый узкий кадр |
-| `gdansk` | доска 1, «Gdańsk» | webp, @640 | 896×576 | 46 / 32 | владелец; апскейл BSD-3 | interim | Żuraw над Мотлавой |
-| `gdynia` | — | — | — | — | — | missing | Нужен порт (промпт ниже) |
+| `gdansk` | панорама `city-gdansk.webp` 1774×887 | webp, @640 | 1440×720 | 216 / 58 | владелец проекта | final | Żuraw, фасады Długie Pobrzeże, парусник на Мотлаве |
+| `gdynia` | панорама `city-gdynia.webp` 1774×887 | webp, @640 | 1440×720 | 209 / 58 | владелец проекта | final | «Дар Поморья», Sea Towers, эсминец у причала |
 | `bydgoszcz` | доска 2, «Bydgoszcz» | webp, @640 | 1620×668 | 140 / 49 | владелец; апскейл BSD-3 | interim | Фахверковые зернохранилища над Брдой, теплоход |
 | `torun` | доска 2, «Toruń» | webp, @640 | 1448×668 | 92 / 37 | владелец; апскейл BSD-3 | interim | Готический Старый город над Вислой, ратуша |
 | `olsztyn` | доска 2, «Olsztyn» | webp, @640 | 1480×660 | 94 / 36 | владелец; апскейл BSD-3 | interim | Замок вармийского капитула, озеро с парусами |
-| `bialystok` | доска 2, «Białystok» | webp, @640 | 1440×668 | 96 / 40 | владелец; апскейл BSD-3 | interim | Архикафедральный собор и белая башня; **нет дворца Браницких** |
+| `bialystok` | панорама `city-bialystok.webp` 1774×887 | webp, @640 | 1440×720 | 202 / 58 | владелец проекта | final | Дворец Браницких: барочное здание с башней, французский сад, фонтаны |
 | `lublin` | доска 1, «Lublin» | webp, @640 | 1000×448 | 42 / 25 | владелец; апскейл BSD-3 | interim | Люблинский замок (неоготический фасад с воротами) |
 | `rzeszow` | доска 2, «Rzeszów» | webp, @640 | 1460×668 | 114 / 46 | владелец; апскейл BSD-3 | interim | Rynek с ратушей и зонтиками кафе |
 | `kielce` | доска 2, «Kielce» | webp, @640 | 1560×660 | 96 / 35 | владелец; апскейл BSD-3 | interim | Дворец краковских епископов |
@@ -43,7 +43,9 @@
 - **Доски** — `docs/design/a8/city-backgrounds-1.webp` и `-2.webp` (сжатые копии). Оригиналы PNG 1448×1086 пришли в сообщении владельца. Это иллюстрации владельца проекта.
 - **Апскейлер** — Real-ESRGAN, модель в ONNX `TheGuy444/Real-ESRGAN-ONNX`, лицензия BSD-3-Clause. Платные сервисы генерации не использовались.
 
-Стиль: три `final` — более «живописные» в золотом часе; кадры досок ярче и мультяшнее. Единый стиль будет после замены `interim` мастер-файлами в стиле досок или после перерисовки трёх `final`.
+Стиль: `final` Warszawa и Kraków — более «живописные»; восемь новых панорам и `interim`-кадры досок — яркая мультяшная живопись в золотом часе. Единый стиль будет после замены десяти `interim` панорамами в стиле `a10/cities` и, при желании владельца, перерисовки двух старых `final`.
+
+Карта и шторка города: «оформление» помечается готовым только у `final`; у `interim` стоит «временное» (`map_st_interim`).
 
 ## Где используются
 
@@ -95,6 +97,8 @@
 
 ## Как заменить на мастер-файл
 
+Панорамы владельца 1774×887 — пока без апскейла: `node scripts/build-city-art.mjs` только уменьшает их до 1440×720 (Lanczos, без размытия) и подбирает качество WebP под бюджет. Мастера лежат в `docs/design/a10/cities/`, приложение их не загружает. Они меньше рекомендуемых 2880×1440, поэтому на экранах 3× DPR основной файл показывается без запаса резкости; для витрины стоит запросить мастера крупнее.
+
 1. Мастер: не меньше 2880×1440 (2:1), PNG или WebP без потерь.
 2. Положить в `apps/web/src/assets/cities/<slug>.webp`, уменьшив до 1440×720, WebP q74–76. Рядом — `<slug>@640.webp`.
 3. В `CITY_ART` поставить `status: 'final'`, `width`, `height`, обновить `shows`; убрать `gap`, если ориентир теперь есть.
@@ -111,20 +115,8 @@
 - Стиль досок `city-backgrounds`: яркая мультяшная живопись, тёплый закатный свет, мягкие контуры, насыщенное небо с облаками.
 - Реальное место узнаётся по силуэту. Не рисовать «условный европейский город».
 
-### gorzow
+### Закрытые пробелы
 
-Gorzów Wielkopolski: Варта и центр города.
+Gorzów, Gdynia и Białystok (раздел требований раньше содержал промпты на них) закрыты панорамами владельца 2026-10-27, сделанными по этим промптам: каждый кадр показывает указанные в промпте ориентиры (кафедра на Варте и виадук, «Дар Поморья» и Sea Towers, дворец Браницких с французским садом). Промпты в репозитории больше не нужны. Для десяти оставшихся `interim` панорам в стиле `a10/cities` нет; нужны файлы `city-<slug>.webp` 1774×887 или больше по тем же правилам:
 
-> Wide 2:1 cartoon painterly illustration, warm golden-hour light, vivid saturated colours, soft outlines, in the style of a cheerful travel-game city card. Gorzów Wielkopolski, Poland: the Warta river embankment (Bulwar Nadwarciański) with the riverside promenade in the foreground, the red-brick Gothic Cathedral of the Assumption with its massive square tower in the centre, old townhouses of the city centre behind it, the old railway bridge viaduct on the side, a few small boats on the river, trees and street lamps. No text, no logos, no people in close-up, no characters. Calm empty promenade in the lower-left third.
-
-### gdynia
-
-Gdynia: порт.
-
-> Wide 2:1 cartoon painterly illustration, warm golden-hour light, vivid saturated colours, soft outlines, in the style of a cheerful travel-game city card. Gdynia, Poland: the sea harbour seen from the Southern Pier (Molo Południowe) — the white three-masted sailing ship "Dar Pomorza" moored at the quay in the centre, the grey museum destroyer next to it, the modernist Sea Towers skyscraper and port cranes in the background, the Baltic Sea and seagulls. No text, no logos, no flags with readable text, no characters. Calm empty quay in the lower-left third.
-
-### bialystok
-
-Нужен кадр с дворцом Браницких. Сейчас `interim` показывает собор.
-
-> Wide 2:1 cartoon painterly illustration, warm golden-hour light, vivid saturated colours, soft outlines, in the style of a cheerful travel-game city card. Białystok, Poland: the white baroque Branicki Palace ("Polish Versailles") seen from its French garden — symmetrical white facade with a central tower and griffin gate, trimmed hedges, fountains and flower beds in the foreground. No text, no logos, no characters. Calm garden path in the lower-left third.
+`katowice`, `zielona-gora`, `szczecin`, `bydgoszcz`, `torun`, `olsztyn`, `lublin`, `rzeszow`, `kielce`, `zakopane` — подробные описания ориентиров в `assets/cities/CITY_ASSET_MANIFEST.json`, поле `needed_art`.
