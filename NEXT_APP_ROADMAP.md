@@ -11,7 +11,7 @@
 | Серверная озвучка не подключена | ключей провайдеров нет; клиент говорит польским голосом устройства (на части Android — плохим или никаким) | `docs/POLISH_TTS_BENCHMARK.md` |
 | Голос по умолчанию в коде устарел | `pl-PL-Wavenet-A` нет в официальном списке Google (есть Chirp 3: HD ×30, Wavenet-F/G, Standard-F/G) | `apps/server/src/services/tts.ts` `DEFAULT_VOICES` |
 | Распознавание речи выключено | Azure и (с 2026-10-27) Google STT в коде, но ни один не включён → микрофонные задания работают в режиме «без проверки» | `apps/server/src/services/stt.ts`, `docs/AUDIO_SETUP_RU.md` |
-| Картинки бота с русскими надписями | для uk / pl / en и для `/profile`, `/stop`, серии, возвращения нужны версии без текста | `apps/web/public/bot/ru/`, раздел 5 |
+| Картинки бота с русскими надписями | для uk / pl / en и для `/profile`, `/stop`, серии, возвращения нужны версии без текста | `apps/web/public/bot/scenes/ru/`, `assets/telegram/asset-manifest.json` → `blocked_scenes` |
 
 ## 1. Визуальный редизайн (по порядку)
 

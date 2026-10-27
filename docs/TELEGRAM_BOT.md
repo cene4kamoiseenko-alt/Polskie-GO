@@ -68,7 +68,9 @@ https://<origin>/bot/commands/start.jpg   lesson.jpg   map.jpg   words.jpg   que
 
 Уникальные кадры: `help`, `words`, `map` (и по одному на каждую группу выше). Позже любой файл можно заменить, код не меняется.
 
-**Русский интерфейс — тематические кадры владельца** (`apps/web/public/bot/ru/`, комплект «16 images», 640×360 → 1280×720 JPEG): `welcome` (/start), `lessons`, `map`, `words`, `quests`, `settings`, `help`, `reminder` (только тем, у кого напоминание на 19:00 — на кадре часы «19:00»), `shopping` / `food` / `transport` (вопросы этих тем). На них русские заголовки, поэтому uk / pl / en получают кадры без надписей на языке интерфейса (`commands/`). **Не подключены** кадры с живыми данными, которые противоречили бы реальности: профиль (уровень 7, 1040 XP), серия «7 дней», возвращение с чужим именем, вопрос с готовым ответом и «правильный ответ +20 XP». Для uk / pl / en и для красивых `/profile`, `/stop`, напоминаний о серии и возвращении нужны версии тех же иллюстраций **без текста** (список в `NEXT_APP_ROADMAP.md`).
+**Русский интерфейс — полнокадровые доски владельца** (`apps/web/public/bot/scenes/ru/`, мастера — `docs/design/a10/telegram/*.webp` 1672×941): `start` (/start), `return` (/start для вернувшегося: «Снова тут? Приятно, что ты вернулся!»), `lesson`, `words`, `settings`, а для вопросов `/quiz` — `shopping` / `food` / `transport`. У каждой доски два файла: `<имя>.jpg` 1280×720 (его шлёт `sendPhoto`) и `<имя>@640.jpg` 640×360. Файлы собирает `node scripts/build-bot-images.mjs` только уменьшением Lanczos: без размытия, без заливки полос, без растягивания. Проверка: `npm run assets` (размер, JPEG, дубли по пикселям, резкость краёв). На досках русские заголовки, поэтому uk / pl / en получают кадры без надписей на языке интерфейса (`commands/`).
+
+Старые `ru/*.jpg` (640×360, растянутые, с размытыми боковыми полосами и белой каймой) **удалены**. Для `/map`, `/quests`, `/profile`, `/help`, `/stop` и напоминаний доски в комплекте нет: там нейтральные кадры `commands/*` (резкие), а не подмена плохой картинкой. **Не подключены** доски с живыми данными, которые противоречили бы реальности: «+20 XP» (в квизе 10), «+15 XP» и «WARSZAWA», серия «7 дней», фиксированные штампы паспорта, образец вопроса «Jak się nazywa ten sklep?». Точные имена недостающих файлов и описания сцен — `assets/telegram/asset-manifest.json`, раздел `blocked_scenes`.
 
 ## 3. Mini App: параметр `bot_screen`
 
@@ -138,7 +140,7 @@ Cron `*/15 * * * *`. Три сценария, выбираются по реал
      curl -sS -o /dev/null -w "$f.jpg %{http_code} %{content_type} %{size_download}\n" "https://<origin>/bot/commands/$f.jpg"
    done
    ```
-   Ожидается `200 image/jpeg` у всех двенадцати. `200 text/html` значит, что файла нет в сборке. То же для `ru/welcome.jpg lessons map words quests settings help reminder shopping food transport`.
+   Ожидается `200 image/jpeg` у всех двенадцати. `200 text/html` значит, что файла нет в сборке. То же для `scenes/ru/{start,return,lesson,words,settings,shopping,food,transport}.jpg` и их `@640.jpg`.
 8. Затем написать боту `/start`, `/lesson` … `/stop`, `/quiz` с телефона (iOS и Android), нажать каждую кнопку и ответить на вопрос.
 
 В BotFather руками ничего менять не нужно: команды и webhook ставит сервер; Description Picture остаётся прежней (через API не меняется).

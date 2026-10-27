@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { BOT_SCREENS, UI_LANGS, type UiLang } from '@polski-go/shared';
-import { COMMANDS, COMMAND_IMAGES, COMMAND_LANDING, COMMAND_MENU, MENU, REMINDER_IMAGES, RU_COMMAND_IMAGES, RU_REMINDER_LESSON, commandImage, reminderImage } from '../src/bot/catalog';
+import { COMMANDS, COMMAND_IMAGES, COMMAND_LANDING, COMMAND_MENU, MENU, REMINDER_IMAGES, RU_COMMAND_IMAGES, RU_START_BACK_IMAGE, commandImage, reminderImage, startBackImage } from '../src/bot/catalog';
 import { COPY, daysWord, headlineOf, type Vars } from '../src/bot/copy';
 import { escapeHtml, safeName } from '../src/bot/html';
 import { pickLang } from '../src/bot/data';
@@ -147,24 +147,28 @@ describe('команды и картинки', () => {
     }
   });
 
-  it('русские тематические кадры: свой файл у каждой команды, без повторов, JPEG 1280×720; профиль и стоп — без надписей', () => {
+  it('русские доски: свой файл у каждой сцены, без повторов, JPEG 1280×720 и @640 вариант 640×360; профиль, серия и ответ квиза не подключены', () => {
     const ru = Object.values(RU_COMMAND_IMAGES);
     expect(new Set(ru).size).toBe(ru.length);
-    const files = [...ru, RU_REMINDER_LESSON.file, 'ru/shopping.jpg', 'ru/food.jpg', 'ru/transport.jpg'];
+    const files = [...ru, RU_START_BACK_IMAGE, 'scenes/ru/shopping.jpg', 'scenes/ru/food.jpg', 'scenes/ru/transport.jpg'];
     const hashes = new Set<string>();
     for (const f of files) {
-      const path = new URL(f, BOT_PUBLIC);
-      expect(existsSync(path), f).toBe(true);
-      const bytes = readFileSync(path);
-      expect([bytes[0], bytes[1]], `${f} is JPEG`).toEqual([0xff, 0xd8]);
-      expect(jpegSize(bytes)).toEqual({ width: 1280, height: 720 });
-      hashes.add(createHash('md5').update(bytes).digest('hex'));
+      for (const [name, size] of [[f, { width: 1280, height: 720 }], [f.replace(/\.jpg$/, '@640.jpg'), { width: 640, height: 360 }]] as const) {
+        const path = new URL(name, BOT_PUBLIC);
+        expect(existsSync(path), name).toBe(true);
+        const bytes = readFileSync(path);
+        expect([bytes[0], bytes[1]], `${name} is JPEG`).toEqual([0xff, 0xd8]);
+        expect(jpegSize(bytes), name).toEqual(size);
+        if (name === f) hashes.add(createHash('md5').update(bytes).digest('hex'));
+      }
     }
     expect(hashes.size, 'no two themed images are the same file').toBe(files.length);
-    // Кадры с выдуманными цифрами профиля, серией «7 дней», чужим именем и готовым ответом квиза не подключены.
-    expect(RU_COMMAND_IMAGES.profile).toBeUndefined();
-    expect(RU_COMMAND_IMAGES.stop).toBeUndefined();
-    for (const f of files) expect(f).not.toMatch(/profile|streak|return|quick|correct/);
+    // Доски с живыми данными (+20 XP, +15 XP, «7 дней», штампы городов, образец вопроса) не подключены: нужны версии без них.
+    for (const command of ['map', 'quests', 'profile', 'help', 'stop'] as const) expect(RU_COMMAND_IMAGES[command], command).toBeUndefined();
+    for (const f of files) expect(f).not.toMatch(/profile|streak|quick|correct|passport|complete/);
+    // Старые растянутые кадры `ru/*.jpg` с размытыми полосами удалены и не используются.
+    for (const f of [...files, ...Object.values(COMMAND_IMAGES), ...Object.values(REMINDER_IMAGES)]) expect(f).not.toMatch(/^ru\//);
+    expect(existsSync(new URL('ru/', BOT_PUBLIC))).toBe(false);
   });
 
   it('русские надписи — только в русском интерфейсе; uk / pl / en получают кадры без надписей на языке интерфейса', () => {
@@ -172,11 +176,13 @@ describe('команды и картинки', () => {
       for (const lang of ['uk', 'pl', 'en'] as const) expect(commandImage(command, lang)).toBe(`commands/${COMMAND_IMAGES[command]}`);
       expect(commandImage(command, 'ru')).toBe(RU_COMMAND_IMAGES[command] ?? `commands/${COMMAND_IMAGES[command]}`);
     }
-    // На кадре напоминания нарисованы часы «19:00»: только тем, у кого напоминание на 19 часов.
-    expect(reminderImage('lesson', 'ru', 19)).toBe('ru/reminder.jpg');
-    expect(reminderImage('lesson', 'ru', 9)).toBe('commands/reminder-lesson.jpg');
-    expect(reminderImage('lesson', 'uk', 19)).toBe('commands/reminder-lesson.jpg');
-    expect(reminderImage('streak', 'ru', 19)).toBe('commands/reminder-streak.jpg');
+    // Доска «Снова тут?» — только для русского интерфейса и только для приветствия вернувшегося пользователя.
+    expect(startBackImage('ru')).toBe('scenes/ru/return.jpg');
+    for (const lang of ['uk', 'pl', 'en'] as const) expect(startBackImage(lang)).toBe(`commands/${COMMAND_IMAGES.start}`);
+    // Напоминания не показывают часы «19:00» и серию «7»: во всех языках одни и те же нейтральные кадры.
+    expect(reminderImage('lesson')).toBe('commands/reminder-lesson.jpg');
+    expect(reminderImage('streak')).toBe('commands/reminder-streak.jpg');
+    expect(reminderImage('return')).toBe('commands/reminder-return.jpg');
   });
 
   it('разбор команд: регистр, @бот, параметр', () => {

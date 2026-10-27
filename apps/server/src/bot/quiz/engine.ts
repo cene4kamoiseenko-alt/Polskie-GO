@@ -47,11 +47,11 @@ const BUTTON_TEXT_MAX = 30;
 export const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
 /**
- * Тематические кадры комплекта владельца — с русскими заголовками («ПОКУПКИ»…), поэтому только для русского интерфейса.
+ * Тематические доски владельца (docs/design/a10/telegram) — с русскими заголовками («ПОКУПКИ»…), поэтому только для русского интерфейса.
  * Для остальных тем и языков вопрос приходит текстом: случайная картинка «не по теме» хуже, чем никакой,
  * а комплект просит не прикладывать фото к каждому сообщению.
  */
-const RU_CATEGORY_IMAGES: Partial<Record<QuizCategory, string>> = { shopping: 'ru/shopping.jpg', food: 'ru/food.jpg', transport: 'ru/transport.jpg' };
+const RU_CATEGORY_IMAGES: Partial<Record<QuizCategory, string>> = { shopping: 'scenes/ru/shopping.jpg', food: 'scenes/ru/food.jpg', transport: 'scenes/ru/transport.jpg' };
 
 export function quizImage(question: QuizQuestion, lang: UiLang): string | null {
   return (lang === 'ru' && RU_CATEGORY_IMAGES[question.category]) || null;

@@ -78,7 +78,7 @@ type Target = { logId: string; telegramId: number; lang: string; kind: ReminderK
 /** Надіслати й записати результат у журнал. true — Telegram прийняв повідомлення. */
 async function deliver(t: Target, now: Date, stats: { calls: number }): Promise<boolean> {
   try {
-    const sent = await sendCard({ chatId: t.telegramId, stats }, reminderCard(t.lang, t.kind, t.streak), reminderImage(t.kind, pickLang(t.lang, null), t.hour));
+    const sent = await sendCard({ chatId: t.telegramId, stats }, reminderCard(t.lang, t.kind, t.streak), reminderImage(t.kind));
     await db
       .update(notificationLog)
       .set({ status: 'SENT', method: sent.method, telegramMessageId: sent.messageId, sentAt: now, leaseUntil: null, nextAttemptAt: null, error: sent.photoError ? `photo: ${sent.photoError}`.slice(0, 200) : null, updatedAt: now })

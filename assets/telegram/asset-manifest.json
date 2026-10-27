@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "checked": "2026-10-27",
   "sources": {
     "in_code": "apps/web/public/bot/commands/*.jpg (12 файлов), apps/web/public/bot/ru/*.jpg (11 файлов)",
@@ -13,198 +13,435 @@
     "text_rule": "commands/* — без надписей на языке интерфейса; ru/* — русские заголовки, только для русского интерфейса"
   },
   "duplicates": [
-    { "md5_prefix": "689c38308e", "files": ["commands/start.jpg", "commands/settings.jpg"], "problem": "одна картинка для «Старт» и для «Настройки»; экрана настроек на ней нет" },
-    { "md5_prefix": "a235c1df57", "files": ["commands/reminder-return.jpg", "commands/stop.jpg"], "problem": "напоминание «возвращение» и «/stop» — один кадр с надписью «BOBEK CZEKA!»" },
-    { "md5_prefix": "e2a9f13a1b", "files": ["commands/lesson.jpg", "commands/quests.jpg", "commands/reminder-lesson.jpg"], "problem": "три разных сценария — один кадр с надписью «CZAS NA POLSKI!»" },
-    { "md5_prefix": "f202e6fc22", "files": ["commands/profile.jpg", "commands/reminder-streak.jpg"], "problem": "профиль — кадр с надписью «TWOJA SERIA!» (это текст серии, не профиля)" }
+    {
+      "md5_prefix": "689c38308e",
+      "files": [
+        "commands/start.jpg",
+        "commands/settings.jpg"
+      ],
+      "problem": "одна картинка для «Старт» и для «Настройки»; экрана настроек на ней нет"
+    },
+    {
+      "md5_prefix": "a235c1df57",
+      "files": [
+        "commands/reminder-return.jpg",
+        "commands/stop.jpg"
+      ],
+      "problem": "напоминание «возвращение» и «/stop» — один кадр с надписью «BOBEK CZEKA!»"
+    },
+    {
+      "md5_prefix": "e2a9f13a1b",
+      "files": [
+        "commands/lesson.jpg",
+        "commands/quests.jpg",
+        "commands/reminder-lesson.jpg"
+      ],
+      "problem": "три разных сценария — один кадр с надписью «CZAS NA POLSKI!»"
+    },
+    {
+      "md5_prefix": "f202e6fc22",
+      "files": [
+        "commands/profile.jpg",
+        "commands/reminder-streak.jpg"
+      ],
+      "problem": "профиль — кадр с надписью «TWOJA SERIA!» (это текст серии, не профиля)"
+    }
   ],
   "scenes": [
     {
-      "scene": "welcome", "required": true,
-      "in_code": ["commands/start.jpg (все языки)", "ru/welcome.jpg (ru)"],
-      "repo_status": "есть; commands/start.jpg — дубль settings.jpg", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "логотип POLSKI GO", "ru": "POLSKI GO; «ВПЕРЁД К НОВЫМ ЗНАНИЯМ!»" },
+      "scene": "welcome",
+      "required": true,
+      "in_code": [
+        "commands/start.jpg (все языки)",
+        "ru/welcome.jpg (ru)"
+      ],
+      "repo_status": "есть; commands/start.jpg — дубль settings.jpg",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "логотип POLSKI GO",
+        "ru": "POLSKI GO; «ВПЕРЁД К НОВЫМ ЗНАНИЯМ!»"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-welcome.webp", "owner_text": "русский заголовок и подпись; ru-only",
+      "owner_board": "docs/design/a10/telegram/tg-welcome.webp",
+      "owner_text": "русский заголовок и подпись; ru-only",
       "needs_art": "нужна версия без текста для uk/pl/en",
       "notes": "доска владельца «POLSKI GO» подходит как тематический кадр для ru"
     },
     {
-      "scene": "lessons", "required": true,
-      "in_code": ["commands/lesson.jpg (все языки)", "ru/lessons.jpg (ru)"],
-      "repo_status": "есть; commands/lesson.jpg = quests.jpg = reminder-lesson.jpg", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "«CZAS NA POLSKI!» (польский)", "ru": "УРОКИ; «Учись с Бобеком шаг за шагом»" },
+      "scene": "lessons",
+      "required": true,
+      "in_code": [
+        "commands/lesson.jpg (все языки)",
+        "ru/lessons.jpg (ru)"
+      ],
+      "repo_status": "есть; commands/lesson.jpg = quests.jpg = reminder-lesson.jpg",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "«CZAS NA POLSKI!» (польский)",
+        "ru": "УРОКИ; «Учись с Бобеком шаг за шагом»"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-lessons.webp", "owner_text": "ru-only",
+      "owner_board": "docs/design/a10/telegram/tg-lessons.webp",
+      "owner_text": "ru-only",
       "needs_art": "версия без текста для остальных языков; commands/lesson.jpg с польской фразой — заменить",
       "notes": ""
     },
     {
-      "scene": "map", "required": true,
-      "in_code": ["commands/map.jpg (все языки)", "ru/map.jpg (ru)"],
-      "repo_status": "есть; commands/map.jpg — без карты (только логотип и Бобек)", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "логотип POLSKI GO", "ru": "КАРТА; «Путешествуй по Польше и открывай новые города»" },
+      "scene": "map",
+      "required": true,
+      "in_code": [
+        "commands/map.jpg (все языки)",
+        "ru/map.jpg (ru)"
+      ],
+      "repo_status": "есть; commands/map.jpg — без карты (только логотип и Бобек)",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "логотип POLSKI GO",
+        "ru": "КАРТА; «Путешествуй по Польше и открывай новые города»"
+      },
       "used_in_code": true,
-      "owner_board": null, "owner_text": "в комплекте владельца 2026-10-27 нет карты",
+      "owner_board": null,
+      "owner_text": "в комплекте владельца 2026-10-27 нет карты",
       "needs_art": "да: нужна сцена карты без текста (commands/map.jpg карту не показывает)",
       "notes": "ru/map.jpg — старый кадр владельца, оставить до нового"
     },
     {
-      "scene": "words", "required": true,
-      "in_code": ["commands/words.jpg (все языки)", "ru/words.jpg (ru)"],
-      "repo_status": "есть", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "нет", "ru": "СЛОВА; «Полезная лексика для жизни в Польше»; карточки dom, kawa, praca" },
+      "scene": "words",
+      "required": true,
+      "in_code": [
+        "commands/words.jpg (все языки)",
+        "ru/words.jpg (ru)"
+      ],
+      "repo_status": "есть",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "нет",
+        "ru": "СЛОВА; «Полезная лексика для жизни в Польше»; карточки dom, kawa, praca"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-words.webp", "owner_text": "ru-only",
+      "owner_board": "docs/design/a10/telegram/tg-words.webp",
+      "owner_text": "ru-only",
       "needs_art": "ru: заменить на новую доску; остальные языки уже без текста",
       "notes": ""
     },
     {
-      "scene": "quests", "required": true,
-      "in_code": ["commands/quests.jpg (все языки)", "ru/quests.jpg (ru)"],
-      "repo_status": "commands/quests.jpg — дубль lesson.jpg (кадр не про задания)", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "«CZAS NA POLSKI!»", "ru": "ЗАДАНИЯ; «Выполняй задания и получай награды»; чек-лист" },
+      "scene": "quests",
+      "required": true,
+      "in_code": [
+        "commands/quests.jpg (все языки)",
+        "ru/quests.jpg (ru)"
+      ],
+      "repo_status": "commands/quests.jpg — дубль lesson.jpg (кадр не про задания)",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "«CZAS NA POLSKI!»",
+        "ru": "ЗАДАНИЯ; «Выполняй задания и получай награды»; чек-лист"
+      },
       "used_in_code": true,
-      "owner_board": null, "owner_text": "нет в комплекте 2026-10-27",
+      "owner_board": null,
+      "owner_text": "нет в комплекте 2026-10-27",
       "needs_art": "да: commands/quests.jpg — неверная сцена; нужна сцена заданий без текста",
       "notes": ""
     },
     {
-      "scene": "profile", "required": true,
-      "in_code": ["commands/profile.jpg (все языки)"],
-      "repo_status": "неверный текст: «TWOJA SERIA!» — дубль reminder-streak.jpg", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false },
-      "embedded_text": { "commands": "логотип POLSKI GO; «TWOJA SERIA!»" },
+      "scene": "profile",
+      "required": true,
+      "in_code": [
+        "commands/profile.jpg (все языки)"
+      ],
+      "repo_status": "неверный текст: «TWOJA SERIA!» — дубль reminder-streak.jpg",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false
+      },
+      "embedded_text": {
+        "commands": "логотип POLSKI GO; «TWOJA SERIA!»"
+      },
       "used_in_code": true,
-      "owner_board": null, "owner_text": "нет",
+      "owner_board": null,
+      "owner_text": "нет",
       "needs_art": "да: новая сцена профиля без текста; ru-версии нет",
       "notes": "текст на кадре противоречит экрану профиля"
     },
     {
-      "scene": "settings", "required": true,
-      "in_code": ["commands/settings.jpg (все языки)", "ru/settings.jpg (ru)"],
-      "repo_status": "commands/settings.jpg — дубль start.jpg (логотип, без меню настроек)", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "логотип POLSKI GO", "ru": "НАСТРОЙКИ; меню «Язык, Уведомления, Звуки, Оформление, Анимации»" },
+      "scene": "settings",
+      "required": true,
+      "in_code": [
+        "commands/settings.jpg (все языки)",
+        "ru/settings.jpg (ru)"
+      ],
+      "repo_status": "commands/settings.jpg — дубль start.jpg (логотип, без меню настроек)",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "логотип POLSKI GO",
+        "ru": "НАСТРОЙКИ; меню «Язык, Уведомления, Звуки, Оформление, Анимации»"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-settings.webp", "owner_text": "ru-only; пункты меню — текст на картинке",
+      "owner_board": "docs/design/a10/telegram/tg-settings.webp",
+      "owner_text": "ru-only; пункты меню — текст на картинке",
       "needs_art": "для uk/pl/en — сцена без текста (сейчас дубль старта)",
       "notes": "пункты меню на картинке зафиксированы: при изменении интерфейса картинка устареет"
     },
     {
-      "scene": "help", "required": true,
-      "in_code": ["commands/help.jpg (все языки)", "ru/help.jpg (ru)"],
-      "repo_status": "есть", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "логотип; табличка с городами (WARSZAWA, KRAKÓW…); значок Telegram", "ru": "ПОМОЩЬ; «Здесь ты найдёшь ответы на все вопросы»" },
+      "scene": "help",
+      "required": true,
+      "in_code": [
+        "commands/help.jpg (все языки)",
+        "ru/help.jpg (ru)"
+      ],
+      "repo_status": "есть",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "логотип; табличка с городами (WARSZAWA, KRAKÓW…); значок Telegram",
+        "ru": "ПОМОЩЬ; «Здесь ты найдёшь ответы на все вопросы»"
+      },
       "used_in_code": true,
-      "owner_board": null, "owner_text": "нет в комплекте 2026-10-27",
+      "owner_board": null,
+      "owner_text": "нет в комплекте 2026-10-27",
       "needs_art": "для остальных языков — без таблички с городами-надписями (проверить)",
       "notes": ""
     },
     {
-      "scene": "reminder", "required": true,
-      "in_code": ["commands/reminder-lesson.jpg (все языки)", "ru/reminder.jpg (только ru и только 19:00)"],
-      "repo_status": "commands/reminder-lesson.jpg — дубль lesson.jpg; ru/reminder.jpg — часы «19:00» на картинке", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false, "ru": true },
-      "embedded_text": { "commands": "«CZAS NA POLSKI!»", "ru": "ПОРА УЧИТЬСЯ! «5 минут польского с Бобеком сегодня?»; часы 19:00" },
+      "scene": "reminder",
+      "required": true,
+      "in_code": [
+        "commands/reminder-lesson.jpg (все языки)",
+        "ru/reminder.jpg (только ru и только 19:00)"
+      ],
+      "repo_status": "commands/reminder-lesson.jpg — дубль lesson.jpg; ru/reminder.jpg — часы «19:00» на картинке",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false,
+        "ru": true
+      },
+      "embedded_text": {
+        "commands": "«CZAS NA POLSKI!»",
+        "ru": "ПОРА УЧИТЬСЯ! «5 минут польского с Бобеком сегодня?»; часы 19:00"
+      },
       "used_in_code": true,
-      "owner_board": null, "owner_text": "нет",
+      "owner_board": null,
+      "owner_text": "нет",
       "needs_art": "да: сцена напоминания без текста и без часов",
       "notes": "ru/reminder.jpg уместен только у напоминания на 19:00 (правило в catalog.ts)"
     },
     {
-      "scene": "streak", "required": true,
-      "in_code": ["commands/reminder-streak.jpg (все языки)"],
-      "repo_status": "commands/reminder-streak.jpg — дубль profile.jpg; текст «TWOJA SERIA!» (польский)", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false },
-      "embedded_text": { "commands": "логотип; «TWOJA SERIA!»" },
+      "scene": "streak",
+      "required": true,
+      "in_code": [
+        "commands/reminder-streak.jpg (все языки)"
+      ],
+      "repo_status": "commands/reminder-streak.jpg — дубль profile.jpg; текст «TWOJA SERIA!» (польский)",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false
+      },
+      "embedded_text": {
+        "commands": "логотип; «TWOJA SERIA!»"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-streak.webp", "owner_text": "ru-only; «СЕРИЯ ДНЕЙ» + статическая цифра «7»",
+      "owner_board": "docs/design/a10/telegram/tg-streak.webp",
+      "owner_text": "ru-only; «СЕРИЯ ДНЕЙ» + статическая цифра «7»",
       "needs_art": "для uk/pl/en — без текста; цифра «7» на доске статическая — в напоминании её не показывать как число дней",
       "notes": "правило catalog.ts: серия «7 дней» в ru не используется для живых данных"
     },
     {
-      "scene": "return", "required": true,
-      "in_code": ["commands/reminder-return.jpg (все языки)"],
-      "repo_status": "commands/reminder-return.jpg — дубль stop.jpg; текст «BOBEK CZEKA!» (польский)", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "commands": false },
-      "embedded_text": { "commands": "«BOBEK CZEKA!»" },
+      "scene": "return",
+      "required": true,
+      "in_code": [
+        "commands/reminder-return.jpg (все языки)"
+      ],
+      "repo_status": "commands/reminder-return.jpg — дубль stop.jpg; текст «BOBEK CZEKA!» (польский)",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "commands": false
+      },
+      "embedded_text": {
+        "commands": "«BOBEK CZEKA!»"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-return.webp", "owner_text": "ru-only; «СНОВА ТУТ? Приятно, что ты вернулся!» — имени нет",
+      "owner_board": "docs/design/a10/telegram/tg-return.webp",
+      "owner_text": "ru-only; «СНОВА ТУТ? Приятно, что ты вернулся!» — имени нет",
       "needs_art": "для uk/pl/en — без текста; текущий кадр с «BOBEK CZEKA!» — заменить",
       "notes": "доска владельца не содержит чужого имени: можно использовать"
     },
     {
-      "scene": "quick_question", "required": true,
-      "in_code": ["нет отдельного кадра; квиз шлёт текст. Картинки квиза только для ru: shopping, food, transport"],
-      "repo_status": "отсутствует", "size": null, "aspect": null, "blurred_edges": null,
+      "scene": "quick_question",
+      "required": true,
+      "in_code": [
+        "нет отдельного кадра; квиз шлёт текст. Картинки квиза только для ru: shopping, food, transport"
+      ],
+      "repo_status": "отсутствует",
+      "size": null,
+      "aspect": null,
+      "blurred_edges": null,
       "embedded_text": null,
       "used_in_code": false,
-      "owner_board": "docs/design/a10/telegram/tg-quick-question.webp", "owner_text": "ru-only; «БЫСТРЫЙ ВОПРОС» и образец вопроса «Jak się nazywa ten sklep?» с вариантами Biedronka / Żabka / Lidl",
+      "owner_board": "docs/design/a10/telegram/tg-quick-question.webp",
+      "owner_text": "ru-only; «БЫСТРЫЙ ВОПРОС» и образец вопроса «Jak się nazywa ten sklep?» с вариантами Biedronka / Żabka / Lidl",
       "needs_art": "да: нельзя использовать с образцом вопроса; нужна версия без вопроса и без ответов",
       "notes": "образец вопроса с ответами не должен попасть ни в один реальный вопрос; бренды на доске — см. problems"
     },
     {
-      "scene": "correct_answer", "required": true,
-      "in_code": ["нет (в коде не используется)"],
-      "repo_status": "отсутствует", "size": null, "aspect": null, "blurred_edges": null,
+      "scene": "correct_answer",
+      "required": true,
+      "in_code": [
+        "нет (в коде не используется)"
+      ],
+      "repo_status": "отсутствует",
+      "size": null,
+      "aspect": null,
+      "blurred_edges": null,
       "embedded_text": null,
       "used_in_code": false,
-      "owner_board": "docs/design/a10/telegram/tg-correct-answer.webp", "owner_text": "ru-only; «ОТЛИЧНО! Правильный ответ!» и «+20 XP»",
+      "owner_board": "docs/design/a10/telegram/tg-correct-answer.webp",
+      "owner_text": "ru-only; «ОТЛИЧНО! Правильный ответ!» и «+20 XP»",
       "needs_art": "да: число «+20 XP» не совпадает с кодом (QUIZ_XP = 10) — версия без числа",
       "notes": "если когда-то показывать сумму, брать её из QUIZ_XP, а не с картинки"
     },
     {
-      "scene": "shopping", "required": true,
-      "in_code": ["ru/shopping.jpg (ru; квиз, категория shopping)"],
-      "repo_status": "есть", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "ru": true },
-      "embedded_text": { "ru": "ПОКУПКИ; «Фразы и слова для магазинов»; логотип żabka" },
+      "scene": "shopping",
+      "required": true,
+      "in_code": [
+        "ru/shopping.jpg (ru; квиз, категория shopping)"
+      ],
+      "repo_status": "есть",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "ru": true
+      },
+      "embedded_text": {
+        "ru": "ПОКУПКИ; «Фразы и слова для магазинов»; логотип żabka"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-shopping.webp", "owner_text": "ru-only; логотип żabka (товарный знак)",
+      "owner_board": "docs/design/a10/telegram/tg-shopping.webp",
+      "owner_text": "ru-only; логотип żabka (товарный знак)",
       "needs_art": "для других языков квиз шлёт текст; версия без текста — по желанию",
       "notes": "проверить право на показ логотипа żabka (см. problems)"
     },
     {
-      "scene": "food", "required": true,
-      "in_code": ["ru/food.jpg (ru; квиз, категория food)"],
-      "repo_status": "есть", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "ru": true },
-      "embedded_text": { "ru": "ЕДА И КАФЕ; «Заказывай, пробуй и говори как поляк»; меню «Żurek, Pierogi, Kawa»" },
+      "scene": "food",
+      "required": true,
+      "in_code": [
+        "ru/food.jpg (ru; квиз, категория food)"
+      ],
+      "repo_status": "есть",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "ru": true
+      },
+      "embedded_text": {
+        "ru": "ЕДА И КАФЕ; «Заказывай, пробуй и говори как поляк»; меню «Żurek, Pierogi, Kawa»"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-food.webp", "owner_text": "ru-only",
+      "owner_board": "docs/design/a10/telegram/tg-food.webp",
+      "owner_text": "ru-only",
       "needs_art": "для других языков — без текста",
       "notes": "«Говори как поляк» — не обещание произношения (см. правило о распознавании речи)"
     },
     {
-      "scene": "transport", "required": true,
-      "in_code": ["ru/transport.jpg (ru; квиз, категория transport)"],
-      "repo_status": "есть", "size": "1280×720", "aspect": "16:9", "blurred_edges": { "ru": true },
-      "embedded_text": { "ru": "ТРАНСПОРТ; «Всё, что нужно для передвижения по Польше»; трамвай «Wroclaw», логотип MPK WROCLAW" },
+      "scene": "transport",
+      "required": true,
+      "in_code": [
+        "ru/transport.jpg (ru; квиз, категория transport)"
+      ],
+      "repo_status": "есть",
+      "size": "1280×720",
+      "aspect": "16:9",
+      "blurred_edges": {
+        "ru": true
+      },
+      "embedded_text": {
+        "ru": "ТРАНСПОРТ; «Всё, что нужно для передвижения по Польше»; трамвай «Wroclaw», логотип MPK WROCLAW"
+      },
       "used_in_code": true,
-      "owner_board": "docs/design/a10/telegram/tg-transport.webp", "owner_text": "ru-only; логотип MPK Wrocław",
+      "owner_board": "docs/design/a10/telegram/tg-transport.webp",
+      "owner_text": "ru-only; логотип MPK Wrocław",
       "needs_art": "для других языков — без текста; проверить логотип",
       "notes": "проверить право на логотип MPK Wrocław (см. problems)"
     },
     {
-      "scene": "travel_passport", "required": true,
-      "in_code": ["нет (в коде не используется)"],
-      "repo_status": "отсутствует", "size": null, "aspect": null, "blurred_edges": null,
+      "scene": "travel_passport",
+      "required": true,
+      "in_code": [
+        "нет (в коде не используется)"
+      ],
+      "repo_status": "отсутствует",
+      "size": null,
+      "aspect": null,
+      "blurred_edges": null,
       "embedded_text": null,
       "used_in_code": false,
-      "owner_board": "docs/design/a10/telegram/tg-travel-passport.webp", "owner_text": "ru-only; «ПАСПОРТ ПУТЕШЕСТВЕННИКА»; штампы Warszawa, Kraków, Wrocław, Gdańsk, Poznań, Zakopane",
+      "owner_board": "docs/design/a10/telegram/tg-travel-passport.webp",
+      "owner_text": "ru-only; «ПАСПОРТ ПУТЕШЕСТВЕННИКА»; штампы Warszawa, Kraków, Wrocław, Gdańsk, Poznań, Zakopane",
       "needs_art": "да для показа «прогресса»: штампы на доске фиксированные, их нельзя показывать как полученные",
       "notes": "использовать только как декоративный кадр без штампов-состояний"
     },
     {
-      "scene": "lesson_complete", "required": true,
-      "in_code": ["нет (в коде не используется)"],
-      "repo_status": "отсутствует", "size": null, "aspect": null, "blurred_edges": null,
+      "scene": "lesson_complete",
+      "required": true,
+      "in_code": [
+        "нет (в коде не используется)"
+      ],
+      "repo_status": "отсутствует",
+      "size": null,
+      "aspect": null,
+      "blurred_edges": null,
       "embedded_text": null,
       "used_in_code": false,
-      "owner_board": "docs/design/a10/telegram/tg-lesson-complete.webp", "owner_text": "ru-only; «ЗАВЕРШЕНИЕ УРОКА»; карточка «WARSZAWA» и «+15 XP»",
+      "owner_board": "docs/design/a10/telegram/tg-lesson-complete.webp",
+      "owner_text": "ru-only; «ЗАВЕРШЕНИЕ УРОКА»; карточка «WARSZAWA» и «+15 XP»",
       "needs_art": "да: «+15 XP» не совпадает с кодом (урок: 20 XP + 5 за верное задание + 10 за идеал); город «WARSZAWA» зашит",
       "notes": "версия без числа и без названия города"
     }
   ],
   "extra_scenes": [
     {
-      "scene": "practice", "required": false,
+      "scene": "practice",
+      "required": false,
       "in_code": [],
-      "owner_board": "docs/design/a10/telegram/tg-practice.webp", "owner_text": "ru-only; «ИЗУЧЕНИЕ И ПРАКТИКА»; «Słuchaj / Mów», «Dzień dobry!», «Cześć!»",
+      "owner_board": "docs/design/a10/telegram/tg-practice.webp",
+      "owner_text": "ru-only; «ИЗУЧЕНИЕ И ПРАКТИКА»; «Słuchaj / Mów», «Dzień dobry!», «Cześć!»",
       "notes": "не входит в список 18 сцен; кандидат для раздела аудио, если появится в боте. Ссылаться на озвучку только после решения по голосу TTS"
     }
   ],
@@ -214,9 +451,229 @@
     "В commands/*.jpg есть польские надписи («CZAS NA POLSKI!», «TWOJA SERIA!», «BOBEK CZEKA!»), они видны пользователям всех языков.",
     "Четыре группы дублей по байтам (см. duplicates): один кадр на разные сценарии, profile.jpg с текстом про серию.",
     "На досках владельца есть товарные знаки: логотипы żabka, MPK Wrocław и названия сетей Biedronka / Lidl в примере квиза. Перед публикацией нужна проверка прав.",
-    "Комментарий в apps/server/src/bot/catalog.ts пишет «ru/*.jpg — 640×360»; фактически 1280×720. Исправить комментарий при следующей правке файла.",
     "Доски владельца содержат текст на русском: использовать только в русском интерфейсе, для остальных языков нужны версии без текста.",
-    "В сценах «Паспорт» и «Серия» есть статические числа и штампы городов: их нельзя показывать как личный прогресс."
+    "В сценах «Паспорт» и «Серия» есть статические числа и штампы городов: их нельзя показывать как личный прогресс.",
+    "Исправлено 2026-10-27: комментарий о 640×360 в catalog.ts заменён на 1280×720; старые ru/*.jpg удалены."
   ],
-  "candidates_not_integrated": "Новые доски владельца сохранены в docs/design/a10/telegram/ и не подключены к коду. Интеграция — задача Sonnet/Opus после решения по текстам и брендам."
+  "candidates_not_integrated": "Доски владельца с живыми данными или образцом вопроса (correct-answer, lesson-complete, streak, travel-passport, quick-question) и tg-practice остаются только в docs/design/a10/telegram/. Подключать их можно только после версий без статических чисел.",
+  "updated": "2026-10-27 (Sonnet, этап 1)",
+  "pipeline": {
+    "master": "docs/design/a10/telegram/tg-*.webp — полнокадровые доски владельца 1672×941 (16:9). Меньше требуемых 1920×1080: не растягиваются, помечены below_spec.",
+    "build": "node scripts/build-bot-images.mjs → apps/web/public/bot/scenes/ru/<сцена>.jpg (1280×720, то, что шлёт sendPhoto) и <сцена>@640.jpg (640×360). Только уменьшение Lanczos, без blur и заливки полос.",
+    "validate": "node scripts/validate-assets.mjs — размер, JPEG, дубли по пикселям, резкость краёв (старые ru/*.jpg давали 1–2 %, новые от 40 %).",
+    "telegram_limits": "sendPhoto по URL: до 10 МБ, ширина+высота ≤ 10000, соотношение ≤ 20. Файлы 130–410 КБ, 1280×720. Реальная отправка в Telegram из этого окружения не проверялась: нет токена и сети."
+  },
+  "integrated": [
+    {
+      "scene": "welcome",
+      "command": "/start (новый пользователь)",
+      "file": "scenes/ru/start.jpg",
+      "source": "tg-welcome.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "ru/welcome.jpg (мыльные полосы)"
+    },
+    {
+      "scene": "welcome_back",
+      "command": "/start (вернувшийся пользователь)",
+      "file": "scenes/ru/return.jpg",
+      "source": "tg-return.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "commands/start.jpg для этого случая",
+      "note": "доска «Снова тут? Приятно, что ты вернулся!» подходит приветствию вернувшегося; в рассылку-напоминание не идёт (там пользователь ещё не вернулся)"
+    },
+    {
+      "scene": "lessons",
+      "command": "/lesson",
+      "file": "scenes/ru/lesson.jpg",
+      "source": "tg-lessons.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "ru/lessons.jpg"
+    },
+    {
+      "scene": "words",
+      "command": "/words",
+      "file": "scenes/ru/words.jpg",
+      "source": "tg-words.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "ru/words.jpg"
+    },
+    {
+      "scene": "settings",
+      "command": "/settings",
+      "file": "scenes/ru/settings.jpg",
+      "source": "tg-settings.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "ru/settings.jpg",
+      "note": "пункты меню на доске совпадают с четырьмя пунктами текста карточки; при изменении настроек доску пересмотреть"
+    },
+    {
+      "scene": "shopping",
+      "command": "/quiz (категория shopping)",
+      "file": "scenes/ru/shopping.jpg",
+      "source": "tg-shopping.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "ru/shopping.jpg",
+      "note": "логотип żabka — вопрос прав открыт (Opus)"
+    },
+    {
+      "scene": "food",
+      "command": "/quiz (категория food, «Кафе»)",
+      "file": "scenes/ru/food.jpg",
+      "source": "tg-food.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "ru/food.jpg"
+    },
+    {
+      "scene": "transport",
+      "command": "/quiz (категория transport)",
+      "file": "scenes/ru/transport.jpg",
+      "source": "tg-transport.webp",
+      "langs": [
+        "ru"
+      ],
+      "replaces": "ru/transport.jpg",
+      "note": "логотип MPK Wrocław — вопрос прав открыт (Opus)"
+    }
+  ],
+  "removed": [
+    "apps/web/public/bot/ru/*.jpg (11 файлов): растянутые 640×360 с размытыми полосами и белой каймой; заменены или сняты с использования"
+  ],
+  "blocked_scenes": [
+    {
+      "scene": "map",
+      "command": "/map",
+      "reason": "нет исходника: в комплекте 2026-10-27 нет доски карты; ru/map.jpg снят как мыльный, остаётся commands/map.jpg (резкий, без карты)",
+      "needed_files": [
+        "scenes/ru/map.jpg",
+        "scenes/neutral/map.jpg"
+      ],
+      "description": "Бобек в красной толстовке с рюкзаком держит развёрнутую бумажную карту Польши с метками городов на площади Старого города в золотой час. Горы, море и города узнаваемы по силуэтам. Без текста; в ru-версии заголовок «КАРТА» в стиле досок a10."
+    },
+    {
+      "scene": "quests",
+      "command": "/quests",
+      "reason": "нет исходника: commands/quests.jpg — дубль /lesson с польской плашкой, ru/quests.jpg снят как мыльный",
+      "needed_files": [
+        "scenes/ru/quests.jpg",
+        "scenes/neutral/quests.jpg"
+      ],
+      "description": "Бобек радуется рядом с доской-чеклистом с галочками без слов, кубком и подарком. Тёплое освещение, польская кофейня. Без чисел и XP."
+    },
+    {
+      "scene": "profile",
+      "command": "/profile",
+      "reason": "нет исходника: commands/profile.jpg несёт плашку «TWOJA SERIA!» (про серию, не про профиль)",
+      "needed_files": [
+        "scenes/ru/profile.jpg",
+        "scenes/neutral/profile.jpg"
+      ],
+      "description": "Бобек перед рамкой-карточкой профиля и полкой значков (значки без надписей). Без уровня, XP и серии."
+    },
+    {
+      "scene": "help",
+      "command": "/help",
+      "reason": "нет исходника: ru/help.jpg снят как мыльный, commands/help.jpg остаётся для всех языков",
+      "needed_files": [
+        "scenes/ru/help.jpg",
+        "scenes/neutral/help.jpg"
+      ],
+      "description": "Бобек у информационной стойки со знаком вопроса в облачке и картой. Без табличек с названиями городов."
+    },
+    {
+      "scene": "reminder_lesson",
+      "command": "напоминание «урок»",
+      "reason": "нет исходника: ru/reminder.jpg (часы 19:00, мыльные полосы) снят; commands/reminder-lesson.jpg — дубль /lesson",
+      "needed_files": [
+        "scenes/neutral/reminder-lesson.jpg"
+      ],
+      "description": "Бобек за столом с открытой тетрадью и будильником без читаемого времени (стрелки без цифр), вечерний тёплый свет. Без часов 19:00."
+    },
+    {
+      "scene": "streak",
+      "command": "напоминание «серия»",
+      "reason": "доска tg-streak.webp содержит статическую «7» и календарь с отмеченными днями: показывать как серию пользователя нельзя",
+      "needed_files": [
+        "scenes/neutral/streak.jpg",
+        "scenes/ru/streak.jpg"
+      ],
+      "description": "Огонёк и календарь без цифр и без отмеченных дней; Бобек в радостной позе. Число дней всегда в тексте сообщения."
+    },
+    {
+      "scene": "correct_answer",
+      "command": "/quiz (правильный ответ)",
+      "reason": "доска tg-correct-answer.webp содержит «+20 XP», а QUIZ_XP = 10",
+      "needed_files": [
+        "scenes/neutral/correct-answer.jpg",
+        "scenes/ru/correct-answer.jpg"
+      ],
+      "description": "Зелёная галочка в круге, конфетти, радостный Бобек. Без таблички «+N XP»: сумма всегда из QUIZ_XP в тексте."
+    },
+    {
+      "scene": "quick_question",
+      "command": "/quiz (приглашение)",
+      "reason": "доска tg-quick-question.webp содержит образец вопроса «Jak się nazywa ten sklep?» с вариантами: рядом с настоящим вопросом он вводит в заблуждение",
+      "needed_files": [
+        "scenes/neutral/quick-question.jpg",
+        "scenes/ru/quick-question.jpg"
+      ],
+      "description": "Секундомер, вопросительные знаки, лампочка, задумчивый Бобек. Без образца вопроса и вариантов ответа."
+    },
+    {
+      "scene": "travel_passport",
+      "command": "нет команды в боте",
+      "reason": "доска tg-travel-passport.webp содержит фиксированные штампы Warszawa, Kraków, Wrocław, Gdańsk, Poznań, Zakopane: выглядят как полученные; потребителя в боте нет",
+      "needed_files": [
+        "scenes/neutral/passport.jpg"
+      ],
+      "description": "Раскрытый паспорт путешественника с пустыми местами под штампы, глобус, открытки; без названий городов. Штампы пользователя отрисовывать в Mini App по данным."
+    },
+    {
+      "scene": "lesson_complete",
+      "command": "нет сообщения в боте",
+      "reason": "доска tg-lesson-complete.webp содержит «+15 XP» и карточку «WARSZAWA»: не совпадает с наградой урока (20 XP + 5 за верное + 10 за идеал)",
+      "needed_files": [
+        "scenes/neutral/lesson-complete.jpg"
+      ],
+      "description": "Бобек со звездой и свитком, конфетти. Без числа XP и без названия города."
+    },
+    {
+      "scene": "neutral_for_uk_pl_en",
+      "command": "все команды для uk / pl / en",
+      "reason": "нет исходника: у uk / pl / en остаются commands/*.jpg; в них только три разных основы кадра (закат с логотипом, кофейня, справка), четыре пары дублей и плашки «CZAS NA POLSKI!», «TWOJA SERIA!», «BOBEK CZEKA!»",
+      "needed_files": [
+        "scenes/neutral/start.jpg",
+        "scenes/neutral/lesson.jpg",
+        "scenes/neutral/words.jpg",
+        "scenes/neutral/settings.jpg",
+        "scenes/neutral/stop.jpg",
+        "scenes/neutral/return.jpg"
+      ],
+      "description": "Те же композиции, что у досок a10, но без заголовков и подписей (чистая картинка), по одной уникальной сцене на команду; мастер от 1920×1080."
+    }
+  ],
+  "legacy_neutral": [
+    "commands/start.jpg",
+    "commands/settings.jpg",
+    "commands/lesson.jpg",
+    "commands/quests.jpg",
+    "commands/reminder-lesson.jpg",
+    "commands/profile.jpg",
+    "commands/reminder-streak.jpg",
+    "commands/reminder-return.jpg",
+    "commands/stop.jpg"
+  ]
 }

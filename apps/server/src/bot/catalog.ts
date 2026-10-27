@@ -2,8 +2,9 @@
  * Каталог бота: команды, иллюстрации и куда ведёт главная кнопка.
  * Картинки — публичные файлы веб-сборки `apps/web/public/bot/...`:
  *  • `commands/<имя>.jpg` (JPEG 1280×720) — без надписей на языке интерфейса, подходят всем языкам;
- *  • `ru/<имя>.jpg` (JPEG 640×360, комплект владельца «16 images») — с русскими заголовками, поэтому только для русского интерфейса
- *    и только там, где на картинке нет живых данных (профиль с чужими цифрами, серия «7 дней», имя, готовый ответ квиза не используются).
+ *  • `scenes/ru/<имя>.jpg` (JPEG 1280×720, рядом `<имя>@640.jpg` 640×360) — полнокадровые доски владельца (docs/design/a10/telegram)
+ *    с русскими заголовками, поэтому только для русского интерфейса и только там, где на доске нет живых данных
+ *    (+XP, серия «7», штампы городов, образец вопроса не используются). Сборка: `node scripts/build-bot-images.mjs`.
  */
 import type { BotScreen, UiLang } from '@polski-go/shared';
 import { config } from '../env';
@@ -35,18 +36,19 @@ export const COMMAND_IMAGES: Record<CommandName, string> = {
 };
 
 /**
- * Тематические кадры с русскими заголовками («УРОКИ», «КАРТА»…). Профиль (выдуманные уровень и XP), серия («7 дней»),
- * возвращение (чужое имя) и кадры квиза с готовым ответом сюда намеренно не входят.
+ * Тематические кадры с русскими заголовками («УРОКИ», «СЛОВА»…). Только полнокадровые доски владельца.
+ * Для карты, заданий, профиля, справки и /stop досок нет: там остаются нейтральные кадры `commands/*` (резкие, без размытых полос),
+ * а не старые растянутые `ru/*.jpg`. См. assets/telegram/asset-manifest.json, раздел blocked_scenes.
  */
 export const RU_COMMAND_IMAGES: Partial<Record<CommandName, string>> = {
-  start: 'ru/welcome.jpg',
-  lesson: 'ru/lessons.jpg',
-  map: 'ru/map.jpg',
-  words: 'ru/words.jpg',
-  quests: 'ru/quests.jpg',
-  settings: 'ru/settings.jpg',
-  help: 'ru/help.jpg',
+  start: 'scenes/ru/start.jpg',
+  lesson: 'scenes/ru/lesson.jpg',
+  words: 'scenes/ru/words.jpg',
+  settings: 'scenes/ru/settings.jpg',
 };
+
+/** «Снова тут? Приятно, что ты вернулся!» — кадр для приветствия вернувшегося пользователя, не для рассылки. */
+export const RU_START_BACK_IMAGE = 'scenes/ru/return.jpg';
 
 /** Картинка карточки: тематический русский кадр для русского интерфейса, иначе нейтральный. */
 export function commandImage(command: CommandName, lang: UiLang): string {
@@ -72,11 +74,13 @@ export const REMINDER_IMAGES: Record<ReminderKind, string> = {
   return: 'reminder-return.jpg',
 };
 
-/** На русском кадре напоминания нарисованы часы «19:00»: показываем его только тем, у кого напоминание на 19:00. */
-export const RU_REMINDER_LESSON = { file: 'ru/reminder.jpg', hour: 19 };
+/** Картинка карточки `/start` для вернувшегося пользователя: русская доска «Снова тут?» или обычный кадр старта. */
+export function startBackImage(lang: UiLang): string {
+  return lang === 'ru' ? RU_START_BACK_IMAGE : commandImage('start', lang);
+}
 
-export function reminderImage(kind: ReminderKind, lang: UiLang, hour: number | null): string {
-  if (kind === 'lesson' && lang === 'ru' && hour === RU_REMINDER_LESSON.hour) return RU_REMINDER_LESSON.file;
+/** Напоминания: кадры без надписей на языке интерфейса и без живых данных. Часов «19:00» и «серии 7» на них нет. */
+export function reminderImage(kind: ReminderKind): string {
   return `commands/${REMINDER_IMAGES[kind]}`;
 }
 

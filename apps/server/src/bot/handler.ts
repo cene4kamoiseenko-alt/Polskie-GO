@@ -7,7 +7,7 @@
 import { botApi } from '../lib/telegram';
 import { config } from '../env';
 import { upsertTelegramUser } from '../services/users';
-import { commandImage, isCommand, type CommandName } from './catalog';
+import { commandImage, isCommand, startBackImage, type CommandName } from './catalog';
 import { COPY, type Card, type Vars } from './copy';
 import { activeQuestsOf, disableReminders, findBotUser, nextLessonOf, pickLang, profileOf, type BotUser } from './data';
 import { commandForLabel, sendPanel } from './panel';
@@ -98,7 +98,7 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
   }
 
   let card: Card;
-  const image: string = commandImage(command === 'unknown' ? 'help' : command, lang);
+  let image: string = commandImage(command === 'unknown' ? 'help' : command, lang);
   let startapp: string | undefined;
 
   switch (command) {
@@ -107,6 +107,7 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
       if (user?.onboarded && !dbDown) {
         vars.lesson = (await soft('next lesson', () => nextLessonOf(user!.id, lang), null)).value;
         card = copy.startBack(vars);
+        image = startBackImage(lang);
       } else {
         card = copy.start(vars);
       }

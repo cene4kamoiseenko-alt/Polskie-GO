@@ -19,7 +19,8 @@
     "e2e": "node --import tsx scripts/browser-check.ts",
     "perf": "node --import tsx scripts/perf.ts",
     "a11y": "node --import tsx scripts/a11y.ts",
-    "screens": "node --import tsx scripts/screens.ts"
+    "screens": "node --import tsx scripts/screens.ts",
+    "assets": "node scripts/validate-assets.mjs"
   },
   "engines": {
     "node": ">=20"
