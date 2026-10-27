@@ -10,9 +10,10 @@
  */
 import { readFileSync } from 'node:fs';
 import { CITY_ART } from '../../packages/shared/src/cityArt';
-import { SCENE_ART } from '../../packages/shared/src/sceneArt';
+import { MISSION_BACKGROUND_BRIEF, MISSION_SCENE_ART, SCENE_ART } from '../../packages/shared/src/sceneArt';
 import { missingForMilestone } from '../../packages/shared/src/look/validate';
 import { CITIES } from '../../apps/server/src/content/cities';
+import { MISSIONS, MISSIONS_SOON } from '../../apps/server/src/content/missions';
 
 const read = (root: string, file: string) => JSON.parse(readFileSync(`${root}/${file}`, 'utf8'));
 
@@ -43,19 +44,24 @@ export function unfinishedAssets(root: string) {
   const storeScenes = Object.values(SCENE_ART).filter((s) => s.bakedBobek || s.status !== 'final');
   const layers = (['etalon-1', 'etalon-2'] as const).map((id) => ({ id, missing: missingForMilestone(id) }));
   const wardrobe = (read(root, 'assets/wardrobe/WARDROBE_CATALOG.json') as { items: WardrobeItem[] }).items;
-  return { cities, botScenes, storeScenes, layers, wardrobe };
+  const missions = [...MISSIONS.map((m) => ({ slug: m.slug, scene: m.scene, soon: false, title: m.title.ru })), ...MISSIONS_SOON.map((m) => ({ slug: m.slug, scene: m.scene, soon: true, title: m.title.ru }))].map((m) => {
+    const art = SCENE_ART[MISSION_SCENE_ART[m.slug] ?? ''];
+    const brief = MISSION_BACKGROUND_BRIEF[m.slug];
+    return { ...m, current: art ? `${art.id} (${art.status}, Бобек в кадре)` : `SVG «${m.scene}»`, action: brief?.action ?? '', background: brief?.background ?? '' };
+  });
+  return { cities, botScenes, storeScenes, missions, layers, wardrobe };
 }
 
 const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 export function buildUnfinishedAssets(root: string): string {
-  const { cities, botScenes, storeScenes, layers, wardrobe } = unfinishedAssets(root);
+  const { cities, botScenes, storeScenes, missions, layers, wardrobe } = unfinishedAssets(root);
   const lines: string[] = [];
   lines.push('# Незавершённые ассеты — точный перечень');
   lines.push('');
   lines.push('Файл создаётся командой `node --import tsx scripts/unfinished-assets.ts` из кода и манифестов (`scripts/lib/unfinished-assets.ts`); вручную не правится. `apps/server/test/unfinished-assets.test.ts` падает, если документ разошёлся с `CITY_ART`, `SCENE_ART`, манифестами бота и гардероба.');
   lines.push('');
-  lines.push(`Итого: **${cities.length}** городских фонов, **${botScenes.length}** сцен бота, **${storeScenes.length}** сцен магазинов (нужны версии без Бобека), **${layers.reduce((n, l) => n + l.missing.length, 0)}** слоёв Бобека для двух этапов, **${wardrobe.filter((i) => (i.asset_status ?? i.status) === 'отсутствует').length}** вещей гардероба без ресурса. Ничего из этого не подменено случайной картинкой: приложение и бот честно показывают «в подготовке» или нейтральный кадр.`);
+  lines.push(`Итого: **${cities.length}** городских фонов, **${botScenes.length}** сцен бота, **${storeScenes.length}** сцен магазинов (нужны версии без Бобека), **${missions.length}** фонов миссий без Бобека (готовых нет), **${layers.reduce((n, l) => n + l.missing.length, 0)}** слоёв Бобека для двух этапов, **${wardrobe.filter((i) => (i.asset_status ?? i.status) === 'отсутствует').length}** вещей гардероба без ресурса. Ничего из этого не подменено случайной картинкой: приложение и бот честно показывают «в подготовке» или нейтральный кадр.`);
   lines.push('');
 
   lines.push(`## 1. Фоны городов: ${cities.length} временных (interim)`);
@@ -85,6 +91,14 @@ export function buildUnfinishedAssets(root: string): string {
   lines.push('| № | scene_id | Бренд | Файл в приложении | Рождённый размер | Дефекты кадра |');
   lines.push('|---|---|---|---|---|---|');
   storeScenes.forEach((s, i) => lines.push(`| ${i + 1} | \`${s.id}\` | ${s.brand} | \`apps/web/src/assets/scenes/${s.file}.webp\` | ${s.native[0]}×${s.native[1]} | ${s.defects.length ? cell(s.defects.join('; ')) : 'нет'} |`));
+  lines.push('');
+  lines.push(`### Фоны всех миссий: ${missions.length} (${missions.filter((m) => !m.soon).length} активных + ${missions.filter((m) => m.soon).length} «скоро»), готовых нет`);
+  lines.push('');
+  lines.push('Экран миссии собирается из трёх слоёв: **фон** (этот список) + **Бобек в выбранном образе** (накладывается справа внизу, ~30 % ширины) + **интерфейс** (кнопка «закрыть» слева вверху, текст под кадром). Поэтому на фоне: показано действие игрока, правый нижний угол свободен, **Бобека нет**, текста нет, кроме настоящих вывесок заведения. Формат как у магазинов: 2:1 ≥ 2880×1440. Источник — `MISSION_BACKGROUND_BRIEF` в `packages/shared/src/sceneArt.ts`.');
+  lines.push('');
+  lines.push('| № | mission.slug | Миссия | Сейчас | Действие игрока | Что нарисовать (без Бобека) |');
+  lines.push('|---|---|---|---|---|---|');
+  missions.forEach((m, i) => lines.push(`| ${i + 1} | \`${m.slug}\` | ${cell(m.title)}${m.soon ? ' (скоро)' : ''} | ${cell(m.current)} | ${cell(m.action)} | ${cell(m.background)} |`));
   lines.push('');
 
   lines.push('## 4. Слои Бобека (единый рендерер, ADR-005)');

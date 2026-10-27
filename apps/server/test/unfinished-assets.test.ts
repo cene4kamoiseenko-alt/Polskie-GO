@@ -17,6 +17,7 @@ describe('перечень незавершённых ассетов', () => {
   it('10 фонов городов, 11 сцен бота, 5 кадров магазинов, 18 + 8 слоёв Бобека', () => {
     expect(data.cities.map((c) => c.slug)).toEqual(['katowice', 'zielona-gora', 'szczecin', 'bydgoszcz', 'torun', 'olsztyn', 'lublin', 'rzeszow', 'kielce', 'zakopane']);
     expect(data.botScenes.map((b) => b.scene)).toEqual(['map', 'quests', 'profile', 'help', 'reminder_lesson', 'streak', 'correct_answer', 'quick_question', 'travel_passport', 'lesson_complete', 'neutral_for_uk_pl_en']);
+    expect(data.missions.map((m) => m.slug)).toHaveLength(17);
     expect(data.storeScenes.map((s) => s.id).sort()).toEqual(['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka']);
     expect(data.layers.map((l) => l.missing.length)).toEqual([18, 8]);
   });

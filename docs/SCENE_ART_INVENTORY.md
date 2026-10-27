@@ -20,7 +20,9 @@
 | `store-biedronka` | Biedronka | `biedronka` | 632×316 | 1440×720 | interim | `biedronka-breakfast` | `supermarket` | — (снят 2026-10-27: увеличенный кадр) |
 | `store-rossmann` | Rossmann | `rossmann` | 550×275 | 1440×720 | interim | `rossmann-basics` | `drugstore` | — |
 | `parcel-inpost` | InPost | `inpost` | 550×275 | 1440×720 | interim | `paczkomat` | `parcel-locker` | — |
-| `fuel-orlen` | ORLEN | `orlen` | 644×322 | 1440×720 | interim | `orlen-coffee`, `orlen-pump` | `petrol-station` | — |
+| `fuel-orlen` | ORLEN | `orlen` | 644×322 | 1440×720 | interim | `orlen-pump` | `petrol-station` | — |
+
+Миссия `orlen-coffee` («Кофе на ORLEN») с 2026-10-27 показывает SVG-сцену `petrol-station`: на кадре ORLEN Бобек с пистолетом у колонки, а в миссии он покупает кофе в Stop Cafe — другое действие. У Żabka то же расхождение мельче: в лапе кофе, а в миссии хот-дог и вода; кадр оставлен как временный, дефект записан. Что должен показывать фон каждой из 17 миссий (без Бобека) — `MISSION_BACKGROUND_BRIEF` и `docs/UNFINISHED_ASSETS.md`, раздел 3.
 
 Миссия `lidl-list` тоже идёт в SVG-сцене `supermarket`, но Biedronka к ней не подключается: картинка привязана к slug миссии, а не к названию SVG-сцены.
 
@@ -53,3 +55,7 @@
 1. Положить мастер вместо `apps/web/src/assets/scenes/<файл>.webp` (и `@640`), исходник — в `docs/design/a11/stores/`.
 2. В `SCENE_ART`: `bakedBobek: false`, `status: 'final'`, `native` = реальный размер, очистить `defects`; в `Mission.tsx` накладной Бобек вернётся сам (`hasBakedBobek` = false).
 3. Тест `scene-art.test.ts`: размеры и вес файлов, соответствие таблице.
+
+## Пакет владельца V4 (17 панелей, 2026-10-27) — только референс
+
+`POLSKI_GO_17_SEPARATE_ASSETS_V4` (polski-go-full.zip / polski-go-images-small.zip) в приложение и бот **не подключён**. Родные панели — 230–306 × 271–342 px (вырезки из листа 1536×1024); все «большие» экспорты (1440×720, 1280×720) — те же панели, увеличенные в 2–2,5 раза, а широкие 2:1 и 16:9 дополнены декоративной заливкой (проверка файла: полоса 78 px слева, детали 0,37–0,39). В каждой панели нарисован Бобек, поэтому как фон под рендерер образа они не годятся. Пригодны как референс сюжета для художника: `07_zabka`, `08_biedronka`, `09_lidl` (касса самообслуживания), `10_rossmann`, `11_orlen`, `12_inpost`, `13_polish_food`, `14_cafe`, `15_housing`, `16_transport`, `17_doctor_pharmacy` (врач и аптека — **не** `urzad-pesel`). Сопоставление с `mission.slug` — только по `MISSION_BACKGROUND_BRIEF`, не по имени файла.

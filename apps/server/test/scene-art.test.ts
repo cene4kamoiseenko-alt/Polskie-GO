@@ -5,8 +5,8 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { MISSION_SCENE_ART, QUESTION_SCENE_IMAGES, SCENE_ART, SCENE_ART_SMALL } from '@polski-go/shared';
-import { MISSIONS } from '../src/content/missions';
+import { MISSION_BACKGROUND_BRIEF, MISSION_SCENE_ART, QUESTION_SCENE_IMAGES, SCENE_ART, SCENE_ART_SMALL } from '@polski-go/shared';
+import { MISSIONS, MISSIONS_SOON } from '../src/content/missions';
 import { quizImage } from '../src/bot/quiz/engine';
 import { QUESTION_BY_ID } from '../src/bot/quiz/questions';
 import { pngSize, webpSize } from './image-size';
@@ -52,13 +52,15 @@ describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
 
   it('картинка привязана к существующей миссии по slug и совпадает с её SVG-сценой', () => {
     const pairs = Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [a, m] as const));
-    expect(pairs.map(([, m]) => m).sort()).toEqual(['biedronka-breakfast', 'orlen-coffee', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'zabka-first-order']);
+    expect(pairs.map(([, m]) => m).sort()).toEqual(['biedronka-breakfast', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'zabka-first-order']);
     for (const [art, slug] of pairs) {
       const mission = MISSIONS.find((m) => m.slug === slug);
       expect(mission, `${art.id}: миссии ${slug} нет`).toBeDefined();
       expect(mission!.scene, `${slug}: SVG-сцена`).toBe(art.fallbackScene);
       expect(MISSION_SCENE_ART[slug]).toBe(art.id);
     }
+    // Кофе на ORLEN — другая дія (стойка Stop Cafe), кадр с колонкой к ней не подходит: остаётся SVG-сцена.
+    expect(MISSION_SCENE_ART['orlen-coffee']).toBeUndefined();
     // Lidl идёт в той же SVG-сцене, что и Biedronka, но картинки магазина с другим брендом не получает.
     expect(MISSIONS.find((m) => m.slug === 'lidl-list')!.scene).toBe('supermarket');
     expect(MISSION_SCENE_ART['lidl-list']).toBeUndefined();
@@ -73,6 +75,18 @@ describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
     for (const lang of ['uk', 'pl', 'en'] as const) expect(quizImage(loyalty, lang), lang).toBeNull();
     // Кадр InPost выдал бы ответ «в постамате».
     for (const lang of ['ru', 'uk', 'pl', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
+  });
+
+  it('для каждой из 17 миссий (14 + 3 «скоро») описан фон без Бобека и действие игрока', () => {
+    const slugs = [...MISSIONS.map((m) => m.slug), ...MISSIONS_SOON.map((m) => m.slug)].sort();
+    expect(slugs).toHaveLength(17);
+    expect(Object.keys(MISSION_BACKGROUND_BRIEF).sort()).toEqual(slugs);
+    for (const [slug, b] of Object.entries(MISSION_BACKGROUND_BRIEF)) {
+      expect(b.action.length, slug).toBeGreaterThan(10);
+      expect(b.background.length, slug).toBeGreaterThan(40);
+      expect(b.background, `${slug}: Бобек не рисуется в фоне`).not.toMatch(/Бобек|бобр/i);
+    }
+    expect(MISSION_BACKGROUND_BRIEF['urzad-pesel'].background).toMatch(/окошко/);
   });
 
   it('документ инвентаря описывает каждую сцену со статусом interim и перечисляет дефекты', () => {
