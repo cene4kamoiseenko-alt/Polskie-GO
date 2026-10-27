@@ -16,7 +16,7 @@ import { CITIES } from '../../apps/server/src/content/cities';
 
 const read = (root: string, file: string) => JSON.parse(readFileSync(`${root}/${file}`, 'utf8'));
 
-type CityEntry = { city_id: string; name_ru: string; image: { declared_size: string }; needed_art?: { file: string; format: string; scene: string } };
+type CityEntry = { city_id: string; name_ru: string; image: { declared_size: string }; needed_art?: { file: string; format: string; scene: string; priority?: number; current_check?: string } };
 type Blocked = { scene: string; command: string; reason: string; needed_files: string[]; description: string };
 type WardrobeItem = { id: string; category: string; names: { ru: string }; asset_status?: string; status?: string };
 
@@ -35,6 +35,8 @@ export function unfinishedAssets(root: string) {
       master: m?.needed_art?.file ?? `docs/design/a10/cities/city-${c.slug}.webp`,
       format: m?.needed_art?.format ?? '2:1, ≥ 2880×1440',
       scene: m?.needed_art?.scene ?? '',
+      priority: m?.needed_art?.priority ?? 9,
+      check: m?.needed_art?.current_check ?? '',
     };
   });
   const botScenes = (read(root, 'assets/telegram/asset-manifest.json') as { blocked_scenes: Blocked[] }).blocked_scenes;
@@ -58,11 +60,13 @@ export function buildUnfinishedAssets(root: string): string {
 
   lines.push(`## 1. Фоны городов: ${cities.length} временных (interim)`);
   lines.push('');
-  lines.push('Общие требования: 2:1, мастер ≥ 2880×1440 (PNG или WebP без потерь), без текста, логотипов, Бобека и людей крупным планом; ориентир — в центральных 60 % ширины; левая нижняя треть — спокойный передний план; стиль «Premium 2.5D cartoon travel-game environment, cinematic golden-hour lighting, colorful Polish architecture, high detail, vibrant colors, crisp edges». Как подключить мастер — `docs/CITY_ART_INVENTORY.md`, «Как заменить на мастер-файл».');
+  lines.push('Общие требования: 2:1, мастер 2880×1440 (минимум 1774×887; PNG или WebP без потерь), без текста, логотипов, Бобека и людей крупным планом; ориентир — в центральных 60 % ширины; левая нижняя треть — спокойный передний план; стиль «Premium 2.5D cartoon travel-game environment, cinematic golden-hour lighting, colorful Polish architecture, high detail, vibrant colors, crisp edges». Как подключить мастер — `docs/CITY_ART_INVENTORY.md`, «Как заменить на мастер-файл».');
   lines.push('');
-  lines.push('| № | city_id | Город | Сейчас в приложении | Что нарисовать | Куда положить мастер |');
-  lines.push('|---|---|---|---|---|---|');
-  cities.forEach((c, i) => lines.push(`| ${i + 1} | \`${c.slug}\` | ${c.name} | ${c.current}, ${c.status}: ${cell(c.shows)} | ${cell(c.scene)} | \`${c.master}\` |`));
+  lines.push('Приоритет: 1 — рисовать первым (город с уроками, самый слабый кадр или неверная достопримечательность). Ни один кадр не увеличивается до нужного размера: пока мастера нет, город остаётся interim.');
+  lines.push('');
+  lines.push('| № | city_id | Город | Приоритет | Сейчас в приложении | Проверка текущего кадра | Что нарисовать | Куда положить мастер |');
+  lines.push('|---|---|---|---|---|---|---|---|');
+  cities.forEach((c, i) => lines.push(`| ${i + 1} | \`${c.slug}\` | ${c.name} | ${c.priority} | ${c.current}, ${c.status}: ${cell(c.shows)} | ${cell(c.check)} | ${cell(c.scene)} | \`${c.master}\` |`));
   lines.push('');
 
   lines.push(`## 2. Сцены бота: ${botScenes.length} недостающих`);
