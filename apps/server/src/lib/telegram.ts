@@ -80,7 +80,9 @@ function scrub(text: string): string {
 
 /** Виклик Telegram Bot API. Помилки — TelegramError (підклас Error, повідомлення як раніше). */
 export async function botApi<T = unknown>(method: string, params: Record<string, unknown>, timeoutMs = 10_000): Promise<T> {
-  if (!config.botToken) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+  if (!config.botToken) {
+    throw new Error(config.botBlockedInStaging ? 'TELEGRAM_BOT_TOKEN is ignored in staging: STAGING_BOT_ID does not match the token (docs/STAGING.md)' : 'TELEGRAM_BOT_TOKEN is not configured');
+  }
   let res: Response;
   try {
     res = await fetch(`https://api.telegram.org/bot${config.botToken}/${method}`, {

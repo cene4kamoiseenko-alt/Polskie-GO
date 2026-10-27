@@ -1,0 +1,37 @@
+# Ручной деплой STAGING (docs/STAGING.md). Не запускается ни на push, ни на pull request: только workflow_dispatch с подтверждением.
+# Секреты берутся из GitHub Environment «staging» (токен и аккаунт Cloudflare, лучше отдельного аккаунта под staging), не из секретов репозитория.
+# Файл не запускался из среды разработки: проверьте его первым ручным запуском.
+name: Staging deploy (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Введите DEPLOY-STAGING, чтобы выкатить staging (production не затрагивается)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm == 'DEPLOY-STAGING' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Сторож и тесты staging до любых обращений к Cloudflare.
+      - run: npm run staging:check
+      - run: npm run typecheck
+      - run: npm run test -w @polski-go/server -- test/staging.test.ts
+      - name: Deploy staging (сторож → сборка → миграции → Worker → seed)
+        run: npm run deploy:staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

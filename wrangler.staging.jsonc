@@ -1,0 +1,38 @@
+// POLSKI GO — STAGING на Cloudflare Workers (docs/STAGING.md).
+// Окремий конфіг, щоб не чіпати production (wrangler.jsonc): жодного спільного ресурсу.
+//  • Worker `polskie-go-staging` (адреса https://polskie-go-staging.<акаунт>.workers.dev), не `polskie-go`;
+//  • база D1 `polski-go-staging` — НЕ `polski-go`; команди `wrangler d1 … polski-go --remote -c wrangler.staging.jsonc` падають: такої бази тут немає;
+//  • cron вимкнено (він переустановлює webhook бота й шле нагадування);
+//  • ENVIRONMENT=staging: секрети й CORS як у бою, а TELEGRAM_BOT_TOKEN дійсний лише з id із STAGING_BOT_ID (окремий тестовий бот);
+//    боєвий токен тут ігнорується (apps/server/src/env.ts). Секрети staging: `wrangler secret put <ім'я> -c wrangler.staging.jsonc`.
+// Деплой — лише `npm run deploy:staging`; перед ним `npm run staging:check` (scripts/staging-guard.mjs) перевіряє цей файл.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "polskie-go-staging",
+  "main": "apps/server/src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "workers_dev": true,
+  "assets": {
+    "directory": "dist-cf",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/telegram/*", "/uploads/*", "/admin", "/admin/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "polski-go-staging",
+      "migrations_dir": "apps/server/migrations"
+    }
+  ],
+  "triggers": { "crons": [] },
+  "vars": {
+    "ENVIRONMENT": "staging",
+    // Платні сервіси озвучки й розпізнавання вимкнені: на staging вони не потрібні й коштують гроші.
+    "TTS_PROVIDER": "off",
+    "STT_PROVIDER": "off"
+  },
+  "keep_vars": true
+}

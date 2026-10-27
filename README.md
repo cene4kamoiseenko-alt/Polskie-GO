@@ -111,6 +111,11 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 4. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`, цены тарифов — в админке.
 5. Картинки команд — `apps/web/public/bot/commands/*.jpg`, публикуются вместе с приложением. `WEB_APP_URL` — полный адрес с `https://` (без схемы или с `http://` сервер и `bot:setup` приведут его к `https://`).
 
+### Staging (проверка перед production)
+
+Отдельный Worker `polskie-go-staging` со своей базой D1, без cron и без боевого бота: `npm run staging:check`, `npm run staging:local`, `npm run deploy:staging`.
+Что отделено, как проверено и что нужно сделать в Cloudflare — [`docs/STAGING.md`](docs/STAGING.md). Боевой `wrangler.jsonc` и `deploy:cf` не затронуты.
+
 ### Лимиты бесплатного плана
 
 * Worker: 100 000 запросов в сутки, 10 мс CPU на запрос (тяжёлые операции сгруппированы в пакеты D1).

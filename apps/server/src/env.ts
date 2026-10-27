@@ -11,6 +11,11 @@ export type Bindings = {
   CORS_ORIGINS?: string;
   SESSION_SECRET?: string;
   TELEGRAM_BOT_TOKEN?: string;
+  /**
+   * Только для staging (ENVIRONMENT=staging): id отдельного тестового бота — часть токена до «:». Staging принимает токен лишь с этим id,
+   * поэтому боевой токен, случайно положенный в staging, игнорируется: ни webhook, ни рассылок, ни входа по initData боевого бота.
+   */
+  STAGING_BOT_ID?: string;
   TELEGRAM_BOT_USERNAME?: string;
   TELEGRAM_APP_SHORT_NAME?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
@@ -79,9 +84,23 @@ export function normalizeWebAppUrl(raw: string): string {
   return local(bare) ? `http://${bare}` : `https://${bare}`;
 }
 
+/** id бота — часть токена до двоеточия. */
+export const botIdOfToken = (token: string) => token.split(':')[0] ?? '';
+
 export const config = {
   get isProd() {
     return str(env.ENVIRONMENT) === 'production';
+  },
+  /** Отдельная сборка для проверки (docs/STAGING.md): свой Worker, своя D1, без cron и без боевого бота. */
+  get isStaging() {
+    return str(env.ENVIRONMENT) === 'staging';
+  },
+  /** Боевые требования к секретам и CORS: production и staging (staging доступен из интернета). */
+  get isProdLike() {
+    return this.isProd || this.isStaging;
+  },
+  get environment() {
+    return str(env.ENVIRONMENT) || 'development';
   },
   get isTest() {
     return str(env.ENVIRONMENT) === 'test';
@@ -94,11 +113,22 @@ export const config = {
   },
   get sessionSecret() {
     const s = str(env.SESSION_SECRET);
-    if (this.isProd && s.length < 32) throw new Error('SESSION_SECRET must be set to a random string of at least 32 characters');
+    if (this.isProdLike && s.length < 32) throw new Error('SESSION_SECRET must be set to a random string of at least 32 characters');
     return s || 'dev-secret-change-me';
   },
+  /**
+   * Токен бота. В staging действует только токен с id из STAGING_BOT_ID, иначе — как будто токена нет: все места, где он нужен
+   * (Bot API, webhook, cron, вход по initData, платежи), молчат, и боевой бот остаётся нетронутым.
+   */
   get botToken() {
-    return str(env.TELEGRAM_BOT_TOKEN);
+    const token = str(env.TELEGRAM_BOT_TOKEN);
+    if (!this.isStaging) return token;
+    const allowed = str(env.STAGING_BOT_ID);
+    return token && allowed && botIdOfToken(token) === allowed ? token : '';
+  },
+  /** В staging положен токен, который не принят (нет STAGING_BOT_ID или id не совпал). */
+  get botBlockedInStaging() {
+    return this.isStaging && !!str(env.TELEGRAM_BOT_TOKEN) && !this.botToken;
   },
   get botUsername() {
     return str(env.TELEGRAM_BOT_USERNAME).replace(/^@/, '') || 'polski_go_bot';

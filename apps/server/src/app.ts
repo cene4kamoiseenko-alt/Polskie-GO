@@ -25,7 +25,7 @@ export function buildApp() {
     await next();
   });
 
-  app.use('/api/*', cors({ origin: (origin) => (!config.isProd || config.corsOrigins.includes(origin) ? origin : null), credentials: false }));
+  app.use('/api/*', cors({ origin: (origin) => (!config.isProdLike || config.corsOrigins.includes(origin) ? origin : null), credentials: false }));
 
   app.onError((err, c) => {
     const e = mapDbError(err);
@@ -48,6 +48,7 @@ export function buildApp() {
     return c.json(
       {
         ok: true,
+        environment: config.environment,
         version: version ? { commit: version.commit, builtAt: version.builtAt } : null,
         migration,
         bot: bot ? { webhook: bot.webhook, callbackQuery: bot.callbackQuery, serverSecret: bot.secretGeneration > 0, confirmed: bot.secretConfirmed, checkedAt: new Date(bot.checkedAt).toISOString() } : null,
