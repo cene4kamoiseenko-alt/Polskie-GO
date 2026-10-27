@@ -687,7 +687,20 @@ export const ttsCache = sqliteTable('tts_cache', {
   createdAt: createdAt(),
 });
 
-/** Журнал надісланих нагадувань (не частіше одного на день). */
+/**
+ * Стан доставки навчального нагадування.
+ *  • PENDING — запис створено перед надсиланням, воркер тримає lease (`lease_until`);
+ *  • SENT — Telegram прийняв повідомлення; FAILED — не доставлено (повтор до `NOTIFY_MAX_ATTEMPTS`, поки `next_attempt_at` задано);
+ *  • BLOCKED — 403, користувач заблокував бота; SKIPPED — повтор уже не потрібен (інший день, згоду вимкнено, користувач вчився);
+ *  • UNKNOWN — результат невідомий (тайм-аут або обрив після відправки, lease прострочено): автоматично не повторюється,
+ *    щоб не надіслати двічі; LEGACY — рядки до міграції 0008 (записувалися перед надсиланням).
+ */
+export const NOTIFY_STATUS = ['PENDING', 'SENT', 'FAILED', 'BLOCKED', 'SKIPPED', 'UNKNOWN', 'LEGACY'] as const;
+
+/**
+ * Журнал навчальних нагадувань і ключ ідемпотентності: унікальний (user_id, kind, day) — одне нагадування на день користувача.
+ * Рядок створює той воркер, чий INSERT виконався першим; решта паралельних запусків cron пропускає користувача.
+ */
 export const notificationLog = sqliteTable(
   'notification_log',
   {
@@ -696,9 +709,28 @@ export const notificationLog = sqliteTable(
     kind: text('kind').notNull(),
     day: text('day').notNull(),
     createdAt: createdAt(),
+    status: text('status', { enum: NOTIFY_STATUS }).notNull().default('LEGACY'),
+    /** Сценарій тексту й картинки: lesson | streak | return. */
+    template: text('template'),
+    lang: text('lang'),
+    /** Фактичний метод: sendPhoto або sendMessage (без картинки, якщо фото не пішло). */
+    method: text('method'),
+    attempts: integer('attempts').notNull().default(0),
+    leaseUntil: ts('lease_until'),
+    nextAttemptAt: ts('next_attempt_at'),
+    sentAt: ts('sent_at'),
+    telegramMessageId: integer('telegram_message_id'),
+    error: text('error'),
+    updatedAt: ts('updated_at'),
   },
-  (t) => [uniqueIndex('notification_log_unique').on(t.userId, t.kind, t.day)],
+  (t) => [uniqueIndex('notification_log_unique').on(t.userId, t.kind, t.day), index('notification_log_status_idx').on(t.status, t.nextAttemptAt)],
 );
+
+/** Оброблені update_id вебхука Telegram: повторна доставка того самого оновлення не відповідає вдруге. Старі рядки прибирає cron. */
+export const telegramUpdates = sqliteTable('telegram_updates', {
+  updateId: integer('update_id').primaryKey(),
+  createdAt: createdAt(),
+});
 
 // ───────────────────────── Місії «Польська в житті» ─────────────────────────
 

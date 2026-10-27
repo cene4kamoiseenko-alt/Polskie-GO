@@ -1,32 +1,27 @@
-/** Webhook Telegram-бота: /start, платежі Stars. */
+/**
+ * Webhook Telegram-бота: команды (фото + текст + кнопки Mini App), платежі Stars і повернення.
+ * Повторна доставка того самого update_id не відповідає вдруге; про тимчасові збої Telegram (429, 5xx, мережа)
+ * сервер відповідає 503, і Telegram повторює оновлення.
+ */
 import { Hono } from 'hono';
 import { timingSafeEqual } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { config } from '../env';
 import { db } from '../db';
-import { userSettings, users } from '../db/schema';
+import { telegramUpdates } from '../db/schema';
 import { body, type AppEnv } from '../hono';
 import { HttpError } from '../lib/errors';
-import { botApi } from '../lib/telegram';
+import { botApi, TelegramError } from '../lib/telegram';
+import { handleBotMessage, type BotMessage } from '../bot/handler';
 import { handlePreCheckout, handleRefund, handleSuccessfulPayment, type SuccessfulPayment } from '../services/payments';
 
 type Update = {
   update_id: number;
-  message?: {
-    chat: { id: number };
-    from?: { id: number; first_name?: string; language_code?: string };
-    text?: string;
+  message?: BotMessage & {
     successful_payment?: SuccessfulPayment;
     refunded_payment?: { telegram_payment_charge_id: string };
   };
   pre_checkout_query?: { id: string; from: { id: number }; currency: string; total_amount: number; invoice_payload: string };
-};
-
-const WELCOME: Record<string, string> = {
-  uk: '🦫 Cześć! Я бобер Бобек. Разом подорожуватимемо Польщею і вивчатимемо польську!\n\nВивчай польську. Подорожуй. Перемагай!',
-  ru: '🦫 Cześć! Я бобр Бобек. Вместе будем путешествовать по Польше и учить польский!',
-  en: '🦫 Cześć! I\'m Bobek the beaver. Let\'s travel around Poland and learn Polish together!',
-  pl: '🦫 Cześć! Jestem bóbr Bobek. Razem będziemy podróżować po Polsce i uczyć się polskiego!',
 };
 
 function safeEqual(a: string, b: string) {
@@ -34,6 +29,28 @@ function safeEqual(a: string, b: string) {
   const y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
 }
+
+/** Зайняти update_id: false — це оновлення вже обробляли. Якщо базу не прочитати, обробляємо без захисту від дубля. */
+async function claimUpdate(updateId: number): Promise<boolean> {
+  if (!Number.isSafeInteger(updateId)) return true;
+  try {
+    const rows = await db.insert(telegramUpdates).values({ updateId }).onConflictDoNothing().returning({ id: telegramUpdates.updateId });
+    return rows.length > 0;
+  } catch (e) {
+    console.warn('bot: update dedupe unavailable', (e as Error).message);
+    return true;
+  }
+}
+
+async function releaseUpdate(updateId: number) {
+  try {
+    await db.delete(telegramUpdates).where(eq(telegramUpdates.updateId, updateId));
+  } catch (e) {
+    console.warn('bot: cannot release update', (e as Error).message);
+  }
+}
+
+const isTransient = (e: unknown) => e instanceof TelegramError && (e.code === 0 || e.code === 429 || e.code >= 500);
 
 export const telegramRoutes = new Hono<AppEnv>();
 
@@ -60,23 +77,20 @@ telegramRoutes.post('/webhook', async (c) => {
     await handleRefund(msg.refunded_payment.telegram_payment_charge_id);
     return c.json({ ok: true });
   }
-  if (msg?.text?.startsWith('/start')) {
-    const param = msg.text.split(' ')[1];
-    const lang = (msg.from?.language_code ?? 'uk').slice(0, 2);
-    const url = new URL(config.webAppUrl);
-    if (param) url.searchParams.set('startapp', param);
-    await botApi('sendMessage', {
-      chat_id: msg.chat.id,
-      text: WELCOME[lang] ?? WELCOME.uk,
-      reply_markup: { inline_keyboard: [[{ text: '🚀 POLSKI GO', web_app: { url: url.toString() } }]] },
-    });
-    return c.json({ ok: true });
-  }
-  if (msg?.text === '/stop' && msg.from) {
-    // Відмова від нагадувань.
-    const user = await db.query.users.findFirst({ where: eq(users.telegramId, msg.from.id) });
-    if (user) await db.update(userSettings).set({ notificationsEnabled: false }).where(eq(userSettings.userId, user.id));
-    await botApi('sendMessage', { chat_id: msg.chat.id, text: '🔕 Нагадування вимкнено.' });
+
+  if (msg && typeof msg.text === 'string' && msg.from) {
+    if (!(await claimUpdate(update.update_id))) return c.json({ ok: true, duplicate: true });
+    try {
+      await handleBotMessage(msg);
+    } catch (e) {
+      if (isTransient(e)) {
+        // Нічого не доставлено через тимчасовий збій: знімаємо мітку й просимо Telegram повторити.
+        await releaseUpdate(update.update_id);
+        throw new HttpError(503, 'telegram_unavailable');
+      }
+      // Бота заблоковано (403), запит відхилено або помилка коду: повтор нічого не змінить.
+      console.warn('bot: message not handled', (e as Error).message);
+    }
   }
   return c.json({ ok: true });
 });

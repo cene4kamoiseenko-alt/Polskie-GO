@@ -53,15 +53,51 @@ export function signInitData(fields: Record<string, string>, botToken: string): 
   return params.toString();
 }
 
-/** Виклик Telegram Bot API. */
-export async function botApi<T = unknown>(method: string, params: Record<string, unknown>): Promise<T> {
+/**
+ * Відмова Bot API. code — HTTP-код Telegram (400 запит відхилено, 403 бота заблоковано, 429 ліміт з retryAfter у секундах,
+ * 5xx збій Telegram). code = 0 — мережа, тайм-аут або відповідь не JSON: невідомо, чи дійшов запит, а ключа ідемпотентності
+ * в Telegram немає, тому такий результат не повторюють автоматично (`ambiguous`).
+ */
+export class TelegramError extends Error {
+  constructor(
+    public method: string,
+    public code: number,
+    public description: string,
+    public retryAfter: number | null = null,
+  ) {
+    super(`Telegram ${method} failed: ${description}`);
+  }
+  get ambiguous() {
+    return this.code === 0;
+  }
+}
+
+/** Токен бота не має потрапляти в журнали й помилки. */
+function scrub(text: string): string {
+  const token = config.botToken;
+  return token ? text.split(token).join('***') : text;
+}
+
+/** Виклик Telegram Bot API. Помилки — TelegramError (підклас Error, повідомлення як раніше). */
+export async function botApi<T = unknown>(method: string, params: Record<string, unknown>, timeoutMs = 10_000): Promise<T> {
   if (!config.botToken) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
-  const res = await fetch(`https://api.telegram.org/bot${config.botToken}/${method}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  const body = (await res.json()) as { ok: boolean; result?: T; description?: string };
-  if (!body.ok) throw new Error(`Telegram ${method} failed: ${body.description ?? res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(`https://api.telegram.org/bot${config.botToken}/${method}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (e) {
+    throw new TelegramError(method, 0, scrub(`network: ${(e as Error).message}`));
+  }
+  let body: { ok: boolean; result?: T; description?: string; error_code?: number; parameters?: { retry_after?: number } };
+  try {
+    body = await res.json();
+  } catch {
+    throw new TelegramError(method, res.status >= 400 ? res.status : 0, `bad response ${res.status}`);
+  }
+  if (!body.ok) throw new TelegramError(method, body.error_code ?? res.status, scrub(body.description ?? String(res.status)), body.parameters?.retry_after ?? null);
   return body.result as T;
 }

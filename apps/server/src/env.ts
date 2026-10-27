@@ -77,6 +77,10 @@ export const config = {
   get botUsername() {
     return str(env.TELEGRAM_BOT_USERNAME).replace(/^@/, '') || 'polski_go_bot';
   },
+  /** Имя бота задано явно (иначе в группах не фильтруем команды вида /lesson@Bot). */
+  get botUsernameConfigured() {
+    return !!str(env.TELEGRAM_BOT_USERNAME).replace(/^@/, '');
+  },
   get appShortName() {
     return str(env.TELEGRAM_APP_SHORT_NAME) || 'app';
   },

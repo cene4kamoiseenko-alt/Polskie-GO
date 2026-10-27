@@ -57,6 +57,13 @@
       "when": 1792967671841,
       "tag": "0007_pron_hint",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793066305109,
+      "tag": "0008_bot_delivery",
+      "breakpoints": true
     }
   ]
 }
