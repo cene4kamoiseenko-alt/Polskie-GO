@@ -44,7 +44,7 @@ export function unfinishedAssets(root: string) {
   const storeScenes = Object.values(SCENE_ART).filter((s) => s.bakedBobek || s.status !== 'final');
   const layers = (['etalon-1', 'etalon-2'] as const).map((id) => ({ id, missing: missingForMilestone(id) }));
   const wardrobe = (read(root, 'assets/wardrobe/WARDROBE_CATALOG.json') as { items: WardrobeItem[] }).items;
-  const missions = [...MISSIONS.map((m) => ({ slug: m.slug, scene: m.scene, soon: false, title: m.title.ru })), ...MISSIONS_SOON.map((m) => ({ slug: m.slug, scene: m.scene, soon: true, title: m.title.ru }))].map((m) => {
+  const missions = [...MISSIONS.map((m) => ({ slug: m.slug, scene: m.scene, soon: false, title: m.title.ru ?? m.title.uk })), ...MISSIONS_SOON.map((m) => ({ slug: m.slug, scene: m.scene, soon: true, title: m.title.ru ?? m.title.uk }))].map((m) => {
     const art = SCENE_ART[MISSION_SCENE_ART[m.slug] ?? ''];
     const brief = MISSION_BACKGROUND_BRIEF[m.slug];
     return { ...m, current: art ? `${art.id} (${art.status}, Бобек в кадре)` : `SVG «${m.scene}»`, action: brief?.action ?? '', background: brief?.background ?? '' };
