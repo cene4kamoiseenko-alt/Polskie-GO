@@ -8,6 +8,7 @@ import { LIFE_VOCAB } from './vocab-life';
 import { EDU_VOCAB } from './vocab-education';
 import { KRAKOW_VOCAB } from './vocab-krakow';
 import { WARSZAWA_VOCAB } from './vocab-warszawa';
+import { KATOWICE_VOCAB } from './vocab-katowice';
 import { LODZ_VOCAB } from './vocab-lodz';
 import { WROCLAW_VOCAB } from './vocab-wroclaw';
 
@@ -337,5 +338,6 @@ export const VOCAB: VocabSeed[] = [
   ...KRAKOW_VOCAB,
   ...WARSZAWA_VOCAB,
   ...LODZ_VOCAB,
+  ...KATOWICE_VOCAB,
   ...WROCLAW_VOCAB,
 ];

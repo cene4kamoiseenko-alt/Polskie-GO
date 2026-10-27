@@ -11,6 +11,17 @@ export type TextFix = { table: 'city_routes' | 'lessons'; slug: string; column: 
 export type LessonMove = { lesson: string; from: string; to: string; order: number };
 
 export const TEXT_FIXES: TextFix[] = [
+  // Катовіце: назви перших двох уроків були польськими в усіх мовах (аудит 2026-10-27).
+  {
+    table: 'lessons', slug: 'kat-1-transport', column: 'title',
+    from: t('Jadę tramwajem', 'Jadę tramwajem', 'Jadę tramwajem'),
+    to: t('Їду трамваєм', 'Еду на трамвае', 'I go by tram'),
+  },
+  {
+    table: 'lessons', slug: 'kat-2-isc-jechac', column: 'title',
+    from: t('Iść, chodzić, jechać, jeździć', 'Iść, chodzić, jechać, jeździć', 'Iść, chodzić, jechać, jeździć'),
+    to: t('Іти, ходити, їхати, їздити', 'Идти, ходить, ехать, ездить', 'Walking and going by vehicle'),
+  },
   // Квиток з іспиту веде до наступного міста маршруту (Warszawa → Łódź → Kraków → Katowice → Opole → Wrocław → Poznań).
   {
     table: 'city_routes', slug: 'waw-egzamin', column: 'description',

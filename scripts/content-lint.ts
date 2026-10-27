@@ -140,6 +140,11 @@ const PLAIN_OK: Record<string, string[]> = {
   'Навмисний неправильний варіант на відмінок (називний замість знахідного чи орудного); правильна відповідь — інший варіант': [
     'waw-f1-kawa#4 cytryna', 'krk-z1-produkty#7 woda', 'krk-z1-produkty#14 woda', 'krk-z5-misja#3 woda', 'krk-z5-misja#5 woda', 'krk-re2-zamawianie#4 pomidorowa',
   ],
+  'Називний відмінок у парі, дистракторі чи годині та 3-тя особа: hulajnoga, ścieżka rowerowa, paczka, poczta, dwunasta (12:20), chce, potrzebuje': [
+    'kat-6-hulajnoga#2 hulajnoga', 'kat-6-hulajnoga#7 rowerowa', 'kat-6-hulajnoga#9 hulajnoga', 'kat-6-hulajnoga#9 rowerowa',
+    'kat-8-poczta#1 paczka', 'kat-8-poczta#2 paczka', 'kat-8-poczta#3 poczta', 'kat-8-poczta#11 poczta', 'kat-8-poczta#8 chce', 'kat-8-poczta#9 potrzebuje',
+    'krk-d4-peron#12 dwunasta',
+  ],
   'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': [
     'krk-h1-recepcja#11 maja', 'krk-h1-recepcja#12 maja', 'krk-h5-misja#3 maja', 'krk-u4-biblioteka#10 maja', 'krk-u4-biblioteka#14 maja',
   ],

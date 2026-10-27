@@ -1,8 +1,9 @@
 /**
  * Katowice — A1: рух і дії. Транспорт + орудний відмінок і do/na, дієслова руху,
- * wiedzieć / znać, tę / tą (норма і розмовна практика).
+ * wiedzieć / znać, tę / tą (норма і розмовна практика). Уроки 5–13 — katowice-5-13.ts (поїздки, пошта, квартира, дзвінки).
  */
 import { t, wordChoice, fillGap, listen, findError, oddOne, reading, translate, grammar, build, match, speak, dialogue } from './builders';
+import { KATOWICE_ROUTES_5_13 } from './katowice-5-13';
 import type { CityContent } from './types';
 
 const ZOSIA = { name: 'Zosia', emoji: '👩🏻', role: t('колега з роботи', 'коллега с работы', 'a colleague') };
@@ -19,7 +20,7 @@ export const KATOWICE: CityContent = {
       lessons: [
         {
           slug: 'kat-1-transport',
-          title: t('Jadę tramwajem', 'Jadę tramwajem', 'Jadę tramwajem'),
+          title: t('Їду трамваєм', 'Еду на трамвае', 'I go by tram'),
           topic: t('Транспорт: орудний відмінок; do і na', 'Транспорт: творительный падеж; do и na', 'Transport: instrumental; do and na'),
           cefr: 'A1',
           difficulty: 2,
@@ -72,7 +73,7 @@ export const KATOWICE: CityContent = {
         },
         {
           slug: 'kat-2-isc-jechac',
-          title: t('Iść, chodzić, jechać, jeździć', 'Iść, chodzić, jechać, jeździć', 'Iść, chodzić, jechać, jeździć'),
+          title: t('Іти, ходити, їхати, їздити', 'Идти, ходить, ехать, ездить', 'Walking and going by vehicle'),
           topic: t('Дієслова руху', 'Глаголы движения', 'Verbs of motion'),
           cefr: 'A1',
           difficulty: 3,
@@ -222,6 +223,7 @@ export const KATOWICE: CityContent = {
         },
       ],
     },
+    ...KATOWICE_ROUTES_5_13,
     {
       slug: 'kat-egzamin',
       title: t('Іспит Катовіце', 'Экзамен Катовице', 'Katowice exam'),

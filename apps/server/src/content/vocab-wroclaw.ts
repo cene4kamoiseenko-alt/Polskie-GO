@@ -83,8 +83,6 @@ export const WROCLAW_VOCAB: VocabSeed[] = [
     ['Składam reklamację, bo zamek jest zepsuty.', 'Подаю рекламацію, бо замок зламаний.', 'Подаю рекламацию, потому что молния сломана.', 'I\'m filing a complaint because the zip is broken.'], { acc: 'reklamację' }),
   w('wyprzedaż', 'noun', 'розпродаж', 'распродажа', 'sale', ['shopping'],
     ['Na wyprzedaży wszystko jest o połowę tańsze.', 'На розпродажі все вдвічі дешевше.', 'На распродаже всё в два раза дешевле.', 'In the sale everything is half price.'], { loc: 'na wyprzedaży' }),
-  w('zepsuty', 'adj', 'зламаний, зіпсований', 'сломанный, испорченный', 'broken, faulty', ['shopping'],
-    ['Zamek w kurtce jest zepsuty.', 'Блискавка на куртці зламана.', 'Молния на куртке сломана.', 'The zip on the jacket is broken.'], { f: 'zepsuta', n: 'zepsute' }),
   w('gwarancja', 'noun', 'гарантія', 'гарантия', 'warranty', ['shopping'],
     ['Buty mają dwa lata gwarancji.', 'На взуття два роки гарантії.', 'На обувь два года гарантии.', 'The shoes have a two-year warranty.']),
   w('zniżka', 'noun', 'знижка', 'скидка', 'discount', ['shopping'],
@@ -175,8 +173,6 @@ export const WROCLAW_VOCAB: VocabSeed[] = [
     ['Na Wyspie Słodowej siedzą studenci.', 'На острові Слодовому сидять студенти.', 'На острове Слодовом сидят студенты.', 'Students hang out on Słodowa Island.'], { loc: 'na wyspie' }),
   w('zdjęcie', 'noun', 'фото, світлина', 'фото, снимок', 'photo', ['city', 'travel'],
     ['Zrób mi zdjęcie z krasnalem!', 'Сфотографуй мене з гномом!', 'Сфотографируй меня с гномом!', 'Take a photo of me with the gnome!'], { pl: 'zdjęcia' }),
-  w('znaleźć', 'verb', 'знайти', 'найти', 'to find', ['city', 'phrases'],
-    ['Nie mogę znaleźć tego krasnala.', 'Не можу знайти цього гнома.', 'Не могу найти этого гнома.', 'I can\'t find this gnome.'], { ja: 'znajdę', past_m: 'znalazłem', past_f: 'znalazłam' }),
   w('ładny', 'adj', 'гарний, гарненький', 'красивый, симпатичный', 'pretty, nice', ['city', 'clothes'],
     ['Jaki ładny krasnal!', 'Який гарненький гном!', 'Какой симпатичный гном!', 'What a pretty gnome!'], { f: 'ładna', n: 'ładne' }),
 

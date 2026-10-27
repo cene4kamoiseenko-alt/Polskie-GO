@@ -10,6 +10,9 @@ const LODZ_5_8 = ['lodz-5-gdzie-pracujesz', 'lodz-6-szukam-pracy', 'lodz-7-rozmo
 /** Вроцлав до розширення (уроки 1–4): кафе, Żabka, ціни, ресторан. Нові — одяг, ринок, вечір, подарунки, повторення (5–16). */
 const WROCLAW_1_4 = ['wro-1-kawa', 'wro-2-zabka', 'wro-3-ceny', 'wro-4-restauracja'];
 
+/** Катовіце до розширення (уроки 1–4): транспорт, дієслова руху, wiedzieć / znać, tę / tą. Нові — уроки 5–13. */
+const KATOWICE_1_4 = ['kat-1-transport', 'kat-2-isc-jechac', 'kat-3-wiedziec-znac', 'kat-4-te-ta'];
+
 export const LEGACY_CITY_LESSONS: Record<string, string[][]> = {
   warszawa: [['waw-1-czesc', 'waw-2-uprzejmosc', 'waw-3-imie', 'waw-4-skad', 'waw-5-liczby', 'waw-6-wiek']],
   krakow: [['krk-1-rodzina', 'krk-2-mam', 'krk-3-dom', 'krk-4-tydzien', 'krk-5-byc']],
@@ -17,6 +20,8 @@ export const LEGACY_CITY_LESSONS: Record<string, string[][]> = {
   lodz: [LODZ_1_4, [...LODZ_1_4, ...LODZ_5_8]],
   // Вроцлав: до теми одягу й ринку (уроки 1–4).
   wroclaw: [WROCLAW_1_4],
+  // Катовіце: до поїздок, пошти, квартири й дзвінків (уроки 1–4).
+  katowice: [KATOWICE_1_4],
 };
 
 /**
@@ -26,5 +31,6 @@ export const LEGACY_CITY_LESSONS: Record<string, string[][]> = {
  * хто пройшов їх після тодішнього розширення, і нове правило не має його закривати.
  * Розширення Лодзі: тема lodz-praca (уроки 5–8) і теми уроків 9–16 — обидва 2026-10.
  * Розширення Вроцлава: уроки 5–16 (маршрути wro-ubrania … wro-powtorka) — 2026-10.
+ * Розширення Катовіце: уроки 5–13 (маршрути kat-podroze … kat-rozmowa) — 2026-10.
  */
-export const LEGACY_BEFORE_EXPANSION: ReadonlySet<string> = new Set(['lodz', 'wroclaw']);
+export const LEGACY_BEFORE_EXPANSION: ReadonlySet<string> = new Set(['lodz', 'wroclaw', 'katowice']);
