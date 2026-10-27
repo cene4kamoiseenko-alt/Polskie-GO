@@ -103,6 +103,30 @@
 - Скрипты реальных снимков на 320 / 360 / 390 / 430: `scripts/city-screens.ts`, `scripts/mission-screens.ts`, `scripts/wardrobe-screens.ts` (результат — `test-results/`, не в git).
 - **Не запушено.** Пуш в ветку деплоит на production; решение — за владельцем.
 
+## Передача Opus — единая модель Бобека (готовый контракт экрана)
+
+Экран гардероба и сервер уже стоят на ядре образа; Opus реализует **рендерер слоёв и сами слои**, не переписывая экран. Читать по порядку:
+
+1. `docs/WARDROBE_UI_CONTRACT.md` — таблица «требование → код → проверка», контракт данных (`ShopItem`, `visualStatus`, `POST /api/inventory/equip`, `outfit.wear`, `tryOn`), **две точки замены** (`ItemArt` и `costumeCard` в `apps/web/src/screens/Shop.tsx`).
+2. `docs/ADR-005-PAINTERLY-BEAVER.md` и `docs/ARCHITECTURE_DECISIONS.md` (ADR-005, ADR-007) — холст 1024, якоря, слоты, правила `equip()`, этапы M4 (конвейер импорта и `etalon-1`) и M5 (`etalon-2`).
+3. `docs/UNFINISHED_ASSETS.md`, раздел 4 — точный список недостающих слоёв: `etalon-1` 18 частей, `etalon-2` 8 частей (строит `missingForMilestone`), плюс вещи гардероба без ресурса.
+
+Что уже работает и не трогать: `packages/shared/src/look` (`resolveLook`, `tryOn`, `equip`, `unequip`, `canPurchase`), `BeaverLook`/`Beaver` (единственный способ нарисовать Бобека, `data-look-*`), правила покупки и надевания на сервере (`services/shop.ts`, 13 тестов `shop-look.test.ts`), экран гардероба (124 проверки `scripts/wardrobe-screens.ts`).
+
+Что делать Opus: слои для `etalon-1` и `etalon-2` → записи в `packages/shared/src/look/manifest.ts` (вещь переходит в `ready`); в `ItemArt` для `ready`-вещей миниатюра слоя вместо значка (`lookAssetUrl`); в `costumeCard` сцена по `tryOn` вместо картинки цельного костюма, когда костюм становится слоями; убрать `legacy-whole-look` у костюмов по мере готовности.
+
+Запрещено: отдельные картинки под каждый костюм, свой упрощённый SVG-Бобек, подмена образа на экране, изменение цен и экономики без решения владельца.
+
+Как принять работу: `npm run typecheck`; `npm test` (в частности `look-catalog`, `shop-look`, `visual-keys`); `node --import tsx scripts/wardrobe-screens.ts` (320/360/390/430); `npm run e2e` (L1 один образ на всех экранах, L2 вещь без слоя, M2 примерка и покупка); после смены статусов — `node --import tsx scripts/unfinished-assets.ts`, иначе `unfinished-assets.test.ts` упадёт.
+
+## Закрытие сессии Sonnet 2026-10-27 — что добавлено после отчёта
+
+- **Отказ Telegram по картинке не ломает отправку:** `apps/server/test/bot-image-fallback.test.ts` (41 тест): каждый путь картинки существует и JPEG 1280×720; 9 команд × 4 языка при отказе 400/404 → тот же текст и кнопки сообщением; быстрый вопрос; адрес без HTTPS. Блокировка бота (403) и сбой Telegram картинкой не маскируются.
+- **Перечень незавершённых ассетов** — `docs/UNFINISHED_ASSETS.md`: 10 фонов городов, 11 сцен бота, 5 кадров магазинов, 26 слоёв Бобека. Строится командой `node --import tsx scripts/unfinished-assets.ts`; `unfinished-assets.test.ts` падает, если документ разошёлся с кодом и манифестами.
+- **Staging** — `docs/STAGING.md`, `wrangler.staging.jsonc`, `scripts/staging-guard.mjs`, `npm run staging:check | staging:local | deploy:staging`, `apps/server/test/staging.test.ts` (23), ручной `.github/workflows/staging.yml`. Свой Worker и своя D1, без cron, боевой токен бота игнорируется (`STAGING_BOT_ID`). **Удалённый деплой не выполнялся:** шаги для владельца — раздел 5 документа.
+- Манифест `assets/cities/CITY_ASSET_MANIFEST.json`: счётчики уроков Katowice, Opole, Wrocław обновлены.
+- Git bundle для передачи между сессиями — путь и SHA в итоговом отчёте сессии и в `PROJECT_PROGRESS.md`, «CLOSE-OUT». Пуша в production не было.
+
 ## Результаты тестов
 
 Прогон 2026-10-26, V9 этап 7 (Łódź, уроки 9–16) поверх `15bf704`, без незаконченной работы агентов (она в `git stash`):
