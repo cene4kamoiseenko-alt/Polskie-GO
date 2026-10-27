@@ -1,8 +1,10 @@
-/** Вроцлав — A1: покупки, кафе, ресторани. */
+/** Вроцлав — A1: покупки, кафе, ресторани; розширення (уроки 5–16): одяг, ринок, вечір, подарунки, повторення. */
 import {
   t, wordChoice, pictureChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading,
   translate, grammar, dictation, build, wordOrder, match, speak, dialogue,
 } from './builders';
+import { WROCLAW_ROUTES_5_10 } from './wroclaw-5-10';
+import { WROCLAW_ROUTES_11_16 } from './wroclaw-11-16';
 import type { CityContent } from './types';
 
 const BARISTA = { name: 'Bartek', emoji: '🧑🏻‍🍳', role: t('бариста у кав\'ярні', 'бариста в кофейне', 'a barista') };
@@ -210,6 +212,8 @@ export const WROCLAW: CityContent = {
         },
       ],
     },
+    ...WROCLAW_ROUTES_5_10,
+    ...WROCLAW_ROUTES_11_16,
     {
       slug: 'wro-egzamin',
       title: t('Іспит Вроцлава', 'Экзамен Вроцлава', 'Wrocław exam'),

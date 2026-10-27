@@ -1,14 +1,12 @@
 /**
- * Вроцлав, уроки 5–10 — ЧЕРНОВИК (не подключён к CITY_CONTENT, не попадает в seed).
- * Проверяется тестом apps/server/test/wroclaw-drafts.test.ts. Подключение — задача Sonnet/Opus:
- * добавить маршруты в wroclaw.ts перед wro-egzamin, слова — в VOCAB, затем content-lint и тест расширения.
- *
- * Маршруты: wro-ubrania (5–7), wro-targ (8–10). Иконки — существующие ключи apps/web/src/assets/icons.
+ * Вроцлав, уроки 5–10 (розширення курсу): маршрути wro-ubrania (5–7) і wro-targ (8–10).
+ * Підключені в wroclaw.ts перед іспитом; слова — vocab-wroclaw.ts. Тест — apps/server/test/wroclaw-content.test.ts.
+ * Іконки маршрутів — існуючі ключі apps/web/src/assets/icons.
  */
-import { t, wordChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue } from '../builders';
-import type { RouteSeed } from '../types';
+import { t, wordChoice, reverseChoice, pictureChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue } from './builders';
+import type { RouteSeed } from './types';
 
-export const WROCLAW_DRAFT_ROUTES_5_10: RouteSeed[] = [
+export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
   {
     slug: 'wro-ubrania',
     title: t('Одяг і примірочна', 'Одежда и примерочная', 'Clothes and the fitting room'),
@@ -33,7 +31,7 @@ export const WROCLAW_DRAFT_ROUTES_5_10: RouteSeed[] = [
         words: ['sukienka', 'spodnie', 'koszula', 'sweter', 'buty', 'kurtka', 'szalik', 'torebka', 'kolor', 'czerwony', 'czarny', 'biały'],
         exercises: [
           picture('vocab.clothes', '👕', ['koszula', 'sweter', 'kurtka']),
-          wordChoice('vocab.clothes', 'kurtka', [t('куртка', 'куртка', 'jacket'), t('пальто', 'пальто', 'coat'), t('штани', 'брюки', 'trousers')]),
+          pictureChoice('vocab.clothes', 'kurtka', [['🧥', t('куртка', 'куртка', 'jacket')], ['👗', t('сукня', 'платье', 'dress')], ['👟', t('кросівки', 'кроссовки', 'trainers')], ['👕', t('сорочка', 'рубашка', 'shirt')]]),
           reverseChoice('vocab.clothes', t('спідниця', 'юбка', 'skirt'), ['spódnica', 'sukienka', 'spodnie']),
           fillGap('grammar.adjectives', 'To jest ___ sukienka.', ['czerwona', 'czerwony', 'czerwone'], t('Це червона сукня.', 'Это красное платье.', 'This is a red dress.')),
           fillGap('grammar.adjectives', 'Chcę te ___ buty.', ['czerwone', 'czerwona', 'czerwony'], t('Я хочу ці червоні черевики.', 'Я хочу эти красные ботинки.', 'I want these red shoes.')),
@@ -89,7 +87,7 @@ export const WROCLAW_DRAFT_ROUTES_5_10: RouteSeed[] = [
         words: ['zwrócić', 'wymienić', 'reklamacja', 'zepsuty', 'gwarancja', 'paragon'],
         exercises: [
           wordChoice('vocab.returns', 'zwrócić', [t('повернути', 'вернуть', 'to return (an item)'), t('купити', 'купить', 'to buy'), t('приміряти', 'примерить', 'to try on')]),
-          reverseChoice('vocab.returns', t('чек', 'чек', 'receipt'), ['paragon', 'reklamacja', 'gwarancja']),
+          reverseChoice('vocab.returns', t('гарантія', 'гарантия', 'warranty'), ['gwarancja', 'reklamacja', 'paragon']),
           fillGap('grammar.adjectives', 'Ten telefon jest ___.', ['zepsuty', 'zepsuta', 'zepsute'], t('Цей телефон зламаний.', 'Этот телефон сломан.', 'This phone is broken.')),
           grammar('grammar.conditional', 'Ja ___ zwrócić tę koszulę.', 'chciałbym', ['chciałbym'], t('Я б хотів повернути цю сорочку.', 'Я бы хотел вернуть эту рубашку.', 'I would like to return this shirt.'),
             t('**Chciałbym** — для чоловіка; жінка скаже **chciałabym**.', '**Chciałbym** — для мужчины; женщина скажет **chciałabym**.', '**Chciałbym** is for a man; a woman says **chciałabym**.')),
@@ -140,6 +138,7 @@ export const WROCLAW_DRAFT_ROUTES_5_10: RouteSeed[] = [
         words: ['targ', 'kilo', 'deko', 'butelka', 'puszka', 'truskawki', 'śmietana', 'szynka', 'po ile?'],
         exercises: [
           wordChoice('vocab.market', 'targ', [t('ринок', 'рынок', 'open-air market'), t('магазин', 'магазин', 'shop'), t('кафе', 'кафе', 'café')]),
+          picture('vocab.market', '🍓', ['truskawki', 'szynka', 'śmietana']),
           reverseChoice('vocab.market', t('сметана', 'сметана', 'sour cream'), ['śmietana', 'szynka', 'ser']),
           fillGap('vocab.market', 'Po ___ są truskawki?', ['ile', 'co', 'gdzie'], t('Скільки коштують полуниці?', 'Сколько стоит клубника?', 'How much are the strawberries?')),
           fillGap('grammar.numerals', 'Poproszę dwie ___ wody.', ['butelki', 'butelka', 'butelek'], t('Дві пляшки води, будь ласка.', 'Две бутылки воды, пожалуйста.', 'Two bottles of water, please.')),

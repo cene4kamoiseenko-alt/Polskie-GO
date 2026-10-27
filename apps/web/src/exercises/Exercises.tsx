@@ -18,7 +18,8 @@ import type { Transcription } from '../lib/api';
 import { ApiError } from '../lib/api';
 import { SpeakButton, SpeakPill, Waveform, cx } from '../components/ui';
 import { PronHint } from '../components/PronHint';
-import { NpcFace, Pictogram } from '../components/pictograms/Pictogram';
+import { NpcFace } from '../components/pictograms/Pictogram';
+import { ArtPicture } from '../components/Illustrations';
 import { brandAsset } from '../lib/assets';
 
 const beaverFace = brandAsset('avatar');
@@ -222,7 +223,7 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
                 {o.image!.startsWith('/') || o.image!.startsWith('http') ? (
                   <img src={assetUrl(o.image!)} alt="" className="h-20 w-20 rounded-2xl object-cover" />
                 ) : (
-                  <Pictogram emoji={o.image} size={76} seed={o.id} />
+                  <ArtPicture emoji={o.image} size={76} seed={o.id} />
                 )}
                 <span className="text-center text-base">{tr(o.text)}</span>
               </motion.button>
@@ -242,7 +243,7 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
             <img src={assetUrl(data.image)} alt="" className="h-40 w-40 rounded-3xl object-cover" />
           ) : (
             <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="card grid h-40 w-40 place-items-center">
-              <Pictogram emoji={data.image} size={112} />
+              <ArtPicture emoji={data.image} size={112} />
             </motion.div>
           )}
         </div>

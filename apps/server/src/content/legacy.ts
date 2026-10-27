@@ -7,11 +7,16 @@
 const LODZ_1_4 = ['lodz-1-alfabet', 'lodz-2-dwuznaki', 'lodz-3-zawody', 'lodz-4-oni-one'];
 const LODZ_5_8 = ['lodz-5-gdzie-pracujesz', 'lodz-6-szukam-pracy', 'lodz-7-rozmowa', 'lodz-8-pierwszy-dzien'];
 
+/** Вроцлав до розширення (уроки 1–4): кафе, Żabka, ціни, ресторан. Нові — одяг, ринок, вечір, подарунки, повторення (5–16). */
+const WROCLAW_1_4 = ['wro-1-kawa', 'wro-2-zabka', 'wro-3-ceny', 'wro-4-restauracja'];
+
 export const LEGACY_CITY_LESSONS: Record<string, string[][]> = {
   warszawa: [['waw-1-czesc', 'waw-2-uprzejmosc', 'waw-3-imie', 'waw-4-skad', 'waw-5-liczby', 'waw-6-wiek']],
   krakow: [['krk-1-rodzina', 'krk-2-mam', 'krk-3-dom', 'krk-4-tydzien', 'krk-5-byc']],
   // Лодзь: до теми «Praca w Łodzi» (уроки 1–4) і до тем про графік, здоров'я та день (уроки 1–8).
   lodz: [LODZ_1_4, [...LODZ_1_4, ...LODZ_5_8]],
+  // Вроцлав: до теми одягу й ринку (уроки 1–4).
+  wroclaw: [WROCLAW_1_4],
 };
 
 /**
@@ -20,5 +25,6 @@ export const LEGACY_CITY_LESSONS: Record<string, string[][]> = {
  * Варшава й Краків лишаються на правилі 3.x (старі уроки в будь-який час): за ним іспит уже відкрився тим,
  * хто пройшов їх після тодішнього розширення, і нове правило не має його закривати.
  * Розширення Лодзі: тема lodz-praca (уроки 5–8) і теми уроків 9–16 — обидва 2026-10.
+ * Розширення Вроцлава: уроки 5–16 (маршрути wro-ubrania … wro-powtorka) — 2026-10.
  */
-export const LEGACY_BEFORE_EXPANSION: ReadonlySet<string> = new Set(['lodz']);
+export const LEGACY_BEFORE_EXPANSION: ReadonlySet<string> = new Set(['lodz', 'wroclaw']);

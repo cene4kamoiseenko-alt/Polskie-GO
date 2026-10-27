@@ -1,14 +1,11 @@
 /**
- * Вроцлав, уроки 11–16 — ЧЕРНОВИК (не подключён к CITY_CONTENT, не попадает в seed).
- * Проверяется тестом apps/server/test/wroclaw-drafts.test.ts. Подключение — задача Sonnet/Opus
- * (см. PROJECT_PROGRESS.md, раздел «Sonnet — следующие задачи»).
- *
- * Маршруты: wro-wieczor (11–13), wro-prezenty (14–15), wro-powtorka (16). Урок 16 — без новых слов.
+ * Вроцлав, уроки 11–16 (розширення курсу): wro-wieczor (11–13), wro-prezenty (14–15), wro-powtorka (16).
+ * Урок 16 — без нових слів. Підключені в wroclaw.ts перед іспитом; тест — apps/server/test/wroclaw-content.test.ts.
  */
-import { t, wordChoice, reverseChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue } from '../builders';
-import type { RouteSeed } from '../types';
+import { t, wordChoice, reverseChoice, pictureChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue } from './builders';
+import type { RouteSeed } from './types';
 
-export const WROCLAW_DRAFT_ROUTES_11_16: RouteSeed[] = [
+export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
   {
     slug: 'wro-wieczor',
     title: t('Вечір у Вроцлаві', 'Вечер во Вроцлаве', 'An evening in Wrocław'),
@@ -71,14 +68,14 @@ export const WROCLAW_DRAFT_ROUTES_11_16: RouteSeed[] = [
         ],
         words: ['słony', 'ostry', 'kwaśny', 'słodki', 'gorzki', 'smakować', 'pyszny', 'danie dnia', 'lody'],
         exercises: [
-          wordChoice('vocab.taste', 'słony', [t('солоний', 'соленый', 'salty'), t('солодкий', 'сладкий', 'sweet'), t('гіркий', 'горький', 'bitter')]),
+          wordChoice('vocab.taste', 'słony', [t('солоний', 'солёный', 'salty'), t('солодкий', 'сладкий', 'sweet'), t('гіркий', 'горький', 'bitter')]),
           reverseChoice('vocab.taste', t('гострий', 'острый', 'spicy'), ['ostry', 'słony', 'kwaśny']),
           fillGap('grammar.dative', 'Bardzo ___ smakuje ten barszcz.', ['mi', 'mnie', 'ja'], t('Мені дуже смакує цей борщ.', 'Мне очень нравится этот борщ.', 'I really like this borscht.')),
           findError('grammar.adjectives', ['Barszcz', 'jest', 'kwaśna'], 2, t('Борщ кислий.', 'Борщ кислый.', 'The borscht is sour.'),
             t('**barszcz** — чоловічий рід: **kwaśny**.', '**barszcz** — мужской род: **kwaśny**.', '**barszcz** is masculine: **kwaśny**.')),
           oddOne('vocab.taste', ['lody', 'ciasto', 'deser', 'zupa'], 3, t('**zupa** — суп, несолодка страва. Інші — солодке.', '**zupa** — суп, несладкое блюдо. Остальные — сладкое.', '**zupa** is soup, not sweet. The others are sweet.'), t('Що не солодке?', 'Что не сладкое?', 'Which one is not sweet?')),
           listen('listening.taste', 'Smakuje mi', ['Smakuje mi', 'Smakuje mnie', 'Smakuje ci']),
-          build('grammar.dative', 'Te pierogi bardzo mi smakują.', t('Ці вареники мені дуже смакують.', 'Эти пельмени мне очень нравятся.', 'I really like these pierogi.'), ['smakuje', 'kwaśny']),
+          build('grammar.dative', 'Te pierogi bardzo mi smakują.', t('Ці вареники мені дуже смакують.', 'Эти вареники мне очень нравятся.', 'I really like these pierogi.'), ['smakuje', 'kwaśny']),
           translate('writing.taste', t('Мені дуже смакує суп.', 'Мне очень нравится суп.', 'I really like the soup.'), ['Bardzo mi smakuje zupa', 'Zupa bardzo mi smakuje', 'Bardzo mi smakuje zupa.']),
           match('vocab.taste', [['ostry', t('гострий', 'острый', 'spicy')], ['słodki', t('солодкий', 'сладкий', 'sweet')], ['lody', t('морозиво', 'мороженое', 'ice cream')], ['danie dnia', t('страва дня', 'блюдо дня', 'dish of the day')]]),
         ],
@@ -136,7 +133,7 @@ export const WROCLAW_DRAFT_ROUTES_11_16: RouteSeed[] = [
         ],
         words: ['prezent', 'podobać się', 'zapakować', 'wybrać', 'pamiątka'],
         exercises: [
-          wordChoice('vocab.gifts', 'prezent', [t('подарунок', 'подарок', 'gift'), t('покупка', 'покупка', 'purchase'), t('чек', 'чек', 'receipt')]),
+          picture('vocab.gifts', '🎁', ['prezent', 'paragon', 'koszyk']),
           fillGap('grammar.dative', 'Podoba ___ się ten szalik.', ['mi', 'mnie', 'ja'], t('Мені подобається цей шарф.', 'Мне нравится этот шарф.', 'I like this scarf.')),
           findError('grammar.dative', ['Podoba', 'mnie', 'się', 'ten', 'szalik'], 1, t('Мені подобається цей шарф.', 'Мне нравится этот шарф.', 'I like this scarf.'),
             t('Після **podoba się** — **mi**, а не **mnie**.', 'После **podoba się** — **mi**, а не **mnie**.', 'After **podoba się** it is **mi**, not **mnie**.')),
@@ -160,7 +157,7 @@ export const WROCLAW_DRAFT_ROUTES_11_16: RouteSeed[] = [
         ),
         examples: [
           { pl: 'Ten sweter jest droższy niż tamten.', tr: t('Цей светр дорожчий, ніж той.', 'Этот свитер дороже, чем тот.', 'This sweater is more expensive than that one.') },
-          { pl: 'Wolę tę kurtkę, bo jest lepsza.', tr: t('Я вибираю цю куртку, бо вона краща.', 'Я выберу эту куртку, потому что она лучше.', 'I prefer this jacket because it\'s better.') },
+          { pl: 'Wolę tę kurtkę, bo jest lepsza.', tr: t('Я віддаю перевагу цій куртці, бо вона краща.', 'Я предпочитаю эту куртку, потому что она лучше.', 'I prefer this jacket because it\'s better.') },
         ],
         words: ['tańszy', 'droższy', 'lepszy', 'najlepszy', 'modny', 'wybrać'],
         exercises: [
@@ -170,7 +167,7 @@ export const WROCLAW_DRAFT_ROUTES_11_16: RouteSeed[] = [
           findError('grammar.adjectives', ['Ten', 'sweter', 'jest', 'droższa', 'niż', 'tamten'], 3, t('Цей светр дорожчий, ніж той.', 'Этот свитер дороже, чем тот.', 'This sweater is more expensive than that one.'),
             t('**sweter** — чоловічий рід: **droższy**.', '**sweter** — мужской род: **droższy**.', '**sweter** is masculine: **droższy**.')),
           oddOne('vocab.compare', ['tańszy', 'droższy', 'lepszy', 'modny'], 3, t('**modny** — звичайна форма, а не вищий ступінь.', '**modny** — обычная форма, а не сравнительная.', '**modny** is in the base form, not the comparative.'), t('Що зайве? (вищий ступінь)', 'Что лишнее? (сравнительная степень)', 'Which one is not a comparative?')),
-          build('grammar.adjectives', 'Wolę tę kurtkę, bo jest lepsza.', t('Я вибираю цю куртку, бо вона краща.', 'Я выберу эту куртку, потому что она лучше.', 'I prefer this jacket because it\'s better.'), ['tańszy', 'droższa']),
+          build('grammar.adjectives', 'Wolę tę kurtkę, bo jest lepsza.', t('Я віддаю перевагу цій куртці, бо вона краща.', 'Я предпочитаю эту куртку, потому что она лучше.', 'I prefer this jacket because it\'s better.'), ['tańszy', 'droższa']),
           listen('listening.compare', 'najlepszy wybór', ['najlepszy wybór', 'najmniejszy wybór', 'najtańszy wybór']),
           match('vocab.compare', [['droższy', t('дорожчий', 'дороже', 'more expensive')], ['tańszy', t('дешевший', 'дешевле', 'cheaper')], ['lepszy', t('кращий', 'лучше', 'better')], ['modny', t('модний', 'модный', 'fashionable')]]),
         ],
@@ -215,11 +212,11 @@ export const WROCLAW_DRAFT_ROUTES_11_16: RouteSeed[] = [
           ]),
           fillGap('grammar.dative', 'Podoba ___ się ten kolor?', ['ci', 'cię', 'ty'], t('Тобі подобається цей колір?', 'Тебе нравится этот цвет?', 'Do you like this colour?')),
           findError('grammar.numerals', ['Poproszę', 'dwie', 'kawa'], 2, t('Дві кави, будь ласка.', 'Два кофе, пожалуйста.', 'Two coffees, please.'),
-            t('Після **dwie** (2–4) — родовий однини: **kawy**.', 'После **dwie** (2–4) — родительный единственного: **kawy**.', 'After **dwie** (2–4) the genitive singular is used: **kawy**.')),
+            t('Після **dwie** (2–4) іменник стоїть у множині: **kawy**, а не **kawa**.', 'После **dwie** (2–4) существительное стоит во множественном числе: **kawy**, а не **kawa**.', 'After **dwie** (2–4) the noun is plural: **kawy**, not **kawa**.')),
           match('vocab.review', [['paragon', t('чек', 'чек', 'receipt')], ['reszta', t('решта', 'сдача', 'change')], ['rozmiar', t('розмір', 'размер', 'size')], ['przymierzalnia', t('примірочна', 'примерочная', 'fitting room')], ['krasnal', t('гном', 'гном', 'gnome')], ['wyprzedaż', t('розпродаж', 'распродажа', 'sale')]]),
           listen('listening.review', 'Ile kosztuje ta koszula?', ['Ile kosztuje ta koszula?', 'Ile kosztuje ta kolacja?', 'Ile kosztuje ta kawa?']),
-          build('vocab.review', 'Czy mogę zapłacić kartą?', t('Чи можна заплатити карткою?', 'Можно заплатить картой?', 'Can I pay by card?'), ['gotówką', 'reszta']),
-          translate('writing.review', t('Мені потрібен більший розмір, будь ласка.', 'Мне нужен размер побольше, пожалуйста.', 'I need a bigger size, please.'), ['Szukam większego rozmiaru, proszę.', 'Potrzebuję większego rozmiaru.', 'Szukam większego rozmiaru']),
+          build('vocab.review', 'Czy mogę przymierzyć tę kurtkę?', t('Чи можу я приміряти цю куртку?', 'Можно мне примерить эту куртку?', 'May I try on this jacket?'), ['zapłacić', 'kartą']),
+          translate('writing.review', t('Мені потрібен більший розмір, будь ласка.', 'Мне нужен размер побольше, пожалуйста.', 'I need a bigger size, please.'), ['Szukam większego rozmiaru, proszę.', 'Potrzebuję większego rozmiaru.', 'Potrzebuję większego rozmiaru, proszę.', 'Szukam większego rozmiaru']),
           dictation('writing.review', 'Chciałbym zarezerwować stolik na dwie osoby.', t('Я б хотів забронювати столик на двох.', 'Я бы хотел забронировать столик на двоих.', 'I would like to book a table for two.')),
         ],
       },

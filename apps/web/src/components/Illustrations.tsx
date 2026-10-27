@@ -20,7 +20,8 @@ const P = {
 export type ItemName =
   | 'zurek' | 'pierogi' | 'parowki' | 'bigos' | 'placki' | 'zapiekanka' | 'paczki' | 'sernik'
   | 'hotdog' | 'water' | 'coffee' | 'receipt' | 'card' | 'parcel' | 'ticket' | 'tram' | 'train' | 'pump' | 'basket' | 'bag'
-  | 'shampoo' | 'bread' | 'locker' | 'headphones' | 'bridge' | 'book-clock' | 'speech' | 'paws' | 'backpack' | 'map' | 'beaver-map' | 'dishes';
+  | 'shampoo' | 'bread' | 'locker' | 'headphones' | 'bridge' | 'book-clock' | 'speech' | 'paws' | 'backpack' | 'map' | 'beaver-map' | 'dishes'
+  | 'shirt' | 'jacket' | 'shoes' | 'dress' | 'gift' | 'scale' | 'strawberries';
 
 const g = (children: ReactNode) => <g stroke={INK} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round">{children}</g>;
 
@@ -217,6 +218,50 @@ const ITEMS: Record<ItemName, ReactNode> = {
     <path d="M24 46l12-3v5l-12 3z" fill="#FFE29A" strokeWidth={1.6} />
     <path d="M16 20c1-2-1-3 0-5M48 22c1-2-1-3 0-5" fill="none" stroke={P.greyD} strokeWidth={1.6} />
   </>),
+  // Одяг, подарунок, вага і ягоди (Вроцлав, уроки 5–16): ті самі контури й заливки, що й у решти предметів.
+  shirt: g(<>
+    <path d="M20 10 8 18l6 10 6-4v30h24V24l6 4 6-10-12-8c-2 5-6 7-12 7s-10-2-12-7z" fill={P.coral} />
+    <path d="M32 16v38" fill="none" stroke={P.coralD} strokeWidth={2} />
+    <path d="M22 9l10 11L42 9l6 3-10 12-6-4-6 4L16 12z" fill={P.white} strokeWidth={2} />
+    <circle cx="32" cy="30" r="1.5" fill={P.white} stroke="none" /><circle cx="32" cy="38" r="1.5" fill={P.white} stroke="none" /><circle cx="32" cy="46" r="1.5" fill={P.white} stroke="none" />
+  </>),
+  jacket: g(<>
+    <path d="M22 8h20l10 8 6 30-8 2-2-14v22H20V34l-2 14-8-2 6-30z" fill={P.skyD} />
+    <path d="M32 20v36" fill="none" />
+    <path d="M22 8l10 12 10-12" fill={P.white} />
+    <rect x="23" y="40" width="8" height="8" rx="2" fill={P.sky} strokeWidth={1.6} />
+    <circle cx="36" cy="28" r="1.5" fill={P.navy} stroke="none" /><circle cx="36" cy="36" r="1.5" fill={P.navy} stroke="none" />
+  </>),
+  shoes: g(<>
+    <path d="M8 46V26c0-3 2-4 4-4h6c2 6 8 8 14 8 8 0 14 4 22 10v6z" fill={P.green} />
+    <rect x="6" y="44" width="52" height="9" rx="4.5" fill={P.white} />
+    <path d="M22 28l5 3m1-7 5 3" fill="none" stroke={P.white} strokeWidth={2.2} />
+    <path d="M10 36h8" fill="none" stroke={P.greenD} strokeWidth={2.4} />
+  </>),
+  dress: g(<>
+    <path d="M24 8h16l2 14-4 6 12 28H14l12-28-4-6z" fill={P.grape} />
+    <path d="M26 28h12" fill="none" stroke={P.yellow} strokeWidth={3.2} />
+    <path d="M28 8c1 5 7 5 8 0" fill="none" stroke={P.white} strokeWidth={2} />
+  </>),
+  gift: g(<>
+    <rect x="10" y="26" width="44" height="28" rx="3" fill={P.coral} />
+    <rect x="8" y="18" width="48" height="10" rx="3" fill={P.coralD} />
+    <rect x="28" y="18" width="8" height="36" fill={P.yellow} strokeWidth={1.8} />
+    <path d="M32 18c-8-12-18-6-12 0M32 18c8-12 18-6 12 0" fill="none" />
+  </>),
+  scale: g(<>
+    <path d="M32 10v38" fill="none" strokeWidth={3} />
+    <path d="M12 16h40" fill="none" strokeWidth={3} />
+    <path d="M14 16 6 36M14 16l8 20M50 16l-8 20M50 16l8 20" fill="none" strokeWidth={1.6} />
+    <path d="M6 36h16c0 6-4 9-8 9s-8-3-8-9zM42 36h16c0 6-4 9-8 9s-8-3-8-9z" fill={P.yellow} />
+    <path d="M20 54h24" fill="none" strokeWidth={4} />
+    <circle cx="32" cy="10" r="3" fill={P.coral} />
+  </>),
+  strawberries: g(<>
+    <path d="M32 20c-12-4-20 4-16 16 3 10 10 18 16 18s13-8 16-18c4-12-4-20-16-16z" fill={P.coral} />
+    <path d="M22 18l6 4 4-9 4 9 6-4-4 9H26z" fill={P.green} />
+    {[[24, 34], [34, 36], [30, 44], [39, 30], [26, 42], [37, 44]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.5" fill={P.yellow} stroke="none" />)}
+  </>),
 };
 
 export const Item = memo(function Item({ name, size = 48, className }: { name: ItemName; size?: number; className?: string }) {
@@ -232,7 +277,8 @@ export const Item = memo(function Item({ name, size = 48, className }: { name: I
 export type SceneName =
   | 'shop-corner' | 'cafe-pierogi' | 'supermarket' | 'petrol-station' | 'parcel-locker' | 'tram-stop' | 'train-station'
   | 'milk-bar' | 'bakery' | 'street-food' | 'drugstore' | 'flat' | 'work' | 'clinic'
-  | 'hotel' | 'university' | 'market-square' | 'restaurant' | 'castle' | 'office';
+  | 'hotel' | 'university' | 'market-square' | 'restaurant' | 'castle' | 'office'
+  | 'clothes-shop' | 'market-hall' | 'gift-shop';
 
 type Shop = { sign: string; wall: string; awning: string; accent: string; items: ItemName[] };
 const SHOPS: Record<SceneName, Shop> = {
@@ -256,6 +302,9 @@ const SHOPS: Record<SceneName, Shop> = {
   restaurant: { sign: 'RESTAURACJA', wall: '#FFF1E0', awning: P.brown, accent: P.brownD, items: ['zurek', 'pierogi', 'dishes'] },
   castle: { sign: 'WAWEL', wall: '#F7E7D2', awning: P.yellow, accent: P.yellowD, items: ['map', 'beaver-map', 'ticket'] },
   office: { sign: 'URZĄD', wall: '#EEF2F6', awning: P.navy, accent: P.skyD, items: ['card', 'receipt', 'book-clock'] },
+  'clothes-shop': { sign: 'ODZIEŻ', wall: '#FBEFF6', awning: '#E86FA8', accent: '#B84A82', items: ['shirt', 'jacket', 'shoes'] },
+  'market-hall': { sign: 'HALA TARGOWA', wall: '#F1F6E8', awning: P.greenD, accent: '#177A52', items: ['strawberries', 'scale', 'basket'] },
+  'gift-shop': { sign: 'PREZENTY', wall: '#FFF3E6', awning: '#F28B30', accent: '#C4691C', items: ['gift', 'bag', 'dress'] },
 };
 
 /** Предмети у вітрині сцени — щоб кожне завдання уроку мало свою «картинку», а не однаковий фон. */
@@ -429,6 +478,22 @@ export const Stamp = memo(function Stamp({ slug, name, date, stamped, size = 104
       {date && <text x="60" y="98" textAnchor="middle" fontSize="11" fontWeight="800" fill={color} fontFamily="Nunito, system-ui, sans-serif">{date}</text>}
     </svg>
   );
+});
+
+/**
+ * Картинки завдань (емодзі-ключ у контенті) → намальований предмет гри. Ключі без малюнка лишаються піктограмою (Lucide/власна).
+ * Тут тільки те, що вже намальовано в стилі сцен; нові предмети додаються разом з ITEMS.
+ */
+export const ITEM_ART: Record<string, ItemName> = {
+  '👕': 'shirt', '🧥': 'jacket', '👟': 'shoes', '👗': 'dress', '🎁': 'gift', '⚖️': 'scale', '🍓': 'strawberries', '🛍️': 'bag',
+  '🥟': 'pierogi', '🧾': 'receipt', '💳': 'card', '🎫': 'ticket', '🚋': 'tram', '🚆': 'train', '🍞': 'bread', '☕': 'coffee', '💧': 'water', '🌭': 'hotdog',
+};
+
+/** Картинка варіанта або слова в завданні: намальований предмет, якщо він є, інакше піктограма. */
+export const ArtPicture = memo(function ArtPicture({ emoji, size = 56, seed, className }: { emoji: string | null | undefined; size?: number; seed?: string; className?: string }) {
+  const item = emoji ? ITEM_ART[emoji] : undefined;
+  if (item) return <span className={`grid shrink-0 place-items-center rounded-2xl bg-muted ${className ?? ''}`} style={{ width: size, height: size }} data-art={item}><Item name={item} size={size * 0.86} /></span>;
+  return <Pictogram emoji={emoji} size={size} seed={seed} className={className} />;
 });
 
 // ───────────────────────── Плитка слова словника ─────────────────────────

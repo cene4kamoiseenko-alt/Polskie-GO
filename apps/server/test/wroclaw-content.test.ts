@@ -1,19 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { I18n } from '@polski-go/shared';
-import { WROCLAW_DRAFT_ROUTES_5_10 } from '../src/content/drafts/wroclaw-5-10';
-import { WROCLAW_DRAFT_ROUTES_11_16 } from '../src/content/drafts/wroclaw-11-16';
 import { VOCAB } from '../src/content/vocab';
-import { WROCLAW_VOCAB } from '../src/content/vocab-wroclaw';
-import type { LessonSeed } from '../src/content/types';
+import { WROCLAW } from '../src/content/wroclaw';
+import { CITY_CONTENT } from '../src/content/seed';
 
 /**
- * Черновики уроков Вроцлава 5–16 ещё не подключены к CITY_CONTENT, поэтому content-lint их не видит.
- * Этот тест повторяет его основные правила для черновиков: структура, польский без кириллицы, переводы uk/ru/en,
- * слова из словаря, один пропуск в «Uzupełnij», повторы механики. Тест не доказывает грамматику: её проверяет человек.
+ * Уроки Вроцлава 5–16 подключены к CITY_CONTENT (content-lint их тоже проверяет). Этот тест держит их структуру отдельно от
+ * уроков 1–4: пять маршрутов по плану, польский без кириллицы, переводы uk/ru/en, слова из словаря, один пропуск в «Uzupełnij»,
+ * повторы механики. Тест не доказывает грамматику: её проверяет человек (PROJECT_PROGRESS.md, «WROCLAW CONTENT»).
  */
-const routes = [...WROCLAW_DRAFT_ROUTES_5_10, ...WROCLAW_DRAFT_ROUTES_11_16];
+const NEW_ROUTES = ['wro-ubrania', 'wro-targ', 'wro-wieczor', 'wro-prezenty', 'wro-powtorka'];
+const routes = WROCLAW.routes.filter((r) => NEW_ROUTES.includes(r.slug));
 const lessons = routes.flatMap((r) => r.lessons.map((l) => ({ route: r.slug, lesson: l })));
-const knownPl = new Set([...VOCAB, ...WROCLAW_VOCAB].map((v) => v.pl));
+const knownPl = new Set(VOCAB.map((v) => v.pl));
 const CYRILLIC = /[а-яіїєґё]/i;
 /** Поля, де лежить польский текст. Переклади (I18n-об'єкти) сюди не потрапляють: їх перевіряє окремо. */
 const PL_KEYS = new Set(['pl', 'audioText', 'passage', 'sentence', 'npc', 'accepted', 'tokens', 'answer', 'alternatives', 'options', 'choose', 'pairs', 'words']);
@@ -59,9 +57,12 @@ const runs = (types: string[]) => {
   return max;
 };
 
-describe('черновики Вроцлава 5–16 (не подключены к seed)', () => {
-  it('маршруты и уроки идут по плану: пять маршрутов, двенадцать уроков 5–16', () => {
-    expect(routes.map((r) => r.slug)).toEqual(['wro-ubrania', 'wro-targ', 'wro-wieczor', 'wro-prezenty', 'wro-powtorka']);
+describe('уроки Вроцлава 5–16', () => {
+  it('маршруты и уроки идут по плану: пять маршрутов, двенадцать уроков 5–16, перед экзаменом', () => {
+    expect(routes.map((r) => r.slug)).toEqual(NEW_ROUTES);
+    // Порядок маршрутов города: старые три, пять новых, экзамен последним (бос открывается после всех обычных уроков).
+    expect(WROCLAW.routes.map((r) => r.slug)).toEqual(['wro-kawiarnia', 'wro-sklep', 'wro-restauracja', ...NEW_ROUTES, 'wro-egzamin']);
+    expect(CITY_CONTENT.find((c) => c.city === 'wroclaw')).toBe(WROCLAW);
     expect(lessons.map((x) => x.lesson.slug)).toEqual([
       'wro-5-ubrania', 'wro-6-przymierzalnia', 'wro-7-zwrot', 'wro-8-targ', 'wro-9-lista', 'wro-10-tysiac',
       'wro-11-rezerwacja', 'wro-12-smaki', 'wro-13-krasnale', 'wro-14-prezent', 'wro-15-porownanie', 'wro-16-powtorka',

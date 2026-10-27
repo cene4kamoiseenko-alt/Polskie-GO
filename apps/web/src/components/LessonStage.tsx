@@ -40,6 +40,11 @@ const ROUTE_SCENES: Record<string, SceneName> = {
   'wro-kawiarnia': 'bakery',
   'wro-sklep': 'shop-corner',
   'wro-restauracja': 'milk-bar',
+  'wro-ubrania': 'clothes-shop',
+  'wro-targ': 'market-hall',
+  'wro-wieczor': 'restaurant',
+  'wro-prezenty': 'gift-shop',
+  'wro-powtorka': 'market-square',
 };
 
 /** Ширші набори предметів, щоб вітрина не повторювалась у сусідніх завданнях. */
@@ -52,6 +57,9 @@ const POOLS: Partial<Record<SceneName, ItemName[]>> = {
   hotel: ['card', 'backpack', 'coffee', 'parcel', 'book-clock'],
   university: ['book-clock', 'speech', 'map', 'coffee', 'card'],
   castle: ['map', 'beaver-map', 'ticket', 'paws'],
+  'clothes-shop': ['shirt', 'jacket', 'shoes', 'dress', 'bag', 'card', 'receipt'],
+  'market-hall': ['strawberries', 'scale', 'basket', 'bread', 'water', 'receipt', 'card'],
+  'gift-shop': ['gift', 'bag', 'dress', 'shirt', 'card', 'receipt'],
 };
 
 export function sceneForRoute(routeSlug?: string | null): SceneName | null {

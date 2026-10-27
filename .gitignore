@@ -11,3 +11,4 @@ test-results
 dist-cf
 apps/server/seed.sql
 .dev.vars
+content-lint.txt

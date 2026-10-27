@@ -53,7 +53,7 @@ const NUM: Record<string, number> = {
   dziesiec: 10, jedenascie: 11, dwanascie: 12, trzynascie: 13, czternascie: 14, pietnascie: 15, szesnascie: 16, siedemnascie: 17,
   osiemnascie: 18, dziewietnascie: 19, dwadziescia: 20, trzydziesci: 30, czterdziesci: 40, piecdziesiat: 50, szescdziesiat: 60,
   siedemdziesiat: 70, osiemdziesiat: 80, dziewiecdziesiat: 90, sto: 100, dwiescie: 200, trzysta: 300, czterysta: 400, piecset: 500,
-  szescset: 600, siedemset: 700, osiemset: 800, dziewiecset: 900,
+  szescset: 600, siedemset: 700, osiemset: 800, dziewiecset: 900, tysiac: 1000,
 };
 /** Числа, названі словами: «siedem, osiem, dwa» → [7, 8, 2]; «dwadzieścia cztery» → [24]. */
 const spokenNumbers = (s: string): number[] => {
@@ -131,6 +131,7 @@ const PLAIN_OK: Record<string, string[]> = {
     'waw-n2-blok#3 nocna', 'waw-n2-blok#4 nocna', 'waw-n2-blok#7 nocna', 'waw-n4-misja#4 nocna', 'waw-n4-misja#6 nocna',
     'krk-re1-dania#10 pomidorowa', 'wro-boss#8 pomidorowa', 'krk-re3-kelner#5 zimna', 'krk-re3-kelner#10 zimna', 'waw-f3-gusty#6 zimna',
     'waw-s4-misja#8 pomoc', 'krk-r4-droga#8 pomoc', 'opo-1-siema#4 pomoc', 'waw-n4-misja#17 pomoc',
+    'wro-5-ubrania#3 czerwona', 'wro-5-ubrania#4 czerwona',
   ],
   '3-тя особа однини (on/ona/Kuba/Bobek …): chce, pije, kupuje, zostaje; форма на -ę — це 1-ша особа': [
     'exam-a1#3 chce', 'waw-f4-misja#3 chce', 'wro-4-restauracja#4 chce', 'waw-f3-gusty#9 pije', 'waw-f3-gusty#10 pije', 'kat-4-te-ta#0 kupuje', 'lodz-1-alfabet#0 zostaje',
@@ -138,6 +139,9 @@ const PLAIN_OK: Record<string, string[]> = {
   ],
   'Навмисний неправильний варіант на відмінок (називний замість знахідного чи орудного); правильна відповідь — інший варіант': [
     'waw-f1-kawa#4 cytryna', 'krk-z1-produkty#7 woda', 'krk-z1-produkty#14 woda', 'krk-z5-misja#3 woda', 'krk-z5-misja#5 woda', 'krk-re2-zamawianie#4 pomidorowa',
+  ],
+  'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': [
+    'krk-h1-recepcja#11 maja', 'krk-h1-recepcja#12 maja', 'krk-h5-misja#3 maja', 'krk-u4-biblioteka#10 maja', 'krk-u4-biblioteka#14 maja',
   ],
   'Вправа на розрізнення літер: варіант без діакритики — навмисний дистрактор (ż / z, rz / r)': [
     'lodz-1-alfabet#6 zaba', 'lodz-2-dwuznaki#2 reka', 'lodz-boss#1 reka',
