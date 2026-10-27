@@ -72,6 +72,14 @@ describe('конфигурация staging', () => {
     expect(problems.join('\n')).toContain(expected);
   });
 
+  it('DEV_AUTH в боевом wrangler.jsonc — отказ (даже false: вход без Telegram там не настраивается)', () => {
+    for (const v of ['true', 'false']) {
+      const prod = JSON.stringify({ ...parseJsonc(prodText), vars: { ENVIRONMENT: 'production', DEV_AUTH: v } });
+      expect(checkStagingConfig(stgText, prod).join('\n')).toContain('DEV_AUTH');
+    }
+    expect(checkStagingConfig(stgText, prodText)).toEqual([]);
+  });
+
   it('одинаковый database_id у staging и production — отказ', () => {
     const prod = JSON.stringify({ ...parseJsonc(prodText), d1_databases: [{ binding: 'DB', database_name: 'polski-go', database_id: 'same-id' }] });
     const problems = checkStagingConfig(mutated((c) => (c.d1_databases[0].database_id = 'same-id')), prod);
