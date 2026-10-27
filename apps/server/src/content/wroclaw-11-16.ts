@@ -2,8 +2,12 @@
  * Вроцлав, уроки 11–16 (розширення курсу): wro-wieczor (11–13), wro-prezenty (14–15), wro-powtorka (16).
  * Урок 16 — без нових слів. Підключені в wroclaw.ts перед іспитом; тест — apps/server/test/wroclaw-content.test.ts.
  */
-import { t, wordChoice, reverseChoice, pictureChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue } from './builders';
+import { t, wordChoice, reverseChoice, pictureChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue, speak } from './builders';
 import type { RouteSeed } from './types';
+
+const OLA = { name: 'Pani Ola', emoji: '👩🏼‍💼', role: t('продавчиня', 'продавщица', 'a shop assistant') };
+const KUBA = { name: 'Kuba', emoji: '🧑🏼', role: t('друг', 'друг', 'a friend') };
+const TOMEK = { name: 'Pan Tomek', emoji: '🤵🏻', role: t('офіціант', 'официант', 'a waiter') };
 
 export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
   {
@@ -49,6 +53,17 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
           ]),
           build('vocab.restaurant', 'Chciałbym zarezerwować stolik na jutro.', t('Я б хотів забронювати столик на завтра.', 'Я бы хотел забронировать столик на завтра.', 'I would like to book a table for tomorrow.'), ['wolny', 'kolacja']),
           translate('writing.restaurant', t('Чи є вільний столик на сьогодні?', 'Есть ли свободный столик на сегодня?', 'Is there a free table for today?'), ['Czy jest wolny stolik na dzisiaj?', 'Czy jest wolny stolik na dziś?']),
+          match('vocab.restaurant', [
+            ['stolik', t('столик', 'столик', 'table')],
+            ['rezerwacja', t('бронювання', 'бронирование', 'booking')],
+            ['kolacja', t('вечеря', 'ужин', 'dinner')],
+            ['wolny', t('вільний', 'свободный', 'free')],
+          ]),
+          reading('reading.restaurant', 'Klient dzwoni do restauracji: „Dzień dobry, chciałbym zarezerwować stolik na piątek, na dwie osoby.” Kelner pyta: „Na jakie nazwisko?” Klient odpowiada: „Na nazwisko Nowak.”',
+            t('Скільки осіб буде за столиком?', 'Сколько человек будет за столиком?', 'How many people will sit at the table?'),
+            [t('двоє', 'двое', 'two'), t('троє', 'трое', 'three'), t('четверо', 'четверо', 'four')]),
+          dictation('writing.restaurant', 'Na jakie nazwisko?', t('На яке прізвище?', 'На какую фамилию?', 'In what name?')),
+          speak('speaking.restaurant', 'Czy jest wolny stolik na dzisiaj?', t('Чи є вільний столик на сьогодні?', 'Есть ли свободный столик на сегодня?', 'Is there a free table for today?')),
         ],
       },
       {
@@ -78,6 +93,31 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
           build('grammar.dative', 'Te pierogi bardzo mi smakują.', t('Ці вареники мені дуже смакують.', 'Эти вареники мне очень нравятся.', 'I really like these pierogi.'), ['smakuje', 'kwaśny']),
           translate('writing.taste', t('Мені дуже смакує суп.', 'Мне очень нравится суп.', 'I really like the soup.'), ['Bardzo mi smakuje zupa', 'Zupa bardzo mi smakuje', 'Bardzo mi smakuje zupa.']),
           match('vocab.taste', [['ostry', t('гострий', 'острый', 'spicy')], ['słodki', t('солодкий', 'сладкий', 'sweet')], ['lody', t('морозиво', 'мороженое', 'ice cream')], ['danie dnia', t('страва дня', 'блюдо дня', 'dish of the day')]]),
+          dialogue('dialogue.taste', TOMEK, [
+            {
+              npc: 'Jak smakuje zupa?',
+              tr: t('Як смакує суп?', 'Как вам суп?', 'How is the soup?'),
+              choose: [
+                ['Bardzo mi smakuje, ale jest trochę słona.', t('Мені дуже смакує, але вона трохи солона.', 'Мне очень нравится, но он немного солёный.', 'I like it a lot, but it is a bit salty.')],
+                ['Bardzo mnie smakuje, ale jest trochę słona.', t('(потрібно mi: smakuje mi)', '(нужно mi: smakuje mi)', '(use mi: smakuje mi)')],
+              ],
+              feedback: t('Смакує **кому?** — давальний: **smakuje mi**.', 'Нравится на вкус **кому?** — дательный: **smakuje mi**.', 'Tastes good to **whom?** — dative: **smakuje mi**.'),
+            },
+            {
+              npc: 'A pierogi?',
+              tr: t('А вареники?', 'А вареники?', 'And the pierogi?'),
+              choose: [
+                ['Pierogi są pyszne i bardzo mi smakują.', t('Вареники смачні й мені дуже смакують.', 'Вареники вкусные и мне очень нравятся.', 'The pierogi are delicious and I like them a lot.')],
+                ['Pierogi jest pyszne i bardzo mi smakuje.', t('(pierogi — множина: są, smakują)', '(pierogi — множественное число: są, smakują)', '(pierogi is plural: są, smakują)')],
+              ],
+              feedback: t('**Pierogi** — множина: **są**, **smakują**.', '**Pierogi** — множественное число: **są**, **smakują**.', '**Pierogi** is plural: **są**, **smakują**.'),
+            },
+          ]),
+          reading('reading.taste', 'Ola zamawia danie dnia. Zupa jest słona, ale ona lubi słone potrawy. Lody są bardzo słodkie i bardzo jej smakują.',
+            t('Що Олі дуже смакує?', 'Что Оле очень нравится на вкус?', 'What does Ola like most?'),
+            [t('морозиво', 'мороженое', 'the ice cream'), t('суп', 'суп', 'the soup'), t('борщ', 'борщ', 'the borscht')]),
+          dictation('writing.taste', 'Ten barszcz jest kwaśny.', t('Цей борщ кислий.', 'Этот борщ кислый.', 'This borscht is sour.')),
+          speak('speaking.taste', 'Bardzo mi smakuje ten barszcz.', t('Мені дуже смакує цей борщ.', 'Мне очень нравится этот борщ.', 'I really like this borscht.')),
         ],
       },
       {
@@ -106,6 +146,34 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
           listen('listening.city', 'Zrobię zdjęcie', ['Zrobię zdjęcie', 'Zrobię zakupy', 'Zrobię rezerwację']),
           translate('writing.city', t('Де можна знайти гнома?', 'Где можно найти гнома?', 'Where can I find the gnome?'), ['Gdzie mogę znaleźć krasnala?', 'Gdzie można znaleźć krasnala?']),
           dictation('writing.city', 'Zrobię zdjęcie tego krasnala.', t('Сфотографую цього гнома.', 'Сфотографирую этого гнома.', 'I will take a photo of this gnome.')),
+          dialogue('dialogue.city', KUBA, [
+            {
+              npc: 'Czego szukasz?',
+              tr: t('Чого шукаєш?', 'Что ищешь?', 'What are you looking for?'),
+              choose: [
+                ['Szukam krasnala.', t('Шукаю гнома.', 'Ищу гнома.', 'I\'m looking for a gnome.')],
+                ['Szukam krasnal.', t('(після szukać — родовий: krasnala)', '(после szukać — родительный: krasnala)', '(after szukać use the genitive: krasnala)')],
+              ],
+              feedback: t('**Szukać** + родовий: **krasnala**.', '**Szukać** + родительный: **krasnala**.', '**Szukać** + genitive: **krasnala**.'),
+            },
+            {
+              npc: 'Zrobisz zdjęcie?',
+              tr: t('Сфотографуєш?', 'Сфотографируешь?', 'Will you take a photo?'),
+              choose: [
+                ['Tak, zrobię zdjęcie tego krasnala.', t('Так, сфотографую цього гнома.', 'Да, сфотографирую этого гнома.', 'Yes, I\'ll take a photo of this gnome.')],
+                ['Tak, zrobię zdjęcie ten krasnal.', t('(zdjęcie чого? — родовий: tego krasnala)', '(zdjęcie чего? — родительный: tego krasnala)', '(a photo of what? genitive: tego krasnala)')],
+              ],
+              feedback: t('Фото **кого?** — родовий: **tego krasnala**.', 'Фото **кого?** — родительный: **tego krasnala**.', 'A photo of **whom?** — genitive: **tego krasnala**.'),
+            },
+          ]),
+          match('vocab.city', [
+            ['krasnal', t('гном', 'гном', 'gnome')],
+            ['most', t('міст', 'мост', 'bridge')],
+            ['wyspa', t('острів', 'остров', 'island')],
+            ['zdjęcie', t('фото', 'фото', 'photo')],
+          ]),
+          build('grammar.genitive', 'Szukam krasnala na Rynku.', t('Шукаю гнома на Ринку.', 'Ищу гнома на Рынке.', 'I am looking for a gnome on the Market Square.'), ['krasnal', 'w']),
+          speak('speaking.city', 'Szukam krasnala na Rynku.', t('Шукаю гнома на Ринку.', 'Ищу гнома на Рынке.', 'I am looking for a gnome on the Market Square.')),
         ],
       },
     ],
@@ -142,6 +210,21 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
           build('vocab.gifts', 'Czy może pani to zapakować?', t('Чи можете ви це запакувати?', 'Вы можете это упаковать?', 'Could you wrap this, please?'), ['podobać', 'paragon']),
           dictation('writing.gifts', 'Podobają mi się te buty.', t('Мені подобаються ці черевики.', 'Мне нравятся эти ботинки.', 'I like these shoes.')),
           match('vocab.gifts', [['wybrać', t('вибрати', 'выбрать', 'to choose')], ['pamiątka', t('сувенір', 'сувенир', 'souvenir')], ['zapakować', t('запакувати', 'упаковать', 'to wrap')], ['prezent', t('подарунок', 'подарок', 'gift')]]),
+          dialogue('situation.gift', OLA, [
+            {
+              npc: 'Dla kogo jest ten prezent?',
+              tr: t('Для кого цей подарунок?', 'Для кого этот подарок?', 'Who is this gift for?'),
+              choose: [
+                ['Dla mamy. Podoba mi się ten szalik.', t('Для мами. Мені подобається цей шарф.', 'Для мамы. Мне нравится этот шарф.', 'For my mum. I like this scarf.')],
+                ['Dla mama. Podoba mi się ten szalik.', t('(після dla — родовий: dla mamy)', '(после dla — родительный: dla mamy)', '(after dla use the genitive: dla mamy)')],
+              ],
+              feedback: t('**Dla** + родовий: **dla mamy**.', '**Dla** + родительный: **dla mamy**.', '**Dla** + genitive: **dla mamy**.'),
+            },
+          ]),
+          listen('listening.gifts', 'Czy może pani to zapakować?', ['Czy może pani to zapakować?', 'Czy może pani to zapłacić?', 'Czy może pani to zwrócić?']),
+          translate('writing.gifts', t('Мені подобається цей шарф.', 'Мне нравится этот шарф.', 'I like this scarf.'),
+            ['Podoba mi się ten szalik.', 'Ten szalik mi się podoba.', 'Ten szalik podoba mi się.']),
+          speak('speaking.gifts', 'To jest prezent dla mamy.', t('Це подарунок для мами.', 'Это подарок для мамы.', 'This is a present for Mum.')),
         ],
       },
       {
@@ -170,6 +253,30 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
           build('grammar.adjectives', 'Wolę tę kurtkę, bo jest lepsza.', t('Я віддаю перевагу цій куртці, бо вона краща.', 'Я предпочитаю эту куртку, потому что она лучше.', 'I prefer this jacket because it\'s better.'), ['tańszy', 'droższa']),
           listen('listening.compare', 'najlepszy wybór', ['najlepszy wybór', 'najmniejszy wybór', 'najtańszy wybór']),
           match('vocab.compare', [['droższy', t('дорожчий', 'дороже', 'more expensive')], ['tańszy', t('дешевший', 'дешевле', 'cheaper')], ['lepszy', t('кращий', 'лучше', 'better')], ['modny', t('модний', 'модный', 'fashionable')]]),
+          dialogue('dialogue.compare', KUBA, [
+            {
+              npc: 'Która kurtka jest tańsza?',
+              tr: t('Яка куртка дешевша?', 'Какая куртка дешевле?', 'Which jacket is cheaper?'),
+              choose: [
+                ['Ta czerwona jest tańsza niż ta czarna.', t('Червона дешевша, ніж чорна.', 'Красная дешевле, чем чёрная.', 'The red one is cheaper than the black one.')],
+                ['Ta czerwona jest tańszy niż ta czarna.', t('(куртка — жіночий рід: tańsza)', '(куртка — женский род: tańsza)', '(kurtka is feminine: tańsza)')],
+              ],
+              feedback: t('**Kurtka** — жіночий рід: **tańsza**.', '**Kurtka** — женский род: **tańsza**.', '**Kurtka** is feminine: **tańsza**.'),
+            },
+            {
+              npc: 'To którą kupisz?',
+              tr: t('То яку купиш?', 'Так какую купишь?', 'So which one will you buy?'),
+              choose: [
+                ['Kupię tę czerwoną, bo jest tańsza.', t('Куплю червону, бо вона дешевша.', 'Куплю красную, потому что она дешевле.', 'I\'ll buy the red one because it is cheaper.')],
+                ['Kupię ta czerwona, bo jest tańsza.', t('(після kupić — знахідний: tę czerwoną)', '(после kupić — винительный: tę czerwoną)', '(after kupić use the accusative: tę czerwoną)')],
+              ],
+              feedback: t('**Kupić** + знахідний: **tę czerwoną**.', '**Kupić** + винительный: **tę czerwoną**.', '**Kupić** + accusative: **tę czerwoną**.'),
+            },
+          ]),
+          translate('writing.compare', t('Цей светр дорожчий, ніж той.', 'Этот свитер дороже, чем тот.', 'This sweater is more expensive than that one.'),
+            ['Ten sweter jest droższy niż tamten.', 'Ten sweter jest droższy niż tamten', 'Ten sweter jest droższy niż ten']),
+          dictation('writing.compare', 'Ta kurtka jest tańsza niż tamta.', t('Ця куртка дешевша, ніж та.', 'Эта куртка дешевле, чем та.', 'This jacket is cheaper than that one.')),
+          speak('speaking.compare', 'Wolę tę kurtkę, bo jest lepsza.', t('Я віддаю перевагу цій куртці, бо вона краща.', 'Я предпочитаю эту куртку, потому что она лучше.', 'I prefer this jacket because it\'s better.')),
         ],
       },
     ],
@@ -218,6 +325,17 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
           build('vocab.review', 'Czy mogę przymierzyć tę kurtkę?', t('Чи можу я приміряти цю куртку?', 'Можно мне примерить эту куртку?', 'May I try on this jacket?'), ['zapłacić', 'kartą']),
           translate('writing.review', t('Мені потрібен більший розмір, будь ласка.', 'Мне нужен размер побольше, пожалуйста.', 'I need a bigger size, please.'), ['Szukam większego rozmiaru, proszę.', 'Potrzebuję większego rozmiaru.', 'Potrzebuję większego rozmiaru, proszę.', 'Szukam większego rozmiaru']),
           dictation('writing.review', 'Chciałbym zarezerwować stolik na dwie osoby.', t('Я б хотів забронювати столик на двох.', 'Я бы хотел забронировать столик на двоих.', 'I would like to book a table for two.')),
+          pictureChoice('vocab.review', 'prezent', [
+            ['🎁', t('подарунок', 'подарок', 'gift')],
+            ['🍓', t('полуниці', 'клубника', 'strawberries')],
+            ['🧥', t('куртка', 'куртка', 'jacket')],
+            ['🎂', t('торт', 'торт', 'cake')],
+          ]),
+          grammar('grammar.review', 'Ten sweter jest ___ niż tamten.', 'drogi', ['droższy'], t('Цей светр дорожчий, ніж той.', 'Этот свитер дороже, чем тот.', 'This sweater is more expensive than that one.'),
+            t('**Sweter** — чоловічий рід: **droższy** (вищий ступінь), далі **niż**.', '**Sweter** — мужской род: **droższy** (сравнительная степень), дальше **niż**.', '**Sweter** is masculine: **droższy** (comparative), then **niż**.')),
+          oddOne('vocab.review', ['koszula', 'sweter', 'kurtka', 'paragon'], 3, t('**Paragon** — чек, а не одяг.', '**Paragon** — чек, а не одежда.', '**Paragon** is a receipt, not clothing.'),
+            t('Що не є одягом?', 'Что не является одеждой?', 'Which one is not clothing?')),
+          speak('speaking.review', 'Poproszę dwie butelki wody.', t('Дві пляшки води, будь ласка.', 'Две бутылки воды, пожалуйста.', 'Two bottles of water, please.')),
         ],
       },
     ],

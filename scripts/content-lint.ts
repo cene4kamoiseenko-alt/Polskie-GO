@@ -145,6 +145,9 @@ const PLAIN_OK: Record<string, string[]> = {
     'kat-8-poczta#1 paczka', 'kat-8-poczta#2 paczka', 'kat-8-poczta#3 poczta', 'kat-8-poczta#11 poczta', 'kat-8-poczta#8 chce', 'kat-8-poczta#9 potrzebuje',
     'krk-d4-peron#12 dwunasta',
   ],
+  'Називний жіночий рід у відповіді, питанні та дистракторі (Jaka jest twoja kurtka?, Ta sukienka jest czerwona, Ta czerwona jest tańsza): форма на -a правильна, знахідний -ą тут не потрібен': [
+    'wro-5-ubrania#10 jaka', 'wro-5-ubrania#11 czerwona', 'wro-5-ubrania#13 czerwona', 'wro-15-porownanie#8 czerwona',
+  ],
   'Ополе: навмисний неправильний варіант (називний замість місцевого після o: dwunasta) і жіночий називний jaka («яка музика»), а не знахідний jaką': [
     'opo-5-weekend#5 dwunasta', 'opo-7-zdanie#4 jaka',
   ],

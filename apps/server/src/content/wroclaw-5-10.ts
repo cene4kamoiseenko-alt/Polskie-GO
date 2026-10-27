@@ -3,8 +3,11 @@
  * Підключені в wroclaw.ts перед іспитом; слова — vocab-wroclaw.ts. Тест — apps/server/test/wroclaw-content.test.ts.
  * Іконки маршрутів — існуючі ключі apps/web/src/assets/icons.
  */
-import { t, wordChoice, reverseChoice, pictureChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue } from './builders';
+import { t, wordChoice, reverseChoice, pictureChoice, fillGap, listen, picture, findError, oddOne, reading, translate, grammar, dictation, build, match, dialogue, speak } from './builders';
 import type { RouteSeed } from './types';
+
+const OLA = { name: 'Pani Ola', emoji: '👩🏼‍💼', role: t('продавчиня', 'продавщица', 'a shop assistant') };
+const MAGDA = { name: 'Pani Magda', emoji: '👩🏼‍💼', role: t('касирка', 'кассирша', 'a cashier') };
 
 export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
   {
@@ -41,6 +44,29 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
           build('vocab.clothes', 'Mam czarne spodnie.', t('У мене є чорні штани.', 'У меня есть чёрные брюки.', 'I have black trousers.'), ['biały', 'szalik']),
           translate('writing.clothes', t('Ця сукня чорна.', 'Это платье чёрное.', 'This dress is black.'), ['Ta sukienka jest czarna.', 'Ta sukienka jest czarna']),
           match('vocab.clothes', [['biały', t('білий', 'белый', 'white')], ['czarny', t('чорний', 'чёрный', 'black')], ['zielony', t('зелений', 'зелёный', 'green')], ['żółty', t('жовтий', 'жёлтый', 'yellow')]]),
+          dialogue('dialogue.clothes', OLA, [
+            {
+              npc: 'Jaka jest twoja kurtka?',
+              tr: t('Яка в тебе куртка?', 'Какая у тебя куртка?', 'What is your jacket like?'),
+              choose: [
+                ['Moja kurtka jest czarna.', t('Моя куртка чорна.', 'Моя куртка чёрная.', 'My jacket is black.')],
+                ['Moja kurtka jest czarny.', t('(куртка — жіночий рід: czarna)', '(куртка — женский род: czarna)', '(kurtka is feminine: czarna)')],
+              ],
+              feedback: t('**Kurtka** — жіночий рід, тому **czarna**.', '**Kurtka** — женский род, поэтому **czarna**.', '**Kurtka** is feminine, so **czarna**.'),
+            },
+            {
+              npc: 'A jakie są twoje buty?',
+              tr: t('А які в тебе черевики?', 'А какие у тебя ботинки?', 'And what are your shoes like?'),
+              choose: [
+                ['Moje buty są białe.', t('Мої черевики білі.', 'Мои ботинки белые.', 'My shoes are white.')],
+                ['Moje buty są biały.', t('(buty — множина: białe)', '(buty — множественное число: białe)', '(buty is plural: białe)')],
+              ],
+              feedback: t('**Buty** — множина, тому **białe**.', '**Buty** — множественное число, поэтому **białe**.', '**Buty** is plural, so **białe**.'),
+            },
+          ]),
+          listen('listening.clothes', 'Ta sukienka jest czerwona.', ['Ta sukienka jest czerwona.', 'Ta sukienka jest czarna.', 'Ten sweter jest czerwony.']),
+          dictation('writing.clothes', 'Ta koszula jest biała.', t('Ця сорочка біла.', 'Эта рубашка белая.', 'This shirt is white.')),
+          speak('speaking.clothes', 'Ta kurtka jest czerwona.', t('Ця куртка червона.', 'Эта куртка красная.', 'This jacket is red.')),
         ],
       },
       {
@@ -67,6 +93,34 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
           findError('grammar.adjectives', ['Ta', 'koszula', 'jest', 'za', 'mały'], 4, t('Ця сорочка замала.', 'Эта рубашка маловата.', 'This shirt is too small.'),
             t('**koszula** — жіночий рід: **za mała**.', '**koszula** — женский род: **za mała**.', '**koszula** is feminine: **za mała**.')),
           oddOne('vocab.fitting', ['przymierzalnia', 'rozmiar', 'paragon', 'przymierzyć'], 2, t('**paragon** — чек, а не про примірку.', '**paragon** — чек, а не про примерку.', '**paragon** is a receipt, not about fitting.'), t('Що зайве, якщо говорити про примірку?', 'Что лишнее, если говорить о примерке?', 'Which one is not about trying clothes on?')),
+          match('vocab.fitting', [
+            ['przymierzalnia', t('примірочна', 'примерочная', 'fitting room')],
+            ['rozmiar', t('розмір', 'размер', 'size')],
+            ['pasować', t('пасувати', 'подходить', 'to fit, to suit')],
+            ['wygodny', t('зручний', 'удобный', 'comfortable')],
+          ]),
+          dialogue('situation.fitting', OLA, [
+            {
+              npc: 'Jak pasuje ta kurtka?',
+              tr: t('Як сидить ця куртка?', 'Как сидит эта куртка?', 'How does this jacket fit?'),
+              choose: [
+                ['Jest trochę za duża.', t('Вона трохи завелика.', 'Она немного великовата.', 'It is a bit too big.')],
+                ['Jest trochę za duży.', t('(куртка — жіночий рід: za duża)', '(куртка — женский род: za duża)', '(kurtka is feminine: za duża)')],
+              ],
+              feedback: t('**Kurtka** — жіночий рід: **za duża**.', '**Kurtka** — женский род: **za duża**.', '**Kurtka** is feminine: **za duża**.'),
+            },
+            {
+              npc: 'Przynieść większy rozmiar?',
+              tr: t('Принести більший розмір?', 'Принести больший размер?', 'Shall I bring a bigger size?'),
+              choose: [
+                ['Tak, poproszę większy rozmiar.', t('Так, більший розмір, будь ласка.', 'Да, больший размер, пожалуйста.', 'Yes, a bigger size, please.')],
+                ['Tak, poproszę większego rozmiar.', t('(форма більшого не пасує до rozmiar)', '(форма большего не подходит к rozmiar)', '(the form większego does not fit rozmiar)')],
+              ],
+              feedback: t('**Poproszę** + знахідний; **rozmiar** — неживий чоловічий рід, тож **większy rozmiar**.', '**Poproszę** + винительный; **rozmiar** — неодушевлённый мужской род, значит **większy rozmiar**.', '**Poproszę** + accusative; **rozmiar** is a masculine inanimate noun, so **większy rozmiar**.'),
+            },
+          ]),
+          translate('writing.fitting', t('Ця сорочка замала.', 'Эта рубашка маловата.', 'This shirt is too small.'), ['Ta koszula jest za mała.', 'Ta koszula jest za mała']),
+          speak('speaking.fitting', 'Czy mogę to przymierzyć?', t('Чи можу я це приміряти?', 'Можно это примерить?', 'May I try this on?')),
         ],
       },
       {
@@ -110,6 +164,10 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
           build('vocab.returns', 'Czy mogę wymienić to na większy rozmiar?', t('Чи можу я обміняти це на більший розмір?', 'Могу ли я обменять это на больший размер?', 'Can I exchange this for a bigger size?'), ['zwrócić', 'kupić']),
           match('vocab.returns', [['gwarancja', t('гарантія', 'гарантия', 'warranty')], ['reklamacja', t('рекламація', 'рекламация', 'complaint')], ['zepsuty', t('зламаний', 'сломанный', 'broken')], ['zwrócić', t('повернути', 'вернуть', 'to return')]]),
           dictation('writing.returns', 'Chciałabym wymienić buty.', t('Я б хотіла обміняти черевики.', 'Я бы хотела обменять ботинки.', 'I would like to exchange the shoes.')),
+          listen('listening.returns', 'Czy ma pan paragon?', ['Czy ma pan paragon?', 'Czy ma pan pieniądze?', 'Czy ma pan gwarancję?']),
+          translate('writing.returns', t('Я б хотіла обміняти ці черевики.', 'Я бы хотела обменять эти ботинки.', 'I would like to exchange these shoes.'),
+            ['Chciałabym wymienić te buty.', 'Chciałabym wymienić buty.', 'Chciałabym wymienić te buty']),
+          speak('speaking.returns', 'Chciałbym zwrócić tę koszulę.', t('Я б хотів повернути цю сорочку.', 'Я бы хотел вернуть эту рубашку.', 'I would like to return this shirt.')),
         ],
       },
     ],
@@ -159,6 +217,8 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
               feedback: t('**kilo** + родовий множини: **ogórków**.', '**kilo** + родительный падеж множественного числа: **ogórków**.', '**kilo** + genitive plural: **ogórków**.'),
             },
           ]),
+          dictation('writing.market', 'Poproszę dwa kilo ogórków.', t('Два кілограми огірків, будь ласка.', 'Два килограмма огурцов, пожалуйста.', 'Two kilos of cucumbers, please.')),
+          speak('speaking.market', 'Poproszę pół kilo truskawek.', t('Півкіло полуниці, будь ласка.', 'Полкило клубники, пожалуйста.', 'Half a kilo of strawberries, please.')),
         ],
       },
       {
@@ -189,6 +249,14 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
           oddOne('vocab.shopping', ['koszyk', 'zakupy', 'mąka', 'paragon'], 2, t('**mąka** — борошно, продукт. Інші слова — про сам процес покупок.', '**mąka** — мука, продукт. Остальные слова — о самом процессе покупок.', '**mąka** is flour, a product. The other words are about the shopping process.'), t('Що зайве?', 'Что лишнее?', 'Which one does not belong?')),
           build('vocab.shopping', 'Mam listę zakupów.', t('У мене є список покупок.', 'У меня есть список покупок.', 'I have a shopping list.'), ['mąki', 'szalik']),
           dictation('writing.shopping', 'Potrzebuję dużo wody.', t('Мені потрібно багато води.', 'Мне нужно много воды.', 'I need a lot of water.')),
+          match('vocab.shopping', [
+            ['mąka', t('борошно', 'мука', 'flour')],
+            ['sól', t('сіль', 'соль', 'salt')],
+            ['koszyk', t('кошик', 'корзина', 'basket')],
+            ['lista zakupów', t('список покупок', 'список покупок', 'shopping list')],
+          ]),
+          translate('writing.shopping', t('У мене немає солі.', 'У меня нет соли.', 'I don\'t have any salt.'), ['Nie mam soli.', 'Nie mam soli']),
+          speak('speaking.shopping', 'Potrzebuję mąki i soli.', t('Мені потрібні борошно й сіль.', 'Мне нужны мука и соль.', 'I need flour and salt.')),
         ],
       },
       {
@@ -220,6 +288,34 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
             t('**koszula** — 120 zł, найменша ціна серед трьох.', '**koszula** — 120 zł, самая низкая цена из трёх.', '**koszula** costs 120 zł, the lowest of the three.')),
           translate('writing.prices', t('Скільки коштує ця сорочка?', 'Сколько стоит эта рубашка?', 'How much is this shirt?'), ['Ile kosztuje ta koszula?', 'Ile kosztuje ta koszula']),
           build('vocab.money', 'Czy może pan rozmienić pięćset złotych?', t('Чи можете ви розміняти п\'ятсот злотих?', 'Вы можете разменять пятьсот злотых?', 'Can you change five hundred zloty?'), ['drobne', 'paragon']),
+          match('vocab.numbers', [
+            ['dwieście', t('200', '200', '200')],
+            ['trzysta', t('300', '300', '300')],
+            ['pięćset', t('500', '500', '500')],
+            ['tysiąc', t('1000', '1000', '1000')],
+          ]),
+          dialogue('situation.prices', MAGDA, [
+            {
+              npc: 'Razem trzysta złotych.',
+              tr: t('Разом триста злотих.', 'Итого триста злотых.', 'Three hundred zloty in total.'),
+              choose: [
+                ['Proszę, trzysta złotych.', t('Будь ласка, триста злотих.', 'Пожалуйста, триста злотых.', 'Here you are, three hundred zloty.')],
+                ['Proszę, trzysta złote.', t('(після trzysta — złotych)', '(после trzysta — złotych)', '(after trzysta use złotych)')],
+              ],
+              feedback: t('Після **trzysta** — **złotych**.', 'После **trzysta** — **złotych**.', 'After **trzysta** the form is **złotych**.'),
+            },
+            {
+              npc: 'Czy ma pan drobne?',
+              tr: t('Чи є у вас дрібні?', 'У вас есть мелочь?', 'Do you have any small change?'),
+              choose: [
+                ['Niestety nie mam drobnych.', t('На жаль, дрібних немає.', 'К сожалению, мелочи нет.', 'Unfortunately I have no small change.')],
+                ['Niestety nie mam drobne.', t('(після nie mam — родовий: drobnych)', '(после nie mam — родительный: drobnych)', '(after nie mam use the genitive: drobnych)')],
+              ],
+              feedback: t('**Nie mam** + родовий: **drobnych**.', '**Nie mam** + родительный: **drobnych**.', '**Nie mam** + genitive: **drobnych**.'),
+            },
+          ]),
+          dictation('writing.prices', 'Ta kurtka kosztuje dwieście złotych.', t('Ця куртка коштує двісті злотих.', 'Эта куртка стоит двести злотых.', 'This jacket costs two hundred zloty.')),
+          speak('speaking.prices', 'Czy może pan rozmienić pięćset złotych?', t('Чи можете ви розміняти п\'ятсот злотих?', 'Вы можете разменять пятьсот злотых?', 'Can you change five hundred zloty?')),
         ],
       },
     ],

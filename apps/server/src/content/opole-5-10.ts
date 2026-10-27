@@ -139,7 +139,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
           oddOne('register.invite', ['Nie dam rady.', 'Nie mogę przyjść.', 'Niestety nie mogę.', 'Dzięki, wpadnę!'], 3,
             t('**Dzięki, wpadnę!** — згода. Решта — відмови; **nie dam rady** розмовне, **nie mogę** нейтральне.', '**Dzięki, wpadnę!** — согласие. Остальное — отказы; **nie dam rady** разговорное, **nie mogę** нейтральное.', '**Dzięki, wpadnę!** is an acceptance. The rest are refusals; **nie dam rady** is informal, **nie mogę** neutral.'),
             t('Яка з фраз НЕ є відмовою?', 'Какая из фраз НЕ является отказом?', 'Which phrase is NOT a refusal?')),
-          reading('reading.invite', 'Kuba pisze: „Cześć, Asia! W sobotę mam urodziny. Robię małą imprezę o osiemnastej. Wpadniesz?” Asia odpisuje: „Dzięki za zaproszenie! Niestety w sobotę pracuję. Może innym razem?”',
+          reading('reading.invite', 'Kuba pisze: „Cześć, Asiu! W sobotę mam urodziny. Robię małą imprezę o osiemnastej. Wpadniesz?” Asia odpisuje: „Dzięki za zaproszenie! Niestety w sobotę pracuję. Może innym razem?”',
             t('Чому Ася не прийде?', 'Почему Ася не придёт?', 'Why won\'t Asia come?'),
             [t('у суботу вона працює', 'в субботу она работает', 'she works on Saturday'), t('вона не любить вечірки', 'она не любит вечеринки', 'she doesn\'t like parties'), t('вона не знає, де це', 'она не знает, где это', 'she doesn\'t know where it is')]),
           build('grammar.invite', 'Chcę cię zaprosić na urodziny', t('Хочу запросити тебе на день народження', 'Хочу пригласить тебя на день рождения', 'I want to invite you to my birthday'), ['do', 'zaproszenie']),
