@@ -75,7 +75,8 @@ Cloudflare → **Workers & Pages → Create → Import a repository** → выб
 | Deploy command | `npm run deploy:cf` |
 | Production branch | ветка с этим кодом |
 
-Деплой-команда выкладывает Worker, применяет миграции D1 и добавляет недостающий учебный контент
+Деплой-команда записывает в журнал сборки закладку Time Travel D1, применяет миграции (до выкладки кода: если миграция упадёт,
+продолжит работать прежняя версия), выкладывает Worker и добавляет недостающий учебный контент
 (существующие правки из админки не перезаписываются). Каждый push запускает сборку заново.
 
 ### 2. Секреты Worker
@@ -87,13 +88,14 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 | `TELEGRAM_BOT_TOKEN` | токен от @BotFather |
 | `TELEGRAM_BOT_USERNAME` | имя бота без @ |
 | `TELEGRAM_APP_SHORT_NAME` | короткое имя Mini App из `/newapp` (например `app`) |
-| `TELEGRAM_WEBHOOK_SECRET` | случайная строка |
+| `TELEGRAM_WEBHOOK_SECRET` | случайная строка; нужна только до первой настройки — дальше секрет webhook генерирует и хранит сервер |
+| `BOT_SETUP_KEY` | необязательно: ключ страницы `/telegram/setup` (настройка есть и в админке) |
 | `SESSION_SECRET` | случайная строка ≥ 32 символов |
 | `WEB_APP_URL` | `https://polskie-go.<аккаунт>.workers.dev` (или свой домен) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | первый вход в `/admin/` |
 | `ANTHROPIC_API_KEY` | необязательно; без ключа AI честно работает в ограниченном режиме |
 
-Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true}`.
+Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true, "version": {"commit": …}, "migration": "0009_bot_quiz.sql", "bot": {…}}` (коммит сборки, последняя миграция, состояние webhook — без секретов).
 
 ### 3. Бот
 
@@ -102,11 +104,10 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 1. В [@BotFather](https://t.me/BotFather): `/newapp` → URL `https://polskie-go.<аккаунт>.workers.dev`.
 2. После деплоя один раз (токен и адреса — из окружения или `.env`, в вывод не попадают):
    `WEB_APP_URL=https://polskie-go.<аккаунт>.workers.dev TELEGRAM_BOT_TOKEN=… npm run bot:setup -w @polski-go/server`
-   — регистрирует девять команд (ru + uk/pl/en) и кнопку меню Mini App. Описание бота, Description Picture, токен и webhook не меняются.
-   `--dry-run` показывает вызовы без сети.
-3. Webhook нужен один раз (бот, Stars, `/start`): добавить флаг `--webhook` и переменные `PUBLIC_URL`, `TELEGRAM_WEBHOOK_SECRET`
-   (`allowed_updates=["message","pre_checkout_query"]`, ожидающие обновления не сбрасываются).
-   Без компьютера: откройте `https://polskie-go.<аккаунт>.workers.dev/telegram/setup?key=<TELEGRAM_WEBHOOK_SECRET>` — Worker сам поставит команды, кнопку меню и webhook токеном из Cloudflare и покажет подсказки; `&mode=check` только проверяет.
+   — регистрирует девять команд и `/quiz` (ru + uk/pl/en) и кнопку меню Mini App. Описание бота, Description Picture, токен и webhook не меняются.
+   `--dry-run` показывает вызовы без сети. Запуск не обязателен: после деплоя меню ставит cron.
+3. Webhook (команды, кнопки быстрых вопросов, Stars): админка `/admin/` → «🤖 Бот» → «Настроить бота». Секрет webhook генерирует сервер, его никто не вводит;
+   cron раз в час проверяет webhook и чинит его на том же адресе. Запасной путь без админки — форма `/telegram/setup` (ключ `BOT_SETUP_KEY`, не в адресе).
 4. **Telegram Stars**: отдельных ключей не нужно — оплата в валюте `XTR`, цены тарифов — в админке.
 5. Картинки команд — `apps/web/public/bot/commands/*.jpg`, публикуются вместе с приложением. `WEB_APP_URL` — полный адрес с `https://` (без схемы или с `http://` сервер и `bot:setup` приведут его к `https://`).
 
@@ -115,7 +116,8 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 * Worker: 100 000 запросов в сутки, 10 мс CPU на запрос (тяжёлые операции сгруппированы в пакеты D1).
 * D1: 5 млн чтений и 100 000 записей в сутки, 5 ГБ. Хватает примерно на несколько сотен активных учеников в день;
   дальше — Workers Paid ($5/мес) без изменений в коде.
-* Резервные копии: встроенный Time Travel D1 (восстановление на любую минуту за 30 дней).
+* Резервные копии: встроенный Time Travel D1 — восстановление на любую минуту за последние **7 дней** на бесплатном плане (30 дней на Workers Paid):
+  `wrangler d1 time-travel restore polski-go --timestamp=<ISO>` или `--bookmark=<закладка из журнала сборки>`. Перед каждой миграцией деплой пишет закладку в журнал.
 
 ### Если Mini App остаётся на Cloudflare Pages
 
