@@ -1,0 +1,94 @@
+/**
+ * Реестр растровых сцен миссий (SCENE_ART, docs/SCENE_ART_INVENTORY.md) сходится с миссиями, файлами и кадром Telegram:
+ * стабильные scene_id, файлы заявленного размера и веса, временный статус не выдаётся за финальный, картинка привязана к миссии
+ * по slug (Lidl не получает Biedronka), вопрос, где кадр выдаёт ответ, картинку не получает.
+ */
+import { existsSync, readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { MISSION_SCENE_ART, QUESTION_SCENE_IMAGES, SCENE_ART, SCENE_ART_SMALL } from '@polski-go/shared';
+import { MISSIONS } from '../src/content/missions';
+import { quizImage } from '../src/bot/quiz/engine';
+import { QUESTION_BY_ID } from '../src/bot/quiz/questions';
+import { jpegSize, pngSize, webpSize } from './image-size';
+
+const scenes = new URL('../../web/src/assets/scenes/', import.meta.url);
+const botPublic = new URL('../../web/public/bot/', import.meta.url);
+const sources = new URL('../../../docs/design/a11/stores/native/', import.meta.url);
+const doc = readFileSync(new URL('../../../docs/SCENE_ART_INVENTORY.md', import.meta.url), 'utf8');
+
+const IDS = ['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka'];
+
+describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
+  it('scene_id стабильны, по одному на бренд, без повторов файлов', () => {
+    expect(Object.keys(SCENE_ART).sort()).toEqual(IDS);
+    for (const [key, art] of Object.entries(SCENE_ART)) expect(art.id, key).toBe(key);
+    expect(new Set(Object.values(SCENE_ART).map((a) => a.file)).size).toBe(IDS.length);
+  });
+
+  it('основной файл 1440×720 и @640 640×320, вес в бюджете, исходная вырезка 2:1 хранится отдельно', () => {
+    for (const art of Object.values(SCENE_ART)) {
+      const main = readFileSync(new URL(`${art.file}.webp`, scenes));
+      expect(webpSize(main), art.id).toEqual({ width: art.width, height: art.height });
+      expect(main.length, `${art.file}.webp`).toBeLessThanOrEqual(220 * 1024);
+      const small = readFileSync(new URL(`${art.file}@${SCENE_ART_SMALL}.webp`, scenes));
+      expect(webpSize(small), `${art.file}@${SCENE_ART_SMALL}`).toEqual({ width: SCENE_ART_SMALL, height: SCENE_ART_SMALL / 2 });
+      expect(small.length, `${art.file}@${SCENE_ART_SMALL}.webp`).toBeLessThanOrEqual(70 * 1024);
+      // Кадр 2:1: cover не растягивает его, а обрезает.
+      expect(art.width / art.height).toBe(2);
+      const source = readFileSync(new URL(`${art.file}_source_native_2x1.png`, sources));
+      expect(pngSize(source), `${art.id} источник`).toEqual({ width: art.native[0], height: art.native[1] });
+    }
+  });
+
+  it('временный статус честный: кадр с Бобеком внутри или увеличенный из малой вырезки не final', () => {
+    for (const art of Object.values(SCENE_ART)) {
+      expect(art.native[0], art.id).toBeLessThan(art.width);
+      if (art.bakedBobek || art.native[0] < art.width) expect(art.status, art.id).toBe('interim');
+      expect(art.focus, art.id).toMatch(/^\d{1,3}% \d{1,3}%$/);
+    }
+    // Сегодня все пять — временные: мастера без Бобека ещё не нарисованы.
+    expect(Object.values(SCENE_ART).every((a) => a.bakedBobek && a.status === 'interim')).toBe(true);
+  });
+
+  it('картинка привязана к существующей миссии по slug и совпадает с её SVG-сценой', () => {
+    const pairs = Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [a, m] as const));
+    expect(pairs.map(([, m]) => m).sort()).toEqual(['biedronka-breakfast', 'orlen-coffee', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'zabka-first-order']);
+    for (const [art, slug] of pairs) {
+      const mission = MISSIONS.find((m) => m.slug === slug);
+      expect(mission, `${art.id}: миссии ${slug} нет`).toBeDefined();
+      expect(mission!.scene, `${slug}: SVG-сцена`).toBe(art.fallbackScene);
+      expect(MISSION_SCENE_ART[slug]).toBe(art.id);
+    }
+    // Lidl идёт в той же SVG-сцене, что и Biedronka, но картинки магазина с другим брендом не получает.
+    expect(MISSIONS.find((m) => m.slug === 'lidl-list')!.scene).toBe('supermarket');
+    expect(MISSION_SCENE_ART['lidl-list']).toBeUndefined();
+  });
+
+  it('кадр Telegram: только Biedronka для вопроса «Moja Biedronka»; русский сохраняет доску категории; вопрос про посылку без кадра', () => {
+    const withFrame = Object.values(SCENE_ART).filter((a) => a.telegram);
+    expect(withFrame.map((a) => a.id)).toEqual(['store-biedronka']);
+    for (const art of withFrame) {
+      for (const [name, size] of [[art.telegram!.file, { width: 1280, height: 720 }], [art.telegram!.file.replace(/\.jpg$/, '@640.jpg'), { width: 640, height: 360 }]] as const) {
+        expect(existsSync(new URL(name, botPublic)), name).toBe(true);
+        expect(jpegSize(readFileSync(new URL(name, botPublic))), name).toEqual(size);
+      }
+      for (const id of art.telegram!.questionIds) expect(QUESTION_BY_ID.get(id), id).toBeDefined();
+    }
+    expect(QUESTION_SCENE_IMAGES).toEqual({ 'shop-loyalty': 'scenes/stores/biedronka.jpg' });
+    const loyalty = QUESTION_BY_ID.get('shop-loyalty')!;
+    expect(quizImage(loyalty, 'ru')).toBe('scenes/ru/shopping.jpg');
+    for (const lang of ['uk', 'pl', 'en'] as const) expect(quizImage(loyalty, lang)).toBe('scenes/stores/biedronka.jpg');
+    // Кадр InPost выдал бы ответ «в постамате».
+    for (const lang of ['ru', 'uk', 'pl', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
+  });
+
+  it('документ инвентаря описывает каждую сцену со статусом interim и перечисляет дефекты', () => {
+    for (const art of Object.values(SCENE_ART)) {
+      expect(doc, art.id).toMatch(new RegExp(`\\| \`${art.id}\` \\|[^\\n]*\\| ${art.status} \\|`));
+      for (const m of art.missions) expect(doc, `${art.id}: ${m}`).toContain(`\`${m}\``);
+    }
+    expect(doc).toContain('Rossmann');
+    expect(doc).toContain('HIGIEŃYIE');
+    expect(doc).toContain('без Бобека');
+  });
+});

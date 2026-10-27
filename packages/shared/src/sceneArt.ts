@@ -1,0 +1,84 @@
+/**
+ * Інвентар растрових сцен місій (apps/web/src/assets/scenes/<file>.webp і <file>@640.webp).
+ * Повна таблиця — docs/SCENE_ART_INVENTORY.md; тест apps/server/test/scene-art.test.ts звіряє її з цим списком,
+ * з місіями й файлами на диску.
+ *
+ * Усі п’ять сцен — ТИМЧАСОВІ (interim): вирізані з одного згенерованого колажу (рідний розмір ~550–640 px по ширині,
+ * у застосунку збільшені), зі статичним Бобеком усередині кадру. Тому:
+ *   - клієнт не малює поверх них другого Бобека (bakedBobek → без накладеного <Beaver>);
+ *   - статус 'final' заборонений, доки bakedBobek === true (тест); фінальні версії — без Бобека, під окремий рендерер образу;
+ *   - написи на кадрі — декор: ні задання, ні ціни, ні довідкові дані з них не береться.
+ */
+export type SceneArtStatus = 'interim' | 'final';
+
+export interface SceneArt {
+  /** Стабільний scene_id. Не перейменовується: на нього посилаються тести, документ і майбутні фінальні майстри. */
+  id: string;
+  /** Ім’я файлів у assets/scenes: `<file>.webp` (основний) і `<file>@640.webp`. */
+  file: string;
+  brand: string;
+  status: SceneArtStatus;
+  /** Розмір основного файлу. */
+  width: number;
+  height: number;
+  /** Рідний розмір вирізки з колажу (все понад це — збільшення). */
+  native: [number, number];
+  /** Бобек намальований у самому кадрі: поверх нього другого Бобека не показуємо. */
+  bakedBobek: boolean;
+  /** SVG-сцена місії, яку ця картинка замінює (місія з таким `scene` у MISSIONS); без картинки клієнт малює її. */
+  fallbackScene: string;
+  /** Місії, де сцена доречна за змістом. Ключ — slug місії, а не назва SVG-сцени: Lidl теж у `supermarket`, але це не Biedronka. */
+  missions: string[];
+  /** object-position для вузьких карток (360–390 px): кадр 2:1 обрізається по висоті, Бобек і вивіска лишаються в кадрі. */
+  focus: string;
+  /** Що зображено. */
+  shows: string;
+  /** Файл кадру для Telegram (apps/web/public/bot, 1280×720) і питання, де він доречний; null — немає повідомлення за змістом. */
+  telegram: { file: string; questionIds: string[] } | null;
+  /** Відомі вади кадру, які виправить майстер-файл. */
+  defects: string[];
+}
+
+/** Ширина зменшеного варіанта `<file>@640.webp` для карток і вузьких екранів. */
+export const SCENE_ART_SMALL = 640;
+
+const common = { status: 'interim', width: 1440, height: 720, bakedBobek: true } as const;
+
+export const SCENE_ART: Record<string, SceneArt> = {
+  'store-zabka': {
+    ...common, id: 'store-zabka', file: 'zabka', brand: 'Żabka', native: [632, 316], fallbackScene: 'shop-corner',
+    missions: ['zabka-first-order'], focus: '55% 12%', shows: 'Фасад Żabka, Бобек із кавою, касир за прилавком',
+    telegram: null, defects: [],
+  },
+  'store-biedronka': {
+    ...common, id: 'store-biedronka', file: 'biedronka', brand: 'Biedronka', native: [632, 316], fallbackScene: 'supermarket',
+    missions: ['biedronka-breakfast'], focus: '15% 10%', shows: 'Фасад Biedronka, Бобек із візком продуктів',
+    telegram: { file: 'scenes/stores/biedronka.jpg', questionIds: ['shop-loyalty'] }, defects: [],
+  },
+  'store-rossmann': {
+    ...common, id: 'store-rossmann', file: 'rossmann', brand: 'Rossmann', native: [550, 275], fallbackScene: 'drugstore',
+    missions: ['rossmann-basics'], focus: '30% 10%', shows: 'Фасад Rossmann, Бобек із кошиком і флаконом',
+    telegram: null,
+    defects: ['написи «KOSMETYKI» і «HIGIENA» над стелажами перекручені (читаються як «HIGIEŃYIE»), червона табличка за ними нечитабельна'],
+  },
+  'parcel-inpost': {
+    ...common, id: 'parcel-inpost', file: 'inpost', brand: 'InPost', native: [550, 275], fallbackScene: 'parcel-locker',
+    missions: ['paczkomat'], focus: '20% 20%', shows: 'Поштомат InPost (paczkomat), Бобек з коробкою',
+    telegram: null, defects: ['панель справа обрізана: слова «Szybko», «Wygodnie» не вміщаються в кадр'],
+  },
+  'fuel-orlen': {
+    ...common, id: 'fuel-orlen', file: 'orlen', brand: 'ORLEN', native: [644, 322], fallbackScene: 'petrol-station',
+    missions: ['orlen-coffee', 'orlen-pump'], focus: '35% 10%', shows: 'Заправка ORLEN, Бобек біля колонки, Stop Cafe',
+    telegram: null, defects: [],
+  },
+};
+
+/** slug місії → scene_id картинки. Місій без запису це не стосується: вони й далі показують SVG-сцену. */
+export const MISSION_SCENE_ART: Record<string, string> = Object.fromEntries(
+  Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [m, a.id] as const)),
+);
+
+/** Кадр Telegram для питання вікторини (question id → файл відносно /bot/); немає запису — картинки до питання немає. */
+export const QUESTION_SCENE_IMAGES: Record<string, string> = Object.fromEntries(
+  Object.values(SCENE_ART).flatMap((a) => (a.telegram ? a.telegram.questionIds.map((q) => [q, a.telegram!.file] as const) : [])),
+);

@@ -7,7 +7,7 @@ import { haptic } from '../lib/telegram';
 import type { MissionListItem } from '../lib/types';
 import { cx } from './ui';
 import { Icon } from './Icon';
-import { Scene } from './Illustrations';
+import { MissionScene } from './MissionScene';
 
 export type MissionsData = { missions: MissionListItem[]; soon: { slug: string; category: string; scene: string; title: I18n }[] };
 
@@ -19,7 +19,7 @@ export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen
   return (
     <motion.button whileTap={{ scale: 0.98 }} onClick={() => { haptic.tap(); onOpen(); }} className="card block w-full overflow-hidden text-left">
       <div className="relative">
-        <Scene name={m.scene} className={cx('block w-full', compact ? 'h-24' : 'h-32')} />
+        <MissionScene slug={m.slug} scene={m.scene} className={cx('block w-full', compact ? 'h-24' : 'h-32')} />
         {/* Чипи внизу сцени: угорі зазвичай вивіска закладу. */}
         <div className="absolute bottom-2 left-3 flex gap-1.5">
           <span className="chip !px-2.5 !py-0.5 text-xs"><Icon name="clock" size={14} /> {t('life_minutes', { n: m.minutes })}</span>

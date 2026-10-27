@@ -10,4 +10,5 @@ export * from './wav';
 export * from './pron';
 export * from './look';
 export * from './cityArt';
+export * from './sceneArt';
 export * from './botScreens';

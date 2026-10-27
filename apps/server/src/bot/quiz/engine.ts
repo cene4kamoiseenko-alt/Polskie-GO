@@ -14,7 +14,7 @@
  * Серия дней от вопроса не растёт: её продлевают уроки и миссии, а не 20 секунд в чате.
  */
 import { and, eq, sql } from 'drizzle-orm';
-import { dayKey, shuffle, type UiLang } from '@polski-go/shared';
+import { QUESTION_SCENE_IMAGES, dayKey, shuffle, type UiLang } from '@polski-go/shared';
 import { atomic, db } from '../../db';
 import { botQuizPlayers, botQuizRounds, newId, playerProgress, userProfiles } from '../../db/schema';
 import { botApi, TelegramError } from '../../lib/telegram';
@@ -53,8 +53,14 @@ export const LETTERS = ['A', 'B', 'C', 'D', 'E'];
  */
 const RU_CATEGORY_IMAGES: Partial<Record<QuizCategory, string>> = { shopping: 'scenes/ru/shopping.jpg', food: 'scenes/ru/food.jpg', transport: 'scenes/ru/transport.jpg' };
 
+/**
+ * Кадр по смыслу самого вопроса (реестр SCENE_ART, `telegram.questionIds`), одинаковый для всех языков: на нём нет русских
+ * подписей. Доска категории выше приоритетом (она полноразмерная, а эти кадры — временные, увеличенные из коллажа),
+ * поэтому такой кадр получают те языки, у которых картинки к вопросу не было. Вопрос, где картинка выдаёт ответ
+ * («Где посылка?» — постамат InPost на кадре), в реестр не попадает.
+ */
 export function quizImage(question: QuizQuestion, lang: UiLang): string | null {
-  return (lang === 'ru' && RU_CATEGORY_IMAGES[question.category]) || null;
+  return (lang === 'ru' && RU_CATEGORY_IMAGES[question.category]) || QUESTION_SCENE_IMAGES[question.id] || null;
 }
 
 type Player = typeof botQuizPlayers.$inferSelect;

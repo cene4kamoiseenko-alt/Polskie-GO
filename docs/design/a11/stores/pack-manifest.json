@@ -1,0 +1,129 @@
+{
+  "product": "POLSKI GO",
+  "pack": "shops-and-inpost-v1",
+  "style": "warm golden hour painterly 2.5D/CGI; Bobek red hoodie",
+  "source_type": "cropped AI generated composite, NOT true independently rendered full-resolution masters",
+  "source_montage": "00_full_generation_reference/generation_montage_original.png",
+  "source_canvas_px": [
+    1672,
+    941
+  ],
+  "scenes": [
+    {
+      "slug": "zabka",
+      "brand": "Żabka",
+      "lesson_topics": "Kiosk convenience; coffee, snack, shopping dialogue",
+      "source_2x1": "01_individual_source_crops_png/zabka_source_native_2x1.png",
+      "source_2x1_size": [
+        632,
+        316
+      ],
+      "source_16x9": "01_individual_source_crops_png/zabka_source_native_16x9.png",
+      "source_16x9_size": [
+        562,
+        316
+      ],
+      "lesson_webp": "02_lesson_backgrounds_1440x720_webp/zabka_1440x720.webp",
+      "telegram_jpg": "03_telegram_1280x720_jpg/zabka_1280x720.jpg",
+      "telegram_small_jpg": "04_telegram_640x360_jpg/zabka_640x360.jpg",
+      "card_webp": "05_cards_640x320_webp/zabka_640x320.webp",
+      "contains_static_bobek": true,
+      "contains_brand_marks": true,
+      "native_master": false
+    },
+    {
+      "slug": "biedronka",
+      "brand": "Biedronka",
+      "lesson_topics": "Supermarket; groceries, prices, carts",
+      "source_2x1": "01_individual_source_crops_png/biedronka_source_native_2x1.png",
+      "source_2x1_size": [
+        632,
+        316
+      ],
+      "source_16x9": "01_individual_source_crops_png/biedronka_source_native_16x9.png",
+      "source_16x9_size": [
+        562,
+        316
+      ],
+      "lesson_webp": "02_lesson_backgrounds_1440x720_webp/biedronka_1440x720.webp",
+      "telegram_jpg": "03_telegram_1280x720_jpg/biedronka_1280x720.jpg",
+      "telegram_small_jpg": "04_telegram_640x360_jpg/biedronka_640x360.jpg",
+      "card_webp": "05_cards_640x320_webp/biedronka_640x320.webp",
+      "contains_static_bobek": true,
+      "contains_brand_marks": true,
+      "native_master": false
+    },
+    {
+      "slug": "rossmann",
+      "brand": "Rossmann",
+      "lesson_topics": "Drugstore; personal care and cosmetics",
+      "source_2x1": "01_individual_source_crops_png/rossmann_source_native_2x1.png",
+      "source_2x1_size": [
+        550,
+        275
+      ],
+      "source_16x9": "01_individual_source_crops_png/rossmann_source_native_16x9.png",
+      "source_16x9_size": [
+        489,
+        275
+      ],
+      "lesson_webp": "02_lesson_backgrounds_1440x720_webp/rossmann_1440x720.webp",
+      "telegram_jpg": "03_telegram_1280x720_jpg/rossmann_1280x720.jpg",
+      "telegram_small_jpg": "04_telegram_640x360_jpg/rossmann_640x360.jpg",
+      "card_webp": "05_cards_640x320_webp/rossmann_640x320.webp",
+      "contains_static_bobek": true,
+      "contains_brand_marks": true,
+      "native_master": false
+    },
+    {
+      "slug": "inpost",
+      "brand": "InPost",
+      "lesson_topics": "Parcel locker; send and receive package",
+      "source_2x1": "01_individual_source_crops_png/inpost_source_native_2x1.png",
+      "source_2x1_size": [
+        550,
+        275
+      ],
+      "source_16x9": "01_individual_source_crops_png/inpost_source_native_16x9.png",
+      "source_16x9_size": [
+        489,
+        275
+      ],
+      "lesson_webp": "02_lesson_backgrounds_1440x720_webp/inpost_1440x720.webp",
+      "telegram_jpg": "03_telegram_1280x720_jpg/inpost_1280x720.jpg",
+      "telegram_small_jpg": "04_telegram_640x360_jpg/inpost_640x360.jpg",
+      "card_webp": "05_cards_640x320_webp/inpost_640x320.webp",
+      "contains_static_bobek": true,
+      "contains_brand_marks": true,
+      "native_master": false
+    },
+    {
+      "slug": "orlen",
+      "brand": "ORLEN",
+      "lesson_topics": "Filling station; fuel, travel, cafe",
+      "source_2x1": "01_individual_source_crops_png/orlen_source_native_2x1.png",
+      "source_2x1_size": [
+        644,
+        322
+      ],
+      "source_16x9": "01_individual_source_crops_png/orlen_source_native_16x9.png",
+      "source_16x9_size": [
+        572,
+        322
+      ],
+      "lesson_webp": "02_lesson_backgrounds_1440x720_webp/orlen_1440x720.webp",
+      "telegram_jpg": "03_telegram_1280x720_jpg/orlen_1280x720.jpg",
+      "telegram_small_jpg": "04_telegram_640x360_jpg/orlen_640x360.jpg",
+      "card_webp": "05_cards_640x320_webp/orlen_640x320.webp",
+      "contains_static_bobek": true,
+      "contains_brand_marks": true,
+      "native_master": false
+    }
+  ],
+  "warnings": [
+    "Each source crop comes from a composite: native panel resolution is limited. Large exports are resized and cannot restore original detail.",
+    "All five images include static Bobek; do not use these as a dynamically dressable character renderer.",
+    "Some text and signage may be AI-inaccurate; review branding and factual signage before production.",
+    "Retail trademarks belong to their respective owners; do not imply official affiliation."
+  ]
+}

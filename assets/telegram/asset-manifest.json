@@ -547,6 +547,20 @@
       ],
       "replaces": "ru/transport.jpg",
       "note": "логотип MPK Wrocław — вопрос прав открыт (Opus)"
+    },
+    {
+      "scene": "quiz_biedronka",
+      "command": "/quiz (вопрос shop-loyalty «Moja Biedronka»)",
+      "file": "scenes/stores/biedronka.jpg",
+      "source": "docs/design/a11/stores/ (пакет POLSKI_GO_STORES_INPOST_5_SCENES_V1, 03_telegram_1280x720_jpg)",
+      "langs": [
+        "uk",
+        "pl",
+        "en"
+      ],
+      "replaces": null,
+      "status": "interim",
+      "note": "временный кадр: вырезка ~560×316 из сгенерированного коллажа, увеличена до 1280×720; статичный Бобек в кадре; вывеска — декор. Русский интерфейс сохраняет доску категории «Покупки». Кадр InPost к вопросу home-paczkomat не подключён: постамат выдаёт ответ. Права на логотип Biedronka — вопрос владельцу"
     }
   ],
   "removed": [

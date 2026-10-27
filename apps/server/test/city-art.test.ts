@@ -7,24 +7,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CITY_ART, CITY_ART_SMALL } from '@polski-go/shared';
 import { CITIES, REMOVED_CITIES } from '../src/content/cities';
+import { webpSize } from './image-size';
 
 const dir = new URL('../../web/src/assets/cities/', import.meta.url);
 const file = (name: string) => new URL(name, dir);
 const doc = readFileSync(new URL('../../../docs/CITY_ART_INVENTORY.md', import.meta.url), 'utf8');
-
-/** Розмір WebP із заголовка RIFF: VP8 (з втратами), VP8L (без втрат), VP8X (розширений). */
-function webpSize(buf: Buffer): { width: number; height: number } {
-  expect(buf.toString('ascii', 0, 4)).toBe('RIFF');
-  expect(buf.toString('ascii', 8, 12)).toBe('WEBP');
-  const chunk = buf.toString('ascii', 12, 16);
-  if (chunk === 'VP8 ') return { width: buf.readUInt16LE(26) & 0x3fff, height: buf.readUInt16LE(28) & 0x3fff };
-  if (chunk === 'VP8L') {
-    const b = buf.readUInt32LE(21);
-    return { width: (b & 0x3fff) + 1, height: ((b >> 14) & 0x3fff) + 1 };
-  }
-  if (chunk === 'VP8X') return { width: buf.readUIntLE(24, 3) + 1, height: buf.readUIntLE(27, 3) + 1 };
-  throw new Error(`невідомий блок WebP: ${chunk}`);
-}
 
 describe('Фони міст', () => {
   it('інвентар описує рівно 20 міст маршруту, без прибраних', () => {

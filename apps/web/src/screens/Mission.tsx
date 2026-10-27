@@ -16,7 +16,7 @@ import type { MissionAnswer, MissionFinish, MissionLine, MissionRun, MissionStep
 import { Confetti, ErrorState, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { Icon } from '../components/Icon';
-import { Scene } from '../components/Illustrations';
+import { MissionScene, hasBakedBobek } from '../components/MissionScene';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 
 type Feedback = { ok: true; explain: I18n; line: MissionLine | null; finished?: MissionFinish } | { ok: false; why: I18n };
@@ -86,20 +86,24 @@ function Intro({ run, onStart, onClose }: { run: MissionRun; onStart: () => void
   const { t, tr } = useT();
   const m = run.mission;
   const resume = run.step > 0;
+  const baked = hasBakedBobek(m.slug);
   return (
     <div className="flex min-h-screen flex-col pb-32">
       <div className="relative">
-        <Scene name={m.scene} className="block h-52 w-full" />
-        <button onClick={onClose} className="absolute left-4 top-3 grid h-10 w-10 place-items-center rounded-full bg-elev/90 shadow" aria-label="close">
+        <MissionScene slug={m.slug} scene={m.scene} lazy={false} className="block h-52 w-full" />
+        <button onClick={onClose} className="absolute left-4 top-3 grid h-10 w-10 place-items-center rounded-full bg-elev shadow" aria-label="close">
           <Icon name="x" size={20} />
         </button>
-        <motion.div className="absolute -bottom-6 right-3" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-          <Beaver mood="wave" size={104} />
-        </motion.div>
+        {/* Тимчасові кадри вже мають Бобека в картинці: другого поверх не малюємо. */}
+        {!baked && (
+          <motion.div className="absolute -bottom-6 right-3" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
+            <Beaver mood="wave" size={104} />
+          </motion.div>
+        )}
       </div>
       <div className="px-4 pt-4">
         <div className="text-xs font-black uppercase tracking-widest text-pl-red">{t('life_title')}</div>
-        <h1 className="mt-1 pr-24 text-[26px] font-black leading-tight">{tr(m.title)}</h1>
+        <h1 className={cx('mt-1 text-[26px] font-black leading-tight', !baked && 'pr-24')}>{tr(m.title)}</h1>
         <p className="muted mt-2 font-semibold">{tr(m.intro)}</p>
         <div className="card mt-4 flex gap-3 p-4">
           <span className="icon-tile !h-11 !w-11 bg-brand text-white"><Icon name="target" size={22} /></span>
