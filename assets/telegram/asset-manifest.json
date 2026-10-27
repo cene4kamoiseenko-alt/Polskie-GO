@@ -39,12 +39,12 @@
       "problem": "три разных сценария — один кадр с надписью «CZAS NA POLSKI!»"
     },
     {
-      "md5_prefix": "f202e6fc22",
+      "md5_prefix": "570f3eaaeb",
       "files": [
-        "commands/profile.jpg",
-        "commands/reminder-streak.jpg"
+        "commands/start.jpg (/start, /profile)",
+        "commands/settings.jpg"
       ],
-      "problem": "профиль — кадр с надписью «TWOJA SERIA!» (это текст серии, не профиля)"
+      "problem": "/profile временно показывает кадр старта: своей сцены профиля нет (blocked_scenes: profile)"
     }
   ],
   "scenes": [
@@ -460,7 +460,7 @@
   "pipeline": {
     "master": "docs/design/a10/telegram/tg-*.webp — полнокадровые доски владельца 1672×941 (16:9). Меньше требуемых 1920×1080: не растягиваются, помечены below_spec.",
     "build": "node scripts/build-bot-images.mjs → apps/web/public/bot/scenes/ru/<сцена>.jpg (1280×720, то, что шлёт sendPhoto) и <сцена>@640.jpg (640×360). Только уменьшение Lanczos, без blur и заливки полос.",
-    "validate": "node scripts/validate-assets.mjs — размер, JPEG, дубли по пикселям, резкость краёв (старые ru/*.jpg давали 1–2 %, новые от 40 %).",
+    "validate": "node scripts/validate-assets.mjs (npm run assets) — размер, JPEG, дубли по пикселям, мыльные боковые полосы и увеличение маленького кадра по самому файлу (scripts/lib/image-quality.mjs), версии адресов ?v= (image-versions.json). Тот же анализ — в apps/server/test/bot-image-fallback.test.ts для каждого файла, который бот может отправить.",
     "telegram_limits": "sendPhoto по URL: до 10 МБ, ширина+высота ≤ 10000, соотношение ≤ 20. Файлы 130–410 КБ, 1280×720. Реальная отправка в Telegram из этого окружения не проверялась: нет токена и сети."
   },
   "integrated": [
@@ -547,24 +547,12 @@
       ],
       "replaces": "ru/transport.jpg",
       "note": "логотип MPK Wrocław — вопрос прав открыт (Opus)"
-    },
-    {
-      "scene": "quiz_biedronka",
-      "command": "/quiz (вопрос shop-loyalty «Moja Biedronka»)",
-      "file": "scenes/stores/biedronka.jpg",
-      "source": "docs/design/a11/stores/ (пакет POLSKI_GO_STORES_INPOST_5_SCENES_V1, 03_telegram_1280x720_jpg)",
-      "langs": [
-        "uk",
-        "pl",
-        "en"
-      ],
-      "replaces": null,
-      "status": "interim",
-      "note": "временный кадр: вырезка ~560×316 из сгенерированного коллажа, увеличена до 1280×720; статичный Бобек в кадре; вывеска — декор. Русский интерфейс сохраняет доску категории «Покупки». Кадр InPost к вопросу home-paczkomat не подключён: постамат выдаёт ответ. Права на логотип Biedronka — вопрос владельцу"
     }
   ],
   "removed": [
-    "apps/web/public/bot/ru/*.jpg (11 файлов): растянутые 640×360 с размытыми полосами и белой каймой; заменены или сняты с использования"
+    "apps/web/public/bot/ru/*.jpg (11 файлов): растянутые 640×360 с размытыми полосами и белой каймой; заменены или сняты с использования",
+    "apps/web/public/bot/scenes/stores/biedronka.jpg (+@640): вырезка ~560×316 из коллажа, увеличенная до 1280×720 (детали 0,37 < 0,44). Снята с Telegram 2026-10-27 (Opus): вопрос shop-loyalty у uk / pl / en снова идёт текстом, русский сохраняет доску «Покупки». Источник остаётся в docs/design/a11/stores/.",
+    "apps/web/public/bot/commands/profile.jpg: кадр с плашкой «TWOJA SERIA!» на /profile (надпись про серию, а не про профиль). /profile показывает commands/start.jpg до появления сцены профиля; та же плашка остаётся только в напоминании о серии (commands/reminder-streak.jpg), где она верна."
   ],
   "blocked_scenes": [
     {
@@ -590,7 +578,7 @@
     {
       "scene": "profile",
       "command": "/profile",
-      "reason": "нет исходника: commands/profile.jpg несёт плашку «TWOJA SERIA!» (про серию, не про профиль)",
+      "reason": "нет исходника: плашка «TWOJA SERIA!» (commands/profile.jpg) снята 2026-10-27, /profile временно показывает нейтральный кадр старта commands/start.jpg",
       "needed_files": [
         "scenes/ru/profile.jpg",
         "scenes/neutral/profile.jpg"
@@ -600,7 +588,7 @@
     {
       "scene": "help",
       "command": "/help",
-      "reason": "нет исходника: ru/help.jpg снят как мыльный, commands/help.jpg остаётся для всех языков",
+      "reason": "нет исходника: ru/help.jpg снят как мыльный, commands/help.jpg остаётся для всех языков — без полос, но мягкий (детали 0,40, soft_fallback)",
       "needed_files": [
         "scenes/ru/help.jpg",
         "scenes/neutral/help.jpg"
@@ -685,9 +673,29 @@
     "commands/lesson.jpg",
     "commands/quests.jpg",
     "commands/reminder-lesson.jpg",
-    "commands/profile.jpg",
     "commands/reminder-streak.jpg",
     "commands/reminder-return.jpg",
     "commands/stop.jpg"
-  ]
+  ],
+  "soft_fallback": [
+    {
+      "file": "commands/help.jpg",
+      "detail": 0.404,
+      "reason": "кадр /help для всех языков (и для русского: доски справки нет). Без полос и рамок, полнокадровый, но мягкий: увеличен примерно из 800 px по ширине. Оставлен как безопасный запасной до исходника сцены help (blocked_scenes: help); не выдавать за мастер."
+    }
+  ],
+  "root_cause_blur": {
+    "date": "2026-10-27",
+    "symptom": "/words (и другие русские карточки) в Telegram: по краям кадра вертикальные размытые полосы, кадр выглядит как маленькая картинка, растянутая на ширину",
+    "cause": "полосы записаны в сами файлы apps/web/public/bot/ru/*.jpg (комплект «16 images»): узкий кадр по центру, слева и справа по 86–94 px растянутой размытой копии. Код (catalog.ts → botImageUrl → sendPhoto по URL) картинки не обрабатывает: ни resize, ни blur, ни object-fit; file_id не кэшируется — Telegram каждый раз получает адрес и скачивает файл.",
+    "why_still_in_production": "замена (scenes/ru/*.jpg из полнокадровых досок 1672×941, commit 7c00b62) и удаление ru/*.jpg лежат в неопубликованных коммитах; production по-прежнему раздаёт старые файлы ru/*.jpg и старый catalog.ts. Исправление в production появится только после разрешённого владельцем push.",
+    "telegram_cache": "Telegram кэширует картинку по адресу. Новые кадры лежат по новым путям (scenes/ru/…), поэтому старый кэш их не перекрывает; с 2026-10-27 к каждому адресу добавляется ?v=<хэш содержимого> (apps/server/src/bot/image-versions.json), чтобы и замена файла под старым именем приходила новой.",
+    "measured": "scripts/lib/image-quality.mjs по реальным файлам: старые ru/*.jpg — полосы 86–94 px слева и справа, детали 0,34–0,35 (увеличены); новые scenes/ru/*.jpg — полосы 0 px, детали 0,47–0,53; commands/* — полосы 0 px, детали 0,54–0,58 (help — 0,40, soft_fallback)."
+  },
+  "owner_pack_v4": {
+    "received": "2026-10-27, polski-go-full.zip / polski-go-images-small.zip (POLSKI_GO_17_SEPARATE_ASSETS_V4)",
+    "verdict": "reference_only, в бот и в приложение не подключён",
+    "measured": "родные панели 230–306 × 271–342 px (вырезки из листа 1536×1024). 04_telegram_1280x720_JPG: панель увеличена в ~2,5 раза до ~570×720 и поставлена слева, справа — декоративная заливка; проверка файла: слева полоса 78 px, детали 0,37–0,39 (увеличены). Это тот же дефект «маленький кадр, растянутый на ширину», только с заливкой вместо размытия.",
+    "use": "сюжеты и композиция панелей — референс для художника (что рисовать для map/quests/profile/help и миссий); Бобек вшит в каждую панель, для гардероба не подходит; doctor_pharmacy ≠ urzad-pesel."
+  }
 }

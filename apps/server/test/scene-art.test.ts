@@ -9,7 +9,7 @@ import { MISSION_SCENE_ART, QUESTION_SCENE_IMAGES, SCENE_ART, SCENE_ART_SMALL } 
 import { MISSIONS } from '../src/content/missions';
 import { quizImage } from '../src/bot/quiz/engine';
 import { QUESTION_BY_ID } from '../src/bot/quiz/questions';
-import { jpegSize, pngSize, webpSize } from './image-size';
+import { pngSize, webpSize } from './image-size';
 
 const scenes = new URL('../../web/src/assets/scenes/', import.meta.url);
 const botPublic = new URL('../../web/public/bot/', import.meta.url);
@@ -64,20 +64,13 @@ describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
     expect(MISSION_SCENE_ART['lidl-list']).toBeUndefined();
   });
 
-  it('кадр Telegram: только Biedronka для вопроса «Moja Biedronka»; русский сохраняет доску категории; вопрос про посылку без кадра', () => {
-    const withFrame = Object.values(SCENE_ART).filter((a) => a.telegram);
-    expect(withFrame.map((a) => a.id)).toEqual(['store-biedronka']);
-    for (const art of withFrame) {
-      for (const [name, size] of [[art.telegram!.file, { width: 1280, height: 720 }], [art.telegram!.file.replace(/\.jpg$/, '@640.jpg'), { width: 640, height: 360 }]] as const) {
-        expect(existsSync(new URL(name, botPublic)), name).toBe(true);
-        expect(jpegSize(readFileSync(new URL(name, botPublic))), name).toEqual(size);
-      }
-      for (const id of art.telegram!.questionIds) expect(QUESTION_BY_ID.get(id), id).toBeDefined();
-    }
-    expect(QUESTION_SCENE_IMAGES).toEqual({ 'shop-loyalty': 'scenes/stores/biedronka.jpg' });
+  it('кадров магазинов в Telegram нет: временные вырезки увеличены и отклоняются проверкой файлов; русский сохраняет доску категории', () => {
+    expect(Object.values(SCENE_ART).filter((a) => a.telegram)).toEqual([]);
+    expect(QUESTION_SCENE_IMAGES).toEqual({});
+    expect(existsSync(new URL('scenes/stores/', botPublic)), 'scenes/stores/ снята с публикации').toBe(false);
     const loyalty = QUESTION_BY_ID.get('shop-loyalty')!;
     expect(quizImage(loyalty, 'ru')).toBe('scenes/ru/shopping.jpg');
-    for (const lang of ['uk', 'pl', 'en'] as const) expect(quizImage(loyalty, lang)).toBe('scenes/stores/biedronka.jpg');
+    for (const lang of ['uk', 'pl', 'en'] as const) expect(quizImage(loyalty, lang), lang).toBeNull();
     // Кадр InPost выдал бы ответ «в постамате».
     for (const lang of ['ru', 'uk', 'pl', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
   });

@@ -14,6 +14,7 @@ import { COPY } from '../src/bot/copy';
 import { getJourney } from '../src/services/journey';
 import { disposeEnv, getEnv, login, request } from './helpers';
 import { fakeTelegram, tgError, type TgCall } from './tg-fake';
+import { versioned } from './bot-images';
 
 const BASE = 'https://polski.example/app/?v=1';
 const ORIGIN = 'https://polski.example';
@@ -64,7 +65,7 @@ describe('девять команд: фото, подпись и настоящ�
     expect(call.method).toBe('sendPhoto');
     // Русский интерфейс: полнокадровая доска с русским заголовком, где она есть (карта, задания, профиль, справка и /stop — нейтральные).
     // Вернувшемуся пользователю /start показывает доску «Снова тут?».
-    expect(call.params.photo).toBe(`${ORIGIN}/bot/${command === 'start' ? startBackImage('ru') : commandImage(command, 'ru')}`);
+    expect(call.params.photo).toBe(versioned(ORIGIN, command === 'start' ? startBackImage('ru') : commandImage(command, 'ru')));
     expect(call.params.parse_mode).toBe('HTML');
     expect(call.params.caption.length).toBeLessThanOrEqual(1024);
     expect(call.params.chat_id).toBe(u.telegramId);
@@ -125,7 +126,7 @@ describe('первый и повторный /start, реферальные сс
     const before = await db.select().from(playerProgress).where(eq(playerProgress.userId, u.user.id));
     const { calls } = await say(from(u.telegramId, 'ru'), '/start');
     expect(calls[0].params.caption).toMatch(/^🇵🇱 Witaj z powrotem, User\d+! 🦫/);
-    expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/scenes/ru/return.jpg`);
+    expect(calls[0].params.photo).toBe(versioned(ORIGIN, 'scenes/ru/return.jpg'));
     expect(calls[0].params.caption).toContain('Продолжим там, где остановились?');
     expect(buttons(calls[0])[0].text).toBe('▶️ Продолжить обучение');
     expect(urls(calls[0])[0]).toBe(screenUrl('learn'));
@@ -226,7 +227,7 @@ describe('неизвестные команды, группы, блокиров�
     for (const text of ['/nope', '/start2', 'привет, бот']) {
       const { calls } = await say(from(8_100_400, 'ru'), text);
       expect(calls).toHaveLength(1);
-      expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/help.jpg`);
+      expect(calls[0].params.photo).toBe(versioned(ORIGIN, 'commands/help.jpg'));
       expect(calls[0].params.caption).toContain('Jak grać?');
     }
   });
@@ -322,7 +323,7 @@ describe('согласие на уведомления и /stop', () => {
     const progress = await db.select().from(playerProgress).where(eq(playerProgress.userId, u.user.id));
     const { calls } = await say(from(u.telegramId, 'ru'), '/stop');
     expect(calls[0].method).toBe('sendPhoto');
-    expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/stop.jpg`);
+    expect(calls[0].params.photo).toBe(versioned(ORIGIN, 'commands/stop.jpg'));
     expect(calls[0].params.caption).toContain('🔕 Напоминания отключены.');
     const settings = (await db.select().from(userSettings).where(eq(userSettings.userId, u.user.id)))[0];
     expect(settings).toMatchObject({ notificationsEnabled: false, reminderHour: 19, uiLanguage: 'ru' });
@@ -405,7 +406,7 @@ describe('WEB_APP_URL, заданный не по форме: бот не мол
     expect(res.status).toBe(200);
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe('sendPhoto');
-    expect(calls[0].params.photo).toBe('https://polski.example/bot/scenes/ru/lesson.jpg');
+    expect(calls[0].params.photo).toBe(versioned('https://polski.example', 'scenes/ru/lesson.jpg'));
     expect(urls(calls[0])).toContain(`${expectedBase}?bot_screen=learn`);
   });
 
@@ -472,7 +473,7 @@ describe('постоянная панель быстрых кнопок', () => 
     expect(res.status).toBe(200);
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe('sendPhoto');
-    expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/${commandImage(command as (typeof COMMANDS)[number], 'ru')}`);
+    expect(calls[0].params.photo).toBe(versioned(ORIGIN, commandImage(command as (typeof COMMANDS)[number], 'ru')));
     expect(urls(calls[0]).length).toBeGreaterThan(0);
   });
 
@@ -481,7 +482,7 @@ describe('постоянная панель быстрых кнопок', () => 
     expect(group.calls).toHaveLength(0);
     const u = shared;
     const extra = await say(from(u.telegramId, 'ru'), '🗺 Карта пожалуйста');
-    expect(extra.calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/help.jpg`);
+    expect(extra.calls[0].params.photo).toBe(versioned(ORIGIN, 'commands/help.jpg'));
   });
 
   it('сбой отправки панели не ломает ответ и не повторяет карточку', async () => {

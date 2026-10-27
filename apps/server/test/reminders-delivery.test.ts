@@ -10,6 +10,7 @@ import { notificationLog, playerProgress, userSettings } from '../src/db/schema'
 import { NOTIFY_MAX_ATTEMPTS, pickReminderKind, reminderCard, runScheduled, sendReminders } from '../src/jobs';
 import { BOT_TOKEN, disposeEnv, getEnv, login, request } from './helpers';
 import { fakeTelegram, tgError, type TgCall } from './tg-fake';
+import { versioned } from './bot-images';
 
 const ORIGIN = 'https://polski.example';
 
@@ -54,23 +55,23 @@ describe('три сценария: фото, текст и кнопка по р�
 
     const p = to(calls, plain.telegramId)[0];
     expect(p.method).toBe('sendPhoto');
-    expect(p.params.photo).toBe(`${ORIGIN}/bot/commands/reminder-lesson.jpg`);
+    expect(p.params.photo).toBe(versioned(ORIGIN, 'commands/reminder-lesson.jpg'));
     expect(p.params.caption).toMatch(/^🇵🇱 Cześć! Бобек уже приготовил для тебя новый урок! 🦫📚\nНайдёшь пять минут для польского\?/);
     expect(p.params.caption).toContain('/stop — отключить напоминания');
     expect(button(p)).toEqual({ text: '📚 Продолжить урок', web_app: { url: `${ORIGIN}/?bot_screen=learn` } });
 
     const s = to(calls, streak.telegramId)[0];
-    expect(s.params.photo).toBe(`${ORIGIN}/bot/commands/reminder-streak.jpg`);
+    expect(s.params.photo).toBe(versioned(ORIGIN, 'commands/reminder-streak.jpg'));
     expect(s.params.caption).toContain('🔥 Твоя серія навчання — 3 дні!');
     expect(button(s).web_app.url).toBe(`${ORIGIN}/?bot_screen=learn`);
 
     const r = to(calls, comeback.telegramId)[0];
-    expect(r.params.photo).toBe(`${ORIGIN}/bot/commands/reminder-return.jpg`);
+    expect(r.params.photo).toBe(versioned(ORIGIN, 'commands/reminder-return.jpg'));
     expect(r.params.caption).toContain('Dawno się nie widzieliśmy!');
     expect(button(r).web_app.url).toBe(`${ORIGIN}/`);
 
     const o = to(calls, oneDay.telegramId)[0];
-    expect(o.params.photo).toBe(`${ORIGIN}/bot/commands/reminder-lesson.jpg`);
+    expect(o.params.photo).toBe(versioned(ORIGIN, 'commands/reminder-lesson.jpg'));
     expect(o.params.caption).toContain('Bobek has a new lesson ready for you');
 
     for (const [u, template, lang] of [[plain, 'lesson', 'ru'], [streak, 'streak', 'uk'], [comeback, 'return', 'pl'], [oneDay, 'lesson', 'en']] as const) {

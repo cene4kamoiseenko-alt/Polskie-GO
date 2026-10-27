@@ -9,6 +9,7 @@
 import type { BotScreen, UiLang } from '@polski-go/shared';
 import { config } from '../env';
 import commandsJson from './commands.json';
+import imageVersions from './image-versions.json';
 import type { ReminderKind } from './copy';
 
 export const COMMANDS = ['start', 'lesson', 'map', 'words', 'quests', 'profile', 'settings', 'help', 'stop'] as const;
@@ -29,7 +30,8 @@ export const COMMAND_IMAGES: Record<CommandName, string> = {
   map: 'map.jpg',
   words: 'words.jpg',
   quests: 'quests.jpg',
-  profile: 'profile.jpg',
+  // Кадр с плашкой «TWOJA SERIA!» (про серию, а не про профиль) снят: до сцены профиля — нейтральный кадр старта.
+  profile: 'start.jpg',
   settings: 'settings.jpg',
   help: 'help.jpg',
   stop: 'stop.jpg',
@@ -86,7 +88,16 @@ export function reminderImage(kind: ReminderKind): string {
 
 export const isCommand = (value: string): value is CommandName => (COMMANDS as readonly string[]).includes(value);
 
-/** Публичный HTTPS-адрес картинки на origin развёрнутого приложения (Telegram скачивает её сам, без авторизации). */
+const VERSIONS: Record<string, string> = imageVersions;
+
+/**
+ * Публичный HTTPS-адрес картинки на origin развёрнутого приложения (Telegram скачивает её сам, без авторизации).
+ * `?v=` — хэш содержимого (apps/server/src/bot/image-versions.json, `node scripts/validate-assets.mjs --write-versions`):
+ * Telegram кэширует картинку по адресу, и новый кадр под старым именем без версии мог бы прийти старым.
+ */
 export function botImageUrl(file: string): string {
-  return new URL(`/bot/${file}`, new URL(config.webAppUrl).origin).toString();
+  const url = new URL(`/bot/${file}`, new URL(config.webAppUrl).origin);
+  const version = VERSIONS[file];
+  if (version) url.searchParams.set('v', version);
+  return url.toString();
 }

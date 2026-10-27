@@ -17,7 +17,7 @@
 | scene_id | Бренд | Файл | Рождённый размер | Размер в приложении | Статус | Миссии | Заменяет SVG | Telegram |
 |---|---|---|---|---|---|---|---|---|
 | `store-zabka` | Żabka | `zabka` | 632×316 | 1440×720 | interim | `zabka-first-order` | `shop-corner` | — |
-| `store-biedronka` | Biedronka | `biedronka` | 632×316 | 1440×720 | interim | `biedronka-breakfast` | `supermarket` | вопрос `shop-loyalty` (uk/pl/en) |
+| `store-biedronka` | Biedronka | `biedronka` | 632×316 | 1440×720 | interim | `biedronka-breakfast` | `supermarket` | — (снят 2026-10-27: увеличенный кадр) |
 | `store-rossmann` | Rossmann | `rossmann` | 550×275 | 1440×720 | interim | `rossmann-basics` | `drugstore` | — |
 | `parcel-inpost` | InPost | `inpost` | 550×275 | 1440×720 | interim | `paczkomat` | `parcel-locker` | — |
 | `fuel-orlen` | ORLEN | `orlen` | 644×322 | 1440×720 | interim | `orlen-coffee`, `orlen-pump` | `petrol-station` | — |
@@ -28,7 +28,7 @@
 
 - Карточка миссии (`MissionCard`: главная и экран миссий) и герой миссии (`Mission.tsx`, экран входа): через `MissionScene`. Нет картинки у миссии или нет файла → рисуется прежняя SVG-сцена.
 - **Не используются** в уроках (`LessonStage`): там поверх сцены стоит собственный живой Бобек с настроением, второй был бы лишним.
-- Telegram: только кадр Biedronka (`apps/web/public/bot/scenes/stores/biedronka.jpg`, 1280×720, и `@640`) для вопроса «Moja Biedronka» (`shop-loyalty`) в языках без картинки к вопросу. Русский интерфейс сохраняет доску категории «Покупки»: она полноразмерная, а этот кадр временный. Вопрос `home-paczkomat` («Где посылка?») кадр InPost не получает: постамат на картинке выдаёт ответ. Остальные кадры не подключены: сообщения, где сцена была бы к месту, у бота нет.
+- Telegram: кадров магазинов в боте нет. Biedronka (`scenes/stores/biedronka.jpg`) была подключена к вопросу «Moja Biedronka» (`shop-loyalty`) для uk / pl / en и снята 2026-10-27: это вырезка ~560×316, увеличенная до 1280×720, и проверка файла (`scripts/lib/image-quality.mjs`, детали 0,37 < 0,44) её отклоняет. Вопрос снова уходит текстом; русский интерфейс сохраняет доску категории «Покупки». Вопрос `home-paczkomat` кадр InPost не получает: постамат на картинке выдаёт ответ.
 
 ## Дефекты кадров (исправить в мастере)
 

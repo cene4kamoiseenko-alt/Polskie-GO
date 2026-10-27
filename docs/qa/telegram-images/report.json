@@ -1,0 +1,800 @@
+{
+  "production": {
+    "ref": "origin/claude/polski-go-telegram-app-r8helf",
+    "sha": "5dc140d"
+  },
+  "cases": [
+    {
+      "case": "/start",
+      "langs": "uk en pl",
+      "before": "commands/start.jpg",
+      "after": "commands/start.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 71,
+        "edgeRight": 64,
+        "detail": 0.541,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 71,
+        "edgeRight": 64,
+        "detail": 0.541,
+        "problems": []
+      }
+    },
+    {
+      "case": "/start",
+      "langs": "ru",
+      "before": "ru/welcome.jpg",
+      "after": "scenes/ru/start.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 88,
+        "bandRight": 92,
+        "edgeLeft": 15,
+        "edgeRight": 18,
+        "detail": 0.358,
+        "problems": [
+          "слева мыльная полоса 88 px",
+          "справа мыльная полоса 92 px",
+          "увеличен из маленького кадра (детали 0.358 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 219,
+        "edgeRight": 126,
+        "detail": 0.525,
+        "problems": []
+      }
+    },
+    {
+      "case": "/lesson",
+      "langs": "uk en pl",
+      "before": "commands/lesson.jpg",
+      "after": "commands/lesson.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      }
+    },
+    {
+      "case": "/lesson",
+      "langs": "ru",
+      "before": "ru/lessons.jpg",
+      "after": "scenes/ru/lesson.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 94,
+        "bandRight": 94,
+        "edgeLeft": 14,
+        "edgeRight": 16,
+        "detail": 0.345,
+        "problems": [
+          "слева мыльная полоса 94 px",
+          "справа мыльная полоса 94 px",
+          "увеличен из маленького кадра (детали 0.345 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 81,
+        "edgeRight": 122,
+        "detail": 0.506,
+        "problems": []
+      }
+    },
+    {
+      "case": "/map",
+      "langs": "uk en pl",
+      "before": "commands/map.jpg",
+      "after": "commands/map.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 69,
+        "edgeRight": 61,
+        "detail": 0.556,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 69,
+        "edgeRight": 61,
+        "detail": 0.556,
+        "problems": []
+      }
+    },
+    {
+      "case": "/map",
+      "langs": "ru",
+      "before": "ru/map.jpg",
+      "after": "commands/map.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 94,
+        "bandRight": 95,
+        "edgeLeft": 15,
+        "edgeRight": 15,
+        "detail": 0.346,
+        "problems": [
+          "слева мыльная полоса 94 px",
+          "справа мыльная полоса 95 px",
+          "увеличен из маленького кадра (детали 0.346 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 69,
+        "edgeRight": 61,
+        "detail": 0.556,
+        "problems": []
+      }
+    },
+    {
+      "case": "/words",
+      "langs": "uk en pl",
+      "before": "commands/words.jpg",
+      "after": "commands/words.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 102,
+        "edgeRight": 128,
+        "detail": 0.548,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 102,
+        "edgeRight": 128,
+        "detail": 0.548,
+        "problems": []
+      }
+    },
+    {
+      "case": "/words",
+      "langs": "ru",
+      "before": "ru/words.jpg",
+      "after": "scenes/ru/words.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 89,
+        "bandRight": 92,
+        "edgeLeft": 16,
+        "edgeRight": 21,
+        "detail": 0.353,
+        "problems": [
+          "слева мыльная полоса 89 px",
+          "справа мыльная полоса 92 px",
+          "увеличен из маленького кадра (детали 0.353 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 98,
+        "edgeRight": 77,
+        "detail": 0.496,
+        "problems": []
+      }
+    },
+    {
+      "case": "/quests",
+      "langs": "uk en pl",
+      "before": "commands/quests.jpg",
+      "after": "commands/quests.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      }
+    },
+    {
+      "case": "/quests",
+      "langs": "ru",
+      "before": "ru/quests.jpg",
+      "after": "commands/quests.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 86,
+        "bandRight": 87,
+        "edgeLeft": 15,
+        "edgeRight": 13,
+        "detail": 0.348,
+        "problems": [
+          "слева мыльная полоса 86 px",
+          "справа мыльная полоса 87 px",
+          "увеличен из маленького кадра (детали 0.348 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      }
+    },
+    {
+      "case": "/profile",
+      "langs": "uk ru en pl",
+      "before": "commands/profile.jpg",
+      "after": "commands/start.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 78,
+        "edgeRight": 52,
+        "detail": 0.582,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 71,
+        "edgeRight": 64,
+        "detail": 0.541,
+        "problems": []
+      }
+    },
+    {
+      "case": "/settings",
+      "langs": "uk en pl",
+      "before": "commands/settings.jpg",
+      "after": "commands/settings.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 71,
+        "edgeRight": 64,
+        "detail": 0.541,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 71,
+        "edgeRight": 64,
+        "detail": 0.541,
+        "problems": []
+      }
+    },
+    {
+      "case": "/settings",
+      "langs": "ru",
+      "before": "ru/settings.jpg",
+      "after": "scenes/ru/settings.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 85,
+        "bandRight": 86,
+        "edgeLeft": 21,
+        "edgeRight": 20,
+        "detail": 0.352,
+        "problems": [
+          "слева мыльная полоса 85 px",
+          "справа мыльная полоса 86 px",
+          "увеличен из маленького кадра (детали 0.352 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 73,
+        "edgeRight": 78,
+        "detail": 0.499,
+        "problems": []
+      }
+    },
+    {
+      "case": "/help",
+      "langs": "uk en pl",
+      "before": "commands/help.jpg",
+      "after": "commands/help.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 100,
+        "edgeRight": 128,
+        "detail": 0.404,
+        "problems": [
+          "увеличен из маленького кадра (детали 0.404 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 100,
+        "edgeRight": 128,
+        "detail": 0.404,
+        "problems": [
+          "увеличен из маленького кадра (детали 0.404 < 0.44)"
+        ]
+      }
+    },
+    {
+      "case": "/help",
+      "langs": "ru",
+      "before": "ru/help.jpg",
+      "after": "commands/help.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 85,
+        "bandRight": 85,
+        "edgeLeft": 18,
+        "edgeRight": 18,
+        "detail": 0.355,
+        "problems": [
+          "слева мыльная полоса 85 px",
+          "справа мыльная полоса 85 px",
+          "увеличен из маленького кадра (детали 0.355 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 100,
+        "edgeRight": 128,
+        "detail": 0.404,
+        "problems": [
+          "увеличен из маленького кадра (детали 0.404 < 0.44)"
+        ]
+      }
+    },
+    {
+      "case": "/stop",
+      "langs": "uk ru en pl",
+      "before": "commands/stop.jpg",
+      "after": "commands/stop.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 109,
+        "edgeRight": 92,
+        "detail": 0.574,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 109,
+        "edgeRight": 92,
+        "detail": 0.574,
+        "problems": []
+      }
+    },
+    {
+      "case": "/start (вернулся)",
+      "langs": "uk en pl",
+      "before": "commands/start.jpg",
+      "after": "commands/start.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 71,
+        "edgeRight": 64,
+        "detail": 0.541,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 71,
+        "edgeRight": 64,
+        "detail": 0.541,
+        "problems": []
+      }
+    },
+    {
+      "case": "/start (вернулся)",
+      "langs": "ru",
+      "before": "ru/welcome.jpg",
+      "after": "scenes/ru/return.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 88,
+        "bandRight": 92,
+        "edgeLeft": 15,
+        "edgeRight": 18,
+        "detail": 0.358,
+        "problems": [
+          "слева мыльная полоса 88 px",
+          "справа мыльная полоса 92 px",
+          "увеличен из маленького кадра (детали 0.358 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 84,
+        "edgeRight": 154,
+        "detail": 0.478,
+        "problems": []
+      }
+    },
+    {
+      "case": "напоминание «урок» 19:00",
+      "langs": "uk en pl",
+      "before": "commands/reminder-lesson.jpg",
+      "after": "commands/reminder-lesson.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      }
+    },
+    {
+      "case": "напоминание «урок» 19:00",
+      "langs": "ru",
+      "before": "ru/reminder.jpg",
+      "after": "commands/reminder-lesson.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 86,
+        "bandRight": 86,
+        "edgeLeft": 15,
+        "edgeRight": 21,
+        "detail": 0.349,
+        "problems": [
+          "слева мыльная полоса 86 px",
+          "справа мыльная полоса 86 px",
+          "увеличен из маленького кадра (детали 0.349 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      }
+    },
+    {
+      "case": "напоминание «урок» другое время",
+      "langs": "uk ru en pl",
+      "before": "commands/reminder-lesson.jpg",
+      "after": "commands/reminder-lesson.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 107,
+        "edgeRight": 90,
+        "detail": 0.57,
+        "problems": []
+      }
+    },
+    {
+      "case": "напоминание «серия»",
+      "langs": "uk ru en pl",
+      "before": "commands/reminder-streak.jpg",
+      "after": "commands/reminder-streak.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 78,
+        "edgeRight": 52,
+        "detail": 0.582,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 78,
+        "edgeRight": 52,
+        "detail": 0.582,
+        "problems": []
+      }
+    },
+    {
+      "case": "напоминание «возвращение»",
+      "langs": "uk ru en pl",
+      "before": "commands/reminder-return.jpg",
+      "after": "commands/reminder-return.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 109,
+        "edgeRight": 92,
+        "detail": 0.574,
+        "problems": []
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 109,
+        "edgeRight": 92,
+        "detail": 0.574,
+        "problems": []
+      }
+    },
+    {
+      "case": "/quiz shopping",
+      "langs": "uk en pl",
+      "before": null,
+      "after": null,
+      "beforeQuality": null,
+      "afterQuality": null
+    },
+    {
+      "case": "/quiz shopping",
+      "langs": "ru",
+      "before": "ru/shopping.jpg",
+      "after": "scenes/ru/shopping.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 94,
+        "bandRight": 93,
+        "edgeLeft": 14,
+        "edgeRight": 15,
+        "detail": 0.345,
+        "problems": [
+          "слева мыльная полоса 94 px",
+          "справа мыльная полоса 93 px",
+          "увеличен из маленького кадра (детали 0.345 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 146,
+        "edgeRight": 110,
+        "detail": 0.52,
+        "problems": []
+      }
+    },
+    {
+      "case": "/quiz food",
+      "langs": "uk en pl",
+      "before": null,
+      "after": null,
+      "beforeQuality": null,
+      "afterQuality": null
+    },
+    {
+      "case": "/quiz food",
+      "langs": "ru",
+      "before": "ru/food.jpg",
+      "after": "scenes/ru/food.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 94,
+        "bandRight": 94,
+        "edgeLeft": 17,
+        "edgeRight": 16,
+        "detail": 0.343,
+        "problems": [
+          "слева мыльная полоса 94 px",
+          "справа мыльная полоса 94 px",
+          "увеличен из маленького кадра (детали 0.343 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 64,
+        "edgeRight": 100,
+        "detail": 0.515,
+        "problems": []
+      }
+    },
+    {
+      "case": "/quiz transport",
+      "langs": "uk en pl",
+      "before": null,
+      "after": null,
+      "beforeQuality": null,
+      "afterQuality": null
+    },
+    {
+      "case": "/quiz transport",
+      "langs": "ru",
+      "before": "ru/transport.jpg",
+      "after": "scenes/ru/transport.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 90,
+        "bandRight": 94,
+        "edgeLeft": 13,
+        "edgeRight": 13,
+        "detail": 0.34,
+        "problems": [
+          "слева мыльная полоса 90 px",
+          "справа мыльная полоса 94 px",
+          "увеличен из маленького кадра (детали 0.34 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 149,
+        "edgeRight": 109,
+        "detail": 0.473,
+        "problems": []
+      }
+    },
+    {
+      "case": "/quiz shop-loyalty",
+      "langs": "uk en pl",
+      "before": null,
+      "after": null,
+      "beforeQuality": null,
+      "afterQuality": null
+    },
+    {
+      "case": "/quiz shop-loyalty",
+      "langs": "ru",
+      "before": "ru/shopping.jpg",
+      "after": "scenes/ru/shopping.jpg",
+      "beforeQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 94,
+        "bandRight": 93,
+        "edgeLeft": 14,
+        "edgeRight": 15,
+        "detail": 0.345,
+        "problems": [
+          "слева мыльная полоса 94 px",
+          "справа мыльная полоса 93 px",
+          "увеличен из маленького кадра (детали 0.345 < 0.44)"
+        ]
+      },
+      "afterQuality": {
+        "width": 1280,
+        "height": 720,
+        "bandLeft": 0,
+        "bandRight": 0,
+        "edgeLeft": 146,
+        "edgeRight": 110,
+        "detail": 0.52,
+        "problems": []
+      }
+    }
+  ]
+}

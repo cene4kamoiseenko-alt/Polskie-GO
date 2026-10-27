@@ -1,0 +1,21 @@
+{
+  "commands/help.jpg": "9c7f96f52d",
+  "commands/lesson.jpg": "4892c1d404",
+  "commands/map.jpg": "a913d42d10",
+  "commands/quests.jpg": "4892c1d404",
+  "commands/reminder-lesson.jpg": "4892c1d404",
+  "commands/reminder-return.jpg": "804374d52d",
+  "commands/reminder-streak.jpg": "a207e29a5c",
+  "commands/settings.jpg": "570f3eaaeb",
+  "commands/start.jpg": "570f3eaaeb",
+  "commands/stop.jpg": "804374d52d",
+  "commands/words.jpg": "e66e2b0438",
+  "scenes/ru/food.jpg": "3d795f322d",
+  "scenes/ru/lesson.jpg": "c264582e8a",
+  "scenes/ru/return.jpg": "cfb7849c6e",
+  "scenes/ru/settings.jpg": "c6f2611bac",
+  "scenes/ru/shopping.jpg": "dba4acda56",
+  "scenes/ru/start.jpg": "b6291d0aaa",
+  "scenes/ru/transport.jpg": "9a41a49428",
+  "scenes/ru/words.jpg": "289048d7bb"
+}

@@ -33,7 +33,11 @@ export interface SceneArt {
   focus: string;
   /** Що зображено. */
   shows: string;
-  /** Файл кадру для Telegram (apps/web/public/bot, 1280×720) і питання, де він доречний; null — немає повідомлення за змістом. */
+  /**
+   * Файл кадру для Telegram (apps/web/public/bot, 1280×720) і питання, де він доречний; null — кадру в боті немає.
+   * Тимчасові вирізки сюди не потрапляють: у 1280×720 вони збільшені в 2–2,5 раза, і scripts/validate-assets.mjs
+   * відхиляє такий файл (детали < 0,44). Biedronka була підключена до питання shop-loyalty і знята 2026-10-27 (Opus).
+   */
   telegram: { file: string; questionIds: string[] } | null;
   /** Відомі вади кадру, які виправить майстер-файл. */
   defects: string[];
@@ -53,7 +57,7 @@ export const SCENE_ART: Record<string, SceneArt> = {
   'store-biedronka': {
     ...common, id: 'store-biedronka', file: 'biedronka', brand: 'Biedronka', native: [632, 316], fallbackScene: 'supermarket',
     missions: ['biedronka-breakfast'], focus: '15% 10%', shows: 'Фасад Biedronka, Бобек із візком продуктів',
-    telegram: { file: 'scenes/stores/biedronka.jpg', questionIds: ['shop-loyalty'] }, defects: [],
+    telegram: null, defects: [],
   },
   'store-rossmann': {
     ...common, id: 'store-rossmann', file: 'rossmann', brand: 'Rossmann', native: [550, 275], fallbackScene: 'drugstore',

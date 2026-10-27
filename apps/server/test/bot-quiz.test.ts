@@ -167,7 +167,7 @@ describe('полный цикл в чате', () => {
     expect(btns.length).toBe(optionsOf(q, 'ru').length);
     expect(btns.every((b) => b.callback_data!.startsWith(`qa:${round.id}:`))).toBe(true);
     if (sent.method === 'sendPhoto') {
-      expect(sent.params.photo).toMatch(/^https:\/\/polski\.example\/bot\/scenes\/ru\/(shopping|food|transport)\.jpg$/);
+      expect(sent.params.photo).toMatch(/^https:\/\/polski\.example\/bot\/scenes\/ru\/(shopping|food|transport)\.jpg\?v=[0-9a-f]{10}$/);
       expect(['shopping', 'food', 'transport']).toContain(q.category);
     }
 

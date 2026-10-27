@@ -1,11 +1,14 @@
 /**
  * Отсутствующая или отвергнутая картинка никогда не ломает отправку бота.
  *  1. Каждый путь картинки, который бот может запросить на любом языке (команды, возвращение, напоминания, быстрые вопросы),
- *     существует в apps/web/public/bot и является JPEG 1280×720. Сцены без файла в боте не подключены: блокированные сцены
- *     (assets/telegram/asset-manifest.json, blocked_scenes) показывают нейтральные кадры commands/*, а не несуществующие адреса.
+ *     существует в apps/web/public/bot, является JPEG 1280×720 и проверен по самому файлу (scripts/lib/image-quality.mjs):
+ *     без мыльных боковых полос и не увеличен из маленького кадра (кроме мягкого запасного из soft_fallback манифеста).
+ *     Сцены без файла в боте не подключены: блокированные сцены (assets/telegram/asset-manifest.json, blocked_scenes)
+ *     показывают нейтральные кадры commands/*, а не несуществующие адреса.
  *  2. Девять команд × четыре языка: если Telegram отвергает фото (400 / 404, «wrong type of the web page content», «failed to get
  *     HTTP URL content»), приходит тот же текст и те же кнопки обычным сообщением, webhook отвечает 200.
- *  3. Быстрый вопрос с картинкой: отказ по фото → текстовый вопрос, раунд открыт и без фото.
+ *  3. Быстрый вопрос с картинкой (только русский: доски категорий): отказ по фото → текстовый вопрос, раунд открыт и без фото.
+ *     У uk / pl / en картинок к вопросам нет — вопрос уходит текстом.
  *  4. Адрес не HTTPS (локальная разработка) → фото не запрашивается, сообщение уходит текстом.
  * Telegram здесь — подмена fetch (`fakeTelegram`): проверка кода сервера, а не настоящей доставки.
  */
@@ -22,10 +25,14 @@ import { QUIZ_QUESTIONS } from '../src/bot/quiz/questions';
 import { sendCard } from '../src/bot/send';
 import { disposeEnv, getEnv, request } from './helpers';
 import { jpegSize } from './image-size';
+import { analyseImage, qualityProblems } from '../../../scripts/lib/image-quality.mjs';
 import { fakeTelegram, tgError } from './tg-fake';
 
 const ORIGIN = 'https://polski.example';
 const PUBLIC_BOT = new URL('../../web/public/bot/', import.meta.url);
+const MANIFEST = JSON.parse(readFileSync(new URL('../../../assets/telegram/asset-manifest.json', import.meta.url), 'utf8')) as {
+  soft_fallback: { file: string; reason: string }[];
+};
 
 beforeAll(async () => {
   const { env } = await getEnv();
@@ -36,19 +43,25 @@ beforeAll(async () => {
 afterAll(disposeEnv);
 afterEach(() => vi.unstubAllGlobals());
 
-describe('каждая картинка бота существует', () => {
+/** Все файлы, которые бот может отправить на любом языке. */
+function sendableFiles(): Set<string> {
+  const files = new Set<string>();
+  for (const lang of UI_LANGS) {
+    for (const command of COMMANDS) files.add(commandImage(command, lang));
+    files.add(startBackImage(lang));
+  }
+  for (const kind of Object.keys(REMINDER_IMAGES) as (keyof typeof REMINDER_IMAGES)[]) files.add(reminderImage(kind));
+  for (const q of QUIZ_QUESTIONS) for (const lang of UI_LANGS) {
+    const image = quizImage(q, lang);
+    if (image) files.add(image);
+  }
+  return files;
+}
+
+describe('каждая картинка бота существует и проверена по файлу', () => {
   it('команды, возвращение, напоминания и быстрые вопросы на всех языках → реальные JPEG 1280×720', () => {
-    const files = new Set<string>();
-    for (const lang of UI_LANGS) {
-      for (const command of COMMANDS) files.add(commandImage(command, lang));
-      files.add(startBackImage(lang));
-    }
-    for (const kind of Object.keys(REMINDER_IMAGES) as (keyof typeof REMINDER_IMAGES)[]) files.add(reminderImage(kind));
-    for (const q of QUIZ_QUESTIONS) for (const lang of UI_LANGS) {
-      const image = quizImage(q, lang);
-      if (image) files.add(image);
-    }
-    expect(files.size).toBeGreaterThanOrEqual(20);
+    const files = sendableFiles();
+    expect(files.size).toBeGreaterThanOrEqual(18);
     for (const file of files) {
       const url = new URL(file, PUBLIC_BOT);
       expect(existsSync(url), `${file}: файла нет`).toBe(true);
@@ -57,6 +70,34 @@ describe('каждая картинка бота существует', () => {
       expect(bytes.length, `${file} < 10 МБ (лимит sendPhoto)`).toBeLessThan(10 * 1024 * 1024);
       if (file.startsWith('scenes/')) expect(existsSync(new URL(file.replace(/\.jpg$/, '@640.jpg'), PUBLIC_BOT)), `${file}: нет @640`).toBe(true);
     }
+  });
+
+  it('ни в одном отправляемом кадре нет мыльных боковых полос и увеличения маленькой картинки', async () => {
+    const soft = new Set(MANIFEST.soft_fallback.map((s) => s.file));
+    for (const file of sendableFiles()) {
+      const q = await analyseImage(readFileSync(new URL(file, PUBLIC_BOT)));
+      expect(qualityProblems(q, { softAllowed: soft.has(file) }), `${file}: ${JSON.stringify(q)}`).toEqual([]);
+      expect(q.bandLeft + q.bandRight, `${file}: полосы`).toBe(0);
+    }
+  });
+
+  it('проверка ловит то, что было в production: размытые полосы по бокам и увеличенный маленький кадр', async () => {
+    const sharp = (await import('sharp')).default;
+    const original = readFileSync(new URL('scenes/ru/words.jpg', PUBLIC_BOT));
+    // Как старые ru/*.jpg: кадр уже экрана, а по бокам растянутая размытая копия.
+    const inner = await sharp(original).resize(1100, 720, { fit: 'fill' }).toBuffer();
+    const blurred = await sharp(original).resize(1280, 720, { fit: 'fill' }).blur(18).toBuffer();
+    const padded = await sharp(blurred).composite([{ input: inner, left: 90, top: 0 }]).jpeg({ quality: 88 }).toBuffer();
+    const pq = await analyseImage(padded);
+    expect(pq.bandLeft, JSON.stringify(pq)).toBeGreaterThanOrEqual(80);
+    expect(pq.bandRight, JSON.stringify(pq)).toBeGreaterThanOrEqual(80);
+    expect(qualityProblems(pq).length).toBeGreaterThan(0);
+    // Как вырезка из коллажа: 512×288, увеличенная до 1280×720.
+    const upscaled = await sharp(await sharp(original).resize(512, 288).toBuffer()).resize(1280, 720, { kernel: 'lanczos3' }).jpeg({ quality: 90 }).toBuffer();
+    const uq = await analyseImage(upscaled);
+    expect(qualityProblems(uq), JSON.stringify(uq)).toEqual([expect.stringMatching(/увеличен из маленького кадра/)]);
+    // Исходный полнокадровый кадр проходит.
+    expect(qualityProblems(await analyseImage(original))).toEqual([]);
   });
 });
 
@@ -99,7 +140,7 @@ describe('быстрый вопрос с картинкой', () => {
     await db.insert(botQuizPlayers).values({ telegramId, recent, day: '2000-01-01', dayCount: 0 });
   }
 
-  it.each([['ru', 40], ['uk', 41]] as const)('%s: отказ по фото → вопрос текстом, раунд открыт без фото', async (lang, offset) => {
+  it.each([['ru', 40]] as const)('%s: отказ по фото → вопрос текстом, раунд открыт без фото', async (lang, offset) => {
     const telegramId = 8_300_000 + offset;
     await playerWithOnlyPhotoQuestions(telegramId, lang);
     const calls = fakeTelegram((c) => (c.method === 'sendPhoto' ? tgError(400, 'Bad Request: failed to get HTTP URL content') : undefined));
@@ -110,6 +151,15 @@ describe('быстрый вопрос с картинкой', () => {
     expect(calls[1].params.reply_markup).toEqual(calls[0].params.reply_markup);
     const round = (await db.select().from(botQuizRounds).where(eq(botQuizRounds.telegramId, telegramId)))[0];
     expect(round).toMatchObject({ status: 'OPEN', hasPhoto: false });
+  });
+
+  it.each(['uk', 'pl', 'en'] as const)('%s: картинок к вопросам нет — вопрос уходит текстом', async (lang) => {
+    expect(QUIZ_QUESTIONS.filter((q) => quizImage(q, lang))).toEqual([]);
+    const telegramId = 8_300_060 + UI_LANGS.indexOf(lang);
+    const calls = fakeTelegram();
+    const result = await startQuiz({ telegramId, chatId: telegramId, lang, user: null, source: 'command' });
+    expect(result.status).toBe('sent');
+    expect(calls.map((c) => c.method)).toEqual(['sendMessage']);
   });
 
   it('блокировка бота (403) картинкой не маскируется: вопрос не остаётся «открытым»', async () => {
