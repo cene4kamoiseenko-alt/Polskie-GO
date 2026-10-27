@@ -88,10 +88,10 @@
       "name_pl": "Katowice",
       "name_ru": "Катовице",
       "cefr": "A1",
-      "routes": 3,
-      "lessons": 4,
+      "routes": 7,
+      "lessons": 13,
       "exam": true,
-      "tasks_per_lesson": "11–12",
+      "tasks_per_lesson": "11–14",
       "image": {
         "repo": "apps/web/src/assets/cities/katowice.webp",
         "status": "interim",
@@ -101,7 +101,7 @@
         "owner_candidate": null
       },
       "landmarks": "Spodek — совпадает; полноразмерного кандидата от владельца нет (есть только превью)",
-      "missing_content": "⚠ 4 урока из 16 обычных; вокабуляр katowice (54 слова) не подключён; 12 уроков не написаны — см. PROJECT_PROGRESS.md",
+      "missing_content": "уроков 13 из 13 запланированных, экзамен; написано 2026-10-27 (kat-5…13). Не вошли пункты плана Haiku: «mówić/powiedzieć», «brać/wziąć», «Spodek и районы». Нужна проверка носителем",
       "progress": "не проверено",
       "needed_art": {
         "file": "docs/design/a10/cities/city-katowice.webp",
@@ -114,10 +114,10 @@
       "name_pl": "Opole",
       "name_ru": "Ополе",
       "cefr": "A1",
-      "routes": 2,
-      "lessons": 4,
+      "routes": 4,
+      "lessons": 10,
       "exam": true,
-      "tasks_per_lesson": "11–12",
+      "tasks_per_lesson": "11–14",
       "image": {
         "repo": "apps/web/src/assets/cities/opole.webp",
         "status": "final",
@@ -132,7 +132,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Башня Пястов и амфитеатр Opole узнаваемы",
-      "missing_content": "⚠ 4 урока из 16; 2 маршрута; тема «Живой разговорный польский» — нужны уроки 5–16",
+      "missing_content": "уроков 10, экзамен; уроки 5–10 (планы, приглашения, мнение, концерт, песня, конкурс) написаны 2026-10-27; урок сленга — только после проверки носителем",
       "progress": "не проверено"
     },
     {
@@ -140,10 +140,10 @@
       "name_pl": "Wrocław",
       "name_ru": "Вроцлав",
       "cefr": "A1",
-      "routes": 4,
-      "lessons": 4,
+      "routes": 9,
+      "lessons": 16,
       "exam": true,
-      "tasks_per_lesson": "10–11",
+      "tasks_per_lesson": "10–14",
       "image": {
         "repo": "apps/web/src/assets/cities/wroclaw.webp",
         "status": "final",
@@ -158,7 +158,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Ратуша и краснали (гномы) узнаваемы; закрывает пробел «Rynek»",
-      "missing_content": "⚠ 4 урока из 16; черновики уроков 5–16 готовы: apps/server/src/content/drafts/wroclaw-5-10.ts и wroclaw-11-16.ts (не подключены)",
+      "missing_content": "уроков 16, экзамен; уроки 5–16 подключены 2026-10-27, черновики drafts/ удалены. Нужна проверка носителем",
       "progress": "не проверено"
     },
     {
@@ -536,9 +536,9 @@
       "warszawa 25",
       "lodz 16",
       "krakow 40",
-      "katowice 4 ⚠",
-      "opole 4 ⚠",
-      "wroclaw 4 ⚠"
+      "katowice 13",
+      "opole 10",
+      "wroclaw 16"
     ],
     "cities_without_lessons": 14,
     "exam_cities": [
@@ -596,7 +596,7 @@
       "wroclaw"
     ]
   },
-  "updated": "2026-10-27 (Sonnet, этап 2)",
+  "updated": "2026-10-27 (Sonnet, этап 2; уроки Katowice, Opole, Wrocław обновлены)",
   "pipeline": {
     "masters": "docs/design/a10/cities/city-<slug>.webp — полноразмерные панорамы владельца 1774×887 (2:1). Хранятся отдельно, приложение их не грузит. Меньше рекомендованных 2880×1440: не растягиваются.",
     "build": "node scripts/build-city-art.mjs → apps/web/src/assets/cities/<slug>.webp (1440×720, ≤ 220 КБ) и <slug>@640.webp (640×320, ≤ 60 КБ). Lanczos, без blur, WebP q72–78 по бюджету.",
