@@ -14,7 +14,7 @@
 | `ENVIRONMENT` | `production` | `staging` |
 | Секреты | в панели Worker `polskie-go` | свои, в панели Worker `polskie-go-staging`; секреты production в staging не попадают |
 | Токен бота | боевой | **боевой токен игнорируется**: staging принимает токен только с id из `STAGING_BOT_ID` (отдельный тестовый бот) |
-| Озвучка и распознавание | включены по настройкам | `TTS_PROVIDER=off`, `STT_PROVIDER=off` (платные сервисы) |
+| Озвучка и распознавание | включены по настройкам | `TTS_PROVIDER=off`, `STT_PROVIDER=off` (платные сервисы). Ключ Google можно положить секретом: админка staging сравнивает голоса на слух, игроки staging озвучку не получают (`docs/GOOGLE_TTS_SETUP_RU.md`, шаг 6) |
 | Вход без Telegram (`/api/auth/dev`) | всегда выключен | выключен; включается только явной переменной `DEV_AUTH=true` |
 | CORS и `SESSION_SECRET` | строгие | такие же строгие (staging доступен из интернета) |
 
@@ -38,6 +38,16 @@
 
 - `wrangler deploy --dry-run -c wrangler.staging.jsonc`: привязки — `DB (polski-go-staging)`, `ASSETS`, `ENVIRONMENT=staging`, `TTS_PROVIDER=off`, `STT_PROVIDER=off`, ничего больше.
 - Локальный запуск (`wrangler dev -c wrangler.staging.jsonc --local`, локальная база, миграции 0001–0009 и seed применены): `/api/health` → `"environment":"staging"`, миграция `0009_bot_quiz.sql`, `"bot":null`; `/api/auth/dev` без `DEV_AUTH` → 404; чужой `Origin` не получает CORS; корректно подписанный `initData` с токеном вне `STAGING_BOT_ID` → `401 bot_token_missing`, а с совпавшим `STAGING_BOT_ID` → 200.
+- Повторная проверка 2026-10-27 (Opus, тот же код плюс миграция `0010_tts_spend.sql`). `npm run staging:check` прошёл. `wrangler deploy --dry-run -c wrangler.staging.jsonc` — те же пять привязок. Локальные `d1 migrations apply polski-go-staging --local -c wrangler.staging.jsonc` в отдельную папку применили 0000–0010, повторный запуск ответил «No migrations to apply». После них seed.
+
+  `wrangler dev` с токеном не из `STAGING_BOT_ID`:
+
+  - `/api/health` → `staging`, `0010_tts_spend.sql`, `"bot":null`;
+  - `/api/auth/dev`: без `DEV_AUTH` → 404, с `DEV_AUTH=true` → 200, с `DEV_AUTH=true` и `ENVIRONMENT=production` → 404;
+  - чужой `Origin` → без `Access-Control-Allow-Origin`;
+  - `/api/tts` при `TTS_PROVIDER=off` → 503.
+
+  Wrangler в этой среде не залогинен: удалённые команды физически невозможны. Сторож теперь также отказывает, если в боевом `wrangler.jsonc` появится `DEV_AUTH`.
 - Не проверено: удалённый деплой, создание базы D1 в аккаунте, Workers Builds для второго Worker, Telegram на телефоне.
 
 ## 4. Локальный staging без Cloudflare
