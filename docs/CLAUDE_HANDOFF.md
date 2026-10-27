@@ -78,7 +78,7 @@
 
 ## Telegram-бот — 2026-10-27
 
-Задание — `docs/PROMPT_TELEGRAM_BOT.md`, ТЗ — `docs/bot/`. Сделано (коммиты «Telegram bot: nine commands…» и «Mini App: open the tab…»): девять команд, фото + inline-кнопки, ru/uk/pl/en, `bot_screen`, идемпотентность webhook, напоминания (lesson/streak/return) с состояниями доставки, `setup-bot.mjs`. Не развёрнуто: бот в Telegram обновится после деплоя и `npm run bot:setup -w @polski-go/server` (инструкция — `docs/TELEGRAM_BOT.md`, раздел 6). Тесты: typecheck 0; shared 152, server 279; e2e 363 проверки; build 0; content-lint 0. Не проверено: iOS/Android Telegram, боевые URL картинок, cron в production.
+Задание — `docs/PROMPT_TELEGRAM_BOT.md`, ТЗ — `docs/bot/`. Сделано (коммиты «Telegram bot: nine commands…» и «Mini App: open the tab…»): девять команд, фото + inline-кнопки, ru/uk/pl/en, `bot_screen`, идемпотентность webhook, напоминания (lesson/streak/return) с состояниями доставки, `setup-bot.mjs`. Не развёрнуто: бот в Telegram обновится после деплоя и `npm run bot:setup -w @polski-go/server` (инструкция — `docs/TELEGRAM_BOT.md`, раздел 6). Тесты: typecheck 0; shared 152, server 297; e2e 363 проверки; build 0; content-lint 0. Не проверено: iOS/Android Telegram, боевые URL картинок, cron в production.
 
 ## Результаты тестов
 
@@ -87,7 +87,7 @@
 | Команда | Код выхода | Результат |
 |---|---|---|
 | `npm run typecheck` | 0 | без ошибок |
-| `npm test` | 0 | shared 152 из 152 (4 файла), server 279 из 279 (29 файлов) — 2026-10-27, Telegram-бот |
+| `npm test` | 0 | shared 152 из 152 (4 файла), server 297 из 297 (29 файлов) — 2026-10-27, Telegram-бот |
 | `node --import tsx scripts/content-lint.ts` | 0 | 1689 заданий, структура 0, диакритика 0, отчёт не блокирует |
 | `npm run e2e` | 0 | 363 проверки, 0 провалов (2026-10-27, +B1 «переходы из бота»). Chromium, не Telegram iOS |
 

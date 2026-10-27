@@ -143,7 +143,7 @@ Cron `*/15 * * * *`. Три сценария, выбираются по реал
 | Файлы картинок: 12 шт., 1280×720 JPEG | vitest (читает SOF-маркер) | `bot-copy.test.ts` |
 | `setup-bot.mjs`: список вызовов, описание/webhook без флагов не трогаются | vitest (`buildCalls`) + ручной `--dry-run` | `bot-copy.test.ts` |
 
-Прогон 2026-10-27 (код выхода 0 у всех): `npm run typecheck`; `npm test` — shared 152 из 152 (4 файла), server 279 из 279 (29 файлов); `node --import tsx scripts/content-lint.ts` (1689 заданий, структура 0); `npm run build`; `npm run e2e` — 363 проверки, 0 провалов («A2/A3/A4/L1/M2/B1: все сценарии пройдены»).
+Прогон 2026-10-27 (код выхода 0 у всех): `npm run typecheck`; `npm test` — shared 152 из 152 (4 файла), server 297 из 297 (29 файлов); `node --import tsx scripts/content-lint.ts` (1689 заданий, структура 0); `npm run build`; `npm run e2e` — 363 проверки, 0 провалов («A2/A3/A4/L1/M2/B1: все сценарии пройдены»).
 
 Локально собранное приложение (`wrangler dev --local`, `dist-cf`) отдаёт все двенадцать `/bot/commands/*.jpg` как `200 image/jpeg` с размерами файлов; несуществующий файл даёт `200 text/html` (SPA-замещение). Это локальный сервер.
 

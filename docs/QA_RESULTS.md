@@ -22,7 +22,7 @@
 |---|---|---|
 | Типизация | `npm run typecheck` | Код выхода 0 (shared, admin, server, web) |
 | Юнит-тесты shared | `npm test` | Код выхода 0. 4 файла, 152 из 152 (+4: `botScreens`) |
-| Юнит-тесты server | `npm test` | Код выхода 0. 29 файлов, 279 из 279 (было 173). Новые: `bot-copy` 29, `bot-webhook` 45, `bot-setup` 14, `reminders-delivery` 18; `reminders` прежний |
+| Юнит-тесты server | `npm test` | Код выхода 0. 29 файлов, 297 из 297 (было 173). Новые: `bot-copy` 29, `bot-webhook` 63, `bot-setup` 14, `reminders-delivery` 18; `reminders` прежний |
 | E2E | `npm run e2e` | Код выхода 0. 363 проверки, 0 провалов. Новые сценарии B1.1–B1.3: девять вкладок по `bot_screen` на 390×844 и 360×800, подделки (`evil`, `/admin`, URL, `..`, регистр, пусто) остаются на главной, `startapp=screen_`/`ref_`/`premium`, первый запуск (знакомство → экран) и повторный, обычная навигация не перебивается |
 | Контент-lint | `node --import tsx scripts/content-lint.ts` | Код выхода 0. 1689 заданий, структура 0 |
 | Сборка | `npm run build` | Код выхода 0. `dist-cf/bot/commands/` — 12 JPEG |
