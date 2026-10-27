@@ -7,7 +7,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider } from '../i18n';
 import { ToastProvider } from '../components/ui';
 import { ExerciseView } from '../exercises/Exercises';
+import { LazyMotion, loadMotionFeatures } from '../lib/motion';
 import { LessonStage } from '../components/LessonStage';
+import type { UiLang } from '@polski-go/shared';
 import type { PublicItem } from '../lib/types';
 
 const tr3 = (s: string) => ({ uk: s, ru: s, en: s });
@@ -22,23 +24,31 @@ const PICTOS = [...'🌙☀️🌆👋🙏🚇🚋🚌🚆✈️🚕🚲🚗🚉
 const BIG = ['🥒', '🍅', '🥔', '🍞', '🥨', '🥧', '🍫', '🧁', '🧀', '🍔', '🌭', '🥟', '🍵', '🌉', '⛲', '🗽', '🛗', '🪜', '🪟', '🏟️', '👜', '🙏', '🧜‍♀️', '🐉', '🐻'];
 const NPCS = ['👩🏼', '👴🏻', '👩🏻‍💼', '👨🏻‍💼', '👩🏻‍🦳', '🎫', '🧑🏻', '👵🏼', '🧔🏻‍♂️', '👨🏻‍🌾', '👩🏻', '🧔🏻', '🧑🏼', '👩🏽‍🦱', '👨🏻‍🍳', '👵🏻', '👨🏻', '👩🏻‍🦰', '🧑🏽‍🔧', '👩🏼‍💼', '👨🏻‍✈️', '🧑🏻‍💼', '👩🏻‍🦱', '🧑🏼‍🦰', '👩🏻‍🍳', '🤵🏻', '👮🏻‍♂️', '👩🏼‍🎓', '👨🏻‍🦳', '👩🏻‍🏫', '🧑🏻‍💻', '🧑🏻‍🍳', '🧙🏻‍♂️'];
 
+/** ?ex&inject — задания, переданные скриптом (window.__PG_ITEMS__): scripts/lesson-render-check.ts рисует настоящие уроки. */
+type Injected = { lesson: string; city: string; items: PublicItem[] };
+const injected = (): Injected[] => ((window as unknown as { __PG_ITEMS__?: Injected[] }).__PG_ITEMS__ ?? []);
+
 export default function Gallery() {
   if (location.search.includes('ex')) {
+    const lang = (new URLSearchParams(location.search).get('lang') ?? 'ru') as UiLang;
+    const groups = location.search.includes('inject') ? injected() : [{ lesson: 'samples', city: 'warszawa', items: SAMPLES }];
     return (
+      <LazyMotion features={loadMotionFeatures}>
       <QueryClientProvider client={qc}>
-        <I18nProvider lang="ru">
+        <I18nProvider lang={lang}>
           <ToastProvider>
             <div className="min-h-screen space-y-6 bg-[var(--bg)] p-4">
-              {SAMPLES.map((item, i) => (
-                <div key={item.key} className="space-y-3">
-                  <LessonStage item={item} index={i} mood="idle" place="Warszawa" citySlug="warszawa" />
+              {groups.flatMap((g) => g.items.map((item, i) => (
+                <div key={`${g.lesson}:${item.key}`} className="space-y-3" data-check-item={`${g.lesson}:${item.key}:${item.type}`}>
+                  <LessonStage item={item} index={i} mood="idle" place={g.city} citySlug={g.city} />
                   <ExerciseView item={item} result={null} onChange={() => {}} onSubmit={() => {}} submitStep={async () => ({ correct: true }) as never} onDialogueDone={() => {}} />
                 </div>
-              ))}
+              )))}
             </div>
           </ToastProvider>
         </I18nProvider>
       </QueryClientProvider>
+      </LazyMotion>
     );
   }
   if (location.search.includes('picto')) {

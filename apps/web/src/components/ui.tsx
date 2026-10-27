@@ -391,7 +391,8 @@ export function SpeakButton({ text, url, size = 'md', slow = false }: { text: st
     lastIssue.current = issue;
     toast(t(issue === 'no_polish_voice' ? 'audio_no_voice' : issue === 'blocked' ? 'audio_blocked' : 'audio_error'), '🔇');
   }, [status, issue, toast, t]);
-  const dims = size === 'lg' ? 'h-16 w-16' : size === 'sm' ? 'h-9 w-9' : 'h-11 w-11';
+  // sm — 40 px: не меньше минимальной зоны касания (раньше 36 px, scripts/lesson-render-check.ts).
+  const dims = size === 'lg' ? 'h-16 w-16' : size === 'sm' ? 'h-10 w-10' : 'h-11 w-11';
   const icon = size === 'lg' ? 30 : size === 'sm' ? 16 : 22;
   return (
     <button
