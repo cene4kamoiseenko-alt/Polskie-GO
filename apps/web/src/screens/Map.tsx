@@ -276,8 +276,8 @@ function CityStatus({ city }: { city: JourneyCity }) {
   const { t } = useT();
   const art = CITY_ART[city.slug]?.status ?? 'missing';
   const items = [
-    // Тимчасовий кадр не видається за готовий: «готове» тільки у final.
-    { key: 'art', label: t('map_st_art'), ok: art === 'final', value: art === 'final' ? t('map_st_ready') : art === 'interim' ? t('map_st_interim') : t('map_soon'), icon: art === 'final' ? 'check' : 'clock' },
+    // «Готове» тільки у final; без фінальної панорами шторка показує ілюстрацію, а оформлення — «скоро».
+    { key: 'art', label: t('map_st_art'), ok: art === 'final', value: art === 'final' ? t('map_st_ready') : t('map_soon'), icon: art === 'final' ? 'check' : 'clock' },
     { key: 'lessons', label: t('map_st_lessons'), ok: city.hasContent, value: city.hasContent ? String(city.lessonsTotal) : t('map_soon'), icon: city.hasContent ? 'book' : 'clock' },
     { key: 'access', label: t('map_st_access'), ok: city.unlocked, value: city.unlocked ? t('map_st_open') : t('map_st_locked'), icon: city.unlocked ? 'check' : 'lock' },
   ] as const;

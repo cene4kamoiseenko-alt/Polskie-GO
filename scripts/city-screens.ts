@@ -1,7 +1,7 @@
 /**
  * Реальные снимки фонов городов на 320 / 360 / 390 / 430 px: главная (герой текущего города, без проверки банера: у героя своя разметка), карта и шторка двух городов —
- * с финальным кадром (Gdańsk) и временным (Katowice). Проверяет, что картинка декодирована, имеет ленивую загрузку и srcset
- * с 640w, не вытянута (натуральное отношение сторон шире 1.4:1) и что на экране нет горизонтальной прокрутки.
+ * с финальным кадром (Gdańsk) и без него (Katowice: временный кадр не показывается, вместо него рисованная сцена). Проверяет, что картинка
+ * декодирована, имеет ленивую загрузку и srcset с 640w, не вытянута (натуральное отношение сторон шире 1.4:1) и что на экране нет горизонтальной прокрутки.
  * Chromium, а не Telegram на iPhone / Android.
  *
  * Запуск: node --import tsx scripts/city-screens.ts   → test-results/city-screens/<экран>-<ширина>.png
@@ -74,6 +74,12 @@ async function main() {
         await dialog.waitFor({ state: 'visible', timeout: 10_000 });
         await settle();
         await p.screenshot({ path: `${OUT}/map-${slug}-${width}.png` });
+        if (art === 'interim') {
+          const banner = dialog.locator('[data-city-art="interim"]');
+          check(await banner.locator('img').count() === 0 && await banner.locator('svg').count() > 0, `${width}px шторка ${name}: без финальной панорамы — рисованная сцена, не мутный кадр`);
+          await noHScroll(`шторка ${name}`);
+          continue;
+        }
         check(await dialog.locator(`[data-city-art="${art}"] img`).count() === 1, `${width}px шторка ${name}: баннер ${art}`);
         const lazy = await dialog.locator(`[data-city-art="${art}"] img`).evaluate((el: HTMLImageElement) => el.loading === 'lazy' && el.srcset.includes('640w'));
         check(lazy, `${width}px шторка ${name}: lazy и srcset с 640w`);

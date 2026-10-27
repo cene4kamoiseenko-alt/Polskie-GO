@@ -496,12 +496,13 @@ async function main() {
       check(await dialog.locator('[data-city-art="final"] img').count() === 1, 'A3.8 Gorzów: баннер — настоящий рисунок, а не общая сцена');
       check(await dialog.locator('[data-city-go]').count() === 0, 'A3.8 Gorzów: кнопки «Учить» нет — пустой маршрут не открывается');
       await sp.screenshot({ path: `${SHEETS}/sheet-status-gorzow-390.png` });
-      // Katowice — город с уроками и временным кадром: «оформление» не помечается готовым.
+      // Katowice — город с уроками без финальной панорамы: мутный временный кадр не показывается (решение владельца
+      // 2026-10-27), вместо него рисованная сцена, «оформление» — «скоро».
       await openCity('Katowice');
       const kt = await state();
-      const img = dialog.locator('[data-city-art="interim"] img');
-      check(kt.art === 'false' && kt.lessons === 'true' && await img.count() === 1, `A3.8 Katowice: временный рисунок с доски не выдаётся за готовый, уроки есть ${JSON.stringify(kt)}`);
-      check(await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0 && el.loading === 'lazy' && el.srcset.includes('640w')), 'A3.8 Katowice: картинка декодирована, lazy, srcset с вариантом 640w');
+      const banner = dialog.locator('[data-city-art="interim"]');
+      check(kt.art === 'false' && kt.lessons === 'true' && await banner.count() === 1, `A3.8 Katowice: оформление не выдаётся за готовое, уроки есть ${JSON.stringify(kt)}`);
+      check(await banner.locator('img').count() === 0 && await banner.locator('svg').count() > 0, 'A3.8 Katowice: вместо мутного временного кадра — рисованная сцена (svg), без <img>');
       check((kt.access === 'true') === (await dialog.locator('[data-city-go]').count() === 1), `A3.8 Katowice: кнопка «Учить» есть только при открытом доступе (доступ ${kt.access})`);
       await sp.screenshot({ path: `${SHEETS}/sheet-status-katowice-390.png` });
     });

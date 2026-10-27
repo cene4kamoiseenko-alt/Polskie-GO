@@ -64,8 +64,11 @@ export const cityAsset = (slug: string) => pick('cities', slug);
 /**
  * Панорама міста для <img>: основний файл і варіант `<slug>@640.webp` у srcset (ширини — з інвентаря CITY_ART),
  * щоб мініатюри й вузькі екрани не тягнули файл на 1440 px. Немає файлу → null (клієнт малює загальну сцену).
+ * Лише final: тимчасові кадри (interim, збільшені фрагменти дошок) виглядали мутними, тож до майстер-файлу
+ * клієнт малює ілюстрацію з позначкою «скоро» (рішення власника 2026-10-27).
  */
 export function cityArtImage(slug: string): { src: string; srcSet?: string; small: string } | null {
+  if (CITY_ART[slug]?.status !== 'final') return null;
   const src = pick('cities', slug);
   if (!src) return null;
   const small = files[`../assets/cities/${slug}@${CITY_ART_SMALL}.webp`];
