@@ -249,7 +249,7 @@ export default function ShopScreen() {
           {i.equipped && <span className="costume-card-badge"><Icon name="check" size={14} strokeWidth={3.4} /> {t('shop_wearing')}</span>}
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-3 pt-2.5">
-          <h3 className="text-[15px] font-black leading-tight">{tr(i.name)}</h3>
+          <h3 className="hyphens-auto break-words text-[15px] font-black leading-tight">{tr(i.name)}</h3>
           <p className="muted line-clamp-2 text-[12px] font-bold leading-snug">{t(`costume_desc_${key}` as TKey)}</p>
           <div className="mt-auto flex min-h-[30px] flex-wrap items-center gap-1.5 pt-1">
             {soon && <VisualSoon label={t('look_visual_pending')} />}
@@ -316,8 +316,32 @@ export default function ShopScreen() {
 
   const isTraveller = picked?.id === TRAVELLER_ID;
   const pickedSoon = !!picked && isVisualPending(shopVisualStatus(picked));
+  /** Головна дія вибраної речі (одна кнопка на всю ширину панелі) або null, коли дії немає. */
+  const primary: ReactNode = !picked ? null : isTraveller ? (
+    <button
+      className="btn btn-green min-h-[46px] w-full px-4"
+      disabled={busy || !equippedCostume}
+      onClick={() => equippedCostume && act(() => api('/inventory/equip', { body: { itemId: equippedCostume.id, equipped: false } }), t('toast_saved'))}
+    >
+      {equippedCostume ? t('wardrobe_take_off') : t('shop_wearing')}
+    </button>
+  ) : picked.owned ? (
+    <button className="btn btn-green min-h-[46px] w-full px-4" disabled={busy} onClick={() => act(() => api('/inventory/equip', { body: { itemId: picked.id, equipped: !picked.equipped } }), t('toast_saved'))}>
+      {picked.equipped ? (wearable ? t('shop_unequip') : t('shop_remove')) : wearable ? t('shop_equip') : t('shop_place')}
+    </button>
+  ) : picked.rewardOnly ? (
+    picked.unlock?.kind === 'mission' && picked.unlock.slug ? (
+      <button className="btn btn-sky min-h-[46px] w-full px-4" onClick={() => nav(`/life/${picked.unlock!.slug}`)}>{t('wardrobe_go_mission')}</button>
+    ) : null
+  ) : pickedSoon ? null : picked.isPremium && !shop.data!.premium ? (
+    <button className="btn btn-xp min-h-[46px] w-full px-4" onClick={() => nav('/premium')}>{t('shop_premium_only')}</button>
+  ) : (
+    <button className="btn btn-primary min-h-[46px] w-full px-4" disabled={busy || balance < picked.price} onClick={() => act(() => api('/shop/buy', { body: { itemId: picked.id } }), t('shop_bought'), true)}>
+      {balance < picked.price ? t('shop_no_money') : <><Art name="coin" size={20} /> {picked.price}</>}
+    </button>
+  );
   return (
-    <div className="pb-36">
+    <div className="pb-56">
       {/* Заголовок */}
       <div className="safe-top relative z-10 flex items-center gap-3 px-4 pt-3">
         <h1 className="flex-1 text-[34px] font-black leading-none">{houseMode ? t('house_edit') : t('shop_title')}</h1>
@@ -396,48 +420,28 @@ export default function ShopScreen() {
         <span className="muted text-[13px] font-bold leading-snug">{t('shop_earn_hint')}</span>
       </div>
 
-      {/* Панель дії для вибраного предмета */}
+      {/* Панель дії для вибраного предмета: у два рядки (річ і «×», нижче кнопка на всю ширину): на 320 px в один рядок назва обрізалась під кнопкою */}
       <AnimatePresence>
         {picked && (
-          <motion.div initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-xl px-3">
-            <div className="action-sheet flex items-center gap-3 rounded-[22px] p-3">
-              <span className="action-sheet-art grid h-14 w-14 shrink-0 place-items-center rounded-2xl">
-                {isTraveller ? <BeaverLook look={stageLook} size={50} animate={false} /> : <ItemArt item={picked} size={50} />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="line-clamp-2 text-[15px] font-black leading-tight">{tr(picked.name)}</div>
-                <div className="line-clamp-2 text-[11px] font-black" style={{ color: `var(--rarity-${picked.rarity}, var(--rarity-common))` }}>
-                  {!picked.owned && (picked.rewardOnly || (picked.isPremium && !pickedSoon)) ? unlockText(picked) : `${t(`rarity_${picked.rarity}` as TKey)}${picked.city ? ` · ${tr(picked.city.name)}` : ''}`}
+          <motion.div initial={{ y: 160 }} animate={{ y: 0 }} exit={{ y: 160 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-xl px-3">
+            <div className="action-sheet rounded-[22px] p-3">
+              <div className="flex items-start gap-3">
+                <span className="action-sheet-art grid h-14 w-14 shrink-0 place-items-center rounded-2xl">
+                  {isTraveller ? <BeaverLook look={stageLook} size={50} animate={false} /> : <ItemArt item={picked} size={50} />}
+                </span>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div className="line-clamp-2 text-[15px] font-black leading-tight">{tr(picked.name)}</div>
+                  <div className="line-clamp-2 text-[11px] font-black" style={{ color: `var(--rarity-${picked.rarity}, var(--rarity-common))` }}>
+                    {!picked.owned && (picked.rewardOnly || (picked.isPremium && !pickedSoon)) ? unlockText(picked) : `${t(`rarity_${picked.rarity}` as TKey)}${picked.city ? ` · ${tr(picked.city.name)}` : ''}`}
+                  </div>
+                  {pickedSoon && <div className="mt-0.5"><VisualSoon label={t('look_visual_pending')} /></div>}
+                  {!picked.equipped && willRemove.length > 0 && (
+                    <div data-will-remove className="muted line-clamp-2 text-[11px] font-bold leading-tight">{t('wardrobe_will_remove', { items: willRemove.join(', ') })}</div>
+                  )}
                 </div>
-                {pickedSoon && <div className="mt-0.5"><VisualSoon label={t('look_visual_pending')} /></div>}
-                {!picked.equipped && willRemove.length > 0 && (
-                  <div data-will-remove className="muted line-clamp-2 text-[11px] font-bold leading-tight">{t('wardrobe_will_remove', { items: willRemove.join(', ') })}</div>
-                )}
+                <button onClick={() => pick(null)} aria-label={t('shop_cancel_try')} className="-mr-1 -mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--text-muted)]"><Icon name="x" size={20} /></button>
               </div>
-              {isTraveller ? (
-                <button
-                  className="btn btn-green min-h-[46px] px-4"
-                  disabled={busy || !equippedCostume}
-                  onClick={() => equippedCostume && act(() => api('/inventory/equip', { body: { itemId: equippedCostume.id, equipped: false } }), t('toast_saved'))}
-                >
-                  {equippedCostume ? t('wardrobe_take_off') : t('shop_wearing')}
-                </button>
-              ) : picked.owned ? (
-                <button className="btn btn-green min-h-[46px] px-4" disabled={busy} onClick={() => act(() => api('/inventory/equip', { body: { itemId: picked.id, equipped: !picked.equipped } }), t('toast_saved'))}>
-                  {picked.equipped ? (wearable ? t('shop_unequip') : t('shop_remove')) : wearable ? t('shop_equip') : t('shop_place')}
-                </button>
-              ) : picked.rewardOnly ? (
-                picked.unlock?.kind === 'mission' && picked.unlock.slug ? (
-                  <button className="btn btn-sky min-h-[46px] px-4" onClick={() => nav(`/life/${picked.unlock!.slug}`)}>{t('wardrobe_go_mission')}</button>
-                ) : null
-              ) : pickedSoon ? null : picked.isPremium && !shop.data!.premium ? (
-                <button className="btn btn-xp min-h-[46px] px-4" onClick={() => nav('/premium')}>{t('shop_premium_only')}</button>
-              ) : (
-                <button className="btn btn-primary min-h-[46px] px-4" disabled={busy || balance < picked.price} onClick={() => act(() => api('/shop/buy', { body: { itemId: picked.id } }), t('shop_bought'), true)}>
-                  {balance < picked.price ? t('shop_no_money') : <><Art name="coin" size={20} /> {picked.price}</>}
-                </button>
-              )}
-              <button onClick={() => pick(null)} aria-label={t('shop_cancel_try')} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--text-muted)]"><Icon name="x" size={18} /></button>
+              {primary && <div className="mt-2.5 flex">{primary}</div>}
             </div>
           </motion.div>
         )}
