@@ -44,6 +44,9 @@ const PICTO: Record<string, Spec> = {
   '🐶': ['dog', 'nature'], '🐱': ['cat', 'nature'], '🧳': ['luggage', 'thing'], '🎒': ['backpack', 'thing'], '👜': ['handbag', 'thing'], '📦': ['package', 'thing'],
   '🎫': ['ticket', 'thing'], '💳': ['credit-card', 'thing'], '🧾': ['receipt', 'thing'], '📱': ['smartphone', 'thing'], '📖': ['book-open', 'thing'],
   '📝': ['notebook-pen', 'thing'], '💻': ['laptop', 'thing'], '🚻': ['toilet', 'place'],
+  // Одяг, покупки, ринок (Вроцлав, уроки 5–16)
+  '👕': ['shirt', 'thing'], '👓': ['glasses', 'thing'], '🎁': ['gift', 'thing'], '🛍️': ['shopping-bag', 'thing'], '🏷️': ['tag', 'thing'], '⚖️': ['scale', 'thing'],
+  '📷': ['camera', 'thing'], '🪙': ['coins', 'thing'], '👛': ['wallet', 'thing'], '💯': ['percent', 'symbol'], '🍒': ['cherry', 'food'], '🥕': ['carrot', 'nature'],
   // Дії
   '🚶': ['footprints', 'way'], '🏊': ['waves', 'drink'], '🛒': ['shopping-cart', 'thing'], '😴': ['bed-single', 'home'],
 };
