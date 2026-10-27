@@ -918,3 +918,20 @@ export const usageCounters = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.kind, t.day] }), index('usage_counters_day_idx').on(t.day)],
 );
+
+/**
+ * Платний синтез озвучки на весь проєкт за добу UTC (символи, що пішли провайдеру; кеш не рахується).
+ *  • user — синтез на запит гравця (/api/tts): обмежений TTS_GLOBAL_DAILY_CHARS, понад нього — голос пристрою;
+ *  • admin — прогрів і порівняння голосів в адмінці: лише облік (кожен запуск власник підтверджує з оцінкою ціни).
+ * Захищає гроші, коли квот на користувача замало: багато акаунтів × usage_counters.tts.
+ */
+export const ttsSpend = sqliteTable(
+  'tts_spend',
+  {
+    day: text('day').notNull(),
+    kind: text('kind', { enum: ['user', 'admin'] }).notNull(),
+    chars: integer('chars').notNull().default(0),
+    requests: integer('requests').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.kind] })],
+);

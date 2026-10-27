@@ -5,13 +5,21 @@
 
 export type VoiceLike = { lang: string; name: string; localService?: boolean; default?: boolean };
 
+/** Емодзі, прапорці, тони шкіри, VS16, ZWJ, keycap: у тексті вправ вони — підказки для ока, не для вуха. */
+const PICTOGRAPHS = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}\uFE0F\u200D\u20E3]/gu;
+
 /**
  * Текст для синтезу: Unicode NFC (діакритика ą ć ę ł ń ó ś ź ż як один символ),
- * без пропусків «___» і зайвих пробілів. Літери не транслітеруються.
+ * без пропусків «___», емодзі та зайвих пробілів. Літери не транслітеруються.
+ * Емодзі («(Skręcić w prawo ➡️)») сервер не озвучував би зовсім (400 tts_bad_text), а голос пристрою читав би
+ * «strzałka w prawo»; прибираються разом із пробілом, що лишився перед дужкою чи розділовим знаком.
+ * Текст без емодзі не змінюється — ключі кешу озвучки наявних фраз ті самі.
  */
 export function speechText(text: string): string {
-  return text
-    .normalize('NFC')
+  let s = text.normalize('NFC');
+  const plain = s.replace(PICTOGRAPHS, ' ');
+  if (plain !== s) s = plain.replace(/\s+(?=[)\].,!?;:…»”])/g, '').replace(/([(\[„«])\s+/g, '$1');
+  return s
     .replace(/_{2,}/g, ' … ')
     .replace(/\s+/g, ' ')
     .trim()

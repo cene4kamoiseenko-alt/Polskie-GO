@@ -18,9 +18,12 @@ import { hashPassword, verifyPassword } from '../lib/password';
 import { signToken } from '../lib/token';
 import { invalidateRewards } from '../services/gameConfig';
 import {
-  TTS_PROVIDER_IDS, cacheLabel, contentPhrases, listPolishVoices, migrateLegacyCacheKeys, synthesize, ttsCacheStats, ttsConfigured, ttsInputText, ttsProvider, ttsRuntime, ttsStatus,
+  TTS_PROVIDER_IDS, buildProvider, cacheLabel, configuredProviders, contentPhrases, envVoice, listPolishVoices, migrateLegacyCacheKeys, synthesize, ttsCacheStats, ttsConfigured, ttsInputText, ttsProvider,
+  ttsRuntime, ttsStatus,
 } from '../services/tts';
-import { estimateUsd, priceFor } from '../services/tts-catalog';
+import { AZURE_PL_VOICES, BENCHMARK_PHRASES, ELEVENLABS_PL_MODELS, GOOGLE_PL_VOICES, estimateUsd, priceFor } from '../services/tts-catalog';
+import { pronunciationRisks } from '../services/tts-pronunciation';
+import { ttsSpendSummary } from '../services/quota';
 import { benchmarkPlan } from '../services/tts-benchmark';
 import { readBotConfig } from '../bot/maintain';
 import { runSetup } from '../bot/setup';
@@ -502,7 +505,7 @@ a.post('/tts/warm', async (c) => {
   for (const text of chunk) {
     for (const rate of ['normal', 'slow'] as const) {
       try {
-        if (!(await synthesize(text, rate)).cached) synthesized++;
+        if (!(await synthesize(text, rate, { payer: 'admin' })).cached) synthesized++;
       } catch {
         failed.push(text);
       }
@@ -516,7 +519,7 @@ a.post('/tts/warm', async (c) => {
 a.get('/tts/status', async (c) => {
   needRole(c, 'SUPERADMIN', 'EDITOR');
   const p = ttsProvider();
-  const [cache, phrases] = await Promise.all([ttsCacheStats(), contentPhrases()]);
+  const [cache, phrases, spend] = await Promise.all([ttsCacheStats(), contentPhrases(), ttsSpendSummary()]);
   // Прогрів синтезує кожну фразу на двох швидкостях; уже закешоване поточним голосом не оплачується.
   const chars = phrases.reduce((n, text) => n + [...ttsInputText(text)].length, 0) * 2;
   const label = p ? cacheLabel(p) : null;
@@ -527,6 +530,8 @@ a.get('/tts/status', async (c) => {
     ...ttsStatus(),
     runtime: ttsRuntime(),
     cache,
+    /** Платний синтез за добу й 30 днів: user — у межах TTS_GLOBAL_DAILY_CHARS, admin — прогрів і порівняння голосів. */
+    spend,
     warm: { phrases: phrases.length, chars, cachedChars, left, price, usd: price ? { freeTierLeft: estimateUsd(left, price), freeTierUsed: estimateUsd(left, price, price.freeCharsPerMonth) } : null },
   });
 });
@@ -542,6 +547,57 @@ a.get('/tts/voices', rateLimit(10, 60_000, 'tts-voices'), async (c) => {
   needRole(c, 'SUPERADMIN', 'EDITOR');
   const { provider } = z.object({ provider: z.enum(TTS_PROVIDER_IDS) }).parse(query(c));
   return c.json({ provider, voices: await listPolishVoices(provider) });
+});
+
+// ── Порівняння голосів на слух (адмінка → «Порівняння голосів»): власник слухає з телефона, без CLI і ключів у браузері ──
+/** Голоси, які можна прослухати (лише провайдери з ключем), фрази бенчмарку і ризиковані фрази контенту. Без синтезу. */
+a.get('/tts/compare', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const configured = configuredProviders();
+  const current = ttsProvider();
+  const voices: { provider: string; voice: string; model: string; gender: string | null; price: ReturnType<typeof priceFor>; current: boolean }[] = [];
+  const push = (provider: (typeof TTS_PROVIDER_IDS)[number], voice: string, model: string, gender: string | null) =>
+    voices.push({ provider, voice, model, gender, price: priceFor(provider, model), current: current?.provider === provider && current.voice === voice && current.model === model });
+  if (configured.includes('google')) for (const v of GOOGLE_PL_VOICES) push('google', v.name, v.model, v.gender);
+  if (configured.includes('azure')) for (const v of AZURE_PL_VOICES) push('azure', v.name, v.model, v.gender);
+  if (configured.includes('elevenlabs')) {
+    const ev = envVoice('elevenlabs');
+    push('elevenlabs', ev.voice, ev.model, null);
+  }
+  // Поточний голос, якого немає в офіційному списку (pl-PL-Wavenet-A): теж можна прослухати — чи синтезується він узагалі.
+  if (current && !voices.some((v) => v.current)) push(current.provider, current.voice, current.model, null);
+  return c.json({
+    configured,
+    voices,
+    phrases: BENCHMARK_PHRASES.map((p) => ({ id: p.id, text: p.text, focus: p.focus, required: !!p.required, rates: p.rates ?? ['normal', 'slow'] })),
+    risks: pronunciationRisks(await contentPhrases()),
+    spend: await ttsSpendSummary(),
+  });
+});
+
+/**
+ * Один зразок голосу (MP3). Текст — лише з набору бенчмарку або з контенту (ключ не синтезує довільний текст),
+ * голос — з офіційного списку або поточний. Зразок кешується під своїм голосом: повторне прослуховування безкоштовне.
+ * Платні символи йдуть в облік admin (tts_spend), квоти гравців не чіпають.
+ */
+a.post('/tts/sample', rateLimit(40, 60_000, 'tts-sample'), async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const q = z
+    .object({ provider: z.enum(TTS_PROVIDER_IDS), voice: z.string().min(1).max(80), model: z.string().max(60).optional(), text: z.string().min(1).max(300), rate: z.enum(['normal', 'slow']).default('normal') })
+    .parse(await body(c));
+  if (!configuredProviders().includes(q.provider)) throw badRequest('provider_not_configured');
+  const current = ttsProvider();
+  const isCurrent = current?.provider === q.provider && current.voice === q.voice && (!q.model || current.model === q.model);
+  const listed =
+    q.provider === 'google' ? GOOGLE_PL_VOICES.some((v) => v.name === q.voice)
+    : q.provider === 'azure' ? AZURE_PL_VOICES.some((v) => v.name === q.voice)
+    : /^[A-Za-z0-9]{10,40}$/.test(q.voice) && (!q.model || (ELEVENLABS_PL_MODELS as readonly string[]).includes(q.model));
+  if (!listed && !isCurrent) throw badRequest('voice_not_allowed', 'Голосу немає в офіційному польському списку');
+  const known = BENCHMARK_PHRASES.some((p) => p.text === q.text) || (await contentPhrases()).includes(q.text);
+  if (!known) throw badRequest('text_not_allowed', 'Лише фрази бенчмарку або контенту');
+  const provider = buildProvider({ provider: q.provider, voice: q.voice, model: q.model });
+  const audio = await synthesize(q.text, q.rate, { payer: 'admin', provider });
+  return c.body(new Uint8Array(audio.data), 200, { 'content-type': audio.mime, 'cache-control': 'no-store', 'x-tts-cache': audio.cached ? 'hit' : 'miss' });
 });
 
 /** Перенос старих ключів кешу (до моделі й версії в ключі) без синтезу, частинами. */

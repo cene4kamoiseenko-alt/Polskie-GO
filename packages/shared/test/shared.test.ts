@@ -187,6 +187,14 @@ describe('Польська озвучка', () => {
     }
   });
 
+  it('прибирає емодзі (сервер їх не синтезує, пристрій читав би назву символу); текст без емодзі не змінюється', () => {
+    expect(speechText('(Iść prosto i skręcić w lewo ⬆️⬅️)')).toBe('(Iść prosto i skręcić w lewo)');
+    expect(speechText('(Skręcić w prawo ➡️)')).toBe('(Skręcić w prawo)');
+    expect(speechText('🇵🇱 Polska 👍🏽, super! 1️⃣')).toBe('Polska, super! 1');
+    expect(speechText('👨‍👩‍👧')).toBe('');
+    for (const w of ['Bilet kosztuje 4,60 zł.', '„Wyjście” — napis', 'Tak , dobrze', '( spacja )', 'M2 w kierunku Bródna']) expect(speechText(w)).toBe(w);
+  });
+
   it('обирає лише польський голос, кращий — pl-PL нейронний', () => {
     const voices = [
       { lang: 'en-US', name: 'Google US English', default: true },

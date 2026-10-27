@@ -40,3 +40,17 @@ export async function upload(file: File): Promise<string> {
   if (!res.ok) throw new Error(body.message ?? body.error);
   return body.url;
 }
+
+/** POST, відповідь — файл (зразок озвучки). Помилка — як в api(): повідомлення сервера. */
+export async function apiBlob(path: string, body: unknown): Promise<Blob> {
+  const res = await fetch(`/api/admin${path}`, {
+    method: 'POST',
+    headers: { ...(getToken() ? { authorization: `Bearer ${getToken()}` } : {}), 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => null);
+    throw new Error(j?.message ?? j?.error ?? res.statusText);
+  }
+  return res.blob();
+}

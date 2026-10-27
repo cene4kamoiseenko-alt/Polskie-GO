@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { api, hasToken, setToken, upload } from './api';
+import { api, apiBlob, hasToken, setToken, upload } from './api';
 import { EXERCISE_TEMPLATES, RESOURCES, type Field, type ResourceDef } from './resources';
 
 type Admin = { id: string; email: string; name: string; role: 'SUPERADMIN' | 'EDITOR' | 'SUPPORT' };
@@ -159,6 +159,124 @@ function WarmAudio() {
           {st.warnings.map((w: string) => <div key={w} className="text-rose-600">Увага: {TTS_WARNINGS[w] ?? w}</div>)}
           {st.lastError && <div className="text-rose-600">Остання помилка провайдера: {st.lastError.reason} ({new Date(st.lastError.at).toLocaleString('uk')})</div>}
           {st.warm && <div className="text-slate-500">Прогрів: {st.warm.phrases} фраз, до синтезу до {st.warm.left.toLocaleString('uk')} символів</div>}
+          {st.spend && (
+            <div className="text-slate-500" data-tts-spend>
+              Платний синтез сьогодні: гравці {st.spend.today.user.chars.toLocaleString('uk')} з {st.spend.limit.toLocaleString('uk')} символів
+              {' '}(TTS_GLOBAL_DAILY_CHARS), адмінка {st.spend.today.admin.chars.toLocaleString('uk')} · за 30 днів {(st.spend.last30.user.chars + st.spend.last30.admin.chars).toLocaleString('uk')}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const BLIND = 'ABCDEFGH';
+
+/**
+ * Порівняння польських голосів на слух: до 4 голосів, фрази бенчмарку і ризиковані фрази контенту (час, ціни, лінії…).
+ * Сліпий режим — голоси під літерами у випадковому порядку, назви відкриваються кнопкою. Кожен новий зразок — платний
+ * запит на символи фрази (облік admin), повтор — з кешу. Протокол оцінки — docs/POLISH_TTS_BENCHMARK.md, кроки — docs/GOOGLE_TTS_SETUP_RU.md.
+ */
+function CompareVoices() {
+  const [open, setOpen] = useState(false);
+  const { data, error, reload } = useLoad<any>(() => (open ? api('/tts/compare') : Promise.resolve(null)), [open]);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [blind, setBlind] = useState(true);
+  const [reveal, setReveal] = useState(false);
+  const [order, setOrder] = useState<string[]>([]);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const key = (v: any) => `${v.provider}|${v.voice}|${v.model}`;
+  useEffect(() => {
+    if (!data || picked.length) return;
+    const pref = ['pl-PL-Chirp3-HD-Kore', 'pl-PL-Chirp3-HD-Charon', 'pl-PL-Wavenet-F', 'pl-PL-Wavenet-G'];
+    const start = data.voices.filter((v: any) => pref.includes(v.voice) || v.current).slice(0, 4).map(key);
+    setPicked(start.length ? start : data.voices.slice(0, 4).map(key));
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setOrder([...picked].sort(() => Math.random() - 0.5));
+    setReveal(false);
+  }, [picked, blind]);
+  const voices: any[] = order.map((k) => data?.voices.find((v: any) => key(v) === k)).filter(Boolean);
+  const name = (v: any, i: number) => (blind && !reveal ? `Голос ${BLIND[i]}` : `${v.voice.replace(/^pl-PL-/, '')} · ${v.model}`);
+  const play = async (v: any, i: number, text: string, rate: 'normal' | 'slow') => {
+    const id = `${key(v)}|${rate}|${text}`;
+    setBusy(id);
+    try {
+      const blob = await apiBlob('/tts/sample', { provider: v.provider, voice: v.voice, model: v.model, text, rate });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+      setMsg(`Грає: ${name(v, i)}${rate === 'slow' ? ' (повільно)' : ''}`);
+    } catch (e) {
+      setMsg(`${name(v, i)}: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const row = (text: string, hint: string, rates: ('normal' | 'slow')[] = ['normal', 'slow']) => (
+    <div key={text} className="border-b py-2 last:border-0">
+      <div className="font-medium" lang="pl">{text}</div>
+      {hint && <div className="text-xs text-slate-500">{hint}</div>}
+      <div className="mt-1 flex flex-wrap gap-1">
+        {voices.map((v, i) =>
+          rates.map((r) => (
+            <button key={`${key(v)}${r}`} className="rounded border px-2 py-1 text-xs disabled:opacity-50" disabled={!!busy} onClick={() => play(v, i, text, r)}>
+              {busy === `${key(v)}|${r}|${text}` ? '…' : '▶'} {blind && !reveal ? BLIND[i] : v.voice.replace(/^pl-PL-(Chirp3-HD-)?/, '')}{r === 'slow' ? ' 🐢' : ''}
+            </button>
+          )),
+        )}
+      </div>
+    </div>
+  );
+  return (
+    <div className="panel p-4" data-tts-compare>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1">
+          <div className="font-bold">Порівняння голосів (на слух)</div>
+          <div className="text-sm text-slate-500">До 4 польських голосів на фразах тесту та ризикованих фразах контенту. Новий зразок — платний запит на символи фрази; повтор — з кешу.</div>
+        </div>
+        <button className="btn-p" onClick={() => (open ? reload() : setOpen(true))}>{open ? 'Оновити' : 'Відкрити'}</button>
+      </div>
+      {error && <p className="mt-2 text-rose-600">{error}</p>}
+      {open && data && !data.voices.length && <p className="mt-2 text-amber-700">Ключа провайдера немає: порівнювати нічого. Кроки підключення — docs/GOOGLE_TTS_SETUP_RU.md.</p>}
+      {open && data && data.voices.length > 0 && (
+        <div className="mt-3 space-y-3">
+          <details>
+            <summary className="cursor-pointer text-sm font-semibold">Голоси для порівняння: {picked.length} з 4</summary>
+            <div className="mt-2 grid max-h-64 gap-1 overflow-auto text-sm md:grid-cols-3">
+              {data.voices.map((v: any) => {
+                const k = key(v);
+                const on = picked.includes(k);
+                return (
+                  <label key={k} className="flex items-center gap-2">
+                    <input type="checkbox" checked={on} disabled={!on && picked.length >= 4} onChange={() => setPicked((p) => (on ? p.filter((x) => x !== k) : [...p, k]))} />
+                    {v.voice.replace(/^pl-PL-/, '')} <span className="text-slate-500">{v.gender ?? ''} · {v.price ? `$${v.price.usdPerMillion}/1M` : '?'}{v.current ? ' · зараз грає' : ''}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </details>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <label className="flex items-center gap-2"><input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> Сліпий режим</label>
+            {blind && <button className="underline" onClick={() => setReveal((r) => !r)}>{reveal ? 'Сховати назви' : 'Показати, хто є хто'}</button>}
+            {blind && reveal && <span className="text-slate-500">{voices.map((v, i) => `${BLIND[i]} = ${v.voice.replace(/^pl-PL-/, '')}`).join(', ')}</span>}
+            <span className="text-slate-500">Сьогодні адмінка: {data.spend.today.admin.chars.toLocaleString('uk')} символів</span>
+          </div>
+          {msg && <div className="text-sm">{msg}</div>}
+          <details open>
+            <summary className="cursor-pointer font-semibold">Фрази тесту ({data.phrases.length})</summary>
+            {data.phrases.map((p: any) => row(p.text, `${p.required ? '★ ' : ''}${p.focus}`, p.rates))}
+          </details>
+          {data.risks.map((g: any) => (
+            <details key={g.id}>
+              <summary className="cursor-pointer font-semibold">З контенту: {g.label} ({g.count}, показано {g.items.length})</summary>
+              <div className="text-xs text-slate-500">Слухати: {g.listen}</div>
+              {g.items.map((t: string) => row(t, ''))}
+            </details>
+          ))}
         </div>
       )}
     </div>
@@ -174,6 +292,7 @@ function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-black">Огляд</h1>
       <WarmAudio />
+      <CompareVoices />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Користувачів" value={data.users} sub={`+${data.new7} за 7 днів`} />
         <Stat label="Активні (24 год / 7 дн)" value={`${data.active1} / ${data.active7}`} />

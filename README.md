@@ -95,7 +95,7 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | первый вход в `/admin/` |
 | `ANTHROPIC_API_KEY` | необязательно; без ключа AI честно работает в ограниченном режиме |
 
-Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true, "version": {"commit": …}, "migration": "0009_bot_quiz.sql", "bot": {…}}` (коммит сборки, последняя миграция, состояние webhook — без секретов).
+Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true, "version": {"commit": …}, "migration": "0010_tts_spend.sql", "bot": {…}}` (коммит сборки, последняя миграция, состояние webhook — без секретов).
 
 ### 3. Бот
 

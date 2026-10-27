@@ -14,6 +14,7 @@ import { db, readBatch } from '../db';
 import { ttsCache } from '../db/schema';
 import { getBindings, type Bindings } from '../env';
 import { HttpError } from '../lib/errors';
+import { reserveTtsChars } from './quota';
 import { AZURE_PL_VOICES, ELEVENLABS_PL_MODELS, ELEVENLABS_PREMADE_ENGLISH, GOOGLE_PL_VOICES } from './tts-catalog';
 
 export const TTS_PROVIDER_IDS = ['google', 'azure', 'elevenlabs'] as const;
@@ -293,6 +294,11 @@ function adoptStatement(oldKey: string, newKey: string, spec: TtsVoiceSpec) {
 
 /** Допустимий текст: польські літери, цифри, розділові знаки. Захист від використання ключа для довільних текстів. */
 const ALLOWED = /^[\p{Script=Latin}0-9\s.,!?;:'"„”«»…()\-–—/%]+$/u;
+/** Чи піде цей текст провайдеру (інакше /api/tts — 400 tts_bad_text і клієнт говорить голосом пристрою). */
+export const ttsTextAllowed = (raw: string) => {
+  const text = ttsInputText(raw);
+  return !!text && ALLOWED.test(text);
+};
 
 export type SynthResult = { data: Uint8Array; mime: string; cached: boolean; legacy: boolean; provider: TtsProviderId; voice: string; model: string; version: string };
 
@@ -314,10 +320,12 @@ export async function callProvider(p: TtsProvider, text: string, rate: SpeechRat
 
 /**
  * Синтез з кешем. Порядок: новий ключ → старий ключ (перенос без синтезу) → платний синтез.
- * meter — облік платного синтезу (квота); кешовані фрази не рахуються.
+ * meter — облік платного синтезу (квота користувача); кешовані фрази не рахуються.
+ * payer — чий це платний запит у добовому бюджеті проєкту (tts_spend): user (типово) — у межах
+ * TTS_GLOBAL_DAILY_CHARS, понад нього 429; admin — прогрів і порівняння голосів, лише облік.
  * provider — інший голос; типово — вибраний TTS_PROVIDER.
  */
-export async function synthesize(rawText: string, rate: SpeechRate, opts: { meter?: () => Promise<unknown>; provider?: TtsProvider | null } = {}): Promise<SynthResult> {
+export async function synthesize(rawText: string, rate: SpeechRate, opts: { meter?: () => Promise<unknown>; payer?: 'user' | 'admin'; provider?: TtsProvider | null } = {}): Promise<SynthResult> {
   const provider = opts.provider ?? ttsProvider();
   if (!provider) throw new HttpError(503, 'tts_not_configured', 'Серверну озвучку не підключено');
   const text = ttsInputText(rawText);
@@ -340,6 +348,7 @@ export async function synthesize(rawText: string, rate: SpeechRate, opts: { mete
     }
   }
   await opts.meter?.();
+  await reserveTtsChars(opts.payer ?? 'user', ev.chars);
   const started = Date.now();
   let audio: Uint8Array;
   try {
@@ -431,7 +440,8 @@ export async function listPolishVoices(provider: TtsProviderId, env: Env = getBi
     return (await res.json()) as Record<string, unknown>;
   };
   if (provider === 'google') {
-    const j = await get(`https://texttospeech.googleapis.com/v1/voices?languageCode=pl-PL&key=${encodeURIComponent(env.GOOGLE_TTS_API_KEY!)}`);
+    // Ключ у заголовку, як і в синтезі: адреса потрапляє в журнали проксі й повідомлення про помилки.
+    const j = await get('https://texttospeech.googleapis.com/v1/voices?languageCode=pl-PL', { 'X-Goog-Api-Key': env.GOOGLE_TTS_API_KEY! });
     return ((j.voices as { name: string; ssmlGender?: string; languageCodes?: string[] }[]) ?? [])
       .map((v) => ({ id: v.name, name: v.name, gender: v.ssmlGender ?? null, model: googleModel(v.name), locale: v.languageCodes?.[0] ?? null }))
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -456,6 +466,11 @@ export async function listPolishVoices(provider: TtsProviderId, env: Env = getBi
 
 /** Усі польські фрази навчального контенту — для попереднього синтезу (прогрів кешу). */
 export async function contentPhrases(): Promise<string[]> {
+  return (await allContentPhrases()).filter((x) => ALLOWED.test(x));
+}
+
+/** Те саме без фільтра ALLOWED: тест перевіряє, що жодна фраза контенту не випадає з серверної озвучки. */
+export async function allContentPhrases(): Promise<string[]> {
   const { vocabularyEntries, exercises, lessons, questSteps } = await import('../db/schema');
   const [vocab, ex, ls, steps] = await Promise.all([
     db.select({ pl: vocabularyEntries.pl, examples: vocabularyEntries.examples }).from(vocabularyEntries),
@@ -489,5 +504,5 @@ export async function contentPhrases(): Promise<string[]> {
       n.choices?.forEach((c) => add(c.pl));
     }
   }
-  return [...out].filter((x) => ALLOWED.test(x)).sort();
+  return [...out].sort();
 }

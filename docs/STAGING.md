@@ -74,7 +74,7 @@ ADMIN_PASSWORD=<придумайте>
    Команда `secret put` создаёт Worker `polskie-go-staging`, если его ещё нет (если спросит — подтвердите).
 3. **Первый деплой.** `npm run deploy:staging`: сторож → сборка → миграции в `polski-go-staging` → Worker → seed.
 4. **Переменные** (Dashboard → Workers & Pages → `polskie-go-staging` → Settings → Variables and Secrets; в конфиге стоит `keep_vars`, поэтому деплой их не стирает): `WEB_APP_URL` и `CORS_ORIGINS` = `https://polskie-go-staging.<аккаунт>.workers.dev`; для входа без Telegram — `DEV_AUTH` = `true`.
-5. **Проверка.** `https://polskie-go-staging.<аккаунт>.workers.dev/api/health` → `"environment":"staging"`, `"migration":"0009_bot_quiz.sql"`, `"bot":null`. Картинки бота открываются прямо в браузере: `…/bot/scenes/ru/words.jpg` (полный кадр без размытых полос), `…/bot/commands/map.jpg`. Mini App: откройте адрес в браузере и войдите через `DEV_AUTH`.
+5. **Проверка.** `https://polskie-go-staging.<аккаунт>.workers.dev/api/health` → `"environment":"staging"`, `"migration":"0010_tts_spend.sql"` (последняя миграция в репозитории), `"bot":null`. Картинки бота открываются прямо в браузере: `…/bot/scenes/ru/words.jpg` (полный кадр без размытых полос), `…/bot/commands/map.jpg`. Mini App: откройте адрес в браузере и войдите через `DEV_AUTH`.
 6. **Telegram на staging (по желанию, только отдельным ботом).** В @BotFather создайте **второго** бота; его токен — секрет `TELEGRAM_BOT_TOKEN` staging, число до «:» — переменная `STAGING_BOT_ID`, имя — `TELEGRAM_BOT_USERNAME`; `/newapp` для этого бота ведёт на адрес staging. Webhook — админка `…/admin/` → «🤖 Бот» → «Настроить бота». Боевой токен в staging не кладите и `npm run bot:setup` с боевым токеном для staging не запускайте.
 
 ### Автодеплой (необязательно, не проверялся)

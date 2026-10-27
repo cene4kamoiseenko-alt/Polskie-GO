@@ -48,6 +48,8 @@ export type Bindings = {
   /** Добові квоти на користувача (типово 60 записів і 300 нових фраз синтезу). */
   STT_DAILY_LIMIT?: string;
   TTS_DAILY_LIMIT?: string;
+  /** Символів платного синтезу на запит гравців за добу UTC на весь проєкт (типово 30 000 ≈ безкоштовний 1 млн/міс Chirp 3: HD). */
+  TTS_GLOBAL_DAILY_CHARS?: string;
   ELEVENLABS_API_KEY?: string;
   ELEVENLABS_VOICE_ID?: string;
   ELEVENLABS_MODEL?: string;
