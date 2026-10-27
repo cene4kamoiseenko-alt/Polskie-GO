@@ -8,6 +8,7 @@ import type { Cefr, UiLang } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { haptic } from '../lib/telegram';
+import { takeLaunchRoute } from '../lib/launch';
 import { speak, stopSpeech } from '../lib/audio';
 import { useJourney, useUpdateSettings } from '../lib/queries';
 import type { Me } from '../lib/types';
@@ -72,6 +73,8 @@ export default function Onboarding() {
         method: 'POST',
         body: { uiLanguage: lang, selfLevel: level, learningGoal: goal, dailyGoalMinutes: time, reminderHour: hour, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       });
+      // Бот просив відкрити конкретний екран: після знайомства — він (вступний тест не перебиваємо).
+      const launch = takeLaunchRoute();
       qc.setQueryData(['me'], me);
       if (placement) {
         const exams = await api<{ exams: { id: string; kind: string }[] }>('/exams');
@@ -79,7 +82,7 @@ export default function Onboarding() {
         if (p) return nav(`/lesson/${p.id}`, { replace: true });
       }
       const first = journey.data?.nextLesson;
-      nav(first ? `/lesson/${first.id}` : '/', { replace: true });
+      nav(launch ?? (first ? `/lesson/${first.id}` : '/'), { replace: true });
     } finally {
       setBusy(false);
     }

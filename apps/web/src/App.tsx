@@ -4,6 +4,7 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LazyMotion, MotionConfig, loadMotionFeatures, motion } from './lib/motion';
 import { I18nProvider, guessLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
+import { peekLaunchRoute, takeLaunchRoute } from './lib/launch';
 import { useMe } from './lib/queries';
 import { configureAudio, setSoundEnabled, stopSpeech } from './lib/audio';
 import { ApiError } from './lib/api';
@@ -118,6 +119,15 @@ export function App() {
     else if (p.startsWith('story_')) nav(`/story/${p.slice(6)}`);
   }, [me.data?.onboarded, nav]);
 
+  // Кнопки Telegram-бота: ?bot_screen=<екран> (або startapp=screen_<екран> у чатах без web_app-кнопок).
+  // Лише білий список маршрутів, один перехід після входу; новичок спершу проходить знайомство (його завершення бере маршрут сам).
+  const launching = !!peekLaunchRoute() && !!me.data?.onboarded;
+  useEffect(() => {
+    if (!me.data?.onboarded) return;
+    const route = takeLaunchRoute();
+    if (route) nav(route, { replace: true });
+  }, [me.data?.onboarded, nav]);
+
   useEffect(() => {
     if (me.data?.onboarded) prefetchScreens();
   }, [me.data?.onboarded]);
@@ -171,6 +181,7 @@ export function App() {
             <ScreenBoundary resetKey={loc.pathname}>
             <Suspense fallback={<ScreenSkeleton />}>
               <BootDone />
+              {launching ? <ScreenSkeleton /> : (
               <Routes location={loc}>
                 <Route path="/" element={<HomeScreen />} />
                 <Route path="/map" element={<MapScreen />} />
@@ -197,6 +208,7 @@ export function App() {
                 <Route path="/slang" element={<SlangScreen />} />
                 <Route path="*" element={<HomeScreen />} />
               </Routes>
+              )}
             </Suspense>
             </ScreenBoundary>
           </motion.main>

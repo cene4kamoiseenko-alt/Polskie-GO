@@ -27,6 +27,10 @@
  *    Знімки — test-results/screens/look-{екран}-390.png і look-default-{екран}-390.png.
  *  - L2 гардероб, річ без живописного шару (visualStatus pending): на картці мітка «Визуал готовится» замість ціни, у панелі
  *    дії немає кнопок покупки й Premium; POST /shop/buy → 409 visual_pending, баланс не змінився. Знімок — look-wardrobe-pending-390.png.
+ *  - B1 переходы из Telegram-бота: ?bot_screen=<экран> (девять экранов) открывает свой маршрут на iPhone 390×844 и Android 360×800 (эмуляция
+ *    Chromium, не реальные устройства), параметр убирается из адреса; неизвестное значение и адрес-обманка остаются на главной;
+ *    startapp=screen_<экран>, ref_ и premium не конфликтуют. Telegram подменён: window.Telegram.WebApp с подписанными initData
+ *    (сервер проверяет подпись), новичок сначала проходит знакомство и затем попадает на экран из start_param; повторный запуск — сразу на экран.
  *
  * Запуск: npm run e2e   (знімки — test-results/screens, підсумок — test-results/browser-results.json)
  */
@@ -35,6 +39,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromiumPath, startStand } from './lib/stand';
 import { equipmentFromWear, lookDataAttributes, resolveLook, toLookItemId, tryOn } from '../packages/shared/src/look/index';
+import { signInitData } from '../apps/server/src/lib/telegram';
 
 const root = process.cwd();
 const require = createRequire(root + '/package.json');
@@ -793,6 +798,125 @@ async function main() {
       await page.screenshot({ path: `${SCREENS}/wardrobe-bought-390.png` });
       await u.context.close();
     });
+    // ── B1: переходы из Telegram-бота. Кнопки бота открывают Mini App с ?bot_screen=<экран>; клиент берёт маршрут из белого списка один раз.
+    console.log('B1: переходы из бота');
+    const BOT_ROUTES: Record<string, string> = {
+      learn: '/learn', map: '/map', dictionary: '/dictionary', slang: '/slang', quests: '/quests', profile: '/profile', achievements: '/achievements', settings: '/settings', grammar: '/grammar',
+    };
+    const PHONES = [
+      { name: 'iPhone 390×844', width: 390, height: 844, platform: 'ios', ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Telegram-iOS' },
+      { name: 'Android 360×800', width: 360, height: 800, platform: 'android', ua: 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36 Telegram-Android' },
+    ] as const;
+    const settled = (page: import('playwright').Page) =>
+      page.waitForFunction(() => !document.querySelector('.splash') && !document.querySelector('[data-skeleton]'), undefined, { timeout: 20_000 });
+    const where = (page: import('playwright').Page) => page.evaluate(() => ({ path: location.pathname, search: location.search, overflow: document.documentElement.scrollWidth > innerWidth }));
+    const { BOT_TOKEN } = await import(root + '/apps/server/test/helpers.ts');
+
+    await soft('B1.1 bot_screen открывает свой экран (iPhone и Android)', async () => {
+      const u = await userPage('880020');
+      for (const phone of PHONES) {
+        const bad: string[] = [];
+        await u.page.setViewportSize({ width: phone.width, height: phone.height });
+        for (const [name, route] of Object.entries(BOT_ROUTES)) {
+          await u.page.goto(`${base}/?devUser=880020&bot_screen=${name}`, { waitUntil: 'domcontentloaded' });
+          await u.page.waitForFunction((p) => location.pathname === p, route, { timeout: 20_000 }).catch(() => bad.push(`${name}: путь`));
+          await settled(u.page).catch(() => bad.push(`${name}: загрузка`));
+          const w = await where(u.page);
+          if (w.path !== route) bad.push(`${name}: ${w.path}`);
+          if (w.search.includes('bot_screen')) bad.push(`${name}: параметр остался`);
+          if (w.overflow) bad.push(`${name}: горизонтальное переполнение`);
+          if (await u.page.locator('[data-screen-error], [role="alert"]').count()) bad.push(`${name}: ошибка экрана`);
+        }
+        check(bad.length === 0, `B1.1 ${phone.name}: девять экранов открываются по bot_screen, параметр убран, без переполнения${bad.length ? ': ' + bad.join('; ') : ''}`);
+      }
+      await u.page.goto(`${base}/?devUser=880020&bot_screen=quests`, { waitUntil: 'domcontentloaded' });
+      await u.page.waitForFunction(() => location.pathname === '/quests', undefined, { timeout: 20_000 });
+      await settled(u.page);
+      await u.page.screenshot({ path: `${SCREENS}/bot-screen-quests-390.png` });
+      // Маршрут из бота применяется один раз: обычная навигация по приложению его не возвращает.
+      await u.page.locator('nav a[href="/map"]').click();
+      await u.page.waitForFunction(() => location.pathname === '/map', undefined, { timeout: 10_000 });
+      await u.page.waitForTimeout(500);
+      check((await where(u.page)).path === '/map', 'B1.1 после перехода из бота обычная навигация (на карту) не перебивается повторным bot_screen');
+      // Повторное открытие без bot_screen (devUser нужен только стенду: в Telegram вход идёт через initData): второго перехода нет.
+      await u.page.goto(`${base}/quests?devUser=880020`, { waitUntil: 'domcontentloaded' });
+      await settled(u.page);
+      check((await where(u.page)).path === '/quests', 'B1.1 повторное открытие без параметра остаётся на том же экране');
+      await u.context.close();
+    });
+
+    await soft('B1.2 неизвестные значения не ведут никуда, startapp и premium работают как раньше', async () => {
+      const u = await userPage('880021');
+      for (const bad of ['evil', '%2Fadmin', 'https%3A%2F%2Fevil.example', '..%2Fmap', 'MAP', '']) {
+        await u.page.goto(`${base}/?devUser=880021&bot_screen=${bad}`, { waitUntil: 'domcontentloaded' });
+        await u.page.locator('nav a[href="/map"]').waitFor({ timeout: 20_000 });
+        check((await where(u.page)).path === '/', `B1.2 bot_screen=${bad || '(пусто)'} — остаёмся на главной`);
+      }
+      await u.page.goto(`${base}/?devUser=880021&startapp=screen_quests`, { waitUntil: 'domcontentloaded' });
+      await u.page.waitForFunction(() => location.pathname === '/quests', undefined, { timeout: 20_000 });
+      check(true, 'B1.2 startapp=screen_quests (чат без web_app-кнопок) открывает /quests');
+      await u.page.goto(`${base}/?devUser=880021&startapp=ref_abc123&bot_screen=profile`, { waitUntil: 'domcontentloaded' });
+      await u.page.waitForFunction(() => location.pathname === '/profile', undefined, { timeout: 20_000 });
+      check(true, 'B1.2 startapp=ref_… вместе с bot_screen=profile: реферальный параметр не мешает переходу');
+      await u.page.goto(`${base}/?devUser=880021&startapp=premium`, { waitUntil: 'domcontentloaded' });
+      await u.page.waitForFunction(() => location.pathname === '/premium', undefined, { timeout: 20_000 });
+      check(true, 'B1.2 startapp=premium по-прежнему открывает /premium');
+      await u.context.close();
+    });
+
+    // Telegram подменён: подписанные initData (сервер проверяет подпись токеном стенда) и start_param.
+    async function telegramPage(tgId: number, start: string, phone: (typeof PHONES)[number]) {
+      const initData = signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), query_id: 'AAH', user: JSON.stringify({ id: tgId, first_name: 'Ola', language_code: 'ru' }), start_param: start }, BOT_TOKEN);
+      const context = await browser.newContext({ viewport: { width: phone.width, height: phone.height }, userAgent: phone.ua, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      await context.route('https://telegram.org/**', (r) => r.abort());
+      const page = await context.newPage();
+      page.on('pageerror', (e) => errors.push(e.message));
+      await page.addInitScript(`(() => {
+        const noop = () => {};
+        window.Telegram = { WebApp: {
+          initData: ${JSON.stringify(initData)},
+          initDataUnsafe: { user: { id: ${tgId}, first_name: 'Ola', language_code: 'ru' }, start_param: ${JSON.stringify(start)} },
+          version: '8.0', platform: ${JSON.stringify(phone.platform)}, colorScheme: 'dark', themeParams: {}, isVersionAtLeast: () => true,
+          ready: noop, expand: noop, close: noop, onEvent: noop, offEvent: noop, openInvoice: noop, openTelegramLink: noop, openLink: noop, showConfirm: noop,
+          disableVerticalSwipes: noop, setHeaderColor: noop, setBackgroundColor: noop, setBottomBarColor: noop,
+          BackButton: { show: noop, hide: noop, onClick: noop, offClick: noop },
+          HapticFeedback: { impactOccurred: noop, notificationOccurred: noop, selectionChanged: noop },
+        } };
+      })()`);
+      return { context, page };
+    }
+
+    for (const [i, phone] of PHONES.entries()) {
+      await soft(`B1.3 Telegram-мок ${phone.name}: новичок и повторный запуск`, async () => {
+        const tgId = 7_700_000 + i;
+        const t = await telegramPage(tgId, 'screen_map', phone);
+        await t.page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
+        // Новичок: сначала знакомство, а не экран из start_param.
+        await t.page.locator('button.btn-red').first().waitFor({ timeout: 20_000 });
+        check((await where(t.page)).path === '/', `B1.3 ${phone.name}: новичок видит знакомство, а не карту`);
+        await t.page.locator('button.btn-red').click();
+        for (let k = 0; k < 5; k++) {
+          await t.page.locator('button.btn-primary').last().click();
+          await t.page.waitForTimeout(250);
+        }
+        await t.page.locator('button.btn-red').click();
+        await t.page.waitForFunction(() => location.pathname === '/map', undefined, { timeout: 20_000 });
+        await settled(t.page);
+        const w = await where(t.page);
+        check(w.path === '/map' && !w.overflow, `B1.3 ${phone.name}: после знакомства открыта карта из start_param=screen_map`);
+        await t.page.screenshot({ path: `${SCREENS}/bot-newcomer-map-${phone.width}.png` });
+        await t.context.close();
+
+        // Повторный запуск: игрок уже прошёл знакомство — сразу нужный экран.
+        const again = await telegramPage(tgId, 'screen_quests', phone);
+        await again.page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
+        await again.page.waitForFunction(() => location.pathname === '/quests', undefined, { timeout: 20_000 });
+        await settled(again.page);
+        check(!(await where(again.page)).overflow, `B1.3 ${phone.name}: повторный запуск ведёт сразу на /quests`);
+        await again.context.close();
+      });
+    }
+
     results.push({ stage: 'A2/A3/A4/L1/M2', softFailures, softSkipped });
 
     // ── Розпізнавання пристрою (сервер STT вимкнено): лише тренування.
@@ -923,8 +1047,8 @@ async function main() {
     check(
       softFailures.length === 0 && softSkipped.length === 0,
       softFailures.length || softSkipped.length
-        ? `A2/A3/A4/L1/M2: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
-        : 'A2/A3/A4/L1/M2: все сценарии пройдены',
+        ? `A2/A3/A4/L1/M2/B1: упало сценариев ${softFailures.length}, не запускалось ${softSkipped.length}\n  - ${[...softFailures, ...softSkipped].join('\n  - ')}`
+        : 'A2/A3/A4/L1/M2/B1: все сценарии пройдены',
     );
   } finally {
     globalThis.fetch = realFetch;
