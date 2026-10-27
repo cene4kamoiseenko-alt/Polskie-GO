@@ -114,6 +114,12 @@ Cron `*/15 * * * *`. Три сценария, выбираются по реал
    * `--webhook` — установить webhook (нужны `PUBLIC_URL`, `TELEGRAM_WEBHOOK_SECRET`); `allowed_updates=["message","pre_checkout_query"]`, ожидающие обновления **не** сбрасываются. Нужен только если webhook ещё не задан или меняется адрес;
    * `--description` — перезаписать описание бота текстом по умолчанию. Без флага описание, заданное вручную в BotFather, остаётся нетронутым.
 6. Скрипт **не** меняет токен, webhook (без `--webhook`), About, Description Picture.
+6a. **Без компьютера и без токена в ссылках** (самонастройка из Worker). Работает токеном из Cloudflare и защищена секретом webhook:
+   ```
+   https://<origin>/telegram/setup?key=<TELEGRAM_WEBHOOK_SECRET>             # ставит команды (ru + uk/pl/en), кнопку меню и webhook
+   https://<origin>/telegram/setup?key=<TELEGRAM_WEBHOOK_SECRET>&mode=check  # только читает: getMe и getWebhookInfo
+   ```
+   Ответ — JSON: `ok`, имя бота, шаги (`getMe`, `setMyCommands`…, `setWebhook`, `getWebhookInfo`) с кодом и текстом ошибки Telegram, состояние webhook (адрес без параметров, число ожидающих, последняя ошибка) и `hints` — что исправить (неверный или пустой `TELEGRAM_BOT_TOKEN`, не https `WEB_APP_URL`, недопустимые знаки в секрете, чужой бот, 401 от сервера). Токен и секрет в ответ не попадают (проверено тестом). Тот же набор вызовов, что у `bot:setup --webhook`, описание бота и Description Picture не меняются. Без верного ключа — 401, без `TELEGRAM_WEBHOOK_SECRET` — 503. Ключ попадает в историю браузера и журнал запросов Cloudflare: после настройки при желании смените секрет в Cloudflare и повторите ссылку.
 7. Проверка после деплоя (подставить origin):
    ```
    for f in start lesson map words quests profile settings help stop reminder-lesson reminder-streak reminder-return; do
@@ -130,12 +136,13 @@ Cron `*/15 * * * *`. Три сценария, выбираются по реал
 | Что | Как | Результат |
 |---|---|---|
 | Команды, кнопки, язык, экранирование, группы, `/stop`, рефералы, дедупликация, сбои БД | vitest (Miniflare D1, подмена `fetch` Telegram) | `bot-webhook.test.ts`, `bot-copy.test.ts` |
+| Самонастройка `/telegram/setup`: ключ, режим check, подсказки, нет утечки токена и секрета, совпадение со скриптом | vitest | `bot-setup.test.ts` |
 | Напоминания: выбор вида, согласие, час/пояс, один раз в день, отказ Telegram, параллельный Cron | vitest | `reminders-delivery.test.ts`, `reminders.test.ts` |
 | `bot_screen`, whitelist, запасной `screen_` | vitest + e2e (Chromium 390×844 и 360×800) | `packages/shared/test/botScreens.test.ts`, сценарии B1.1–B1.3 в `scripts/browser-check.ts` |
 | Файлы картинок: 12 шт., 1280×720 JPEG | vitest (читает SOF-маркер) | `bot-copy.test.ts` |
 | `setup-bot.mjs`: список вызовов, описание/webhook без флагов не трогаются | vitest (`buildCalls`) + ручной `--dry-run` | `bot-copy.test.ts` |
 
-Прогон 2026-10-27 (код выхода 0 у всех): `npm run typecheck`; `npm test` — shared 152 из 152 (4 файла), server 265 из 265 (28 файлов); `node --import tsx scripts/content-lint.ts` (1689 заданий, структура 0); `npm run build`; `npm run e2e` — 363 проверки, 0 провалов («A2/A3/A4/L1/M2/B1: все сценарии пройдены»).
+Прогон 2026-10-27 (код выхода 0 у всех): `npm run typecheck`; `npm test` — shared 152 из 152 (4 файла), server 279 из 279 (29 файлов); `node --import tsx scripts/content-lint.ts` (1689 заданий, структура 0); `npm run build`; `npm run e2e` — 363 проверки, 0 провалов («A2/A3/A4/L1/M2/B1: все сценарии пройдены»).
 
 Локально собранное приложение (`wrangler dev --local`, `dist-cf`) отдаёт все двенадцать `/bot/commands/*.jpg` как `200 image/jpeg` с размерами файлов; несуществующий файл даёт `200 text/html` (SPA-замещение). Это локальный сервер.
 

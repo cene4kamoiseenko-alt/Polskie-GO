@@ -13,6 +13,7 @@ import { body, type AppEnv } from '../hono';
 import { HttpError } from '../lib/errors';
 import { botApi, TelegramError } from '../lib/telegram';
 import { handleBotMessage, type BotMessage } from '../bot/handler';
+import { runSetup } from '../bot/setup';
 import { handlePreCheckout, handleRefund, handleSuccessfulPayment, type SuccessfulPayment } from '../services/payments';
 
 type Update = {
@@ -53,6 +54,24 @@ async function releaseUpdate(updateId: number) {
 const isTransient = (e: unknown) => e instanceof TelegramError && (e.code === 0 || e.code === 429 || e.code >= 500);
 
 export const telegramRoutes = new Hono<AppEnv>();
+
+/**
+ * Самонастройка для владельца без компьютера: `GET /telegram/setup?key=<TELEGRAM_WEBHOOK_SECRET>` сама ставит команды, кнопку меню
+ * и webhook токеном из Cloudflare; `&mode=check` только читает (getMe, getWebhookInfo). Ключ — тот же секрет, что Telegram шлёт в webhook.
+ * В ответе нет ни токена, ни секрета. Описание бота и Description Picture не меняются.
+ */
+telegramRoutes.all('/setup', async (c) => {
+  const json = (data: unknown, status: 200 | 401 | 503) => c.body(JSON.stringify(data, null, 2), status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  const secret = config.webhookSecret;
+  if (!secret) {
+    return json({ ok: false, error: 'webhook_secret_not_set', hints: ['В Cloudflare (Worker polskie-go → Settings → Variables and Secrets) задайте TELEGRAM_WEBHOOK_SECRET: латинские буквы, цифры, _ и -, 32 знака или больше.'] }, 503);
+  }
+  const key = c.req.query('key') ?? c.req.header('x-setup-key') ?? '';
+  if (!safeEqual(key, secret)) {
+    return json({ ok: false, error: 'wrong_key', hints: ['Ключ в ссылке (?key=…) не совпал с TELEGRAM_WEBHOOK_SECRET из Cloudflare. Вставьте тот же секрет; после смены секрета в Cloudflare подождите минуту.'] }, 401);
+  }
+  return json(await runSetup(c.req.query('mode') === 'check' ? 'check' : 'setup'), 200);
+});
 
 telegramRoutes.post('/webhook', async (c) => {
   const secret = c.req.header('x-telegram-bot-api-secret-token');
