@@ -14,6 +14,8 @@ export type Bindings = {
   TELEGRAM_BOT_USERNAME?: string;
   TELEGRAM_APP_SHORT_NAME?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
+  /** Ключ ссылки самонастройки `/telegram/setup?key=…`; без него — TELEGRAM_WEBHOOK_SECRET (старый вариант). */
+  BOT_SETUP_KEY?: string;
   DEV_AUTH?: string;
   ANTHROPIC_API_KEY?: string;
   AI_MODEL?: string;
@@ -102,8 +104,13 @@ export const config = {
   get appShortName() {
     return str(env.TELEGRAM_APP_SHORT_NAME) || 'app';
   },
+  /** Секрет webhook из окружения: действует, только пока сервер не перешёл на свой секрет (см. bot/webhook-secret.ts). */
   get webhookSecret() {
     return str(env.TELEGRAM_WEBHOOK_SECRET);
+  },
+  /** Отдельный ключ страницы `/telegram/setup` (необязателен: настройка есть в админке). */
+  get botSetupKey() {
+    return str(env.BOT_SETUP_KEY);
   },
   /** Вхід без Telegram — лише для локальної розробки. У production завжди вимкнено. */
   get devAuth() {

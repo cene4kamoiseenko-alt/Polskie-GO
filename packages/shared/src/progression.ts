@@ -1,5 +1,5 @@
 import { CEFR_LEVELS, type Cefr } from './types';
-import { dayDiff } from './dates';
+import { addDays, dayDiff, dayKey } from './dates';
 
 /** Стартовий баланс нагород. Значення можна змінити в адмін-панелі (game_config). */
 export const DEFAULT_REWARDS = {
@@ -58,8 +58,21 @@ export function updateStreak(
 ): { current: number; best: number; lastDay: string; changed: boolean } {
   if (prev.lastDay === today) return { ...prev, lastDay: today, changed: false };
   const diff = prev.lastDay ? dayDiff(prev.lastDay, today) : Infinity;
+  // «Сьогодні» раніше за останній день активності: користувач змінив пояс на захід (Токіо → Нью-Йорк). Серію не скидаємо.
+  if (diff < 0) return { ...prev, lastDay: prev.lastDay!, changed: false };
   const current = diff === 1 ? prev.current + 1 : 1;
   return { current, best: Math.max(prev.best, current), lastDay: today, changed: true };
+}
+
+/**
+ * Останній день активності після зміни часового пояса. «Сьогодні» в новому поясі може бути на день раніше чи пізніше,
+ * ніж у старому (переліт Варшава → Нью-Йорк чи Токіо): зсуваємо останній день на ту саму різницю,
+ * щоб «займався сьогодні / вчора» залишилося правдою і серія не згоріла через саму зміну пояса.
+ */
+export function shiftLastDayForZone(lastDay: string | null, now: Date, fromTz: string, toTz: string): string | null {
+  if (!lastDay || fromTz === toTz) return lastDay;
+  const delta = dayDiff(dayKey(now, fromTz), dayKey(now, toTz));
+  return delta ? addDays(lastDay, delta) : lastDay;
 }
 
 /** Фактична серія на сьогодні (якщо вчора не займався — серія згоріла). */

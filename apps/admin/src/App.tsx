@@ -703,6 +703,56 @@ function Rewards() {
   );
 }
 
+/** Бот: перевірка й налаштування без секретів у браузері (секрет webhook знає лише сервер і Telegram). */
+function Bot() {
+  const { data, error, loading, reload } = useLoad(() => api('/bot'), []);
+  const [busy, setBusy] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const run = async (mode: 'setup' | 'rotate') => {
+    if (mode === 'rotate' && !confirm('Згенерувати новий секрет webhook? Старий перестане діяти через 10 хвилин після підтвердження Telegram.')) return;
+    setBusy(mode);
+    try {
+      setResult(await api('/bot/setup', { body: { mode } }));
+      reload();
+    } catch (e) {
+      setResult({ error: (e as Error).message });
+    } finally {
+      setBusy('');
+    }
+  };
+  const report = data?.report;
+  const wh = report?.webhook;
+  return (
+    <div className="max-w-3xl space-y-4">
+      <h1 className="text-2xl font-black">Telegram-бот</h1>
+      {error && <p className="text-rose-600">{error}</p>}
+      {loading && <p>Перевірка…</p>}
+      {report && (
+        <div className="grid gap-3 md:grid-cols-3">
+          <Stat label="Бот" value={report.bot ? `@${report.bot.username}` : '—'} sub={report.ok ? 'Telegram відповідає' : 'є помилки'} />
+          <Stat label="Webhook" value={wh?.url ? (wh.allowedUpdates.length === 0 || wh.allowedUpdates.includes('callback_query') ? '✅ з кнопками' : '⚠️ без callback_query') : '❌ не встановлено'} sub={wh ? `черга: ${wh.pending}` : undefined} />
+          <Stat label="Секрет webhook" value={report.secretGeneration ? `поколення ${report.secretGeneration}` : 'зі змінної Cloudflare'} sub={report.secretGeneration ? (report.secretConfirmed ? 'підтверджено Telegram' : 'чекає підтвердження') : 'перейде на серверний при налаштуванні'} />
+        </div>
+      )}
+      {wh?.lastError && <p className="text-sm text-amber-700">Остання помилка доставки: {wh.lastError} ({wh.lastErrorAt})</p>}
+      {report?.hints?.length > 0 && (
+        <ul className="list-disc pl-5 text-sm">
+          {report.hints.map((h: string) => (
+            <li key={h}>{h}</li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button className="btn-s" disabled={!!busy} onClick={reload}>Перевірити</button>
+        <button className="btn-p" disabled={!!busy} onClick={() => run('setup')}>{busy === 'setup' ? 'Налаштування…' : 'Налаштувати бота'}</button>
+        <button className="btn-s" disabled={!!busy} onClick={() => run('rotate')}>{busy === 'rotate' ? 'Зміна…' : 'Змінити секрет webhook'}</button>
+      </div>
+      {data?.maintenance && <p className="text-xs text-slate-500">Автоперевірка cron: {new Date(data.maintenance.checkedAt).toLocaleString()} · {data.maintenance.webhook} {data.maintenance.error ? `· ${data.maintenance.error}` : ''}</p>}
+      {result && <pre className="panel overflow-auto p-3 text-xs">{JSON.stringify(result, null, 2)}</pre>}
+    </div>
+  );
+}
+
 function Audit() {
   const { data, error } = useLoad(() => api('/audit'), []);
   if (error) return <p className="text-rose-600">{error}</p>;
@@ -744,7 +794,7 @@ export function App() {
     const items: [string, string][] = [['/', '📊 Огляд']];
     if (r !== 'SUPPORT') for (const d of RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns')) items.push([`/r/${d.name}`, d.title]);
     if (r !== 'EDITOR') items.push(['/users', '👥 Користувачі'], ['/payments', '⭐ Платежі']);
-    if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифи'], ['/r/campaigns', '📣 Розсилки'], ['/rewards', '🎁 Нагороди'], ['/audit', '📜 Журнал дій'], ['/admins', '🔐 Адміністратори']);
+    if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифи'], ['/r/campaigns', '📣 Розсилки'], ['/rewards', '🎁 Нагороди'], ['/bot', '🤖 Бот'], ['/audit', '📜 Журнал дій'], ['/admins', '🔐 Адміністратори']);
     return items;
   }, [admin]);
 
@@ -785,6 +835,7 @@ export function App() {
           <Route path="/users/:id" element={<UserDetail admin={admin} />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/rewards" element={<Rewards />} />
+          <Route path="/bot" element={<Bot />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="/admins" element={<Admins />} />
         </Routes>

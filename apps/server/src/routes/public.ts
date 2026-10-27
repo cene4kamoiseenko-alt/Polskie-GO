@@ -1,12 +1,12 @@
 /** Авторизація, профіль, налаштування, онбординг, приватність. */
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { UI_LANGS, CEFR_LEVELS } from '@polski-go/shared';
+import { UI_LANGS, CEFR_LEVELS, shiftLastDayForZone } from '@polski-go/shared';
 import { config } from '../env';
 import { atomic, db } from '../db';
 import {
-  aiConversations, aiUsage, dailyActivity, gameWallets, languageSkills, learningSessions, notificationLog, paymentEvents, playerProgress, subscriptions,
+  aiConversations, aiUsage, botQuizPlayers, botQuizRounds, dailyActivity, gameWallets, languageSkills, learningSessions, notificationLog, paymentEvents, playerProgress, subscriptions,
   userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions,
 } from '../db/schema';
 import { body, query, rateLimit, type AppEnv } from '../hono';
@@ -75,9 +75,27 @@ me.patch('/me/settings', async (c) => {
       throw badRequest('bad_timezone');
     }
   }
-  if (Object.keys(b).length) await db.update(userSettings).set(b).where(eq(userSettings.userId, c.get('userId')));
-  return c.json(await getMe(c.get('userId')));
+  const userId = c.get('userId');
+  if (Object.keys(b).length) await atomic([db.update(userSettings).set(b).where(eq(userSettings.userId, userId)), ...(await rebaseStreakDay(userId, b.timezone))]);
+  return c.json(await getMe(userId));
 });
+
+/**
+ * Зміна часового пояса не повинна обнуляти серію: останній день активності зсувається на різницю «сьогодні» між поясами.
+ * Умова на старі значення робить запис безпечним при паралельних запитах (урок, що саме завершується, не перезапишеться).
+ */
+async function rebaseStreakDay(userId: string, timezone: string | undefined) {
+  if (!timezone) return [];
+  const [s, p] = await db.batch([
+    db.select({ timezone: userSettings.timezone }).from(userSettings).where(eq(userSettings.userId, userId)),
+    db.select({ lastActiveDay: playerProgress.lastActiveDay }).from(playerProgress).where(eq(playerProgress.userId, userId)),
+  ]);
+  const from = s[0]?.timezone ?? 'Europe/Warsaw';
+  const last = p[0]?.lastActiveDay ?? null;
+  const next = shiftLastDayForZone(last, new Date(), from, timezone);
+  if (!last || next === last) return [];
+  return [db.update(playerProgress).set({ lastActiveDay: next }).where(and(eq(playerProgress.userId, userId), eq(playerProgress.lastActiveDay, last)))];
+}
 
 me.patch('/me/profile', async (c) => {
   const b = z
@@ -101,6 +119,7 @@ me.post('/me/onboarding', async (c) => {
     .parse(await body(c));
   const userId = c.get('userId');
   await atomic([
+    ...(await rebaseStreakDay(userId, b.timezone)),
     db
       .update(userSettings)
       .set({
@@ -162,10 +181,13 @@ me.get('/me/export', async (c) => {
 me.delete('/me', async (c) => {
   z.object({ confirm: z.literal('DELETE') }).parse(await body(c));
   const id = c.get('userId');
+  const tg = await db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, id)).get();
   await atomic([
     db.update(paymentEvents).set({ userId: null }).where(eq(paymentEvents.userId, id)),
     db.delete(aiUsage).where(eq(aiUsage.userId, id)),
     db.delete(notificationLog).where(eq(notificationLog.userId, id)),
+    // Быстрые вопросы бота привязаны к Telegram id, а не к аккаунту: удаляем их отдельно.
+    ...(tg ? [db.delete(botQuizRounds).where(eq(botQuizRounds.telegramId, tg.telegramId)), db.delete(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg.telegramId))] : []),
     db.delete(users).where(eq(users.id, id)),
   ]);
   forgetUser(id);

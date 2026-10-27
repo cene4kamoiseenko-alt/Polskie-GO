@@ -3,9 +3,10 @@
  * соответствие кнопок белому списку экранов, файлы картинок, список команд для BotFather.
  */
 import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { BOT_SCREENS, UI_LANGS, type UiLang } from '@polski-go/shared';
-import { COMMANDS, COMMAND_IMAGES, COMMAND_LANDING, COMMAND_MENU, REMINDER_IMAGES } from '../src/bot/catalog';
+import { COMMANDS, COMMAND_IMAGES, COMMAND_LANDING, COMMAND_MENU, MENU, REMINDER_IMAGES, RU_COMMAND_IMAGES, RU_REMINDER_LESSON, commandImage, reminderImage } from '../src/bot/catalog';
 import { COPY, daysWord, headlineOf, type Vars } from '../src/bot/copy';
 import { escapeHtml, safeName } from '../src/bot/html';
 import { pickLang } from '../src/bot/data';
@@ -15,6 +16,7 @@ import { buildCalls, DESCRIPTION, LOCALIZED, normalizeUrl } from '../scripts/set
 import { normalizeWebAppUrl } from '../src/env';
 
 const IMAGES = new URL('../../web/public/bot/commands/', import.meta.url);
+const BOT_PUBLIC = new URL('../../web/public/bot/', import.meta.url);
 
 const FULL: Vars = {
   name: 'A'.repeat(64),
@@ -145,6 +147,38 @@ describe('команды и картинки', () => {
     }
   });
 
+  it('русские тематические кадры: свой файл у каждой команды, без повторов, JPEG 1280×720; профиль и стоп — без надписей', () => {
+    const ru = Object.values(RU_COMMAND_IMAGES);
+    expect(new Set(ru).size).toBe(ru.length);
+    const files = [...ru, RU_REMINDER_LESSON.file, 'ru/shopping.jpg', 'ru/food.jpg', 'ru/transport.jpg'];
+    const hashes = new Set<string>();
+    for (const f of files) {
+      const path = new URL(f, BOT_PUBLIC);
+      expect(existsSync(path), f).toBe(true);
+      const bytes = readFileSync(path);
+      expect([bytes[0], bytes[1]], `${f} is JPEG`).toEqual([0xff, 0xd8]);
+      expect(jpegSize(bytes)).toEqual({ width: 1280, height: 720 });
+      hashes.add(createHash('md5').update(bytes).digest('hex'));
+    }
+    expect(hashes.size, 'no two themed images are the same file').toBe(files.length);
+    // Кадры с выдуманными цифрами профиля, серией «7 дней», чужим именем и готовым ответом квиза не подключены.
+    expect(RU_COMMAND_IMAGES.profile).toBeUndefined();
+    expect(RU_COMMAND_IMAGES.stop).toBeUndefined();
+    for (const f of files) expect(f).not.toMatch(/profile|streak|return|quick|correct/);
+  });
+
+  it('русские надписи — только в русском интерфейсе; uk / pl / en получают кадры без надписей на языке интерфейса', () => {
+    for (const command of COMMANDS) {
+      for (const lang of ['uk', 'pl', 'en'] as const) expect(commandImage(command, lang)).toBe(`commands/${COMMAND_IMAGES[command]}`);
+      expect(commandImage(command, 'ru')).toBe(RU_COMMAND_IMAGES[command] ?? `commands/${COMMAND_IMAGES[command]}`);
+    }
+    // На кадре напоминания нарисованы часы «19:00»: только тем, у кого напоминание на 19 часов.
+    expect(reminderImage('lesson', 'ru', 19)).toBe('ru/reminder.jpg');
+    expect(reminderImage('lesson', 'ru', 9)).toBe('commands/reminder-lesson.jpg');
+    expect(reminderImage('lesson', 'uk', 19)).toBe('commands/reminder-lesson.jpg');
+    expect(reminderImage('streak', 'ru', 19)).toBe('commands/reminder-streak.jpg');
+  });
+
   it('разбор команд: регистр, @бот, параметр', () => {
     expect(parseCommand('/start')).toEqual({ name: 'start', mention: null, arg: '' });
     expect(parseCommand('/START ref_abc123')).toEqual({ name: 'start', mention: null, arg: 'ref_abc123' });
@@ -166,7 +200,7 @@ describe('команды и картинки', () => {
 describe('setup-bot: что именно уходит в Telegram', () => {
   const env = { WEB_APP_URL: 'https://polski.example/', PUBLIC_URL: 'https://polski.example', TELEGRAM_WEBHOOK_SECRET: 's3cret' };
 
-  it('по умолчанию только команды и кнопка меню: без описания, картинки описания, webhook и токена', () => {
+  it('только команды и кнопка меню: без описания, картинки описания, webhook и токена; --webhook больше не ставит webhook', () => {
     const calls = buildCalls(env, {});
     expect(calls.map((c) => c.method)).toEqual(['setMyCommands', 'setMyCommands', 'setMyCommands', 'setMyCommands', 'setChatMenuButton']);
     const methods = new Set(calls.map((c) => c.method));
@@ -174,12 +208,15 @@ describe('setup-bot: что именно уходит в Telegram', () => {
       expect(methods.has(forbidden), forbidden).toBe(false);
     }
     expect(calls.at(-1)!.params).toEqual({ menu_button: { type: 'web_app', text: 'POLSKI GO', web_app: { url: 'https://polski.example/' } } });
+    expect(buildCalls(env, { webhook: true }).some((c) => c.method === 'setWebhook')).toBe(false);
   });
 
-  it('девять команд: русские по умолчанию, uk/pl/en локализованы, без повторов', () => {
+  it('девять карточек и /quiz: русские по умолчанию, uk/pl/en локализованы, без повторов', () => {
     const [base, ...localized] = buildCalls(env, {}).filter((c) => c.method === 'setMyCommands');
     expect(base.params.language_code).toBeUndefined();
-    expect(base.params.commands.map((c: { command: string }) => c.command)).toEqual([...COMMANDS]);
+    expect(base.params.commands.map((c: { command: string }) => c.command)).toEqual(MENU.map((c) => c.command));
+    expect(MENU.map((c) => c.command).filter((c) => c !== 'quiz')).toEqual([...COMMANDS]);
+    expect(MENU.some((c) => c.command === 'quiz')).toBe(true);
     expect(localized.map((c) => c.params.language_code)).toEqual(LOCALIZED);
     for (const c of buildCalls(env, {}).filter((x) => x.method === 'setMyCommands')) {
       for (const cmd of c.params.commands) {
@@ -192,16 +229,10 @@ describe('setup-bot: что именно уходит в Telegram', () => {
     const descriptions = (lang: UiLang) => COMMAND_MENU.map((c) => c.description[lang]);
     for (const lang of UI_LANGS) expect(new Set(descriptions(lang)).size).toBe(9);
     expect(new Set([...descriptions('ru'), ...descriptions('uk')]).size).toBe(18);
+    for (const lang of UI_LANGS) expect(new Set(MENU.map((c) => c.description[lang])).size).toBe(MENU.length);
   });
 
-  it('webhook и описание — только по флагам; webhook не сбрасывает ожидающие обновления и принимает платежи', () => {
-    const withHook = buildCalls(env, { webhook: true }).find((c) => c.method === 'setWebhook')!;
-    expect(withHook.params).toEqual({
-      url: 'https://polski.example/telegram/webhook',
-      secret_token: 's3cret',
-      allowed_updates: ['message', 'pre_checkout_query'],
-      drop_pending_updates: false,
-    });
+  it('описание — только по флагу', () => {
     const desc = buildCalls(env, { description: true }).find((c) => c.method === 'setMyDescription')!;
     expect(desc.params.description).toBe(DESCRIPTION);
   });
@@ -232,10 +263,9 @@ describe('адрес приложения из переменной окруже
     for (const [raw] of CASES) expect(normalizeUrl(raw)).toBe(normalizeWebAppUrl(raw));
   });
 
-  it('кнопка меню и webhook получают https, даже если переменные заданы без схемы', () => {
-    const calls = buildCalls({ WEB_APP_URL: 'polski.example', PUBLIC_URL: 'polski.example/', TELEGRAM_WEBHOOK_SECRET: 's' }, { webhook: true });
+  it('кнопка меню получает https, даже если адрес задан без схемы', () => {
+    const calls = buildCalls({ WEB_APP_URL: 'polski.example' }, {});
     expect(calls.find((c) => c.method === 'setChatMenuButton')!.params.menu_button.web_app.url).toBe('https://polski.example');
-    expect(calls.find((c) => c.method === 'setWebhook')!.params.url).toBe('https://polski.example/telegram/webhook');
   });
 });
 

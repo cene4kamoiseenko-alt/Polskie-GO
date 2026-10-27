@@ -1,18 +1,18 @@
 // Настройка бота в Telegram. Запуск: npm run bot:setup -w @polski-go/server [-- флаги]
 //
 // По умолчанию скрипт меняет ТОЛЬКО:
-//   • команды бота (setMyCommands): девять команд, по умолчанию русские описания + локализации uk / pl / en;
+//   • команды бота (setMyCommands): девять карточек и /quiz, по умолчанию русские описания + локализации uk / pl / en;
 //   • кнопку меню, которая открывает Mini App (setChatMenuButton).
 // Ничего больше он не трогает: описание (Description), About, Description Picture, токен и webhook остаются как настроены в BotFather.
 // Описание бота и картинка описания в Bot API: картинку через API не изменить, текст описания — только с флагом --description.
 //
 // Флаги:
-//   --webhook      установить webhook (первый запуск или смена адреса): нужны PUBLIC_URL и TELEGRAM_WEBHOOK_SECRET.
-//                  Обновления: message (команды, платежи Stars, возвраты) и pre_checkout_query; ожидающие обновления не сбрасываются.
+//   --webhook      больше не поддерживается: секрет webhook генерирует и хранит сервер (D1), человек его не знает.
+//                  Webhook (message, callback_query, pre_checkout_query) ставит админка → «Бот» → «Настроить бота» или cron.
 //   --description  перезаписать описание бота текстом по умолчанию (иначе описание, настроенное вручную, не меняется).
 //   --dry-run      показать вызовы без обращения к Telegram (токен не нужен).
 //
-// Переменные: TELEGRAM_BOT_TOKEN, WEB_APP_URL (адрес Mini App для кнопки меню); для --webhook ещё PUBLIC_URL и TELEGRAM_WEBHOOK_SECRET.
+// Переменные: TELEGRAM_BOT_TOKEN, WEB_APP_URL (адрес Mini App для кнопки меню).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,17 +40,6 @@ export function buildCalls(env, flags = {}) {
   calls.push({ method: 'setMyCommands', params: { commands: list('ru') } });
   for (const lang of LOCALIZED) calls.push({ method: 'setMyCommands', params: { commands: list(lang), language_code: lang } });
   if (env.WEB_APP_URL) calls.push({ method: 'setChatMenuButton', params: { menu_button: { type: 'web_app', text: 'POLSKI GO', web_app: { url: normalizeUrl(env.WEB_APP_URL) } } } });
-  if (flags.webhook) {
-    calls.push({
-      method: 'setWebhook',
-      params: {
-        url: `${normalizeUrl(env.PUBLIC_URL).replace(/\/$/, '')}/telegram/webhook`,
-        secret_token: env.TELEGRAM_WEBHOOK_SECRET,
-        allowed_updates: ['message', 'pre_checkout_query'],
-        drop_pending_updates: false,
-      },
-    });
-  }
   if (flags.description) calls.push({ method: 'setMyDescription', params: { description: DESCRIPTION } });
   return calls;
 }
@@ -67,7 +56,9 @@ async function main() {
   const token = env.TELEGRAM_BOT_TOKEN;
   if (!flags.dryRun && !token) throw new Error('Set TELEGRAM_BOT_TOKEN');
   if (!env.WEB_APP_URL) throw new Error('Set WEB_APP_URL (Mini App address for the menu button)');
-  if (flags.webhook && (!env.PUBLIC_URL || !env.TELEGRAM_WEBHOOK_SECRET)) throw new Error('--webhook needs PUBLIC_URL and TELEGRAM_WEBHOOK_SECRET');
+  if (flags.webhook) {
+    throw new Error('--webhook is retired: the webhook secret is generated and kept by the server. Use the admin panel (Бот → Настроить бота); cron also repairs the webhook hourly.');
+  }
 
   const api = async (method, params = {}) => {
     const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(params) });
@@ -88,7 +79,8 @@ async function main() {
   if (info.ok) {
     const w = info.result;
     console.log(`webhook: ${w.url ? new URL(w.url).origin + new URL(w.url).pathname : '(не задан)'}, ожидают: ${w.pending_update_count}${w.last_error_message ? `, последняя ошибка: ${w.last_error_message}` : ''}`);
-    if (!w.url) console.log('webhook не задан: запустите с флагом --webhook');
+    if (!w.url) console.log('webhook не задан: админка → «Бот» → «Настроить бота»');
+    else if (w.allowed_updates?.length && !w.allowed_updates.includes('callback_query')) console.log('webhook без callback_query: админка → «Бот» → «Настроить бота» (или дождитесь часовой проверки cron)');
   }
   const cmds = await api('getMyCommands');
   if (cmds.ok) console.log(`команды (язык по умолчанию): ${cmds.result.map((c) => '/' + c.command).join(' ')}`);

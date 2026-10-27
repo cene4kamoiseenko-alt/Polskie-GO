@@ -2,6 +2,7 @@
   "commands": [
     { "command": "start", "description": { "ru": "🦫 Начать путешествие", "uk": "🦫 Розпочати подорож", "pl": "🦫 Zacznij podróż", "en": "🦫 Start the journey" } },
     { "command": "lesson", "description": { "ru": "📚 Продолжить обучение", "uk": "📚 Продовжити навчання", "pl": "📚 Kontynuuj naukę", "en": "📚 Continue learning" } },
+    { "command": "quiz", "description": { "ru": "🧠 Быстрый вопрос по-польски", "uk": "🧠 Швидке питання польською", "pl": "🧠 Szybkie pytanie", "en": "🧠 Quick Polish question" } },
     { "command": "map", "description": { "ru": "🗺 Карта городов Польши", "uk": "🗺 Карта міст Польщі", "pl": "🗺 Mapa miast Polski", "en": "🗺 Map of Polish cities" } },
     { "command": "words", "description": { "ru": "📖 Словарь и полезные фразы", "uk": "📖 Словник і корисні фрази", "pl": "📖 Słownik i przydatne zwroty", "en": "📖 Dictionary and useful phrases" } },
     { "command": "quests", "description": { "ru": "🎯 Ежедневные задания", "uk": "🎯 Щоденні завдання", "pl": "🎯 Codzienne zadania", "en": "🎯 Daily tasks" } },

@@ -3,7 +3,7 @@
  * Прогрес оновлюється лише реальними навчальними подіями на сервері.
  */
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import { seededRandom, shuffle, type I18n } from '@polski-go/shared';
+import { nextDayStart, seededRandom, shuffle, type I18n } from '@polski-go/shared';
 import { atomic, db, type Stmt } from '../db';
 import { cosmeticItems, newId, questSteps, quests, userCities, userInventory, userQuests, xpEvents } from '../db/schema';
 import { badRequest, notFound } from '../lib/errors';
@@ -113,15 +113,14 @@ export async function listQuests(userId: string) {
     xp: quest.xpReward,
     zlotki: quest.zlotkiReward,
   });
-  const tomorrow = new Date();
-  tomorrow.setUTCHours(24, 0, 0, 0);
   const daily = rows.filter((r) => r.quest.kind === 'DAILY');
   return {
     chest: await dailyChestState(userId, ctx.day, daily.map((r) => r.uq.status)),
     daily: daily.map(map),
     weekly: rows.filter((r) => r.quest.kind === 'WEEKLY').map(map),
     story: await listStory(userId),
-    resetsAt: tomorrow.toISOString(),
+    // Щоденні завдання оновлюються опівночі в поясі користувача (не за UTC).
+    resetsAt: nextDayStart(ctx.now, ctx.tz).toISOString(),
   };
 }
 

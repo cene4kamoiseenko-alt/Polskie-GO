@@ -89,13 +89,29 @@ function addMonths(d: Date, months: number) {
 /** Обробка успішного платежу (ідемпотентно за charge id). */
 export async function handleSuccessfulPayment(fromId: number, p: SuccessfulPayment) {
   const [, planCode, userId] = p.invoice_payload.split(':');
-  const [userRow, planRow] = await db.batch([
+  const [userRow, planRow, invoiceRow] = await db.batch([
     db.select().from(users).where(eq(users.id, userId ?? '')),
     db.select().from(subscriptionPlans).where(eq(subscriptionPlans.code, planCode ?? '')),
+    db.select().from(paymentEvents).where(and(eq(paymentEvents.type, 'INVOICE_CREATED'), eq(paymentEvents.payload, p.invoice_payload))).limit(1),
   ]);
   const user = userRow[0];
   const plan = planRow[0];
-  const invalid = !user ? 'user_not_found' : !plan ? 'plan_not_found' : user.telegramId !== fromId ? 'user_mismatch' : null;
+  const invoice = invoiceRow[0];
+  // Premium — только по нашему счёту: тот же payload, пользователь, тариф, валюта Stars и сумма.
+  // Защищает и от подделанного обновления, если секрет webhook когда-либо утечёт.
+  const invalid = !user
+    ? 'user_not_found'
+    : !plan
+      ? 'plan_not_found'
+      : user.telegramId !== fromId
+        ? 'user_mismatch'
+        : !invoice || invoice.userId !== user.id || invoice.planCode !== plan.code
+          ? 'invoice_not_found'
+          : p.currency !== 'XTR'
+            ? 'currency_mismatch'
+            : p.total_amount !== invoice.amount
+              ? 'amount_mismatch'
+              : null;
   // Подія з унікальним charge id — першою в пакеті: повторна доставка того ж платежу відкотить пакет.
   const event = db.insert(paymentEvents).values({
     userId: user?.id ?? null, type: 'SUCCESSFUL_PAYMENT', planCode: planCode ?? null, amount: p.total_amount, currency: p.currency,

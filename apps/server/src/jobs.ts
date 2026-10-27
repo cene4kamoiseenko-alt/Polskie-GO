@@ -1,7 +1,10 @@
 /**
  * Фонові задачі (Cron Trigger кожні 15 хв):
  *  • навчальні нагадування — картинка + текст + кнопка Mini App, у годину, яку обрав користувач, не частіше разу на день;
- *  • розсилки з адмінки — частинами, щоб не перевищити ліміт підзапитів Worker.
+ *  • розсилки з адмінки — частинами, щоб не перевищити ліміт підзапитів Worker;
+ *  • запрошення до швидкого питання (`bot/quiz/invites.ts`) — не частіше разу на день і лише тим, хто вже відповідав;
+ *  • самоперевірка бота (`bot/maintain.ts`): webhook, callback_query, меню команд — раз на годину;
+ *  • прибирання: оброблені update_id (3 дні), раунди швидких питань (30 днів).
  * Надсилається лише користувачам, які погодилися на сповіщення (notifications_enabled).
  *
  * Доставка нагадування (таблиця notification_log, ключ (user_id, kind, day)):
@@ -14,13 +17,15 @@
 import { and, asc, eq, gt, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from 'drizzle-orm';
 import { dayDiff, dayKey, effectiveStreak } from '@polski-go/shared';
 import { db } from './db';
-import { notificationCampaigns, notificationLog, playerProgress, telegramUpdates, userSettings, users } from './db/schema';
+import { botQuizRounds, notificationCampaigns, notificationLog, playerProgress, telegramUpdates, userSettings, users } from './db/schema';
 import { botApi, TelegramError } from './lib/telegram';
 import { config } from './env';
 import { pruneUsage } from './services/quota';
-import { REMINDER_IMAGES } from './bot/catalog';
+import { reminderImage } from './bot/catalog';
 import { COPY, type Card, type ReminderKind } from './bot/copy';
 import { pickLang } from './bot/data';
+import { maintainBot } from './bot/maintain';
+import { sendQuizInvites } from './bot/quiz/invites';
 import { sendCard } from './bot/send';
 
 /** Безкоштовний Worker має ліміт 50 підзапитів за виклик: бюджет рахується у викликах Bot API (фото + запасний текст — два). */
@@ -36,6 +41,7 @@ const RETURN_AFTER_DAYS = 3;
 const STREAK_MIN = 2;
 const BLOCKED_QUIET_MS = 30 * 86_400_000;
 const UPDATES_KEEP_MS = 3 * 86_400_000;
+const QUIZ_ROUNDS_KEEP_MS = 30 * 86_400_000;
 
 const REMINDER_KINDS: readonly ReminderKind[] = ['lesson', 'streak', 'return'];
 
@@ -67,12 +73,12 @@ function localClock(now: Date, timeZone: string): { hour: number; day: string } 
 /** D1 приймає до 100 параметрів на запит; на один пояс їх 5. */
 const TZ_PER_QUERY = 16;
 
-type Target = { logId: string; telegramId: number; lang: string; kind: ReminderKind; streak: number; attempt: number };
+type Target = { logId: string; telegramId: number; lang: string; kind: ReminderKind; streak: number; attempt: number; hour: number | null };
 
 /** Надіслати й записати результат у журнал. true — Telegram прийняв повідомлення. */
 async function deliver(t: Target, now: Date, stats: { calls: number }): Promise<boolean> {
   try {
-    const sent = await sendCard({ chatId: t.telegramId, stats }, reminderCard(t.lang, t.kind, t.streak), REMINDER_IMAGES[t.kind]);
+    const sent = await sendCard({ chatId: t.telegramId, stats }, reminderCard(t.lang, t.kind, t.streak), reminderImage(t.kind, pickLang(t.lang, null), t.hour));
     await db
       .update(notificationLog)
       .set({ status: 'SENT', method: sent.method, telegramMessageId: sent.messageId, sentAt: now, leaseUntil: null, nextAttemptAt: null, error: sent.photoError ? `photo: ${sent.photoError}`.slice(0, 200) : null, updatedAt: now })
@@ -125,6 +131,7 @@ async function retryFailed(now: Date, budget: number, stats: { calls: number }):
       lang: userSettings.uiLanguage,
       tz: userSettings.timezone,
       enabled: userSettings.notificationsEnabled,
+      hour: userSettings.reminderHour,
       p: playerProgress,
     })
     .from(notificationLog)
@@ -159,15 +166,14 @@ async function retryFailed(now: Date, budget: number, stats: { calls: number }):
     if (!claimed.length || skip) continue;
     const kind = REMINDER_KINDS.find((k) => k === r.log.template) ?? 'lesson';
     const streak = effectiveStreak(r.p?.streakCurrent ?? 0, r.p?.lastActiveDay ?? null, today);
-    if (await deliver({ logId: r.log.id, telegramId: r.telegramId, lang: r.lang, kind, streak, attempt: r.log.attempts + 1 }, now, stats)) sent++;
+    if (await deliver({ logId: r.log.id, telegramId: r.telegramId, lang: r.lang, kind, streak, attempt: r.log.attempts + 1, hour: r.hour }, now, stats)) sent++;
   }
   return sent;
 }
 
 /** Повертає кількість нагадувань, які Telegram прийняв. `budget` — найбільше викликів Bot API за запуск. */
-export async function sendReminders(now = new Date(), budget = SEND_BUDGET) {
+export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stats = { calls: 0 }) {
   if (budget <= 0) return 0;
-  const stats = { calls: 0 };
   await expireLeases(now);
   let sent = await retryFailed(now, budget, stats);
   // 1) Які пояси зараз у годині нагадування: DISTINCT (пояс, година) — кілька рядків замість тисяч користувачів.
@@ -199,7 +205,7 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET) {
       );
     });
     const candidates = await db
-      .select({ id: users.id, telegramId: users.telegramId, tz: userSettings.timezone, lang: userSettings.uiLanguage, p: playerProgress })
+      .select({ id: users.id, telegramId: users.telegramId, tz: userSettings.timezone, lang: userSettings.uiLanguage, hour: userSettings.reminderHour, p: playerProgress })
       .from(users)
       .innerJoin(userSettings, eq(userSettings.userId, users.id))
       .leftJoin(playerProgress, eq(playerProgress.userId, users.id))
@@ -230,7 +236,7 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET) {
         .onConflictDoNothing()
         .returning({ id: notificationLog.id });
       if (!claimed.length) continue;
-      if (await deliver({ logId: claimed[0].id, telegramId: u.telegramId, lang: u.lang, kind, streak, attempt: 1 }, now, stats)) sent++;
+      if (await deliver({ logId: claimed[0].id, telegramId: u.telegramId, lang: u.lang, kind, streak, attempt: 1, hour: u.hour }, now, stats)) sent++;
     }
   }
   return sent;
@@ -238,6 +244,7 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET) {
 
 /** Наступна порція активної розсилки (статус SENDING). */
 export async function sendCampaignChunk(budget = SEND_BUDGET) {
+  if (budget <= 0) return 0;
   const c = await db.query.notificationCampaigns.findFirst({ where: eq(notificationCampaigns.status, 'SENDING'), orderBy: asc(notificationCampaigns.createdAt) });
   if (!c) return 0;
   const batch = await db
@@ -268,7 +275,17 @@ export async function sendCampaignChunk(budget = SEND_BUDGET) {
 export async function runScheduled(now = new Date()) {
   await pruneUsage(now);
   await db.delete(telegramUpdates).where(lt(telegramUpdates.createdAt, new Date(now.getTime() - UPDATES_KEEP_MS)));
+  // Таблиці з міграції 0009: до її застосування запит упаде — це не повинно зупиняти нагадування.
+  await db
+    .delete(botQuizRounds)
+    .where(lt(botQuizRounds.sentAt, new Date(now.getTime() - QUIZ_ROUNDS_KEEP_MS)))
+    .catch((e) => console.warn('quiz rounds cleanup failed', (e as Error).message));
   if (!config.botToken) return;
-  const campaign = await sendCampaignChunk();
-  await sendReminders(now, SEND_BUDGET - campaign);
+  // Бюджет — виклики Bot API за запуск: самоперевірка бота, розсилка, нагадування, запрошення до питань.
+  let left = SEND_BUDGET - (await maintainBot(now).catch(() => 0));
+  left -= await sendCampaignChunk(Math.max(0, left));
+  const stats = { calls: 0 };
+  await sendReminders(now, left, stats);
+  left -= stats.calls;
+  await sendQuizInvites(now, left).catch((e) => console.warn('quiz invites failed', (e as Error).message));
 }

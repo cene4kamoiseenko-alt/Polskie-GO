@@ -2,7 +2,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { ZodError } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { bindDb, db, mapDbError } from './db';
 import { uploads } from './db/schema';
 import { config, setEnv } from './env';
@@ -14,6 +14,7 @@ import { learnRoutes } from './routes/learn';
 import { gameRoutes } from './routes/game';
 import { telegramRoutes } from './routes/telegram';
 import { adminRoutes } from './routes/admin';
+import { readBotConfig } from './bot/maintain';
 
 export function buildApp() {
   const app = new Hono<AppEnv>();
@@ -34,7 +35,27 @@ export function buildApp() {
     return c.json({ error: 'internal_error', message: 'Internal error' }, 500);
   });
 
-  app.get('/api/health', (c) => c.json({ ok: true }));
+  // Проверка выкладки с телефона: какая сборка работает, применены ли миграции, в каком состоянии бот. Без секретов.
+  app.get('/api/health', async (c) => {
+    const version = await c.env.ASSETS?.fetch(new URL('/version.json', c.req.url))
+      .then((r) => (r.ok ? (r.json() as Promise<Record<string, string>>) : null))
+      .catch(() => null);
+    const migration = await db
+      .all<{ name: string }>(sql`SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1`)
+      .then((r) => r[0]?.name ?? null)
+      .catch(() => null);
+    const bot = await readBotConfig();
+    return c.json(
+      {
+        ok: true,
+        version: version ? { commit: version.commit, builtAt: version.builtAt } : null,
+        migration,
+        bot: bot ? { webhook: bot.webhook, callbackQuery: bot.callbackQuery, serverSecret: bot.secretGeneration > 0, confirmed: bot.secretConfirmed, checkedAt: new Date(bot.checkedAt).toISOString() } : null,
+      },
+      200,
+      { 'cache-control': 'no-store' },
+    );
+  });
 
   // Порядок важливий: адмінка й webhook мають власну авторизацію, далі — вхід, потім маршрути користувача.
   app.route('/api/admin', adminRoutes);

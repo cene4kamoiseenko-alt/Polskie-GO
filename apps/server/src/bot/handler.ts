@@ -1,17 +1,19 @@
 /**
- * Обработка сообщений бота: девять команд (/start /lesson /map /words /quests /profile /settings /help /stop),
- * неизвестные команды и обычный текст в личном чате получают справку.
+ * Обработка сообщений бота: девять команд (/start /lesson /map /words /quests /profile /settings /help /stop) и быстрый вопрос /quiz
+ * (также `/start quiz` и кнопка панели); неизвестные команды и обычный текст в личном чате получают справку.
  * Язык: настройка пользователя → язык Telegram → язык продукта. Сбой базы не лишает ответа:
  * текст уходит без персональных данных, а /stop и прогресс честно сообщают о неудаче.
  */
 import { botApi } from '../lib/telegram';
 import { config } from '../env';
 import { upsertTelegramUser } from '../services/users';
-import { COMMAND_IMAGES, isCommand, type CommandName } from './catalog';
+import { commandImage, isCommand, type CommandName } from './catalog';
 import { COPY, type Card, type Vars } from './copy';
 import { activeQuestsOf, disableReminders, findBotUser, nextLessonOf, pickLang, profileOf, type BotUser } from './data';
 import { commandForLabel, sendPanel } from './panel';
 import { sendCard, type Sent } from './send';
+import { QUIZ_COPY } from './quiz/copy';
+import { handleQuizCallback, sendQuizBlocked, startQuiz, type CallbackQuery } from './quiz/engine';
 
 export type BotMessage = {
   message_id?: number;
@@ -42,7 +44,7 @@ async function soft<T>(what: string, fn: () => Promise<T>, fallback: T): Promise
   }
 }
 
-export type Handled = { command: CommandName | 'unknown'; sent: Sent | null; ignored?: string };
+export type Handled = { command: CommandName | 'quiz' | 'unknown'; sent: Sent | null; ignored?: string };
 
 export async function handleBotMessage(msg: BotMessage, now = new Date()): Promise<Handled> {
   const from = msg.from;
@@ -57,8 +59,9 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
   if (!priv && cmd?.mention && config.botUsernameConfigured && cmd.mention.toLowerCase() !== config.botUsername.toLowerCase()) {
     return { command: 'unknown', sent: null, ignored: 'other_bot' };
   }
-  const command: CommandName | 'unknown' = cmd && isCommand(cmd.name) ? cmd.name : 'unknown';
   const arg = cmd?.arg ?? '';
+  const quiz = cmd?.name === 'quiz' || (cmd?.name === 'start' && arg === 'quiz');
+  const command: CommandName | 'unknown' = cmd && isCommand(cmd.name) ? cmd.name : 'unknown';
 
   let { value: user, failed: dbDown } = await soft<BotUser | null>('find user', () => findBotUser(from.id), null);
   // Реферальная ссылка t.me/<бот>?start=ref_CODE: реферера фиксирует сервер по подписанному webhook, а не URL кнопки.
@@ -81,8 +84,21 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
   const vars: Vars = { name: from.first_name ?? user?.firstName ?? '' };
   const tz = user?.timezone ?? 'Europe/Warsaw';
   const target = { chatId: msg.chat.id, chatType };
+
+  if (quiz) {
+    // Быстрый вопрос — только в личном чате: в группе подсказка и ссылка на личный чат с ботом.
+    if (!priv) {
+      await botApi('sendMessage', { chat_id: msg.chat.id, text: QUIZ_COPY[lang].group, reply_markup: { inline_keyboard: [[{ text: '🧠 /quiz', url: `https://t.me/${config.botUsername}?start=quiz` }]] } });
+      return { command: 'quiz', sent: { method: 'sendMessage', messageId: null, photoError: null } };
+    }
+    const t = { telegramId: from.id, chatId: msg.chat.id, lang, user: dbDown ? null : user, source: 'command' as const };
+    const res = await startQuiz(t, now);
+    if (res.status !== 'sent') await sendQuizBlocked(t, res);
+    return { command: 'quiz', sent: { method: res.status === 'sent' ? 'sendPhoto' : 'sendMessage', messageId: null, photoError: null } };
+  }
+
   let card: Card;
-  let image: string = COMMAND_IMAGES[command === 'unknown' ? 'help' : command];
+  const image: string = commandImage(command === 'unknown' ? 'help' : command, lang);
   let startapp: string | undefined;
 
   switch (command) {
@@ -151,3 +167,19 @@ async function failStop(chatId: number, text: string): Promise<Handled> {
   await botApi('sendMessage', { chat_id: chatId, text });
   return { command: 'stop', sent: { method: 'sendMessage', messageId: null, photoError: null } };
 }
+
+/**
+ * Нажатие inline-кнопки (callback_query). Сейчас кнопки с данными есть только у быстрых вопросов.
+ * Заблокированному пользователю — только снять «часики» с кнопки, без ответа по существу.
+ */
+export async function handleBotCallback(cb: CallbackQuery, now = new Date()): Promise<string> {
+  if (cb.from.is_bot) return 'bot';
+  const { value: user, failed } = await soft<BotUser | null>('find user', () => findBotUser(cb.from.id), null);
+  if (user?.banned) {
+    await botApi('answerCallbackQuery', { callback_query_id: cb.id }).catch(() => {});
+    return 'banned';
+  }
+  const lang = pickLang(user?.lang, cb.from.language_code);
+  return handleQuizCallback(cb, failed ? null : user, lang, now);
+}
+

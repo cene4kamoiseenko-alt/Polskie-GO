@@ -1,7 +1,9 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { achievements, cosmeticItems, gameWallets, missionRuns, playerProgress, reviewSchedule, userAchievements, userInventory, userMissionSteps, userMissions, userVocabulary } from '../src/db/schema';
+import { achievements, cosmeticItems, dailyActivity, gameWallets, missionRuns, playerProgress, quests, reviewSchedule, userAchievements, userInventory, userMissionSteps, userMissions, userQuests, userSettings, userVocabulary } from '../src/db/schema';
+import { addDays, dayKey } from '@polski-go/shared';
+import { goalXpFor } from '../src/services/goal';
 import { buildSeedSql } from '../src/content/seed';
 import { MISSIONS, type Mission, type MissionStep } from '../src/content/missions';
 import { VOCAB } from '../src/content/vocab';
@@ -219,5 +221,32 @@ describe('Місії: проходження', () => {
     const { finished } = await playMission(call, urzad);
     expect(finished.achievements.map((a: { slug: string }) => a.slug)).toContain('pierwszy-urzad');
     expect(finished.newWords.map((w: { pl: string }) => w.pl)).toEqual(expect.arrayContaining(['numerek', 'stanowisko', 'potwierdzenie']));
+  });
+});
+
+describe('Місії: XP у завданнях і денна мета', () => {
+  const zabka = MISSIONS.find((m) => m.slug === 'zabka-first-order')!;
+
+  it('XP місії зараховується в завдання «Отримай 100 XP»; денна мета не «виконується» подвійним підрахунком XP', async () => {
+    const { call, user } = await login();
+    await db.update(userSettings).set({ dailyGoalMinutes: 10, timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, user.id));
+    const goal = goalXpFor(10);
+    const today = dayKey(new Date(), 'Europe/Warsaw');
+    // Шість попередніх днів мету виконано; сьогодні до місії бракує рівно zabka.xp + 1.
+    for (let i = 1; i <= 6; i++) await db.insert(dailyActivity).values({ userId: user.id, day: addDays(today, -i), xp: goal });
+    const before = goal - zabka.xp - 1;
+    expect(before).toBeGreaterThan(0);
+    await db.insert(dailyActivity).values({ userId: user.id, day: today, xp: before });
+    const xpQuest = (await db.select().from(quests).where(eq(quests.slug, 'd-xp-100')))[0];
+    await db.insert(userQuests).values({ userId: user.id, questId: xpQuest.id, periodKey: today, progress: 0, status: 'ACTIVE', state: {} }).onConflictDoNothing();
+
+    const { finished } = await playMission(call, zabka);
+    expect(finished.xp).toBe(zabka.xp);
+    const quest = (await db.select().from(userQuests).where(and(eq(userQuests.userId, user.id), eq(userQuests.questId, xpQuest.id), eq(userQuests.periodKey, today))))[0];
+    expect(quest.progress).toBe(zabka.xp);
+    // Сьогодні goal − 1 XP: сьомого дня мети ще немає — досягнення «7 днів» не відкривається.
+    const day = (await db.select().from(dailyActivity).where(and(eq(dailyActivity.userId, user.id), eq(dailyActivity.day, today))))[0];
+    expect(day.xp).toBe(goal - 1);
+    expect(await mine(user.id)).not.toContain('siedem-dni');
   });
 });

@@ -9,7 +9,7 @@ import { dayKey, tr, levelFromXp } from '@polski-go/shared';
 import { bindDb, db } from '../src/db';
 import { friendships, notificationLog, playerProgress, quests, userQuests, userSettings, users } from '../src/db/schema';
 import { setEnv } from '../src/env';
-import { COMMANDS, COMMAND_IMAGES, COMMAND_LANDING } from '../src/bot/catalog';
+import { COMMANDS, COMMAND_LANDING, commandImage } from '../src/bot/catalog';
 import { COPY } from '../src/bot/copy';
 import { getJourney } from '../src/services/journey';
 import { disposeEnv, getEnv, login, request } from './helpers';
@@ -62,7 +62,8 @@ describe('девять команд: фото, подпись и настоящ�
     expect(calls.map((c) => c.method)).toEqual(command === 'start' || command === 'help' ? ['sendPhoto', 'sendMessage'] : ['sendPhoto']);
     const call = calls[0];
     expect(call.method).toBe('sendPhoto');
-    expect(call.params.photo).toBe(`${ORIGIN}/bot/commands/${COMMAND_IMAGES[command]}`);
+    // Русский интерфейс: тематический кадр с русским заголовком, где он есть (профиль и /stop — нейтральные).
+    expect(call.params.photo).toBe(`${ORIGIN}/bot/${commandImage(command, 'ru')}`);
     expect(call.params.parse_mode).toBe('HTML');
     expect(call.params.caption.length).toBeLessThanOrEqual(1024);
     expect(call.params.chat_id).toBe(u.telegramId);
@@ -223,7 +224,7 @@ describe('неизвестные команды, группы, блокиров�
     for (const text of ['/nope', '/start2', 'привет, бот']) {
       const { calls } = await say(from(8_100_400, 'ru'), text);
       expect(calls).toHaveLength(1);
-      expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/help.jpg`);
+      expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/ru/help.jpg`);
       expect(calls[0].params.caption).toContain('Jak grać?');
     }
   });
@@ -402,7 +403,7 @@ describe('WEB_APP_URL, заданный не по форме: бот не мол
     expect(res.status).toBe(200);
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe('sendPhoto');
-    expect(calls[0].params.photo).toBe('https://polski.example/bot/commands/lesson.jpg');
+    expect(calls[0].params.photo).toBe('https://polski.example/bot/ru/lessons.jpg');
     expect(urls(calls[0])).toContain(`${expectedBase}?bot_screen=learn`);
   });
 
@@ -426,15 +427,15 @@ describe('постоянная панель быстрых кнопок', () => 
   const labels = (call: TgCall) => (call.params.reply_markup.keyboard as { text: string }[][]).map((row) => row.map((b) => b.text));
 
   it.each([
-    ['ru', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Задания', '🏆 Профиль', '⚙️ Настройки']],
-    ['uk', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Завдання', '🏆 Профіль', '⚙️ Налаштування']],
-    ['pl', ['📚 Lekcja', '🗺 Mapa', '📖 Słowa'], ['🎯 Zadania', '🏆 Profil', '⚙️ Ustawienia']],
-    ['en', ['📚 Lesson', '🗺 Map', '📖 Words'], ['🎯 Tasks', '🏆 Profile', '⚙️ Settings']],
-  ])('/start на %s: после карточки приходит панель из двух рядов по три кнопки, закреплённая', async (lang, row1, row2) => {
+    ['ru', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Задания', '🏆 Профиль', '⚙️ Настройки'], ['🧠 Быстрый вопрос']],
+    ['uk', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Завдання', '🏆 Профіль', '⚙️ Налаштування'], ['🧠 Швидке питання']],
+    ['pl', ['📚 Lekcja', '🗺 Mapa', '📖 Słowa'], ['🎯 Zadania', '🏆 Profil', '⚙️ Ustawienia'], ['🧠 Szybkie pytanie']],
+    ['en', ['📚 Lesson', '🗺 Map', '📖 Words'], ['🎯 Tasks', '🏆 Profile', '⚙️ Settings'], ['🧠 Quick question']],
+  ])('/start на %s: после карточки приходит панель — два ряда по три кнопки и быстрый вопрос, закреплённая', async (lang, row1, row2, row3) => {
     const { calls } = await say(from(8_300_000 + row1.length + lang.length, lang), '/start');
     expect(calls.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
     const panel = panelOf(calls);
-    expect(labels(panel)).toEqual([row1, row2]);
+    expect(labels(panel)).toEqual([row1, row2, row3]);
     expect(panel.params.reply_markup).toMatchObject({ resize_keyboard: true, is_persistent: true });
     expect(panel.params.text).toContain('👇');
   });
@@ -469,7 +470,7 @@ describe('постоянная панель быстрых кнопок', () => 
     expect(res.status).toBe(200);
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe('sendPhoto');
-    expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/${COMMAND_IMAGES[command as keyof typeof COMMAND_IMAGES]}`);
+    expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/${commandImage(command as (typeof COMMANDS)[number], 'ru')}`);
     expect(urls(calls[0]).length).toBeGreaterThan(0);
   });
 
@@ -478,7 +479,7 @@ describe('постоянная панель быстрых кнопок', () => 
     expect(group.calls).toHaveLength(0);
     const u = shared;
     const extra = await say(from(u.telegramId, 'ru'), '🗺 Карта пожалуйста');
-    expect(extra.calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/help.jpg`);
+    expect(extra.calls[0].params.photo).toBe(`${ORIGIN}/bot/ru/help.jpg`);
   });
 
   it('сбой отправки панели не ломает ответ и не повторяет карточку', async () => {

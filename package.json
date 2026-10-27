@@ -12,7 +12,7 @@
     "build": "npm run build -w @polski-go/web && npm run build -w @polski-go/admin && node scripts/build-cf.mjs && npm run seed:sql -w @polski-go/server",
     "build:web": "npm run build -w @polski-go/web",
     "build:cf": "npm run build",
-    "deploy:cf": "wrangler deploy && wrangler d1 migrations apply polski-go --remote && wrangler d1 execute polski-go --remote --file apps/server/seed.sql --yes",
+    "deploy:cf": "(wrangler d1 time-travel info polski-go --json || true) && wrangler d1 migrations apply polski-go --remote && wrangler deploy && wrangler d1 execute polski-go --remote --file apps/server/seed.sql --yes",
     "test": "npm run test -w @polski-go/shared && npm run test -w @polski-go/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:local": "npm run db:local -w @polski-go/server",

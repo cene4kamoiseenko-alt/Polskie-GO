@@ -347,3 +347,45 @@ describe('Польська вимова: приблизне прочитання
   for (const [pl, c] of ru) it(`ru: ${pl}`, () => expect(polishCyrillic(pl, 'ru')).toBe(c));
   for (const [pl, c] of uk) it(`uk: ${pl}`, () => expect(polishCyrillic(pl, 'uk')).toBe(c));
 });
+
+import { addDays, effectiveStreak as effective, lastDays, nextDayStart, shiftLastDayForZone, zonedDayStart } from '../src/index';
+
+describe('дни, серия и переходы часов', () => {
+  it('новый день начинается в местную полночь, в том числе в ночь перехода на зимнее и летнее время', () => {
+    // Варшава, 25.10.2026: в 03:00 CEST часы переводят на 02:00 CET. В 00:30 CEST следующая полночь — 26.10 00:00 CET = 25.10 23:00Z.
+    expect(nextDayStart(new Date('2026-10-24T22:30:00Z'), 'Europe/Warsaw').toISOString()).toBe('2026-10-25T23:00:00.000Z');
+    expect(nextDayStart(new Date('2026-10-25T12:00:00Z'), 'Europe/Warsaw').toISOString()).toBe('2026-10-25T23:00:00.000Z');
+    // 29.03.2026: в 02:00 CET — на 03:00 CEST. В 00:30 CET следующая полночь — 30.03 00:00 CEST = 29.03 22:00Z.
+    expect(nextDayStart(new Date('2026-03-28T23:30:00Z'), 'Europe/Warsaw').toISOString()).toBe('2026-03-29T22:00:00.000Z');
+    expect(nextDayStart(new Date('2026-07-01T10:00:00Z'), 'America/New_York').toISOString()).toBe('2026-07-02T04:00:00.000Z');
+    expect(nextDayStart(new Date('2026-07-01T10:00:00Z'), 'Asia/Kolkata').toISOString()).toBe('2026-07-01T18:30:00.000Z');
+    expect(nextDayStart(new Date('2026-07-01T10:00:00Z'), 'Not/AZone').toISOString()).toBe('2026-07-02T00:00:00.000Z');
+    expect(zonedDayStart('2026-10-25', 'Europe/Warsaw').toISOString()).toBe('2026-10-24T22:00:00.000Z');
+  });
+
+  it('последние дни — календарные: без повторов и пропусков через переход часов', () => {
+    const keys = lastDays(new Date('2026-10-25T22:30:00Z'), 7, 'Europe/Warsaw');
+    expect(keys).toEqual(['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25']);
+    expect(new Set(lastDays(new Date('2026-03-29T22:30:00Z'), 30, 'Europe/Warsaw')).size).toBe(30);
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+  });
+
+  it('смена пояса не сжигает серию: «сегодня» стало вчерашним днём — серия не сбрасывается', () => {
+    const s = updateStreak({ current: 12, best: 20, lastDay: '2026-10-27' }, '2026-10-26');
+    expect(s).toMatchObject({ current: 12, best: 20, lastDay: '2026-10-27', changed: false });
+  });
+
+  it('при смене пояса последний день активности сдвигается вместе с «сегодня»', () => {
+    // 27.10 23:30 в Варшаве = 27.10 18:30 в Нью-Йорке = 28.10 07:30 в Токио.
+    const now = new Date('2026-10-27T22:30:00Z');
+    expect(shiftLastDayForZone('2026-10-27', now, 'Europe/Warsaw', 'Asia/Tokyo')).toBe('2026-10-28');
+    expect(shiftLastDayForZone('2026-10-26', now, 'Europe/Warsaw', 'Asia/Tokyo')).toBe('2026-10-27');
+    expect(shiftLastDayForZone('2026-10-27', now, 'Europe/Warsaw', 'America/New_York')).toBe('2026-10-27');
+    expect(shiftLastDayForZone(null, now, 'Europe/Warsaw', 'Asia/Tokyo')).toBeNull();
+    // Занимался «вчера» по Варшаве, улетел в Токио, где уже послезавтра: серия жива и продлится уроком в Токио.
+    const shifted = shiftLastDayForZone('2026-10-26', now, 'Europe/Warsaw', 'Asia/Tokyo')!;
+    expect(effective(5, shifted, '2026-10-28')).toBe(5);
+    expect(updateStreak({ current: 5, best: 5, lastDay: shifted }, '2026-10-28')).toMatchObject({ current: 6, changed: true });
+  });
+});

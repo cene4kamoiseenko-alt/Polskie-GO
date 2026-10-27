@@ -1,6 +1,6 @@
 import { sttStatus } from './stt';
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
-import { dayKey, effectiveStreak, levelFromXp, type Cefr } from '@polski-go/shared';
+import { dayKey, effectiveStreak, lastDays, levelFromXp, type Cefr } from '@polski-go/shared';
 import { and, count, desc, eq, gt, inArray, isNotNull, lte, or } from 'drizzle-orm';
 import { db } from '../db';
 import {
@@ -95,9 +95,8 @@ export async function getMe(userId: string) {
 export async function getStats(userId: string, days: number) {
   const settings = await db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) });
   const tz = settings?.timezone ?? 'Europe/Warsaw';
-  const keys: string[] = [];
-  const now = Date.now();
-  for (let i = days - 1; i >= 0; i--) keys.push(dayKey(new Date(now - i * 86_400_000), tz));
+  // Календарні ключі (не «мінус 24 години»): у день переходу на зимовий час інакше один день задвоювався, а найстаріший випадав.
+  const keys = lastDays(new Date(), days, tz);
   const [rows, skills, vocab, sessions] = await Promise.all([
     db.select().from(dailyActivity).where(and(eq(dailyActivity.userId, userId), inArray(dailyActivity.day, keys))),
     db.select().from(languageSkills).where(eq(languageSkills.userId, userId)).orderBy(desc(languageSkills.mastery)),

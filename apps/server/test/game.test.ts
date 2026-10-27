@@ -1,7 +1,7 @@
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { and, count, eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { cityRoutes, cosmeticItems, gameWallets, quests, subscriptions, userInventory, userQuests, users } from '../src/db/schema';
+import { cityRoutes, cosmeticItems, gameWallets, paymentEvents, quests, subscriptions, userInventory, userQuests, users } from '../src/db/schema';
 import { disposeEnv, getEnv, lessonId, login, playSession, request } from './helpers';
 
 afterAll(disposeEnv);
@@ -236,6 +236,22 @@ describe('Premium через Telegram Stars', () => {
     expect(cancel.status).toBe(200);
     expect(calls.at(-1)).toMatchObject({ method: 'editUserStarSubscription', body: { is_canceled: true } });
     expect((await call('GET', '/api/me')).body.premium).toMatchObject({ active: true, cancelled: true });
+  });
+
+  it('підроблений successful_payment без нашого рахунку, з іншою сумою чи валютою не вмикає Premium', async () => {
+    mockBot();
+    const { call, user, telegramId } = await login();
+    const payment = (update_id: number, p: Record<string, unknown>) =>
+      webhook({ update_id, message: { chat: { id: telegramId }, from: { id: telegramId }, successful_payment: { currency: 'XTR', total_amount: 250, telegram_payment_charge_id: `forged_${update_id}_${telegramId}`, ...p } } });
+    // Payload правильного вигляду, але рахунку ніхто не створював.
+    expect((await payment(20, { invoice_payload: `prem:MONTH_1:${user.id}:deadbeef0000` })).statusCode).toBe(200);
+    const inv = await call('POST', '/api/premium/invoice', { plan: 'MONTH_1' });
+    await payment(21, { invoice_payload: inv.body.payload, total_amount: 1 });
+    await payment(22, { invoice_payload: inv.body.payload, currency: 'USD' });
+    expect((await db.select({ n: count() }).from(subscriptions).where(eq(subscriptions.userId, user.id)))[0].n).toBe(0);
+    expect((await call('GET', '/api/me')).body.premium.active).toBe(false);
+    const errors = (await db.select({ error: paymentEvents.error }).from(paymentEvents).where(and(eq(paymentEvents.userId, user.id), eq(paymentEvents.type, 'SUCCESSFUL_PAYMENT')))).map((e) => e.error);
+    expect(errors).toEqual(expect.arrayContaining(['invoice_not_found', 'amount_mismatch', 'currency_mismatch']));
   });
 
   it('разовий тариф на 3 місяці продовжує Premium', async () => {

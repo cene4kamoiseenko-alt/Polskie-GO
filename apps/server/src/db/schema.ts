@@ -732,6 +732,69 @@ export const telegramUpdates = sqliteTable('telegram_updates', {
   createdAt: createdAt(),
 });
 
+/**
+ * Службовий стан сервера (ключ → JSON): секрет webhook і його покоління, версія налаштування бота в Telegram,
+ * результат останньої перевірки webhook. Адмінка й API користувача цю таблицю не віддають.
+ */
+export const appState = sqliteTable('app_state', {
+  key: text('key').primaryKey(),
+  value: json<Record<string, unknown>>('value').notNull(),
+  updatedAt: updatedAt(),
+});
+
+// ───────────────────────── Швидкі питання в боті (/quiz) ─────────────────────────
+
+/**
+ * Учасник швидких питань — за telegram_id: вікторина працює й до першого входу в Mini App (XP — лише з акаунтом).
+ * day / day_count — ліміт на місцевий день, last_question_at — пауза між питаннями, recent — останні питання (без повторів).
+ */
+export const botQuizPlayers = sqliteTable('bot_quiz_players', {
+  telegramId: integer('telegram_id').primaryKey(),
+  pushEnabled: bool('push_enabled').notNull().default(true),
+  /** Місцевий день і скільки питань за нього надіслано (захист від спаму, не обмеження навчання). */
+  day: text('day'),
+  dayCount: integer('day_count').notNull().default(0),
+  lastQuestionAt: ts('last_question_at'),
+  /** Місцевий день і скільки відповідей за нього отримали XP (не більше трьох). */
+  rewardDay: text('reward_day'),
+  rewardCount: integer('reward_count').notNull().default(0),
+  answered: integer('answered').notNull().default(0),
+  correct: integer('correct').notNull().default(0),
+  /** Скільки запрошень поспіль користувач не відкрив: після двох запрошення зупиняються, доки він сам не відповість. */
+  ignoredPushes: integer('ignored_pushes').notNull().default(0),
+  recent: json<string[]>('recent').notNull().default([]),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const QUIZ_ROUND_STATUS = ['OPEN', 'ANSWERED'] as const;
+
+/** Одне надіслане питання: порядок варіантів, відповідь і нагорода. Відповідь приймається один раз (OPEN → ANSWERED). */
+export const botQuizRounds = sqliteTable(
+  'bot_quiz_rounds',
+  {
+    id: id(),
+    telegramId: integer('telegram_id').notNull(),
+    chatId: integer('chat_id').notNull(),
+    messageId: integer('message_id'),
+    questionId: text('question_id').notNull(),
+    /** Індекси варіантів у порядку показу (A, B, C, D). */
+    optionOrder: json<number[]>('option_order').notNull(),
+    lang: text('lang').notNull(),
+    /** command | push | next */
+    source: text('source').notNull(),
+    status: text('status', { enum: QUIZ_ROUND_STATUS }).notNull().default('OPEN'),
+    hasPhoto: bool('has_photo').notNull().default(false),
+    chosen: integer('chosen'),
+    correct: bool('correct'),
+    onTime: bool('on_time'),
+    xp: integer('xp').notNull().default(0),
+    sentAt: ts('sent_at').notNull(),
+    answeredAt: ts('answered_at'),
+  },
+  (t) => [index('bot_quiz_rounds_tg_idx').on(t.telegramId, t.sentAt)],
+);
+
 // ───────────────────────── Місії «Польська в житті» ─────────────────────────
 
 /** Проходження місії. Відповіді перевіряє сервер; version захищає від паралельних запитів. */

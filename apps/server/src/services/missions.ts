@@ -11,6 +11,7 @@ import { cosmeticItems, missionRuns, newId, reviewSchedule, userMissionSteps, us
 import { MISSIONS, MISSIONS_SOON, missionBySlug, type Mission, type MissionStep } from '../content/missions';
 import { badRequest, notFound, HttpError } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
+import { applyQuestEvents } from './quests';
 import { grantItem, grantXp, grantZlotki, loadCtx, touchActivity } from './rewards';
 
 const REPEAT_XP = 10;
@@ -164,6 +165,8 @@ async function finishMission(userId: string, run: Run, m: Mission, lastFirstTry:
   const zl = grantZlotki(userId, first ? m.zlotki : 0, 'mission', `mission:${userId}:${m.slug}`, now);
   const elapsed = Math.min(Math.round((now.getTime() - run.startedAt.getTime()) / 1000), 1800);
   const activity = touchActivity(ctx, { exercises: m.steps.length + run.mistakes, correct: m.steps.length, seconds: elapsed });
+  // XP миссии засчитывается в задания «Получи N XP» так же, как XP урока.
+  const quests = await applyQuestEvents(ctx, { XP: xp.granted });
 
   const known = new Set(
     vocab.length
@@ -191,6 +194,7 @@ async function finishMission(userId: string, run: Run, m: Mission, lastFirstTry:
     ...xp.stmts,
     ...zl.stmts,
     ...activity.stmts,
+    ...quests.stmts,
   ];
   // Костюм за місію — лише за перше проходження (повторна видача ігнорується первинним ключем).
   const reward = first ? (rewardRow[0] ?? null) : null;
@@ -209,8 +213,9 @@ async function finishMission(userId: string, run: Run, m: Mission, lastFirstTry:
   }
   await atomic(stmts);
 
-  // Досягнення — після запису, щоб метрики місій уже враховували це проходження.
-  const ach = await evaluateAchievements(userId, null, { TODAY_XP: xp.granted });
+  // Досягнення — після запису, щоб метрики місій уже враховували це проходження. XP дня вже в daily_activity:
+  // додатковий TODAY_XP рахував би його вдруге (денна мета «виконувалась» раніше, ніж насправді).
+  const ach = await evaluateAchievements(userId, null);
   if (ach.stmts.length) await atomic(ach.stmts);
 
   return {

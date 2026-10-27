@@ -22,6 +22,8 @@ import {
 } from '../services/tts';
 import { estimateUsd, priceFor } from '../services/tts-catalog';
 import { benchmarkPlan } from '../services/tts-benchmark';
+import { readBotConfig } from '../bot/maintain';
+import { runSetup } from '../bot/setup';
 
 const i18n = z.object({ uk: z.string().min(1), ru: z.string().optional(), en: z.string().optional(), pl: z.string().optional() });
 const status = z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
@@ -422,6 +424,20 @@ a.get('/payments', async (c) => {
     db.select({ status: t.subscriptions.status, planCode: t.subscriptions.planCode, count: count() }).from(t.subscriptions).groupBy(t.subscriptions.status, t.subscriptions.planCode),
   ]);
   return c.json({ items: items.map((x) => ({ ...x.ev, user: x.user?.id ? x.user : null })), total: total[0]?.n ?? 0, subscriptions: subs });
+});
+
+// ── Бот: перевірка та налаштування (команди, меню, webhook із callback_query, серверний секрет) ──
+a.get('/bot', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  return c.json({ report: await runSetup('check'), maintenance: await readBotConfig() });
+});
+a.post('/bot/setup', rateLimit(10, 10 * 60_000, 'admin-bot'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const { mode } = z.object({ mode: z.enum(['setup', 'rotate']) }).parse(await body(c));
+  const report = await runSetup(mode);
+  // У журнал — лише підсумок кроків: секретів у звіті немає.
+  await audit(c, mode === 'rotate' ? 'bot_rotate_secret' : 'bot_setup', 'bot', report.bot?.username ?? null, { ok: report.ok, steps: report.steps, secretGeneration: report.secretGeneration });
+  return c.json(report);
 });
 
 // ── Журнал дій ──
