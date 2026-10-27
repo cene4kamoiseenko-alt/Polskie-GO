@@ -58,7 +58,8 @@ describe('девять команд: фото, подпись и настоящ�
     const u = await registered({ lang: 'ru', onboarded: true });
     const { res, calls } = await say(from(u.telegramId, 'ru'), `/${command}`);
     expect(res.status).toBe(200);
-    expect(calls).toHaveLength(1);
+    // После карточки /start и /help ставится панель быстрых кнопок (отдельное сообщение).
+    expect(calls.map((c) => c.method)).toEqual(command === 'start' || command === 'help' ? ['sendPhoto', 'sendMessage'] : ['sendPhoto']);
     const call = calls[0];
     expect(call.method).toBe('sendPhoto');
     expect(call.params.photo).toBe(`${ORIGIN}/bot/commands/${COMMAND_IMAGES[command]}`);
@@ -77,7 +78,7 @@ describe('девять команд: фото, подпись и настоящ�
   it('тексты из ТЗ: /start новичку — приветствие с именем, три кнопки', async () => {
     const f = from(8_100_001, 'ru', 'Оля');
     const { calls } = await say(f, '/start');
-    expect(calls).toHaveLength(1);
+    expect(calls.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
     expect(calls[0].params.caption).toMatch(/^🇵🇱 Cześć, Оля! 👋\n\nЯ Бобек! 🦫 Твой друг и проводник по Польше\./);
     expect(calls[0].params.caption).toContain('Gotowy? No to jedziemy! 🚀');
     expect(buttons(calls[0]).map((b) => b.text)).toEqual(['🚀 Начать путешествие', '📚 Мои уроки', '🗺 Карта Польши']);
@@ -278,7 +279,7 @@ describe('доставка: фото, запасной текст, повтор�
     const body = update(from(8_100_510, 'ru'), '/help');
     const first = fakeTelegram();
     expect((await hook(body)).status).toBe(200);
-    expect(first).toHaveLength(1);
+    expect(first.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
     const second = fakeTelegram();
     const again = await hook(body);
     expect(again.status).toBe(200);
@@ -294,8 +295,7 @@ describe('доставка: фото, запасной текст, повтор�
       expect(failing.length).toBeGreaterThanOrEqual(1);
       const retry = fakeTelegram();
       expect((await hook(body)).status).toBe(200);
-      expect(retry).toHaveLength(1);
-      expect(retry[0].method).toBe('sendPhoto');
+      expect(retry.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
     }
   });
 
@@ -360,7 +360,7 @@ describe('сбой базы данных', () => {
   it('/help и /start отвечают без персональных данных', async () => {
     const help = post(from(8_100_700, 'ru'), '/help');
     expect((await help.done).status).toBe(200);
-    expect(help.calls).toHaveLength(1);
+    expect(help.calls.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
     const start = post(from(8_100_701, 'ru', 'Оля'), '/start');
     await start.done;
     expect(start.calls[0].params.caption).toContain('Cześć, Оля!');
@@ -412,5 +412,86 @@ describe('WEB_APP_URL, заданный не по форме: бот не мол
     const { calls } = await say(from(8_200_002, 'ru'), '/help');
     expect(calls[0].method).toBe('sendMessage');
     expect(urls(calls[0])).toContain('http://localhost:5173/?bot_screen=settings');
+  });
+});
+
+
+describe('постоянная панель быстрых кнопок', () => {
+  // Один вход на все проверки: вход ограничен по частоте, а панели нужен только существующий пользователь.
+  let shared: Awaited<ReturnType<typeof registered>>;
+  beforeAll(async () => {
+    shared = await registered({ lang: 'ru', onboarded: true });
+  });
+  const panelOf = (calls: TgCall[]) => calls.find((c) => c.method === 'sendMessage' && c.params.reply_markup?.keyboard)!;
+  const labels = (call: TgCall) => (call.params.reply_markup.keyboard as { text: string }[][]).map((row) => row.map((b) => b.text));
+
+  it.each([
+    ['ru', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Задания', '🏆 Профиль', '⚙️ Настройки']],
+    ['uk', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Завдання', '🏆 Профіль', '⚙️ Налаштування']],
+    ['pl', ['📚 Lekcja', '🗺 Mapa', '📖 Słowa'], ['🎯 Zadania', '🏆 Profil', '⚙️ Ustawienia']],
+    ['en', ['📚 Lesson', '🗺 Map', '📖 Words'], ['🎯 Tasks', '🏆 Profile', '⚙️ Settings']],
+  ])('/start на %s: после карточки приходит панель из двух рядов по три кнопки, закреплённая', async (lang, row1, row2) => {
+    const { calls } = await say(from(8_300_000 + row1.length + lang.length, lang), '/start');
+    expect(calls.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
+    const panel = panelOf(calls);
+    expect(labels(panel)).toEqual([row1, row2]);
+    expect(panel.params.reply_markup).toMatchObject({ resize_keyboard: true, is_persistent: true });
+    expect(panel.params.text).toContain('👇');
+  });
+
+  it('/help тоже ставит панель; остальные команды и обычный текст — нет', async () => {
+    const u = shared;
+    expect((await say(from(u.telegramId, 'ru'), '/help')).calls.some((c) => c.params.reply_markup?.keyboard)).toBe(true);
+    for (const text of ['/lesson', '/map', '/words', '/quests', '/profile', '/settings', '/stop', '/nonsense', 'просто текст']) {
+      const { calls } = await say(from(u.telegramId, 'ru'), text);
+      expect(calls.some((c) => c.params.reply_markup?.keyboard), text).toBe(false);
+    }
+  });
+
+  it('в группе панель не ставится', async () => {
+    const { calls } = await say(from(8_300_100, 'ru'), '/start', { id: -100123, type: 'supergroup' });
+    expect(calls.some((c) => c.params.reply_markup?.keyboard)).toBe(false);
+  });
+
+  it.each([
+    ['📚 Урок', 'lesson'],
+    ['🗺 Карта', 'map'],
+    ['📖 Слова', 'words'],
+    ['🎯 Задания', 'quests'],
+    ['🏆 Профиль', 'profile'],
+    ['⚙️ Настройки', 'settings'],
+    ['🗺 Mapa', 'map'],
+    ['🎯 Tasks', 'quests'],
+    ['🏆 Профіль', 'profile'],
+  ])('нажатие «%s» отвечает карточкой /%s с картинкой и кнопками Mini App', async (label, command) => {
+    const u = shared;
+    const { res, calls } = await say(from(u.telegramId, 'ru'), label);
+    expect(res.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe('sendPhoto');
+    expect(calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/${COMMAND_IMAGES[command as keyof typeof COMMAND_IMAGES]}`);
+    expect(urls(calls[0]).length).toBeGreaterThan(0);
+  });
+
+  it('подпись панели в группе не считается командой, текст рядом с подписью — тоже', async () => {
+    const group = await say(from(8_300_200, 'ru'), '🗺 Карта', { id: -100321, type: 'group' });
+    expect(group.calls).toHaveLength(0);
+    const u = shared;
+    const extra = await say(from(u.telegramId, 'ru'), '🗺 Карта пожалуйста');
+    expect(extra.calls[0].params.photo).toBe(`${ORIGIN}/bot/commands/help.jpg`);
+  });
+
+  it('сбой отправки панели не ломает ответ и не повторяет карточку', async () => {
+    const calls = fakeTelegram((call) => (call.method === 'sendMessage' ? tgError(502, 'Bad Gateway') : undefined));
+    const res = await hook(update(from(8_300_300, 'ru'), '/start'));
+    expect(res.status).toBe(200);
+    expect(calls.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
+  });
+
+  it('заблокированный пользователь не получает панель', async () => {
+    const u = await registered({ lang: 'ru', onboarded: true });
+    await db.update(users).set({ isBanned: true }).where(eq(users.id, u.user.id));
+    const { calls } = await say(from(u.telegramId, 'ru'), '/start');
+    expect(calls).toHaveLength(0);
   });
 });

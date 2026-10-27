@@ -10,6 +10,7 @@ import { upsertTelegramUser } from '../services/users';
 import { COMMAND_IMAGES, isCommand, type CommandName } from './catalog';
 import { COPY, type Card, type Vars } from './copy';
 import { activeQuestsOf, disableReminders, findBotUser, nextLessonOf, pickLang, profileOf, type BotUser } from './data';
+import { commandForLabel, sendPanel } from './panel';
 import { sendCard, type Sent } from './send';
 
 export type BotMessage = {
@@ -48,7 +49,9 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
   if (!from || from.is_bot || typeof msg.text !== 'string') return { command: 'unknown', sent: null, ignored: 'no_sender_or_text' };
   const chatType = msg.chat.type ?? 'private';
   const priv = chatType === 'private';
-  const cmd = parseCommand(msg.text);
+  // Кнопка постоянной панели приходит обычным текстом («🗺 Карта») и обрабатывается как соответствующая команда.
+  const labelCommand = priv ? commandForLabel(msg.text) : null;
+  const cmd = parseCommand(msg.text) ?? (labelCommand ? { name: labelCommand, mention: null, arg: '' } : null);
   // В группах отвечаем только на команды, адресованные этому боту.
   if (!priv && !cmd) return { command: 'unknown', sent: null, ignored: 'group_text' };
   if (!priv && cmd?.mention && config.botUsernameConfigured && cmd.mention.toLowerCase() !== config.botUsername.toLowerCase()) {
@@ -139,6 +142,8 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
   }
 
   const sent = await sendCard({ ...target, startapp }, card, image);
+  // Быстрая панель внизу ставится после /start и /help в личном чате (после карточки: сбой панели не должен повторять ответ).
+  if (priv && (command === 'start' || command === 'help')) await sendPanel(msg.chat.id, lang);
   return { command, sent };
 }
 
