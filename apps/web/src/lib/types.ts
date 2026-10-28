@@ -42,7 +42,13 @@ export type Me = {
   };
   today: { xp: number; goalXp: number; lessons: number; seconds: number };
   zlotki: number;
-  premium: { active: boolean; expiresAt?: string; planCode?: string; recurring?: boolean; cancelled?: boolean };
+  premium: {
+    active: boolean; expiresAt?: string; planCode?: string; recurring?: boolean; cancelled?: boolean;
+    /** Щит серії: готовий чи вже спрацював цього тижня (usedOn) і коли знову готовий (readyOn). */
+    shield?: { ready: boolean; usedOn: string | null; readyOn: string | null };
+    /** Подарунок цього місяця ще не забрано. */
+    giftReady?: boolean;
+  };
   outfit: Outfit;
   counters: { dueReviews: number; mistakes: number; unseenAchievements: number };
   /** configured — ШІ-співрозмовник підключений на сервері (є ключ); інакше його входи в застосунку приховано. */
@@ -202,8 +208,11 @@ export type MissionStepPublic = {
 export type MissionSummary = {
   slug: string; category: string; tags: string[]; city: string; scene: string; title: I18n; goal: I18n;
   minutes: number; xp: number; zlotki: number; steps: number;
+  /** Сцена Premium. */
+  premium: boolean;
 };
-export type MissionListItem = MissionSummary & { completions: number; flawless: boolean; inProgress: number | null };
+/** locked — сцена Premium без активного Premium (картка веде на екран Premium). */
+export type MissionListItem = MissionSummary & { locked: boolean; completions: number; flawless: boolean; inProgress: number | null };
 export type MissionRun = {
   runId: string; step: number; mistakes: number; hints: number;
   mission: MissionSummary & { intro: I18n; note: I18n | null; npc: { name: string; role: I18n }; steps: MissionStepPublic[] };

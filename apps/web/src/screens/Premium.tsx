@@ -1,25 +1,51 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '../components/Icon';
+import type { I18n } from '@polski-go/shared';
+import { Icon, type LineIconName } from '../components/Icon';
 import { useState } from 'react';
-import { useT } from '../i18n';
+import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { tg } from '../lib/telegram';
+import { haptic, tg } from '../lib/telegram';
 import { useMe } from '../lib/queries';
 import { Beaver } from '../components/Beaver';
 import { Card, Confetti, ScreenHeader, ScreenSkeleton, cx, useToast } from '../components/ui';
 
 type Plan = { code: string; months: number; priceStars: number; recurring: boolean; title: never };
+type Gift = { month: string; ready: boolean; claimed: boolean; zlotki: number; item: { id: string; slug: string; slot: string; name: I18n } | null };
+type PremiumData = {
+  plans: Plan[];
+  subscription: null | { expiresAt: string; recurring: boolean; cancelled: boolean };
+  paymentsConfigured: boolean;
+  gift: Gift;
+  bot: string | null;
+};
+
+/** Що дає Premium — лише те, що справді працює (ШІ — коли його підключено на сервері). */
+const FEATURES: [LineIconName, TKey, TKey][] = [
+  ['flame', 'prem_shield', 'prem_shield_d'],
+  ['chat', 'prem_scenes', 'prem_scenes_d'],
+  ['bolt', 'prem_xp2', 'prem_xp2_d'],
+  ['gift', 'prem_gift', 'prem_gift_d'],
+  ['crown', 'prem_items', 'prem_items_d'],
+];
+
+/** Перший день наступного місяця (місяць подарунка — «YYYY-MM»). */
+const nextMonthStart = (month: string) => {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 1));
+};
 
 export default function PremiumScreen() {
   const { t, tr, date } = useT();
   const qc = useQueryClient();
   const toast = useToast();
   const me = useMe().data!;
-  const q = useQuery({ queryKey: ['premium'], queryFn: () => api<{ plans: Plan[]; subscription: null | { expiresAt: string; recurring: boolean; cancelled: boolean }; paymentsConfigured: boolean }>('/premium') });
+  const q = useQuery({ queryKey: ['premium'], queryFn: () => api<PremiumData>('/premium') });
   const [plan, setPlan] = useState('MONTH_3');
-  const [status, setStatus] = useState<'idle' | 'waiting' | 'paid' | 'failed'>('idle');
+  const [status, setStatus] = useState<'idle' | 'waiting' | 'paid' | 'slow'>('idle');
+  const [gotGift, setGotGift] = useState<{ zlotki: number; item: Gift['item'] } | null>(null);
 
   // Premium активує сервер після підтвердження платежу від Telegram — тут лише чекаємо його.
+  // Не дочекалися — це не «оплата не пройшла»: платіж може підтвердитися пізніше, Premium увімкнеться сам.
   const waitForActivation = async () => {
     setStatus('waiting');
     for (let i = 0; i < 20; i++) {
@@ -28,10 +54,11 @@ export default function PremiumScreen() {
       if (fresh.premium.active) {
         setStatus('paid');
         qc.invalidateQueries({ queryKey: ['premium'] });
+        qc.invalidateQueries({ queryKey: ['missions'] });
         return;
       }
     }
-    setStatus('failed');
+    setStatus('slow');
   };
 
   const buy = async () => {
@@ -39,8 +66,8 @@ export default function PremiumScreen() {
     try {
       const { link } = await api<{ link: string }>('/premium/invoice', { body: { plan } });
       tg.openInvoice(link, (s) => {
+        // «failed» і «cancelled» — платежу не було, нічого не вмикаємо й не лякаємо помилкою.
         if (s === 'paid' || s === 'pending') void waitForActivation();
-        else if (s === 'failed') setStatus('failed');
       });
     } catch (e) {
       toast(t('toast_error', { msg: (e as Error).message }), '⚠️');
@@ -57,15 +84,40 @@ export default function PremiumScreen() {
     }
   };
 
+  const claimGift = async () => {
+    try {
+      const r = await api<{ zlotki: number; item: Gift['item'] }>('/premium/gift', { body: {} });
+      setGotGift(r);
+      haptic.success();
+      qc.invalidateQueries({ queryKey: ['me'] });
+      qc.invalidateQueries({ queryKey: ['premium'] });
+      qc.invalidateQueries({ queryKey: ['shop'] });
+    } catch (e) {
+      toast(t('toast_error', { msg: (e as Error).message }), '⚠️');
+    }
+  };
+
+  const openSupport = () => {
+    const url = `https://t.me/${q.data?.bot ?? ''}`;
+    if (tg?.openTelegramLink && q.data?.bot) tg.openTelegramLink(url);
+    else window.open(url, '_blank');
+  };
+
   if (q.isLoading) return <ScreenSkeleton />;
   const data = q.data!;
   const sub = data.subscription;
+  const gift = data.gift;
+  const shield = me.premium.shield;
   const monthly = (p: Plan) => Math.round(p.priceStars / p.months);
   const base = data.plans.find((p) => p.months === 1);
+  const features: [LineIconName, string, string][] = [
+    ...FEATURES.map(([icon, title, desc]) => [icon, t(title), t(desc, { n: gift.zlotki })] as [LineIconName, string, string]),
+    ...(me.ai.configured ? [['chat', t('prem_ai'), t('prem_ai_d', { n: 150 })] as [LineIconName, string, string]] : []),
+  ];
 
   return (
     <div className="space-y-5 pb-8">
-      <Confetti run={status === 'paid'} />
+      <Confetti run={status === 'paid' || !!gotGift} />
       <ScreenHeader title={t('prem_title')} subtitle={t('prem_subtitle')} />
       <div className="mx-4 flex flex-col items-center rounded-[28px] p-5 text-center" style={{ background: 'linear-gradient(160deg,#FFE3E3,#FFF4D6 60%,#E9DDFF)' }}>
         <Beaver size={150} mood="celebrate" />
@@ -74,30 +126,61 @@ export default function PremiumScreen() {
         </div>
       </div>
 
-      <Card className="mx-4 space-y-2 p-4">
-        {(['prem_f1', 'prem_f2', 'prem_f3', 'prem_f4', 'prem_f5', 'prem_f6'] as const).map((k) => (
-          <div key={k} className="flex items-start gap-2 font-bold">
-            <span className="text-brand"><Icon name="check" size={18} strokeWidth={3} /></span>
-            {t(k)}
-          </div>
-        ))}
-        <p className="muted pt-2 text-xs font-bold">{t('prem_free_note')}</p>
-      </Card>
-
       {status === 'waiting' && <div className="mx-4 rounded-2xl bg-sky/20 p-3 text-center font-black"><span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-sky-dark/30 border-t-sky-dark align-middle" />{t('prem_waiting')}</div>}
       {status === 'paid' && <div className="mx-4 rounded-2xl bg-brand/20 p-3 text-center font-black">{t('prem_paid')}</div>}
-      {status === 'failed' && <div className="mx-4 rounded-2xl bg-coral/20 p-3 text-center font-black">{t('prem_failed')}</div>}
+      {status === 'slow' && <div className="mx-4 rounded-2xl bg-xp/25 p-3 text-center text-sm font-bold">{t('prem_slow')}</div>}
 
-      {sub ? (
-        <Card className="mx-4 space-y-3 p-4 text-center">
+      {sub && (
+        <Card className="mx-4 space-y-3 p-4">
           <div className="flex items-center gap-2 text-lg font-black"><Icon name="crown" size={22} className="text-xp-dark" filled /> {sub.cancelled ? t('prem_cancelled', { date: date(sub.expiresAt) }) : t('prem_active', { date: date(sub.expiresAt) })}</div>
+          {shield && (
+            <div className="flex items-start gap-2 text-sm font-bold">
+              <Icon name="flame" size={18} className="mt-0.5 shrink-0 text-coral" />
+              {shield.ready ? t('prem_shield_ready') : t('prem_shield_used', { date: date(shield.usedOn!), ready: date(shield.readyOn!) })}
+            </div>
+          )}
           {sub.recurring && !sub.cancelled && (
-            <button className="w-full py-2 font-black text-coral" onClick={cancel}>
+            <button className="w-full py-1 font-black text-coral" onClick={cancel}>
               {t('prem_cancel')}
             </button>
           )}
         </Card>
-      ) : (
+      )}
+
+      {/* Подарунок місяця: з Premium — забрати; без — показуємо, що він дає. */}
+      <Card className={cx('mx-4 flex items-center gap-3 p-4', gift.ready && 'ring-4 ring-xp')}>
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-xp/30 text-xp-dark"><Icon name="gift" size={26} /></span>
+        <div className="min-w-0 flex-1">
+          <div className="font-black">{t('prem_gift_title')}</div>
+          <div className="muted text-sm font-bold">
+            {gotGift
+              ? t('prem_gift_got', { n: gotGift.zlotki, item: gotGift.item ? ` · ${tr(gotGift.item.name)}` : '' })
+              : gift.claimed
+                ? t('prem_gift_claimed', { date: date(nextMonthStart(gift.month)) })
+                : sub
+                  ? t('prem_gift_d', { n: gift.zlotki })
+                  : t('prem_gift_locked', { n: gift.zlotki })}
+          </div>
+        </div>
+        {gift.ready && !gotGift && (
+          <button className="btn btn-xp shrink-0 !px-3 !py-2 text-sm" onClick={claimGift}>{t('prem_gift_claim')}</button>
+        )}
+      </Card>
+
+      <Card className="mx-4 space-y-3 p-4">
+        {features.map(([icon, title, desc]) => (
+          <div key={title} className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand-dark"><Icon name={icon} size={20} /></span>
+            <div className="min-w-0">
+              <div className="font-black leading-tight">{title}</div>
+              <div className="muted text-sm font-semibold leading-snug">{desc}</div>
+            </div>
+          </div>
+        ))}
+        <p className="muted pt-1 text-xs font-bold">{t('prem_free_note')}</p>
+      </Card>
+
+      {!sub && (
         <>
           <div className="grid grid-cols-3 gap-2 px-4">
             {data.plans.map((p) => {
@@ -125,6 +208,17 @@ export default function PremiumScreen() {
           </div>
         </>
       )}
+
+      {/* Умови й підтримка з оплат (вимоги Telegram до оплат у Stars: /terms і /paysupport у боті). */}
+      <Card className="mx-4 space-y-2 p-4 text-sm font-semibold leading-snug">
+        <div className="font-black">{t('prem_terms_title')}</div>
+        <p>{t('prem_terms_1')}</p>
+        <p>{t('prem_terms_2')}</p>
+        <p>{t('prem_terms_3')}</p>
+        {data.bot && (
+          <button className="btn btn-sky mt-1 w-full !py-2 text-sm" onClick={openSupport}><Icon name="chat" size={18} /> {t('prem_support')}</button>
+        )}
+      </Card>
     </div>
   );
 }

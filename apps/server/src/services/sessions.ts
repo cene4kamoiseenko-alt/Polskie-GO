@@ -430,14 +430,14 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   // Усе для перевірки й запису — одним пакетом читань: сесія, контекст, навичка, розклад повторень і квести.
   const now = new Date();
   const pre = answerReads(userId, key);
-  const [sessionRows, settings, progress, exSkill, skills, wordRevs, exRevs, mine, all] = await db.batch([
+  const [sessionRows, settings, progress, sub, exSkill, skills, wordRevs, exRevs, mine, all] = await db.batch([
     db.select().from(learningSessions).where(eq(learningSessions.id, sessionId)),
-    ...ctxReads(userId),
+    ...ctxReads(userId, now),
     ...pre.reads,
     ...questReads(userId, now),
   ]);
   const s = activeSession(userId, sessionRows[0]);
-  const ctx = ctxFrom(userId, now, settings, progress);
+  const ctx = ctxFrom(userId, now, settings, progress, sub);
   const items = s.items as ExerciseItem[];
   const item = items.find((i) => i.key === key);
   if (!item) throw badRequest('unknown_item');
@@ -556,10 +556,10 @@ async function finishOnce(userId: string, sessionId: string) {
   // нагороджені проходження за добу, денна активність (за всіма можливими «сьогодні») і квести. Слова уроку (JOIN) — паралельно.
   const now = new Date();
   const lessonOf = sql`(SELECT lesson_id FROM learning_sessions WHERE id = ${sessionId})`;
-  const [[sessionRows, settings, progress, lessonRows, cityRows, ulpRows, rewardedRows, activityRows, mine, all], lw, cfg] = await Promise.all([
+  const [[sessionRows, settings, progress, sub, lessonRows, cityRows, ulpRows, rewardedRows, activityRows, mine, all], lw, cfg] = await Promise.all([
     db.batch([
       db.select().from(learningSessions).where(eq(learningSessions.id, sessionId)),
-      ...ctxReads(userId),
+      ...ctxReads(userId, now),
       db.select().from(lessons).where(eq(lessons.id, lessonOf)),
       db.select({ cityId: cityRoutes.cityId }).from(cityRoutes).where(eq(cityRoutes.id, sql`(SELECT route_id FROM lessons WHERE id = ${lessonOf})`)),
       db.select().from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, lessonOf))),
@@ -587,7 +587,7 @@ async function finishOnce(userId: string, sessionId: string) {
     getRewards(),
   ]);
   const s = activeSession(userId, sessionRows[0]);
-  const ctx = ctxFrom(userId, now, settings, progress);
+  const ctx = ctxFrom(userId, now, settings, progress, sub);
   const items = s.items as ExerciseItem[];
   const state = s.state as unknown as SessionState;
   const elapsed = Date.now() - s.startedAt.getTime();
@@ -732,7 +732,8 @@ async function finishOnce(userId: string, sessionId: string) {
   } else {
     // Тренування: XP за правильні відповіді з денним лімітом.
     const act = activityRows.find((r) => r.day === ctx.day);
-    const left = Math.max(0, cfg.practiceXpDailyCap - (act?.practiceXp ?? 0));
+    // Premium — удвічі вищий денний ліміт XP за тренування.
+    const left = Math.max(0, cfg.practiceXpDailyCap * (ctx.premium ? 2 : 1) - (act?.practiceXp ?? 0));
     xp = Math.min(left, correct * cfg.exerciseXp + (s.mode === 'FIVE_MIN' && total ? 5 : 0));
     if (s.mode === 'REVIEW' || s.mode === 'MISTAKES' || s.mode === 'FIVE_MIN') events.REVIEWS = counted.filter((i) => i.vocabId || s.mode !== 'FIVE_MIN').length;
   }

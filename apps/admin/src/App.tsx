@@ -986,10 +986,37 @@ function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [strin
   );
 }
 
-function Payments() {
-  const { data, error } = useLoad(() => api('/payments'), []);
+/** Вернуть звёзды за платёж (Telegram refundStarPayment): Premium по этому платежу снимается сразу. Только SUPERADMIN. */
+function RefundButton({ chargeId, onDone }: { chargeId: string; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      className="btn !bg-rose-600 !px-2 !py-1 text-xs"
+      disabled={busy}
+      onClick={async () => {
+        if (!confirm('Вернуть звёзды за этот платёж? Premium по нему отключится сразу. Отменить нельзя.')) return;
+        setBusy(true);
+        try {
+          await api('/payments/refund', { method: 'POST', body: { chargeId } });
+          onDone();
+        } catch (e) {
+          alert((e as Error).message);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      ↩️ Вернуть звёзды
+    </button>
+  );
+}
+
+function Payments({ admin }: { admin: Admin }) {
+  const { data, error, reload } = useLoad(() => api('/payments'), []);
   if (error) return <p className="text-rose-600">{error}</p>;
   if (!data) return <p>Загрузка…</p>;
+  const refunded = new Set(data.items.filter((e: any) => e.type === 'REFUND').map((e: any) => e.payload));
+  const refundable = data.items.filter((e: any) => e.type === 'SUCCESSFUL_PAYMENT' && !e.error && e.chargeId && !refunded.has(e.chargeId));
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-black">Платежи и подписки</h1>
@@ -1000,7 +1027,104 @@ function Payments() {
           </span>
         ))}
       </div>
-      <Table title={`Журнал платёжных событий (${data.total})`} rows={data.items} cols={[['createdAt', 'Когда'], ['type', 'Событие'], ['user.firstName', 'Пользователь'], ['planCode', 'План'], ['amount', '⭐'], ['chargeId', 'Charge ID'], ['error', 'Ошибка']]} />
+      {admin.role === 'SUPERADMIN' && refundable.length > 0 && (
+        <div className="panel overflow-x-auto">
+          <h2 className="border-b p-3 font-bold">Возврат звёзд</h2>
+          <p className="px-3 pt-2 text-sm text-slate-500">Telegram вернёт звёзды пользователю, Premium по этому платежу отключится сразу. Пользователь получит сообщение в боте.</p>
+          <table className="w-full">
+            <tbody>
+              {refundable.map((e: any) => (
+                <tr key={e.id} className="border-t">
+                  <td className="td">{new Date(e.createdAt).toLocaleString('ru')}</td>
+                  <td className="td">{e.user?.firstName ?? '—'}</td>
+                  <td className="td">{e.planCode}</td>
+                  <td className="td">⭐ {e.amount}</td>
+                  <td className="td font-mono text-xs">{e.chargeId}</td>
+                  <td className="td"><RefundButton chargeId={e.chargeId} onDone={reload} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Table title={`Журнал платёжных событий (${data.total})`} rows={data.items} cols={[['createdAt', 'Когда'], ['type', 'Событие'], ['user.firstName', 'Пользователь'], ['planCode', 'План'], ['amount', '⭐'], ['chargeId', 'Charge ID'], ['payload', 'Платёж (для возврата)'], ['error', 'Ошибка']]} />
+    </div>
+  );
+}
+
+/** Обращения из бота (/paysupport): текст, платежи человека, ответ в бот, возврат звёзд. */
+function Support({ admin }: { admin: Admin }) {
+  const [status, setStatus] = useState<'OPEN' | 'DONE' | 'all'>('OPEN');
+  const { data, error, reload } = useLoad(() => api(`/support?status=${status}`), [status]);
+  const [reply, setReply] = useState<Record<string, string>>({});
+  const send = async (id: string) => {
+    try {
+      await api(`/support/${id}/reply`, { method: 'POST', body: { text: reply[id] ?? '' } });
+      setReply({ ...reply, [id]: '' });
+      reload();
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+  const close = async (id: string) => {
+    await api(`/support/${id}/close`, { method: 'POST', body: {} });
+    reload();
+  };
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-black">Поддержка по оплате</h1>
+      <p className="text-sm text-slate-500">Пользователь пишет боту /paysupport, следующее сообщение становится обращением. Ответ уходит пользователю в бот и закрывает обращение.</p>
+      <div className="flex gap-2">
+        {(['OPEN', 'DONE', 'all'] as const).map((s) => (
+          <button key={s} className={`rounded-full px-3 py-1 text-sm font-bold ${status === s ? 'bg-slate-900 text-white' : 'bg-white shadow-sm'}`} onClick={() => setStatus(s)}>
+            {s === 'OPEN' ? 'Открытые' : s === 'DONE' ? 'Закрытые' : 'Все'}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-rose-600">{error}</p>}
+      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-400">Обращений нет.</p> : null}
+      {data?.items.map((r: any) => (
+        <div key={r.id} className="panel space-y-3 p-4">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <b>{r.user?.firstName ?? 'Без приложения'}</b>
+            {r.user?.username && <span className="text-slate-500">@{r.user.username}</span>}
+            <span className="text-slate-500">Telegram ID {r.telegramId}</span>
+            <span className="text-slate-500">{new Date(r.createdAt).toLocaleString('ru')}</span>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${r.status === 'OPEN' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>{r.status === 'OPEN' ? 'Открыто' : 'Закрыто'}</span>
+          </div>
+          <p className="whitespace-pre-wrap rounded-xl bg-slate-50 p-3">{r.text}</p>
+          {r.reply && <p className="whitespace-pre-wrap rounded-xl bg-emerald-50 p-3 text-sm"><b>Ответ:</b> {r.reply}</p>}
+          {r.payments.length > 0 && (
+            <table className="w-full text-sm">
+              <tbody>
+                {r.payments.map((p: any, i: number) => (
+                  <tr key={i} className="border-t">
+                    <td className="td">{new Date(p.createdAt).toLocaleString('ru')}</td>
+                    <td className="td">{p.type === 'REFUND' ? '↩️ Возврат' : '⭐ Оплата'}</td>
+                    <td className="td">{p.planCode}</td>
+                    <td className="td">{p.amount}</td>
+                    <td className="td font-mono text-xs">{p.chargeId}</td>
+                    <td className="td">
+                      {admin.role === 'SUPERADMIN' && p.type === 'SUCCESSFUL_PAYMENT' && !p.error && !r.payments.some((x: any) => x.type === 'REFUND' && x.chargeId === p.chargeId) && (
+                        <RefundButton chargeId={p.chargeId} onDone={reload} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {r.status === 'OPEN' && (
+            <div className="space-y-2">
+              <textarea className="inp min-h-[80px] w-full" placeholder="Ответ пользователю (уйдёт в бот)" value={reply[r.id] ?? ''} onChange={(e) => setReply({ ...reply, [r.id]: e.target.value })} />
+              <div className="flex gap-2">
+                <button className="btn" disabled={!(reply[r.id] ?? '').trim()} onClick={() => send(r.id)}>Ответить в бот</button>
+                <button className="btn !bg-slate-200 !text-slate-800" onClick={() => close(r.id)}>Закрыть без ответа</button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1140,7 +1264,7 @@ export function App() {
     const r = admin.role;
     const items: [string, string][] = [['/', '📊 Обзор']];
     if (r !== 'SUPPORT') for (const d of RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns')) items.push([`/r/${d.name}`, d.title]);
-    if (r !== 'EDITOR') items.push(['/audience', '🤝 Аудитория бота'], ['/users', '👥 Пользователи'], ['/payments', '⭐ Платежи']);
+    if (r !== 'EDITOR') items.push(['/audience', '🤝 Аудитория бота'], ['/users', '👥 Пользователи'], ['/payments', '⭐ Платежи'], ['/support', '💬 Поддержка']);
     if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифы'], ['/r/campaigns', '📣 Рассылки'], ['/rewards', '🎁 Награды'], ['/bot', '🤖 Бот'], ['/audit', '📜 Журнал действий'], ['/admins', '🔐 Администраторы']);
     return items;
   }, [admin]);
@@ -1190,7 +1314,8 @@ export function App() {
           <Route path="/audience" element={<Audience />} />
           <Route path="/users" element={<Users />} />
           <Route path="/users/:id" element={<UserDetail admin={admin} />} />
-          <Route path="/payments" element={<Payments />} />
+          <Route path="/payments" element={<Payments admin={admin} />} />
+          <Route path="/support" element={<Support admin={admin} />} />
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/bot" element={<Bot />} />
           <Route path="/audit" element={<Audit />} />

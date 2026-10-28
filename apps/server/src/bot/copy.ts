@@ -33,6 +33,8 @@ type LangCopy = {
   profileUnavailable: Card;
   reminder: { lesson: () => Card; streak: (days: number) => Card; return: () => Card };
   stopHint: string;
+  /** Оплата Premium у Stars: підтвердження, повернення, /paysupport і /terms (вимоги Telegram до оплат у ботах). */
+  premium: { activated: string; refunded: string; paySupport: string; supportReceived: string; supportFailed: string; terms: string };
 };
 
 const nm = (v: Vars) => {
@@ -284,6 +286,25 @@ const ru: LangCopy = {
     }),
   },
   stopHint: '🔕 /stop — отключить напоминания',
+  premium: {
+    activated: '👑 Premium активирован! Dziękujemy! 🦫\nЧто входит и условия — /terms. Вопросы по оплате — /paysupport.',
+    refunded: '↩️ Звёзды за Premium возвращены, Premium по этому платежу отключён.',
+    paySupport: lines(
+      '💬 Поддержка по оплате POLSKI GO',
+      'Опишите одним сообщением, что случилось: когда платили, какой тариф и что пошло не так. Мы ответим в этом чате.',
+      'Если оплата прошла, а Premium не включился, — вернём звёзды.',
+    ),
+    supportReceived: '✅ Сообщение передано в поддержку. Ответим здесь, обычно в течение суток.',
+    supportFailed: '⚠️ Сейчас не получилось открыть обращение. Попробуйте /paysupport ещё раз через пару минут.',
+    terms: lines(
+      '📄 Условия POLSKI GO Premium',
+      '• Оплата — в Telegram Stars. «1 месяц» — подписка с автопродлением каждые 30 дней; «3 месяца» и «12 месяцев» — разовая оплата без автопродления.',
+      '• Автопродление можно отменить в любой момент: в приложении (Premium → «Отменить автопродление») или в Telegram (Настройки → Мои звёзды). Premium действует до конца оплаченного периода.',
+      '• Что входит: защита серии (один пропуск в неделю), сцены Premium, вдвое больший лимит XP за тренировки, подарок каждый месяц и эксклюзивные вещи для Бобека.',
+      '• Уроки городов, карта, словарь и квесты бесплатны всегда.',
+      '• Вопросы и возвраты — /paysupport.',
+    ),
+  },
 };
 
 // ───────────────────────────── Українська ─────────────────────────────
@@ -511,6 +532,25 @@ const uk: LangCopy = {
     }),
   },
   stopHint: '🔕 /stop — вимкнути нагадування',
+  premium: {
+    activated: '👑 Premium активовано! Dziękujemy! 🦫\nЩо входить і умови — /terms. Питання щодо оплати — /paysupport.',
+    refunded: '↩️ Зірки за Premium повернуто, Premium за цим платежем вимкнено.',
+    paySupport: lines(
+      '💬 Підтримка з оплати POLSKI GO',
+      'Опишіть одним повідомленням, що сталося: коли платили, який тариф і що пішло не так. Ми відповімо в цьому чаті.',
+      'Якщо оплата пройшла, а Premium не ввімкнувся, — повернемо зірки.',
+    ),
+    supportReceived: '✅ Повідомлення передано в підтримку. Відповімо тут, зазвичай протягом доби.',
+    supportFailed: '⚠️ Зараз не вдалося відкрити звернення. Спробуйте /paysupport ще раз за кілька хвилин.',
+    terms: lines(
+      '📄 Умови POLSKI GO Premium',
+      '• Оплата — у Telegram Stars. «1 місяць» — підписка з автопродовженням кожні 30 днів; «3 місяці» і «12 місяців» — разова оплата без автопродовження.',
+      '• Автопродовження можна скасувати будь-коли: у застосунку (Premium → «Скасувати автопродовження») або в Telegram (Налаштування → Мої зірки). Premium діє до кінця оплаченого періоду.',
+      '• Що входить: захист серії (один пропуск на тиждень), сцени Premium, удвічі більший ліміт XP за тренування, подарунок щомісяця й ексклюзивні речі для Бобека.',
+      '• Уроки міст, карта, словник і квести безкоштовні завжди.',
+      '• Питання й повернення — /paysupport.',
+    ),
+  },
 };
 
 // ───────────────────────────── English ─────────────────────────────
@@ -738,6 +778,25 @@ const en: LangCopy = {
     }),
   },
   stopHint: '🔕 /stop — turn off reminders',
+  premium: {
+    activated: '👑 Premium is on! Dziękujemy! 🦫\nWhat’s included and the terms: /terms. Payment questions: /paysupport.',
+    refunded: '↩️ Your Stars for Premium were refunded; Premium from that payment is off.',
+    paySupport: lines(
+      '💬 POLSKI GO payment support',
+      'Describe what happened in one message: when you paid, which plan and what went wrong. We’ll reply in this chat.',
+      'If you paid and Premium didn’t turn on, we’ll refund your Stars.',
+    ),
+    supportReceived: '✅ Your message was sent to support. We’ll reply here, usually within a day.',
+    supportFailed: '⚠️ Couldn’t open a request right now. Please try /paysupport again in a few minutes.',
+    terms: lines(
+      '📄 POLSKI GO Premium terms',
+      '• Payment is in Telegram Stars. “1 month” is a subscription renewed every 30 days; “3 months” and “12 months” are one-off payments without renewal.',
+      '• You can cancel auto-renewal any time: in the app (Premium → “Cancel auto-renewal”) or in Telegram (Settings → My Stars). Premium stays active until the end of the paid period.',
+      '• Included: streak shield (one missed day a week), Premium scenes, double daily XP limit for practice, a monthly gift and exclusive items for Bobek.',
+      '• City lessons, the map, the dictionary and quests are always free.',
+      '• Questions and refunds: /paysupport.',
+    ),
+  },
 };
 
 export const COPY: Record<UiLang, LangCopy> = { ru, uk, en };

@@ -6,10 +6,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from '../lib/motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { I18n } from '@polski-go/shared';
 import { useT } from '../i18n';
-import { api } from '../lib/api';
+import { ApiError, api } from '../lib/api';
 import { haptic } from '../lib/telegram';
 import { prefetchSpeech, sfx } from '../lib/audio';
 import type { MissionAnswer, MissionFinish, MissionLine, MissionRun, MissionStepPublic } from '../lib/types';
@@ -35,6 +35,8 @@ export default function MissionScreen() {
   useBackButton(exit);
 
   if (q.isLoading) return <ScreenSkeleton />;
+  // Сцена Premium без Premium (пряме посилання): ведемо на екран Premium, а не показуємо помилку.
+  if (q.error instanceof ApiError && q.error.code === 'premium_required') return <Navigate to="/premium" replace />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const run = q.data!;
   if (phase === 'intro') return <Intro run={run} onStart={() => setPhase('play')} onClose={exit} />;

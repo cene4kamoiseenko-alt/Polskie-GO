@@ -7,7 +7,8 @@
 import { eq, sql } from 'drizzle-orm';
 import { dayKey, levelFromXp, updateStreak, weekKey } from '@polski-go/shared';
 import { db, type Stmt } from '../db';
-import { dailyActivity, gameWallets, playerProgress, userInventory, userSettings } from '../db/schema';
+import { dailyActivity, gameWallets, playerProgress, subscriptions, userInventory, userSettings } from '../db/schema';
+import { activeSubWhere } from './premium';
 
 export function leagueFor(xpTotal: number): string {
   if (xpTotal >= 5000) return 'diamond';
@@ -18,27 +19,28 @@ export function leagueFor(xpTotal: number): string {
 
 export type Progress = typeof playerProgress.$inferSelect;
 
-/** Контекст користувача для одного запиту: часовий пояс, день, прогрес. */
-export type UserCtx = { userId: string; now: Date; tz: string; day: string; week: string; progress: Progress };
+/** Контекст користувача для одного запиту: часовий пояс, день, прогрес, Premium. */
+export type UserCtx = { userId: string; now: Date; tz: string; day: string; week: string; progress: Progress; premium: boolean };
 
-/** Запити контексту — щоб додати їх у спільний пакет читань запиту (`db.batch([...ctxReads(id), ...])`). */
-export const ctxReads = (userId: string) =>
+/** Запити контексту — щоб додати їх у спільний пакет читань запиту (`db.batch([...ctxReads(id, now), ...])`). */
+export const ctxReads = (userId: string, now: Date) =>
   [
     db.select({ timezone: userSettings.timezone }).from(userSettings).where(eq(userSettings.userId, userId)),
     db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
+    db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId, now)).limit(1),
   ] as const;
 
 /** Контекст із рядків `ctxReads`. */
-export function ctxFrom(userId: string, now: Date, settings: { timezone: string }[], progress: Progress[]): UserCtx {
+export function ctxFrom(userId: string, now: Date, settings: { timezone: string }[], progress: Progress[], sub: unknown[]): UserCtx {
   if (!progress[0]) throw new Error(`progress missing for ${userId}`);
   const tz = settings[0]?.timezone ?? 'Europe/Warsaw';
   const day = dayKey(now, tz);
-  return { userId, now, tz, day, week: weekKey(day), progress: { ...progress[0] } };
+  return { userId, now, tz, day, week: weekKey(day), progress: { ...progress[0] }, premium: sub.length > 0 };
 }
 
 export async function loadCtx(userId: string, now = new Date()): Promise<UserCtx> {
-  const [settings, progress] = await db.batch(ctxReads(userId));
-  return ctxFrom(userId, now, settings, progress);
+  const [settings, progress, sub] = await db.batch(ctxReads(userId, now));
+  return ctxFrom(userId, now, settings, progress, sub);
 }
 
 /**
@@ -131,14 +133,17 @@ export function touchActivity(ctx: UserCtx, inc: ActivityInc) {
       }),
   ];
   const p = ctx.progress;
-  const s = updateStreak({ current: p.streakCurrent, best: p.streakBest, lastDay: p.lastActiveDay }, ctx.day);
+  // Premium: щит серії закриває один пропущений день (не частіше, ніж раз на тиждень).
+  const s = updateStreak({ current: p.streakCurrent, best: p.streakBest, lastDay: p.lastActiveDay, shieldDay: p.streakShieldDay }, ctx.day, { shield: ctx.premium });
   if (s.changed) {
-    stmts.push(db.update(playerProgress).set({ streakCurrent: s.current, streakBest: s.best, lastActiveDay: ctx.day }).where(eq(playerProgress.userId, ctx.userId)));
+    const shieldDay = s.shieldUsed ?? p.streakShieldDay;
+    stmts.push(db.update(playerProgress).set({ streakCurrent: s.current, streakBest: s.best, lastActiveDay: ctx.day, streakShieldDay: shieldDay }).where(eq(playerProgress.userId, ctx.userId)));
     p.streakCurrent = s.current;
     p.streakBest = s.best;
     p.lastActiveDay = ctx.day;
+    p.streakShieldDay = shieldDay;
   }
-  return { day: ctx.day, streak: s.current, streakChanged: s.changed, stmts };
+  return { day: ctx.day, streak: s.current, streakChanged: s.changed, shieldUsed: s.shieldUsed, stmts };
 }
 
 /** Списати Złotki (покупка). CHECK balance >= 0 відкотить пакет, якщо грошей не вистачає. */

@@ -172,7 +172,7 @@ describe('Місії: проходження', () => {
     expect((await mine(user.id)).filter((s) => s === 'kolumna-trzy')).toHaveLength(1);
   });
 
-  it('галерея: точні умови, прогрес і дата; список місій показує стан і «скоро»', async () => {
+  it('галерея: точні умови, прогрес і дата; список місій показує стан і сцени Premium', async () => {
     const { call } = await login();
     await playMission(call, MISSIONS.find((x) => x.slug === 'first-tram')!);
     const gallery = await call('GET', '/api/achievements');
@@ -182,7 +182,9 @@ describe('Місії: проходження', () => {
     expect(shop).toMatchObject({ progress: 0, threshold: 5, unlockedAt: null });
     const list = await call('GET', '/api/missions');
     expect(list.body.missions.find((m: { slug: string }) => m.slug === 'first-tram').completions).toBe(1);
-    expect(list.body.soon.length).toBeGreaterThan(0);
+    // Колишні «скоро» стали сценами Premium: без Premium вони в списку із замком.
+    expect(list.body.soon).toEqual([]);
+    expect(list.body.missions.filter((m: { locked: boolean }) => m.locked).map((m: { slug: string }) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment']);
   });
   it('костюм за місію: лише за перше проходження, магазин показує умову, seed видає тим, хто пройшов раніше', async () => {
     const { call, user } = await login();

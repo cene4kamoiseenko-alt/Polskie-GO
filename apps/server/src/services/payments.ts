@@ -25,10 +25,11 @@ export async function createInvoice(userId: string, planCode: string, lang: UiLa
   const payload = `prem:${planCode}:${userId}:${randomBytes(6).toString('hex')}`;
   const title = `POLSKI GO Premium — ${tr(plan.title as I18n, lang)}`;
   const description = tr(
+    // Лише те, що Premium справді дає (див. /terms у боті та екран Premium).
     {
-      uk: 'Розширений AI-викладач, рольові ігри, аналітика помилок, додаткові іспити та ексклюзивна косметика бобра.',
-      ru: 'Расширенный AI-преподаватель, ролевые игры, аналитика ошибок, дополнительные экзамены и эксклюзивная косметика бобра.',
-      en: 'Extended AI tutor, role-plays, mistake analytics, extra mock exams and exclusive beaver cosmetics.',
+      uk: 'Захист серії, сцени Premium (оренда, робота, лікар), удвічі більший ліміт XP за тренування, подарунок щомісяця й ексклюзивні речі для Бобека.',
+      ru: 'Защита серии, сцены Premium (аренда, работа, врач), вдвое больший лимит XP за тренировки, подарок каждый месяц и эксклюзивные вещи для Бобека.',
+      en: 'Streak shield, Premium scenes (renting, work, doctor), double XP limit for practice, a monthly gift and exclusive items for Bobek.',
     },
     lang,
   );
@@ -120,7 +121,16 @@ export async function handleSuccessfulPayment(fromId: number, p: SuccessfulPayme
   try {
     if (invalid || !user || !plan) {
       await atomic([event]);
-      return { duplicate: false, error: 'invalid_payment' };
+      // Зірки вже списано, а Premium за таким платежем не видаємо (pre_checkout мав його відхилити) — повертаємо їх одразу,
+      // щоб людина не заплатила за ніщо. Підроблене оновлення повернення не пройде: такого платежу в Telegram немає.
+      const refunded = await botApi('refundStarPayment', { user_id: fromId, telegram_payment_charge_id: p.telegram_payment_charge_id }).then(
+        () => true,
+        (e) => (console.warn('payment: auto refund failed', (e as Error).message), false),
+      );
+      if (refunded) {
+        await db.insert(paymentEvents).values({ userId: user?.id ?? null, type: 'REFUND', planCode: planCode ?? null, amount: p.total_amount, currency: p.currency, payload: p.telegram_payment_charge_id, error: `auto:${invalid}` });
+      }
+      return { duplicate: false, error: 'invalid_payment', refunded };
     }
     const now = new Date();
     const current = await db.query.subscriptions.findFirst({
@@ -147,12 +157,40 @@ export async function handleSuccessfulPayment(fromId: number, p: SuccessfulPayme
   }
 }
 
+/**
+ * Зірки за платіж повернуто (refunded_payment від Telegram або повернення з адмінки). Premium за цим платежем знімається одразу:
+ * підписка, оплачена саме цим платежем, отримує REFUNDED і закінчується зараз. Повторна доставка нічого не змінює.
+ * Автопродовження Stars зберігає charge id останнього платежу — повернення старішого продовження лише записується в журнал.
+ */
 export async function handleRefund(chargeId: string) {
-  const sub = await db.query.subscriptions.findFirst({ where: eq(subscriptions.telegramChargeId, chargeId) });
-  await atomic([
-    db.insert(paymentEvents).values({ userId: sub?.userId ?? null, type: 'REFUND', chargeId: null, payload: chargeId }),
-    sub && db.update(subscriptions).set({ status: 'REFUNDED', expiresAt: new Date() }).where(eq(subscriptions.id, sub.id)),
+  const [subRows, paidRows, doneRows] = await db.batch([
+    db.select().from(subscriptions).where(eq(subscriptions.telegramChargeId, chargeId)),
+    db.select().from(paymentEvents).where(and(eq(paymentEvents.type, 'SUCCESSFUL_PAYMENT'), eq(paymentEvents.chargeId, chargeId))).limit(1),
+    db.select({ id: paymentEvents.id }).from(paymentEvents).where(and(eq(paymentEvents.type, 'REFUND'), eq(paymentEvents.payload, chargeId))).limit(1),
   ]);
+  const sub = subRows[0];
+  const paid = paidRows[0];
+  const userId = sub?.userId ?? paid?.userId ?? null;
+  const revoke = !!sub && sub.status !== 'REFUNDED';
+  if (doneRows.length && !revoke) return { duplicate: true, revoked: false, userId };
+  await atomic([
+    !doneRows.length && db.insert(paymentEvents).values({ userId, type: 'REFUND', planCode: paid?.planCode ?? sub?.planCode ?? null, amount: paid?.amount ?? null, currency: paid?.currency ?? 'XTR', payload: chargeId }),
+    revoke && db.update(subscriptions).set({ status: 'REFUNDED', expiresAt: new Date() }).where(eq(subscriptions.id, sub.id)),
+  ]);
+  return { duplicate: false, revoked: revoke, userId };
+}
+
+/** Повернення з адмінки: Telegram повертає зірки, Premium за платежем знімається (handleRefund). */
+export async function refundPayment(chargeId: string) {
+  const row = await db
+    .select({ ev: paymentEvents, telegramId: users.telegramId })
+    .from(paymentEvents)
+    .innerJoin(users, eq(users.id, paymentEvents.userId))
+    .where(and(eq(paymentEvents.type, 'SUCCESSFUL_PAYMENT'), eq(paymentEvents.chargeId, chargeId)))
+    .get();
+  if (!row) throw notFound('payment_not_found');
+  await botApi('refundStarPayment', { user_id: row.telegramId, telegram_payment_charge_id: chargeId });
+  return handleRefund(chargeId);
 }
 
 /** Скасувати автопродовження. Premium діє до кінця оплаченого періоду. */

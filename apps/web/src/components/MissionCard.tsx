@@ -13,6 +13,9 @@ export type MissionsData = { missions: MissionListItem[]; soon: { slug: string; 
 
 export const missionsQuery = { queryKey: ['missions'], queryFn: () => api<MissionsData>('/missions') };
 
+/** Куди веде картка: сцена Premium без Premium — на екран Premium, решта — у місію. */
+export const missionHref = (m: MissionListItem) => (m.locked ? '/premium' : `/life/${m.slug}`);
+
 export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen: () => void; compact?: boolean }) {
   const { t, tr } = useT();
   const done = m.completions > 0;
@@ -30,6 +33,11 @@ export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen
             <Icon name={m.flawless ? 'star' : 'check'} size={14} /> {t(m.flawless ? 'life_flawless' : 'life_done')}
           </span>
         )}
+        {m.premium && !done && (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-xp px-2.5 py-0.5 text-xs font-black text-xp-ink">
+            <Icon name="crown" size={14} filled /> Premium
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-3 p-3.5">
         <div className="min-w-0 flex-1">
@@ -37,8 +45,8 @@ export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen
           {!compact && <div className="muted mt-0.5 line-clamp-2 text-sm font-semibold">{tr(m.goal)}</div>}
           {m.inProgress !== null && <div className="mt-1 text-xs font-black text-sky-dark">{t('life_continue', { n: m.inProgress + 1, total: m.steps })}</div>}
         </div>
-        <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full text-white', done ? 'bg-brand' : 'bg-pl-red')}>
-          <Icon name={done ? 'refresh' : 'play'} size={18} />
+        <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full text-white', m.locked ? 'bg-xp-dark' : done ? 'bg-brand' : 'bg-pl-red')}>
+          <Icon name={m.locked ? 'lock' : done ? 'refresh' : 'play'} size={18} />
         </span>
       </div>
     </motion.button>

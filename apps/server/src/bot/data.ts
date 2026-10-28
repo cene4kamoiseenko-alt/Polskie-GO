@@ -5,7 +5,8 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { dayKey, effectiveStreak, isUiLang, levelFromXp, tr, uiLangFor, type UiLang } from '@polski-go/shared';
 import { db } from '../db';
-import { playerProgress, quests, userQuests, userSettings, users } from '../db/schema';
+import { playerProgress, quests, subscriptions, userQuests, userSettings, users } from '../db/schema';
+import { activeSubWhere } from '../services/premium';
 import { getJourney } from '../services/journey';
 import type { LessonRef, ProfileRef, QuestRef } from './copy';
 
@@ -48,12 +49,16 @@ export async function nextLessonOf(userId: string, lang: UiLang): Promise<Lesson
 
 /** Прогресс; null, если записи нет или уроков и XP ещё нет (тогда «0» за прогресс не выдаём). */
 export async function profileOf(userId: string, timezone: string, now = new Date()): Promise<ProfileRef | null> {
-  const p = await db.select().from(playerProgress).where(eq(playerProgress.userId, userId)).get();
+  const [[p], sub] = await db.batch([
+    db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
+    db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId, now)).limit(1),
+  ]);
   if (!p || (p.lessonsCompleted <= 0 && p.xpTotal <= 0)) return null;
   return {
     level: levelFromXp(p.xpTotal).level,
     xp: p.xpTotal,
-    streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, dayKey(now, timezone)),
+    // Як у застосунку: щит серії Premium тримає серію після одного пропущеного дня.
+    streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, dayKey(now, timezone), { premium: sub.length > 0, shieldDay: p.streakShieldDay }),
     lessons: p.lessonsCompleted,
   };
 }

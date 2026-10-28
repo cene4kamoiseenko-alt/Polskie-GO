@@ -18,6 +18,7 @@ import { BOT_TOKEN } from './helpers';
 const dir = new URL('../migrations/', import.meta.url);
 const files = readdirSync(dir).filter((x) => x.endsWith('.sql')).sort();
 const NEW = '0012_ui_language_no_pl.sql';
+const ADDITIVE_LATER = ['0013_premium.sql'];
 const statements = (f: string) => readFileSync(new URL(f, dir), 'utf8').split('--> statement-breakpoint').map((s) => s.trim()).filter(Boolean);
 
 let mf: Miniflare;
@@ -58,7 +59,9 @@ beforeAll(async () => {
   mf = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response(null) } }', d1Databases: { DB: `mig12-${Date.now()}` } });
   d1 = (await mf.getD1Database('DB')) as unknown as D1Database;
   expect(files).toContain(NEW);
-  for (const f of files.filter((x) => x < NEW)) await apply(statements(f));
+  // Плюс пізніші міграції, що лише додають схему й від цієї не залежать (0013: таблиця й колонка Premium), — без них
+  // нинішній код, яким тест створює дані, не працює. Сама перевірка — як і раніше: що змінює саме ця міграція.
+  for (const f of files.filter((x) => x < NEW || ADDITIVE_LATER.includes(x))) await apply(statements(f));
   await apply(buildSeedSql());
   env = {
     DB: d1, ENVIRONMENT: 'test', SESSION_SECRET: 'test-secret-test-secret-test-secret-123', TELEGRAM_BOT_TOKEN: BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET: 'hook-secret',

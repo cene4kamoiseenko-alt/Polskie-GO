@@ -52,16 +52,31 @@ export function levelFromXp(xp: number): { level: number; current: number; neede
 }
 
 /** Оновлення серії днів навчання. */
+/**
+ * Щит серії (Premium): один пропущений день не скидає серію, якщо щит не використовувався останні
+ * `STREAK_SHIELD_DAYS` днів. Пропущений день не додається до серії — серія рахує дні, коли учень займався.
+ */
+export const STREAK_SHIELD_DAYS = 7;
+
+/** Щит можна використати для пропущеного дня `missedDay`: раніше не використовувався або минув тиждень. */
+export function shieldReady(shieldDay: string | null | undefined, missedDay: string): boolean {
+  return !shieldDay || dayDiff(shieldDay, missedDay) >= STREAK_SHIELD_DAYS;
+}
+
 export function updateStreak(
-  prev: { current: number; best: number; lastDay: string | null },
+  prev: { current: number; best: number; lastDay: string | null; shieldDay?: string | null },
   today: string,
-): { current: number; best: number; lastDay: string; changed: boolean } {
-  if (prev.lastDay === today) return { ...prev, lastDay: today, changed: false };
+  opts: { shield?: boolean } = {},
+): { current: number; best: number; lastDay: string; changed: boolean; shieldUsed: string | null } {
+  if (prev.lastDay === today) return { current: prev.current, best: prev.best, lastDay: today, changed: false, shieldUsed: null };
   const diff = prev.lastDay ? dayDiff(prev.lastDay, today) : Infinity;
   // «Сьогодні» раніше за останній день активності: користувач змінив пояс на захід (Токіо → Нью-Йорк). Серію не скидаємо.
-  if (diff < 0) return { ...prev, lastDay: prev.lastDay!, changed: false };
-  const current = diff === 1 ? prev.current + 1 : 1;
-  return { current, best: Math.max(prev.best, current), lastDay: today, changed: true };
+  if (diff < 0) return { current: prev.current, best: prev.best, lastDay: prev.lastDay!, changed: false, shieldUsed: null };
+  // Пропущено рівно один день (учора), серія була, і є щит Premium — серія триває, день щита запам'ятовуємо.
+  const missed = addDays(today, -1);
+  const shielded = diff === 2 && !!opts.shield && prev.current > 0 && shieldReady(prev.shieldDay, missed);
+  const current = diff === 1 || shielded ? prev.current + 1 : 1;
+  return { current, best: Math.max(prev.best, current), lastDay: today, changed: true, shieldUsed: shielded ? missed : null };
 }
 
 /**
@@ -76,10 +91,15 @@ export function shiftLastDayForZone(lastDay: string | null, now: Date, fromTz: s
 }
 
 /** Фактична серія на сьогодні (якщо вчора не займався — серія згоріла). */
-export function effectiveStreak(current: number, lastDay: string | null, today: string): number {
+/**
+ * Серія, яку бачить учень сьогодні: заняття сьогодні або вчора — серія жива. З щитом Premium (`shield`) вона жива й після
+ * одного пропущеного дня — до кінця сьогоднішнього: позайматися сьогодні, і щит її збереже (updateStreak).
+ */
+export function effectiveStreak(current: number, lastDay: string | null, today: string, shield?: { premium: boolean; shieldDay: string | null }): number {
   if (!lastDay) return 0;
   const diff = dayDiff(lastDay, today);
-  return diff <= 1 ? current : 0;
+  if (diff <= 1) return current;
+  return diff === 2 && shield?.premium && shieldReady(shield.shieldDay, addDays(today, -1)) ? current : 0;
 }
 
 export function cefrIndex(c: Cefr): number {

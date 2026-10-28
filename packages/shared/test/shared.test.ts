@@ -156,6 +156,27 @@ describe('прогресія', () => {
     expect(effectiveStreak(5, '2026-03-02', '2026-03-03')).toBe(5);
   });
 
+  it('щит серії Premium: один пропущений день на тиждень серію не скидає', () => {
+    // Без Premium пропуск дня скидає серію.
+    expect(updateStreak({ current: 5, best: 5, lastDay: '2026-03-05' }, '2026-03-07')).toMatchObject({ current: 1, shieldUsed: null });
+    // З Premium: пропущено 6.03 — серія 5 → 6, день щита запам'ятовано.
+    const s = updateStreak({ current: 5, best: 5, lastDay: '2026-03-05', shieldDay: null }, '2026-03-07', { shield: true });
+    expect(s).toMatchObject({ current: 6, best: 6, lastDay: '2026-03-07', changed: true, shieldUsed: '2026-03-06' });
+    // Щит раз на тиждень: ще один пропуск через три дні — серія скидається.
+    expect(updateStreak({ current: 8, best: 8, lastDay: '2026-03-08', shieldDay: '2026-03-06' }, '2026-03-10', { shield: true })).toMatchObject({ current: 1, shieldUsed: null });
+    // Через шість днів ще ні, через сім — знову можна.
+    expect(updateStreak({ current: 9, best: 9, lastDay: '2026-03-11', shieldDay: '2026-03-06' }, '2026-03-13', { shield: true })).toMatchObject({ current: 1, shieldUsed: null });
+    expect(updateStreak({ current: 9, best: 9, lastDay: '2026-03-12', shieldDay: '2026-03-06' }, '2026-03-14', { shield: true })).toMatchObject({ current: 10, shieldUsed: '2026-03-13' });
+    // Два пропущені дні щит не рятує; нульова серія щита не витрачає.
+    expect(updateStreak({ current: 9, best: 9, lastDay: '2026-03-11' }, '2026-03-14', { shield: true })).toMatchObject({ current: 1, shieldUsed: null });
+    expect(updateStreak({ current: 0, best: 3, lastDay: '2026-03-11' }, '2026-03-13', { shield: true })).toMatchObject({ current: 1, shieldUsed: null });
+    // Що бачить учень: після одного пропуску серія Premium жива до кінця дня (позайматися — і щит її збереже).
+    expect(effectiveStreak(5, '2026-03-05', '2026-03-07', { premium: true, shieldDay: null })).toBe(5);
+    expect(effectiveStreak(5, '2026-03-05', '2026-03-07', { premium: false, shieldDay: null })).toBe(0);
+    expect(effectiveStreak(5, '2026-03-05', '2026-03-07', { premium: true, shieldDay: '2026-03-02' })).toBe(0);
+    expect(effectiveStreak(5, '2026-03-05', '2026-03-08', { premium: true, shieldDay: null })).toBe(0);
+  });
+
   it('тижні та дні', () => {
     expect(weekKey('2026-01-01')).toBe('2026-W01');
     expect(weekKey('2024-12-30')).toBe('2025-W01');

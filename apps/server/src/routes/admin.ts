@@ -25,6 +25,8 @@ import { AZURE_PL_VOICES, BENCHMARK_PHRASES, ELEVENLABS_PL_MODELS, GOOGLE_PL_VOI
 import { pronunciationRisks } from '../services/tts-pronunciation';
 import { ttsSpendSummary } from '../services/quota';
 import { AUDIENCE_FILTERS, audience } from '../services/bot-audience';
+import { refundPayment } from '../services/payments';
+import { closeSupport, listSupport, replySupport } from '../services/support';
 import { benchmarkPlan } from '../services/tts-benchmark';
 import { readBotConfig } from '../bot/maintain';
 import { runSetup } from '../bot/setup';
@@ -442,6 +444,35 @@ a.get('/payments', async (c) => {
     db.select({ status: t.subscriptions.status, planCode: t.subscriptions.planCode, count: count() }).from(t.subscriptions).groupBy(t.subscriptions.status, t.subscriptions.planCode),
   ]);
   return c.json({ items: items.map((x) => ({ ...x.ev, user: x.user?.id ? x.user : null })), total: total[0]?.n ?? 0, subscriptions: subs });
+});
+
+// Повернення зірок за платіж (Telegram refundStarPayment): Premium за цим платежем знімається одразу.
+a.post('/payments/refund', rateLimit(20, 10 * 60_000, 'admin-refund'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const { chargeId } = z.object({ chargeId: z.string().min(1).max(256) }).parse(await body(c));
+  const res = await refundPayment(chargeId);
+  await audit(c, 'payment_refund', 'payment', chargeId, { revoked: res.revoked });
+  return c.json(res);
+});
+
+// ── Підтримка з оплат (/paysupport у боті) ──
+a.get('/support', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const { status } = z.object({ status: z.enum(['OPEN', 'DONE', 'all']).default('OPEN') }).parse(query(c));
+  return c.json({ items: await listSupport(status) });
+});
+a.post('/support/:id/reply', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const { text } = z.object({ text: z.string().min(1).max(3500) }).parse(await body(c));
+  const res = await replySupport(c.req.param('id'), text);
+  await audit(c, 'support_reply', 'support', c.req.param('id'));
+  return c.json(res);
+});
+a.post('/support/:id/close', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const res = await closeSupport(c.req.param('id'));
+  await audit(c, 'support_close', 'support', c.req.param('id'));
+  return c.json(res);
 });
 
 // ── Бот: перевірка та налаштування (команди, меню, webhook із callback_query, серверний секрет) ──

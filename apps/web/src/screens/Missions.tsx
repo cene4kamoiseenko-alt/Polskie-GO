@@ -7,7 +7,7 @@ import { useT, type TKey } from '../i18n';
 import { haptic } from '../lib/telegram';
 import { ErrorState, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { MissionCard, missionsQuery } from '../components/MissionCard';
+import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
 import { Scene } from '../components/Illustrations';
 
 const CATS: { id: string; key: TKey }[] = [
@@ -17,6 +17,7 @@ const CATS: { id: string; key: TKey }[] = [
   { id: 'road', key: 'life_cat_road' },
   { id: 'transport', key: 'life_cat_transport' },
   { id: 'home', key: 'life_cat_home' },
+  { id: 'work', key: 'life_cat_work' },
 ];
 
 export default function MissionsScreen() {
@@ -41,7 +42,7 @@ export default function MissionsScreen() {
         ))}
       </div>
       <div className="mt-3 grid gap-3 px-4">
-        {list.map((m) => <MissionCard key={m.slug} m={m} onOpen={() => nav(`/life/${m.slug}`)} />)}
+        {list.map((m) => <MissionCard key={m.slug} m={m} onOpen={() => nav(missionHref(m))} />)}
       </div>
       {cat === 'all' && soon.length > 0 && (
         <section className="mt-6 px-4">

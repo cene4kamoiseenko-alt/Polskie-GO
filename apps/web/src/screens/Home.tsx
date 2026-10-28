@@ -15,7 +15,7 @@ import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { MissionCard, missionsQuery } from '../components/MissionCard';
+import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
 import { Badge, Item } from '../components/Illustrations';
 
 export const RANKS: [number, string][] = [
@@ -254,6 +254,29 @@ export function HomeScreen() {
       {/* Місія дня з розділу «Польська в житті» (3–5 хв) */}
       <DailyMission />
 
+      {/* Premium: з Premium — нагадування про подарунок місяця; без — коротко, що дає Premium. */}
+      {me.premium.active ? (
+        me.premium.giftReady && (
+          <button onClick={() => { haptic.tap(); nav('/premium'); }} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3.5 text-left ring-4 ring-xp">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-xp/30 text-xp-dark"><Icon name="gift" size={24} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-black">{t('home_gift_ready')}</span>
+              <span className="muted block text-sm font-bold">{t('home_gift_ready_d')}</span>
+            </span>
+            <Icon name="chevron-right" size={20} className="shrink-0 opacity-60" />
+          </button>
+        )
+      ) : (
+        <button onClick={() => { haptic.tap(); nav('/premium'); }} className="mx-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-3xl p-3.5 text-left" style={{ background: 'linear-gradient(135deg,#FFF4D6,#FFE3E3 55%,#E9DDFF)' }}>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/70 text-xp-dark"><Icon name="crown" size={24} filled /></span>
+          <span className="min-w-0 flex-1 text-night">
+            <span className="block font-black">POLSKI GO Premium</span>
+            <span className="block text-sm font-bold opacity-75">{t('home_premium_d')}</span>
+          </span>
+          <Icon name="chevron-right" size={20} className="shrink-0 text-night opacity-60" />
+        </button>
+      )}
+
       {/* Тренування: помилки, повторення, 5 хвилин, швидкий раунд */}
       <Section title={t('home_more_practice')}>
         <div className="grid grid-cols-2 gap-2.5">
@@ -436,11 +459,13 @@ function DailyMission() {
   const q = useQuery(missionsQuery);
   const list = q.data?.missions ?? [];
   const day = Math.floor(Date.now() / 86_400_000);
-  const pick = list.find((m) => m.inProgress !== null) ?? list.find((m) => !m.completions) ?? list[day % Math.max(1, list.length)];
+  // Місія дня — з доступних; сцени Premium без Premium сюди не потрапляють (їх видно на екрані місій із замком).
+  const open = list.filter((m) => !m.locked);
+  const pick = open.find((m) => m.inProgress !== null) ?? open.find((m) => !m.completions) ?? open[day % Math.max(1, open.length)];
   return (
     <Section title={t('life_daily')} action={<button className="text-sm font-black text-pl-red" onClick={() => nav('/life')}>{t('home_all_missions')}</button>}>
       {pick ? (
-        <MissionCard m={pick} compact onOpen={() => nav(`/life/${pick.slug}`)} />
+        <MissionCard m={pick} compact onOpen={() => nav(missionHref(pick))} />
       ) : q.isLoading ? (
         <Skeleton className="h-40" />
       ) : q.isError || q.isPaused ? (

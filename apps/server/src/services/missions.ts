@@ -7,9 +7,10 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { normalize, seededRandom, shuffle, type I18n } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
-import { cosmeticItems, missionRuns, newId, reviewSchedule, userMissionSteps, userMissions, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
+import { cosmeticItems, missionRuns, newId, reviewSchedule, subscriptions, userMissionSteps, userMissions, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
+import { activeSubWhere, isPremium } from './premium';
 import { MISSIONS, MISSIONS_SOON, missionBySlug, type Mission, type MissionStep } from '../content/missions';
-import { badRequest, notFound, HttpError } from '../lib/errors';
+import { badRequest, forbidden, notFound, HttpError } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { applyQuestEvents } from './quests';
 import { grantItem, grantXp, grantZlotki, loadCtx, touchActivity } from './rewards';
@@ -37,20 +38,22 @@ function publicStep(m: Mission, step: MissionStep, seed: string) {
 function summaryOf(m: Mission) {
   return {
     slug: m.slug, category: m.category, tags: m.tags, city: m.city, scene: m.scene, title: m.title, goal: m.goal,
-    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length, rewardItem: m.rewardItem ?? null,
+    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length, rewardItem: m.rewardItem ?? null, premium: !!m.premium,
   };
 }
 
 export async function listMissions(userId: string) {
-  const [mine, active] = await Promise.all([
+  const [mine, active, sub] = await db.batch([
     db.select().from(userMissions).where(eq(userMissions.userId, userId)),
     db.select({ slug: missionRuns.missionSlug, step: missionRuns.step }).from(missionRuns).where(and(eq(missionRuns.userId, userId), eq(missionRuns.status, 'ACTIVE'))),
+    db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId)).limit(1),
   ]);
   return {
     missions: MISSIONS.map((m) => {
       const u = mine.find((x) => x.missionSlug === m.slug);
       const a = active.find((x) => x.slug === m.slug);
-      return { ...summaryOf(m), completions: u?.completions ?? 0, flawless: (u?.flawless ?? 0) > 0, inProgress: a ? a.step : null };
+      // locked — сцена Premium без активного Premium: картка показує замок і веде на екран Premium.
+      return { ...summaryOf(m), locked: !!m.premium && !sub.length, completions: u?.completions ?? 0, flawless: (u?.flawless ?? 0) > 0, inProgress: a ? a.step : null };
     }),
     soon: MISSIONS_SOON,
   };
@@ -77,6 +80,7 @@ function runView(m: Mission, run: Run) {
 export async function startMission(userId: string, slug: string) {
   const m = missionBySlug(slug);
   if (!m) throw notFound('mission_not_found');
+  if (m.premium && !(await isPremium(userId))) throw forbidden('premium_required');
   const existing = await activeRun(userId, slug);
   if (existing) return runView(m, existing);
   const run: Run = { id: newId(), userId, missionSlug: slug, step: 0, mistakes: 0, hints: 0, stepFailed: false, status: 'ACTIVE', version: 0, startedAt: new Date(), finishedAt: null };

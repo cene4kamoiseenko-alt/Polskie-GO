@@ -1,15 +1,16 @@
 import { sttStatus } from './stt';
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
-import { dayKey, effectiveStreak, isUiLang, lastDays, levelFromXp, uiLangFor, type Cefr } from '@polski-go/shared';
+import { addDays, dayKey, effectiveStreak, isUiLang, lastDays, levelFromXp, shieldReady, STREAK_SHIELD_DAYS, uiLangFor, type Cefr } from '@polski-go/shared';
 import { config } from '../env';
 import { and, count, desc, eq, gt, inArray, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import {
   aiUsage, cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
-  quests, reviewSchedule, subscriptions, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
+  quests, reviewSchedule, subscriptions, walletTransactions, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
 } from '../db/schema';
 import { getRewards } from './gameConfig';
 import { dayCandidates } from './rewards';
+import { giftKey, giftKeys } from './premium-gift';
 import { ttsConfigured, ttsStatus } from './tts';
 import { activeSubWhere } from './premium';
 import { outfit } from './shop';
@@ -22,7 +23,7 @@ export async function getMe(userId: string) {
   // бо пояс користувача стає відомим лише з цього ж пакета. Вбрання (JOIN) і нагороди (кеш) — паралельно.
   const now = new Date();
   const days = dayCandidates(now);
-  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, usageRows], look, cfg] = await Promise.all([
+  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, usageRows, giftRows], look, cfg] = await Promise.all([
     db.batch([
       db.select().from(users).where(eq(users.id, userId)),
       db.select().from(userSettings).where(eq(userSettings.userId, userId)),
@@ -39,6 +40,7 @@ export async function getMe(userId: string) {
         .where(and(eq(reviewSchedule.userId, userId), or(eq(reviewSchedule.itemType, 'EXERCISE'), and(eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))))),
       db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
       db.select().from(aiUsage).where(and(eq(aiUsage.userId, userId), inArray(aiUsage.day, days))),
+      db.select({ key: walletTransactions.idempotencyKey }).from(walletTransactions).where(inArray(walletTransactions.idempotencyKey, giftKeys(userId, now))),
     ]),
     outfit(userId),
     getRewards(),
@@ -76,7 +78,7 @@ export async function getMe(userId: string) {
       levelXp: lvl.current,
       levelXpNeeded: lvl.needed,
       languageLevel: p.languageLevel as Cefr,
-      streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, today),
+      streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, today, { premium, shieldDay: p.streakShieldDay }),
       streakBest: p.streakBest,
       activeToday: p.lastActiveDay === today,
       lessonsCompleted: p.lessonsCompleted,
@@ -91,7 +93,15 @@ export async function getMe(userId: string) {
       seconds: todayAct?.seconds ?? 0,
     },
     zlotki: user.wallet?.balance ?? 0,
-    premium: premium ? { active: true, expiresAt: sub!.expiresAt, planCode: sub!.planCode, recurring: sub!.isRecurring, cancelled: sub!.status === 'CANCELLED' } : { active: false },
+    premium: premium
+      ? {
+          active: true, expiresAt: sub!.expiresAt, planCode: sub!.planCode, recurring: sub!.isRecurring, cancelled: sub!.status === 'CANCELLED',
+          // Щит серії: готовий (можна пропустити день) чи вже використаний цього тижня — і коли знову буде готовий.
+          shield: { ready: shieldReady(p.streakShieldDay, today), usedOn: p.streakShieldDay ?? null, readyOn: p.streakShieldDay ? addDays(p.streakShieldDay, STREAK_SHIELD_DAYS) : null },
+          // Подарунок цього місяця ще не забрано — банер на головній.
+          giftReady: !giftRows.some((g) => g.key === giftKey(userId, today.slice(0, 7))),
+        }
+      : { active: false },
     outfit: look,
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
     // configured: без ключа ШІ-співрозмовник не працює — застосунок ховає його входи й не обіцяє його в Premium.

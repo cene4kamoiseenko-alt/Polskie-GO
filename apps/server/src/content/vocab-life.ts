@@ -10,6 +10,10 @@ const w = (pl: string, pos: string, uk: string, ru: string, en: string, pron: st
 });
 
 export const LIFE_VOCAB: VocabSeed[] = [
+  // ── Сцени Premium: робота, лікар ──
+  { ...w('pracownik', 'noun', 'працівник', 'работник, сотрудник', 'employee', 'працовнік', ['work'], { f: 'pracownica' }), cefr: 'A2' },
+  { ...w('zapisać się', 'verb', 'записатися (до лікаря, на курс)', 'записаться (к врачу, на курс)', 'to sign up, to book (a doctor)', 'запісачь сє', ['medicine']), cefr: 'A2' },
+  { ...w('ubezpieczenie', 'noun', 'страховка, страхування', 'страховка, страхование', 'insurance', 'убезпєчене', ['medicine', 'documents']), cefr: 'A2' },
   // ── Urząd: номерок, віконце, заява ──
   w('numerek', 'noun', 'номерок (у черзі)', 'номерок (в очереди)', 'queue ticket', 'нумерек', ['urzad']),
   w('stanowisko', 'noun', 'віконце, робоче місце', 'окошко, рабочее место', 'desk, counter', 'становіско', ['urzad']),

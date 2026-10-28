@@ -15,6 +15,8 @@ import { HttpError } from '../lib/errors';
 import { botApi, TelegramError } from '../lib/telegram';
 import { handleBotCallback, handleBotMessage, parseCommand, type BotMessage } from '../bot/handler';
 import { commandForLabel } from '../bot/panel';
+import { COPY } from '../bot/copy';
+import { findBotUser, pickLang } from '../bot/data';
 import type { CallbackQuery } from '../bot/quiz/engine';
 import { runSetup, type SetupMode } from '../bot/setup';
 import { loadSecretState, safeEqual, verifyWebhookSecret } from '../bot/webhook-secret';
@@ -36,6 +38,12 @@ type Update = {
  * Аудитория бота (админка): кто писал боту в личном чате и кто его заблокировал. Только личные чаты; сбой записи
  * не мешает ответить — бот важнее учёта.
  */
+/** Мова відповіді про оплату: налаштування користувача, інакше мова Telegram. */
+async function langOf(from: { id: number; language_code?: string }) {
+  const user = await findBotUser(from.id).catch(() => null);
+  return pickLang(user?.lang, from.language_code);
+}
+
 async function noteContact(update: Update, now = new Date()) {
   try {
     const member = update.my_chat_member;
@@ -187,13 +195,17 @@ telegramRoutes.post('/webhook', async (c) => {
   const msg = update.message;
   if (msg?.successful_payment && msg.from) {
     const res = await handleSuccessfulPayment(msg.from.id, msg.successful_payment);
-    if (!res.duplicate && !('error' in res && res.error)) {
-      await botApi('sendMessage', { chat_id: msg.chat.id, text: '👑 Premium активовано! Dziękujemy! 🦫' }).catch(() => {});
+    if (!res.duplicate) {
+      const copy = COPY[await langOf(msg.from)];
+      // Недійсний платіж повернуто автоматично — кажемо про повернення, а не про Premium.
+      const text = 'error' in res && res.error ? ('refunded' in res && res.refunded ? copy.premium.refunded : null) : copy.premium.activated;
+      if (text) await botApi('sendMessage', { chat_id: msg.chat.id, text }).catch(() => {});
     }
     return c.json({ ok: true });
   }
   if (msg?.refunded_payment) {
-    await handleRefund(msg.refunded_payment.telegram_payment_charge_id);
+    const res = await handleRefund(msg.refunded_payment.telegram_payment_charge_id);
+    if (!res.duplicate && msg.from) await botApi('sendMessage', { chat_id: msg.chat.id, text: COPY[await langOf(msg.from)].premium.refunded }).catch(() => {});
     return c.json({ ok: true });
   }
 

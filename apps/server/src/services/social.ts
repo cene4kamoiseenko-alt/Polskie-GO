@@ -1,5 +1,5 @@
 /** Таблиця лідерів, тижневі ліги, друзі. Приватність: show_in_leaderboard / public_profile. */
-import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { dayKey, weekKey } from '@polski-go/shared';
 import { atomic, db } from '../db';
@@ -7,6 +7,7 @@ import { friendships, leaderboards, playerProgress, userProfiles, userSettings, 
 import { badRequest, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { leagueFor } from './rewards';
+import { isPremium } from './premium';
 
 function displayName(u: { firstName: string; username: string | null; displayName: string | null }) {
   return u.displayName || u.firstName || u.username || 'Bóbr';
@@ -31,6 +32,8 @@ export async function leaderboard(userId: string, scope: 'league' | 'friends' | 
       photoUrl: users.photoUrl,
       displayName: userProfiles.displayName,
       level: playerProgress.playerLevel,
+      // Значок Premium у рейтингу: активна (або скасована, але ще оплачена) підписка.
+      premium: sql<number>`EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = ${leaderboards.userId} AND s.status IN ('ACTIVE', 'CANCELLED') AND s.expires_at > ${Date.now()})`,
     })
     .from(leaderboards)
     .innerJoin(users, eq(users.id, leaderboards.userId))
@@ -48,13 +51,14 @@ export async function leaderboard(userId: string, scope: 'league' | 'friends' | 
     )
     .orderBy(desc(leaderboards.xp))
     .limit(50);
-  const rows = entries.map((e, i) => ({ rank: i + 1, userId: e.userId, name: displayName(e), photoUrl: e.photoUrl, xp: e.xp, level: e.level ?? 1, isMe: e.userId === userId }));
+  const rows = entries.map((e, i) => ({ rank: i + 1, userId: e.userId, name: displayName(e), photoUrl: e.photoUrl, xp: e.xp, level: e.level ?? 1, premium: !!e.premium, isMe: e.userId === userId }));
   if (!rows.some((r) => r.isMe)) {
-    const [mine, user] = await Promise.all([
+    const [mine, user, premium] = await Promise.all([
       db.select().from(leaderboards).where(and(eq(leaderboards.userId, userId), eq(leaderboards.periodKey, week))),
       db.select({ firstName: users.firstName, username: users.username, photoUrl: users.photoUrl, displayName: userProfiles.displayName }).from(users).leftJoin(userProfiles, eq(userProfiles.userId, users.id)).where(eq(users.id, userId)),
+      isPremium(userId),
     ]);
-    rows.push({ rank: 0, userId, name: displayName(user[0]), photoUrl: user[0].photoUrl, xp: mine[0]?.xp ?? 0, level: me?.playerLevel ?? 1, isMe: true });
+    rows.push({ rank: 0, userId, name: displayName(user[0]), photoUrl: user[0].photoUrl, xp: mine[0]?.xp ?? 0, level: me?.playerLevel ?? 1, premium, isMe: true });
   }
   // Наступна ліга — за загальним XP (пороги як у leagueFor).
   const xpTotal = me?.xpTotal ?? 0;

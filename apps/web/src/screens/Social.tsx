@@ -19,7 +19,7 @@ import { UserAvatar } from '../components/Avatars';
 import { Progress, Skeleton, cx, useBackButton, useToast } from '../components/ui';
 import { rankFor } from './Home';
 
-type Row = { rank: number; userId: string; name: string; photoUrl: string | null; xp: number; level: number; isMe: boolean };
+type Row = { rank: number; userId: string; name: string; photoUrl: string | null; xp: number; level: number; premium?: boolean; isMe: boolean };
 type Board = { week: string; league: string; rows: Row[]; me?: { xpTotal: number; next: { league: string; at: number } | null } };
 type Friend = { id: string; status: string; incoming: boolean; user: { id: string; name: string; photoUrl: string | null; level: number | null; xp: number | null; streak: number | null; languageLevel: string | null } };
 
@@ -88,7 +88,7 @@ function Podium({ rows }: { rows: Row[] }) {
                 ) : (
                   <span className="grid place-items-center rounded-full border-2 border-dashed border-white/40 bg-night/50 text-xl font-black text-white/60" style={{ width: big ? 72 : 56, height: big ? 72 : 56 }}>?</span>
                 )}
-                {row && <span className="mt-1 max-w-[100px] truncate rounded-full bg-night/75 px-2 py-0.5 text-[11px] font-black text-white">{row.isMe ? `★ ${row.name}` : row.name}</span>}
+                {row && <span className="mt-1 max-w-[100px] truncate rounded-full bg-night/75 px-2 py-0.5 text-[11px] font-black text-white">{row.premium ? '👑 ' : ''}{row.isMe ? `★ ${row.name}` : row.name}</span>}
               </motion.div>
               <div className="relative flex w-full items-start justify-center rounded-t-2xl border-x-2 border-t-2 pt-2" style={{ height: cfg.h, background: cfg.ped, borderColor: cfg.ring, boxShadow: big ? '0 0 26px -4px rgba(255,200,87,0.7)' : undefined }}>
                 <span className="grid h-9 w-9 place-items-center rounded-full border-2 text-[17px] font-black text-white" style={{ borderColor: cfg.ring, background: 'rgba(0,0,0,0.25)' }}>{place}</span>
@@ -227,7 +227,10 @@ export default function SocialScreen() {
                       <RankShield rank={r.rank} />
                       <UserAvatar url={r.photoUrl} seed={r.userId} size={44} ring={r.rank === 2 ? '#C9D6E6' : r.rank === 3 ? '#E39A6B' : '#36B9FF'} />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[15px] font-black text-white">{r.name}</div>
+                        <div className="flex items-center gap-1 truncate text-[15px] font-black text-white">
+                          <span className="truncate">{r.name}</span>
+                          {r.premium && <Icon name="crown" size={15} filled className="shrink-0 text-xp" aria-label="Premium" />}
+                        </div>
                         <div className="text-[12px] font-bold text-sky">{t('lb_level_n', { n: r.level })}</div>
                       </div>
                       <span className="relative text-[16px] font-black text-white">{r.xp} XP</span>

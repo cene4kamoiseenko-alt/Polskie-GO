@@ -107,13 +107,13 @@ export async function listQuests(userId: string) {
   // тому квести й скриня читаються за всіма можливими ключами «сьогодні» і відбираються після.
   const now = new Date();
   const days = dayCandidates(now);
-  const [settings, progress, mine, all, chests, ...story] = await db.batch([
-    ...ctxReads(userId),
+  const [settings, progress, sub, mine, all, chests, ...story] = await db.batch([
+    ...ctxReads(userId, now),
     ...questReads(userId, now),
     db.select({ key: xpEvents.idempotencyKey }).from(xpEvents).where(inArray(xpEvents.idempotencyKey, days.map((d) => chestKey(userId, d)))),
     ...storyReads(userId),
   ]);
-  const ctx = ctxFrom(userId, now, settings, progress);
+  const ctx = ctxFrom(userId, now, settings, progress, sub);
   let { rows, stmts } = await questState(ctx, { mine, all });
   if (stmts.length) {
     // Перший запит дня призначає квести. Паралельний запит міг призначити їх раніше — тоді діють його рядки, перечитуємо.

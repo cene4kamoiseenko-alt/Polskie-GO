@@ -1,12 +1,14 @@
 /**
  * Обработка сообщений бота: девять команд (/start /lesson /map /words /quests /profile /settings /help /stop) и быстрый вопрос /quiz
- * (также `/start quiz` и кнопка панели); неизвестные команды и обычный текст в личном чате получают справку.
+ * (также `/start quiz` и кнопка панели); /paysupport и /terms для оплат в Stars; неизвестные команды и обычный текст в личном чате
+ * получают справку (кроме текста сразу после /paysupport — это обращение в поддержку).
  * Язык: настройка пользователя → язык Telegram → язык продукта. Сбой базы не лишает ответа:
  * текст уходит без персональных данных, а /stop и прогресс честно сообщают о неудаче.
  */
 import { botApi } from '../lib/telegram';
 import { config } from '../env';
 import { upsertTelegramUser } from '../services/users';
+import { captureSupportText, openSupport } from '../services/support';
 import { commandImage, isCommand, startBackImage, type CommandName } from './catalog';
 import { COPY, type Card, type Vars } from './copy';
 import { activeQuestsOf, disableReminders, findBotUser, nextLessonOf, pickLang, profileOf, type BotUser } from './data';
@@ -44,7 +46,7 @@ async function soft<T>(what: string, fn: () => Promise<T>, fallback: T): Promise
   }
 }
 
-export type Handled = { command: CommandName | 'quiz' | 'unknown'; sent: Sent | null; ignored?: string };
+export type Handled = { command: CommandName | 'quiz' | 'paysupport' | 'terms' | 'support_text' | 'unknown'; sent: Sent | null; ignored?: string };
 
 export async function handleBotMessage(msg: BotMessage, now = new Date()): Promise<Handled> {
   const from = msg.from;
@@ -81,6 +83,23 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
 
   const lang = pickLang(user?.lang, from.language_code);
   const copy = COPY[lang];
+
+  // Оплати в Stars: /paysupport (підтримка) і /terms (умови) — вимоги Telegram до ботів з оплатами. Лише в особистому чаті.
+  if (priv && (cmd?.name === 'paysupport' || cmd?.name === 'terms')) {
+    if (cmd.name === 'paysupport') {
+      const opened = await soft('support', () => openSupport(from.id, user?.id ?? null, now), undefined);
+      // База недоступна — звернення не збережеться: просимо написати пізніше, а не обіцяємо відповідь.
+      await botApi('sendMessage', { chat_id: msg.chat.id, text: opened.failed ? copy.premium.supportFailed : copy.premium.paySupport });
+      return { command: 'paysupport', sent: { method: 'sendMessage', messageId: null, photoError: null } };
+    }
+    await botApi('sendMessage', { chat_id: msg.chat.id, text: copy.premium.terms });
+    return { command: 'terms', sent: { method: 'sendMessage', messageId: null, photoError: null } };
+  }
+  // Звичайне повідомлення одразу після /paysupport — текст звернення в підтримку, а не запит довідки.
+  if (priv && !cmd && !dbDown && (await soft('support text', () => captureSupportText(from.id, msg.text!, now), false)).value) {
+    await botApi('sendMessage', { chat_id: msg.chat.id, text: copy.premium.supportReceived });
+    return { command: 'support_text', sent: { method: 'sendMessage', messageId: null, photoError: null } };
+  }
   const vars: Vars = { name: from.first_name ?? user?.firstName ?? '' };
   const tz = user?.timezone ?? 'Europe/Warsaw';
   const target = { chatId: msg.chat.id, chatType };

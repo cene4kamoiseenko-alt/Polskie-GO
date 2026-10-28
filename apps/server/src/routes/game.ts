@@ -12,6 +12,7 @@ import { buyItem, equipItem, listShop, outfit } from '../services/shop';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
+import { claimPremiumGift, premiumGift } from '../services/premium-gift';
 import { achievementMetrics } from '../services/achievements';
 import { answerMission, listMissions, missionHint, startMission } from '../services/missions';
 import { passport } from '../services/passport';
@@ -111,13 +112,17 @@ r.post('/friends/:id/respond', async (c) => {
 
 // ── Premium ──
 r.get('/premium', async (c) => {
-  const [plans, sub] = await Promise.all([listPlans(), activeSubscription(c.get('userId'))]);
+  const [plans, sub, gift] = await Promise.all([listPlans(), activeSubscription(c.get('userId')), premiumGift(c.get('userId'))]);
   return c.json({
     plans: plans.map((p) => ({ code: p.code, months: p.months, priceStars: p.priceStars, recurring: p.recurring, title: p.title })),
     subscription: sub ? { planCode: sub.planCode, expiresAt: sub.expiresAt, recurring: sub.isRecurring, cancelled: sub.status === 'CANCELLED' } : null,
     paymentsConfigured: !!config.botToken,
+    gift,
+    /** Бот для /terms і /paysupport (умови й підтримка з оплат — вимоги Telegram). */
+    bot: config.botUsername || null,
   });
 });
+r.post('/premium/gift', async (c) => c.json(await claimPremiumGift(c.get('userId'))));
 r.post('/premium/invoice', rateLimit(10, 60_000, 'invoice'), async (c) => {
   const { plan } = z.object({ plan: z.string() }).parse(await body(c));
   const settings = await db.query.userSettings.findFirst({ where: eq(userSettings.userId, c.get('userId')) });

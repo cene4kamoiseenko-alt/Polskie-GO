@@ -94,6 +94,8 @@ export const playerProgress = sqliteTable(
     streakCurrent: integer('streak_current').notNull().default(0),
     streakBest: integer('streak_best').notNull().default(0),
     lastActiveDay: text('last_active_day'),
+    /** День, пропуск якого закрив щит серії Premium (не частіше, ніж раз на STREAK_SHIELD_DAYS днів). */
+    streakShieldDay: text('streak_shield_day'),
     lessonsCompleted: integer('lessons_completed').notNull().default(0),
     perfectLessons: integer('perfect_lessons').notNull().default(0),
     wordsLearned: integer('words_learned').notNull().default(0),
@@ -788,6 +790,28 @@ export const botContacts = sqliteTable(
     blockedAt: ts('blocked_at'),
   },
   (t) => [index('bot_contacts_first_seen_idx').on(t.firstSeenAt)],
+);
+
+export const SUPPORT_STATUS = ['AWAITING', 'OPEN', 'DONE'] as const;
+
+/**
+ * Звернення в підтримку з бота (/paysupport — вимога Telegram для оплат у Stars). AWAITING — людина відкрила підтримку,
+ * наступне її повідомлення стає текстом звернення (OPEN); відповідь з адмінки надсилається в бот і закриває звернення (DONE).
+ */
+export const supportRequests = sqliteTable(
+  'support_requests',
+  {
+    id: id(),
+    telegramId: integer('telegram_id').notNull(),
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    topic: text('topic').notNull().default('payment'),
+    text: text('text'),
+    status: text('status', { enum: SUPPORT_STATUS }).notNull().default('AWAITING'),
+    reply: text('reply'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('support_requests_tg_status_idx').on(t.telegramId, t.status), index('support_requests_status_idx').on(t.status, t.createdAt)],
 );
 
 export const QUIZ_ROUND_STATUS = ['OPEN', 'ANSWERED'] as const;
