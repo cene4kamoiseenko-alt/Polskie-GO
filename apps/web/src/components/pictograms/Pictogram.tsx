@@ -51,6 +51,12 @@ const PICTO: Record<string, Spec> = {
   '📷': ['camera', 'thing'], '🪙': ['coins', 'thing'], '👛': ['wallet', 'thing'], '💯': ['percent', 'symbol'], '🍒': ['cherry', 'food'], '🥕': ['carrot', 'nature'],
   // Запасні піктограми для предметів, які в завданнях малюються як ілюстрації (ITEM_ART у Illustrations.tsx): ключ тут потрібен, якщо малюнка не знайдено.
   '🧥': ['shirt', 'thing'], '👗': ['shirt', 'thing'], '👟': ['footprints', 'way'], '🍓': ['cherry', 'food'],
+  // Свята (Zielona Góra) і погода, природа (Gorzów)
+  '🕯️': ['flame', 'symbol'], '🪔': ['flame', 'symbol'], '🔥': ['flame', 'symbol'], '💐': ['flower', 'nature'], '🌸': ['flower', 'nature'], '🌷': ['flower-2', 'nature'],
+  '🌻': ['flower-2', 'nature'], '🎄': ['tree-pine', 'nature'], '🌳': ['tree-deciduous', 'nature'], '🌿': ['leaf', 'nature'], '🍂': ['leaf', 'nature'], '🌰': ['nut', 'food'],
+  '🌟': ['star', 'symbol'], '🔔': ['bell', 'symbol'], '🎆': ['sparkles', 'symbol'], '🧺': ['shopping-basket', 'thing'], '🍇': ['grape', 'food'], '🍷': ['wine', 'drink'],
+  '☁️': ['cloud', 'nature'], '🌧️': ['cloud-rain', 'nature'], '❄️': ['snowflake', 'nature'], '🌫️': ['cloud-fog', 'nature'], '⛈️': ['cloud-lightning', 'nature'],
+  '🌈': ['rainbow', 'nature'], '🌪️': ['tornado', 'nature'], '☂️': ['umbrella', 'thing'], '⛺': ['tent', 'place'], '🐦': ['bird', 'nature'],
   // Дії
   '🚶': ['footprints', 'way'], '🏊': ['waves', 'drink'], '🛒': ['shopping-cart', 'thing'], '😴': ['bed-single', 'home'],
 };

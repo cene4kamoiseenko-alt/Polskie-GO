@@ -40,4 +40,5 @@ export const TOPICS: Record<string, I18n> = {
   calendar: t('Календар і дати', 'Календарь и даты', 'Calendar & dates'),
   nature: t('Природа', 'Природа', 'Nature'),
   sport: t('Спорт', 'Спорт', 'Sport'),
+  holidays: t('Свята й традиції', 'Праздники и традиции', 'Holidays & traditions'),
 };

@@ -11,6 +11,8 @@ import { WARSZAWA_VOCAB } from './vocab-warszawa';
 import { KATOWICE_VOCAB } from './vocab-katowice';
 import { OPOLE_VOCAB } from './vocab-opole';
 import { POZNAN_VOCAB } from './vocab-poznan';
+import { ZIELONA_GORA_VOCAB } from './vocab-zielona-gora';
+import { GORZOW_VOCAB } from './vocab-gorzow';
 import { LODZ_VOCAB } from './vocab-lodz';
 import { WROCLAW_VOCAB } from './vocab-wroclaw';
 
@@ -313,5 +315,7 @@ export const VOCAB: VocabSeed[] = [
   ...KATOWICE_VOCAB,
   ...OPOLE_VOCAB,
   ...POZNAN_VOCAB,
+  ...ZIELONA_GORA_VOCAB,
+  ...GORZOW_VOCAB,
   ...WROCLAW_VOCAB,
 ];

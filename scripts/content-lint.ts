@@ -138,7 +138,13 @@ const PLAIN_OK: Record<string, string[]> = {
     'wro-5-ubrania#9 jaka', 'wro-5-ubrania#10 czerwona', 'wro-5-ubrania#11 czerwona', 'wro-15-porownanie#8 czerwona',
   ],
   'Ополе: навмисний неправильний варіант (називний замість місцевого після o: dwunasta)': ['opo-5-weekend#5 dwunasta'],
-  'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': ['pzn-4-daty#3 maja', 'pzn-4-daty#4 maja', 'pzn-4-daty#11 maja'],
+  'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': ['pzn-4-daty#3 maja', 'pzn-4-daty#4 maja', 'pzn-4-daty#11 maja', 'zg-6-dni-wolne#3 maja', 'zg-6-dni-wolne#9 maja'],
+  'Зелена Гура: називний (choinka, niedziela handlowa, «to nowa tradycja») і 3-тя особа «miejsce zostaje wolne»': [
+    'zg-3-wigilia#1 choinka', 'zg-3-wigilia#8 choinka', 'zg-6-dni-wolne#2 handlowa', 'zg-3-wigilia#6 zostaje', 'zg-8-kartka#6 nowa',
+  ],
+  'Гожув: називний («Jaka jest pogoda?», «Wiosna i jesień są zmienne») і навмисний дистрактор «Zima» замість «Zimą»': [
+    'gorz-1-pogoda#11 jaka', 'gorz-2-pory-roku#6 wiosna', 'gorz-2-pory-roku#2 zima',
+  ],
   'Називний відмінок галузі чи години (пара, «jest dwunasta») і навмисний дистрактор «Zajmuję się logistyka»; орудний logistyką / dwunastą тут не потрібен': [
     'pzn-5-zajmuje-sie#0 logistyka', 'pzn-5-zajmuje-sie#4 logistyka', 'pzn-2-koziolki#6 dwunasta', 'pzn-boss#0 dwunasta',
   ],

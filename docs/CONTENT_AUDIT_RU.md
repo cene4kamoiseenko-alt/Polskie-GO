@@ -183,6 +183,35 @@ Weź przestań. У каждого — регистр, с кем можно, си
   - Картинки вариантов — только ключи пиктограмм приложения (тест `visual-keys`).
 - Нужна проверка носителем.
 
+## Zielona Góra — «Праздники и традиции», A2 (2026-10-28)
+- Файлы: `zielona-gora.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-zielona-gora.ts` (56 слов, у каждого пример). Тема словаря `holidays` добавлена в `TOPICS`.
+- Грамматика A2 без повторов прежних городов:
+  - L1 `zg-1-zyczenia`: **życzyć** + кому + родительный (zdrowia, szczęścia, sukcesów), Sto lat, Gratulacje ≠ поздравление с днём рождения.
+  - L2 `zg-2-imieniny`: именины; **дательный** местоимений (mi, ci, mu, jej) и имён (Ani, Piotrowi); **jej ≠ ją**.
+  - L3 `zg-3-wigilia`: **прошедшее время** (byłem / byłam, jedliśmy), Wigilia: opłatek, 12 блюд, пустое место для гостя; jemy **karpia**.
+  - L4 `zg-4-sylwester`: **будущее** będę / będziemy + инфинитив (ошибка «będziemy oglądamy» как дистрактор), w Sylwestra, o północy.
+  - L5 `zg-5-wielkanoc`: **винительный** (kiełbasę) и множественное (pisanki, pięć pisanek), święconka, śmigus-dyngus; православная Пасха в другую дату.
+  - L6 `zg-6-dni-wolne`: государственные праздники, **niedziela handlowa**, согласование otwarty / zamknięty; 2 мая — не выходной.
+  - L7 `zg-7-winobranie`: опыт — **kiedyś, już, jeszcze nie, nigdy nie** (двойное отрицание), Winobranie, bachusiki.
+  - L8 `zg-8-kartka`: **звательный падеж** в открытке (Droga Magdo!, Kochana Babciu!, Drogi Tomku!, Panie Zbigniewie!), подписи Pozdrawiam / Ściskam / Z poważaniem. Сначала был урок о приглашениях — заменён: эту тему уже ведёт Ополе (`opo-6-zaproszenie`).
+  - Экзамен `zg-boss`: 12 заданий по всем темам.
+- Неправильные варианты — реальные ошибки: «Gratuluję urodzin», «Kupmy ją kwiaty», «karp» вместо «karpia», «pięć pisanki», «Nie, nigdy byłem», «Kochana Babcia!», «Szanowny Pan!», «Z poważaniem» бабушке.
+
+## Gorzów Wielkopolski — «Погода и природа», A2 (2026-10-28)
+- Файлы: `gorzow.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-gorzow.ts` (49 слов). Описание города на карте исправлено: было «финальная остановка… перед экзаменом B2», хотя это 9-й город уровня A2 (`cities.ts`, обновляется seed).
+- Грамматика:
+  - L1 `gorz-1-pogoda`: **jest zimno / ciepło** (наречие ≠ прилагательное), pada deszcz, wieje wiatr, **świeci** słońce (не «pada słońce»).
+  - L2 `gorz-2-pory-roku`: **zimą, latem** (не «w lato»), lubię **wiosnę**.
+  - L3 `gorz-3-prognoza`: **będzie padać**, **stopień / stopnie / stopni**, około **pięciu**; burza = гроза.
+  - L4 `gorz-4-ubierz-sie`: повелительное **weź, załóż**, **jeśli** + будущее, wezmę ≠ weź.
+  - L5 `gorz-5-przyroda`: **nad morze / nad morzem** (калька «na morze»), **w lesie**, przyroda ≠ przygoda.
+  - L6 `gorz-6-cieplej`: **cieplej, zimniej, lepiej, gorzej + niż** («jak» — разговорная ошибка), cieplej ≠ cieplejszy, gorzej ≠ gorąco.
+  - L7 `gorz-7-wycieczka`: **z wami / z tobą**, rowerem, **wypożyczyć ≠ pożyczyć**.
+  - L8 `gorz-8-segregacja`: сортировка мусора по цветам, **do żółtego** pojemnika, **nie wyrzucaj baterii**.
+  - Экзамен `gorz-boss`: 12 заданий.
+- Новые картинки вариантов (облако, снежинка, туман, зонт, палатка, гроздь, ёлка, свеча…) получили пиктограммы Lucide (тест `visual-keys`).
+- Нужна проверка носителем.
+
 ## Łódź — уроки 9–16: время, утро, график, здоровье, повторение (2026-10-26)
 - Файл `lodz-zycie.ts`, три новые темы перед экзаменом: `lodz-dzien` «День і графік» (L9–L12), `lodz-zdrowie`
   «Здоров'я» (L13–L15), `lodz-powtorka` «Повторення: вечір у Лодзі» (L16). 8 уроков, 15–16 заданий, 13–14 разных типов заданий в уроке.

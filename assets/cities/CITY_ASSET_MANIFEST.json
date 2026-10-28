@@ -5,7 +5,7 @@
     "cities": "apps/server/src/content/cities.ts (CITIES; REMOVED_CITIES = sopot, czestochowa)",
     "art": "packages/shared/src/cityArt.ts (CITY_ART), файлы apps/web/src/assets/cities/<slug>.webp и <slug>@640.webp",
     "lessons": "node --import tsx scripts/route-stats.ts (уроки без ботов-уроков, экзамен, задания)",
-    "owner_candidates": "docs/design/a10/cities/*.webp — 12 мастеров: 8 панорам 1774×887 (пакет 2026-10-27), Lublin 1774×887 и Katowice, Szczecin, Olsztyn 1536×1024 (3:2, пакет 2026-10-28, кадр 2:1 — scripts/build-city-art.mjs)"
+    "owner_candidates": "docs/design/a10/cities/*.webp — 12 мастеров: 8 панорам 1774×887 (пакет 2026-10-27), Lublin 1774×887 и Katowice, Szczecin, Olsztyn 1536×1024 (3:2, пакет 2026-10-28, кадр 2:1 — scripts/build-city-art.mjs); пакет 2026-10-28 (2): Zielona Góra, Bydgoszcz, Toruń, Kielce 1774×887; новая Poznań не взята — текущая точнее (лоджии ратуши, козлики)"
   },
   "note": "Число городов не зашито: состав берётся из CITIES. Сейчас 20 городов. Прогресс пользователей не проверялся: доступа к базе из среды нет.",
   "status_legend": {
@@ -192,38 +192,36 @@
       "name_pl": "Zielona Góra",
       "name_ru": "Зелёна-Гура",
       "cefr": "A2",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/zielona-gora.webp",
-        "status": "interim",
-        "declared_size": "1472×660",
-        "shows": "Ратуша з вежею, площа, виноградна лоза",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Ратуша з високою вежею, барвисті кам’яниці, виноградна лоза з гронами",
         "gap": null,
-        "owner_candidate": null
+        "master": "docs/design/a10/cities/city-zielona-gora.webp (1774×887, пакет владельца 2026-10-28)",
+        "kb": {
+          "main": 210,
+          "640": 58
+        },
+        "integrated": "2026-10-28"
       },
-      "landmarks": "виноградники на превью владельца совпадают; полноразмерного кандидата нет",
-      "missing_content": "уроков 0; тема «Свята і традиції»",
-      "progress": "не проверено",
-      "needed_art": {
-        "file": "docs/design/a10/cities/city-zielona-gora.webp",
-        "format": "отдельный оригинал (не коллаж), ≥ 1536×1024 (3:2) или ≥ 1774×887 (2:1); ориентир в средней полосе — кадр 2:1 режется во всю ширину и уменьшается до 1440×720, без увеличения; без текста, логотипов, Бобека и людей крупным планом",
-        "scene": "Рынок с ратушей и башней, виноградные склоны, статуя Бахуса; тёплый вечер, гроздья винограда на переднем плане.",
-        "priority": 1,
-        "current_check": "Ратуша с башней и виноград совпадают; статуи Бахуса нет. 1472×660."
-      }
+      "landmarks": "Ратуша с высокой башней и виноградная лоза совпадают; статуи Бахуса нет (бахусики есть в уроках) — проверено 2026-10-28",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-10-28, тема «Свята й традиції», A2)",
+      "progress": "не проверено"
     },
     {
       "city_id": "gorzow",
       "name_pl": "Gorzów Wielkopolski",
       "name_ru": "Гожув-Велькопольский",
       "cefr": "A2",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/gorzow.webp",
         "status": "final",
@@ -238,7 +236,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Все ориентиры промпта на кадре",
-      "missing_content": "уроков 0; финальная остановка B2 — тема «Погода і природа» не начата; нужен файл в apps/web/src/assets/cities/ после подтверждения",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-10-28, тема «Погода й природа», A2)",
       "progress": "не проверено"
     },
     {
@@ -330,22 +328,20 @@
       "tasks_per_lesson": null,
       "image": {
         "repo": "apps/web/src/assets/cities/bydgoszcz.webp",
-        "status": "interim",
-        "declared_size": "1620×668",
-        "shows": "Фахверкові зерносховища над Брдою, теплохід",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Фахверкові зерносховища (Spichrze) над Брдою, міст, катедра, річковий теплохід",
         "gap": null,
-        "owner_candidate": null
+        "master": "docs/design/a10/cities/city-bydgoszcz.webp (1774×887, пакет владельца 2026-10-28)",
+        "kb": {
+          "main": 213,
+          "640": 59
+        },
+        "integrated": "2026-10-28"
       },
-      "landmarks": "спихлери і набережна на превью владельца совпадают; полноразмерного кандидата нет",
+      "landmarks": "Фахверковые амбары (Spichrze) над Брдой и речной трамвай совпадают — проверено 2026-10-28",
       "missing_content": "уроков 0; тема «Минулий час і розповіді»",
-      "progress": "не проверено",
-      "needed_art": {
-        "file": "docs/design/a10/cities/city-bydgoszcz.webp",
-        "format": "отдельный оригинал (не коллаж), ≥ 1536×1024 (3:2) или ≥ 1774×887 (2:1); ориентир в средней полосе — кадр 2:1 режется во всю ширину и уменьшается до 1440×720, без увеличения; без текста, логотипов, Бобека и людей крупным планом",
-        "scene": "Остров Млынска: фахверковые зернохранилища над Брдой, мост-ферма, лодки, «Przechodzący przez rzekę»; без людей крупным планом.",
-        "priority": 2,
-        "current_check": "Фахверковые спихлеры над Брдой совпадают; моста-фермы и «Przechodzący przez rzekę» нет. 1620×668."
-      }
+      "progress": "не проверено"
     },
     {
       "city_id": "torun",
@@ -358,22 +354,20 @@
       "tasks_per_lesson": null,
       "image": {
         "repo": "apps/web/src/assets/cities/torun.webp",
-        "status": "interim",
-        "declared_size": "1448×668",
-        "shows": "Готичне Старе місто над Віслою, ратуша",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Готична ратуша, пам’ятник Копернику, руїни замку Тевтонського ордену над Віслою, вітрильник",
         "gap": null,
-        "owner_candidate": null
+        "master": "docs/design/a10/cities/city-torun.webp (1774×887, пакет владельца 2026-10-28)",
+        "kb": {
+          "main": 214,
+          "640": 58
+        },
+        "integrated": "2026-10-28"
       },
-      "landmarks": "памятник Копернику на превью владельца есть; полноразмерного кандидата нет",
+      "landmarks": "Готическая ратуша, памятник Копернику и Висла с замком совпадают — проверено 2026-10-28",
       "missing_content": "уроков 0; тема «Плани і майбутнє»",
-      "progress": "не проверено",
-      "needed_art": {
-        "file": "docs/design/a10/cities/city-torun.webp",
-        "format": "отдельный оригинал (не коллаж), ≥ 1536×1024 (3:2) или ≥ 1774×887 (2:1); ориентир в средней полосе — кадр 2:1 режется во всю ширину и уменьшается до 1440×720, без увеличения; без текста, логотипов, Бобека и людей крупным планом",
-        "scene": "Готическая Староместская ратуша, памятник Копернику, Кривая башня, городская стена на берегу Вислы; пряничный мотив на переднем плане.",
-        "priority": 3,
-        "current_check": "Кирпичная готика над Вислой совпадает; памятника Копернику и Кривой башни на кадре не видно. 1448×668."
-      }
+      "progress": "не проверено"
     },
     {
       "city_id": "olsztyn",
@@ -492,22 +486,20 @@
       "tasks_per_lesson": null,
       "image": {
         "repo": "apps/web/src/assets/cities/kielce.webp",
-        "status": "interim",
-        "declared_size": "1560×660",
-        "shows": "Палац краківських єпископів",
+        "status": "final",
+        "declared_size": "1440×720",
+        "shows": "Палац краківських єпископів з чотирма вежами, сквер і бруківка перед ним",
         "gap": null,
-        "owner_candidate": null
+        "master": "docs/design/a10/cities/city-kielce.webp (1774×887, пакет владельца 2026-10-28)",
+        "kb": {
+          "main": 202,
+          "640": 59
+        },
+        "integrated": "2026-10-28"
       },
-      "landmarks": "палац с садом на превью владельца совпадает; полноразмерного кандидата нет",
+      "landmarks": "Дворец краковских епископов с башнями совпадает; собора и Kadzielni нет — проверено 2026-10-28",
       "missing_content": "уроков 0; тема «Закріплення знань»",
-      "progress": "не проверено",
-      "needed_art": {
-        "file": "docs/design/a10/cities/city-kielce.webp",
-        "format": "отдельный оригинал (не коллаж), ≥ 1536×1024 (3:2) или ≥ 1774×887 (2:1); ориентир в средней полосе — кадр 2:1 режется во всю ширину и уменьшается до 1440×720, без увеличения; без текста, логотипов, Бобека и людей крупным планом",
-        "scene": "Дворец краковских епископов с садом, кафедральный собор, амфитеатр Kadzielnia в известняковом карьере.",
-        "priority": 5,
-        "current_check": "Дворец епископов с зелёными шлемами башен совпадает (условно); собора и Kadzielni нет. 1560×660."
-      }
+      "progress": "не проверено"
     },
     {
       "city_id": "zakopane",
@@ -540,8 +532,8 @@
   ],
   "summary": {
     "cities": 20,
-    "final": 10,
-    "interim": 10,
+    "final": 18,
+    "interim": 2,
     "missing_in_repo": 0,
     "owner_candidates_full_size": 8,
     "cities_with_lessons": [
@@ -551,9 +543,11 @@
       "katowice 8",
       "opole 8",
       "wroclaw 8",
-      "poznan 8"
+      "poznan 8",
+      "zielona-gora 8",
+      "gorzow 8"
     ],
-    "cities_without_lessons": 13,
+    "cities_without_lessons": 11,
     "exam_cities": [
       "warszawa",
       "lodz",
@@ -561,42 +555,36 @@
       "katowice",
       "opole",
       "wroclaw",
-      "poznan"
+      "poznan",
+      "zielona-gora",
+      "gorzow"
     ],
     "final_cities": [
       "warszawa",
       "lodz",
       "krakow",
+      "katowice",
       "opole",
       "wroclaw",
       "poznan",
+      "zielona-gora",
       "gorzow",
+      "szczecin",
       "gdansk",
       "gdynia",
-      "bialystok"
-    ],
-    "interim_cities": [
-      "katowice",
-      "zielona-gora",
-      "szczecin",
       "bydgoszcz",
       "torun",
       "olsztyn",
+      "bialystok",
       "lublin",
+      "kielce"
+    ],
+    "interim_cities": [
       "rzeszow",
-      "kielce",
       "zakopane"
     ],
     "need_new_art": [
-      "katowice",
-      "zielona-gora",
-      "szczecin",
-      "bydgoszcz",
-      "torun",
-      "olsztyn",
-      "lublin",
       "rzeszow",
-      "kielce",
       "zakopane"
     ],
     "integrated_from_owner_candidates": [

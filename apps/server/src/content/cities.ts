@@ -54,7 +54,7 @@ export const CITIES: CitySeed[] = [
     description: t('Місто виноградників і веселих бахусиків.', 'Город виноградников и весёлых бахусиков.', 'A city of vineyards and cheerful little Bacchus statues.'),
     cefr: 'A2', lon: 15.51, lat: 51.94, emoji: '🍇', color: '#9568F5' },
   { slug: 'gorzow', namePl: 'Gorzów Wielkopolski', name: t('Гожув-Великопольський', 'Гожув-Велькопольский', 'Gorzów Wielkopolski'), theme: t('Погода і природа', 'Погода и природа', 'Weather & nature'),
-    description: t('Фінальна зупинка над Вартою: генеральна репетиція перед іспитом B2.', 'Финальная остановка над Вартой: генеральная репетиция перед экзаменом B2.', 'The final stop on the Warta: a dress rehearsal for the B2 exam.'),
+    description: t('Місто над Вартою з довгим бульваром, а навколо — ліси й озера. Тут бобер говорить про погоду й природу.', 'Город над Вартой с длинным бульваром, а вокруг — леса и озёра. Здесь бобр говорит о погоде и природе.', 'A town on the Warta with a long boulevard and forests and lakes all around. Here the beaver talks about weather and nature.'),
     cefr: 'A2', lon: 15.24, lat: 52.73, emoji: '🎓', color: '#F45159' },
   { slug: 'szczecin', namePl: 'Szczecin', name: t('Щецин', 'Щецин', 'Szczecin'), theme: t('Робота і професії', 'Работа и профессии', 'Jobs & professions'),
     description: t('Портове місто з Валами Хроброго.', 'Портовый город с Валами Хробрего.', 'A port city with the Chrobry Embankment.'),

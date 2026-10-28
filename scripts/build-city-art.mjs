@@ -25,6 +25,7 @@ const OUT = new URL('../apps/web/src/assets/cities/', import.meta.url);
 export const CITIES = {
   lodz: {}, opole: {}, poznan: {}, wroclaw: {}, gdansk: {}, gdynia: {}, gorzow: {}, bialystok: {}, lublin: {},
   katowice: { top: 96 }, szczecin: { top: 72 }, olsztyn: { top: 72 },
+  'zielona-gora': {}, bydgoszcz: {}, torun: {}, kielce: {},
 };
 
 const TARGETS = [

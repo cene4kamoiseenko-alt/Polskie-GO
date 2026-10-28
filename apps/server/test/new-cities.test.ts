@@ -9,6 +9,10 @@ import { cities, playerProgress, userCities } from '../src/db/schema';
 import { STRANDED_CURRENT_CITY_SQL } from '../src/content/seed';
 import { POZNAN } from '../src/content/poznan';
 import { POZNAN_VOCAB } from '../src/content/vocab-poznan';
+import { ZIELONA_GORA } from '../src/content/zielona-gora';
+import { ZIELONA_GORA_VOCAB } from '../src/content/vocab-zielona-gora';
+import { GORZOW } from '../src/content/gorzow';
+import { GORZOW_VOCAB } from '../src/content/vocab-gorzow';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -22,6 +26,26 @@ citySuite({
   lessons: ['pzn-1-skad-dokad', 'pzn-2-koziolki', 'pzn-3-miesiace', 'pzn-4-daty', 'pzn-5-zajmuje-sie', 'pzn-6-targi', 'pzn-7-musze-moge', 'pzn-8-weekend'],
   boss: 'pzn-boss',
   levels: ['A1', 'A2'],
+});
+
+citySuite({
+  label: 'Zielona Góra',
+  content: ZIELONA_GORA,
+  vocab: ZIELONA_GORA_VOCAB,
+  routes: ['zg-zyczenia', 'zg-zima', 'zg-wiosna', 'zg-miasto', 'zg-egzamin'],
+  lessons: ['zg-1-zyczenia', 'zg-2-imieniny', 'zg-3-wigilia', 'zg-4-sylwester', 'zg-5-wielkanoc', 'zg-6-dni-wolne', 'zg-7-winobranie', 'zg-8-kartka'],
+  boss: 'zg-boss',
+  levels: ['A2'],
+});
+
+citySuite({
+  label: 'Gorzów Wielkopolski',
+  content: GORZOW,
+  vocab: GORZOW_VOCAB,
+  routes: ['gorz-pogoda', 'gorz-prognoza', 'gorz-przyroda', 'gorz-wycieczka', 'gorz-egzamin'],
+  lessons: ['gorz-1-pogoda', 'gorz-2-pory-roku', 'gorz-3-prognoza', 'gorz-4-ubierz-sie', 'gorz-5-przyroda', 'gorz-6-cieplej', 'gorz-7-wycieczka', 'gorz-8-segregacja'],
+  boss: 'gorz-boss',
+  levels: ['A2'],
 });
 
 describe('ученик сдал Вроцлав, когда в Познани ещё не было уроков', () => {
