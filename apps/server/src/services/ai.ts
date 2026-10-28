@@ -3,7 +3,7 @@
  * Ключ API — лише на сервері. Ліміти: N запитів на день (Free/Premium) та місячний бюджет токенів.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { dayKey, tr, type UiLang } from '@polski-go/shared';
+import { dayKey, isUiLang, tr, type UiLang } from '@polski-go/shared';
 import { and, desc, eq, inArray, like, sql, sum } from 'drizzle-orm';
 import { config } from '../env';
 import { atomic, db } from '../db';
@@ -23,7 +23,7 @@ export type AiMode = keyof typeof AI_MODES;
 
 export const ROLEPLAYS = ['cafe', 'shop', 'interview', 'doctor', 'airport', 'landlord', 'meeting', 'work', 'urzad', 'train'] as const;
 
-const LANG_NAMES: Record<UiLang, string> = { uk: 'Ukrainian', ru: 'Russian', en: 'English', pl: 'Polish' };
+const LANG_NAMES: Record<UiLang, string> = { uk: 'Ukrainian', ru: 'Russian', en: 'English' };
 
 const ROLEPLAY_SCENES: Record<(typeof ROLEPLAYS)[number], string> = {
   cafe: 'You are a barista in a café in Wrocław. The learner is a customer ordering.',
@@ -110,7 +110,7 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
     [conv] = await db.insert(aiConversations).values({ userId, mode: input.scene ? `${mode}:${input.scene}` : mode, title: text.slice(0, 60) }).returning();
   }
   const history = (conv.messages as unknown as StoredMessage[]) ?? [];
-  const lang = (user.settings?.uiLanguage ?? 'uk') as UiLang;
+  const lang: UiLang = isUiLang(user.settings?.uiLanguage) ? user.settings.uiLanguage : 'uk';
   const scene = mode === 'roleplay' ? ROLEPLAY_SCENES[(input.scene ?? 'cafe') as keyof typeof ROLEPLAY_SCENES] ?? ROLEPLAY_SCENES.cafe : undefined;
 
   const api = getClient();

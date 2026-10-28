@@ -1,6 +1,7 @@
 import { sttStatus } from './stt';
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
-import { dayKey, effectiveStreak, lastDays, levelFromXp, type Cefr } from '@polski-go/shared';
+import { dayKey, effectiveStreak, isUiLang, lastDays, levelFromXp, uiLangFor, type Cefr } from '@polski-go/shared';
+import { config } from '../env';
 import { and, count, desc, eq, gt, inArray, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import {
@@ -66,7 +67,8 @@ export async function getMe(userId: string) {
     referralCode: user.referralCode,
     onboarded: !!user.onboardedAt,
     createdAt: user.createdAt,
-    settings: user.settings,
+    // Польська мова інтерфейсу могла лишитися в старому профілі до міграції 0012 — віддаємо мову, якою застосунок говорить.
+    settings: user.settings && { ...user.settings, uiLanguage: isUiLang(user.settings.uiLanguage) ? user.settings.uiLanguage : uiLangFor(user.languageCode) },
     profile: user.profile,
     progress: {
       xpTotal: p.xpTotal,
@@ -92,7 +94,8 @@ export async function getMe(userId: string) {
     premium: premium ? { active: true, expiresAt: sub!.expiresAt, planCode: sub!.planCode, recurring: sub!.isRecurring, cancelled: sub!.status === 'CANCELLED' } : { active: false },
     outfit: look,
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
-    ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay },
+    // configured: без ключа ШІ-співрозмовник не працює — застосунок ховає його входи й не обіцяє його в Premium.
+    ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay, configured: !!config.anthropicKey },
     rewards: { exerciseXp: cfg.exerciseXp },
     /** Чи доступна серверна польська озвучка (інакше — лише польський голос пристрою). */
     audio: { server: ttsConfigured(), ...ttsStatus(), recognition: { server: sttStatus().configured, ...sttStatus() } },

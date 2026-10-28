@@ -509,6 +509,7 @@ export const uk = {
   home_tile_dict_d: "Слова й повторення",
   home_tile_talk: "Розмови",
   home_tile_talk_d: "Практика з AI",
+  home_tile_premium: 'Premium',
   home_tile_slang: "Żywy polski",
   home_tile_slang_d: "Сленг і розмовне",
   home_tile_life: "У житті",

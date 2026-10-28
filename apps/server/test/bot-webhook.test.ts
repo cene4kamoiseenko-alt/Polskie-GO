@@ -113,7 +113,9 @@ describe('язык ответа', () => {
   it('настройка пользователя важнее языка Telegram, затем язык Telegram, затем украинский', async () => {
     const ru = await registered({ lang: 'ru' });
     expect((await say(from(ru.telegramId, 'pl'), '/start')).calls[0].params.caption).toContain('Я Бобек!');
-    expect((await say(from(8_100_010, 'pl'), '/start')).calls[0].params.caption).toContain('Jestem Bobek!');
+    // Польської мови інтерфейсу немає: Telegram польською — українською, білоруською — російською.
+    expect((await say(from(8_100_010, 'pl'), '/start')).calls[0].params.caption).toContain('Твій друг і провідник Польщею');
+    expect((await say(from(8_100_014, 'be'), '/start')).calls[0].params.caption).toContain('Твой друг и проводник по Польше');
     expect((await say(from(8_100_011, 'en-GB'), '/start')).calls[0].params.caption).toContain('I’m Bobek!');
     expect((await say(from(8_100_012, 'de'), '/start')).calls[0].params.caption).toContain('Твій друг і провідник Польщею');
     expect((await say(from(8_100_013, 'uk'), '/map')).calls[0].params.caption).toContain('Сьогодні Бобек кличе');
@@ -432,7 +434,6 @@ describe('постоянная панель быстрых кнопок', () => 
   it.each([
     ['ru', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Задания', '🏆 Профиль', '⚙️ Настройки'], ['🧠 Быстрый вопрос']],
     ['uk', ['📚 Урок', '🗺 Карта', '📖 Слова'], ['🎯 Завдання', '🏆 Профіль', '⚙️ Налаштування'], ['🧠 Швидке питання']],
-    ['pl', ['📚 Lekcja', '🗺 Mapa', '📖 Słowa'], ['🎯 Zadania', '🏆 Profil', '⚙️ Ustawienia'], ['🧠 Szybkie pytanie']],
     ['en', ['📚 Lesson', '🗺 Map', '📖 Words'], ['🎯 Tasks', '🏆 Profile', '⚙️ Settings'], ['🧠 Quick question']],
   ])('/start на %s: после карточки приходит панель — два ряда по три кнопки и быстрый вопрос, закреплённая', async (lang, row1, row2, row3) => {
     const { calls } = await say(from(8_300_000 + row1.length + lang.length, lang), '/start');

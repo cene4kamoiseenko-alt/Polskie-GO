@@ -488,6 +488,7 @@ export const en: Dict = {
   home_tile_dict_d: "Words & review",
   home_tile_talk: "Conversations",
   home_tile_talk_d: "AI practice",
+  home_tile_premium: 'Premium',
   home_tile_slang: "Żywy polski",
   home_tile_slang_d: "Slang & casual",
   home_tile_life: "Real life",

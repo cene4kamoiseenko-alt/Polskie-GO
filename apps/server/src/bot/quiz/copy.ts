@@ -133,51 +133,6 @@ const uk: QuizCopy = {
   toastLate: 'Час вийшов — дивись пояснення',
 };
 
-const pl: QuizCopy = {
-  intro: join(
-    '🦫 Szybki quiz — 1 pytanie!',
-    'Sprawdzimy twój polski?',
-    '',
-    'Jedno krótkie pytanie, które pomoże ci pewniej mówić w prawdziwych sytuacjach.',
-    '',
-    '⏰ Tylko 20 sekund',
-    '⭐ Od razu wyjaśnię odpowiedź',
-    '🎁 Mały bonus za dobrą odpowiedź',
-    '',
-    'No to zaczynamy! 🇵🇱',
-  ),
-  start: '🚀 Zaczynamy quiz',
-  header: (category, cefr) => `🧠 Szybki quiz · ${category} · ${cefr}`,
-  choose: (s) => `Wybierz poprawną odpowiedź — masz ${s} sekund ⏱`,
-  correct: '✅ Dobrze! Brawo!',
-  wrong: '❌ Nie do końca.',
-  late: '⏰ Czas minął — za to pytanie nie ma XP, ale zobacz wyjaśnienie.',
-  rightAnswer: (l, t) => `Poprawna odpowiedź: ${l} — ${t}`,
-  yourAnswer: (l, t) => `Twoja odpowiedź: ${l} — ${t}`,
-  explainTitle: '💡 Wyjaśnienie:',
-  xp: (n) => `🎁 +${n} XP`,
-  noAccount: '🦫 XP za odpowiedzi naliczamy po pierwszym wejściu do POLSKI GO.',
-  rewardsLeft: (n) => `🎯 Dziś XP dadzą jeszcze ${n} ${n === 1 ? 'dobra odpowiedź' : 'dobre odpowiedzi'}.`,
-  rewardsDone: '🏁 Bonusy XP na dziś zdobyte — możesz ćwiczyć dalej, już bez XP.',
-  nextNow: '⏭ Następne pytanie',
-  tomorrow: '🌙 Nowe pytania jutro',
-  openLesson: '📚 Otwórz lekcję',
-  openApp: '🚀 Otwórz POLSKI GO',
-  pushOff: '🔕 Nie wysyłaj pytań',
-  pushOn: '🔔 Wysyłaj pytania',
-  pushOffDone: 'Dobrze, nie będę już wysyłać pytań. Zapytasz w każdej chwili: /quiz',
-  pushOnDone: 'Gotowe! Czasem wyślę krótkie pytanie (najwyżej raz dziennie).',
-  cap: (n) => join(`🌙 Na dziś wystarczy: ${n} pytań w jeden dzień — świetny trening!`, 'Wrócimy jutro. A tymczasem możesz zrobić lekcję! 🦫'),
-  already: 'Odpowiedź już zaliczona 👍',
-  expired: 'To pytanie jest już nieaktualne. Nowe: /quiz',
-  notYours: 'To pytanie jest dla innego gracza 🙂',
-  group: 'Szybkie pytania działają w prywatnym czacie z botem 🦫',
-  stopHint: '🔕 Wyłącz przypomnienia: /stop',
-  toastCorrect: (xp) => (xp > 0 ? `Dobrze! +${xp} XP` : 'Dobrze! Brawo!'),
-  toastWrong: 'Nie do końca — zobacz wyjaśnienie',
-  toastLate: 'Czas minął — zobacz wyjaśnienie',
-};
-
 const en: QuizCopy = {
   intro: join(
     '🦫 Szybki quiz — 1 pytanie!',
@@ -223,4 +178,4 @@ const en: QuizCopy = {
   toastLate: "Time's up — see the explanation",
 };
 
-export const QUIZ_COPY: Record<UiLang, QuizCopy> = { ru, uk, pl, en };
+export const QUIZ_COPY: Record<UiLang, QuizCopy> = { ru, uk, en };

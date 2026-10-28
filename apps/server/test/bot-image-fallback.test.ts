@@ -153,7 +153,7 @@ describe('быстрый вопрос с картинкой', () => {
     expect(round).toMatchObject({ status: 'OPEN', hasPhoto: false });
   });
 
-  it.each(['uk', 'pl', 'en'] as const)('%s: картинок к вопросам нет — вопрос уходит текстом', async (lang) => {
+  it.each(['uk', 'en'] as const)('%s: картинок к вопросам нет — вопрос уходит текстом', async (lang) => {
     expect(QUIZ_QUESTIONS.filter((q) => quizImage(q, lang))).toEqual([]);
     const telegramId = 8_300_060 + UI_LANGS.indexOf(lang);
     const calls = fakeTelegram();

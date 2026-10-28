@@ -24,12 +24,17 @@ const items = (labels: [string, string, string, string, string, string, string])
 export const PANEL: Record<UiLang, { text: string; items: Item[] }> = {
   ru: { text: '⌨️ Быстрое меню внизу — нажимайте кнопки 👇', items: items(['📚 Урок', '🗺 Карта', '📖 Слова', '🎯 Задания', '🏆 Профиль', '⚙️ Настройки', '🧠 Быстрый вопрос']) },
   uk: { text: '⌨️ Швидке меню внизу — натискайте кнопки 👇', items: items(['📚 Урок', '🗺 Карта', '📖 Слова', '🎯 Завдання', '🏆 Профіль', '⚙️ Налаштування', '🧠 Швидке питання']) },
-  pl: { text: '⌨️ Szybkie menu na dole — wybierz przycisk 👇', items: items(['📚 Lekcja', '🗺 Mapa', '📖 Słowa', '🎯 Zadania', '🏆 Profil', '⚙️ Ustawienia', '🧠 Szybkie pytanie']) },
   en: { text: '⌨️ Quick menu below — tap a button 👇', items: items(['📚 Lesson', '🗺 Map', '📖 Words', '🎯 Tasks', '🏆 Profile', '⚙️ Settings', '🧠 Quick question']) },
 };
 
+/**
+ * Польські підписи панелі, яку бот ставив до того, як польську прибрали з мов інтерфейсу. Панель закріплена в чаті,
+ * тож старі кнопки ще натискають: вони ведуть туди ж, куди й раніше.
+ */
+const LEGACY_PL_LABELS = items(['📚 Lekcja', '🗺 Mapa', '📖 Słowa', '🎯 Zadania', '🏆 Profil', '⚙️ Ustawienia', '🧠 Szybkie pytanie']);
+
 /** Подпись кнопки → команда, для всех языков сразу: язык пользователя мог смениться после установки панели. */
-const BY_LABEL = new Map<string, MenuCommand>(Object.values(PANEL).flatMap((p) => p.items.map((i) => [i.label, i.command] as const)));
+const BY_LABEL = new Map<string, MenuCommand>([...Object.values(PANEL).flatMap((p) => p.items), ...LEGACY_PL_LABELS].map((i) => [i.label, i.command] as const));
 
 export function commandForLabel(text: string | undefined): MenuCommand | null {
   return BY_LABEL.get((text ?? '').trim()) ?? null;

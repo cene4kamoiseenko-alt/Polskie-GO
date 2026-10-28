@@ -67,7 +67,8 @@ describe('три сценария: фото, текст и кнопка по р�
 
     const r = to(calls, comeback.telegramId)[0];
     expect(r.params.photo).toBe(versioned(ORIGIN, 'commands/reminder-return.jpg'));
-    expect(r.params.caption).toContain('Dawno się nie widzieliśmy!');
+    // У старому профілі лишилася польська мова інтерфейсу (до міграції 0012): нагадування — українською, а не польською.
+    expect(r.params.caption).toContain('Бобек радий знову тебе бачити');
     expect(button(r).web_app.url).toBe(`${ORIGIN}/`);
 
     const o = to(calls, oneDay.telegramId)[0];

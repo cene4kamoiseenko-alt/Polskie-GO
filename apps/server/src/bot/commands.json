@@ -1,14 +1,14 @@
 {
   "commands": [
-    { "command": "start", "description": { "ru": "🦫 Начать путешествие", "uk": "🦫 Розпочати подорож", "pl": "🦫 Zacznij podróż", "en": "🦫 Start the journey" } },
-    { "command": "lesson", "description": { "ru": "📚 Продолжить обучение", "uk": "📚 Продовжити навчання", "pl": "📚 Kontynuuj naukę", "en": "📚 Continue learning" } },
-    { "command": "quiz", "description": { "ru": "🧠 Быстрый вопрос по-польски", "uk": "🧠 Швидке питання польською", "pl": "🧠 Szybkie pytanie", "en": "🧠 Quick Polish question" } },
-    { "command": "map", "description": { "ru": "🗺 Карта городов Польши", "uk": "🗺 Карта міст Польщі", "pl": "🗺 Mapa miast Polski", "en": "🗺 Map of Polish cities" } },
-    { "command": "words", "description": { "ru": "📖 Словарь и полезные фразы", "uk": "📖 Словник і корисні фрази", "pl": "📖 Słownik i przydatne zwroty", "en": "📖 Dictionary and useful phrases" } },
-    { "command": "quests", "description": { "ru": "🎯 Ежедневные задания", "uk": "🎯 Щоденні завдання", "pl": "🎯 Codzienne zadania", "en": "🎯 Daily tasks" } },
-    { "command": "profile", "description": { "ru": "🏆 Мой прогресс и достижения", "uk": "🏆 Мій прогрес і досягнення", "pl": "🏆 Mój postęp i osiągnięcia", "en": "🏆 My progress and achievements" } },
-    { "command": "settings", "description": { "ru": "⚙️ Настройки приложения", "uk": "⚙️ Налаштування застосунку", "pl": "⚙️ Ustawienia aplikacji", "en": "⚙️ App settings" } },
-    { "command": "help", "description": { "ru": "❓ Помощь и возможности бота", "uk": "❓ Допомога і можливості бота", "pl": "❓ Pomoc i możliwości bota", "en": "❓ Help and what the bot can do" } },
-    { "command": "stop", "description": { "ru": "🔕 Отключить напоминания", "uk": "🔕 Вимкнути нагадування", "pl": "🔕 Wyłącz przypomnienia", "en": "🔕 Turn off reminders" } }
+    { "command": "start", "description": { "ru": "🦫 Начать путешествие", "uk": "🦫 Розпочати подорож", "en": "🦫 Start the journey" } },
+    { "command": "lesson", "description": { "ru": "📚 Продолжить обучение", "uk": "📚 Продовжити навчання", "en": "📚 Continue learning" } },
+    { "command": "quiz", "description": { "ru": "🧠 Быстрый вопрос по-польски", "uk": "🧠 Швидке питання польською", "en": "🧠 Quick Polish question" } },
+    { "command": "map", "description": { "ru": "🗺 Карта городов Польши", "uk": "🗺 Карта міст Польщі", "en": "🗺 Map of Polish cities" } },
+    { "command": "words", "description": { "ru": "📖 Словарь и полезные фразы", "uk": "📖 Словник і корисні фрази", "en": "📖 Dictionary and useful phrases" } },
+    { "command": "quests", "description": { "ru": "🎯 Ежедневные задания", "uk": "🎯 Щоденні завдання", "en": "🎯 Daily tasks" } },
+    { "command": "profile", "description": { "ru": "🏆 Мой прогресс и достижения", "uk": "🏆 Мій прогрес і досягнення", "en": "🏆 My progress and achievements" } },
+    { "command": "settings", "description": { "ru": "⚙️ Настройки приложения", "uk": "⚙️ Налаштування застосунку", "en": "⚙️ App settings" } },
+    { "command": "help", "description": { "ru": "❓ Помощь и возможности бота", "uk": "❓ Допомога і можливості бота", "en": "❓ Help and what the bot can do" } },
+    { "command": "stop", "description": { "ru": "🔕 Отключить напоминания", "uk": "🔕 Вимкнути нагадування", "en": "🔕 Turn off reminders" } }
   ]
 }

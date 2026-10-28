@@ -1,7 +1,8 @@
 // Настройка бота в Telegram. Запуск: npm run bot:setup -w @polski-go/server [-- флаги]
 //
 // По умолчанию скрипт меняет ТОЛЬКО:
-//   • команды бота (setMyCommands): девять карточек и /quiz, по умолчанию русские описания + локализации uk / pl / en;
+//   • команды бота (setMyCommands): девять карточек и /quiz, по умолчанию русские описания + локализации uk / en
+//     (Telegram на польском получает украинские: польской мовы интерфейса нет — приложение учит польский);
 //   • кнопку меню, которая открывает Mini App (setChatMenuButton).
 // Ничего больше он не трогает: описание (Description), About, Description Picture, токен и webhook остаются как настроены в BotFather.
 // Описание бота и картинка описания в Bot API: картинку через API не изменить, текст описания — только с флагом --description.
@@ -18,8 +19,9 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const catalog = JSON.parse(readFileSync(new URL('../src/bot/commands.json', import.meta.url), 'utf8'));
-/** Локализации списка команд помимо языка по умолчанию (русский). */
+/** Локализации списка команд помимо языка по умолчанию (русский): код языка Telegram → язык описаний. */
 export const LOCALIZED = ['uk', 'pl', 'en'];
+const DESCRIPTION_LANG = { uk: 'uk', pl: 'uk', en: 'en' };
 export const DESCRIPTION = 'POLSKI GO — вивчай польську, подорожуючи Польщею разом з бобром Бобеком! 🦫🇵🇱';
 
 /** Та же нормализация адреса, что в `src/env.ts` (`normalizeWebAppUrl`): без схемы → https, http на боевом адресе → https, localhost остаётся на http. */
@@ -38,7 +40,7 @@ export function buildCalls(env, flags = {}) {
   const calls = [];
   const list = (lang) => catalog.commands.map((c) => ({ command: c.command, description: c.description[lang] }));
   calls.push({ method: 'setMyCommands', params: { commands: list('ru') } });
-  for (const lang of LOCALIZED) calls.push({ method: 'setMyCommands', params: { commands: list(lang), language_code: lang } });
+  for (const code of LOCALIZED) calls.push({ method: 'setMyCommands', params: { commands: list(DESCRIPTION_LANG[code]), language_code: code } });
   if (env.WEB_APP_URL) calls.push({ method: 'setChatMenuButton', params: { menu_button: { type: 'web_app', text: 'POLSKI GO', web_app: { url: normalizeUrl(env.WEB_APP_URL) } } } });
   if (flags.description) calls.push({ method: 'setMyDescription', params: { description: DESCRIPTION } });
   return calls;

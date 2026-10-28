@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { tr as trShared, type I18n, type UiLang } from '@polski-go/shared';
+import { isUiLang, tr as trShared, uiLangFor, type I18n, type UiLang } from '@polski-go/shared';
 import { uk, type Dict } from './uk';
 
 /**
@@ -11,7 +11,6 @@ const LOADERS: Record<UiLang, () => Promise<Dict>> = {
   uk: async () => uk,
   ru: () => import('./ru').then((m) => m.ru),
   en: () => import('./en').then((m) => m.en),
-  pl: () => import('./pl').then((m) => m.pl),
 };
 const pending: Partial<Record<UiLang, Promise<void>>> = {};
 
@@ -25,7 +24,7 @@ export function preloadLang(lang: UiLang): Promise<void> {
       delete pending[lang];
     }));
 }
-const LOCALES: Record<UiLang, string> = { uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB', pl: 'pl-PL' };
+const LOCALES: Record<UiLang, string> = { uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' };
 
 export type TKey = keyof Dict;
 type Ctx = { lang: UiLang; t: (k: TKey, vars?: Record<string, string | number>) => string; tr: (v: I18n | string | null | undefined) => string; date: (d: string | Date) => string };
@@ -77,8 +76,12 @@ export function useT() {
   return c;
 }
 
-/** Мова за замовчуванням до завантаження профілю — з Telegram або браузера. */
+/** Мова за замовчуванням до завантаження профілю — з Telegram або браузера (правило uiLangFor). */
 export function guessLang(code?: string): UiLang {
-  const c = (code ?? navigator.language ?? 'uk').slice(0, 2);
-  return (['uk', 'ru', 'en', 'pl'] as const).includes(c as UiLang) ? (c as UiLang) : 'uk';
+  return uiLangFor(code ?? navigator.language);
+}
+
+/** Мова з профілю, якщо вона серед мов інтерфейсу (у старих профілях могла лишитися польська), інакше — здогадка. */
+export function profileLang(saved: string | undefined, code?: string): UiLang {
+  return isUiLang(saved) ? saved : guessLang(code);
 }

@@ -50,11 +50,6 @@ export default function ExamsScreen() {
         <Card className="space-y-2 p-4 text-sm font-semibold">
           <p>{t('exams_state_text')}</p>
           <p className="font-black text-sky-dark">{t('exams_sections')}</p>
-          {!me.premium.active ? (
-            <button className="btn btn-xp w-full" onClick={() => nav('/premium')}><Icon name="crown" size={20} filled /> {t('prem_f3')}</button>
-          ) : (
-            <button className="btn btn-sky w-full" onClick={() => nav('/ai')}><Icon name="chat" size={20} /> {t('prem_f3')}</button>
-          )}
         </Card>
       </Section>
       {history.length > 0 && (

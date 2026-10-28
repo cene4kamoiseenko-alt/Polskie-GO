@@ -27,7 +27,6 @@ const LANGS: { code: UiLang; name: string }[] = [
   { code: 'uk', name: 'Українська' },
   { code: 'ru', name: 'Русский' },
   { code: 'en', name: 'English' },
-  { code: 'pl', name: 'Polski' },
 ];
 const LEVELS: Cefr[] = ['A0', 'A1', 'A2', 'B1', 'B2'];
 /** Кольори бейджів рівнів CEFR. */

@@ -17,9 +17,9 @@ export type CommandName = (typeof COMMANDS)[number];
 
 /** Команды меню Telegram: девять карточек и быстрый вопрос `/quiz`. */
 export type MenuCommand = CommandName | 'quiz';
-type MenuEntry = { command: MenuCommand; description: Record<'ru' | 'uk' | 'pl' | 'en', string> };
+type MenuEntry = { command: MenuCommand; description: Record<UiLang, string> };
 
-/** Описания для `setMyCommands`: язык по умолчанию — русский, `uk` / `pl` / `en` — локализации. */
+/** Описания для `setMyCommands`: язык по умолчанию — русский, `uk` / `en` — локализации (Telegram на польском получает `uk`). */
 export const MENU = commandsJson.commands as MenuEntry[];
 /** Только девять карточек (без `/quiz`). */
 export const COMMAND_MENU = MENU.filter((c): c is MenuEntry & { command: CommandName } => c.command !== 'quiz');

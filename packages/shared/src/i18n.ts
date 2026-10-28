@@ -4,6 +4,5 @@ import type { I18n, UiLang } from './types';
 export function tr(text: I18n | string | undefined | null, lang: UiLang): string {
   if (text == null) return '';
   if (typeof text === 'string') return text;
-  if (lang === 'pl') return text.pl ?? text.en ?? text.uk;
   return text[lang] ?? text.uk;
 }

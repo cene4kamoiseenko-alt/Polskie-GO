@@ -1,6 +1,19 @@
-/** Мови інтерфейсу. Польська — і мова інтерфейсу, і мова, яку вивчають. */
-export const UI_LANGS = ['uk', 'ru', 'en', 'pl'] as const;
+/**
+ * Мови інтерфейсу. Польської серед них немає: застосунок учить польську, а пояснення дає рідною мовою учня
+ * (вчити польську польською без підказок немає сенсу). Білоруська й казахська мови Telegram → російська.
+ */
+export const UI_LANGS = ['uk', 'ru', 'en'] as const;
 export type UiLang = (typeof UI_LANGS)[number];
+
+export const isUiLang = (v: unknown): v is UiLang => (UI_LANGS as readonly unknown[]).includes(v);
+
+/** Мова інтерфейсу за кодом мови Telegram або браузера (`uk`, `ru-RU`, `be`…). Невідома мова (зокрема польська) — українська. */
+export function uiLangFor(code: string | null | undefined): UiLang {
+  const c = (code ?? '').slice(0, 2).toLowerCase();
+  if (c === 'ru' || c === 'be' || c === 'kk') return 'ru';
+  if (c === 'en') return 'en';
+  return 'uk';
+}
 
 /** Текст, перекладений мовами інтерфейсу. `uk` — обов'язковий (основна мова). */
 export type I18n = { uk: string; ru?: string; en?: string; pl?: string };

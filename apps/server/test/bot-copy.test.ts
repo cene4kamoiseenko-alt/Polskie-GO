@@ -52,9 +52,8 @@ describe('копирайт бота', () => {
     }
   });
 
-  it('язык не смешивается: русская кириллица только в ru, украинские буквы только в uk, у pl и en нет кириллицы', () => {
+  it('язык не смешивается: русская кириллица только в ru, украинские буквы только в uk, у en нет кириллицы', () => {
     const body = (lang: UiLang) => COMMANDS.map((c) => COPY[lang][c](FULL).text + COPY[lang][c](FULL).buttons.map((b) => b.label).join(' ')).join('\n');
-    expect(body('pl')).not.toMatch(/[А-Яа-яЁёІіЇїЄє]/);
     expect(body('en')).not.toMatch(/[А-Яа-яЁёІіЇїЄє]/);
     expect(body('ru')).not.toMatch(/[іїєґ]/i);
     expect(body('uk')).not.toMatch(/[ёъыэ]/i);
@@ -102,10 +101,9 @@ describe('копирайт бота', () => {
     }
   });
 
-  it('напоминания: три сценария, четыре языка, склонение «дней», подсказка /stop', () => {
+  it('напоминания: три сценария, три языка, склонение «дней», подсказка /stop', () => {
     expect([1, 2, 5, 11, 21, 22, 25].map((n) => daysWord('ru', n))).toEqual(['день', 'дня', 'дней', 'дней', 'день', 'дня', 'дней']);
     expect([1, 2, 5, 11, 21].map((n) => daysWord('uk', n))).toEqual(['день', 'дні', 'днів', 'днів', 'день']);
-    expect([1, 2, 5].map((n) => daysWord('pl', n))).toEqual(['dzień', 'dni', 'dni']);
     expect([1, 2].map((n) => daysWord('en', n))).toEqual(['day', 'days']);
     expect(COPY.ru.reminder.streak(3).text).toContain('Твоя серия обучения — 3 дня!');
     expect(COPY.ru.reminder.streak(5).text).toContain('5 дней');
@@ -171,14 +169,14 @@ describe('команды и картинки', () => {
     expect(existsSync(new URL('ru/', BOT_PUBLIC))).toBe(false);
   });
 
-  it('русские надписи — только в русском интерфейсе; uk / pl / en получают кадры без надписей на языке интерфейса', () => {
+  it('русские надписи — только в русском интерфейсе; uk / en получают кадры без надписей на языке интерфейса', () => {
     for (const command of COMMANDS) {
-      for (const lang of ['uk', 'pl', 'en'] as const) expect(commandImage(command, lang)).toBe(`commands/${COMMAND_IMAGES[command]}`);
+      for (const lang of ['uk', 'en'] as const) expect(commandImage(command, lang)).toBe(`commands/${COMMAND_IMAGES[command]}`);
       expect(commandImage(command, 'ru')).toBe(RU_COMMAND_IMAGES[command] ?? `commands/${COMMAND_IMAGES[command]}`);
     }
     // Доска «Снова тут?» — только для русского интерфейса и только для приветствия вернувшегося пользователя.
     expect(startBackImage('ru')).toBe('scenes/ru/return.jpg');
-    for (const lang of ['uk', 'pl', 'en'] as const) expect(startBackImage(lang)).toBe(`commands/${COMMAND_IMAGES.start}`);
+    for (const lang of ['uk', 'en'] as const) expect(startBackImage(lang)).toBe(`commands/${COMMAND_IMAGES.start}`);
     // Напоминания не показывают часы «19:00» и серию «7»: во всех языках одни и те же нейтральные кадры.
     expect(reminderImage('lesson')).toBe('commands/reminder-lesson.jpg');
     expect(reminderImage('streak')).toBe('commands/reminder-streak.jpg');
@@ -194,9 +192,11 @@ describe('команды и картинки', () => {
     expect(parseCommand('')).toBeNull();
   });
 
-  it('выбор языка: настройка → язык Telegram → украинский по умолчанию', () => {
+  it('выбор языка: настройка → язык Telegram → украинский по умолчанию; польского интерфейса нет, белорусский → русский', () => {
     expect(pickLang('ru', 'pl')).toBe('ru');
-    expect(pickLang(null, 'pl-PL')).toBe('pl');
+    expect(pickLang(null, 'pl-PL')).toBe('uk');
+    expect(pickLang('pl', 'en')).toBe('en');
+    expect(pickLang(null, 'be')).toBe('ru');
     expect(pickLang(undefined, 'EN')).toBe('en');
     expect(pickLang(null, 'de')).toBe('uk');
     expect(pickLang('xx', undefined)).toBe('uk');

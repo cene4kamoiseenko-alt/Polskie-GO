@@ -488,6 +488,7 @@ export const ru: Dict = {
   home_tile_dict_d: "Слова и повторение",
   home_tile_talk: "Разговоры",
   home_tile_talk_d: "Практика с AI",
+  home_tile_premium: 'Premium',
   home_tile_slang: "Żywy polski",
   home_tile_slang_d: "Сленг и разговорное",
   home_tile_life: "В жизни",

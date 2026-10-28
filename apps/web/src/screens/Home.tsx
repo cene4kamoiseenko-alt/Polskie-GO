@@ -271,7 +271,8 @@ export function HomeScreen() {
             [
               ['grammar', 'home_tile_grammar', '/grammar'],
               ['dictionary', 'home_tile_dict', '/dictionary'],
-              ['ai', 'home_tile_talk', '/ai'],
+              // ШІ-співрозмовник — лише коли його підключено на сервері; інакше на цьому місці — Premium.
+              me.ai.configured ? ['ai', 'home_tile_talk', '/ai'] : ['premium', 'home_tile_premium', '/premium'],
               ['story', 'home_tile_slang', '/slang'],
               ['city', 'home_tile_life', '/life'],
               ['exam', 'home_tile_exams', '/exams'],

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { SplashScene } from './components/Splash';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LazyMotion, MotionConfig, loadMotionFeatures, motion } from './lib/motion';
-import { I18nProvider, guessLang } from './i18n';
+import { I18nProvider, profileLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
 import { peekLaunchRoute, takeLaunchRoute } from './lib/launch';
 import { useMe } from './lib/queries';
@@ -104,7 +104,7 @@ export function App() {
   const loc = useLocation();
   const nav = useNavigate();
   useEffect(() => () => stopSpeech(), [loc.pathname]);
-  const lang = me.data?.settings.uiLanguage ?? guessLang(tg?.initDataUnsafe.user?.language_code);
+  const lang = profileLang(me.data?.settings.uiLanguage, tg?.initDataUnsafe.user?.language_code);
   useTheme(me.data?.settings.theme);
   useEffect(() => {
     setSoundEnabled(me.data?.settings.soundEnabled ?? true);

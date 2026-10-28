@@ -72,9 +72,9 @@ describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
     expect(existsSync(new URL('scenes/stores/', botPublic)), 'scenes/stores/ снята с публикации').toBe(false);
     const loyalty = QUESTION_BY_ID.get('shop-loyalty')!;
     expect(quizImage(loyalty, 'ru')).toBe('scenes/ru/shopping.jpg');
-    for (const lang of ['uk', 'pl', 'en'] as const) expect(quizImage(loyalty, lang), lang).toBeNull();
+    for (const lang of ['uk', 'en'] as const) expect(quizImage(loyalty, lang), lang).toBeNull();
     // Кадр InPost выдал бы ответ «в постамате».
-    for (const lang of ['ru', 'uk', 'pl', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
+    for (const lang of ['ru', 'uk', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
   });
 
   it('для каждой из 17 миссий (14 + 3 «скоро») описан фон без Бобека и действие игрока', () => {

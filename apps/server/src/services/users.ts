@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { UI_LANGS, type UiLang } from '@polski-go/shared';
+import { uiLangFor } from '@polski-go/shared';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { atomic, db, isUniqueViolation } from '../db';
 import { cities, cosmeticItems, friendships, gameWallets, newId, playerProgress, userCities, userInventory, userProfiles, userSettings, users } from '../db/schema';
@@ -7,11 +7,6 @@ import type { TelegramUser } from '../lib/telegram';
 
 function newReferralCode() {
   return randomBytes(5).toString('base64url').replace(/[-_]/g, 'x').slice(0, 8);
-}
-
-function guessLang(code?: string): UiLang {
-  const c = (code ?? '').slice(0, 2);
-  return (UI_LANGS as readonly string[]).includes(c) ? (c as UiLang) : 'uk';
 }
 
 /** Знайти або створити користувача за підтвердженими даними Telegram. */
@@ -53,7 +48,7 @@ export async function upsertTelegramUser(tg: TelegramUser, startParam?: string):
         id, telegramId, username: tg.username ?? null, firstName: tg.first_name ?? '', lastName: tg.last_name ?? null,
         photoUrl: tg.photo_url ?? null, languageCode: tg.language_code ?? null, referralCode: newReferralCode(), referredById,
       }),
-      db.insert(userSettings).values({ userId: id, uiLanguage: guessLang(tg.language_code) }),
+      db.insert(userSettings).values({ userId: id, uiLanguage: uiLangFor(tg.language_code) }),
       db.insert(userProfiles).values({ userId: id }),
       db.insert(playerProgress).values({ userId: id, currentCityId: cityId }),
       db.insert(gameWallets).values({ userId: id, balance: 0 }),

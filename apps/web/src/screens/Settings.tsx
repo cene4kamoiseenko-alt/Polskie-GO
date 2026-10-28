@@ -69,7 +69,8 @@ function PronSetting({ value, onChange }: { value: 'simple' | 'ipa' | 'off'; onC
   );
 }
 
-const LANGS: [UiLang, string][] = [['uk', 'Українська'], ['ru', 'Русский'], ['en', 'English'], ['pl', 'Polski']];
+// Польської серед мов інтерфейсу немає: застосунок учить польську, пояснення — рідною мовою учня.
+const LANGS: [UiLang, string][] = [['uk', 'Українська'], ['ru', 'Русский'], ['en', 'English']];
 
 function Seg<T extends string | number>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (

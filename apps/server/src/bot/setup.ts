@@ -1,10 +1,11 @@
 /**
- * Настройка бота из Worker: команды ru + uk/pl/en, кнопка меню Mini App и webhook (с callback_query для быстрых вопросов).
+ * Настройка бота из Worker: команды ru + uk/en (для Telegram на польском — украинские), кнопка меню Mini App и webhook (с callback_query для быстрых вопросов).
  * Токен берётся из переменных Cloudflare, секрет webhook — серверный (`bot/webhook-secret.ts`): человек его не видит и не вводит.
  * Вызывается из админки (SUPERADMIN, кнопки «Проверить» / «Настроить» / «Сменить секрет»), страницей `/telegram/setup`
  * (ключ вводится в форму и уходит в теле POST, не в адресе) и из cron (`maintain.ts`, только безопасная починка).
  * Описание бота, Description Picture и токен не затрагиваются; ответ не содержит ни токена, ни секрета.
  */
+import { uiLangFor, type UiLang } from '@polski-go/shared';
 import { config } from '../env';
 import { botApi, TelegramError } from '../lib/telegram';
 import { MENU } from './catalog';
@@ -12,6 +13,10 @@ import { confirmSecret, loadSecretState, restoreSecret, rotateSecret, type Rotat
 
 export type SetupCall = { method: string; params: Record<string, unknown> };
 
+/**
+ * Локалізації списку команд за мовою Telegram (крім мови за замовчуванням — російської). Польської мови інтерфейсу
+ * немає (застосунок учить польську): для Telegram польською — українські описи, як і мова застосунку (uiLangFor).
+ */
 export const LOCALIZED = ['uk', 'pl', 'en'] as const;
 
 /** Какие обновления присылает Telegram: сообщения и команды, нажатия inline-кнопок (быстрые вопросы), проверка оплаты Stars. */
@@ -20,10 +25,10 @@ export const ALLOWED_UPDATES = ['message', 'callback_query', 'pre_checkout_query
 
 /** Команды бота: русские описания по умолчанию, затем локализации. Совпадает с `buildCalls` скрипта setup-bot. */
 export function commandCalls(): SetupCall[] {
-  const list = (lang: 'ru' | 'uk' | 'pl' | 'en') => MENU.map((c) => ({ command: c.command, description: c.description[lang] }));
+  const list = (lang: UiLang) => MENU.map((c) => ({ command: c.command, description: c.description[lang] }));
   return [
     { method: 'setMyCommands', params: { commands: list('ru') } },
-    ...LOCALIZED.map((lang) => ({ method: 'setMyCommands', params: { commands: list(lang), language_code: lang } })),
+    ...LOCALIZED.map((code) => ({ method: 'setMyCommands', params: { commands: list(uiLangFor(code)), language_code: code } })),
   ];
 }
 

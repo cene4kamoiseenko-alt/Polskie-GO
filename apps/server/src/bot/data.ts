@@ -3,7 +3,7 @@
  * нет записи — нет и строки в тексте (ни «0 XP», ни выдуманных наград, ни несуществующих заданий).
  */
 import { and, asc, eq } from 'drizzle-orm';
-import { dayKey, effectiveStreak, levelFromXp, tr, UI_LANGS, type UiLang } from '@polski-go/shared';
+import { dayKey, effectiveStreak, isUiLang, levelFromXp, tr, uiLangFor, type UiLang } from '@polski-go/shared';
 import { db } from '../db';
 import { playerProgress, quests, userQuests, userSettings, users } from '../db/schema';
 import { getJourney } from '../services/journey';
@@ -19,13 +19,9 @@ export type BotUser = {
   timezone: string;
 };
 
-const isLang = (v: unknown): v is UiLang => (UI_LANGS as readonly string[]).includes(v as string);
-
-/** Язык ответа: сохранённая настройка, иначе язык Telegram, иначе язык продукта по умолчанию (украинский). */
+/** Язык ответа: сохранённая настройка, иначе по языку Telegram (uiLangFor: польский и неизвестные → украинский, белорусский → русский). */
 export function pickLang(saved: string | null | undefined, telegramCode: string | null | undefined): UiLang {
-  if (isLang(saved)) return saved;
-  const code = (telegramCode ?? '').slice(0, 2).toLowerCase();
-  return isLang(code) ? code : 'uk';
+  return isUiLang(saved) ? saved : uiLangFor(telegramCode);
 }
 
 export async function findBotUser(telegramId: number): Promise<BotUser | null> {
@@ -36,7 +32,7 @@ export async function findBotUser(telegramId: number): Promise<BotUser | null> {
     .where(eq(users.telegramId, telegramId))
     .get();
   if (!row) return null;
-  return { id: row.id, firstName: row.firstName, onboarded: !!row.onboardedAt, banned: !!row.banned, lang: isLang(row.lang) ? row.lang : null, timezone: row.tz ?? 'Europe/Warsaw' };
+  return { id: row.id, firstName: row.firstName, onboarded: !!row.onboardedAt, banned: !!row.banned, lang: isUiLang(row.lang) ? row.lang : null, timezone: row.tz ?? 'Europe/Warsaw' };
 }
 
 /** Следующий доступный урок пользователя: название и город из маршрута (как на главной экране «Уроки»). */
@@ -46,7 +42,7 @@ export async function nextLessonOf(userId: string, lang: UiLang): Promise<Lesson
   if (!lesson) return null;
   const city = journey.cities.find((c) => c.routes.some((r) => r.lessons.some((l) => l.id === lesson.id)));
   const title = tr(lesson.title as never, lang).trim();
-  const cityName = city ? (lang === 'pl' ? city.namePl : tr(city.name as never, lang)).trim() : '';
+  const cityName = city ? tr(city.name as never, lang).trim() : '';
   return title && cityName ? { title, city: cityName } : null;
 }
 
