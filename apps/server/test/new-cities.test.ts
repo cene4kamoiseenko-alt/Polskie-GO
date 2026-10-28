@@ -15,6 +15,8 @@ import { GORZOW } from '../src/content/gorzow';
 import { GORZOW_VOCAB } from '../src/content/vocab-gorzow';
 import { SZCZECIN } from '../src/content/szczecin';
 import { SZCZECIN_VOCAB } from '../src/content/vocab-szczecin';
+import { GDANSK } from '../src/content/gdansk';
+import { GDANSK_VOCAB } from '../src/content/vocab-gdansk';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -57,6 +59,16 @@ citySuite({
   routes: ['szc-szukam-pracy', 'szc-umowa', 'szc-port', 'szc-w-pracy', 'szc-egzamin'],
   lessons: ['szc-1-ogloszenie', 'szc-2-cv', 'szc-3-rozmowa', 'szc-4-umowa', 'szc-5-port', 'szc-6-moglbys', 'szc-7-spoznienie', 'szc-8-podwyzka'],
   boss: 'szc-boss',
+  levels: ['A2'],
+});
+
+citySuite({
+  label: 'Gdańsk',
+  content: GDANSK,
+  vocab: GDANSK_VOCAB,
+  routes: ['gda-podroz', 'gda-miasto', 'gda-w-drodze', 'gda-trojmiasto', 'gda-egzamin'],
+  lessons: ['gda-1-pociag', 'gda-2-nocleg', 'gda-3-warto', 'gda-4-plaza', 'gda-5-zgubilem', 'gda-6-lotnisko', 'gda-7-historia', 'gda-8-trojmiasto'],
+  boss: 'gda-boss',
   levels: ['A2'],
 });
 

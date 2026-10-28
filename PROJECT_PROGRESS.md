@@ -781,3 +781,9 @@ Workers Builds не виден через доступные инструмен�
   brutto / netto), порт (w porcie, na statku), просьбы к коллегам (mógłbyś / mogłabyś), опоздание и больничный
   (bo, ponieważ), повышение (chciałbym, wolałbym). Уроки теперь в 10 городах из 20.
 - Проверки (Szczecin): сервер 524/524 (52 файла), typecheck всех пакетов, content-lint без ошибок.
+- Выложено по разрешению владельца: `c6ebf3e..7bc0675` (Zielona Góra, Gorzów, Szczecin, 4 панорамы).
+- **Gdańsk** (A2, «Путешествия и отдых»): поезд (z peronu trzeciego, opóźnienie), бронирование (na trzy noce / na pięć
+  nocy, od piątku do niedzieli), что стоит посмотреть (warto, превосходная степень), пляж (można / nie wolno + się),
+  бюро находок (czarną torbę), аэропорт (opóźniony / odwołany o godzinę), годы (w 1980 roku), Тримясто (jak się jedzie).
+  Уроки теперь в 11 городах из 20.
+

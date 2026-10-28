@@ -145,6 +145,10 @@ const PLAIN_OK: Record<string, string[]> = {
   'Гожув: називний («Jaka jest pogoda?», «Wiosna i jesień są zmienne») і навмисний дистрактор «Zima» замість «Zimą»': [
     'gorz-1-pogoda#11 jaka', 'gorz-2-pory-roku#6 wiosna', 'gorz-2-pory-roku#2 zima',
   ],
+  'Гданськ: називний («jedna doba», «wisi czerwona flaga», «kolejka SKM») і 3-тя особа («Co chce pan…?», безособове «kupuje się»)': [
+    'gda-2-nocleg#11 jedna', 'gda-3-warto#0 chce', 'gda-4-plaza#0 czerwona', 'gda-4-plaza#6 czerwona', 'gda-5-zgubilem#6 kolejka',
+    'gda-8-trojmiasto#0 kupuje', 'gda-8-trojmiasto#1 kupuje', 'gda-8-trojmiasto#3 kolejka', 'gda-8-trojmiasto#5 kupuje', 'gda-8-trojmiasto#6 kolejka',
+  ],
   'Називний відмінок галузі чи години (пара, «jest dwunasta») і навмисний дистрактор «Zajmuję się logistyka»; орудний logistyką / dwunastą тут не потрібен': [
     'pzn-5-zajmuje-sie#0 logistyka', 'pzn-5-zajmuje-sie#4 logistyka', 'pzn-2-koziolki#6 dwunasta', 'pzn-boss#0 dwunasta',
   ],

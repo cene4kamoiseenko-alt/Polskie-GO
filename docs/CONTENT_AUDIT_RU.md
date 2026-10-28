@@ -212,6 +212,21 @@ Weź przestań. У каждого — регистр, с кем можно, си
 - Новые картинки вариантов (облако, снежинка, туман, зонт, палатка, гроздь, ёлка, свеча…) получили пиктограммы Lucide (тест `visual-keys`).
 - Нужна проверка носителем.
 
+## Gdańsk — «Путешествия и отдых», A2 (2026-10-28)
+- Файлы: `gdansk.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-gdansk.ts` (32 слова; opóźnienie уже было в словаре).
+- Темы не повторяют Варшаву (городские билеты), Катовице (транспорт, поломки «nie ma + родительный»), Вроцлав (покупки, сравнительная степень).
+  - L1 `gda-1-pociag`: **z peronu trzeciego** (родительный порядкового), odjeżdża / przyjeżdża, **ma … minut opóźnienia**, miejscówka.
+  - L2 `gda-2-nocleg`: **na trzy noce / na pięć nocy**, **od piątku do niedzieli**, za dobę, na **jedną** noc.
+  - L3 `gda-3-warto`: **warto + инфинитив**, превосходная степень (najstarszy, największy, najlepszy; najpierw — не она), Żuraw, Długi Targ.
+  - L4 `gda-4-plaza`: **można / nie wolno / trzeba + się**, флаги на пляже; pływam — без się.
+  - L5 `gda-5-zgubilem`: бюро находок, **винительный прилагательного** (czarny plecak, czarną torbę).
+  - L6 `gda-6-lotnisko`: **opóźniony / odwołany** по роду, opóźniony **o godzinę** (не «na godzinę»), na czas ≠ na czasie.
+  - L7 `gda-7-historia`: **годы** (w 1980 roku, od 2004 roku; z 2004 roku — «датированный»), Westerplatte, «Солидарность».
+  - L8 `gda-8-trojmiasto`: **безличное się** (jak się jedzie, kupuje się, tu się nie pali), SKM, z Gdańska do Gdyni.
+  - Экзамен `gda-boss`: 12 заданий.
+- Факты сверены: Żuraw — средневековый портовый кран (Национальный морской музей); забастовка на верфи — август 1980, Лех Валенса — электрик, президент с 1990; Польша в НАТО с 1999, в ЕС с 2004; мол в Сопоте — самый длинный деревянный в Европе; Гдыня — самый молодой город Тримяста.
+- Нужна проверка носителем.
+
 ## Szczecin — «Работа и профессии», A2 (2026-10-28)
 - Файлы: `szczecin.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-szczecin.ts` (40 слов; woleć и zamienić się уже были в словаре).
 - Темы сверены с опубликованными уроками: Łódź (być + творительный, BHP), Poznań (zajmować się, targi), Katowice (czy może pan) не повторяются.

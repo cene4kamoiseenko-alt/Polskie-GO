@@ -270,10 +270,10 @@
       "name_pl": "Gdańsk",
       "name_ru": "Гданьск",
       "cefr": "A2",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/gdansk.webp",
         "status": "final",
@@ -288,7 +288,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Żuraw и фасады узнаваемы",
-      "missing_content": "уроков 0; тема «Подорожі і відпочинок». Кандидат — апгрейд интерима, не новый город",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-10-28, тема «Подорожі й відпочинок», A2)",
       "progress": "не проверено"
     },
     {
@@ -546,9 +546,10 @@
       "poznan 8",
       "zielona-gora 8",
       "gorzow 8",
-      "szczecin 8"
+      "szczecin 8",
+      "gdansk 8"
     ],
-    "cities_without_lessons": 10,
+    "cities_without_lessons": 9,
     "exam_cities": [
       "warszawa",
       "lodz",
@@ -559,7 +560,8 @@
       "poznan",
       "zielona-gora",
       "gorzow",
-      "szczecin"
+      "szczecin",
+      "gdansk"
     ],
     "final_cities": [
       "warszawa",

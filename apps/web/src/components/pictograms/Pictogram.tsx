@@ -59,6 +59,8 @@ const PICTO: Record<string, Spec> = {
   '🌈': ['rainbow', 'nature'], '🌪️': ['tornado', 'nature'], '☂️': ['umbrella', 'thing'], '⛺': ['tent', 'place'], '🐦': ['bird', 'nature'],
   // Порт (Szczecin)
   '🚢': ['ship', 'transport'], '⚓': ['anchor', 'transport'],
+  // Пляж (Gdańsk)
+  '🚩': ['flag', 'symbol'], '⛵': ['sailboat', 'transport'], '🐚': ['shell', 'nature'],
   // Дії
   '🚶': ['footprints', 'way'], '🏊': ['waves', 'drink'], '🛒': ['shopping-cart', 'thing'], '😴': ['bed-single', 'home'],
 };
