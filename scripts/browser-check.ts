@@ -496,15 +496,21 @@ async function main() {
       check(await dialog.locator('[data-city-art="final"] img').count() === 1, 'A3.8 Gorzów: баннер — настоящий рисунок, а не общая сцена');
       check(await dialog.locator('[data-city-go]').count() === 0, 'A3.8 Gorzów: кнопки «Учить» нет — пустой маршрут не открывается');
       await sp.screenshot({ path: `${SHEETS}/sheet-status-gorzow-390.png` });
-      // Katowice — город с уроками без финальной панорамы: мутный временный кадр не показывается (решение владельца
-      // 2026-10-27), вместо него рисованная сцена, «оформление» — «скоро».
+      // Katowice — город с уроками и панорамой владельца 2026-10-28 (final).
       await openCity('Katowice');
       const kt = await state();
-      const banner = dialog.locator('[data-city-art="interim"]');
-      check(kt.art === 'false' && kt.lessons === 'true' && await banner.count() === 1, `A3.8 Katowice: оформление не выдаётся за готовое, уроки есть ${JSON.stringify(kt)}`);
-      check(await banner.locator('img').count() === 0 && await banner.locator('svg').count() > 0, 'A3.8 Katowice: вместо мутного временного кадра — рисованная сцена (svg), без <img>');
+      check(kt.art === 'true' && kt.lessons === 'true', `A3.8 Katowice: оформление готово, уроки есть ${JSON.stringify(kt)}`);
+      check(await dialog.locator('[data-city-art="final"] img').count() === 1, 'A3.8 Katowice: баннер — панорама владельца');
       check((kt.access === 'true') === (await dialog.locator('[data-city-go]').count() === 1), `A3.8 Katowice: кнопка «Учить» есть только при открытом доступе (доступ ${kt.access})`);
       await sp.screenshot({ path: `${SHEETS}/sheet-status-katowice-390.png` });
+      // Zakopane — без финальной панорамы: мутный временный кадр не показывается (решение владельца 2026-10-27),
+      // вместо него рисованная сцена, «оформление» — «скоро».
+      await openCity('Zakopane');
+      const zk = await state();
+      const banner = dialog.locator('[data-city-art="interim"]');
+      check(zk.art === 'false' && await banner.count() === 1, `A3.8 Zakopane: оформление не выдаётся за готовое ${JSON.stringify(zk)}`);
+      check(await banner.locator('img').count() === 0 && await banner.locator('svg').count() > 0, 'A3.8 Zakopane: вместо мутного временного кадра — рисованная сцена (svg), без <img>');
+      await sp.screenshot({ path: `${SHEETS}/sheet-status-zakopane-390.png` });
     });
     await sheetUser.context.close();
 

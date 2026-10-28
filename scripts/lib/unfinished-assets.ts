@@ -66,9 +66,9 @@ export function buildUnfinishedAssets(root: string): string {
 
   lines.push(`## 1. Фоны городов: ${cities.length} временных (interim)`);
   lines.push('');
-  lines.push('Общие требования: 2:1, мастер 2880×1440 (минимум 1774×887; PNG или WebP без потерь), без текста, логотипов, Бобека и людей крупным планом; ориентир — в центральных 60 % ширины; левая нижняя треть — спокойный передний план; стиль «Premium 2.5D cartoon travel-game environment, cinematic golden-hour lighting, colorful Polish architecture, high detail, vibrant colors, crisp edges». Как подключить мастер — `docs/CITY_ART_INVENTORY.md`, «Как заменить на мастер-файл».');
+  lines.push('Общие требования: отдельный оригинал одного города (не коллаж, не увеличенная вырезка) — ≥ 1536×1024 (3:2) или ≥ 1774×887 (2:1), лучше 2880×1440; PNG или WebP без потерь; без текста, логотипов, Бобека и людей крупным планом; ориентир — в центральных 60 % ширины; левая нижняя треть — спокойный передний план; стиль «Premium 2.5D cartoon travel-game environment, cinematic golden-hour lighting, colorful Polish architecture, high detail, vibrant colors, crisp edges». Как подключить мастер — `docs/CITY_ART_INVENTORY.md`, «Как заменить на мастер-файл».');
   lines.push('');
-  lines.push('Приоритет: 1 — рисовать первым (город с уроками, самый слабый кадр или неверная достопримечательность). Ни один кадр не увеличивается до нужного размера: пока мастера нет, город остаётся interim.');
+  lines.push('Приоритет: 1 — рисовать первым (порядок маршрута: раньше город — раньше его видят игроки). Промпты для ChatGPT — `docs/CHATGPT_ART_PROMPTS_RU.md`, пакет A. Ни один кадр не увеличивается до нужного размера: пока мастера нет, город остаётся interim.');
   lines.push('');
   lines.push('| № | city_id | Город | Приоритет | Сейчас в приложении | Проверка текущего кадра | Что нарисовать | Куда положить мастер |');
   lines.push('|---|---|---|---|---|---|---|---|');

@@ -67,7 +67,7 @@ async function main() {
       await p.screenshot({ path: `${OUT}/map-${width}.png` });
       await noHScroll('карта');
 
-      for (const [name, slug, art] of [['Gdańsk', 'gdansk', 'final'], ['Katowice', 'katowice', 'interim']] as const) {
+      for (const [name, slug, art] of [['Gdańsk', 'gdansk', 'final'], ['Katowice', 'katowice', 'final'], ['Zakopane', 'zakopane', 'interim']] as const) {
         const dialog = p.locator('[role="dialog"]');
         if (await dialog.count()) { await p.keyboard.press('Escape'); await p.waitForTimeout(500); }
         await p.getByRole('button', { name, exact: true }).click();
