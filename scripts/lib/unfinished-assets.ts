@@ -2,7 +2,7 @@
  * Точный перечень незавершённых ассетов: собирается из кода и манифестов, а не пишется вручную.
  *   • фоны городов со статусом interim — `CITY_ART` + `assets/cities/CITY_ASSET_MANIFEST.json` (needed_art);
  *   • сцены бота без исходника — `assets/telegram/asset-manifest.json`, раздел blocked_scenes;
- *   • сцены магазинов с Бобеком в кадре — `SCENE_ART`;
+ *   • временные сцены миссий с Бобеком в кадре (магазины и пакет владельца 2026-10-28) — `SCENE_ART`;
  *   • слои Бобека для этапов etalon-1 / etalon-2 — `missingForMilestone` (ядро образа);
  *   • вещи гардероба без ресурса — `assets/wardrobe/WARDROBE_CATALOG.json`.
  * Документ docs/UNFINISHED_ASSETS.md — вывод этой функции; тест apps/server/test/unfinished-assets.test.ts сверяет его с кодом.
@@ -61,7 +61,7 @@ export function buildUnfinishedAssets(root: string): string {
   lines.push('');
   lines.push('Файл создаётся командой `node --import tsx scripts/unfinished-assets.ts` из кода и манифестов (`scripts/lib/unfinished-assets.ts`); вручную не правится. `apps/server/test/unfinished-assets.test.ts` падает, если документ разошёлся с `CITY_ART`, `SCENE_ART`, манифестами бота и гардероба.');
   lines.push('');
-  lines.push(`Итого: **${cities.length}** городских фонов, **${botScenes.length}** сцен бота, **${storeScenes.length}** сцен магазинов (нужны версии без Бобека), **${missions.length}** фонов миссий без Бобека (готовых нет), **${layers.reduce((n, l) => n + l.missing.length, 0)}** слоёв Бобека для двух этапов, **${wardrobe.filter((i) => (i.asset_status ?? i.status) === 'отсутствует').length}** вещей гардероба без ресурса. Ничего из этого не подменено случайной картинкой: приложение и бот честно показывают «в подготовке» или нейтральный кадр.`);
+  lines.push(`Итого: **${cities.length}** городских фонов, **${botScenes.length}** сцен бота, **${storeScenes.length}** сцен миссий с Бобеком в кадре (нужны версии без Бобека), **${missions.length}** фонов миссий без Бобека (готовых нет), **${layers.reduce((n, l) => n + l.missing.length, 0)}** слоёв Бобека для двух этапов, **${wardrobe.filter((i) => (i.asset_status ?? i.status) === 'отсутствует').length}** вещей гардероба без ресурса. Ничего из этого не подменено случайной картинкой: приложение и бот честно показывают «в подготовке» или нейтральный кадр.`);
   lines.push('');
 
   lines.push(`## 1. Фоны городов: ${cities.length} временных (interim)`);
@@ -84,11 +84,11 @@ export function buildUnfinishedAssets(root: string): string {
   botScenes.forEach((b, i) => lines.push(`| ${i + 1} | \`${b.scene}\` | ${cell(b.command)} | ${b.needed_files.map((f) => `\`${f}\``).join('<br>')} | ${cell(b.reason)} | ${cell(b.description)} |`));
   lines.push('');
 
-  lines.push(`## 3. Сцены магазинов: ${storeScenes.length} временных кадров, нужны мастера без Бобека`);
+  lines.push(`## 3. Сцены миссий: ${storeScenes.length} временных кадров с Бобеком внутри, нужны мастера без Бобека`);
   lines.push('');
   lines.push('Подробности, дефекты кадров и способ замены — `docs/SCENE_ART_INVENTORY.md`. Мастер: 2:1 ≥ 2880×1440 и 16:9 ≥ 1920×1080, тот же свет и архитектура, **без Бобека**; Бобека рисует отдельный рендерер образа. После замены в `SCENE_ART`: `bakedBobek: false`, `status: \'final\'`, реальный `native`, пустой `defects`.');
   lines.push('');
-  lines.push('| № | scene_id | Бренд | Файл в приложении | Рождённый размер | Дефекты кадра |');
+  lines.push('| № | scene_id | Место | Файл в приложении | Рождённый размер | Дефекты кадра |');
   lines.push('|---|---|---|---|---|---|');
   storeScenes.forEach((s, i) => lines.push(`| ${i + 1} | \`${s.id}\` | ${s.brand} | \`apps/web/src/assets/scenes/${s.file}.webp\` | ${s.native[0]}×${s.native[1]} | ${s.defects.length ? cell(s.defects.join('; ')) : 'нет'} |`));
   lines.push('');

@@ -1,6 +1,7 @@
 /**
- * Реальные снимки сцен миссий на 320 / 360 / 390 / 430 px: список «Польский в жизни» (/life) и экран входа в каждую из шести миссий
- * с растровой сценой (SCENE_ART). Проверяет: картинка декодирована, ленивая в карточке и сразу в герое миссии, srcset с 640w,
+ * Реальные снимки сцен миссий на 320 / 360 / 390 / 430 px: список «Польский в жизни» (/life) и экран входа в каждую миссию
+ * с растровой сценой (SCENE_ART). Premium-миссии открываются только с подпиской: пользователь стенда получает её записью
+ * в локальную тестовую базу (Miniflare), не через оплату. Проверяет: картинка декодирована, ленивая в карточке и сразу в герое миссии, srcset с 640w,
  * object-fit: cover (не растянута), кадр 2:1, на экране нет горизонтальной прокрутки, а у миссии с Бобеком в кадре нет
  * накладного второго Бобека; у миссии без картинки (Lidl) остаётся SVG-сцена и свой Бобек.
  * Chromium, а не Telegram на iPhone / Android.
@@ -30,6 +31,8 @@ async function main() {
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
   const { base, login } = stand;
+  const { db } = await import(root + '/apps/server/src/db/index.ts');
+  const { subscriptions } = await import(root + '/apps/server/src/db/schema.ts');
   mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch({ headless: true, executablePath: chromiumPath(chromium), args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   let devUser = 996000;
@@ -37,6 +40,7 @@ async function main() {
     for (const width of WIDTHS) {
       const u = await login();
       await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
+      await db.insert(subscriptions).values({ userId: u.user.id, planCode: 'MONTH_1', status: 'ACTIVE', startsAt: new Date(), expiresAt: new Date(Date.now() + 86_400_000), grantedByAdminId: 'qa-mission-screens' });
       const id = String(++devUser);
       const context = await browser.newContext({ viewport: { width, height: HEIGHT[width] }, deviceScaleFactor: 2, locale: 'ru-RU' });
       const p = await context.newPage();

@@ -3,8 +3,12 @@
  * Повна таблиця — docs/SCENE_ART_INVENTORY.md; тест apps/server/test/scene-art.test.ts звіряє її з цим списком,
  * з місіями й файлами на диску.
  *
- * Усі п’ять сцен — ТИМЧАСОВІ (interim): вирізані з одного згенерованого колажу (рідний розмір ~550–640 px по ширині,
- * у застосунку збільшені), зі статичним Бобеком усередині кадру. Тому:
+ * Усі сцени — ТИМЧАСОВІ (interim), бо Бобек намальований у самому кадрі (у старому образі — червоне худі «PL»):
+ *   - п’ять магазинів (2026-10-26) вирізані з одного згенерованого колажу (рідний розмір ~550–640 px по ширині,
+ *     у застосунку збільшені);
+ *   - вісім сцен місій (пакет власника 2026-10-28) — окремі кадри 1536–1672 px, у застосунку лише зменшені;
+ *     оригінали — docs/design/a12/missions/.
+ * Тому:
  *   - клієнт не малює поверх них другого Бобека (bakedBobek → без накладеного <Beaver>);
  *   - статус 'final' заборонений, доки bakedBobek === true (тест); фінальні версії — без Бобека, під окремий рендерер образу;
  *   - написи на кадрі — декор: ні задання, ні ціни, ні довідкові дані з них не береться.
@@ -21,8 +25,13 @@ export interface SceneArt {
   /** Розмір основного файлу. */
   width: number;
   height: number;
-  /** Рідний розмір вирізки з колажу (все понад це — збільшення). */
+  /** Рідний розмір вирізки 2:1 (все понад це — збільшення). */
   native: [number, number];
+  /**
+   * Оригінал кадру (шлях від кореня репозиторію) і зсув вирізки 2:1 від верхнього краю оригіналу, px.
+   * Немає — вирізка з колажу: docs/design/a11/stores/native/<file>_source_native_2x1.png.
+   */
+  source?: { file: string; top: number };
   /** Бобек намальований у самому кадрі: поверх нього другого Бобека не показуємо. */
   bakedBobek: boolean;
   /** SVG-сцена місії, яку ця картинка замінює (місія з таким `scene` у MISSIONS); без картинки клієнт малює її. */
@@ -76,6 +85,60 @@ export const SCENE_ART: Record<string, SceneArt> = {
     missions: ['orlen-pump'], focus: '35% 10%', shows: 'Заправка ORLEN, Бобек біля колонки, Stop Cafe',
     telegram: null, defects: ['для місії orlen-coffee не підходить: Бобек заправляє авто, а не купує каву'],
   },
+
+  // ── Пакет власника 2026-10-28: окремі кадри місій (1536×768 і більше), у застосунку лише зменшені. ──
+  'clinic-registration': {
+    ...common, id: 'clinic-registration', file: 'przychodnia', brand: 'Przychodnia', native: [1536, 768], fallbackScene: 'clinic',
+    source: { file: 'docs/design/a12/missions/przychodnia_original.webp', top: 40 },
+    missions: ['doctor-appointment'], focus: '50% 30%', shows: 'Реєстратура поліклініки (REJESTRACJA), Бобек подає картку реєстраторці',
+    telegram: null, defects: [],
+  },
+  'office-first-day': {
+    ...common, id: 'office-first-day', file: 'biuro', brand: 'Biuro', native: [1536, 768], fallbackScene: 'work',
+    source: { file: 'docs/design/a12/missions/biuro_original.webp', top: 110 },
+    missions: ['first-workday'], focus: '45% 30%', shows: 'Офіс, колега з бейджем тисне Бобекові руку, колежанка махає з-за столу',
+    telegram: null,
+    defects: [
+      'за вікном Варшава (Палац культури, колона Сигізмунда), а місія — у Вроцлаві',
+      'руку Бобекові тисне колега-чоловік, а зустрічає його в місії керівниця Pani Agnieszka',
+    ],
+  },
+  'street-zapiekanki': {
+    ...common, id: 'street-zapiekanki', file: 'zapiekanki', brand: 'Zapiekanki', native: [1536, 768], fallbackScene: 'street-food',
+    source: { file: 'docs/design/a12/missions/zapiekanki_original.webp', top: 50 },
+    missions: ['kazimierz-zapiekanka'], focus: '45% 40%', shows: 'Віконце ZAPIEKANKI ввечері, продавець за прилавком, Бобек із запіканкою',
+    telegram: null, defects: ['на тлі Ринок і Маріацький костел, а місія — на Plac Nowy (Казімєж)'],
+  },
+  'flat-keys': {
+    ...common, id: 'flat-keys', file: 'mieszkanie', brand: 'Mieszkanie', native: [1536, 768], fallbackScene: 'flat',
+    source: { file: 'docs/design/a12/missions/mieszkanie_original.webp', top: 60 },
+    missions: ['landlord'], focus: '45% 30%', shows: 'Світла вітальня, власниця квартири передає Бобекові ключі, тека з договором на столі',
+    telegram: null, defects: [],
+  },
+  'bakery-pierniki': {
+    ...common, id: 'bakery-pierniki', file: 'pierniki', brand: 'Pierniki', native: [1536, 768], fallbackScene: 'bakery',
+    source: { file: 'docs/design/a12/missions/pierniki_original.webp', top: 60 },
+    missions: ['torun-bakery'], focus: '50% 35%', shows: 'Пряникова крамниця в Торуні (PIERNIKI), продавчиня подає пакет пряників, за вікном цегляна готика',
+    telegram: null, defects: [],
+  },
+  'milk-bar': {
+    ...common, id: 'milk-bar', file: 'bar-mleczny', brand: 'Bar mleczny', native: [1672, 836], fallbackScene: 'milk-bar',
+    source: { file: 'docs/design/a12/missions/bar-mleczny_original.webp', top: 10 },
+    missions: ['bar-mleczny'], focus: '50% 35%', shows: 'BAR MLECZNY: роздача, кухарка з черпаком, Бобек із тацею (суп, котлета, картопля)',
+    telegram: null, defects: [],
+  },
+  'station-pkp': {
+    ...common, id: 'station-pkp', file: 'pkp', brand: 'PKP', native: [1536, 768], fallbackScene: 'train-station',
+    source: { file: 'docs/design/a12/missions/pkp_original.webp', top: 10 },
+    missions: ['train-wroclaw'], focus: '50% 30%', shows: 'Каса вокзалу (BILETY, PKP), касирка подає квиток, за склом перон і потяг',
+    telegram: null, defects: ['над перонами табличка WROCŁAW і вроцлавська готика, а Бобек у місії купує квиток на Warszawa Centralna'],
+  },
+  'tram-stop': {
+    ...common, id: 'tram-stop', file: 'tramwaj', brand: 'Tramwaj', native: [1536, 768], fallbackScene: 'tram-stop',
+    source: { file: 'docs/design/a12/missions/tramwaj_original.webp', top: 80 },
+    missions: ['first-tram'], focus: '50% 30%', shows: 'Зупинка у Вроцлаві, Бобек із квитком, під’їжджає трамвай',
+    telegram: null, defects: [],
+  },
 };
 
 /** slug місії → scene_id картинки. Місій без запису це не стосується: вони й далі показують SVG-сцену. */
@@ -110,7 +173,7 @@ export const MISSION_BACKGROUND_BRIEF: Record<string, { action: string; backgrou
   'lidl-list': { action: 'покупает продукты по списку и платит на кассе самообслуживания', background: 'Lidl: касса самообслуживания с экраном и сканером, корзина с продуктами из списка; полки на заднем плане.' },
   'rossmann-basics': { action: 'покупает средства гигиены после переезда', background: 'Зал Rossmann: полки с гелями, зубной пастой, шампунями; вывески отделов написаны правильно или без текста.' },
   'urzad-pesel': { action: 'подаёт документы на PESEL сотруднице в окошке', background: 'Urząd: окошко обслуживания с сотрудницей, талон очереди в автомате, бланк заявления на стойке; не городская площадь и не фасад.' },
-  landlord: { action: 'разговаривает с хозяином о квартире', background: 'Гостиная съёмной квартиры: ключи на столе, счётчики в коридоре, хозяин с папками у двери.' },
+  landlord: { action: 'разговаривает с хозяйкой о квартире', background: 'Гостиная съёмной квартиры: ключи на столе, счётчики в коридоре, хозяйка с папками у двери.' },
   'first-workday': { action: 'первый день на работе', background: 'Офис или склад: стойка ресепшена, бейдж и шкафчик для вещей, коллега показывает дорогу.' },
   'doctor-appointment': { action: 'записывается к врачу в регистратуре', background: 'Регистратура поликлиники: окошко, календарь записи без читаемых дат, скамейка ожидания; не аптека.' },
 };

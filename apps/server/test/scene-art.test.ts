@@ -1,5 +1,6 @@
 /**
- * Реестр растровых сцен миссий (SCENE_ART, docs/SCENE_ART_INVENTORY.md) сходится с миссиями, файлами и кадром Telegram:
+ * Реестр растровых сцен миссий (SCENE_ART, docs/SCENE_ART_INVENTORY.md): 5 магазинов из коллажа и 8 кадров владельца 2026-10-28.
+ * Сходится с миссиями, файлами и кадром Telegram:
  * стабильные scene_id, файлы заявленного размера и веса, временный статус не выдаётся за финальный, картинка привязана к миссии
  * по slug (Lidl не получает Biedronka), вопрос, где кадр выдаёт ответ, картинку не получает.
  */
@@ -13,19 +14,22 @@ import { pngSize, webpSize } from './image-size';
 
 const scenes = new URL('../../web/src/assets/scenes/', import.meta.url);
 const botPublic = new URL('../../web/public/bot/', import.meta.url);
-const sources = new URL('../../../docs/design/a11/stores/native/', import.meta.url);
+const repo = new URL('../../../', import.meta.url);
+const sources = new URL('docs/design/a11/stores/native/', repo);
 const doc = readFileSync(new URL('../../../docs/SCENE_ART_INVENTORY.md', import.meta.url), 'utf8');
 
-const IDS = ['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka'];
+const STORES = ['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka'];
+const OWNER_PACK = ['bakery-pierniki', 'clinic-registration', 'flat-keys', 'milk-bar', 'office-first-day', 'station-pkp', 'street-zapiekanki', 'tram-stop'];
+const IDS = [...STORES, ...OWNER_PACK].sort();
 
-describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
+describe('Сцены миссий (магазины, InPost, ORLEN и пакет владельца)', () => {
   it('scene_id стабильны, по одному на бренд, без повторов файлов', () => {
     expect(Object.keys(SCENE_ART).sort()).toEqual(IDS);
     for (const [key, art] of Object.entries(SCENE_ART)) expect(art.id, key).toBe(key);
     expect(new Set(Object.values(SCENE_ART).map((a) => a.file)).size).toBe(IDS.length);
   });
 
-  it('основной файл 1440×720 и @640 640×320, вес в бюджете, исходная вырезка 2:1 хранится отдельно', () => {
+  it('основной файл 1440×720 и @640 640×320, вес в бюджете, исходник хранится отдельно', () => {
     for (const art of Object.values(SCENE_ART)) {
       const main = readFileSync(new URL(`${art.file}.webp`, scenes));
       expect(webpSize(main), art.id).toEqual({ width: art.width, height: art.height });
@@ -35,24 +39,37 @@ describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
       expect(small.length, `${art.file}@${SCENE_ART_SMALL}.webp`).toBeLessThanOrEqual(70 * 1024);
       // Кадр 2:1: cover не растягивает его, а обрезает.
       expect(art.width / art.height).toBe(2);
-      const source = readFileSync(new URL(`${art.file}_source_native_2x1.png`, sources));
-      expect(pngSize(source), `${art.id} источник`).toEqual({ width: art.native[0], height: art.native[1] });
+      if (art.source) {
+        // Оригинал целиком, вырезка 2:1 — от art.source.top до top + native[1].
+        const original = webpSize(readFileSync(new URL(art.source.file, repo)));
+        expect(original.width, `${art.id} оригинал`).toBe(art.native[0]);
+        expect(art.native[0], art.id).toBe(art.native[1] * 2);
+        expect(art.source.top + art.native[1], `${art.id}: вырезка внутри оригинала`).toBeLessThanOrEqual(original.height);
+      } else {
+        const source = readFileSync(new URL(`${art.file}_source_native_2x1.png`, sources));
+        expect(pngSize(source), `${art.id} источник`).toEqual({ width: art.native[0], height: art.native[1] });
+      }
     }
   });
 
   it('временный статус честный: кадр с Бобеком внутри или увеличенный из малой вырезки не final', () => {
     for (const art of Object.values(SCENE_ART)) {
-      expect(art.native[0], art.id).toBeLessThan(art.width);
       if (art.bakedBobek || art.native[0] < art.width) expect(art.status, art.id).toBe('interim');
       expect(art.focus, art.id).toMatch(/^\d{1,3}% \d{1,3}%$/);
     }
-    // Сегодня все пять — временные: мастера без Бобека ещё не нарисованы.
+    // Сегодня все — временные: мастера без Бобека ещё не нарисованы.
     expect(Object.values(SCENE_ART).every((a) => a.bakedBobek && a.status === 'interim')).toBe(true);
+    // Магазины увеличены из маленьких вырезок коллажа; кадры владельца только уменьшены.
+    for (const id of STORES) expect(SCENE_ART[id].native[0], id).toBeLessThan(SCENE_ART[id].width);
+    for (const id of OWNER_PACK) expect(SCENE_ART[id].native[0], id).toBeGreaterThanOrEqual(SCENE_ART[id].width);
   });
 
   it('картинка привязана к существующей миссии по slug и совпадает с её SVG-сценой', () => {
     const pairs = Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [a, m] as const));
-    expect(pairs.map(([, m]) => m).sort()).toEqual(['biedronka-breakfast', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'zabka-first-order']);
+    expect(pairs.map(([, m]) => m).sort()).toEqual([
+      'bar-mleczny', 'biedronka-breakfast', 'doctor-appointment', 'first-tram', 'first-workday', 'kazimierz-zapiekanka', 'landlord',
+      'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'zabka-first-order',
+    ]);
     for (const [art, slug] of pairs) {
       const mission = MISSIONS.find((m) => m.slug === slug);
       expect(mission, `${art.id}: миссии ${slug} нет`).toBeDefined();
@@ -64,6 +81,10 @@ describe('Сцены миссий (магазины, InPost, ORLEN)', () => {
     // Lidl идёт в той же SVG-сцене, что и Biedronka, но картинки магазина с другим брендом не получает.
     expect(MISSIONS.find((m) => m.slug === 'lidl-list')!.scene).toBe('supermarket');
     expect(MISSION_SCENE_ART['lidl-list']).toBeUndefined();
+    // Офис с рукопожатием — первый рабочий день, не окошко urzędu: PESEL остаётся со своей SVG-сценой.
+    expect(MISSION_SCENE_ART['urzad-pesel']).toBeUndefined();
+    // На кадре flat-keys ключи передаёт женщина — в миссии хозяйка, а не хозяин.
+    expect(MISSIONS.find((m) => m.slug === 'landlord')!.npc.name).toBe('Pani Marta');
   });
 
   it('кадров магазинов в Telegram нет: временные вырезки увеличены и отклоняются проверкой файлов; русский сохраняет доску категории', () => {
