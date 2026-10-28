@@ -8,6 +8,7 @@ import { DEFAULT_REWARDS } from '@polski-go/shared';
 import { resetIds } from './builders';
 import { CONTINUATION_TEXT_FIXES } from './continuation-fixes';
 import { EXERCISE_FIXES } from './exercise-fixes';
+import { LESSON_EDITS, TASK_EDITS } from './task-edits';
 import { LESSON_MOVES, ROUTE_ICON_FIXES, TEXT_FIXES } from './fixes';
 import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
@@ -84,6 +85,8 @@ WHERE EXISTS (SELECT 1 FROM user_cities d WHERE d.user_id = player_progress.user
   AND ${NEXT_OPEN_CITY} IS NOT NULL;`.replace(/\s+/g, ' ');
 
 const exerciseId = (lessonSlug: string, n: number) => `e_${hash(lessonSlug)}_${n}`;
+/** Сталий id завдання уроку (для інструментів правок, scripts/task-edits.ts). */
+export const exerciseKey = exerciseId;
 
 /** Рядок вправи: ідентифікатор за сталим номером (exerciseIds), позиція — за порядком в уроці. */
 function exerciseSql(lessonSlug: string, l: LessonSeed, i: number, force: boolean) {
@@ -278,6 +281,8 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
 
   // Exact-match corrections preserve IDs, admin edits, and historical session snapshots.
   out.push(...exerciseFixSql());
+  // Правки завдань за сталим id (task-edits.ts): лише там, де в БД досі старий текст.
+  out.push(...taskEditSql());
   // Те саме для словника: рівень і приклади оновлюються лише там, де досі старе значення з коду.
   out.push(...vocabFixSql());
   // Стандарт міста — після точкових виправлень: вони адресують завдання за старими позиціями.
@@ -360,6 +365,20 @@ export function exerciseFixSql(): string[] {
     const target = ref('lessons', { slug: f.lesson }).sql;
     return `UPDATE exercises SET type = ${lit(next.type)}, skill = ${lit(next.skill)}, data = ${lit(next.data)}, explanation = ${lit(next.explanation)} WHERE lesson_id = ${target} AND "order" = ${f.order} AND type = ${lit(old.type)} AND skill = ${lit(old.skill)} AND data = ${lit(old.data)} AND explanation IS ${lit(old.explanation)};`;
   });
+}
+
+/**
+ * Правки завдань за сталим id: оновлюється лише рядок зі старим текстом (type, skill, data, explanation збігаються точно);
+ * тексти уроків — так само, за slug і старим значенням колонки.
+ */
+export function taskEditSql(): string[] {
+  const lessonsSql = LESSON_EDITS.map(
+    ({ slug, column, from, to }) => `UPDATE lessons SET "${column}" = ${lit(to as Value)} WHERE slug = ${lit(slug)} AND "${column}" = ${lit(from as Value)};`,
+  );
+  return [...lessonsSql, ...TASK_EDITS.map(
+    ({ lesson, n, from, to }) =>
+      `UPDATE exercises SET type = ${lit(to.type)}, skill = ${lit(to.skill)}, data = ${lit(to.data as Value)}, explanation = ${lit(to.explanation as Value)} WHERE id = ${lit(exerciseId(lesson, n))} AND type = ${lit(from.type)} AND skill = ${lit(from.skill)} AND data = ${lit(from.data as Value)} AND explanation IS ${lit(from.explanation as Value)};`,
+  )];
 }
 
 /** Точкові правки словника: ключ (pl, pos) і старе значення колонки. Безпечно для наявної БД, повтор нічого не змінює. */

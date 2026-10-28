@@ -63,12 +63,12 @@ export const GRAMMAR: GrammarTopic[] = [
     examples: [{ pl: 'Poproszę herbatę i ciasto.', tr: t('Чай і тістечко, будь ласка.', 'Чай и пирожное, пожалуйста.', 'Tea and cake, please.') }],
   },
   {
-    slug: 'dopelniacz', title: 'Dopełniacz', subtitle: t('Родовий відмінок: z Ukrainy', 'Родительный падеж: z Ukrainy', 'Genitive: z Ukrainy'), cefr: 'A1', difficulty: 2, color: '#FFBD42', glyph: 'z…',
+    slug: 'dopelniacz', title: 'Dopełniacz', subtitle: t('Родовий відмінок: z Ukrainy, z Białorusi', 'Родительный падеж: z Ukrainy, z Białorusi', 'Genitive: z Ukrainy, z Białorusi'), cefr: 'A1', difficulty: 2, color: '#FFBD42', glyph: 'z…',
     skills: ['grammar.genitive'],
     rule: t(
-      'Після **z** (звідки?), **do**, **bez** та після заперечення **nie mam**:\nUkraina → z **Ukrainy**, Polska → z **Polski**, brat → nie mam **brata**.',
-      'После **z** (откуда?), **do**, **bez** и после отрицания **nie mam**:\nUkraina → z **Ukrainy**, Polska → z **Polski**, brat → nie mam **brata**.',
-      'After **z** (from), **do**, **bez** and after negation **nie mam**:\nUkraina → z **Ukrainy**, Polska → z **Polski**, brat → nie mam **brata**.',
+      'Після **z** (звідки?), **do**, **bez** та після заперечення **nie mam**:\nUkraina → z **Ukrainy**, Białoruś → z **Białorusi**, Polska → z **Polski**, brat → nie mam **brata**.',
+      'После **z** (откуда?), **do**, **bez** и после отрицания **nie mam**:\nUkraina → z **Ukrainy**, Białoruś → z **Białorusi**, Polska → z **Polski**, brat → nie mam **brata**.',
+      'After **z** (from), **do**, **bez** and after negation **nie mam**:\nUkraina → z **Ukrainy**, Białoruś → z **Białorusi**, Polska → z **Polski**, brat → nie mam **brata**.',
     ),
     examples: [{ pl: 'Jestem z Ukrainy, a ona jest z Polski.', tr: t('Я з України, а вона з Польщі.', 'Я из Украины, а она из Польши.', 'I am from Ukraine and she is from Poland.') }],
   },

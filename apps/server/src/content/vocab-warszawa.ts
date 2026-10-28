@@ -32,6 +32,8 @@ export const WARSZAWA_VOCAB: VocabSeed[] = [
     ['Mówię po angielsku i trochę po polsku.', 'Я говорю англійською і трохи польською.', 'Я говорю по-английски и немного по-польски.', 'I speak English and a little Polish.']),
   w('po ukraińsku', 'phrase', 'українською', 'по-украински', 'in Ukrainian', 'по украіньску', ['languages'], 'A0',
     ['Moja mama mówi tylko po ukraińsku.', 'Моя мама говорить лише українською.', 'Моя мама говорит только по-украински.', 'My mum only speaks Ukrainian.']),
+  w('po białorusku', 'phrase', 'білоруською', 'по-белорусски', 'in Belarusian', 'по бялоруску', ['languages'], 'A0',
+    ['W domu mówimy po białorusku i po rosyjsku.', 'Удома ми говоримо білоруською й російською.', 'Дома мы говорим по-белорусски и по-русски.', 'At home we speak Belarusian and Russian.']),
   w('pochodzić', 'verb', 'походити (бути родом)', 'происходить (быть родом)', 'to come from', 'походжічь', ['origin'], 'A1',
     ['Pochodzę z Charkowa.', 'Я родом з Харкова.', 'Я родом из Харькова.', 'I come from Kharkiv.'], { ja: 'pochodzę', ty: 'pochodzisz' }),
 

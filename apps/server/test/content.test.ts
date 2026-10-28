@@ -84,6 +84,18 @@ describe('Żywy polski', () => {
     }
     // Грубі вирази позначені саме так.
     expect(SLANG.find((x) => x.id === 'mam-wywalone')!.register).toBe('rude');
+    for (const id of ['dzban', 'spadaj']) expect(SLANG.find((x) => x.id === id)!.register, id).toBe('rude');
+  });
+
+  it('розмовника вистачає на кожну групу, а нейтральні відповідники не повторюються (тренажер не дає двох однакових варіантів)', () => {
+    expect(SLANG.length).toBeGreaterThanOrEqual(50);
+    for (const g of new Set(SLANG.map((x) => x.group))) expect(SLANG.filter((x) => x.group === g).length, g).toBeGreaterThanOrEqual(5);
+    const neutral = SLANG.map((x) => x.neutral.pl.toLowerCase());
+    expect(new Set(neutral).size).toBe(neutral.length);
+    const pls = SLANG.map((x) => x.pl.toLowerCase());
+    expect(new Set(pls).size).toBe(pls.length);
+    // Кирилиця не потрапляє в польський текст.
+    for (const x of SLANG) for (const pl of [x.pl, x.dialogue.a, x.dialogue.b, x.neutral.pl]) expect(pl, x.id).not.toMatch(/[а-яіїєґё]/i);
   });
 });
 

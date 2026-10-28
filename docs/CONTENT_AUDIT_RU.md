@@ -5,6 +5,54 @@
 соответствие вопроса и ответа, единственность правильного варианта, объяснение, повторы.
 ID упражнения в журнале — `урок#порядок` (порядок = номер в уроке, с нуля; он же ключ строки в БД).
 
+## 2026-10-28 — «туповатые» варианты, Беларусь, сленг (пункты 4, 5, 8, 10 владельца)
+
+Принцип: неправильный вариант — это ошибка, которую реально делает ученик (падеж, род, регистр, похожее слово,
+калька с украинского/русского), а не шутка вроде «Dobranoc» на кассе или «Poproszę Gdańsk». Каждый такой вариант
+получил разбор на трёх языках: почему это неверно и как сказать правильно.
+
+Доставка в БД — новый механизм `apps/server/src/content/task-edits.ts` (`TASK_EDITS`, `LESSON_EDITS`): правка по
+стабильному id задания (`e_<урок>_<номер>`), строка обновляется только если в БД ещё старый текст (точное совпадение
+type/skill/data/explanation) — правки из админки и прогресс не трогаются, повтор ничего не меняет. Файл генерирует
+`node --import tsx scripts/task-edits.ts snapshot|diff <file.json>`; тест `apps/server/test/task-edits.test.ts`.
+
+### Уроки (29 заданий, 3 текста уроков)
+- Абсурдные реплики → правдоподобные ошибки: `waw-1-czesc#16` (Na razie, nawzajem — регистр со старшим),
+  `waw-2-uprzejmosc#8` (Dziękuję вместо Przepraszam), `waw-3-imie#7` (Nazywa się — о другом, не о себе),
+  `waw-4-skad#14` (po polski вместо po polsku), `waw-c1-centralna#11` (kiedy вместо którędy),
+  `waw-c2-bilety#10` (билет на 20 минут при пересадке), `waw-boss#10` (Cześć с незнакомой соседкой),
+  `lodz-2-dwuznaki#0` (do szkoła), `krk-r1-miasto#15` (kto/co), `krk-r2-orientacja#15` (obok kawiarnia — падеж),
+  `krk-r4-droga#8` (do Wawel), `krk-boss#9` (Proszę bardzo на «Smacznego»), `opo-1-siema#0` (официальный тон с другом),
+  `wro-1-kawa#9` (na miejsce), `wro-2-zabka#8` (Tak, to wszystko), `wro-4-restauracja#8` (sok jabłkowa),
+  `pzn-2-koziolki#6` (Ile czasu вместо Ile razy).
+- WORD_TRANSLATION `waw-2-uprzejmosc#11`: «Proszę nie mówić» → близкие по смыслу «głośniej / szybciej».
+- «Найди лишнее» с очевидным ответом (помидор среди слов вежливости, кот среди чисел, бабушка среди комнат, часы,
+  октябрь среди мест, сумка) → настоящий критерий: `waw-2-uprzejmosc#14`, `waw-5-liczby#5` (нечётное число),
+  `krk-3-dom#7` (lodówka — вещь, не часть квартиры), `wro-boss#6`, `pzn-2-koziolki#8`, `pzn-8-weekend#8`.
+
+### Беларусь рядом с Украиной (пункт 4)
+- `waw-4-skad`: объяснение и пример («Jestem z Białorusi, z Mińska»), перевод `#8` «Я з Білорусі», лишнее `#15`
+  с **po białorusku**; словарь: **Białoruś** (z Białorusi), **po białorusku**.
+- `lodz-4-oni-one#8` «One są z Białorusi», `lodz-boss#3` «My jesteśmy z Białorusi», входной тест `placement-test#3`
+  «Jestem z Białorusi» (дистракторы Białoruś / Białorusią).
+- Грамматика «Dopełniacz»: Białoruś → z **Białorusi**; `krk-3-dom` (en): «false friends for Ukrainian, Belarusian
+  and Russian speakers»; подсказки ИИ-помощника — «Ukrainians and Belarusians».
+
+### Миссии (пункт 10, только код — миссии в БД не хранятся)
+19 вариантов заменены: «Скільки вам років?» → «Ви можете мені допомогти?» (кто кому помогает); «Z wodą» →
+«Z sos czosnkowy»; «Smacznego/Dobranoc/Nie ma za co» не к месту → na miejsce / na wynosie / paragon вместо rachunek /
+«To wszystkie» / «Proszę bardzo» на чек / «Paragonu, poproszę»; «Poproszę Gdańsk» → «jak dojść do Gdańska» (пешком,
+а надо dojechać); «Szerokiej drogi» → «Na zdrowie!» и «Wzajemnie, szerokiej drogi!»; трамвай: «do dworzec»;
+«ze śmietana»; «Nie, proszę» и «następny raz»; «z serom» (калька «с сыром»); «przystanek nocny tramwaj»;
+«Czy … są mięso?»; «Na jedną stronę»; «gdzie jest szampony?».
+
+### Сленг (пункт 8)
+Раздел «Żywy polski» — 56 выражений вместо 26 и новая группа «Деньги и работа»: Hejka, Pa/Papa, Mordo, Stary,
+Szefie, Typ, Dzban (грубо), Git/Gituwa, Essa, Ogień, No weź, O matko, Dramat, Ściema, XD, Rel, Wkręcasz mnie?,
+Na bank, W sumie, Wpadnij, Sorki, Dzięki, Kasa, Hajs, Stówa/dycha, Fajrant, Robota, Jestem na L4, Spadaj (грубо),
+Weź przestań. У каждого — регистр, с кем можно, ситуация, диалог и нейтральная замена; тест следит, чтобы
+нейтральные замены не повторялись (тренажёр не показывает два одинаковых варианта).
+
 ## Варшава — проверено 499 заданий (26 уроков) + экзамен
 
 ### Неоднозначные задания

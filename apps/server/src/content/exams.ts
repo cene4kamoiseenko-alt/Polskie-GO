@@ -25,7 +25,7 @@ export const PLACEMENT: LessonSeed = {
     wordChoice('vocab.greetings', 'Do widzenia', [t('До побачення', 'До свидания', 'Goodbye'), t('Добрий вечір', 'Добрый вечер', 'Good evening'), t('Дякую', 'Спасибо', 'Thank you')]),
     wordChoice('vocab.numbers', 'siedem', [t('7', '7', '7'), t('6', '6', '6'), t('17', '17', '17')]),
     fillGap('grammar.intro', 'Mam na ___ Ola.', ['imię', 'nazwisko', 'lat'], t('Мене звати Оля.', 'Меня зовут Оля.', 'My name is Ola.')),
-    fillGap('grammar.genitive', 'Jestem z ___.', ['Ukrainy', 'Ukraina', 'Ukrainę'], t('Я з України.', 'Я из Украины.', 'I\'m from Ukraine.')),
+    fillGap('grammar.genitive', 'Jestem z ___.', ['Białorusi', 'Białoruś', 'Białorusią'], t('Я з Білорусі.', 'Я из Беларуси.', 'I\'m from Belarus.')),
     findError('grammar.gender', ['To', 'jest', 'moja', 'mieszkanie'], 2, t('Це моя квартира.', 'Это моя квартира.', 'This is my flat.'),
       t('**mieszkanie** — середній рід (закінчення **-e**), тому **moje mieszkanie**, хоча «квартира» — жіночого роду.', '**mieszkanie** — средний род (окончание **-e**), поэтому **moje mieszkanie**, хотя «квартира» — женского рода.', '**mieszkanie** is neuter (ending **-e**), so it is **moje mieszkanie**.')),
     fillGap('grammar.być', 'Oni ___ w domu.', ['są', 'jest', 'jesteśmy'], t('Вони вдома.', 'Они дома.', 'They are at home.')),

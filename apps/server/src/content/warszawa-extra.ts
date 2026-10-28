@@ -33,20 +33,20 @@ export const WAW1_MORE = [
       choose: [['Dzień dobry, panie Zenonie!', t('Добрий день, пане Зеноне!', 'Добрый день, пан Зенон!', 'Good morning, Mr Zenon!')], ['Cześć, stary!', t('Привіт, старий!', 'Привет, старик!', 'Hey, old man!')]],
       feedback: t('Зі старшим сусідом — формально: **Dzień dobry** + **pan** (panie Zenonie).', 'Со старшим соседом — формально: **Dzień dobry** + **pan** (panie Zenonie).', 'With an older neighbour be formal: **Dzień dobry** + **pan** (panie Zenonie).') },
     { npc: 'Do widzenia, miłego dnia!', tr: t('До побачення, гарного дня!', 'До свидания, хорошего дня!', 'Goodbye, have a nice day!'),
-      choose: [['Do widzenia, nawzajem!', t('До побачення, навзаєм!', 'До свидания, и вам!', 'Goodbye, you too!')], ['Dobranoc, smacznego!', t('На добраніч, смачного!', 'Спокойной ночи, приятного аппетита!', 'Good night, enjoy your meal!')]],
-      feedback: t('На побажання відповідають **nawzajem** — навзаєм.', 'На пожелание отвечают **nawzajem** — и вам того же.', 'Reply to a wish with **nawzajem** — you too.') },
+      choose: [['Do widzenia, nawzajem!', t('До побачення, навзаєм!', 'До свидания, и вам!', 'Goodbye, you too!')], ['Na razie, nawzajem!', t('Бувай, навзаєм!', 'Пока, и вам!', 'See you, you too!')]],
+      feedback: t('**Na razie** — неформальне «бувай», зі старшим сусідом так не прощаються. Формально: **Do widzenia**, а на побажання — **nawzajem**.', '**Na razie** — неформальное «пока», со старшим соседом так не прощаются. Формально: **Do widzenia**, а на пожелание — **nawzajem**.', '**Na razie** is an informal "see you" — not for an older neighbour. Say **Do widzenia** and reply to the wish with **nawzajem**.') },
   ], { situation: true, scene: t('Ранок. На сходах зустрічаєш літнього сусіда пана Зенона.', 'Утро. На лестнице встречаешь пожилого соседа пана Зенона.', 'Morning. You meet your elderly neighbour Mr Zenon on the stairs.') }),
 ];
 
 // ───────────── waw-2-uprzejmosc: +7 ─────────────
 export const WAW2_MORE = [
   wordChoice('vocab.politeness', 'Nie wiem', [t('Не знаю', 'Не знаю', 'I don\'t know'), t('Не розумію', 'Не понимаю', 'I don\'t understand'), t('Не хочу', 'Не хочу', 'I don\'t want')]),
-  reverseChoice('vocab.politeness', t('Говоріть, будь ласка, повільніше.', 'Говорите, пожалуйста, медленнее.', 'Please speak more slowly.'), ['Proszę mówić wolniej.', 'Proszę mówić głośno.', 'Proszę nie mówić.']),
+  reverseChoice('vocab.politeness', t('Говоріть, будь ласка, повільніше.', 'Говорите, пожалуйста, медленнее.', 'Please speak more slowly.'), ['Proszę mówić wolniej.', 'Proszę mówić głośniej.', 'Proszę mówić szybciej.']),
   fillGap('usage.politeness', 'Przepraszam, czy może pan ___?', ['powtórzyć', 'powtarzam', 'powtórzę'], t('Перепрошую, можете повторити?', 'Извините, можете повторить?', 'Sorry, could you repeat?'),
     t('Після **może pan** — інфінітив: **powtórzyć**.', 'После **może pan** — инфинитив: **powtórzyć**.', 'After **może pan** use the infinitive: **powtórzyć**.')),
   listen('listening.politeness', 'Proszę mówić wolniej', ['Proszę mówić wolniej', 'Proszę mówić głośniej', 'Proszę iść wolniej']),
-  oddOne('vocab.politeness', ['proszę', 'dziękuję', 'przepraszam', 'pomidor'], 3,
-    t('Три — «чарівні слова», а **pomidor** — помідор.', 'Три — «волшебные слова», а **pomidor** — помидор.', 'Three are "magic words"; **pomidor** is a tomato.'), t("Що НЕ є ввічливим словом для прохання, подяки чи вибачення?", "Что НЕ является словом просьбы, благодарности или извинения?", "Which is NOT an expression for a request, thanks or an apology?")),
+  oddOne('vocab.politeness', ['proszę', 'dziękuję', 'przepraszam', 'smacznego'], 3,
+    t('**Proszę** — прохання, **dziękuję** — подяка, **przepraszam** — вибачення, а **smacznego** — побажання смачного перед їжею.', '**Proszę** — просьба, **dziękuję** — благодарность, **przepraszam** — извинение, а **smacznego** — пожелание приятного аппетита.', '**Proszę** asks, **dziękuję** thanks, **przepraszam** apologises; **smacznego** wishes someone a good meal.'), t("Що НЕ є ввічливим словом для прохання, подяки чи вибачення?", "Что НЕ является словом просьбы, благодарности или извинения?", "Which is NOT an expression for a request, thanks or an apology?")),
   dialogue('situation.info-fast', INFO, [
     { npc: 'Pociąg do Gdańska odjeżdża z peronu czwartego, przy torze dwunastym.', tr: t('Потяг до Гданська відправляється з четвертої платформи, колія дванадцята.', 'Поезд до Гданьска отправляется с четвёртой платформы, путь двенадцатый.', 'The train to Gdańsk leaves from platform four, track twelve.'),
       choose: [['Przepraszam, nie rozumiem. Proszę mówić wolniej.', t('Вибачте, не розумію. Говоріть повільніше.', 'Извините, не понимаю. Говорите медленнее.', 'Sorry, I don\'t understand. Please speak more slowly.')], ['Dziękuję, dobranoc!', t('Дякую, на добраніч!', 'Спасибо, спокойной ночи!', 'Thanks, good night!')]],
@@ -89,15 +89,15 @@ export const WAW4_MORE = [
   listen('listening.origin', 'Jestem z Ukrainy, z Kijowa', ['Jestem z Ukrainy, z Kijowa', 'Jestem z Ukrainy, z Kowla', 'Jestem z Polski, z Kijowa']),
   dialogue('dialogue.origin', ANIA, [
     { npc: 'Mówisz po polsku?', tr: t('Ти говориш польською?', 'Ты говоришь по-польски?', 'Do you speak Polish?'),
-      choose: [['Trochę. Ale dobrze mówię po angielsku.', t('Трохи. Але добре говорю англійською.', 'Немного. Но хорошо говорю по-английски.', 'A little. But I speak English well.')], ['Mam na imię Taras.', t('Мене звати Тарас.', 'Меня зовут Тарас.', 'My name is Taras.')]],
-      feedback: t('Ania питає про мову. Відповідай: **Trochę…**', 'Аня спрашивает о языке. Отвечай: **Trochę…**', 'Ania asks about languages. Answer: **Trochę…**') },
+      choose: [['Trochę. Ale dobrze mówię po angielsku.', t('Трохи. Але добре говорю англійською.', 'Немного. Но хорошо говорю по-английски.', 'A little. But I speak English well.')], ['Trochę mówię po polski.', t('Трохи говорю польською (з помилкою).', 'Немного говорю по-польски (с ошибкой).', 'I speak a little Polish (with a mistake).')]],
+      feedback: t('Мова — **po** + **-sku**: **po polsku**, а не «po polski». **Polski** — це «польський» або «Польща» в родовому (z Polski).', 'Язык — **po** + **-sku**: **po polsku**, а не «po polski». **Polski** — это «польский» или «Польша» в родительном (z Polski).', 'Languages: **po** + **-sku** — **po polsku**, not "po polski". **Polski** means "Polish" (adjective) or "of Poland" (z Polski).') },
     { npc: 'Super! A skąd jesteś?', tr: t('Супер! А звідки ти?', 'Супер! А откуда ты?', 'Great! Where are you from?'),
       choose: [['Jestem z Ukrainy, ze Lwowa.', t('Я з України, зі Львова.', 'Я из Украины, из Львова.', 'I\'m from Ukraine, from Lviv.')], ['Jestem w Warszawie.', t('Я у Варшаві.', 'Я в Варшаве.', 'I\'m in Warsaw.')]],
       feedback: t('**Skąd?** → **z** + родовий: **ze Lwowa**.', '**Skąd?** → **z** + родительный: **ze Lwowa**.', '**Skąd?** → **z** + genitive: **ze Lwowa**.') },
     { npc: 'Lwów jest piękny! Witaj w Warszawie!', tr: t('Львів гарний! Ласкаво просимо до Варшави!', 'Львов красивый! Добро пожаловать в Варшаву!', 'Lviv is beautiful! Welcome to Warsaw!') },
   ]),
-  oddOne('vocab.origin', ['po polsku', 'po angielsku', 'po ukraińsku', 'po południu'], 3,
-    t('Три — мови, а **po południu** — після обіду.', 'Три — языки, а **po południu** — после обеда.', 'Three are languages; **po południu** means in the afternoon.'), t("Який вираз означає час, а не мову?", "Какое выражение обозначает время, а не язык?", "Which expression refers to time rather than a language?")),
+  oddOne('vocab.origin', ['po polsku', 'po białorusku', 'po ukraińsku', 'po południu'], 3,
+    t('Три — мови (польська, білоруська, українська), а **po południu** — після обіду.', 'Три — языки (польский, белорусский, украинский), а **po południu** — после обеда.', 'Three are languages (Polish, Belarusian, Ukrainian); **po południu** means in the afternoon.'), t("Який вираз означає час, а не мову?", "Какое выражение обозначает время, а не язык?", "Which expression refers to time rather than a language?")),
   wordOrder('grammar.origin', 'Mówię po angielsku i trochę po polsku', t('Я говорю англійською і трохи польською.', 'Я говорю по-английски и немного по-польски.', 'I speak English and a little Polish.')),
 ];
 

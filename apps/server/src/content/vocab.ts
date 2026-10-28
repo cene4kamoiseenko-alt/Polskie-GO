@@ -102,6 +102,7 @@ export const VOCAB: VocabSeed[] = [
   v('gdzie', 'adv', t('де', 'где', 'where'), 'гдзє', 'A0', ['people', 'travel'], '📍'),
   v('Polska', 'noun', t('Польща', 'Польша', 'Poland'), 'польска', 'A0', ['people', 'travel'], '🇵🇱', undefined, { gen: 'Polski', loc: 'Polsce' }),
   v('Ukraina', 'noun', t('Україна', 'Украина', 'Ukraine'), 'украіна', 'A0', ['people'], '🇺🇦', undefined, { gen: 'Ukrainy', loc: 'Ukrainie' }),
+  v('Białoruś', 'noun', t('Білорусь', 'Беларусь', 'Belarus'), 'бялорусь', 'A0', ['people'], undefined, [ex('Jestem z Białorusi, z Mińska.', t('Я з Білорусі, з Мінська.', 'Я из Беларуси, из Минска.', 'I am from Belarus, from Minsk.'))], { gen: 'Białorusi', loc: 'Białorusi' }),
   v('mieszkać', 'verb', t('жити (мешкати)', 'жить (проживать)', 'to live'), 'м\'єшкачь', 'A0', ['people', 'home'], '🏠', [
     ex('Mieszkam w Warszawie.', t('Я живу у Варшаві.', 'Я живу в Варшаве.', 'I live in Warsaw.')),
   ], { ja: 'mieszkam', ty: 'mieszkasz', 'on/ona': 'mieszka', my: 'mieszkamy', wy: 'mieszkacie', oni: 'mieszkają' }),

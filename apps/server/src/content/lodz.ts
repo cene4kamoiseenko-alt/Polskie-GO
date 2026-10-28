@@ -82,11 +82,11 @@ export const LODZ: CityContent = {
           exercises: [
             dialogue('dialogue.sounds', KASIA, [
               { npc: 'Cześć! Masz czas?', tr: t('Привіт! Маєш час?', 'Привет! Есть время?', 'Hi! Do you have time?'),
-                choose: [['Nie, idę do szkoły.', t('Ні, іду до школи.', 'Нет, иду в школу.', 'No, I\'m going to school.')], ['Nie, idę do rzeki chleb.', t('(безглуздя)', '(бессмыслица)', '(nonsense)')]],
-                feedback: t('**do szkoły** — до школи. Відповідь має бути зрозумілою.', '**do szkoły** — в школу.', '**do szkoły** — to school.') },
+                choose: [['Nie, idę do szkoły.', t('Ні, іду до школи.', 'Нет, иду в школу.', 'No, I\'m going to school.')], ['Nie, idę do szkoła.', t('Ні, іду до школи. (з помилкою)', 'Нет, иду в школу. (с ошибкой)', 'No, I\'m going to school. (a mistake)')]],
+                feedback: t('Після **do** — родовий відмінок: szkoła → **do szkoły**.', 'После **do** — родительный падеж: szkoła → **do szkoły**.', 'After **do** use the genitive: szkoła → **do szkoły**.') },
               { npc: 'Szkoda! To zadzwoń wieczorem.', tr: t('Шкода! Тоді подзвони ввечері.', 'Жаль! Тогда позвони вечером.', 'Pity! Call in the evening then.'),
-                choose: [['Dobrze, zadzwonię!', t('Добре, подзвоню!', 'Хорошо, позвоню!', 'OK, I\'ll call!')], ['Dobrze, dżem!', t('Добре, джем!', 'Хорошо, джем!', 'OK, jam!')]],
-                feedback: t('**zadzwonię** — подзвоню (від dzwonić).', '**zadzwonię** — позвоню.', '**zadzwonię** — I\'ll call.') },
+                choose: [['Dobrze, zadzwonię!', t('Добре, подзвоню!', 'Хорошо, позвоню!', 'OK, I\'ll call!')], ['Dobrze, dzwonię!', t('Добре, дзвоню! (зараз)', 'Хорошо, звоню! (сейчас)', 'OK, I\'m calling! (now)')]],
+                feedback: t('Просять подзвонити ввечері — відповідь у майбутньому: **zadzwonię** (подзвоню). **Dzwonię** — дзвоню зараз.', 'Просят позвонить вечером — ответ в будущем: **zadzwonię** (позвоню). **Dzwonię** — звоню сейчас.', 'She asks you to call tonight — answer in the future: **zadzwonię** (I\'ll call). **Dzwonię** means "I\'m calling now".') },
             ]),
             match('pronunciation.digraphs', [
               ['sz', t('ш', 'ш', 'sh')],
@@ -206,7 +206,7 @@ export const LODZ: CityContent = {
               t('**koledzy** (колеги-чоловіки) — **oni**. Решта — **one**.', '**koledzy** — **oni**. Остальные — **one**.', '**koledzy** — **oni**; the rest — **one**.'), t("Яке слово поєднується із займенником oni?", "Какое слово сочетается с местоимением oni?", "Which word takes the pronoun oni?")),
             findError('grammar.oni', ['Moje', 'koleżanki?', 'Oni', 'są', 'miłe'], 2, t('Мої подруги? Вони милі.', 'Мои подруги? Они милые.', 'My friends? They\'re nice.'),
               t('Тільки жінки — **One** są miłe.', 'Только женщины — **One** są miłe.', 'Only women — **One**.')),
-            listen('grammar.oni', 'One są z Ukrainy', ['One są z Ukrainy', 'Oni są z Ukrainy', 'Ona jest z Ukrainy']),
+            listen('grammar.oni', 'One są z Białorusi', ['One są z Białorusi', 'Oni są z Białorusi', 'Ona jest z Białorusi']),
             translate('writing.oni', t('Вони (Петро й Анна) вдома.', 'Они (Пётр и Анна) дома.', 'They (Piotr and Anna) are at home.'), ['Oni są w domu', 'Są w domu'],
               t('Є чоловік — **oni**: Oni są w domu.', 'Есть мужчина — **oni**: Oni są w domu.', 'A man is present — **oni**.')),
             speak('speaking.oni', 'One są w szkole, a oni są w pracy', t('Вони (жінки) в школі, а вони (чоловіки) на роботі', 'Они (женщины) в школе, а они (мужчины) на работе', 'They (f) are at school and they (m) are at work')),
@@ -271,7 +271,7 @@ export const LODZ: CityContent = {
             ], { situation: true, scene: t('Вечір на вулиці Пйотрковській', 'Вечер на улице Пётрковской', 'Evening on Piotrkowska Street') }),
             listen('pronunciation.boss', 'rzeka', ['rzeka', 'reka', 'rżeka']),
             listen('pronunciation.boss', 'łóżko', ['łóżko', 'lóżko', 'łuszko']),
-            fillGap('grammar.boss', 'My ___ z Ukrainy.', ['jesteśmy', 'jesteście', 'są'], t('Ми з України.', 'Мы из Украины.', 'We are from Ukraine.'), t('my **jesteśmy**.', 'my **jesteśmy**.', 'my **jesteśmy**.')),
+            fillGap('grammar.boss', 'My ___ z Białorusi.', ['jesteśmy', 'jesteście', 'są'], t('Ми з Білорусі.', 'Мы из Беларуси.', 'We are from Belarus.'), t('my **jesteśmy**.', 'my **jesteśmy**.', 'my **jesteśmy**.')),
             fillGap('grammar.boss', 'Moja mama jest ___.', ['nauczycielką', 'nauczycielka', 'nauczyciel'], t('Моя мама — вчителька.', 'Моя мама — учительница.', 'My mum is a teacher.'), t('Орудний: **nauczycielką**.', 'Творительный: **nauczycielką**.', 'Instrumental: **nauczycielką**.')),
             fillGap('grammar.boss', 'Koty? ___ śpią.', ['One', 'Oni', 'On'], t('Коти? Вони сплять.', 'Коты? Они спят.', 'The cats? They\'re sleeping.'), t('Тварини — **one**.', 'Животные — **one**.', 'Animals — **one**.')),
             match('grammar.boss', [

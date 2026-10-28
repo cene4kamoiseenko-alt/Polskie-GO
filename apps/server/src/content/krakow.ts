@@ -134,7 +134,7 @@ export const KRAKOW: CityContent = {
           explanation: t(
             '**dom** — дім, **mieszkanie** — квартира, **pokój** — кімната, **kuchnia** — кухня, **łazienka** — ванна.\nУвага, хибні друзі! **dywan** — це килим, а диван — **kanapa**. **sklep** — магазин, а не склеп.\nПрикметник узгоджується з родом: **duży** pokój, **duża** kuchnia, **duże** mieszkanie.',
             '**dom** — дом, **mieszkanie** — квартира, **pokój** — комната, **kuchnia** — кухня, **łazienka** — ванная.\nВнимание, ложные друзья! **dywan** — это ковёр, а диван — **kanapa**. **sklep** — магазин, а не склеп.\nПрилагательное согласуется с родом: **duży** pokój, **duża** kuchnia, **duże** mieszkanie.',
-            '**dom** — house, **mieszkanie** — flat, **pokój** — room, **kuchnia** — kitchen, **łazienka** — bathroom.\nFalse friends for Ukrainians: **dywan** means carpet, a sofa is **kanapa**.\nAdjectives agree with gender: **duży** pokój, **duża** kuchnia, **duże** mieszkanie.',
+            '**dom** — house, **mieszkanie** — flat, **pokój** — room, **kuchnia** — kitchen, **łazienka** — bathroom.\nFalse friends for Ukrainian, Belarusian and Russian speakers: **dywan** means carpet, a sofa is **kanapa**.\nAdjectives agree with gender: **duży** pokój, **duża** kuchnia, **duże** mieszkanie.',
           ),
           examples: [
             { pl: 'Mam małe mieszkanie i dużego psa.', tr: t('У мене маленька квартира і великий пес.', 'У меня маленькая квартира и большая собака.', 'I have a small flat and a big dog.') },
@@ -157,7 +157,7 @@ export const KRAKOW: CityContent = {
               t('**kuchnia** — жіночий рід; після **mam** — знахідний: **dużą kuchnię**.', '**kuchnia** — женский род; после **mam** — винительный: **dużą kuchnię**.', '**kuchnia** is feminine; after **mam** — accusative: **dużą kuchnię**.')),
             fillGap('grammar.adjectives', 'To jest ___ pokój.', ['mały', 'mała', 'małe'], t('Це маленька кімната.', 'Это маленькая комната.', 'This is a small room.'),
               t('**pokój** — чоловічого роду: **mały pokój**.', '**pokój** — мужского рода: **mały pokój**.', '**pokój** is masculine: **mały pokój**.')),
-            oddOne('vocab.home', ['kuchnia', 'łazienka', 'pokój', 'babcia'], 3, t('**babcia** — бабуся, а не кімната.', '**babcia** — бабушка, а не комната.', '**babcia** is a grandma, not a room.'), t("Хто є членом родини, а не кімнатою?", "Что называет члена семьи, а не комнату?", "Which names a family member rather than a room?")),
+            oddOne('vocab.home', ['kuchnia', 'łazienka', 'pokój', 'lodówka'], 3, t('**Kuchnia**, **łazienka**, **pokój** — частини квартири, а **lodówka** — холодильник (річ у кухні).', '**Kuchnia**, **łazienka**, **pokój** — части квартиры, а **lodówka** — холодильник (вещь на кухне).', '**Kuchnia**, **łazienka**, **pokój** are parts of a flat; **lodówka** is a fridge (a thing in the kitchen).'), t("Що НЕ є частиною квартири, а річчю?", "Что НЕ часть квартиры, а вещь?", "Which is a thing, not a part of the flat?")),
             listen('listening.home', 'Kot śpi na dywanie', ['Kot śpi na dywanie', 'Kot śpi na kanapie', 'Pies śpi na dywanie']),
             wordOrder('grammar.sentence', 'Mieszkam w małym mieszkaniu', t('Я живу в маленькій квартирі', 'Я живу в маленькой квартире', 'I live in a small flat')),
             speak('speaking.home', 'Mam kota', t('У мене є кіт', 'У меня есть кот', 'I have a cat')),
@@ -290,8 +290,8 @@ export const KRAKOW: CityContent = {
                 choose: [['Mam siostrę.', t('У мене є сестра.', 'У меня есть сестра.', 'I have a sister.')], ['Mam siostra.', t('(помилка у відмінку)', '(ошибка в падеже)', '(case error)')]],
                 feedback: t('Після **mam**: **siostrę**.', 'После **mam**: **siostrę**.', 'After **mam**: **siostrę**.') },
               { npc: 'Smacznego!', tr: t('Смачного!', 'Приятного аппетита!', 'Enjoy your meal!'),
-                choose: [['Dziękuję, babciu!', t('Дякую, бабусю!', 'Спасибо, бабушка!', 'Thank you, grandma!')], ['Dobranoc, babciu!', t('На добраніч, бабусю!', 'Спокойной ночи, бабушка!', 'Good night, grandma!')]],
-                feedback: t('На «Smacznego!» кажуть **Dziękuję!**', 'На «Smacznego!» отвечают **Dziękuję!**', 'Reply to "Smacznego!" with **Dziękuję!**') },
+                choose: [['Dziękuję, babciu!', t('Дякую, бабусю!', 'Спасибо, бабушка!', 'Thank you, grandma!')], ['Proszę bardzo, babciu!', t('Прошу, бабусю!', 'Пожалуйста, бабушка!', 'You\'re welcome, grandma!')]],
+                feedback: t('**Proszę bardzo** — відповідь на «дякую». На «Smacznego!» кажуть **Dziękuję!** (а якщо їсте разом — **Nawzajem!**).', '**Proszę bardzo** — ответ на «спасибо». На «Smacznego!» отвечают **Dziękuję!** (а если едите вместе — **Nawzajem!**).', '**Proszę bardzo** answers a thank-you. Reply to "Smacznego!" with **Dziękuję!** (or **Nawzajem!** if you eat together).') },
             ]),
             translate('writing.family', t('Це моя родина.', 'Это моя семья.', 'This is my family.'), ['To jest moja rodzina', 'To moja rodzina']),
             wordOrder('grammar.sentence', 'We wtorek jestem w pracy', t('У вівторок я на роботі', 'Во вторник я на работе', 'On Tuesday I am at work'), undefined, ['Jestem w pracy we wtorek']),

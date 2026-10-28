@@ -86,7 +86,7 @@ export const MISSIONS: Mission[] = [
         [
           T(t('Чим можу допомогти?', 'Чем могу помочь?', 'How can I help?'), true),
           T(t('Вам потрібен пакет?', 'Вам нужен пакет?', 'Do you need a bag?'), false, t('Про пакет питають наприкінці покупки.', 'О пакете спрашивают в конце покупки.', 'They ask about a bag at the end.')),
-          T(t('Скільки вам років?', 'Сколько вам лет?', 'How old are you?')),
+          T(t('Ви можете мені допомогти?', 'Вы можете мне помочь?', 'Can you help me?'), false, t('Так питає покупець. «W czym mogę pomóc?» — «Чим я можу допомогти?»: mogę — я можу.', 'Так спрашивает покупатель. «W czym mogę pomóc?» — «Чем я могу помочь?»: mogę — я могу.', 'That’s the customer’s question. «Mogę pomóc» = I can help.')),
         ],
         { hint: t('Ключові слова: «mogę pomóc» — можу допомогти.', 'Ключевые слова: «mogę pomóc» — могу помочь.', 'Key words: «mogę pomóc» — can help.'), explain: t('«W czym mogę pomóc?» — типове питання продавця: «Чим можу допомогти?»', '«W czym mogę pomóc?» — типичный вопрос продавца: «Чем могу помочь?»', '«W czym mogę pomóc?» is the typical shop assistant question.'), words: ['dzień dobry'] }),
       build('order', undefined, t('Склади замовлення: «Хот-дог і воду, будь ласка».', 'Составь заказ: «Хот-дог и воду, пожалуйста».', 'Build the order: “A hot dog and water, please.”'),
@@ -99,7 +99,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Z sosem czosnkowym, poproszę.', true),
           P('Bez sosu, dziękuję.', true),
-          P('Z wodą.', false, t('Вода — це напій, а питають про соус (sos).', 'Вода — это напиток, а спрашивают о соусе (sos).', 'Water is a drink; she asks about the sauce (sos).')),
+          P('Z sos czosnkowy.', false, t('Після «z» — орудний відмінок: z sosem czosnkowym.', 'После «z» — творительный падеж: z sosem czosnkowym.', 'After «z» use the instrumental: z sosem czosnkowym.')),
         ],
         { hint: t('Sos — соус. «Z sosem…» або «Bez sosu».', 'Sos — соус. «Z sosem…» или «Bez sosu».', 'Sos = sauce. «Z sosem…» or «Bez sosu».'), explain: t('«Z jakim sosem?» — «З яким соусом?». Можна обрати соус (z sosem czosnkowym — з часниковим) або відмовитися (bez sosu).', '«Z jakim sosem?» — «С каким соусом?». Можно выбрать соус (z sosem czosnkowym — с чесночным) или отказаться (bez sosu).', '«Z jakim sosem?» — “Which sauce?” Choose one or say «bez sosu».'), words: ['sos'] }),
       choice('water', npc('Woda gazowana czy niegazowana?', 'Вода газована чи негазована?', 'Вода газированная или негазированная?', 'Sparkling or still water?'),
@@ -131,7 +131,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Nie, dziękuję. Miłego dnia!', true),
           P('Tak, poproszę. Do widzenia!', true),
-          P('Smacznego!', false, t('«Smacznego» кажуть тому, хто їсть. Касирці подякуй: «Dziękuję!»', '«Smacznego» говорят тому, кто ест. Кассирше скажи «Dziękuję!»', '«Smacznego» is said to someone eating. Thank the cashier instead.')),
+          P('Nie ma za co. Do widzenia!', false, t('«Nie ma za co» — відповідь на «дякую», а тобі пропонують чек. Скажи «Tak, poproszę» або «Nie, dziękuję».', '«Nie ma za co» — ответ на «спасибо», а тебе предлагают чек. Скажи «Tak, poproszę» или «Nie, dziękuję».', '«Nie ma za co» answers “thank you”; she offers a receipt.')),
         ],
         { hint: t('Подякуй (dziękuję) і попрощайся.', 'Поблагодари (dziękuję) и попрощайся.', 'Say thanks (dziękuję) and goodbye.'), explain: t('Paragon — чек. «Miłego dnia!» — «Гарного дня!»', 'Paragon — чек. «Miłego dnia!» — «Хорошего дня!»', 'Paragon = receipt. «Miłego dnia!» = Have a nice day!'), words: ['paragon', 'dziękuję', 'do widzenia'] }),
     ],
@@ -159,8 +159,8 @@ export const MISSIONS: Mission[] = [
         t('Ти хочеш поїсти тут і подивитися меню.', 'Ты хочешь поесть здесь и посмотреть меню.', 'You want to eat here and see the menu.'),
         [
           P('Na miejscu, poproszę. Czy mogę prosić menu?', true),
-          P('Poproszę rachunek.', false, t('Рахунок просять наприкінці. Спершу — меню: «Czy mogę prosić menu?»', 'Счёт просят в конце. Сначала — меню: «Czy mogę prosić menu?»', 'The bill comes at the end. First ask for the menu.')),
-          P('Dobranoc!', false, t('«Dobranoc» — «на добраніч», так прощаються перед сном.', '«Dobranoc» — «спокойной ночи», так прощаются перед сном.', '«Dobranoc» means good night.')),
+          P('Na miejsce, poproszę. Czy mogę prosić menu?', false, t('Де? — місцевий відмінок: na miejscu. «Na miejsce» відповідає на «куди?».', 'Где? — предложный падеж: na miejscu. «Na miejsce» отвечает на «куда?».', 'Where? — locative: na miejscu. «Na miejsce» answers “where to?”.')),
+          P('Na wynos, poproszę. Czy mogę prosić menu?', false, t('«Na wynos» — з собою. Ти хочеш поїсти тут: «na miejscu».', '«Na wynos» — с собой. Ты хочешь поесть здесь: «na miejscu».', '«Na wynos» = to go. You want to eat here: «na miejscu».')),
         ],
         { hint: t('na miejscu — тут, на місці; menu — меню.', 'na miejscu — здесь; menu — меню.', 'na miejscu = for here.'), explain: t('«Na miejscu czy na wynos?» — «Тут чи з собою?». «Czy mogę prosić menu?» — «Можна меню?»', '«Na miejscu czy na wynos?» — «Здесь или с собой?». «Czy mogę prosić menu?» — «Можно меню?»', '«Czy mogę prosić menu?» = May I have the menu?'), words: ['na miejscu', 'menu'] }),
       listen('fillings', npc('Mamy pierogi ruskie, z mięsem i z kapustą i grzybami.', 'Маємо pierogi руські, з м’ясом і з капустою та грибами.', 'У нас pierogi русские, с мясом и с капустой и грибами.', 'We have ruskie, meat, and cabbage-and-mushroom pierogi.'),
@@ -176,7 +176,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Czy w pierogach z kapustą i grzybami jest mięso?', true),
           P('Gdzie jest mięso?', false, t('Так питають, де лежить м’ясо. Потрібно: «Czy w … jest mięso?» — «Чи є в … м’ясо?»', 'Так спрашивают, где лежит мясо. Нужно: «Czy w … jest mięso?»', 'That asks where the meat is. Use «Czy w … jest mięso?»')),
-          P('Mam mięso.', false, t('«Mam mięso» — «У мене є м’ясо».', '«Mam mięso» — «У меня есть мясо».', '«Mam mięso» = I have meat.')),
+          P('Czy w pierogach z kapustą i grzybami są mięso?', false, t('Mięso — однина, тому «jest»: «Czy … jest mięso?»', 'Mięso — единственное число, поэтому «jest»: «Czy … jest mięso?»', 'Mięso is singular, so «jest».')),
         ],
         { hint: t('Питання починається з «Czy…».', 'Вопрос начинается с «Czy…».', 'The question starts with «Czy…».'), explain: t('«Czy» перетворює речення на питання так/ні: «Czy … jest mięso?» — «Чи є … м’ясо?»', '«Czy» делает вопрос да/нет: «Czy … jest mięso?» — «Есть ли … мясо?»', '«Czy» makes a yes/no question.'), words: ['bez mięsa'], tags: ['dish:pierogi'] }),
       choice('cooking', npc('Nie, są bez mięsa. Porcja to osiem sztuk. Gotowane czy smażone?', 'Ні, вони без м’яса. Порція — вісім штук. Варені чи смажені?', 'Нет, они без мяса. Порция — восемь штук. Варёные или жареные?', 'No, they are meat-free. A portion is eight. Boiled or fried?'),
@@ -204,7 +204,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Poproszę rachunek.', true),
           P('Poproszę menu.', false, t('Меню вже не потрібне — проси rachunek (рахунок).', 'Меню уже не нужно — проси rachunek (счёт).', 'You need the bill (rachunek), not the menu.')),
-          P('Smacznego!', false, t('«Smacznego» бажають перед їжею іншим людям.', '«Smacznego» желают другим перед едой.', '«Smacznego» is said before others eat.')),
+          P('Poproszę paragon.', false, t('Paragon — касовий чек, його дають після оплати. Щоб заплатити в ресторані, просять rachunek.', 'Paragon — кассовый чек, его дают после оплаты. Чтобы заплатить в ресторане, просят rachunek.', 'A paragon is the receipt you get after paying. To pay, ask for the rachunek.')),
         ],
         { hint: t('rachunek — рахунок.', 'rachunek — счёт.', 'rachunek = bill.'), explain: t('«Poproszę rachunek» — «Рахунок, будь ласка».', '«Poproszę rachunek» — «Счёт, пожалуйста».', '«Poproszę rachunek» = The bill, please.'), words: ['rachunek'] }),
     ],
@@ -284,7 +284,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Dziękuję, do widzenia!', true),
           P('Dzień dobry!', false, t('Це привітання. Прощаються: «Do widzenia!»', 'Это приветствие. Прощаются: «Do widzenia!»', 'That’s a greeting. Say «Do widzenia!»')),
-          P('Smacznego!', false, t('«Smacznego» — «Смачного», не для прощання.', '«Smacznego» — «Приятного аппетита».', '«Smacznego» = enjoy your meal.')),
+          P('Proszę bardzo, do widzenia!', false, t('«Proszę bardzo» кажуть, коли щось даєш або у відповідь на «дякую». Ти отримав чек — подякуй: «Dziękuję».', '«Proszę bardzo» говорят, когда что-то даёшь или в ответ на «спасибо». Ты получил чек — поблагодари: «Dziękuję».', '«Proszę bardzo» is said when giving something. You got the receipt — say «Dziękuję».')),
         ],
         { hint: t('do widzenia — до побачення.', 'do widzenia — до свидания.', 'do widzenia = goodbye.'), explain: t('«Dziękuję, do widzenia!» — універсальне прощання в магазині.', '«Dziękuję, do widzenia!» — универсальное прощание в магазине.', 'A universal goodbye in a shop.'), words: ['do widzenia'] }),
     ],
@@ -315,7 +315,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Na wynos, poproszę.', true),
           P('Z mlekiem.', false, t('Питають, тут чи з собою: na miejscu / na wynos.', 'Спрашивают, здесь или с собой: na miejscu / na wynos.', 'They ask: for here or to go.')),
-          P('Nie ma za co.', false, t('«Nie ma za co» — відповідь на «дякую».', '«Nie ma za co» — ответ на «спасибо».', '«Nie ma za co» answers “thank you”.')),
+          P('Na wynosie, poproszę.', false, t('«Na wynos» не змінюється: na miejscu — тут, na wynos — з собою.', '«Na wynos» не изменяется: na miejscu — здесь, na wynos — с собой.', '«Na wynos» never changes its form.')),
         ],
         { hint: t('na wynos — з собою.', 'na wynos — с собой.', 'na wynos = to go.'), explain: t('na wynos — з собою, na miejscu — на місці.', 'na wynos — с собой, na miejscu — на месте.', 'na wynos = to go, na miejscu = for here.'), words: ['na wynos'] }),
       listen('offer', npc('Coś jeszcze? Może hot dog do kawy?', 'Щось іще? Може, хот-дог до кави?', 'Что-нибудь ещё? Может, хот-дог к кофе?', 'Anything else? A hot dog with your coffee?'),
@@ -329,7 +329,7 @@ export const MISSIONS: Mission[] = [
       choice('thatsall', undefined, t('Відмовся: тобі вистачить кави.', 'Откажись: тебе хватит кофе.', 'Decline: coffee is enough.'),
         [
           P('Nie, dziękuję. To wszystko.', true),
-          P('Nie ma za co.', false, t('«Nie ma za co» — відповідь на «дякую». Тут: «To wszystko» — «Це все».', '«Nie ma za co» — ответ на «спасибо». Здесь: «To wszystko» — «Это всё».', 'Say «To wszystko» = that’s all.')),
+          P('Nie, dziękuję. To wszystkie.', false, t('«Wszystkie» — «усі (вони)», множина. «Це все» — «To wszystko».', '«Wszystkie» — «все (они)», множественное число. «Это всё» — «To wszystko».', '«Wszystkie» = all of them. “That’s all” = «To wszystko».')),
           P('Tak, wszystko.', false, t('Звучить як «так, усе» — касир не зрозуміє, хочеш ти хот-дог чи ні.', 'Звучит как «да, всё» — кассир не поймёт, хочешь ли ты хот-дог.', 'Ambiguous — say «Nie, dziękuję. To wszystko.»')),
         ],
         { hint: t('to wszystko — це все.', 'to wszystko — это всё.', 'to wszystko = that’s all.'), explain: t('«To wszystko» — стандартна фраза, щоб завершити замовлення.', '«To wszystko» — стандартная фраза, чтобы завершить заказ.', 'Standard phrase to finish an order.'), words: ['to wszystko'] }),
@@ -345,7 +345,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Przepraszam, jak dojechać do Gdańska?', true),
           P('Przepraszam, jak dojechać do Gdańsk?', false, t('Після «do» — родовий відмінок: Gdańsk → do Gdańska.', 'После «do» — родительный падеж: Gdańsk → do Gdańska.', 'After «do» use the genitive: do Gdańska.')),
-          P('Poproszę Gdańsk.', false, t('Місто не купують 🙂 Запитай: «Jak dojechać do…?»', 'Город не покупают 🙂 Спроси: «Jak dojechać do…?»', 'You can’t buy a city 🙂 Ask «Jak dojechać do…?»')),
+          P('Przepraszam, jak dojść do Gdańska?', false, t('«Dojść» — дійти пішки. До Ґданська їдуть машиною: «dojechać».', '«Dojść» — дойти пешком. До Гданьска едут на машине: «dojechać».', '«Dojść» = get there on foot. By car: «dojechać».')),
         ],
         { hint: t('do + родовий: do Gdańska, do Krakowa.', 'do + родительный: do Gdańska, do Krakowa.', 'do + genitive.'), explain: t('«Jak dojechać do…?» — «Як доїхати до…?» (транспортом).', '«Jak dojechać do…?» — «Как доехать до…?»', '«Jak dojechać do…?» = how do I get to…?'), words: ['dojechać'] }),
       listen('directions', npc('Proszę jechać prosto, a potem w prawo na autostradę.', 'Їдьте прямо, а потім праворуч на автостраду.', 'Поезжайте прямо, а потом направо на автостраду.', 'Go straight, then right onto the motorway.'),
@@ -403,7 +403,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Paragon, poproszę.', true),
           P('Fakturę, poproszę.', false, t('Фактуру беруть для фірми — для неї потрібен NIP (податковий номер). Тобі вистачить paragonu.', 'Фактуру берут для фирмы — для неё нужен NIP (налоговый номер). Тебе хватит paragonu.', 'An invoice is for companies and needs a NIP tax number.')),
-          P('Paragon czy faktura.', false, t('Не повторюй питання — обери одне.', 'Не повторяй вопрос — выбери одно.', 'Don’t repeat the question — choose one.')),
+          P('Paragonu, poproszę.', false, t('«Poproszę» + знахідний: paragon. Родовий «paragonu» — після заперечення: «nie potrzebuję paragonu».', '«Poproszę» + винительный: paragon. Родительный «paragonu» — после отрицания: «nie potrzebuję paragonu».', '«Poproszę» takes the accusative: paragon. «Paragonu» follows a negation.')),
         ],
         { hint: t('paragon — звичайний чек.', 'paragon — обычный чек.', 'paragon = receipt.'), explain: t('Paragon — касовий чек. Faktura — рахунок-фактура для фірми (потрібен NIP).', 'Paragon — кассовый чек. Faktura — счёт-фактура для фирмы (нужен NIP).', 'Paragon = receipt; faktura = VAT invoice (needs NIP).'), words: ['paragon', 'faktura'] }),
       choice('card', npc('Płaci pan kartą?', 'Ви платите карткою?', 'Вы платите картой?', 'Paying by card?'),
@@ -418,8 +418,8 @@ export const MISSIONS: Mission[] = [
         t('Що означає «Szerokiej drogi!» і як відповісти?', 'Что значит «Szerokiej drogi!» и как ответить?', 'What does «Szerokiej drogi!» mean and how to reply?'),
         [
           P('Dziękuję, do widzenia!', true),
-          P('Smacznego!', false, t('«Szerokiej drogi!» — «Щасливої дороги!». Подякуй: «Dziękuję!»', '«Szerokiej drogi!» — «Счастливого пути!». Поблагодари: «Dziękuję!»', 'It means “safe travels”. Say thanks.')),
-          P('Dobranoc!', false, t('«Dobranoc» — «на добраніч».', '«Dobranoc» — «спокойной ночи».', '«Dobranoc» = good night.')),
+          P('Na zdrowie!', false, t('«Na zdrowie» кажуть після чхання або як тост. «Szerokiej drogi!» — «Щасливої дороги!», подякуй: «Dziękuję!»', '«Na zdrowie» говорят после чиха или как тост. «Szerokiej drogi!» — «Счастливого пути!», поблагодари: «Dziękuję!»', '«Na zdrowie» is for a sneeze or a toast. Just say thanks.')),
+          P('Wzajemnie, szerokiej drogi!', false, t('«Szerokiej drogi» бажають тому, хто їде. Касирка лишається на роботі — просто подякуй.', '«Szerokiej drogi» желают тому, кто едет. Кассирша остаётся на работе — просто поблагодари.', 'The cashier isn’t travelling — just say thanks.')),
         ],
         { hint: t('Подякуй і попрощайся.', 'Поблагодари и попрощайся.', 'Thank and say bye.'), explain: t('«Szerokiej drogi!» дослівно «широкої дороги» — побажання щасливої дороги.', '«Szerokiej drogi!» дословно «широкой дороги» — пожелание счастливого пути.', 'Literally “wide road” — a wish for a safe trip.'), words: ['szerokiej drogi'] }),
     ],
@@ -538,7 +538,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Przepraszam, czy ten tramwaj jedzie na dworzec?', true),
           P('Przepraszam, czy ten tramwaj jedzie na dworcu?', false, t('Напрямок: na + знахідний — na dworzec. «Na dworcu» — «на вокзалі» (місце).', 'Направление: na + винительный — na dworzec. «Na dworcu» — «на вокзале» (место).', 'Direction: na dworzec; «na dworcu» = at the station.')),
-          P('Gdzie jest tramwaj?', false, t('Ти вже в трамваї 🙂 Запитай, чи він їде на dworzec.', 'Ты уже в трамвае 🙂 Спроси, едет ли он na dworzec.', 'You’re already on it 🙂')),
+          P('Przepraszam, czy ten tramwaj jedzie do dworzec?', false, t('Після «do» — родовий: do dworca. Або «na dworzec».', 'После «do» — родительный: do dworca. Или «na dworzec».', 'After «do» use the genitive: do dworca — or say «na dworzec».')),
         ],
         { hint: t('Куди? — na + знахідний.', 'Куда? — na + винительный.', 'Where to? — na + accusative.'), explain: t('«Czy ten tramwaj jedzie na dworzec?» — «Чи їде цей трамвай до вокзалу?»', '«Czy ten tramwaj jedzie na dworzec?» — «Едет ли этот трамвай к вокзалу?»', 'Does this tram go to the station?'), words: ['tramwaj', 'dworzec'], tags: ['city-transport'] }),
       listen('change', npc('Nie, musi pan wysiąść i przesiąść się na siódemkę.', 'Ні, вам треба вийти й пересісти на сімку.', 'Нет, вам нужно выйти и пересесть на семёрку.', 'No, you need to get off and change to the number 7.'),
@@ -596,7 +596,7 @@ export const MISSIONS: Mission[] = [
         [
           P('W jedną stronę.', true),
           P('Tam i z powrotem.', false, t('Назад Бобек не повертається — він їде далі маршрутом.', 'Обратно Бобек не возвращается — он едет дальше по маршруту.', 'Bobek isn’t coming back.')),
-          P('W prawo.', false, t('«W prawo» — праворуч. Тут питають: в один бік чи туди й назад.', '«W prawo» — направо. Здесь спрашивают: в одну сторону или туда и обратно.', '«W prawo» = to the right.')),
+          P('Na jedną stronę.', false, t('Квиток в один бік — з прийменником w: «w jedną stronę».', 'Билет в одну сторону — с предлогом w: «w jedną stronę».', 'One way = «w jedną stronę» (with w).')),
         ],
         { hint: t('w jedną stronę — в один бік.', 'w jedną stronę — в одну сторону.', 'w jedną stronę = one way.'), explain: t('w jedną stronę — в один бік; tam i z powrotem — туди й назад.', 'w jedną stronę — в одну сторону; tam i z powrotem — туда и обратно.', 'one way / return.'), words: ['w jedną stronę', 'tam i z powrotem'] }),
       choice('seat', npc('Miejsce przy oknie czy przy przejściu?', 'Місце біля вікна чи біля проходу?', 'Место у окна или у прохода?', 'Window or aisle seat?'),
@@ -666,7 +666,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Tak, poproszę placki ze śmietaną.', true),
           P('Tak, poproszę placki z śmietaną.', false, t('Перед групою приголосних «śm» кажуть «ze»: ze śmietaną.', 'Перед группой согласных «śm» говорят «ze»: ze śmietaną.', 'Before «śm» use «ze»: ze śmietaną.')),
-          P('Nie ma za co.', false, t('«Nie ma za co» — відповідь на «дякую».', '«Nie ma za co» — ответ на «спасибо».', 'That answers “thank you”.')),
+          P('Tak, poproszę placki ze śmietana.', false, t('Після «ze» — орудний відмінок з носовим -ą: ze śmietaną.', 'После «ze» — творительный падеж с носовым -ą: ze śmietaną.', 'After «ze» use the instrumental: ze śmietaną.')),
         ],
         { hint: t('z → ze перед важкою групою приголосних.', 'z → ze перед тяжёлой группой согласных.', 'z → ze before consonant clusters.'), explain: t('ze śmietaną — зі сметаною (як укр. «зі»).', 'ze śmietaną — со сметаной (как рус. «со»).', 'ze śmietaną = with sour cream.'), words: ['ze śmietaną', 'placki ziemniaczane'], tags: ['dish:placki'] }),
       listen('total', npc('Razem osiemnaście złotych.', 'Разом вісімнадцять злотих.', 'Итого восемнадцать злотых.', 'Eighteen złoty in total.'),
@@ -735,8 +735,8 @@ export const MISSIONS: Mission[] = [
         t('Ввічливо відмовся — пряники купиш наступного разу.', 'Вежливо откажись — пряники купишь в следующий раз.', 'Politely decline — next time.'),
         [
           P('Nie, dziękuję. Może następnym razem.', true),
-          P('Nie ma za co.', false, t('«Nie ma za co» — «нема за що», відповідь на подяку.', '«Nie ma za co» — «не за что», ответ на благодарность.', 'That answers “thank you”.')),
-          P('Tak, nie.', false, t('Незрозуміло 🙂 Скажи: «Nie, dziękuję».', 'Непонятно 🙂 Скажи: «Nie, dziękuję».', 'Unclear 🙂 Say «Nie, dziękuję».')),
+          P('Nie, proszę. Może następnym razem.', false, t('«Nie, proszę» звучить незрозуміло. Відмовляють так: «Nie, dziękuję».', '«Nie, proszę» звучит непонятно. Отказываются так: «Nie, dziękuję».', 'To decline, say «Nie, dziękuję».')),
+          P('Nie, dziękuję. Może następny raz.', false, t('Сталий вислів в орудному відмінку: «następnym razem» — наступного разу.', 'Устойчивое выражение в творительном падеже: «następnym razem» — в следующий раз.', 'Fixed phrase in the instrumental: «następnym razem».')),
         ],
         { hint: t('następnym razem — наступного разу.', 'następnym razem — в следующий раз.', 'następnym razem = next time.'), explain: t('«Może następnym razem» — «Може, наступного разу» — м’яка відмова.', '«Może następnym razem» — «Может, в следующий раз» — мягкий отказ.', 'A soft refusal.') }),
       listen('total', npc('Razem czternaście złotych dwadzieścia groszy.', 'Разом чотирнадцять злотих двадцять грошів.', 'Итого четырнадцать злотых двадцать грошей.', 'Fourteen złoty twenty in total.'),
@@ -778,7 +778,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Klasyczną, z pieczarkami i serem.', true),
           P('Klasyczna, z pieczarki i ser.', false, t('z + орудний відмінок: z pieczarkami i serem.', 'z + творительный падеж: z pieczarkami i serem.', 'z + instrumental.')),
-          P('Bez zapiekanki.', false, t('Так ти відмовляєшся від запіканки 🙂', 'Так ты отказываешься от запеканки 🙂', 'That refuses the zapiekanka 🙂')),
+          P('Klasyczną, z pieczarkami i z serom.', false, t('Орудний від «ser» — «serem», не «serom» (як «з сиром»).', 'Творительный от «ser» — «serem», не «serom» (как «с сыром»).', 'Instrumental of «ser» is «serem».')),
         ],
         { hint: t('pieczarki → z pieczarkami, ser → z serem.', 'pieczarki → z pieczarkami, ser → z serem.', 'z pieczarkami, z serem.'), explain: t('Знахідний «klasyczną» (яку?), далі z + орудний.', 'Винительный «klasyczną» (какую?), дальше z + творительный.', 'Accusative, then z + instrumental.'), words: ['pieczarki', 'ser', 'zapiekanka'], tags: ['dish:zapiekanka'] }),
       choice('ketchup', npc('Z keczupem?', 'З кетчупом?', 'С кетчупом?', 'With ketchup?'),
@@ -803,8 +803,8 @@ export const MISSIONS: Mission[] = [
       choice('night', undefined, t('Пізно. Запитай, де зупинка нічного трамвая.', 'Поздно. Спроси, где остановка ночного трамвая.', 'It’s late. Ask where the night tram stop is.'),
         [
           P('Przepraszam, gdzie jest przystanek nocnego tramwaju?', true),
-          P('Przepraszam, kiedy jest noc?', false, t('«Коли ніч?» 🙂 Тобі потрібна зупинка: «Gdzie jest przystanek…?»', '«Когда ночь?» 🙂 Тебе нужна остановка: «Gdzie jest przystanek…?»', '“When is night?” 🙂')),
-          P('Poproszę tramwaj.', false, t('Трамвай не замовляють 🙂 Запитай, де зупинка.', 'Трамвай не заказывают 🙂 Спроси, где остановка.', 'You can’t order a tram 🙂')),
+          P('Przepraszam, gdzie jest przystanek nocny tramwaj?', false, t('Зупинка чого? — родовий відмінок: przystanek nocnego tramwaju.', 'Остановка чего? — родительный падеж: przystanek nocnego tramwaju.', 'Stop of what? — genitive: nocnego tramwaju.')),
+          P('Przepraszam, gdzie jest przystanek nocnego autobusu?', false, t('Ти шукаєш нічний трамвай (tramwaj), а не автобус.', 'Ты ищешь ночной трамвай (tramwaj), а не автобус.', 'You need the night tram, not a bus.')),
         ],
         { hint: t('przystanek — зупинка, nocny — нічний.', 'przystanek — остановка, nocny — ночной.', 'przystanek = stop, nocny = night.'), explain: t('przystanek nocnego tramwaju — зупинка нічного трамвая (родовий відмінок).', 'przystanek nocnego tramwaju — остановка ночного трамвая.', 'Night tram stop.'), words: ['przystanek', 'tramwaj'], tags: ['city-transport'] }),
     ],
@@ -908,7 +908,7 @@ export const MISSIONS: Mission[] = [
         [
           P('Przepraszam, gdzie znajdę szampon?', true),
           P('Przepraszam, gdzie znajdę szamponu?', false, t('znaleźć (що?) — знахідний: szampon.', 'znaleźć (что?) — винительный: szampon.', 'Accusative: szampon.')),
-          P('Szampon jest jest gdzie?', false, t('Порядок слів: «Gdzie jest szampon?» або «Gdzie znajdę szampon?»', 'Порядок слов: «Gdzie jest szampon?» или «Gdzie znajdę szampon?»', 'Word order.')),
+          P('Przepraszam, gdzie jest szampony?', false, t('Szampony — множина, з нею «są». Ти шукаєш один: «gdzie jest szampon?» або «gdzie znajdę szampon?»', 'Szampony — множественное число, с ним «są». Ты ищешь один: «gdzie jest szampon?» или «gdzie znajdę szampon?»', 'Szampony is plural (są). For one: «gdzie jest szampon?»')),
         ],
         { hint: t('znajdę — знайду.', 'znajdę — найду.', 'znajdę = I’ll find.'), explain: t('«Gdzie znajdę…?» — «Де я знайду…?» — дуже природне питання в магазині.', '«Gdzie znajdę…?» — «Где я найду…?» — очень естественный вопрос в магазине.', 'Natural shop question.'), words: ['szampon', 'gdzie'] }),
       listen('where', npc('Szampony są na końcu sklepu, po lewej stronie.', 'Шампуні в кінці магазину, ліворуч.', 'Шампуни в конце магазина, слева.', 'Shampoos are at the back of the shop, on the left.'),
