@@ -51,6 +51,12 @@ export type Bindings = {
   /** Символів платного синтезу на запит гравців за добу UTC на весь проєкт (типово 30 000 ≈ безкоштовний 1 млн/міс Chirp 3: HD). */
   TTS_GLOBAL_DAILY_CHARS?: string;
   ELEVENLABS_API_KEY?: string;
+  /**
+   * Аудіобібліотека (services/audio-library.ts): R2 із готовими MP3 і режим видачі. AUDIO_LIBRARY=on — користувачі
+   * отримують лише готові файли, синтез на запит вимкнено; без binding AUDIO режим не вмикається.
+   */
+  AUDIO?: R2Bucket;
+  AUDIO_LIBRARY?: string;
   ELEVENLABS_VOICE_ID?: string;
   ELEVENLABS_MODEL?: string;
   ADMIN_PASSWORD?: string;

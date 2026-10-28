@@ -28,6 +28,7 @@ import { AUDIENCE_FILTERS, audience } from '../services/bot-audience';
 import { refundPayment } from '../services/payments';
 import { closeSupport, listSupport, replySupport } from '../services/support';
 import { benchmarkPlan } from '../services/tts-benchmark';
+import { LIBRARY_MODELS, generateBatch, libraryAccount, libraryAvailable, libraryEnabled, librarySummary, libraryVoice, readyUnits, verifyUnits } from '../services/audio-library';
 import { readBotConfig } from '../bot/maintain';
 import { runSetup } from '../bot/setup';
 
@@ -579,6 +580,8 @@ a.get('/tts/status', async (c) => {
     /** Платний синтез за добу й 30 днів: user — у межах TTS_GLOBAL_DAILY_CHARS, admin — прогрів і порівняння голосів. */
     spend,
     warm: { phrases: phrases.length, chars, cachedChars, left, price, usd: price ? { freeTierLeft: estimateUsd(left, price), freeTierUsed: estimateUsd(left, price, price.freeCharsPerMonth) } : null },
+    /** Аудіобібліотека доступна (R2 + голос): масовий прогрів кешу замінено бібліотекою, кнопка прогріву ховається. */
+    library: { available: libraryAvailable(), enabled: libraryEnabled() },
   });
 });
 
@@ -607,8 +610,9 @@ a.get('/tts/compare', async (c) => {
   if (configured.includes('google')) for (const v of GOOGLE_PL_VOICES) push('google', v.name, v.model, v.gender);
   if (configured.includes('azure')) for (const v of AZURE_PL_VOICES) push('azure', v.name, v.model, v.gender);
   if (configured.includes('elevenlabs')) {
+    // Голос бібліотеки в обох моделях бібліотеки: власник порівнює якість Multilingual v2 і Flash v2.5 на слух перед вибором.
     const ev = envVoice('elevenlabs');
-    push('elevenlabs', ev.voice, ev.model, null);
+    for (const model of new Set([ev.model, 'eleven_multilingual_v2', 'eleven_flash_v2_5'])) push('elevenlabs', ev.voice, model, null);
   }
   // Поточний голос, якого немає в офіційному списку (pl-PL-Wavenet-A): теж можна прослухати — чи синтезується він узагалі.
   if (current && !voices.some((v) => v.current)) push(current.provider, current.voice, current.model, null);
@@ -651,6 +655,53 @@ a.post('/tts/migrate-cache', async (c) => {
   needRole(c, 'SUPERADMIN');
   const { cursor } = z.object({ cursor: z.string().max(80).nullish() }).parse(await body(c));
   return c.json(await migrateLegacyCacheKeys({ cursor, limit: 200 }));
+});
+
+// ── Аудіобібліотека ElevenLabs (services/audio-library.ts, scripts/audio-library.ts, docs/AUDIO_LIBRARY_RU.md) ──
+/** Кредити, моделі з польською та їхня ціна, голос бібліотеки (Kamil?), R2 і режим. Без синтезу. */
+a.get('/audio/account', rateLimit(20, 60_000, 'audio-account'), async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  return c.json(await libraryAccount());
+});
+
+/** Що з переданих одиниць каталогу вже готове (для dry-run і продовження генерації). */
+a.post('/audio/status', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const q = z.object({ ids: z.array(z.string().regex(/^[0-9a-f]{64}$/)).max(1000), voice: z.string().max(60).nullish() }).parse(await body(c));
+  const voice = q.voice || libraryVoice();
+  return c.json({ voice, ready: voice ? await readyUnits(q.ids, voice) : [] });
+});
+
+/** Підсумок бібліотеки: файли за статусами, кредити, тексти без файлу, які просили користувачі. */
+a.get('/audio/summary', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  return c.json(await librarySummary(libraryVoice()));
+});
+
+/**
+ * Партія генерації (лише суперадмін): до 25 текстів, стеля кредитів на партію. Перед кожним запитом — R2 і кеш D1
+ * цього голосу; рядок, який уже обробляє інший запит, пропускається (locked).
+ */
+a.post('/audio/generate', rateLimit(30, 60_000, 'audio-generate'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const q = z
+    .object({
+      items: z.array(z.object({ id: z.string().regex(/^[0-9a-f]{64}$/), text: z.string().min(1).max(300), model: z.enum(LIBRARY_MODELS) })).min(1).max(25),
+      maxCredits: z.number().min(0).max(1_000_000),
+      rates: z.record(z.enum(LIBRARY_MODELS), z.number().min(0).max(10)).optional(),
+    })
+    .parse(await body(c));
+  const results = await generateBatch(q.items, q.maxCredits, q.rates ?? {});
+  const credits = results.reduce((n, r) => n + r.credits, 0);
+  await audit(c, 'generate', 'audio', null, { items: q.items.length, credits, generated: results.filter((r) => r.status === 'generated').length });
+  return c.json({ results, credits });
+});
+
+/** Перевірка файлів у R2: відсутні, порожні, не MP3, чужий голос. */
+a.post('/audio/verify', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const { ids } = z.object({ ids: z.array(z.string().regex(/^[0-9a-f]{64}$/)).max(200) }).parse(await body(c));
+  return c.json({ problems: await verifyUnits(ids) });
 });
 
 // ── Розсилки: надсилаються частинами за розкладом (cron) ──

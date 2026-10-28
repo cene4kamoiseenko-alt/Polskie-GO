@@ -108,8 +108,8 @@ export function App() {
   useTheme(me.data?.settings.theme);
   useEffect(() => {
     setSoundEnabled(me.data?.settings.soundEnabled ?? true);
-    configureAudio({ server: !!me.data?.audio?.server, voice: me.data?.audio?.fingerprint });
-  }, [me.data?.settings.soundEnabled, me.data?.audio?.server, me.data?.audio?.fingerprint]);
+    configureAudio({ server: !!me.data?.audio?.server, voice: me.data?.audio?.fingerprint, library: !!me.data?.audio?.library });
+  }, [me.data?.settings.soundEnabled, me.data?.audio?.server, me.data?.audio?.fingerprint, me.data?.audio?.library]);
 
   // Глибокі посилання: startapp=lesson_<id>, story_<slug>, premium
   useEffect(() => {

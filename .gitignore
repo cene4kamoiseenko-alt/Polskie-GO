@@ -12,3 +12,5 @@ dist-cf
 apps/server/seed.sql
 .dev.vars
 content-lint.txt
+assets/audio/reports/
+assets/audio/.generation-progress.json

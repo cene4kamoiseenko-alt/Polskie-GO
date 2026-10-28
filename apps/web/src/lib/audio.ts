@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isLoneLetter, pickPolishVoice, speechText } from '@polski-go/shared';
+import { SPEECH_RATES, isLoneLetter, pickPolishVoice, speechText } from '@polski-go/shared';
 import { apiBlob, assetUrl } from './api';
 
 /**
@@ -25,11 +25,19 @@ export type DeviceVoicePolicy = 'strict' | 'soft';
 let deviceVoicePolicy: DeviceVoicePolicy = 'strict';
 /** Відбиток серверного голосу (провайдер, модель, голос, версія — /api/me audio.fingerprint): частина ключів кешу, щоб після зміни голосу не грати старі записи. */
 let voiceTag = '';
-export function configureAudio(opts: { server: boolean; deviceVoice?: DeviceVoicePolicy; voice?: string | null }) {
+/**
+ * Аудіобібліотека (сервер віддає лише готові MP3 голосу бібліотеки): повільна швидкість — той самий файл
+ * із playbackRate 0,75 (окремого синтезу немає), а «файлу немає» запам'ятовується до кінця сесії.
+ */
+let library = false;
+export function configureAudio(opts: { server: boolean; deviceVoice?: DeviceVoicePolicy; voice?: string | null; library?: boolean }) {
   serverTts = opts.server;
   if (opts.deviceVoice) deviceVoicePolicy = opts.deviceVoice;
   voiceTag = opts.voice ?? '';
+  library = !!opts.library;
 }
+/** Тексти, для яких у бібліотеці немає файлу (404 audio_missing): одразу голос пристрою, без повторних запитів. */
+const missing = new Set<string>();
 
 export type SpeechStatus = 'idle' | 'loading' | 'playing' | 'error';
 export type SpeechIssue = 'no_polish_voice' | 'network' | 'blocked' | 'unverified_voice' | null;
@@ -133,6 +141,7 @@ async function writeStored(text: string, slow: boolean, blob: Blob) {
 }
 
 // Попереднє завантаження не з'їдає ліміт /tts (120 на хвилину): мережевих запитів наперед — не більше 40 на хвилину.
+// Готові файли бібліотеки не коштують кредитів, але ліміт той самий: запити наперед не заважають натисканням.
 const PREFETCH_PER_MIN = 40;
 const prefetchTimes: number[] = [];
 function prefetchBudget(): boolean {
@@ -145,8 +154,11 @@ function prefetchBudget(): boolean {
 
 const blobCache = new Map<string, string>();
 const pendingAudio = new Map<string, Promise<string>>();
-async function serverAudio(text: string, slow: boolean, prefetch = false): Promise<string> {
+async function serverAudio(text: string, slowRequested: boolean, prefetch = false): Promise<string> {
+  // У бібліотеці один файл на обидві швидкості.
+  const slow = library ? false : slowRequested;
   const k = `${voiceTag}|${keyOf(text, slow)}`;
+  if (missing.has(k)) throw new Error('audio_missing');
   const hit = blobCache.get(k);
   if (hit) return hit;
   const pending = pendingAudio.get(k);
@@ -155,7 +167,13 @@ async function serverAudio(text: string, slow: boolean, prefetch = false): Promi
     let blob = await readStored(text, slow);
     if (!blob) {
       if (prefetch && !prefetchBudget()) throw new Error('prefetch_budget');
-      blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}${voiceTag ? `&v=${voiceTag}` : ''}`);
+      try {
+        blob = await apiBlob(`/tts?text=${encodeURIComponent(speechText(text))}&rate=${slow ? 'slow' : 'normal'}${voiceTag ? `&v=${voiceTag}` : ''}`);
+      } catch (e) {
+        // 404 — у бібліотеці немає файлу цього тексту (сервер його не синтезує): до кінця сесії не питаємо знову.
+        if (library && (e as { status?: number }).status === 404) missing.add(k);
+        throw e;
+      }
       if (!blob.size) throw new Error('empty_audio');
       void writeStored(text, slow, blob);
     }
@@ -277,10 +295,26 @@ async function speakDevice(text: string, slow: boolean, onStart: (unverified: bo
   });
 }
 
-/** Попереднє завантаження озвучки найближчих фраз (лише серверний синтез, з бюджетом запитів; помилки ігноруються). */
-export function prefetchSpeech(texts: (string | null | undefined)[]) {
+/**
+ * Попереднє завантаження озвучки (лише сервер, з бюджетом запитів; помилки ігноруються).
+ * Без limit — найближчі 6 фраз; урок на старті передає всі свої фрази й більший limit: вони вантажаться по дві,
+ * у паузах браузера, щоб не гальмувати інтерфейс.
+ */
+export function prefetchSpeech(texts: (string | null | undefined)[], limit = 6) {
   if (!serverTts) return;
-  for (const t of texts.slice(0, 6)) if (t && speechText(t) && !isLoneLetter(t)) void serverAudio(t, false, true).catch(() => {});
+  const queue = [...new Set(texts.filter((t): t is string => !!t && !!speechText(t) && !isLoneLetter(t)))].slice(0, limit);
+  if (limit <= 6) {
+    for (const t of queue) void serverAudio(t, false, true).catch(() => {});
+    return;
+  }
+  const idle = (fn: () => void) => ((window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)))(fn);
+  const next = () => {
+    const t = queue.shift();
+    if (!t) return;
+    idle(() => void serverAudio(t, false, true).catch(() => {}).finally(next));
+  };
+  next();
+  next();
 }
 
 let seq = 0;
@@ -327,7 +361,7 @@ export async function speak(text: string, opts: { url?: string | null; slow?: bo
       if (!mine()) return;
       if (src) {
         try {
-          await playElement(src, 1, () => started('server'));
+          await playElement(src, library && slow ? SPEECH_RATES.slow : 1, () => started('server'));
           return;
         } catch (e) {
           // Автовідтворення заборонене — голос пристрою теж не допоможе; інакше пробуємо пристрій.

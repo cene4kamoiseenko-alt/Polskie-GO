@@ -113,7 +113,8 @@ function elevenLabsProvider(voice: string, model: string, key: string): TtsProvi
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_64`;
   const headers = (k: string) => ({ 'xi-api-key': k, 'content-type': 'application/json', accept: 'audio/mpeg' });
   const body = (text: string, rate: SpeechRate) =>
-    JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.55, similarity_boost: 0.8, speed: rate === 'slow' ? 0.8 : 1 } });
+    // language_code примушує польську вимову коротких слів; його приймають лише Flash/Turbo v2.5.
+    JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.55, similarity_boost: 0.8, speed: rate === 'slow' ? 0.8 : 1 }, ...(/^eleven_(flash|turbo)_v2_5$/.test(model) ? { language_code: 'pl' } : {}) });
   return {
     provider: 'elevenlabs', voice, model, legacyVoice: `${voice}/${model}`,
     request: (text, rate) => ({ url, init: { method: 'POST', headers: headers(key), body: body(text, rate) } }),

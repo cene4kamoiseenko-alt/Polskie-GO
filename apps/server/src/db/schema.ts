@@ -690,6 +690,54 @@ export const ttsCache = sqliteTable('tts_cache', {
 });
 
 /**
+ * Аудіобібліотека: облік заздалегідь створених MP3 у R2 (services/audio-library.ts). Сам файл — у R2 за `objectKey`,
+ * тут — що це за текст, яким голосом і моделлю, скільки кредитів коштувало і чи файл готовий.
+ * Один рядок на (текст за вимовою, голос): інший голос — інший рядок і інший файл, файли голосів не змішуються.
+ */
+export const audioAssets = sqliteTable(
+  'audio_assets',
+  {
+    /** sha256(audioNorm(text)) + «:» + voice_id. */
+    key: text('key').primaryKey(),
+    unitId: text('unit_id').notNull(),
+    text: text('text').notNull(),
+    voiceId: text('voice_id').notNull(),
+    modelId: text('model_id').notNull(),
+    /** JSON налаштувань голосу ElevenLabs (stability, similarity_boost, speed) і формат файлу. */
+    settings: text('settings').notNull(),
+    version: text('version').notNull(),
+    objectKey: text('object_key').notNull(),
+    /** pending | generating | ready | failed */
+    status: text('status').notNull().default('pending'),
+    chars: integer('chars').notNull().default(0),
+    /** Списані кредити ElevenLabs (0 — файл узято з наявного кешу без синтезу). */
+    credits: real('credits').notNull().default(0),
+    bytes: integer('bytes'),
+    /** generated | adopted | uploaded — звідки файл. */
+    source: text('source'),
+    requestId: text('request_id'),
+    error: text('error'),
+    attempts: integer('attempts').notNull().default(0),
+    /** Захист від паралельної генерації того самого тексту: поки не минув, інший запит цей рядок не бере. */
+    lockedUntil: integer('locked_until'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('audio_assets_unit_idx').on(t.unitId), index('audio_assets_status_idx').on(t.voiceId, t.status)],
+);
+
+/**
+ * Тексти, яких клієнт попросив, а готового файлу в бібліотеці не знайшлося (режим бібліотеки синтез не викликає).
+ * Звідси видно нові чи змінені тексти й те, що озвучувати не передбачено (відповіді ШІ-репетитора).
+ */
+export const audioMisses = sqliteTable('audio_misses', {
+  unitId: text('unit_id').primaryKey(),
+  text: text('text').notNull(),
+  count: integer('count').notNull().default(1),
+  lastAt: integer('last_at').notNull(),
+});
+
+/**
  * Стан доставки навчального нагадування.
  *  • PENDING — запис створено перед надсиланням, воркер тримає lease (`lease_until`);
  *  • SENT — Telegram прийняв повідомлення; FAILED — не доставлено (повтор до `NOTIFY_MAX_ATTEMPTS`, поки `next_attempt_at` задано);

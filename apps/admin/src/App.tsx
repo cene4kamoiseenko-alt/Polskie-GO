@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, apiBlob, hasToken, setToken, upload } from './api';
 import { EXERCISE_TEMPLATES, RESOURCES, type Field, type ResourceDef } from './resources';
@@ -143,7 +143,11 @@ function WarmAudio() {
           <div className="font-bold">Польская озвучка контента</div>
           <div className="text-sm text-slate-500">{msg || 'Синтезирует и кэширует все слова и фразы (обычная и замедленная скорость). Перед запуском покажет голос и оценку стоимости.'}</div>
         </div>
-        <button className="btn-p" disabled={busy || !st?.configured} onClick={run}>{busy ? 'Подождите…' : 'Озвучить весь контент'}</button>
+        {st?.library?.available ? (
+          <NavLink className="btn-s" to="/audio">🎧 Аудиобиблиотека</NavLink>
+        ) : (
+          <button className="btn-p" disabled={busy || !st?.configured} onClick={run}>{busy ? 'Подождите…' : 'Озвучить весь контент'}</button>
+        )}
       </div>
       {st && (
         <div className="grid gap-1 text-sm md:grid-cols-2">
@@ -165,6 +169,179 @@ function WarmAudio() {
               {' '}(TTS_GLOBAL_DAILY_CHARS), админка {st.spend.today.admin.chars.toLocaleString('ru')} · за 30 дней {(st.spend.last30.user.chars + st.spend.last30.admin.chars).toLocaleString('ru')}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Аудиобиблиотека ElevenLabs: готовые MP3 в R2 для всего польского контента (docs/AUDIO_LIBRARY_RU.md) ──
+type AudioUnit = { id: string; text: string; kind: string; group: number; chars: number; usages: string[] };
+type AudioStrategy = 'economy' | 'balanced' | 'quality';
+const AUDIO_STRATEGIES: Record<AudioStrategy, string> = {
+  economy: 'Экономно: Flash v2.5, числа и аббревиатуры — Multilingual v2',
+  balanced: 'Сбалансированно: предложения и диалоги — Multilingual v2, слова — Flash v2.5',
+  quality: 'Качество: всё Multilingual v2',
+};
+const audioRisky = (t: string) => /\d/.test(t) || /(?<!\p{L})\p{Lu}{2,}(?!\p{L})/u.test(t);
+const audioModel = (u: AudioUnit, s: AudioStrategy) =>
+  s === 'quality' || audioRisky(u.text) ? 'eleven_multilingual_v2' : s === 'economy' || !(u.kind === 'sentence' || u.kind === 'dialogue') ? 'eleven_flash_v2_5' : 'eleven_multilingual_v2';
+const AUDIO_STATUS: Record<string, string> = { generated: 'создано', adopted: 'взято из кэша', exists: 'уже было', locked: 'занято другим запуском', budget: 'не вошло в бюджет', failed: 'ошибка' };
+
+function AudioLibrary({ admin }: { admin: Admin }) {
+  const { data: acc, error: accError, reload: reloadAcc } = useLoad<any>(() => api('/audio/account'), []);
+  const { data: summary, reload: reloadSummary } = useLoad<any>(() => api('/audio/summary'), []);
+  const [units, setUnits] = useState<AudioUnit[] | null>(null);
+  const [groups, setGroups] = useState<Record<string, string>>({});
+  const [ready, setReady] = useState<Set<string>>(new Set());
+  const [strategy, setStrategy] = useState<AudioStrategy>('economy');
+  const [budget, setBudget] = useState(1000);
+  const [busy, setBusy] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
+  const stop = useRef(false);
+  const say = (m: string) => setLog((l) => [m, ...l].slice(0, 40));
+
+  useEffect(() => {
+    fetch('/admin/audio-manifest.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error(`каталог: ${r.status}`)))).then((m) => { setUnits(m.units); setGroups(m.groups); }).catch((e) => say(e.message));
+  }, []);
+  const refreshReady = useCallback(async () => {
+    if (!units || !acc?.voice) return;
+    const ids = units.map((u) => u.id);
+    const got = new Set<string>();
+    for (let i = 0; i < ids.length; i += 1000) (await api('/audio/status', { body: { ids: ids.slice(i, i + 1000) } })).ready.forEach((id: string) => got.add(id));
+    setReady(got);
+  }, [units, acc]);
+  useEffect(() => { void refreshReady(); }, [refreshReady]);
+
+  const rates: Record<string, number> = { eleven_multilingual_v2: 1, eleven_flash_v2_5: 0.5 };
+  for (const m of acc?.models ?? []) if (m.creditsPerChar != null && m.id in rates) rates[m.id] = m.creditsPerChar;
+  const cost = (u: AudioUnit, s: AudioStrategy = strategy) => u.chars * rates[audioModel(u, s)];
+  const todo = (units ?? []).filter((u) => !ready.has(u.id));
+  const left = acc?.credits?.left ?? 0;
+  const plan = (cap: number) => {
+    const out: AudioUnit[] = [];
+    let sum = 0;
+    for (const u of todo) {
+      if (sum + cost(u) > cap) break;
+      sum += cost(u);
+      out.push(u);
+    }
+    return { out, sum };
+  };
+  const fits = plan(Math.min(budget, left || budget));
+  const rows = Object.entries(groups).map(([g, label]) => {
+    const us = (units ?? []).filter((u) => String(u.group) === g);
+    const sum = (s: AudioStrategy) => Math.ceil(us.filter((u) => !ready.has(u.id)).reduce((n, u) => n + cost(u, s), 0));
+    return { g, label, units: us.length, ready: us.filter((u) => ready.has(u.id)).length, chars: us.reduce((n, u) => n + u.chars, 0), economy: sum('economy'), balanced: sum('balanced'), quality: sum('quality') };
+  });
+
+  const voiceOk = acc?.voice?.isKamil && acc?.voice?.male;
+  const canGenerate = admin.role === 'SUPERADMIN' && acc?.library?.r2 && acc?.voice && units;
+
+  const generate = async (items: AudioUnit[], cap: number, title: string) => {
+    if (!voiceOk && !window.confirm(`Голос «${acc?.voice?.name ?? '?'}» не похож на мужской голос Kamil. Всё равно генерировать?`)) return;
+    if (!window.confirm(`${title}\n\n${items.length} фраз, до ${Math.ceil(cap)} кредитов ElevenLabs (остаток ${left}). Уже готовые файлы не оплачиваются. Продолжить?`)) return;
+    setBusy(true);
+    stop.current = false;
+    let spent = 0;
+    const counts: Record<string, number> = {};
+    try {
+      for (let i = 0; i < items.length && !stop.current; i += 10) {
+        const part = items.slice(i, i + 10);
+        const r: any = await api('/audio/generate', { body: { items: part.map((u) => ({ id: u.id, text: u.text, model: audioModel(u, strategy) })), maxCredits: Math.max(0, Math.floor(cap - spent)), rates } });
+        spent += r.credits;
+        for (const x of r.results) counts[x.status] = (counts[x.status] ?? 0) + 1;
+        const failed = r.results.filter((x: any) => x.status === 'failed');
+        say(`${Math.min(i + 10, items.length)} / ${items.length}: ${Object.entries(counts).map(([k, n]) => `${AUDIO_STATUS[k] ?? k} ${n}`).join(', ')} · потрачено ≈ ${Math.ceil(spent)}${failed.length ? ` · ошибки: ${failed.map((x: any) => x.error).join(', ')}` : ''}`);
+        if (r.results.some((x: any) => x.status === 'budget') || failed.some((x: any) => /http_40[123]/.test(x.error))) break;
+      }
+    } catch (e) {
+      say((e as Error).message);
+    } finally {
+      setBusy(false);
+      reloadAcc();
+      reloadSummary();
+      void refreshReady();
+    }
+  };
+
+  const verify = async () => {
+    if (!units) return;
+    setBusy(true);
+    const bad: any[] = [];
+    try {
+      const ids = units.filter((u) => ready.has(u.id)).map((u) => u.id);
+      for (let i = 0; i < ids.length; i += 200) bad.push(...(await api('/audio/verify', { body: { ids: ids.slice(i, i + 200) } })).problems);
+      say(bad.length ? `Проблемных файлов: ${bad.length} (${[...new Set(bad.map((b) => b.problem))].join(', ')})` : `Проверено ${ids.length} файлов: проблем нет`);
+    } catch (e) {
+      say((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Минимальный тест: 10 коротких фраз с числами, диакритикой и названиями — по первым из каталога каждой категории.
+  const sample = (units ?? []).filter((u) => !ready.has(u.id) && u.chars <= 40 && (audioRisky(u.text) || /[łąęśćńźżó]/i.test(u.text))).slice(0, 10);
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-xl font-black">🎧 Аудиобиблиотека ElevenLabs</h1>
+      <div className="panel space-y-1 p-4 text-sm">
+        {accError && <div className="text-rose-600">{accError}</div>}
+        {acc && (
+          <>
+            <div>Голос: <b>{acc.voice ? `${acc.voice.name ?? '?'} (${acc.voice.id})` : 'не задан — ELEVENLABS_VOICE_ID'}</b>{acc.voice && <> · пол: {acc.voice.gender ?? '?'} · {voiceOk ? <span className="text-emerald-700">мужской Kamil ✓</span> : <span className="text-rose-600">не Kamil / не мужской</span>}</>}</div>
+            {acc.voice && <div>Польский проверен для моделей: {acc.voice.polishModels.join(', ') || '—'}</div>}
+            {(acc.kamilVoices ?? []).length > 0 && (
+              <div>Голоса «Kamil» в аккаунте: {acc.kamilVoices.map((v: any) => `${v.name} — ${v.id} (${v.gender ?? 'пол ?'}${v.polishModels.length ? `, польский: ${v.polishModels.join(', ')}` : ''})`).join('; ')}</div>
+            )}
+            {acc.configured && !(acc.kamilVoices ?? []).length && <div className="text-amber-700">В аккаунте нет голоса с именем Kamil: добавьте его из Voice Library ElevenLabs.</div>}
+            {acc.credits && <div>Кредиты: использовано {acc.credits.used.toLocaleString('ru')} из {acc.credits.limit.toLocaleString('ru')}, остаток <b>{acc.credits.left.toLocaleString('ru')}</b>{acc.credits.resetAt && <>, обновление {new Date(acc.credits.resetAt).toLocaleDateString('ru')}</>}</div>}
+            <div>Модели с польским: {acc.models.filter((m: any) => m.polish).map((m: any) => `${m.name} (${m.creditsPerChar ?? '?'} кр./символ)`).join(', ') || '—'}</div>
+            <div>R2: {acc.library.r2 ? <span className="text-emerald-700">подключено</span> : <span className="text-rose-600">не подключено (binding AUDIO)</span>} · режим для игроков: <b>{acc.library.mode === 'library' ? 'только готовые файлы' : 'синтез по запросу (AUDIO_LIBRARY не on)'}</b></div>
+          </>
+        )}
+      </div>
+
+      <div className="panel overflow-x-auto p-4">
+        <div className="mb-2 font-bold">Каталог: {units ? `${units.length.toLocaleString('ru')} уникальных фраз, ${units.reduce((n, u) => n + u.chars, 0).toLocaleString('ru')} символов; готово ${ready.size}` : 'загрузка…'}</div>
+        <table className="w-full min-w-[620px] text-sm">
+          <thead><tr className="whitespace-nowrap text-left text-slate-500"><th>Раздел</th><th>Фраз</th><th>Готово</th><th>Символов</th><th>Экономно</th><th>Сбаланс.</th><th>Качество</th></tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.g} className="border-t"><td>{r.g}. {r.label}</td><td>{r.units}</td><td>{r.ready}</td><td>{r.chars.toLocaleString('ru')}</td><td>{r.economy.toLocaleString('ru')}</td><td>{r.balanced.toLocaleString('ru')}</td><td>{r.quality.toLocaleString('ru')}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-2 text-xs text-slate-500">Кредиты на оставшееся (без готовых). Медленная скорость — тот же файл, отдельно не оплачивается.</p>
+      </div>
+
+      <div className="panel space-y-3 p-4">
+        <label className="block text-sm">Модели
+          <select className="input mt-1 w-full max-w-full" value={strategy} onChange={(e) => setStrategy(e.target.value as AudioStrategy)}>
+            {Object.entries(AUDIO_STRATEGIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm">Лимит кредитов на запуск
+          <input className="input mt-1 w-full max-w-xs" type="number" min={0} value={budget} onChange={(e) => setBudget(Math.max(0, Number(e.target.value)))} />
+        </label>
+        <div className="text-sm">В лимит войдут <b>{fits.out.length}</b> из {todo.length} фраз очереди (≈ {Math.ceil(fits.sum).toLocaleString('ru')} кредитов). Следующие: {todo.slice(fits.out.length, fits.out.length + 5).map((u) => `«${u.text}»`).join(', ') || '—'}</div>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-s" disabled={busy || !canGenerate || !sample.length} onClick={() => generate(sample, sample.reduce((n, u) => n + cost(u), 0) + 1, 'Тест: 10 коротких фраз (числа, диакритика). Послушайте их в приложении или в «Сравнении голосов».')}>Тест: 10 фраз</button>
+          <button className="btn-p" disabled={busy || !canGenerate || !fits.out.length} onClick={() => generate(fits.out, Math.min(budget, left || budget), 'Пакетная озвучка по приоритету')}>{busy ? 'Идёт генерация…' : 'Озвучить в пределах лимита'}</button>
+          {busy && <button className="btn-s" onClick={() => { stop.current = true; }}>Остановить после партии</button>}
+          <button className="btn-s" disabled={busy || !ready.size} onClick={verify}>Проверить файлы</button>
+        </div>
+        {admin.role !== 'SUPERADMIN' && <div className="text-xs text-slate-500">Генерация — только для суперадмина.</div>}
+        {log.length > 0 && <div className="max-h-48 overflow-auto rounded bg-slate-50 p-2 font-mono text-xs">{log.map((l, i) => <div key={i}>{l}</div>)}</div>}
+      </div>
+
+      {summary && (
+        <div className="panel p-4 text-sm">
+          <div className="mb-1 font-bold">Файлы по статусам</div>
+          {summary.byStatus.length ? summary.byStatus.map((r: any) => <div key={`${r.voice}${r.status}`}>{r.voice} · {r.status}: {r.n} файлов, {Math.round(r.credits).toLocaleString('ru')} кредитов, {(r.bytes / 1048576).toFixed(1)} МБ</div>) : <div className="text-slate-500">Пока пусто</div>}
+          <div className="mb-1 mt-3 font-bold">Просили, но файла нет ({summary.misses.length})</div>
+          {summary.misses.map((m: any) => <div key={m.unitId}>{m.count}× «{m.text}»</div>)}
         </div>
       )}
     </div>
@@ -1265,6 +1442,7 @@ export function App() {
     const items: [string, string][] = [['/', '📊 Обзор']];
     if (r !== 'SUPPORT') for (const d of RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns')) items.push([`/r/${d.name}`, d.title]);
     if (r !== 'EDITOR') items.push(['/audience', '🤝 Аудитория бота'], ['/users', '👥 Пользователи'], ['/payments', '⭐ Платежи'], ['/support', '💬 Поддержка']);
+    if (r !== 'SUPPORT') items.push(['/audio', '🎧 Аудиобиблиотека']);
     if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифы'], ['/r/campaigns', '📣 Рассылки'], ['/rewards', '🎁 Награды'], ['/bot', '🤖 Бот'], ['/audit', '📜 Журнал действий'], ['/admins', '🔐 Администраторы']);
     return items;
   }, [admin]);
@@ -1318,6 +1496,7 @@ export function App() {
           <Route path="/support" element={<Support admin={admin} />} />
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/bot" element={<Bot />} />
+          <Route path="/audio" element={<AudioLibrary admin={admin} />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="/admins" element={<Admins />} />
         </Routes>

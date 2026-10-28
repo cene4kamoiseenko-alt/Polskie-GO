@@ -7,12 +7,13 @@ import { dayKey } from '@polski-go/shared';
 import { db } from '../db';
 import { exercises, languageSkills, learningSessions, lessons, reviewSchedule, userLessonProgress, userVocabulary, vocabularyEntries } from '../db/schema';
 import { body, query, rateLimit, type AppEnv } from '../hono';
-import { notFound } from '../lib/errors';
+import { HttpError, notFound } from '../lib/errors';
 import { getJourney, openRouteChest } from '../services/journey';
 import { answerItem, assertSpeechItem, finishSession, startSession } from '../services/sessions';
 import { issueSpeechAttempt } from '../services/speech-attempts';
 import { consumeQuota } from '../services/quota';
 import { synthesize, ttsStatus } from '../services/tts';
+import { libraryAudio, libraryEnabled, recordMiss } from '../services/audio-library';
 import { TOPICS } from '../content/topics';
 import { GRAMMAR } from '../content/grammar';
 
@@ -66,6 +67,13 @@ r.post('/speech/transcribe', rateLimit(6, 60_000, 'speech'), async (c) => {
 });
 r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {
   const q = z.object({ text: z.string().min(1).max(300), rate: z.enum(['normal', 'slow']).default('normal') }).parse(query(c));
+  // Режим бібліотеки: лише готовий файл (повільну швидкість клієнт робить сам), синтез на запит не викликається.
+  if (libraryEnabled()) {
+    const hit = await libraryAudio(q.text);
+    if (hit) return new Response(hit.body, { headers: { 'content-type': 'audio/mpeg', 'cache-control': 'private, max-age=31536000, immutable', 'x-tts-cache': 'hit', 'x-tts-source': hit.source } });
+    await recordMiss(q.text).catch(() => {});
+    throw new HttpError(404, 'audio_missing');
+  }
   const audio = await synthesize(q.text, q.rate, { meter: () => consumeQuota(c.get('userId'), 'tts') });
   return c.body(new Uint8Array(audio.data), 200, { 'content-type': audio.mime, 'cache-control': 'private, max-age=31536000, immutable', 'x-tts-cache': audio.cached ? 'hit' : 'miss' });
 });

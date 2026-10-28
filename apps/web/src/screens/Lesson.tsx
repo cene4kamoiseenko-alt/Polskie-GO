@@ -100,6 +100,17 @@ export default function LessonScreen() {
     prefetchSpeech(texts);
   }, [item, pos, queue, items]);
 
+  // Старт уроку: головні фрази всіх завдань наперед (аудіювання, слова, вимова, репліки діалогів) — по дві, у паузах браузера.
+  useEffect(() => {
+    if (!session) return;
+    const texts = session.items.flatMap((it) => {
+      const d = it.data as unknown as Record<string, unknown>;
+      const steps = (d.steps as { npc?: string }[] | undefined) ?? [];
+      return [d.audioText as string, d.text as string, it.type === 'WORD_TRANSLATION' ? (d.pl as string) : null, ...steps.map((s) => s.npc)];
+    });
+    prefetchSpeech(texts, 40);
+  }, [session]);
+
   const [finishFailed, setFinishFailed] = useState(false);
   const doFinish = useCallback(async () => {
     if (!session) return;

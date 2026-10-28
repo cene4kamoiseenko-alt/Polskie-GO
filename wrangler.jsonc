@@ -30,6 +30,8 @@
       "migrations_dir": "apps/server/migrations"
     }
   ],
+  // Аудіобібліотека (docs/AUDIO_LIBRARY_RU.md): додається після того, як власник увімкне R2 і створить бакет polski-go-audio —
+  // без бакета виклад упаде. Тоді: "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "polski-go-audio" }]
   // Нагадування та розсилки — кожні 15 хвилин.
   "triggers": { "crons": ["*/15 * * * *"] },
   // Несекретні налаштування. Секрети (TELEGRAM_BOT_TOKEN, SESSION_SECRET, ...) — у панелі Cloudflare.

@@ -12,6 +12,7 @@ import { getRewards } from './gameConfig';
 import { dayCandidates } from './rewards';
 import { giftKey, giftKeys } from './premium-gift';
 import { ttsConfigured, ttsStatus } from './tts';
+import { libraryEnabled, libraryFingerprint, libraryVoice } from './audio-library';
 import { activeSubWhere } from './premium';
 import { outfit } from './shop';
 
@@ -108,7 +109,10 @@ export async function getMe(userId: string) {
     ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay, configured: !!config.anthropicKey },
     rewards: { exerciseXp: cfg.exerciseXp },
     /** Чи доступна серверна польська озвучка (інакше — лише польський голос пристрою). */
-    audio: { server: ttsConfigured(), ...ttsStatus(), recognition: { server: sttStatus().configured, ...sttStatus() } },
+    // Режим бібліотеки: озвучка — лише готові файли голосу бібліотеки; відбиток бібліотеки відділяє кеш клієнта від старих голосів.
+    audio: libraryEnabled()
+      ? { ...ttsStatus(), server: true, library: true, provider: 'elevenlabs' as const, voiceId: libraryVoice(), fingerprint: libraryFingerprint(libraryVoice()!), recognition: { server: sttStatus().configured, ...sttStatus() } }
+      : { server: ttsConfigured(), library: false, ...ttsStatus(), recognition: { server: sttStatus().configured, ...sttStatus() } },
   };
 }
 
