@@ -81,12 +81,13 @@ export function buildApp() {
     return c.body(new Uint8Array(row.data), 200, { 'content-type': row.type, 'cache-control': 'public, max-age=31536000, immutable' });
   });
 
-  // Адмінка — окремий SPA під /admin/ у тих самих статичних файлах.
+  // Адмінка — окремий SPA під /admin/ у тих самих статичних файлах. Файли збірки (/admin/assets/…, audio-manifest.json)
+  // віддаються як є; будь-який маршрут адмінки (/admin/users, /admin/audio) — її index.html. Не чекаємо 404: статичні файли
+  // працюють у режимі SPA застосунку й на невідомий шлях віддають 200 з index.html Mini App.
   app.get('/admin/*', async (c) => {
     if (!c.env.ASSETS) return c.notFound();
-    const res = await c.env.ASSETS.fetch(c.req.raw);
-    if (res.status !== 404) return res;
-    return c.env.ASSETS.fetch(new Request(new URL('/admin/index.html', c.req.url)));
+    if (/\.[a-z0-9]+$/i.test(new URL(c.req.url).pathname)) return c.env.ASSETS.fetch(c.req.raw);
+    return c.env.ASSETS.fetch(new Request(new URL('/admin/', c.req.url)));
   });
 
   return app;
