@@ -13,6 +13,8 @@ import { ZIELONA_GORA } from '../src/content/zielona-gora';
 import { ZIELONA_GORA_VOCAB } from '../src/content/vocab-zielona-gora';
 import { GORZOW } from '../src/content/gorzow';
 import { GORZOW_VOCAB } from '../src/content/vocab-gorzow';
+import { SZCZECIN } from '../src/content/szczecin';
+import { SZCZECIN_VOCAB } from '../src/content/vocab-szczecin';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -45,6 +47,16 @@ citySuite({
   routes: ['gorz-pogoda', 'gorz-prognoza', 'gorz-przyroda', 'gorz-wycieczka', 'gorz-egzamin'],
   lessons: ['gorz-1-pogoda', 'gorz-2-pory-roku', 'gorz-3-prognoza', 'gorz-4-ubierz-sie', 'gorz-5-przyroda', 'gorz-6-cieplej', 'gorz-7-wycieczka', 'gorz-8-segregacja'],
   boss: 'gorz-boss',
+  levels: ['A2'],
+});
+
+citySuite({
+  label: 'Szczecin',
+  content: SZCZECIN,
+  vocab: SZCZECIN_VOCAB,
+  routes: ['szc-szukam-pracy', 'szc-umowa', 'szc-port', 'szc-w-pracy', 'szc-egzamin'],
+  lessons: ['szc-1-ogloszenie', 'szc-2-cv', 'szc-3-rozmowa', 'szc-4-umowa', 'szc-5-port', 'szc-6-moglbys', 'szc-7-spoznienie', 'szc-8-podwyzka'],
+  boss: 'szc-boss',
   levels: ['A2'],
 });
 

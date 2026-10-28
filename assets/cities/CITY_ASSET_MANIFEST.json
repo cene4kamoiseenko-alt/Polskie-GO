@@ -244,10 +244,10 @@
       "name_pl": "Szczecin",
       "name_ru": "Щецин",
       "cefr": "A2",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/szczecin.webp",
         "status": "final",
@@ -262,7 +262,7 @@
         "integrated": "2026-10-28"
       },
       "landmarks": "Wały Chrobrego (Национальный музей, павильоны, Воеводское управление), белая Филармония, Одра — совпадают (проверено 2026-10-28)",
-      "missing_content": "уроков 0; тема «Робота і професії»",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-10-28, тема «Робота й професії», A2)",
       "progress": "не проверено"
     },
     {
@@ -545,9 +545,10 @@
       "wroclaw 8",
       "poznan 8",
       "zielona-gora 8",
-      "gorzow 8"
+      "gorzow 8",
+      "szczecin 8"
     ],
-    "cities_without_lessons": 11,
+    "cities_without_lessons": 10,
     "exam_cities": [
       "warszawa",
       "lodz",
@@ -557,7 +558,8 @@
       "wroclaw",
       "poznan",
       "zielona-gora",
-      "gorzow"
+      "gorzow",
+      "szczecin"
     ],
     "final_cities": [
       "warszawa",

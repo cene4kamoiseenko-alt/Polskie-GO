@@ -17,13 +17,14 @@ import { CITY_PLANS, STANDARD_CITIES, keptIndexes } from './city-standard';
 import { POZNAN } from './poznan';
 import { ZIELONA_GORA } from './zielona-gora';
 import { GORZOW } from './gorzow';
+import { SZCZECIN } from './szczecin';
 import { PLACEMENT, EXAM_A1 } from './exams';
 import { ACHIEVEMENTS, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from './gamification';
 import { MISSIONS } from './missions';
 import type { CityContent, LessonSeed } from './types';
 
 /** Міста з уроками за стандартом (city-standard.ts): 8 уроків та іспит, по 12 завдань. */
-export const CITY_CONTENT: CityContent[] = [...STANDARD_CITIES, POZNAN, ZIELONA_GORA, GORZOW];
+export const CITY_CONTENT: CityContent[] = [...STANDARD_CITIES, POZNAN, ZIELONA_GORA, GORZOW, SZCZECIN];
 /** Ті самі міста до стандарту — лише для тестів міграції (БД, засіяна до скорочення міст). */
 export const PRE_STANDARD_CONTENT: CityContent[] = CITY_PLANS.map(([full]) => full);
 

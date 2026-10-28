@@ -213,7 +213,7 @@ describe('стандарт міста: міграція наявної БД', ()
     const b = await published(fresh);
     expect(a.lessons).toEqual(b.lessons);
     expect(a.exercises).toEqual(b.exercises);
-    for (const city of [...STD_CITIES, 'poznan', 'zielona-gora', 'gorzow']) {
+    for (const city of [...STD_CITIES, 'poznan', 'zielona-gora', 'gorzow', 'szczecin']) {
       const ls = a.lessons.filter((l) => l.city === city);
       expect(ls.filter((l) => l.kind === 'LESSON'), city).toHaveLength(CITY_LESSONS);
       expect(ls.at(-1)!.kind, city).toBe('BOSS');
@@ -300,6 +300,6 @@ describe('стандарт міста: міграція наявної БД', ()
   it('старі уроки в seed більше не з’являються, а міста без стандарту не зачеплені', () => {
     const now = new Set(CITY_CONTENT.flatMap((c) => c.routes.flatMap((r) => r.lessons.map((l) => l.slug))));
     expect(oldLessons.filter((l) => !now.has(l.slug)).length).toBeGreaterThan(60);
-    expect(CITY_CONTENT.map((c) => c.city)).toEqual([...STD_CITIES, 'poznan', 'zielona-gora', 'gorzow']);
+    expect(CITY_CONTENT.map((c) => c.city)).toEqual([...STD_CITIES, 'poznan', 'zielona-gora', 'gorzow', 'szczecin']);
   });
 });

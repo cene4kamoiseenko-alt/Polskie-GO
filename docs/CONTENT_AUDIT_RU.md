@@ -212,6 +212,20 @@ Weź przestań. У каждого — регистр, с кем можно, си
 - Новые картинки вариантов (облако, снежинка, туман, зонт, палатка, гроздь, ёлка, свеча…) получили пиктограммы Lucide (тест `visual-keys`).
 - Нужна проверка носителем.
 
+## Szczecin — «Работа и профессии», A2 (2026-10-28)
+- Файлы: `szczecin.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-szczecin.ts` (40 слов; woleć и zamienić się уже были в словаре).
+- Темы сверены с опубликованными уроками: Łódź (być + творительный, BHP), Poznań (zajmować się, targi), Katowice (czy może pan) не повторяются.
+  - L1 `szc-1-ogloszenie`: объявление — **zatrudnimy / szukamy kierowców** (-ów), **szukać + родительный** (pielęgniarek), wymagania / oferujemy, od zaraz; kierowca ≠ kierownik.
+  - L2 `szc-2-cv`: **jako + именительный** (≠ jestem kierowcą), **przez** + винительный / **od** + родительный, jak ≠ jako; CV с белорусским и русским как родными.
+  - L3 `szc-3-rozmowa`: собеседование — **pan / pani + 3-е лицо**, ответ в 1-м; jestem punktualny (не «punktualnie»); odpowiedzialny ≠ odpowiedni.
+  - L4 `szc-4-umowa`: **tysiąc / tysiące / tysięcy**, brutto / netto, okres próbny, umowa na czas określony / nieokreślony, wypowiedzenie ≠ wypowiedź.
+  - L5 `szc-5-port`: **предложный с чередованием**: w porcie, na statku, w stoczni, na Odrze; wypływa z ≠ wpływa do.
+  - L6 `szc-6-moglbys`: **mógłbyś / mogłabyś / moglibyście**, czy mógłby pan; zamienić się zmianami, zastąpić.
+  - L7 `szc-7-spoznienie`: **bo / ponieważ**, przepraszam **za** + винительный, spóźnię się; L4 онлайн.
+  - L8 `szc-8-podwyzka`: **chciałbym, wolałbym, mógłbym**; rozmawiać o + предложный ≠ pytać o + винительный; awans ≠ аванс (zaliczka).
+  - Экзамен `szc-boss`: 12 заданий.
+- Нужна проверка носителем.
+
 ## Łódź — уроки 9–16: время, утро, график, здоровье, повторение (2026-10-26)
 - Файл `lodz-zycie.ts`, три новые темы перед экзаменом: `lodz-dzien` «День і графік» (L9–L12), `lodz-zdrowie`
   «Здоров'я» (L13–L15), `lodz-powtorka` «Повторення: вечір у Лодзі» (L16). 8 уроков, 15–16 заданий, 13–14 разных типов заданий в уроке.

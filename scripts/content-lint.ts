@@ -135,7 +135,7 @@ const PLAIN_OK: Record<string, string[]> = {
     'pzn-5-zajmuje-sie#8 zajmuje', 'pzn-5-zajmuje-sie#8 interesuje', 'pzn-6-targi#0 zajmuje', 'pzn-6-targi#11 zajmuje', 'pzn-boss#11 zajmuje',
   ],
   'Називний жіночий рід у відповіді, питанні та дистракторі (Jaka jest twoja kurtka?, Ta sukienka jest czerwona, Ta czerwona jest tańsza): форма на -a правильна, знахідний -ą тут не потрібен': [
-    'wro-5-ubrania#9 jaka', 'wro-5-ubrania#10 czerwona', 'wro-5-ubrania#11 czerwona', 'wro-15-porownanie#8 czerwona',
+    'wro-5-ubrania#9 jaka', 'wro-5-ubrania#10 czerwona', 'wro-5-ubrania#11 czerwona', 'wro-15-porownanie#8 czerwona', 'wro-15-porownanie#5 lepsza', 'wro-15-porownanie#11 lepsza',
   ],
   'Ополе: навмисний неправильний варіант (називний замість місцевого після o: dwunasta)': ['opo-5-weekend#5 dwunasta'],
   'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': ['pzn-4-daty#3 maja', 'pzn-4-daty#4 maja', 'pzn-4-daty#11 maja', 'zg-6-dni-wolne#3 maja', 'zg-6-dni-wolne#9 maja'],
