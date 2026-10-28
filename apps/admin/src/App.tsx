@@ -205,7 +205,7 @@ function AudioLibrary({ admin }: { admin: Admin }) {
     fetch('/admin/audio-manifest.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error(`каталог: ${r.status}`)))).then((m) => { setUnits(m.units); setGroups(m.groups); }).catch((e) => say(e.message));
   }, []);
   const refreshReady = useCallback(async () => {
-    if (!units || !acc?.voice) return;
+    if (!units || !acc?.voiceId) return;
     const ids = units.map((u) => u.id);
     const got = new Set<string>();
     for (let i = 0; i < ids.length; i += 1000) (await api('/audio/status', { body: { ids: ids.slice(i, i + 1000) } })).ready.forEach((id: string) => got.add(id));
@@ -236,11 +236,20 @@ function AudioLibrary({ admin }: { admin: Admin }) {
   });
 
   const voiceOk = acc?.voice?.isKamil && acc?.voice?.male;
-  const canGenerate = admin.role === 'SUPERADMIN' && acc?.library?.r2 && acc?.voice && units;
+  // Генерації потрібні лише R2, ключ і id голосу; відмови ElevenLabs на допоміжних запитах показуються, але не блокують.
+  const blockers = [
+    admin.role !== 'SUPERADMIN' && 'генерация — только для суперадмина',
+    accError && `аккаунт не загрузился: ${accError}`,
+    acc && !acc.library?.r2 && 'R2 не подключено (binding AUDIO)',
+    acc && !acc.configured && 'нет ключа ELEVENLABS_API_KEY',
+    acc && !acc.voiceId && 'не задан ELEVENLABS_VOICE_ID',
+    !units && 'каталог не загрузился',
+  ].filter(Boolean) as string[];
+  const canGenerate = !!acc && !blockers.length;
 
   const generate = async (items: AudioUnit[], cap: number, title: string) => {
-    if (!voiceOk && !window.confirm(`Голос «${acc?.voice?.name ?? '?'}» не похож на мужской голос Kamil. Всё равно генерировать?`)) return;
-    if (!window.confirm(`${title}\n\n${items.length} фраз, до ${Math.ceil(cap)} кредитов ElevenLabs (остаток ${left}). Уже готовые файлы не оплачиваются. Продолжить?`)) return;
+    if (!voiceOk && !window.confirm(acc?.voice ? `Голос «${acc.voice.name ?? '?'}» не похож на мужской голос Kamil. Всё равно генерировать?` : `ElevenLabs не показал описание голоса ${acc?.voiceId}, проверить, что это Kamil, нельзя. Начните с «Тест: 10 фраз» и послушайте. Генерировать?`)) return;
+    if (!window.confirm(`${title}\n\n${items.length} фраз, до ${Math.ceil(cap)} кредитов ElevenLabs (остаток ${acc?.credits ? left : 'неизвестен'}). Уже готовые файлы не оплачиваются. Продолжить?`)) return;
     setBusy(true);
     stop.current = false;
     let spent = 0;
@@ -290,12 +299,13 @@ function AudioLibrary({ admin }: { admin: Admin }) {
         {accError && <div className="text-rose-600">{accError}</div>}
         {acc && (
           <>
-            <div>Голос: <b>{acc.voice ? `${acc.voice.name ?? '?'} (${acc.voice.id})` : 'не задан — ELEVENLABS_VOICE_ID'}</b>{acc.voice && <> · пол: {acc.voice.gender ?? '?'} · {voiceOk ? <span className="text-emerald-700">мужской Kamil ✓</span> : <span className="text-rose-600">не Kamil / не мужской</span>}</>}</div>
+            <div>Голос: <b>{acc.voice ? `${acc.voice.name ?? '?'} (${acc.voice.id})` : acc.voiceId ? `${acc.voiceId} (описание не получено)` : 'не задан — ELEVENLABS_VOICE_ID'}</b>{acc.voice && <> · пол: {acc.voice.gender ?? '?'} · {voiceOk ? <span className="text-emerald-700">мужской Kamil ✓</span> : <span className="text-rose-600">не Kamil / не мужской</span>}</>}</div>
             {acc.voice && <div>Польский проверен для моделей: {acc.voice.polishModels.join(', ') || '—'}</div>}
             {(acc.kamilVoices ?? []).length > 0 && (
               <div>Голоса «Kamil» в аккаунте: {acc.kamilVoices.map((v: any) => `${v.name} — ${v.id} (${v.gender ?? 'пол ?'}${v.polishModels.length ? `, польский: ${v.polishModels.join(', ')}` : ''})`).join('; ')}</div>
             )}
-            {acc.configured && !(acc.kamilVoices ?? []).length && <div className="text-amber-700">В аккаунте нет голоса с именем Kamil: добавьте его из Voice Library ElevenLabs.</div>}
+            {(acc.problems ?? []).map((p: string) => <div key={p} className="text-amber-700">ElevenLabs — {p}</div>)}
+            {acc.configured && !(acc.problems ?? []).some((p: string) => p.startsWith('список')) && !(acc.kamilVoices ?? []).length && <div className="text-amber-700">В аккаунте нет голоса с именем Kamil: добавьте его из Voice Library ElevenLabs.</div>}
             {acc.credits && <div>Кредиты: использовано {acc.credits.used.toLocaleString('ru')} из {acc.credits.limit.toLocaleString('ru')}, остаток <b>{acc.credits.left.toLocaleString('ru')}</b>{acc.credits.resetAt && <>, обновление {new Date(acc.credits.resetAt).toLocaleDateString('ru')}</>}</div>}
             <div>Модели с польским: {acc.models.filter((m: any) => m.polish).map((m: any) => `${m.name} (${m.creditsPerChar ?? '?'} кр./символ)`).join(', ') || '—'}</div>
             <div>R2: {acc.library.r2 ? <span className="text-emerald-700">подключено</span> : <span className="text-rose-600">не подключено (binding AUDIO)</span>} · режим для игроков: <b>{acc.library.mode === 'library' ? 'только готовые файлы' : 'синтез по запросу (AUDIO_LIBRARY не on)'}</b></div>
@@ -332,7 +342,7 @@ function AudioLibrary({ admin }: { admin: Admin }) {
           {busy && <button className="btn-s" onClick={() => { stop.current = true; }}>Остановить после партии</button>}
           <button className="btn-s" disabled={busy || !ready.size} onClick={verify}>Проверить файлы</button>
         </div>
-        {admin.role !== 'SUPERADMIN' && <div className="text-xs text-slate-500">Генерация — только для суперадмина.</div>}
+        {blockers.length > 0 && <div className="text-sm text-rose-600">Кнопки недоступны: {blockers.join('; ')}.</div>}
         {log.length > 0 && <div className="max-h-48 overflow-auto rounded bg-slate-50 p-2 font-mono text-xs">{log.map((l, i) => <div key={i}>{l}</div>)}</div>}
       </div>
 

@@ -116,15 +116,32 @@ export async function librarySummary(voice: string | null) {
 
 const API = 'https://api.elevenlabs.io';
 
+/** Код помилки ElevenLabs: http_<статус> і, якщо є, detail.status та текст (без ключа: ElevenLabs його не повертає). */
+async function elevenError(res: Response): Promise<string> {
+  const detail = ((await res.json().catch(() => null)) as { detail?: { status?: string; message?: string } | string } | null)?.detail;
+  const d = typeof detail === 'string' ? { message: detail } : detail ?? {};
+  return [`http_${res.status}`, d.status, d.message?.slice(0, 160)].filter(Boolean).join(' ');
+}
+
 async function elevenGet<T>(path: string, key: string): Promise<T> {
   let res: Response;
   try {
     res = await fetch(API + path, { headers: { 'xi-api-key': key }, signal: AbortSignal.timeout(15_000) });
   } catch {
-    throw new HttpError(502, 'elevenlabs_unreachable');
+    throw new HttpError(502, 'elevenlabs_unreachable', 'ElevenLabs не отвечает');
   }
-  if (!res.ok) throw new HttpError(502, 'elevenlabs_failed', `http_${res.status}`);
+  if (!res.ok) throw new HttpError(502, 'elevenlabs_failed', await elevenError(res));
   return (await res.json()) as T;
+}
+
+/** Зрозуміла власнику причина відмови ElevenLabs (адмінка показує її замість мовчки вимкнених кнопок). */
+function elevenReason(e: unknown, voiceId: string | null): string {
+  const m = e instanceof Error ? e.message : String(e);
+  const perm = /permission ([a-z]+_[a-z_]+)/.exec(m)?.[1];
+  if (/missing_permissions/.test(m)) return `у ключа ElevenLabs нет права${perm ? ` ${perm}` : ''} (ElevenLabs → Developers → API Keys → доступ ключа)`;
+  if (/invalid_api_key|http_401/.test(m)) return 'ключ ElevenLabs не принят (ELEVENLABS_API_KEY)';
+  if (/voice_not_found|http_404|http_400/.test(m)) return `голос ${voiceId ?? ''} не найден: добавьте Kamil в My Voices и проверьте ELEVENLABS_VOICE_ID`;
+  return m;
 }
 
 type ElModel = { model_id: string; name?: string; languages?: { language_id: string }[]; model_rates?: { character_cost_multiplier?: number }; token_cost_factor?: number };
@@ -135,14 +152,28 @@ export async function libraryAccount(env: Env = getBindings()) {
   const key = env.ELEVENLABS_API_KEY;
   const voiceId = libraryVoice(env);
   const library = { r2: !!env.AUDIO, mode: libraryEnabled(env) ? 'library' : 'on-demand', version: AUDIO_LIBRARY_VERSION, fingerprint: voiceId ? libraryFingerprint(voiceId) : null };
-  if (!key) return { configured: false, library, voice: null, credits: null, models: [] };
-  const [sub, models, voice, all] = await Promise.all([
+  if (!key) return { configured: false, library, voiceId, voice: null, credits: null, models: [], kamilVoices: [], problems: ['в Worker нет секрета ELEVENLABS_API_KEY'] };
+  // Кожен запит окремо: ключ лише з правом синтезу (без user_read, voices_read, models_read) не ламає сторінку —
+  // генерації потрібен тільки text-to-speech, а причину відмови власник бачить у problems.
+  const problems: string[] = [];
+  const settled = await Promise.allSettled([
     elevenGet<{ character_count?: number; character_limit?: number; next_character_count_reset_unix?: number; tier?: string }>('/v1/user/subscription', key),
     elevenGet<ElModel[]>('/v1/models', key),
     voiceId ? elevenGet<ElVoice>(`/v1/voices/${encodeURIComponent(voiceId)}`, key) : Promise.resolve(null),
     // Голоси акаунта з «Kamil» у назві — щоб власник побачив id потрібного голосу для ELEVENLABS_VOICE_ID.
-    elevenGet<{ voices?: ElVoice[] }>('/v1/voices', key).catch(() => ({ voices: [] as ElVoice[] })),
+    elevenGet<{ voices?: ElVoice[] }>('/v1/voices', key),
   ]);
+  const what = ['кредиты', 'модели', 'голос', 'список голосов'];
+  const value = <T,>(i: number): T | null => {
+    const r = settled[i];
+    if (r.status === 'fulfilled') return r.value as T;
+    problems.push(`${what[i]}: ${elevenReason(r.reason, voiceId)}`);
+    return null;
+  };
+  const sub = value<{ character_count?: number; character_limit?: number; next_character_count_reset_unix?: number; tier?: string }>(0);
+  const models = value<ElModel[]>(1);
+  const voice = value<ElVoice>(2);
+  const all = value<{ voices?: ElVoice[] }>(3);
   const describe = (v: ElVoice) => ({
     id: v.voice_id,
     name: v.name ?? null,
@@ -152,13 +183,15 @@ export async function libraryAccount(env: Env = getBindings()) {
     isKamil: /kamil/i.test(v.name ?? ''),
     male: (v.labels?.gender ?? '').toLowerCase() === 'male',
   });
-  const used = sub.character_count ?? 0;
-  const limit = sub.character_limit ?? 0;
+  const used = sub?.character_count ?? 0;
+  const limit = sub?.character_limit ?? 0;
   return {
     configured: true,
     library,
-    tier: sub.tier ?? null,
-    credits: { used, limit, left: Math.max(0, limit - used), resetAt: sub.next_character_count_reset_unix ? new Date(sub.next_character_count_reset_unix * 1000).toISOString() : null },
+    voiceId,
+    problems,
+    tier: sub?.tier ?? null,
+    credits: sub ? { used, limit, left: Math.max(0, limit - used), resetAt: sub.next_character_count_reset_unix ? new Date(sub.next_character_count_reset_unix * 1000).toISOString() : null } : null,
     models: (Array.isArray(models) ? models : []).map((m) => ({
       id: m.model_id,
       name: m.name ?? m.model_id,
@@ -166,7 +199,7 @@ export async function libraryAccount(env: Env = getBindings()) {
       creditsPerChar: m.model_rates?.character_cost_multiplier ?? m.token_cost_factor ?? (DEFAULT_CREDITS_PER_CHAR as Record<string, number>)[m.model_id] ?? null,
     })),
     voice: voice ? describe(voice) : null,
-    kamilVoices: (all.voices ?? []).filter((v) => /kamil/i.test(v.name ?? '')).map(describe),
+    kamilVoices: (all?.voices ?? []).filter((v) => /kamil/i.test(v.name ?? '')).map(describe),
   };
 }
 
@@ -257,7 +290,7 @@ export async function generateBatch(items: GenerateItem[], maxCredits: number, r
         signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok) {
-        const error = `http_${res.status}`;
+        const error = await elevenError(res);
         await finish(item.id, voice, { status: 'failed', error });
         out.push({ id: item.id, status: 'failed', credits: 0, error, retryable: res.status === 429 || res.status >= 500 });
         if (res.status === 401 || res.status === 402 || res.status === 403) break; // ключ, оплата чи доступ — далі сенсу немає

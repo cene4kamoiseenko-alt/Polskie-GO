@@ -144,6 +144,10 @@ async function login(): Promise<string> {
 
 type Account = {
   configured: boolean;
+  /** ELEVENLABS_VOICE_ID із Worker (є, навіть якщо ElevenLabs не віддав опис голосу). */
+  voiceId?: string | null;
+  /** Відмови ElevenLabs на допоміжних запитах (права ключа, голос не знайдено) — генерацію вони не блокують. */
+  problems?: string[];
   voice: { id: string; name: string | null; gender: string | null; polishModels: string[]; isKamil: boolean; male: boolean } | null;
   kamilVoices?: { id: string; name: string | null; gender: string | null; polishModels: string[] }[];
   credits: { used: number; limit: number; left: number; resetAt: string | null } | null;
@@ -174,7 +178,7 @@ async function plan() {
     printAccount(acc);
     if (acc.credits) budget = Math.min(budget, acc.credits.left);
     for (const m of acc.models) if (m.creditsPerChar != null && m.id in rates) rates[m.id] = m.creditsPerChar;
-    if (acc.voice) ready = await readyIds(token, manifest.units.map((u) => u.id), acc.voice.id);
+    if (acc.voiceId) ready = await readyIds(token, manifest.units.map((u) => u.id), acc.voiceId);
   }
   const cost = (u: Unit) => u.chars * rates[modelFor(u, strategy)];
   console.log(`\nСтратегия ${strategy}, бюджет ${budget} кредитов`);
@@ -212,7 +216,8 @@ async function plan() {
 function printAccount(acc: Account) {
   if (!acc.configured) console.log('ELEVENLABS_API_KEY в Worker не задан.');
   const v = acc.voice;
-  console.log(v ? `Голос: ${v.name ?? '?'} (${v.id}), пол: ${v.gender ?? '?'}; Kamil: ${v.isKamil ? 'да' : 'НЕТ'}; польский подтверждён для моделей: ${v.polishModels.join(', ') || '—'}` : 'Голос библиотеки не задан (ELEVENLABS_VOICE_ID).');
+  console.log(v ? `Голос: ${v.name ?? '?'} (${v.id}), пол: ${v.gender ?? '?'}; Kamil: ${v.isKamil ? 'да' : 'НЕТ'}; польский подтверждён для моделей: ${v.polishModels.join(', ') || '—'}` : acc.voiceId ? `Голос: ${acc.voiceId} (описание ElevenLabs не получено)` : 'Голос библиотеки не задан (ELEVENLABS_VOICE_ID).');
+  for (const p of acc.problems ?? []) console.log(`ElevenLabs: ${p}`);
   for (const k of acc.kamilVoices ?? []) console.log(`Голос Kamil в аккаунте: ${k.name} — ${k.id} (пол: ${k.gender ?? '?'}; польский: ${k.polishModels.join(', ') || '—'})`);
   if (acc.credits) console.log(`Кредиты: использовано ${acc.credits.used} из ${acc.credits.limit}, остаток ${acc.credits.left}, обновление ${acc.credits.resetAt ?? '?'}`);
   console.log(`Модели с польским: ${acc.models.filter((m) => m.polish).map((m) => `${m.id} (${m.creditsPerChar ?? '?'} кр./символ)`).join(', ')}`);
@@ -236,14 +241,15 @@ async function generate() {
   const acc = await api<Account>('/api/admin/audio/account', {}, token);
   printAccount(acc);
   if (!acc.library.r2) throw new Error('R2 не подключено: сохранять некуда (docs/AUDIO_LIBRARY_RU.md, шаг 1).');
-  if (!acc.voice) throw new Error('ELEVENLABS_VOICE_ID в Worker не задан.');
-  if (!acc.voice.isKamil || !acc.voice.male) {
-    if (!flag('allow-voice')) throw new Error('Голос не Kamil или не мужской: проверьте ELEVENLABS_VOICE_ID (или --allow-voice, если голос осознанно другой).');
+  const voiceId = acc.voiceId ?? acc.voice?.id;
+  if (!voiceId) throw new Error('ELEVENLABS_VOICE_ID в Worker не задан.');
+  if (!acc.voice?.isKamil || !acc.voice.male) {
+    if (!flag('allow-voice')) throw new Error(`${acc.voice ? 'Голос не Kamil или не мужской' : 'Голос не удалось проверить'}: проверьте ELEVENLABS_VOICE_ID (или --allow-voice, если голос осознанно другой).`);
   }
   if (acc.credits && budget > acc.credits.left) throw new Error(`Бюджет ${budget} больше остатка ${acc.credits.left}.`);
   const progress: Progress = existsSync(PROGRESS) && !flag('fresh') ? JSON.parse(readFileSync(PROGRESS, 'utf8')) : { started: new Date().toISOString(), strategy, budget, spent: 0, done: [], failed: {} };
   const done = new Set(progress.done);
-  const ready = await readyIds(token, manifest.units.map((u) => u.id), acc.voice.id);
+  const ready = await readyIds(token, manifest.units.map((u) => u.id), voiceId);
   const queue = manifest.units.filter((u) => !ready.has(u.id) && !done.has(u.id));
   // Фактичні множники з /v1/models, якщо акаунт їх віддав; інакше — з документації.
   const rates: Record<string, number> = Object.fromEntries(Object.entries(MODELS).map(([k, v]) => [k, acc.models.find((m) => m.id === k)?.creditsPerChar ?? v.creditsPerChar]));

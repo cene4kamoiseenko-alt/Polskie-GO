@@ -284,6 +284,32 @@ describe('адмінка', () => {
       expect(r.body.kamilVoices.map((v: { id: string }) => v.id)).toEqual([VOICE]);
       expect(r.body.models.filter((m: { polish: boolean }) => m.polish).map((m: { id: string; creditsPerChar: number }) => [m.id, m.creditsPerChar])).toEqual([['eleven_multilingual_v2', 1], ['eleven_flash_v2_5', 0.5]]);
       expect(calls.every((c) => !c.url.includes('/text-to-speech/'))).toBe(true);
+      expect(r.body).toMatchObject({ voiceId: VOICE, problems: [] });
+    });
+  });
+
+  it('ключ лише з правом синтезу: сторінка акаунта не падає, причина видна, генерація працює', async () => {
+    await withEnv({ ELEVENLABS_VOICE_ID: VOICE, ELEVENLABS_API_KEY: 'k' }, async () => {
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes('/text-to-speech/')) return new Response(fakeMp3('tts') as BodyInit, { headers: { 'content-type': 'audio/mpeg' } });
+        const perm = u.includes('/user/') ? 'user_read' : u.includes('/models') ? 'models_read' : 'voices_read';
+        return Response.json({ detail: { status: 'missing_permissions', message: `The API key you used is missing the permission ${perm} to execute this operation.` } }, { status: 401 });
+      });
+      const call = await admin();
+      const r = await call('GET', '/api/admin/audio/account');
+      expect(r.status).toBe(200);
+      expect(r.body).toMatchObject({ configured: true, voiceId: VOICE, voice: null, credits: null, models: [], kamilVoices: [] });
+      expect(r.body.problems).toHaveLength(4);
+      expect(r.body.problems[0]).toContain('user_read');
+      const item = unit('Dzień dobry, Kamil!');
+      const g = await call('POST', '/api/admin/audio/generate', { items: [item], maxCredits: 100 });
+      expect(g.body.results[0].status).toBe('generated');
+    });
+    await withEnv({ ELEVENLABS_VOICE_ID: VOICE }, async () => {
+      const r = await (await admin())('GET', '/api/admin/audio/account');
+      expect(r.body).toMatchObject({ configured: false, voiceId: VOICE });
+      expect(r.body.problems[0]).toContain('ELEVENLABS_API_KEY');
     });
   });
 
