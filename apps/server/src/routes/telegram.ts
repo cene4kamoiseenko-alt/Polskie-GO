@@ -13,11 +13,13 @@ import { telegramUpdates } from '../db/schema';
 import { body, rateLimit, type AppEnv } from '../hono';
 import { HttpError } from '../lib/errors';
 import { botApi, TelegramError } from '../lib/telegram';
-import { handleBotCallback, handleBotMessage, type BotMessage } from '../bot/handler';
+import { handleBotCallback, handleBotMessage, parseCommand, type BotMessage } from '../bot/handler';
+import { commandForLabel } from '../bot/panel';
 import type { CallbackQuery } from '../bot/quiz/engine';
 import { runSetup, type SetupMode } from '../bot/setup';
 import { loadSecretState, safeEqual, verifyWebhookSecret } from '../bot/webhook-secret';
 import { handlePreCheckout, handleRefund, handleSuccessfulPayment, type SuccessfulPayment } from '../services/payments';
+import { recordBotBlocked, recordBotContact, type TgFrom } from '../services/bot-audience';
 
 type Update = {
   update_id: number;
@@ -27,7 +29,33 @@ type Update = {
   };
   pre_checkout_query?: { id: string; from: { id: number }; currency: string; total_amount: number; invoice_payload: string };
   callback_query?: CallbackQuery;
+  my_chat_member?: { chat: { id: number; type?: string }; from: TgFrom; new_chat_member?: { status?: string } };
 };
+
+/**
+ * Аудитория бота (админка): кто писал боту в личном чате и кто его заблокировал. Только личные чаты; сбой записи
+ * не мешает ответить — бот важнее учёта.
+ */
+async function noteContact(update: Update, now = new Date()) {
+  try {
+    const member = update.my_chat_member;
+    if (member && member.chat?.type === 'private' && member.from) {
+      const status = member.new_chat_member?.status;
+      if (status === 'kicked' || status === 'member') await recordBotBlocked(member.from, status === 'kicked', now);
+      return;
+    }
+    const cb = update.callback_query;
+    if (cb?.from && (cb.message?.chat.type ?? 'private') === 'private') return await recordBotContact(cb.from, { command: 'button' }, now);
+    const msg = update.message;
+    if (!msg?.from || (msg.chat?.type ?? 'private') !== 'private') return;
+    const cmd = parseCommand(msg.text);
+    const command = cmd?.name ?? (typeof msg.text === 'string' ? (commandForLabel(msg.text) ?? 'text') : msg.successful_payment ? 'payment' : null);
+    const startParam = cmd?.name === 'start' && /^[A-Za-z0-9_-]{1,64}$/.test(cmd.arg) ? cmd.arg : null;
+    await recordBotContact(msg.from, { command: command?.slice(0, 32) ?? null, startParam }, now);
+  } catch (e) {
+    console.warn('bot: contact not recorded', (e as Error).message);
+  }
+}
 
 /** Зайняти update_id: false — це оновлення вже обробляли. Якщо базу не прочитати, обробляємо без захисту від дубля. */
 async function claimUpdate(updateId: number): Promise<boolean> {
@@ -149,6 +177,8 @@ telegramRoutes.post('/setup', rateLimit(10, 10 * 60_000, 'tg-setup'), async (c) 
 telegramRoutes.post('/webhook', async (c) => {
   if (!(await verifyWebhookSecret(c.req.header('x-telegram-bot-api-secret-token')))) throw new HttpError(401, 'unauthorized');
   const update = (await body(c)) as Update;
+  await noteContact(update);
+  if (update.my_chat_member) return c.json({ ok: true });
 
   if (update.pre_checkout_query) {
     await handlePreCheckout(update.pre_checkout_query);

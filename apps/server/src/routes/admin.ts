@@ -24,6 +24,7 @@ import {
 import { AZURE_PL_VOICES, BENCHMARK_PHRASES, ELEVENLABS_PL_MODELS, GOOGLE_PL_VOICES, estimateUsd, priceFor } from '../services/tts-catalog';
 import { pronunciationRisks } from '../services/tts-pronunciation';
 import { ttsSpendSummary } from '../services/quota';
+import { AUDIENCE_FILTERS, audience } from '../services/bot-audience';
 import { benchmarkPlan } from '../services/tts-benchmark';
 import { readBotConfig } from '../bot/maintain';
 import { runSetup } from '../bot/setup';
@@ -336,6 +337,20 @@ a.get('/users', async (c) => {
     ? await db.select().from(t.subscriptions).where(and(inArray(t.subscriptions.userId, ids), inArray(t.subscriptions.status, ['ACTIVE', 'CANCELLED']), gt(t.subscriptions.expiresAt, new Date())))
     : [];
   return c.json({ items: rows.map((r) => ({ ...r.u, progress: r.progress, subscriptions: subs.filter((x) => x.userId === r.u.id) })), total: total[0]?.n ?? 0 });
+});
+
+// Аудитория бота: кто писал боту и кто открывал приложение, одним списком; счётчики за день, 7 и 30 дней.
+a.get('/audience', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const q = z
+    .object({
+      filter: z.enum(AUDIENCE_FILTERS).default('all'),
+      days: z.coerce.number().int().refine((d) => [0, 1, 7, 30].includes(d)).default(0),
+      search: z.string().trim().max(64).optional(),
+      skip: z.coerce.number().int().min(0).default(0),
+    })
+    .parse(query(c));
+  return c.json(await audience({ filter: q.filter, days: q.days || null, search: q.search || null, skip: q.skip, limit: 50 }));
 });
 
 a.get('/users/:id', async (c) => {

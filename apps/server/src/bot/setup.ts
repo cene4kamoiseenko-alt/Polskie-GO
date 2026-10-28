@@ -15,7 +15,8 @@ export type SetupCall = { method: string; params: Record<string, unknown> };
 export const LOCALIZED = ['uk', 'pl', 'en'] as const;
 
 /** Какие обновления присылает Telegram: сообщения и команды, нажатия inline-кнопок (быстрые вопросы), проверка оплаты Stars. */
-export const ALLOWED_UPDATES = ['message', 'callback_query', 'pre_checkout_query'] as const;
+/** my_chat_member — блокировка и разблокировка бота (аудитория в админке). */
+export const ALLOWED_UPDATES = ['message', 'callback_query', 'pre_checkout_query', 'my_chat_member'] as const;
 
 /** Команды бота: русские описания по умолчанию, затем локализации. Совпадает с `buildCalls` скрипта setup-bot. */
 export function commandCalls(): SetupCall[] {

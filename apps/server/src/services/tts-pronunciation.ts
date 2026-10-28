@@ -1,7 +1,7 @@
 /**
- * Фрази контенту, де синтезатор найчастіше помиляється: час, ціни, номери ліній, абревіатури, скорочення, числа,
- * окремі літери. Їх власник слухає першими в порівнянні голосів (адмінка → «Порівняння голосів») — це перевірка
- * вимови на справжньому контенті, а не лише на наборі бенчмарку. Чиста логіка, без мережі.
+ * Фразы контента, где синтезатор ошибается чаще всего: время, цены, номера линий, аббревиатуры, сокращения, числа,
+ * отдельные буквы. Владелец слушает их первыми в сравнении голосов (админка → «Сравнение голосов») — это проверка
+ * произношения на настоящем контенте, а не только на наборе бенчмарка. Чистая логика, без сети. Подписи — на русском, как в админке.
  */
 import { isLoneLetter } from '@polski-go/shared';
 
@@ -9,13 +9,13 @@ export type RiskCategory = { id: string; label: string; listen: string; test: (s
 
 /** Порядок важливий: фраза потрапляє в першу категорію, що підійшла. */
 export const RISK_CATEGORIES: RiskCategory[] = [
-  { id: 'time', label: 'Час цифрами', listen: '«10:30» — «dziesiąta trzydzieści», а не «dziesięć dwukropek trzydzieści»', test: (s) => /\b\d{1,2}:\d{2}\b/.test(s) },
-  { id: 'price', label: 'Ціни', listen: '«4,40 zł» — «cztery złote czterdzieści (groszy)», а не «cztery przecinek czterdzieści»', test: (s) => /(?<!\p{L})zł(?!\p{L})/u.test(s) },
-  { id: 'code', label: 'Лінії та номери з літерою', listen: '«M2» — «em dwa», «75-minutowy» — «siedemdziesięciopięciominutowy»', test: (s) => /(?<![\p{L}\d])\p{Lu}+\d+(?![\p{L}\d])|\d+-\p{L}/u.test(s) },
-  { id: 'acronym', label: 'Абревіатури', listen: 'PKP, BLIK, PESEL, ZUS — польською, по літерах або словом, як кажуть у Польщі', test: (s) => /(?<!\p{L})\p{Lu}{2,}(?!\p{L})/u.test(s) },
-  { id: 'abbr', label: 'Скорочення з крапкою', listen: '«ul.» — «ulica», «al.» — «aleja», «nr» — «numer», «godz.» — «godzina»', test: (s) => /(?<!\p{L})(ul|al|pl|os|godz|nr|np|tel|itd|itp|ok|św|dr|prof|min)\.(?=\s|$)|(?<!\p{L})nr(?!\p{L})/iu.test(s) },
-  { id: 'number', label: 'Числа цифрами', listen: 'правильне число й відмінок: «na 75 minut», «od 1644 roku»', test: (s) => /\d/.test(s) },
-  { id: 'letter', label: 'Окремі літери', listen: 'назва літери («wu», «zet»), а не «duże wu»', test: (s) => isLoneLetter(s) },
+  { id: 'time', label: 'Время цифрами', listen: '«10:30» — «dziesiąta trzydzieści», а не «dziesięć dwukropek trzydzieści»', test: (s) => /\b\d{1,2}:\d{2}\b/.test(s) },
+  { id: 'price', label: 'Цены', listen: '«4,40 zł» — «cztery złote czterdzieści (groszy)», а не «cztery przecinek czterdzieści»', test: (s) => /(?<!\p{L})zł(?!\p{L})/u.test(s) },
+  { id: 'code', label: 'Линии и номера с буквой', listen: '«M2» — «em dwa», «75-minutowy» — «siedemdziesięciopięciominutowy»', test: (s) => /(?<![\p{L}\d])\p{Lu}+\d+(?![\p{L}\d])|\d+-\p{L}/u.test(s) },
+  { id: 'acronym', label: 'Аббревиатуры', listen: 'PKP, BLIK, PESEL, ZUS — по-польски, по буквам или словом, как говорят в Польше', test: (s) => /(?<!\p{L})\p{Lu}{2,}(?!\p{L})/u.test(s) },
+  { id: 'abbr', label: 'Сокращения с точкой', listen: '«ul.» — «ulica», «al.» — «aleja», «nr» — «numer», «godz.» — «godzina»', test: (s) => /(?<!\p{L})(ul|al|pl|os|godz|nr|np|tel|itd|itp|ok|św|dr|prof|min)\.(?=\s|$)|(?<!\p{L})nr(?!\p{L})/iu.test(s) },
+  { id: 'number', label: 'Числа цифрами', listen: 'правильное число и падеж: «na 75 minut», «od 1644 roku»', test: (s) => /\d/.test(s) },
+  { id: 'letter', label: 'Отдельные буквы', listen: 'название буквы («wu», «zet»), а не «duże wu»', test: (s) => isLoneLetter(s) },
 ];
 
 export type PronunciationRisk = { id: string; label: string; listen: string; count: number; items: string[] };

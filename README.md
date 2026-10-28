@@ -10,7 +10,7 @@ Telegram Mini App — образовательная игра для изуче�
 |---|---|
 | Mini App | React 18 · TypeScript · Vite · Tailwind CSS 4 · Framer Motion · Telegram Mini Apps SDK |
 | Backend | Cloudflare Workers · Hono · Drizzle ORM · Cloudflare D1 (SQLite) · Zod |
-| Админ-панель | отдельное React-приложение (`/admin/`) |
+| Админ-панель | отдельное React-приложение (`/admin/`, на русском): аудитория бота, пользователи, контент, платежи — `docs/ADMIN_RU.md` |
 | AI | Anthropic Claude через серверный API (ключ только на сервере) |
 | Платежи | Telegram Stars (подписка + разовые тарифы) |
 | Хостинг | один бесплатный Cloudflare Worker: API + Mini App + админка, D1, Cron |
@@ -95,7 +95,7 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | первый вход в `/admin/` |
 | `ANTHROPIC_API_KEY` | необязательно; без ключа AI честно работает в ограниченном режиме |
 
-Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true, "version": {"commit": …}, "migration": "0010_tts_spend.sql", "bot": {…}}` (коммит сборки, последняя миграция, состояние webhook — без секретов).
+Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true, "version": {"commit": …}, "migration": "0011_bot_contacts.sql", "bot": {…}}` (коммит сборки, последняя миграция, состояние webhook — без секретов).
 
 ### 3. Бот
 

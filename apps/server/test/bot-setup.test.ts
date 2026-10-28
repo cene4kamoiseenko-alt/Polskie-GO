@@ -138,7 +138,7 @@ describe('настройка и серверный секрет', () => {
     for (const forbidden of ['setMyDescription', 'setMyShortDescription', 'setMyName', 'deleteWebhook', 'logOut', 'close']) expect(calls.some((c) => c.method === forbidden)).toBe(false);
     const hook = calls.find((c) => c.method === 'setWebhook')!;
     expect(hook.params.url).toBe(`${APP}/telegram/webhook`);
-    expect(hook.params.allowed_updates).toEqual(['message', 'callback_query', 'pre_checkout_query']);
+    expect(hook.params.allowed_updates).toEqual(['message', 'callback_query', 'pre_checkout_query', 'my_chat_member']);
     expect(hook.params.drop_pending_updates).toBe(false);
     // Секрет — новый (не значение из окружения, которое могло утечь) и в формате Telegram: 1–256 знаков A–Z a–z 0–9 _ -.
     const secret = hookSecret(calls)!;

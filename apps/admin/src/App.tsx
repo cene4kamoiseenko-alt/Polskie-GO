@@ -8,7 +8,7 @@ type Admin = { id: string; email: string; name: string; role: 'SUPERADMIN' | 'ED
 const get = (o: any, path: string) => path.split('.').reduce((a, k) => a?.[k], o);
 const show = (v: unknown, i18n?: boolean): string => {
   if (v == null) return '—';
-  if (i18n && typeof v === 'object') return (v as any).uk ?? '';
+  if (i18n && typeof v === 'object') return (v as any).ru || (v as any).uk || '';
   if (typeof v === 'boolean') return v ? '✓' : '—';
   if (Array.isArray(v)) return v.join(', ');
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 80);
@@ -53,12 +53,12 @@ function Login({ onLogin }: { onLogin: (a: Admin) => void }) {
         }}
       >
         <h1 className="text-2xl font-black">
-          <span className="text-rose-600">POLSKI</span> <span className="text-amber-500">GO</span> <span className="text-slate-400">· адмін</span>
+          <span className="text-rose-600">POLSKI</span> <span className="text-amber-500">GO</span> <span className="text-slate-400">· админка</span>
         </h1>
         <input className="inp" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
         <input className="inp" type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         {error && <p className="text-sm text-rose-600">{error}</p>}
-        <button className="btn-p w-full">Увійти</button>
+        <button className="btn-p w-full">Войти</button>
       </form>
     </div>
   );
@@ -75,16 +75,16 @@ function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: st
 }
 
 const TTS_WARNINGS: Record<string, string> = {
-  voice_not_in_official_list: 'голосу немає в офіційному списку провайдера',
-  voice_not_polish: 'голос не польський',
-  premade_english_voice: 'англійський готовий голос — польська звучатиме з акцентом',
-  model_without_polish: 'модель не підтримує польську',
+  voice_not_in_official_list: 'голоса нет в официальном списке провайдера',
+  voice_not_polish: 'голос не польский',
+  premade_english_voice: 'готовый английский голос — польский будет звучать с акцентом',
+  model_without_polish: 'модель не поддерживает польский',
 };
 const TTS_FALLBACK: Record<string, string> = {
-  invalid_tts_provider: 'TTS_PROVIDER має невідоме значення — працює auto',
-  requested_provider_not_configured: 'для TTS_PROVIDER немає ключа — працює auto',
-  no_provider_configured: 'ключів немає — клієнт говорить польським голосом пристрою',
-  disabled: 'TTS_PROVIDER=off — серверну озвучку вимкнено',
+  invalid_tts_provider: 'у TTS_PROVIDER неизвестное значение — работает auto',
+  requested_provider_not_configured: 'для TTS_PROVIDER нет ключа — работает auto',
+  no_provider_configured: 'ключей нет — приложение говорит польским голосом устройства',
+  disabled: 'TTS_PROVIDER=off — серверная озвучка выключена',
 };
 
 /** Попередній синтез польської озвучки для всього контенту (частинами). Спершу показує, який голос і скільки це коштує. */
@@ -94,10 +94,10 @@ function WarmAudio() {
   const { data: st, reload } = useLoad<any>(() => api('/tts/status'), []);
   const run = async () => {
     const w = st?.warm;
-    const cost = w?.usd ? `≈ $${w.usd.freeTierLeft} у межах безкоштовного обсягу, ≈ $${w.usd.freeTierUsed}, якщо він уже витрачений` : 'ціна невідома';
+    const cost = w?.usd ? `≈ $${w.usd.freeTierLeft} в пределах бесплатного объёма, ≈ $${w.usd.freeTierUsed}, если он уже израсходован` : 'цена неизвестна';
     const ask = w
-      ? `Голос: ${st.provider} · ${st.voiceId} (${st.model}).\nДо синтезу: до ${w.left.toLocaleString('uk')} символів (${w.phrases} фраз × 2 швидкості, без уже закешованого).\nОрієнтовно ${cost}.\n\nЦе платні запити до провайдера. Продовжити?`
-      : 'Це платні запити до провайдера. Продовжити?';
+      ? `Голос: ${st.provider} · ${st.voiceId} (${st.model}).\nК синтезу: до ${w.left.toLocaleString('ru')} символов (${w.phrases} фраз × 2 скорости, без уже закэшированного).\nОриентировочно ${cost}.\n\nЭто платные запросы к провайдеру. Продолжить?`
+      : 'Это платные запросы к провайдеру. Продолжить?';
     if (!window.confirm(ask)) return;
     setBusy(true);
     let offset = 0;
@@ -106,7 +106,7 @@ function WarmAudio() {
       for (;;) {
         const r: any = await api('/tts/warm', { body: { offset } });
         made += r.synthesized;
-        setMsg(`Озвучено ${r.next} з ${r.total} фраз (нових записів: ${made})${r.failed.length ? `, помилки: ${r.failed.length}` : ''}`);
+        setMsg(`Озвучено ${r.next} из ${r.total} фраз (новых записей: ${made})${r.failed.length ? `, ошибки: ${r.failed.length}` : ''}`);
         if (r.done) break;
         offset = r.next;
       }
@@ -125,7 +125,7 @@ function WarmAudio() {
       for (;;) {
         const r: any = await api('/tts/migrate-cache', { body: { cursor } });
         moved += r.migrated;
-        setMsg(`Перенесено записів кешу: ${moved}`);
+        setMsg(`Перенесено записей кэша: ${moved}`);
         if (r.done) break;
         cursor = r.next;
       }
@@ -140,29 +140,29 @@ function WarmAudio() {
     <div className="panel space-y-3 p-4" data-tts-status={st?.provider ?? 'none'}>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1">
-          <div className="font-bold">Польська озвучка контенту</div>
-          <div className="text-sm text-slate-500">{msg || 'Синтезує й кешує всі слова та фрази (звичайна і сповільнена швидкість). Перед запуском покаже голос і оцінку вартості.'}</div>
+          <div className="font-bold">Польская озвучка контента</div>
+          <div className="text-sm text-slate-500">{msg || 'Синтезирует и кэширует все слова и фразы (обычная и замедленная скорость). Перед запуском покажет голос и оценку стоимости.'}</div>
         </div>
-        <button className="btn-p" disabled={busy || !st?.configured} onClick={run}>{busy ? 'Зачекайте…' : 'Озвучити весь контент'}</button>
+        <button className="btn-p" disabled={busy || !st?.configured} onClick={run}>{busy ? 'Подождите…' : 'Озвучить весь контент'}</button>
       </div>
       {st && (
         <div className="grid gap-1 text-sm md:grid-cols-2">
           <div>
-            Зараз грає: <b>{st.configured ? `${st.provider} · ${st.voiceId} · ${st.model}` : 'голос пристрою (серверного синтезу немає)'}</b>
+            Сейчас звучит: <b>{st.configured ? `${st.provider} · ${st.voiceId} · ${st.model}` : 'голос устройства (серверного синтеза нет)'}</b>
             {' '}<span className="text-slate-500">({st.selection === 'explicit' ? `TTS_PROVIDER=${st.requested}` : st.selection})</span>
           </div>
           <div>
-            Кеш: {st.cache.rows} записів, {(st.cache.bytes / 1048576).toFixed(1)} МБ
-            {st.cache.legacyRows > 0 && <> · старих ключів: {st.cache.legacyRows} <button className="underline" disabled={busy} onClick={migrate}>перенести</button></>}
+            Кэш: {st.cache.rows} записей, {(st.cache.bytes / 1048576).toFixed(1)} МБ
+            {st.cache.legacyRows > 0 && <> · старых ключей: {st.cache.legacyRows} <button className="underline" disabled={busy} onClick={migrate}>перенести</button></>}
           </div>
           {st.fallbackReason && <div className="text-amber-700">{TTS_FALLBACK[st.fallbackReason] ?? st.fallbackReason}</div>}
-          {st.warnings.map((w: string) => <div key={w} className="text-rose-600">Увага: {TTS_WARNINGS[w] ?? w}</div>)}
-          {st.lastError && <div className="text-rose-600">Остання помилка провайдера: {st.lastError.reason} ({new Date(st.lastError.at).toLocaleString('uk')})</div>}
-          {st.warm && <div className="text-slate-500">Прогрів: {st.warm.phrases} фраз, до синтезу до {st.warm.left.toLocaleString('uk')} символів</div>}
+          {st.warnings.map((w: string) => <div key={w} className="text-rose-600">Внимание: {TTS_WARNINGS[w] ?? w}</div>)}
+          {st.lastError && <div className="text-rose-600">Последняя ошибка провайдера: {st.lastError.reason} ({new Date(st.lastError.at).toLocaleString('ru')})</div>}
+          {st.warm && <div className="text-slate-500">Прогрев: {st.warm.phrases} фраз, к синтезу до {st.warm.left.toLocaleString('ru')} символов</div>}
           {st.spend && (
             <div className="text-slate-500" data-tts-spend>
-              Платний синтез сьогодні: гравці {st.spend.today.user.chars.toLocaleString('uk')} з {st.spend.limit.toLocaleString('uk')} символів
-              {' '}(TTS_GLOBAL_DAILY_CHARS), адмінка {st.spend.today.admin.chars.toLocaleString('uk')} · за 30 днів {(st.spend.last30.user.chars + st.spend.last30.admin.chars).toLocaleString('uk')}
+              Платный синтез сегодня: игроки {st.spend.today.user.chars.toLocaleString('ru')} из {st.spend.limit.toLocaleString('ru')} символов
+              {' '}(TTS_GLOBAL_DAILY_CHARS), админка {st.spend.today.admin.chars.toLocaleString('ru')} · за 30 дней {(st.spend.last30.user.chars + st.spend.last30.admin.chars).toLocaleString('ru')}
             </div>
           )}
         </div>
@@ -175,7 +175,7 @@ const BLIND = 'ABCDEFGH';
 
 /**
  * Порівняння польських голосів на слух: до 4 голосів, фрази бенчмарку і ризиковані фрази контенту (час, ціни, лінії…).
- * Сліпий режим — голоси під літерами у випадковому порядку, назви відкриваються кнопкою. Кожен новий зразок — платний
+ * Слепой режим — голоси під літерами у випадковому порядку, назви відкриваються кнопкою. Кожен новий зразок — платний
  * запит на символи фрази (облік admin), повтор — з кешу. Протокол оцінки — docs/POLISH_TTS_BENCHMARK.md, кроки — docs/GOOGLE_TTS_SETUP_RU.md.
  */
 function CompareVoices() {
@@ -209,7 +209,7 @@ function CompareVoices() {
       const audio = new Audio(url);
       audio.onended = () => URL.revokeObjectURL(url);
       await audio.play();
-      setMsg(`Грає: ${name(v, i)}${rate === 'slow' ? ' (повільно)' : ''}`);
+      setMsg(`Звучит: ${name(v, i)}${rate === 'slow' ? ' (медленно)' : ''}`);
     } catch (e) {
       setMsg(`${name(v, i)}: ${(e as Error).message}`);
     } finally {
@@ -235,17 +235,17 @@ function CompareVoices() {
     <div className="panel p-4" data-tts-compare>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1">
-          <div className="font-bold">Порівняння голосів (на слух)</div>
-          <div className="text-sm text-slate-500">До 4 польських голосів на фразах тесту та ризикованих фразах контенту. Новий зразок — платний запит на символи фрази; повтор — з кешу.</div>
+          <div className="font-bold">Сравнение голосов (на слух)</div>
+          <div className="text-sm text-slate-500">До 4 польских голосов на фразах теста и рискованных фразах контента. Новый образец — платный запрос на символы фразы; повтор — из кэша.</div>
         </div>
-        <button className="btn-p" onClick={() => (open ? reload() : setOpen(true))}>{open ? 'Оновити' : 'Відкрити'}</button>
+        <button className="btn-p" onClick={() => (open ? reload() : setOpen(true))}>{open ? 'Обновить' : 'Открыть'}</button>
       </div>
       {error && <p className="mt-2 text-rose-600">{error}</p>}
-      {open && data && !data.voices.length && <p className="mt-2 text-amber-700">Ключа провайдера немає: порівнювати нічого. Кроки підключення — docs/GOOGLE_TTS_SETUP_RU.md.</p>}
+      {open && data && !data.voices.length && <p className="mt-2 text-amber-700">Ключа провайдера нет: сравнивать нечего. Шаги подключения — docs/GOOGLE_TTS_SETUP_RU.md.</p>}
       {open && data && data.voices.length > 0 && (
         <div className="mt-3 space-y-3">
           <details>
-            <summary className="cursor-pointer text-sm font-semibold">Голоси для порівняння: {picked.length} з 4</summary>
+            <summary className="cursor-pointer text-sm font-semibold">Голоса для сравнения: {picked.length} из 4</summary>
             <div className="mt-2 grid max-h-64 gap-1 overflow-auto text-sm md:grid-cols-3">
               {data.voices.map((v: any) => {
                 const k = key(v);
@@ -253,27 +253,27 @@ function CompareVoices() {
                 return (
                   <label key={k} className="flex items-center gap-2">
                     <input type="checkbox" checked={on} disabled={!on && picked.length >= 4} onChange={() => setPicked((p) => (on ? p.filter((x) => x !== k) : [...p, k]))} />
-                    {v.voice.replace(/^pl-PL-/, '')} <span className="text-slate-500">{v.gender ?? ''} · {v.price ? `$${v.price.usdPerMillion}/1M` : '?'}{v.current ? ' · зараз грає' : ''}</span>
+                    {v.voice.replace(/^pl-PL-/, '')} <span className="text-slate-500">{v.gender ?? ''} · {v.price ? `$${v.price.usdPerMillion}/1M` : '?'}{v.current ? ' · сейчас звучит' : ''}</span>
                   </label>
                 );
               })}
             </div>
           </details>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <label className="flex items-center gap-2"><input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> Сліпий режим</label>
-            {blind && <button className="underline" onClick={() => setReveal((r) => !r)}>{reveal ? 'Сховати назви' : 'Показати, хто є хто'}</button>}
+            <label className="flex items-center gap-2"><input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> Слепой режим</label>
+            {blind && <button className="underline" onClick={() => setReveal((r) => !r)}>{reveal ? 'Скрыть названия' : 'Показать, кто есть кто'}</button>}
             {blind && reveal && <span className="text-slate-500">{voices.map((v, i) => `${BLIND[i]} = ${v.voice.replace(/^pl-PL-/, '')}`).join(', ')}</span>}
-            <span className="text-slate-500">Сьогодні адмінка: {data.spend.today.admin.chars.toLocaleString('uk')} символів</span>
+            <span className="text-slate-500">Сегодня админка: {data.spend.today.admin.chars.toLocaleString('ru')} символов</span>
           </div>
           {msg && <div className="text-sm">{msg}</div>}
           <details open>
-            <summary className="cursor-pointer font-semibold">Фрази тесту ({data.phrases.length})</summary>
+            <summary className="cursor-pointer font-semibold">Фразы теста ({data.phrases.length})</summary>
             {data.phrases.map((p: any) => row(p.text, `${p.required ? '★ ' : ''}${p.focus}`, p.rates))}
           </details>
           {data.risks.map((g: any) => (
             <details key={g.id}>
-              <summary className="cursor-pointer font-semibold">З контенту: {g.label} ({g.count}, показано {g.items.length})</summary>
-              <div className="text-xs text-slate-500">Слухати: {g.listen}</div>
+              <summary className="cursor-pointer font-semibold">Из контента: {g.label} ({g.count}, показано {g.items.length})</summary>
+              <div className="text-xs text-slate-500">Слушать: {g.listen}</div>
               {g.items.map((t: string) => row(t, ''))}
             </details>
           ))}
@@ -283,41 +283,61 @@ function CompareVoices() {
   );
 }
 
+/** Короткая сводка аудитории бота на «Обзоре» (SUPERADMIN и SUPPORT; редактору раздел недоступен — карточки нет). */
+function AudienceCard() {
+  const { data } = useLoad<any>(() => api('/audience').catch(() => null), []);
+  const s = data?.summary;
+  if (!s) return null;
+  return (
+    <Link to="/audience" className="panel block p-4 hover:bg-slate-50" data-audience-card>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="font-bold">🤝 Аудитория бота</div>
+        <span className="text-sm text-sky-700 underline">открыть список →</span>
+      </div>
+      <div className="mt-1 text-sm">
+        Всего <b>{s.total}</b> · новые за сутки <b>{s.new1}</b>, за 7 дней <b>{s.new7}</b> · открыли приложение <b>{s.app}</b> · только бот <b>{s.botOnly}</b>
+        {s.blocked > 0 && <> · заблокировали бота <b>{s.blocked}</b></>}
+      </div>
+    </Link>
+  );
+}
+
 function Dashboard() {
   const { data, error } = useLoad(() => api('/dashboard'), []);
   if (error) return <p className="text-rose-600">{error}</p>;
-  if (!data) return <p>Завантаження…</p>;
+  if (!data) return <p>Загрузка…</p>;
   const maxS = Math.max(1, ...data.signups.map((s: any) => s.count));
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-black">Огляд</h1>
-      <WarmAudio />
-      <CompareVoices />
+      <h1 className="text-2xl font-black">Обзор</h1>
+      <AudienceCard />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Користувачів" value={data.users} sub={`+${data.new7} за 7 днів`} />
-        <Stat label="Активні (24 год / 7 дн)" value={`${data.active1} / ${data.active7}`} />
-        <Stat label="Пройдено уроків" value={data.lessonsTotal} sub={`${data.lessons7} за 7 днів`} />
+        <Stat label="Аккаунтов в приложении" value={data.users} sub={`+${data.new7} за 7 дней`} />
+        <Stat label="Активные (24 ч / 7 дн.)" value={`${data.active1} / ${data.active7}`} />
+        <Stat label="Пройдено уроков" value={data.lessonsTotal} sub={`${data.lessons7} за 7 дней`} />
         <Stat label="Retention D1 / D7" value={`${data.retention.d1 ?? '—'}% / ${data.retention.d7 ?? '—'}%`} />
-        <Stat label="Premium-підписників" value={data.premium} />
-        <Stat label="Дохід 30 днів" value={`⭐ ${data.revenue30Stars}`} sub={`${data.payments30} платежів · усього ⭐ ${data.revenueAllStars}`} />
-        <Stat label="Середній прогрес" value={`${data.avgXp} XP`} sub={`${data.avgLessons} уроків · ${data.avgWords} слів`} />
+        <Stat label="Premium-подписчиков" value={data.premium} />
+        <Stat label="Доход за 30 дней" value={`⭐ ${data.revenue30Stars}`} sub={`${data.payments30} платежей · всего ⭐ ${data.revenueAllStars}`} />
+        <Stat label="Средний прогресс" value={`${data.avgXp} XP`} sub={`${data.avgLessons} уроков · ${data.avgWords} слов`} />
       </div>
       <div className="panel p-4">
-        <h2 className="mb-3 font-bold">Реєстрації за 30 днів</h2>
-        <div className="flex h-32 items-end gap-1" role="img" aria-label="Реєстрації за днями">
+        <h2 className="mb-3 font-bold">Регистрации в приложении за 30 дней</h2>
+        <div className="flex h-32 items-end gap-1" role="img" aria-label="Регистрации по дням">
           {data.signups.map((s: any) => (
             <div key={s.day} title={`${s.day}: ${s.count}`} className="flex-1 rounded-t bg-emerald-500" style={{ height: `${(s.count / maxS) * 100}%`, minHeight: 2 }} />
           ))}
         </div>
       </div>
+      <WarmAudio />
+      <CompareVoices />
       <div className="grid gap-4 md:grid-cols-2">
         <div className="panel">
-          <h2 className="border-b p-3 font-bold">Популярні уроки</h2>
+          <h2 className="border-b p-3 font-bold">Популярные уроки</h2>
           <table className="w-full">
             <tbody>
               {data.topLessons.map((l: any) => (
                 <tr key={l.slug} className="border-b last:border-0">
-                  <td className="td">{l.title?.uk}</td>
+                  <td className="td">{l.title?.ru || l.title?.uk}</td>
                   <td className="td text-right font-bold">{l.count}</td>
                 </tr>
               ))}
@@ -325,13 +345,13 @@ function Dashboard() {
           </table>
         </div>
         <div className="panel">
-          <h2 className="border-b p-3 font-bold">Найчастіші помилки</h2>
+          <h2 className="border-b p-3 font-bold">Частые ошибки</h2>
           <table className="w-full">
             <thead>
               <tr>
                 <th className="th">Урок</th>
                 <th className="th">Тип</th>
-                <th className="th text-right">Помилок</th>
+                <th className="th text-right">Ошибок</th>
               </tr>
             </thead>
             <tbody>
@@ -457,13 +477,13 @@ function ResourceList({ def }: { def: ResourceDef }) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black">{def.title}</h1>
         <Link className="btn-p" to={`/r/${def.name}/new${qs ? `?${qs}` : ''}`}>
-          + Додати
+          + Добавить
         </Link>
       </div>
-      <input className="inp max-w-sm" placeholder="Пошук…" defaultValue={params.get('search') ?? ''} onKeyDown={(e) => e.key === 'Enter' && setParams({ ...Object.fromEntries(params), search: (e.target as HTMLInputElement).value })} />
+      <input className="inp max-w-sm" placeholder="Поиск…" defaultValue={params.get('search') ?? ''} onKeyDown={(e) => e.key === 'Enter' && setParams({ ...Object.fromEntries(params), search: (e.target as HTMLInputElement).value })} />
       {[...params.entries()].filter(([k]) => k !== 'search').length > 0 && (
         <button className="btn-s" onClick={() => setParams({})}>
-          ✕ Скинути фільтри
+          ✕ Сбросить фильтры
         </button>
       )}
       {error && <p className="text-rose-600">{error}</p>}
@@ -482,7 +502,7 @@ function ResourceList({ def }: { def: ResourceDef }) {
           <tbody>
             {loading && (
               <tr>
-                <td className="td">Завантаження…</td>
+                <td className="td">Загрузка…</td>
               </tr>
             )}
             {data?.items.map((r: any) => (
@@ -495,7 +515,7 @@ function ResourceList({ def }: { def: ResourceDef }) {
                 <td className="td whitespace-nowrap text-right">
                   {def.name === 'lessons' && (
                     <Link className="mr-3 text-emerald-700 underline" to={`/r/exercises?lessonId=${r.id}`}>
-                      вправи
+                      упражнения
                     </Link>
                   )}
                   {def.name === 'routes' && (
@@ -505,17 +525,17 @@ function ResourceList({ def }: { def: ResourceDef }) {
                   )}
                   {def.name === 'cities' && (
                     <Link className="mr-3 text-emerald-700 underline" to={`/r/routes?cityId=${r.id}`}>
-                      маршрути
+                      маршруты
                     </Link>
                   )}
                   {def.name === 'quests' && r.kind === 'STORY' && (
                     <Link className="mr-3 text-emerald-700 underline" to={`/r/questSteps?questId=${r.id}`}>
-                      етапи
+                      этапы
                     </Link>
                   )}
                   {def.name === 'campaigns' && r.status === 'DRAFT' && <SendCampaign id={r.id} />}
                   <Link className="text-sky-700 underline" to={`/r/${def.name}/${r[def.idField ?? 'id']}`}>
-                    редагувати
+                    изменить
                   </Link>
                 </td>
               </tr>
@@ -523,7 +543,7 @@ function ResourceList({ def }: { def: ResourceDef }) {
           </tbody>
         </table>
       </div>
-      <p className="text-sm text-slate-500">Усього: {data?.total ?? 0}</p>
+      <p className="text-sm text-slate-500">Всего: {data?.total ?? 0}</p>
     </div>
   );
 }
@@ -535,7 +555,7 @@ function SendCampaign({ id }: { id: string }) {
       className="mr-3 text-rose-700 underline"
       disabled={sent}
       onClick={async () => {
-        if (!confirm('Надіслати розсилку всім користувачам, які погодилися на сповіщення?')) return;
+        if (!confirm('Отправить рассылку всем пользователям, которые согласились на уведомления?')) return;
         try {
           await api(`/campaigns/${id}/send`, { body: {} });
           setSent(true);
@@ -544,7 +564,7 @@ function SendCampaign({ id }: { id: string }) {
         }
       }}
     >
-      {sent ? 'надсилається…' : 'надіслати'}
+      {sent ? 'отправляется…' : 'отправить'}
     </button>
   );
 }
@@ -565,7 +585,7 @@ function ResourceEdit({ def }: { def: ResourceDef }) {
     } else api(`/resources/${def.name}/${id}`).then(setForm).catch((e) => setMsg(e.message));
   }, [id, def]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!form) return <p>{msg || 'Завантаження…'}</p>;
+  if (!form) return <p>{msg || 'Загрузка…'}</p>;
   const set = (name: string, v: any) => setForm((f) => ({ ...f!, [name]: v }));
   const payload = () => {
     const out: Record<string, any> = {};
@@ -580,14 +600,14 @@ function ResourceEdit({ def }: { def: ResourceDef }) {
     setMsg('');
     try {
       const r = isNew ? await api(`/resources/${def.name}`, { body: payload() }) : await api(`/resources/${def.name}/${id}`, { method: 'PATCH', body: payload() });
-      setMsg('✅ Збережено');
+      setMsg('✅ Сохранено');
       if (isNew) nav(`/r/${def.name}/${r[def.idField ?? 'id']}`, { replace: true });
     } catch (e) {
       setMsg(`❌ ${(e as Error).message}`);
     }
   };
   const remove = async () => {
-    if (!confirm('Видалити запис? Це незворотно.')) return;
+    if (!confirm('Удалить запись? Это необратимо.')) return;
     try {
       await api(`/resources/${def.name}/${id}`, { method: 'DELETE' });
       nav(-1);
@@ -603,12 +623,12 @@ function ResourceEdit({ def }: { def: ResourceDef }) {
           ←
         </button>
         <h1 className="text-2xl font-black">
-          {def.title}: {isNew ? 'новий запис' : show(form.slug ?? form.pl ?? form.code ?? form.title, true)}
+          {def.title}: {isNew ? 'новая запись' : show(form.slug ?? form.pl ?? form.code ?? form.title, true)}
         </h1>
       </div>
       {def.name === 'exercises' && (
         <div className="panel flex flex-wrap items-center gap-2 p-3 text-sm">
-          <span className="font-semibold">Шаблон даних для типу {form.type}:</span>
+          <span className="font-semibold">Шаблон данных для типа {form.type}:</span>
           <button
             className="btn-s"
             onClick={() => {
@@ -616,9 +636,9 @@ function ResourceEdit({ def }: { def: ResourceDef }) {
               setKey((k) => k + 1);
             }}
           >
-            Вставити шаблон
+            Вставить шаблон
           </button>
-          <span className="text-slate-500">Правильна відповідь зберігається в даних і ніколи не надсилається гравцю до перевірки.</span>
+          <span className="text-slate-500">Правильный ответ хранится в данных и никогда не отправляется игроку до проверки.</span>
         </div>
       )}
       <div className="panel space-y-4 p-5" key={key}>
@@ -631,20 +651,226 @@ function ResourceEdit({ def }: { def: ResourceDef }) {
       </div>
       <div className="flex items-center gap-3">
         <button className="btn-p" onClick={save}>
-          Зберегти
+          Сохранить
         </button>
         {!isNew && (
           <button className="btn-d" onClick={remove}>
-            Видалити
+            Удалить
           </button>
         )}
         <span className="text-sm">{msg}</span>
       </div>
       {def.name === 'lessons' && !isNew && (
         <Link className="btn-s" to={`/r/exercises?lessonId=${id}`}>
-          Вправи уроку →
+          Упражнения урока →
         </Link>
       )}
+    </div>
+  );
+}
+
+const AUDIENCE_FILTERS: [string, string][] = [
+  ['all', 'Все'],
+  ['bot_only', 'Только бот'],
+  ['app', 'Открыли приложение'],
+  ['bot', 'Писали боту'],
+  ['blocked', 'Заблокировали бота'],
+];
+const AUDIENCE_PERIODS: [number, string][] = [[0, 'за всё время'], [1, 'за сутки'], [7, 'за 7 дней'], [30, 'за 30 дней']];
+const COMMANDS: Record<string, string> = { start: '/start', text: 'сообщение', button: 'кнопка', payment: 'оплата' };
+
+/** Откуда пришёл человек — по первому параметру /start. */
+function source(p: string | null) {
+  if (!p) return '—';
+  if (p.startsWith('ref_')) return 'по приглашению';
+  if (p === 'quiz') return 'ссылка на /quiz';
+  if (p.startsWith('screen_')) return `ссылка на экран «${p.slice(7)}»`;
+  return p;
+}
+
+/** «5 мин назад», «вчера», дата — для последней активности. */
+function ago(ms: number) {
+  const min = Math.round((Date.now() - ms) / 60_000);
+  if (min < 1) return 'только что';
+  if (min < 60) return `${min} мин назад`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h} ч назад`;
+  const d = Math.round(h / 24);
+  if (d === 1) return 'вчера';
+  if (d < 7) return `${d} дн. назад`;
+  return new Date(ms).toLocaleDateString('ru');
+}
+
+type Person = {
+  telegramId: string; userId: string | null; firstName: string; lastName: string | null; username: string | null; language: string | null;
+  inBot: boolean; appOpened: boolean; blockedAt: number | null; banned: boolean; startParam: string | null; lastCommand: string | null;
+  firstAt: number; lastAt: number; lessons: number; xp: number; city: string | null;
+};
+
+/** Узкий экран (телефон): списки показываются карточками, а не широкой таблицей. */
+function useNarrow() {
+  const query = '(max-width: 767px)';
+  const [narrow, setNarrow] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const on = () => setNarrow(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return narrow;
+}
+
+const personName = (p: Person) => [p.firstName, p.lastName].filter(Boolean).join(' ') || 'без имени';
+const personStatus = (p: Person) =>
+  p.blockedAt ? <span className="text-rose-700">заблокировал бота</span> : p.banned ? <span className="text-rose-700">заблокирован админом</span> : p.inBot ? '✓ в боте' : '—';
+const personApp = (p: Person) =>
+  p.appOpened ? (
+    <>
+      ✓ открыл{p.userId && <> · <Link className="text-sky-700 underline" to={`/users/${p.userId}`}>профиль</Link></>}
+      <div className="text-xs text-slate-500">уроков: {p.lessons} · {p.xp} XP{p.city ? ` · ${p.city}` : ''}</div>
+    </>
+  ) : (
+    <span className="text-slate-500">не открывал</span>
+  );
+const personContact = (p: Person) => (
+  <>
+    {p.username ? <a className="text-sky-700 underline" href={`https://t.me/${p.username}`} target="_blank" rel="noreferrer">@{p.username}</a> : 'без @username'}
+    {' · '}<span className="font-mono">{p.telegramId}</span>
+  </>
+);
+const cameAt = (p: Person) => new Date(p.firstAt).toLocaleString('ru', { dateStyle: 'short', timeStyle: 'short' });
+const lastSeen = (p: Person) => `${ago(p.lastAt)}${p.lastCommand ? ` · ${COMMANDS[p.lastCommand] ?? `/${p.lastCommand}`}` : ''}`;
+
+/** Аудитория бота: все, кто писал боту или открывал приложение, — счётчики, фильтры, поиск, «показать ещё». */
+function Audience() {
+  const narrow = useNarrow();
+  const [filter, setFilter] = useState('all');
+  const [days, setDays] = useState(0);
+  const [search, setSearch] = useState('');
+  const [q, setQ] = useState('');
+  const [data, setData] = useState<{ summary: Record<string, number>; total: number; items: Person[] } | null>(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(
+    async (skip: number) => {
+      setBusy(true);
+      try {
+        const r = await api(`/audience?filter=${filter}&days=${days}&search=${encodeURIComponent(q)}&skip=${skip}`);
+        setData((prev) => ({ ...r, items: skip && prev ? [...prev.items, ...r.items] : r.items }));
+        setError('');
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [filter, days, q],
+  );
+  useEffect(() => void load(0), [load]);
+  const s = data?.summary;
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-black">Аудитория бота</h1>
+        <p className="text-sm text-slate-500">
+          Все, кто писал боту или открывал приложение. Сообщения боту учитываются с выкладки этой версии; раньше сохранялись только пользователи приложения и
+          игроки /quiz — они здесь тоже есть.
+        </p>
+      </div>
+      {s && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-audience-summary>
+          <Stat label="Всего людей" value={s.total} sub={`активны за 7 дней: ${s.active7}`} />
+          <Stat label="Новые" value={`${s.new1} / ${s.new7} / ${s.new30}`} sub="за сутки / 7 дней / 30 дней" />
+          <Stat label="Открыли приложение" value={s.app} sub={s.total ? `${Math.round((s.app / s.total) * 100)}% от всех` : undefined} />
+          <Stat label="Только бот" value={s.botOnly} sub={`заблокировали бота: ${s.blocked}`} />
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {AUDIENCE_FILTERS.map(([id, label]) => (
+          <button key={id} className={filter === id ? 'btn-p' : 'btn-s'} onClick={() => setFilter(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <select className="inp md:w-auto" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Период">
+          {AUDIENCE_PERIODS.map(([d, label]) => (
+            <option key={d} value={d}>
+              Пришли {label}
+            </option>
+          ))}
+        </select>
+        <form onSubmit={(e) => { e.preventDefault(); setQ(search.trim()); }} className="flex min-w-0 gap-2 md:max-w-md md:flex-1">
+          <input className="inp" placeholder="Имя, @username или Telegram ID" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <button className="btn-p">Найти</button>
+        </form>
+      </div>
+      {error && <p className="text-rose-600">{error}</p>}
+      {narrow ? (
+        <div className="space-y-2">
+          {data?.items.map((p) => (
+            <div key={p.telegramId} className="panel space-y-1 p-3 text-sm" data-audience-row={p.telegramId}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-semibold">{personName(p)}</div>
+                <div className="shrink-0 text-xs">{personStatus(p)}</div>
+              </div>
+              <div className="text-xs text-slate-500">{personContact(p)}</div>
+              <div className="text-xs text-slate-500">Пришёл {cameAt(p)} · {lastSeen(p)}</div>
+              {p.startParam && <div className="text-xs">Откуда: {source(p.startParam)}</div>}
+              <div className="flex items-start justify-between gap-2">
+                <div>{personApp(p)}</div>
+                <div className="text-xs text-slate-500">{p.language?.toUpperCase() ?? ''}</div>
+              </div>
+            </div>
+          ))}
+          {data && !data.items.length && <p className="text-slate-400">Никого не нашлось</p>}
+        </div>
+      ) : (
+        <div className="panel overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b bg-slate-50">
+              <tr>
+                {['Человек', 'Пришёл', 'Активность', 'Откуда', 'Приложение', 'Язык', 'Статус'].map((h) => (
+                  <th key={h} className="th">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data?.items.map((p) => (
+                <tr key={p.telegramId} className="border-b align-top" data-audience-row={p.telegramId}>
+                  <td className="td">
+                    <div className="font-semibold">{personName(p)}</div>
+                    <div className="text-xs text-slate-500">{personContact(p)}</div>
+                  </td>
+                  <td className="td whitespace-nowrap">{cameAt(p)}</td>
+                  <td className="td whitespace-nowrap">
+                    {ago(p.lastAt)}
+                    {p.lastCommand && <div className="text-xs text-slate-500">{COMMANDS[p.lastCommand] ?? `/${p.lastCommand}`}</div>}
+                  </td>
+                  <td className="td">{source(p.startParam)}</td>
+                  <td className="td">{personApp(p)}</td>
+                  <td className="td">{p.language?.toUpperCase() ?? '—'}</td>
+                  <td className="td whitespace-nowrap">{personStatus(p)}</td>
+                </tr>
+              ))}
+              {data && !data.items.length && (
+                <tr>
+                  <td className="td text-slate-400" colSpan={7}>Никого не нашлось</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-slate-500">Показано {data?.items.length ?? 0} из {data?.total ?? 0}</span>
+        {data && data.items.length < data.total && (
+          <button className="btn-s" disabled={busy} onClick={() => void load(data.items.length)}>
+            {busy ? 'Загрузка…' : 'Показать ещё'}
+          </button>
+        )}
+        {busy && !data && <span className="text-sm">Загрузка…</span>}
+      </div>
     </div>
   );
 }
@@ -655,17 +881,18 @@ function Users() {
   const { data, error } = useLoad(() => api(`/users?search=${encodeURIComponent(q)}`), [q]);
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-black">Користувачі</h1>
+      <h1 className="text-2xl font-black">Пользователи приложения</h1>
+      <p className="text-sm text-slate-500">Те, у кого есть аккаунт в Mini App. Всех, кто писал боту, — в разделе <Link className="text-sky-700 underline" to="/audience">«Аудитория бота»</Link>.</p>
       <form onSubmit={(e) => { e.preventDefault(); setQ(search); }} className="flex max-w-md gap-2">
-        <input className="inp" placeholder="Ім'я, @username або Telegram ID" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <button className="btn-p">Шукати</button>
+        <input className="inp" placeholder="Имя, @username или Telegram ID" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <button className="btn-p">Найти</button>
       </form>
       {error && <p className="text-rose-600">{error}</p>}
       <div className="panel overflow-x-auto">
         <table className="w-full">
           <thead className="border-b bg-slate-50">
             <tr>
-              {['Користувач', 'Telegram ID', 'Рівень', 'XP', 'Польська', 'Premium', 'Створено', ''].map((h) => (
+              {['Пользователь', 'Telegram ID', 'Уровень', 'XP', 'Польский', 'Premium', 'Создан', ''].map((h) => (
                 <th key={h} className="th">{h}</th>
               ))}
             </tr>
@@ -673,14 +900,14 @@ function Users() {
           <tbody>
             {data?.items.map((u: any) => (
               <tr key={u.id} className="border-b">
-                <td className="td">{u.firstName} {u.username && <span className="text-slate-400">@{u.username}</span>} {u.isBanned && <span className="rounded bg-rose-100 px-1 text-rose-700">blocked</span>}</td>
+                <td className="td">{u.firstName} {u.username && <span className="text-slate-400">@{u.username}</span>} {u.isBanned && <span className="rounded bg-rose-100 px-1 text-rose-700">заблокирован</span>}</td>
                 <td className="td font-mono">{u.telegramId}</td>
                 <td className="td">{u.progress?.playerLevel}</td>
                 <td className="td">{u.progress?.xpTotal}</td>
                 <td className="td">{u.progress?.languageLevel}</td>
                 <td className="td">{u.subscriptions.length ? '👑' : '—'}</td>
                 <td className="td">{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td className="td"><Link className="text-sky-700 underline" to={`/users/${u.id}`}>деталі</Link></td>
+                <td className="td"><Link className="text-sky-700 underline" to={`/users/${u.id}`}>подробнее</Link></td>
               </tr>
             ))}
           </tbody>
@@ -695,7 +922,7 @@ function UserDetail({ admin }: { admin: Admin }) {
   const { data: u, error, reload } = useLoad(() => api(`/users/${id}`), [id]);
   const [days, setDays] = useState(30);
   if (error) return <p className="text-rose-600">{error}</p>;
-  if (!u) return <p>Завантаження…</p>;
+  if (!u) return <p>Загрузка…</p>;
   const act = async (path: string, body: any) => {
     try {
       await api(path, { body });
@@ -710,38 +937,38 @@ function UserDetail({ admin }: { admin: Admin }) {
         {u.firstName} {u.username && <span className="text-slate-400">@{u.username}</span>}
       </h1>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Stat label="Рівень" value={u.progress?.playerLevel} />
+        <Stat label="Уровень" value={u.progress?.playerLevel} />
         <Stat label="XP" value={u.progress?.xpTotal} />
-        <Stat label="Польська" value={u.progress?.languageLevel} />
-        <Stat label="Серія" value={`${u.progress?.streakCurrent} (рекорд ${u.progress?.streakBest})`} />
+        <Stat label="Польский" value={u.progress?.languageLevel} />
+        <Stat label="Серия" value={`${u.progress?.streakCurrent} (рекорд ${u.progress?.streakBest})`} />
         <Stat label="Złotki" value={u.wallet?.balance} />
       </div>
       <div className="panel flex flex-wrap items-center gap-3 p-4">
-        <button className="btn-d" onClick={() => { const reason = u.isBanned ? undefined : prompt('Причина блокування') ?? undefined; void act(`/users/${id}/ban`, { banned: !u.isBanned, reason }); }}>
-          {u.isBanned ? 'Розблокувати' : 'Заблокувати'}
+        <button className="btn-d" onClick={() => { const reason = u.isBanned ? undefined : prompt('Причина блокировки') ?? undefined; void act(`/users/${id}/ban`, { banned: !u.isBanned, reason }); }}>
+          {u.isBanned ? 'Разблокировать' : 'Заблокировать'}
         </button>
         {admin.role === 'SUPERADMIN' && (
           <>
             <input className="inp w-24" type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} />
-            <button className="btn-p" onClick={() => act(`/users/${id}/premium`, { days })}>Видати Premium (днів)</button>
-            <button className="btn-s" onClick={() => act(`/users/${id}/premium`, { revoke: true })}>Скасувати Premium</button>
+            <button className="btn-p" onClick={() => act(`/users/${id}/premium`, { days })}>Выдать Premium (дней)</button>
+            <button className="btn-s" onClick={() => act(`/users/${id}/premium`, { revoke: true })}>Отменить Premium</button>
           </>
         )}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <Table title="Міста" rows={u.cities} cols={[['city.namePl', 'Місто'], ['unlockedAt', 'Відкрито'], ['bossPassedAt', 'Іспит']]} />
-        <Table title="Підписки" rows={u.subscriptions} cols={[['planCode', 'План'], ['status', 'Статус'], ['expiresAt', 'До']]} />
-        <Table title="Сесії навчання" rows={u.sessions} cols={[['mode', 'Режим'], ['lesson.slug', 'Урок'], ['correct', '✓'], ['total', 'Σ'], ['xpAwarded', 'XP'], ['startedAt', 'Початок']]} />
-        <Table title="Нарахування XP" rows={u.xpEvents} cols={[['reason', 'Причина'], ['amount', 'XP'], ['createdAt', 'Коли']]} />
-        <Table title="Гаманець" rows={u.transactions} cols={[['reason', 'Причина'], ['amount', 'Сума'], ['createdAt', 'Коли']]} />
-        <Table title="Платежі" rows={u.payments} cols={[['type', 'Подія'], ['planCode', 'План'], ['amount', '⭐'], ['error', 'Помилка'], ['createdAt', 'Коли']]} />
+        <Table title="Города" rows={u.cities} cols={[['city.namePl', 'Город'], ['unlockedAt', 'Открыт'], ['bossPassedAt', 'Экзамен']]} />
+        <Table title="Подписки" rows={u.subscriptions} cols={[['planCode', 'План'], ['status', 'Статус'], ['expiresAt', 'До']]} />
+        <Table title="Сессии обучения" rows={u.sessions} cols={[['mode', 'Режим'], ['lesson.slug', 'Урок'], ['correct', '✓'], ['total', 'Σ'], ['xpAwarded', 'XP'], ['startedAt', 'Начало']]} />
+        <Table title="Начисления XP" rows={u.xpEvents} cols={[['reason', 'Причина'], ['amount', 'XP'], ['createdAt', 'Когда']]} />
+        <Table title="Кошелёк" rows={u.transactions} cols={[['reason', 'Причина'], ['amount', 'Сумма'], ['createdAt', 'Когда']]} />
+        <Table title="Платежи" rows={u.payments} cols={[['type', 'Событие'], ['planCode', 'План'], ['amount', '⭐'], ['error', 'Ошибка'], ['createdAt', 'Когда']]} />
       </div>
     </div>
   );
 }
 
 function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [string, string][] }) {
-  const fmt = (v: any) => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT/.test(v) ? new Date(v).toLocaleString() : show(v));
+  const fmt = (v: any) => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT/.test(v) ? new Date(v).toLocaleString('ru') : show(v));
   return (
     <div className="panel overflow-x-auto">
       <h2 className="border-b p-3 font-bold">{title}</h2>
@@ -762,10 +989,10 @@ function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [strin
 function Payments() {
   const { data, error } = useLoad(() => api('/payments'), []);
   if (error) return <p className="text-rose-600">{error}</p>;
-  if (!data) return <p>Завантаження…</p>;
+  if (!data) return <p>Загрузка…</p>;
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-black">Платежі та підписки</h1>
+      <h1 className="text-2xl font-black">Платежи и подписки</h1>
       <div className="flex flex-wrap gap-2">
         {data.subscriptions.map((s: any) => (
           <span key={`${s.status}${s.planCode}`} className="rounded-full bg-white px-3 py-1 text-sm shadow-sm">
@@ -773,7 +1000,7 @@ function Payments() {
           </span>
         ))}
       </div>
-      <Table title={`Журнал платіжних подій (${data.total})`} rows={data.items} cols={[['createdAt', 'Коли'], ['type', 'Подія'], ['user.firstName', 'Користувач'], ['planCode', 'План'], ['amount', '⭐'], ['chargeId', 'Charge ID'], ['error', 'Помилка']]} />
+      <Table title={`Журнал платёжных событий (${data.total})`} rows={data.items} cols={[['createdAt', 'Когда'], ['type', 'Событие'], ['user.firstName', 'Пользователь'], ['planCode', 'План'], ['amount', '⭐'], ['chargeId', 'Charge ID'], ['error', 'Ошибка']]} />
     </div>
   );
 }
@@ -784,18 +1011,18 @@ function Rewards() {
   const [msg, setMsg] = useState('');
   useEffect(() => setForm(data), [data]);
   if (error) return <p className="text-rose-600">{error}</p>;
-  if (!form) return <p>Завантаження…</p>;
+  if (!form) return <p>Загрузка…</p>;
   const labels: Record<string, string> = {
-    exerciseXp: 'XP за правильну вправу', lessonXp: 'XP за урок', perfectBonusXp: 'Бонус за ідеальний урок', dailyQuestXp: 'XP щоденного квесту (довідково)',
-    weeklyQuestXp: 'XP тижневого квесту (довідково)', storyQuestXp: 'XP сюжетного квесту (довідково)', cityExamXp: 'XP за іспит міста', lessonZlotki: 'Złotki за урок',
-    perfectZlotki: 'Złotki за ідеальний урок', dailyQuestZlotki: 'Złotki щоденного квесту (довідково)', storyQuestZlotki: 'Złotki сюжету (довідково)', cityExamZlotki: 'Złotki за іспит міста',
-    replayFactor: 'Частка XP за повтор уроку (0–1)', maxRewardedReplaysPerDay: 'Нагороджуваних повторів уроку на добу', practiceXpDailyCap: 'Ліміт XP тренувань на день',
-    freeAiMessagesPerDay: 'AI-повідомлень на день (Free)', premiumAiMessagesPerDay: 'AI-повідомлень на день (Premium)',
+    exerciseXp: 'XP за правильное упражнение', lessonXp: 'XP за урок', perfectBonusXp: 'Бонус за идеальный урок', dailyQuestXp: 'XP ежедневного квеста (справочно)',
+    weeklyQuestXp: 'XP недельного квеста (справочно)', storyQuestXp: 'XP сюжетного квеста (справочно)', cityExamXp: 'XP за экзамен города', lessonZlotki: 'Złotki за урок',
+    perfectZlotki: 'Złotki за идеальный урок', dailyQuestZlotki: 'Złotki ежедневного квеста (справочно)', storyQuestZlotki: 'Złotki сюжета (справочно)', cityExamZlotki: 'Złotki за экзамен города',
+    replayFactor: 'Доля XP за повтор урока (0–1)', maxRewardedReplaysPerDay: 'Повторов урока с наградой в сутки', practiceXpDailyCap: 'Лимит XP тренировок в день',
+    freeAiMessagesPerDay: 'AI-сообщений в день (Free)', premiumAiMessagesPerDay: 'AI-сообщений в день (Premium)',
   };
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-black">Нагороди та ліміти</h1>
-      <p className="text-sm text-slate-500">Нагороди квестів задаються в кожному квесті окремо. Зміни застосовуються протягом 30 секунд.</p>
+      <h1 className="text-2xl font-black">Награды и лимиты</h1>
+      <p className="text-sm text-slate-500">Награды квестов задаются в каждом квесте отдельно. Изменения применяются в течение 30 секунд.</p>
       <div className="panel space-y-3 p-5">
         {Object.entries(form).map(([k, v]) => (
           <label key={k} className="grid grid-cols-[1fr_140px] items-center gap-3 text-sm">
@@ -809,13 +1036,13 @@ function Rewards() {
         onClick={async () => {
           try {
             await api('/config/rewards', { method: 'PUT', body: form });
-            setMsg('✅ Збережено');
+            setMsg('✅ Сохранено');
           } catch (e) {
             setMsg(`❌ ${(e as Error).message}`);
           }
         }}
       >
-        Зберегти
+        Сохранить
       </button>
       <span className="ml-3 text-sm">{msg}</span>
     </div>
@@ -828,7 +1055,7 @@ function Bot() {
   const [busy, setBusy] = useState('');
   const [result, setResult] = useState<any>(null);
   const run = async (mode: 'setup' | 'rotate') => {
-    if (mode === 'rotate' && !confirm('Згенерувати новий секрет webhook? Старий перестане діяти через 10 хвилин після підтвердження Telegram.')) return;
+    if (mode === 'rotate' && !confirm('Сгенерировать новый секрет webhook? Старый перестанет действовать через 10 минут после подтверждения Telegram.')) return;
     setBusy(mode);
     try {
       setResult(await api('/bot/setup', { body: { mode } }));
@@ -845,15 +1072,15 @@ function Bot() {
     <div className="max-w-3xl space-y-4">
       <h1 className="text-2xl font-black">Telegram-бот</h1>
       {error && <p className="text-rose-600">{error}</p>}
-      {loading && <p>Перевірка…</p>}
+      {loading && <p>Проверка…</p>}
       {report && (
         <div className="grid gap-3 md:grid-cols-3">
-          <Stat label="Бот" value={report.bot ? `@${report.bot.username}` : '—'} sub={report.ok ? 'Telegram відповідає' : 'є помилки'} />
-          <Stat label="Webhook" value={wh?.url ? (wh.allowedUpdates.length === 0 || wh.allowedUpdates.includes('callback_query') ? '✅ з кнопками' : '⚠️ без callback_query') : '❌ не встановлено'} sub={wh ? `черга: ${wh.pending}` : undefined} />
-          <Stat label="Секрет webhook" value={report.secretGeneration ? `поколення ${report.secretGeneration}` : 'зі змінної Cloudflare'} sub={report.secretGeneration ? (report.secretConfirmed ? 'підтверджено Telegram' : 'чекає підтвердження') : 'перейде на серверний при налаштуванні'} />
+          <Stat label="Бот" value={report.bot ? `@${report.bot.username}` : '—'} sub={report.ok ? 'Telegram отвечает' : 'есть ошибки'} />
+          <Stat label="Webhook" value={wh?.url ? (wh.allowedUpdates.length === 0 || wh.allowedUpdates.includes('callback_query') ? '✅ с кнопками' : '⚠️ без callback_query') : '❌ не установлен'} sub={wh ? `очередь: ${wh.pending}` : undefined} />
+          <Stat label="Секрет webhook" value={report.secretGeneration ? `поколение ${report.secretGeneration}` : 'из переменной Cloudflare'} sub={report.secretGeneration ? (report.secretConfirmed ? 'подтверждён Telegram' : 'ждёт подтверждения') : 'перейдёт на серверный при настройке'} />
         </div>
       )}
-      {wh?.lastError && <p className="text-sm text-amber-700">Остання помилка доставки: {wh.lastError} ({wh.lastErrorAt})</p>}
+      {wh?.lastError && <p className="text-sm text-amber-700">Последняя ошибка доставки: {wh.lastError} ({wh.lastErrorAt})</p>}
       {report?.hints?.length > 0 && (
         <ul className="list-disc pl-5 text-sm">
           {report.hints.map((h: string) => (
@@ -862,11 +1089,11 @@ function Bot() {
         </ul>
       )}
       <div className="flex flex-wrap gap-2">
-        <button className="btn-s" disabled={!!busy} onClick={reload}>Перевірити</button>
-        <button className="btn-p" disabled={!!busy} onClick={() => run('setup')}>{busy === 'setup' ? 'Налаштування…' : 'Налаштувати бота'}</button>
-        <button className="btn-s" disabled={!!busy} onClick={() => run('rotate')}>{busy === 'rotate' ? 'Зміна…' : 'Змінити секрет webhook'}</button>
+        <button className="btn-s" disabled={!!busy} onClick={reload}>Проверить</button>
+        <button className="btn-p" disabled={!!busy} onClick={() => run('setup')}>{busy === 'setup' ? 'Настройка…' : 'Настроить бота'}</button>
+        <button className="btn-s" disabled={!!busy} onClick={() => run('rotate')}>{busy === 'rotate' ? 'Смена…' : 'Сменить секрет webhook'}</button>
       </div>
-      {data?.maintenance && <p className="text-xs text-slate-500">Автоперевірка cron: {new Date(data.maintenance.checkedAt).toLocaleString()} · {data.maintenance.webhook} {data.maintenance.error ? `· ${data.maintenance.error}` : ''}</p>}
+      {data?.maintenance && <p className="text-xs text-slate-500">Автопроверка cron: {new Date(data.maintenance.checkedAt).toLocaleString('ru')} · {data.maintenance.webhook} {data.maintenance.error ? `· ${data.maintenance.error}` : ''}</p>}
       {result && <pre className="panel overflow-auto p-3 text-xs">{JSON.stringify(result, null, 2)}</pre>}
     </div>
   );
@@ -875,7 +1102,7 @@ function Bot() {
 function Audit() {
   const { data, error } = useLoad(() => api('/audit'), []);
   if (error) return <p className="text-rose-600">{error}</p>;
-  return <Table title="Журнал дій адміністраторів" rows={data ?? []} cols={[['createdAt', 'Коли'], ['admin.email', 'Адмін'], ['action', 'Дія'], ['entity', "Об'єкт"], ['entityId', 'ID'], ['details', 'Деталі']]} />;
+  return <Table title="Журнал действий администраторов" rows={data ?? []} cols={[['createdAt', 'Когда'], ['admin.email', 'Админ'], ['action', 'Действие'], ['entity', 'Объект'], ['entityId', 'ID'], ['details', 'Детали']]} />;
 }
 
 function Admins() {
@@ -883,18 +1110,18 @@ function Admins() {
   const [f, setF] = useState({ email: '', name: '', role: 'EDITOR', password: '' });
   return (
     <div className="space-y-4">
-      <Table title="Адміністратори" rows={data ?? []} cols={[['email', 'Email'], ['name', "Ім'я"], ['role', 'Роль'], ['isActive', 'Активний'], ['lastLoginAt', 'Вхід']]} />
+      <Table title="Администраторы" rows={data ?? []} cols={[['email', 'Email'], ['name', 'Имя'], ['role', 'Роль'], ['isActive', 'Активен'], ['lastLoginAt', 'Вход']]} />
       <div className="panel grid max-w-2xl gap-2 p-4 md:grid-cols-2">
         <input className="inp" placeholder="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
-        <input className="inp" placeholder="Ім'я" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        <input className="inp" placeholder="Имя" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
         <select className="inp" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
           <option>EDITOR</option>
           <option>SUPPORT</option>
           <option>SUPERADMIN</option>
         </select>
-        <input className="inp" type="password" placeholder="Пароль (мін. 10 символів)" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+        <input className="inp" type="password" placeholder="Пароль (мин. 10 символов)" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
         <button className="btn-p" onClick={async () => { try { await api('/admins', { body: f }); reload(); } catch (e) { alert((e as Error).message); } }}>
-          Додати адміністратора
+          Добавить администратора
         </button>
       </div>
     </div>
@@ -904,30 +1131,40 @@ function Admins() {
 export function App() {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [checked, setChecked] = useState(!hasToken());
+  const [menu, setMenu] = useState(false);
   useEffect(() => {
     if (hasToken()) api<Admin>('/me').then(setAdmin).catch(() => setToken(null)).finally(() => setChecked(true));
   }, []);
   const nav = useMemo(() => {
     if (!admin) return [];
     const r = admin.role;
-    const items: [string, string][] = [['/', '📊 Огляд']];
+    const items: [string, string][] = [['/', '📊 Обзор']];
     if (r !== 'SUPPORT') for (const d of RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns')) items.push([`/r/${d.name}`, d.title]);
-    if (r !== 'EDITOR') items.push(['/users', '👥 Користувачі'], ['/payments', '⭐ Платежі']);
-    if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифи'], ['/r/campaigns', '📣 Розсилки'], ['/rewards', '🎁 Нагороди'], ['/bot', '🤖 Бот'], ['/audit', '📜 Журнал дій'], ['/admins', '🔐 Адміністратори']);
+    if (r !== 'EDITOR') items.push(['/audience', '🤝 Аудитория бота'], ['/users', '👥 Пользователи'], ['/payments', '⭐ Платежи']);
+    if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифы'], ['/r/campaigns', '📣 Рассылки'], ['/rewards', '🎁 Награды'], ['/bot', '🤖 Бот'], ['/audit', '📜 Журнал действий'], ['/admins', '🔐 Администраторы']);
     return items;
   }, [admin]);
 
   if (!checked) return null;
   if (!admin) return <Login onLogin={setAdmin} />;
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-56 shrink-0 border-r bg-white p-3">
-        <div className="mb-4 px-2 text-lg font-black">
+    <div className="min-h-screen md:flex">
+      {/* На телефоне меню прячется за кнопкой, на широком экране — колонка слева. */}
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-4 py-2 md:hidden">
+        <span className="text-lg font-black">
+          <span className="text-rose-600">POLSKI</span> <span className="text-amber-500">GO</span>
+        </span>
+        <button className="btn-s" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
+          {menu ? '✕ Закрыть' : '☰ Меню'}
+        </button>
+      </header>
+      <aside className={`${menu ? 'block' : 'hidden'} shrink-0 border-b bg-white p-3 md:block md:w-56 md:border-b-0 md:border-r`}>
+        <div className="mb-4 hidden px-2 text-lg font-black md:block">
           <span className="text-rose-600">POLSKI</span> <span className="text-amber-500">GO</span>
         </div>
         <nav className="space-y-0.5">
           {nav.map(([to, label]) => (
-            <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `block rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-emerald-50 font-bold text-emerald-700' : 'hover:bg-slate-100'}`}>
+            <NavLink key={to} to={to} end={to === '/'} onClick={() => setMenu(false)} className={({ isActive }) => `block rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-emerald-50 font-bold text-emerald-700' : 'hover:bg-slate-100'}`}>
               {label}
             </NavLink>
           ))}
@@ -937,11 +1174,11 @@ export function App() {
           <br />
           {admin.role}
           <button className="mt-2 block text-rose-600 underline" onClick={() => { setToken(null); location.reload(); }}>
-            Вийти
+            Выйти
           </button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 p-6">
+      <main className="min-w-0 flex-1 p-4 md:p-6">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           {RESOURCES.map((d) => (
@@ -950,6 +1187,7 @@ export function App() {
           {RESOURCES.map((d) => (
             <Route key={`${d.name}-e`} path={`/r/${d.name}/:id`} element={<ResourceEdit def={d} />} />
           ))}
+          <Route path="/audience" element={<Audience />} />
           <Route path="/users" element={<Users />} />
           <Route path="/users/:id" element={<UserDetail admin={admin} />} />
           <Route path="/payments" element={<Payments />} />

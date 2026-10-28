@@ -47,7 +47,7 @@ async function snapshot() {
 beforeAll(async () => {
   mf = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response(null) } }', d1Databases: { DB: `mig10-${Date.now()}` } });
   d1 = (await mf.getD1Database('DB')) as unknown as D1Database;
-  expect(files.at(-1)).toBe(NEW);
+  expect(files).toContain(NEW);
   for (const f of files.filter((x) => x < NEW)) await apply(statements(f));
   await apply(buildSeedSql());
   env = {

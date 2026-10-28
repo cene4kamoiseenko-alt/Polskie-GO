@@ -767,6 +767,29 @@ export const botQuizPlayers = sqliteTable('bot_quiz_players', {
   updatedAt: updatedAt(),
 });
 
+/**
+ * Хто писав боту в особистому чаті (/start, будь-яка команда, кнопка, відповідь на питання). Рядок users з'являється лише при
+ * вході в Mini App, тож без цієї таблиці людина, яка натиснула /start і не відкрила застосунок, ніде не видна (адмінка
+ * «Аудитория бота»). start_param — перший параметр /start (ref_…, quiz, screen_…): звідки прийшла людина.
+ * blocked_at — бот заблоковано (my_chat_member: kicked); знімається, коли людина знову пише боту або розблоковує його.
+ */
+export const botContacts = sqliteTable(
+  'bot_contacts',
+  {
+    telegramId: integer('telegram_id').primaryKey(),
+    firstName: text('first_name').notNull().default(''),
+    lastName: text('last_name'),
+    username: text('username'),
+    languageCode: text('language_code'),
+    startParam: text('start_param'),
+    lastCommand: text('last_command'),
+    firstSeenAt: ts('first_seen_at').notNull(),
+    lastSeenAt: ts('last_seen_at').notNull(),
+    blockedAt: ts('blocked_at'),
+  },
+  (t) => [index('bot_contacts_first_seen_idx').on(t.firstSeenAt)],
+);
+
 export const QUIZ_ROUND_STATUS = ['OPEN', 'ANSWERED'] as const;
 
 /** Одне надіслане питання: порядок варіантів, відповідь і нагорода. Відповідь приймається один раз (OPEN → ANSWERED). */

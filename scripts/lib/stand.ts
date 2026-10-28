@@ -1,6 +1,6 @@
 /**
  * Одноразовий локальний стенд для браузерних перевірок: D1 у Miniflare (міграції + seed), API в цьому ж процесі,
- * інтерфейс — Vite dev (e2e) або продакшн-збірка apps/web/dist (perf). Порти вільні: не заважає `npm run dev`.
+ * інтерфейс — Vite dev (e2e; `app: 'admin'` — адмінка за адресою /admin/) або продакшн-збірка apps/web/dist (perf). Порти вільні: не заважає `npm run dev`.
  * Статика роздається як у Cloudflare Workers Static Assets: ETag + must-revalidate, правила з dist/_headers,
  * невідомий шлях — index.html (single-page-application).
  */
@@ -46,7 +46,7 @@ function headerRules(dist: string): { prefix: string; headers: Record<string, st
 
 export type Stand = Awaited<ReturnType<typeof startStand>>;
 
-export async function startStand(opts: { ui: 'dev' | 'dist'; dist?: string }) {
+export async function startStand(opts: { ui: 'dev' | 'dist'; dist?: string; app?: 'web' | 'admin' }) {
   const { getEnv, login, sessionItems, correctAnswers, disposeEnv } = await import(root + '/apps/server/test/helpers.ts');
   const { app, env } = await getEnv();
   const apiRequest = async (req: IncomingMessage, res: ServerResponse) => {
@@ -65,14 +65,16 @@ export async function startStand(opts: { ui: 'dev' | 'dist'; dist?: string }) {
     await new Promise<void>((ok) => bridge.listen(0, '127.0.0.1', ok));
     const api = `http://127.0.0.1:${(bridge.address() as AddressInfo).port}`;
     const { createServer } = await import(root + '/node_modules/vite/dist/node/index.js');
+    const ui = opts.app ?? 'web';
     const vite = await createServer({
-      root: root + '/apps/web',
-      configFile: root + '/apps/web/vite.config.ts',
+      root: `${root}/apps/${ui}`,
+      configFile: `${root}/apps/${ui}/vite.config.ts`,
       server: { host: '127.0.0.1', port: await freePort(), strictPort: true, proxy: { '/api': api, '/uploads': api } },
       logLevel: 'error',
     });
     await vite.listen();
     base = (vite.resolvedUrls?.local[0] ?? '').replace(/\/$/, '');
+    if (ui === 'admin') base = base.replace(/\/admin$/, '');
     close = async () => { await vite.close(); bridge.close(); };
   } else {
     const dist = resolve(root, opts.dist ?? 'apps/web/dist');
