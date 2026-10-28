@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import type { UiLang } from '@polski-go/shared';
 import { useNavigate } from 'react-router-dom';
@@ -9,22 +9,16 @@ import { useMe, useUpdateSettings } from '../lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Me } from '../lib/types';
 import { Card, Modal, ScreenHeader, Toggle, cx, useToast } from '../components/ui';
-import { devicePolishVoice, speak, type SpeechOutcome } from '../lib/audio';
+import { speak, type SpeechOutcome } from '../lib/audio';
 import { PronHint } from '../components/PronHint';
 
 /**
- * Звідки береться польська озвучка на цьому пристрої + перевірка справжнім відтворенням:
- * показуємо джерело, з якого звук реально почав грати, або причину, чому не почав.
+ * Польська озвучка — готові записи голосу Kamil; перевірка справжнім відтворенням фрази з бібліотеки.
  * Чи почула людина звук (гучність, беззвучний режим), застосунок знати не може — про це підказка.
  */
-function AudioDiagnostics({ server, provider }: { server: boolean; provider: string | null }) {
+function AudioDiagnostics({ server }: { server: boolean }) {
   const { t } = useT();
-  const [voice, setVoice] = useState<string | null | undefined>(undefined);
   const [check, setCheck] = useState<SpeechOutcome | 'running' | null>(null);
-  useEffect(() => {
-    void devicePolishVoice().then((v) => setVoice(v ? `${v.name} (${v.lang})` : null));
-  }, []);
-  const label = server ? `${t('audio_source_server')}: ${provider ?? ''}` : voice ? t('audio_source_device', { name: voice }) : voice === null ? t('audio_source_none') : '…';
   const run = async () => {
     setCheck('running');
     setCheck(await speak('Dzień dobry! Dziękuję, do widzenia.'));
@@ -35,17 +29,17 @@ function AudioDiagnostics({ server, provider }: { server: boolean; provider: str
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="font-bold">{t('audio_source')}</div>
-          <div className={cx('text-xs font-semibold', !server && voice === null ? 'text-coral-dark' : 'muted')}>{label}</div>
+          <div className={cx('text-xs font-semibold', server ? 'muted' : 'text-coral-dark')}>{server ? t('audio_source_library') : t('audio_soon')}</div>
         </div>
-        <button className="chip shrink-0 px-3 py-2" disabled={check === 'running'} aria-busy={check === 'running'} onClick={() => void run()}>
+        <button className="chip shrink-0 px-3 py-2" disabled={check === 'running' || !server} aria-busy={check === 'running'} onClick={() => void run()}>
           {t('audio_check')}
         </button>
       </div>
       {result && (
         <p role="status" className={cx('mt-2 text-xs font-bold', result.played ? 'muted' : 'text-coral-dark')}>
           {result.played
-            ? t('audio_check_ok', { source: t(`audio_src_${result.source}` as TKey) }) + (result.issue === 'unverified_voice' ? ` ${t('audio_check_unverified')}` : '')
-            : t(result.issue === 'no_polish_voice' ? 'ex_audio_missing' : result.issue === 'blocked' ? 'audio_blocked' : 'audio_error')}
+            ? t('audio_check_ok', { source: t(`audio_src_${result.source}` as TKey) })
+            : t(result.issue === 'missing' ? 'audio_soon' : result.issue === 'blocked' ? 'audio_blocked' : 'audio_error')}
         </p>
       )}
     </div>
@@ -131,7 +125,7 @@ export default function SettingsScreen() {
         )}
         <Toggle icon="headphones" label={t('set_sound')} checked={s.soundEnabled} onChange={(v) => set({ soundEnabled: v })} />
         <PronSetting value={s.pronHint ?? 'simple'} onChange={(v) => set({ pronHint: v })} />
-        <AudioDiagnostics server={!!me.audio?.server} provider={me.audio?.provider ? `${me.audio.provider} · ${me.audio.voice}` : null} />
+        <AudioDiagnostics server={!!me.audio?.server} />
         <Toggle icon="layers" label={t('set_motion')} checked={s.reducedMotion} onChange={(v) => set({ reducedMotion: v })} />
       </Card>
       <Card className="divide-y divide-[var(--border)] px-4">

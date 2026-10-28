@@ -277,7 +277,7 @@ async function generate() {
     if (spent + part.reduce((n, u) => n + est(u), 0) > budget) break;
     const r = await api<{ results: { id: string; status: 'generated' | 'exists' | 'adopted' | 'failed' | 'locked'; credits: number; error?: string }[] }>(
       '/api/admin/audio/generate',
-      { method: 'POST', body: { items: part.map((u) => ({ id: u.id, text: u.text, model: modelFor(u, strategy) })), maxCredits: Math.ceil(budget - spent), rates } },
+      { method: 'POST', body: { items: part.map((u) => ({ id: u.id, text: u.text, model: modelFor(u, strategy) })), maxCredits: Math.ceil(budget - spent), rates, allowOtherVoice: flag('allow-voice') } },
       token,
     );
     for (const x of r.results) {

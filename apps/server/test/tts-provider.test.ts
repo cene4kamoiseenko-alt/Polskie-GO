@@ -6,7 +6,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { db } from '../src/db';
 import { ttsCache } from '../src/db/schema';
-import { legacyTtsCacheKey, parseTtsChoice, ttsCacheKey, ttsInputText, ttsSelection, voiceWarnings } from '../src/services/tts';
+import { legacyTtsCacheKey, parseTtsChoice, synthesize, ttsCacheKey, ttsInputText, ttsSelection, voiceWarnings } from '../src/services/tts';
 import { BENCHMARK_PHRASES, CANDIDATES, GOOGLE_PL_VOICES, AZURE_PL_VOICES, benchmarkChars } from '../src/services/tts-catalog';
 import { benchmarkPlan, blindLabels, runBenchmark } from '../src/services/tts-benchmark';
 import { disposeEnv, getEnv, login, request } from './helpers';
@@ -62,22 +62,23 @@ describe('TTS: вибір провайдера', () => {
     expect(ttsSelection({ AZURE_SPEECH_KEY: 'a', AZURE_SPEECH_REGION: 'evil.example.com/x' }).provider).toBeNull();
   });
 
-  it('off: ключі є, але /api/tts не звертається до провайдера і клієнт знає, що серверного голосу немає', async () => {
-    await withEnv({ GOOGLE_TTS_API_KEY: 'g', TTS_PROVIDER: 'off' }, async () => {
-      const calls = mockProviders();
-      const { call } = await login();
-      expect((await call('GET', '/api/me')).body.audio.server).toBe(false);
-      expect((await call('GET', '/api/tts?text=kot')).status).toBe(503);
-      expect(calls).toHaveLength(0);
-    });
+  it('гравець із будь-яким провайдером (auto, off) не звертається до нього: /api/tts — лише бібліотека, тут 404', async () => {
+    for (const TTS_PROVIDER of ['off', 'auto']) {
+      await withEnv({ GOOGLE_TTS_API_KEY: 'g', TTS_PROVIDER }, async () => {
+        const calls = mockProviders();
+        const { call } = await login();
+        expect((await call('GET', '/api/me')).body.audio.server).toBe(false);
+        expect((await call('GET', '/api/tts?text=kot')).status).toBe(404);
+        expect(calls).toHaveLength(0);
+      });
+    }
   });
 
   it('явний azure: запит іде в Azure з голосом pl-PL і SSML xml:lang="pl-PL"', async () => {
-    await withEnv({ GOOGLE_TTS_API_KEY: 'g', AZURE_SPEECH_KEY: 'a', AZURE_SPEECH_REGION: 'westeurope', TTS_PROVIDER: 'azure' }, async ({ app, env }) => {
+    await withEnv({ GOOGLE_TTS_API_KEY: 'g', AZURE_SPEECH_KEY: 'a', AZURE_SPEECH_REGION: 'westeurope', TTS_PROVIDER: 'azure' }, async () => {
       const calls = mockProviders();
-      const { token } = await login();
-      const res = await app.request(`/api/tts?text=${encodeURIComponent('W Żabce')}`, { headers: { authorization: `Bearer ${token}` } }, env);
-      expect(res.status).toBe(200);
+      await login();
+      expect((await synthesize('W Żabce', 'normal', { payer: 'admin' })).cached).toBe(false);
       expect(calls.map((c) => c.provider)).toEqual(['azure']);
       expect(calls[0].url).toBe('https://westeurope.tts.speech.microsoft.com/cognitiveservices/v1');
       expect(calls[0].body).toContain('xml:lang="pl-PL"');
@@ -108,29 +109,29 @@ describe('TTS: кеш', () => {
   });
 
   it('інша модель ElevenLabs — окремий синтез, та сама — з кешу', async () => {
-    await withEnv({ ELEVENLABS_API_KEY: 'e', ELEVENLABS_VOICE_ID: 'plvoice' }, async ({ app, env }) => {
+    await withEnv({ ELEVENLABS_API_KEY: 'e', ELEVENLABS_VOICE_ID: 'plvoice' }, async ({ env }) => {
       const calls = mockProviders();
-      const { token } = await login();
-      const get = () => app.request(`/api/tts?text=${encodeURIComponent('Dzień dobry, modelu.')}`, { headers: { authorization: `Bearer ${token}` } }, env);
-      expect((await get()).headers.get('x-tts-cache')).toBe('miss');
-      expect((await get()).headers.get('x-tts-cache')).toBe('hit');
+      await login();
+      const get = () => synthesize('Dzień dobry, modelu.', 'normal', { payer: 'admin' });
+      expect((await get()).cached).toBe(false);
+      expect((await get()).cached).toBe(true);
       (env as unknown as Record<string, string>).ELEVENLABS_MODEL = 'eleven_flash_v2_5';
-      expect((await get()).headers.get('x-tts-cache')).toBe('miss');
+      expect((await get()).cached).toBe(false);
       expect(calls).toHaveLength(2);
       expect(JSON.parse(calls[1].body).model_id).toBe('eleven_flash_v2_5');
     });
   });
 
   it('запис зі старим ключем (до моделі в ключі) віддається без нового синтезу і переноситься на новий ключ', async () => {
-    await withEnv({ GOOGLE_TTS_API_KEY: 'g' }, async ({ app, env }) => {
+    await withEnv({ GOOGLE_TTS_API_KEY: 'g' }, async () => {
       const calls = mockProviders();
       const text = 'Stary klucz pamięci.';
       const old = legacyTtsCacheKey('google', 'pl-PL-Wavenet-A', 'normal', text);
       await db.insert(ttsCache).values({ key: old, text, voice: 'google:pl-PL-Wavenet-A', rate: 'normal', mime: 'audio/mpeg', data: Buffer.from('OLD-MP3') });
-      const { token } = await login();
-      const res = await app.request(`/api/tts?text=${encodeURIComponent(text)}`, { headers: { authorization: `Bearer ${token}` } }, env);
-      expect(res.headers.get('x-tts-cache')).toBe('hit');
-      expect(Buffer.from(await res.arrayBuffer()).toString()).toBe('OLD-MP3');
+      await login();
+      const res = await synthesize(text, 'normal', { payer: 'admin' });
+      expect(res.cached).toBe(true);
+      expect(Buffer.from(res.data).toString()).toBe('OLD-MP3');
       expect(calls).toHaveLength(0);
       const fresh = ttsCacheKey({ provider: 'google', voice: 'pl-PL-Wavenet-A', model: 'wavenet' }, 'normal', text);
       expect(await db.query.ttsCache.findFirst({ where: eq(ttsCache.key, old) })).toBeUndefined();

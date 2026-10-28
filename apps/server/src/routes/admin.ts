@@ -541,8 +541,10 @@ a.post('/upload', async (c) => {
 });
 
 // ── Попередній синтез озвучки всього контенту (частинами — ліміт підзапитів Worker) ──
+// Замінено аудіобібліотекою: гравці чують лише готові MP3 з R2, кеш D1 прогріву вже ніхто не слухає — кредити не витрачаються.
 a.post('/tts/warm', async (c) => {
   needRole(c, 'SUPERADMIN', 'EDITOR');
+  if (libraryAvailable()) throw new HttpError(410, 'warm_replaced', 'Прогрев заменён аудиобиблиотекой: «🎧 Аудиобиблиотека»');
   if (!ttsConfigured()) throw badRequest('tts_not_configured', 'Додайте GOOGLE_TTS_API_KEY або AZURE_SPEECH_KEY + AZURE_SPEECH_REGION');
   const { offset } = z.object({ offset: z.number().int().min(0).default(0) }).parse(await body(c));
   const phrases = await contentPhrases();
@@ -689,9 +691,11 @@ a.post('/audio/generate', rateLimit(30, 60_000, 'audio-generate'), async (c) => 
       items: z.array(z.object({ id: z.string().regex(/^[0-9a-f]{64}$/), text: z.string().min(1).max(300), model: z.enum(LIBRARY_MODELS) })).min(1).max(25),
       maxCredits: z.number().min(0).max(1_000_000),
       rates: z.record(z.enum(LIBRARY_MODELS), z.number().min(0).max(10)).optional(),
+      /** Адмін підтвердив генерацію голосом, який ElevenLabs не описує як чоловічий Kamil. */
+      allowOtherVoice: z.boolean().optional(),
     })
     .parse(await body(c));
-  const results = await generateBatch(q.items, q.maxCredits, q.rates ?? {});
+  const results = await generateBatch(q.items, q.maxCredits, q.rates ?? {}, undefined, { allowOtherVoice: q.allowOtherVoice });
   const credits = results.reduce((n, r) => n + r.credits, 0);
   await audit(c, 'generate', 'audio', null, { items: q.items.length, credits, generated: results.filter((r) => r.status === 'generated').length });
   return c.json({ results, credits });

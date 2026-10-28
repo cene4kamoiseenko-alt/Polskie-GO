@@ -14,6 +14,7 @@ import { db, readBatch } from '../db';
 import { ttsCache } from '../db/schema';
 import { getBindings, type Bindings } from '../env';
 import { HttpError } from '../lib/errors';
+import { assertGenerationAllowed } from './audio-policy';
 import { reserveTtsChars } from './quota';
 import { AZURE_PL_VOICES, ELEVENLABS_PL_MODELS, ELEVENLABS_PREMADE_ENGLISH, GOOGLE_PL_VOICES } from './tts-catalog';
 
@@ -320,13 +321,13 @@ export async function callProvider(p: TtsProvider, text: string, rate: SpeechRat
 }
 
 /**
- * Синтез з кешем. Порядок: новий ключ → старий ключ (перенос без синтезу) → платний синтез.
- * meter — облік платного синтезу (квота користувача); кешовані фрази не рахуються.
- * payer — чий це платний запит у добовому бюджеті проєкту (tts_spend): user (типово) — у межах
- * TTS_GLOBAL_DAILY_CHARS, понад нього 429; admin — прогрів і порівняння голосів, лише облік.
- * provider — інший голос; типово — вибраний TTS_PROVIDER.
+ * Синтез з кешем (лише адмінка: порівняння голосів). Порядок: новий ключ → старий ключ (перенос без синтезу) → платний синтез.
+ * payer — чий це запит: тільки admin (AUDIO_GENERATION_MODE=admin_only, services/audio-policy.ts); гравець (user,
+ * типово) отримує 403 ще до кешу й провайдера — його кнопка динаміка грає лише готовий MP3 з R2.
+ * meter — облік платного синтезу; provider — інший голос, типово — вибраний TTS_PROVIDER.
  */
 export async function synthesize(rawText: string, rate: SpeechRate, opts: { meter?: () => Promise<unknown>; payer?: 'user' | 'admin'; provider?: TtsProvider | null } = {}): Promise<SynthResult> {
+  assertGenerationAllowed(opts.payer);
   const provider = opts.provider ?? ttsProvider();
   if (!provider) throw new HttpError(503, 'tts_not_configured', 'Серверну озвучку не підключено');
   const text = ttsInputText(rawText);

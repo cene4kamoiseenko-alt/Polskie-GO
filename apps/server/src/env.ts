@@ -52,11 +52,13 @@ export type Bindings = {
   TTS_GLOBAL_DAILY_CHARS?: string;
   ELEVENLABS_API_KEY?: string;
   /**
-   * Аудіобібліотека (services/audio-library.ts): R2 із готовими MP3 і режим видачі. AUDIO_LIBRARY=on — користувачі
-   * отримують лише готові файли, синтез на запит вимкнено; без binding AUDIO режим не вмикається.
+   * Аудіобібліотека (services/audio-library.ts): R2 із готовими MP3 голосу ELEVENLABS_VOICE_ID. Гравці отримують лише
+   * готові файли (GET /api/audio/…), синтезу на запит немає. AUDIO_LIBRARY більше нічого не вмикає (лишився для сумісності).
    */
   AUDIO?: R2Bucket;
   AUDIO_LIBRARY?: string;
+  /** Хто може запускати платну генерацію (services/audio-policy.ts): admin_only (типово) — лише адмінка; off — ніхто. */
+  AUDIO_GENERATION_MODE?: string;
   ELEVENLABS_VOICE_ID?: string;
   ELEVENLABS_MODEL?: string;
   ADMIN_PASSWORD?: string;

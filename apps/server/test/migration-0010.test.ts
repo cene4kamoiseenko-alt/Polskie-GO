@@ -11,6 +11,7 @@ import { buildApp } from '../src/app';
 import { bindDb } from '../src/db';
 import { setEnv, type Bindings } from '../src/env';
 import { buildSeedSql } from '../src/content/seed';
+import { synthesize } from '../src/services/tts';
 import { signInitData } from '../src/lib/telegram';
 import { MISSIONS } from '../src/content/missions';
 import { BOT_TOKEN } from './helpers';
@@ -106,9 +107,12 @@ describe('міграція 0010 на копії даних', () => {
       String(url).startsWith('https://texttospeech.googleapis.com/') ? new Response(JSON.stringify({ audioContent: Buffer.from('MP3').toString('base64') })) : realFetch(url as never, init),
     );
     (env as unknown as Record<string, string>).GOOGLE_TTS_API_KEY = 'k';
+    // Гравець синтез не запускає (лише готові файли бібліотеки): облік поповнює тільки синтез адмінки.
     const res = await app.request(`/api/tts?text=${encodeURIComponent('Dzień dobry')}`, { headers: { authorization: `Bearer ${token}` } }, env);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(404);
+    expect(await d1.prepare('SELECT kind FROM tts_spend').first()).toBeNull();
+    await synthesize('Dzień dobry', 'normal', { payer: 'admin' });
     const row = await d1.prepare('SELECT kind, chars, requests FROM tts_spend').first();
-    expect(row).toEqual({ kind: 'user', chars: 11, requests: 1 });
+    expect(row).toEqual({ kind: 'admin', chars: 11, requests: 1 });
   });
 });

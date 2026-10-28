@@ -12,8 +12,8 @@ import { getJourney, openRouteChest } from '../services/journey';
 import { answerItem, assertSpeechItem, finishSession, startSession } from '../services/sessions';
 import { issueSpeechAttempt } from '../services/speech-attempts';
 import { consumeQuota } from '../services/quota';
-import { synthesize, ttsStatus } from '../services/tts';
-import { libraryAudio, libraryEnabled, recordMiss } from '../services/audio-library';
+import { ttsStatus } from '../services/tts';
+import { libraryAudio, recordMiss } from '../services/audio-library';
 import { TOPICS } from '../content/topics';
 import { GRAMMAR } from '../content/grammar';
 
@@ -65,17 +65,20 @@ r.post('/speech/transcribe', rateLimit(6, 60_000, 'speech'), async (c) => {
   if (!bind.session || !bind.item) return c.json(result);
   return c.json({ ...result, attempt: issueSpeechAttempt({ userId, sessionId: bind.session, key: bind.item, transcript: result.transcript }) });
 });
+// Старі клієнти (до /api/audio/<відбиток>/<id>.mp3): лише готовий файл бібліотеки. Синтезу тут немає — ні ElevenLabs,
+// ні іншого провайдера, ні кешу D1 (там можуть бути записи старого жіночого голосу); немає файлу — 404.
 r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {
   const q = z.object({ text: z.string().min(1).max(300), rate: z.enum(['normal', 'slow']).default('normal') }).parse(query(c));
-  // Режим бібліотеки: лише готовий файл (повільну швидкість клієнт робить сам), синтез на запит не викликається.
-  if (libraryEnabled()) {
-    const hit = await libraryAudio(q.text);
-    if (hit) return new Response(hit.body, { headers: { 'content-type': 'audio/mpeg', 'cache-control': 'private, max-age=31536000, immutable', 'x-tts-cache': 'hit', 'x-tts-source': hit.source } });
-    await recordMiss(q.text).catch(() => {});
-    throw new HttpError(404, 'audio_missing');
-  }
-  const audio = await synthesize(q.text, q.rate, { meter: () => consumeQuota(c.get('userId'), 'tts') });
-  return c.body(new Uint8Array(audio.data), 200, { 'content-type': audio.mime, 'cache-control': 'private, max-age=31536000, immutable', 'x-tts-cache': audio.cached ? 'hit' : 'miss' });
+  const hit = await libraryAudio(q.text);
+  if (hit) return new Response(hit.body, { headers: { 'content-type': 'audio/mpeg', 'cache-control': 'private, max-age=31536000, immutable', 'x-tts-cache': 'hit', 'x-tts-source': hit.source } });
+  await recordMiss(q.text).catch(() => {});
+  throw new HttpError(404, 'audio_missing');
+});
+/** Гравець натиснув динамік, а файлу ще немає: лічильник «Просили, но файла нет» в адмінці. Без синтезу. */
+r.post('/audio/miss', rateLimit(30, 60_000, 'audio-miss'), async (c) => {
+  const { text } = z.object({ text: z.string().min(1).max(300) }).parse(await c.req.json());
+  await recordMiss(text);
+  return c.json({ ok: true });
 });
 
 // ── Словник ──

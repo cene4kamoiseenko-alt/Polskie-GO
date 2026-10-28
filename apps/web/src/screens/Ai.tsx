@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useMe } from '../lib/queries';
-import { recognizePolish, speak, speechRecognitionAvailable } from '../lib/audio';
+import { recognizePolish, speechRecognitionAvailable } from '../lib/audio';
 import { Beaver } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { SceneAvatar, SCENE_LOOKS, type SceneKey } from '../components/SceneAvatar';
@@ -213,11 +213,7 @@ export default function AiScreen() {
             {m.role === 'assistant' && (mode === 'roleplay' ? <SceneAvatar scene={scene} size={32} /> : <GameIcon name="ai" size={30} />)}
             <div className={cx('max-w-[82%] rounded-2xl px-4 py-3 text-[15px] font-semibold', m.role === 'user' ? 'rounded-br-md bg-brand text-white' : 'card rounded-bl-md')}>
               {m.role === 'assistant' ? <RichText text={m.content} /> : m.content}
-              {m.role === 'assistant' && (
-                <button className="mt-1 block text-xs font-black text-sky-dark" onClick={() => speak(m.content.split('✏️')[0])} aria-label="listen">
-                  <Icon name="headphones" size={16} />
-                </button>
-              )}
+              {/* Відповіді ШІ не озвучуються: звук — лише готові записи бібліотеки, а довільний текст заздалегідь не записати. */}
             </div>
           </motion.div>
         ))}

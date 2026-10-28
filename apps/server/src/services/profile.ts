@@ -11,8 +11,8 @@ import {
 import { getRewards } from './gameConfig';
 import { dayCandidates } from './rewards';
 import { giftKey, giftKeys } from './premium-gift';
-import { ttsConfigured, ttsStatus } from './tts';
 import { libraryEnabled, libraryFingerprint, libraryVoice } from './audio-library';
+import { audioGenerationMode } from './audio-policy';
 import { activeSubWhere } from './premium';
 import { outfit } from './shop';
 
@@ -108,11 +108,14 @@ export async function getMe(userId: string) {
     // configured: без ключа ШІ-співрозмовник не працює — застосунок ховає його входи й не обіцяє його в Premium.
     ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay, configured: !!config.anthropicKey },
     rewards: { exerciseXp: cfg.exerciseXp },
-    /** Чи доступна серверна польська озвучка (інакше — лише польський голос пристрою). */
-    // Режим бібліотеки: озвучка — лише готові файли голосу бібліотеки; відбиток бібліотеки відділяє кеш клієнта від старих голосів.
+    /**
+     * Озвучка — лише готові MP3 голосу бібліотеки (Kamil): клієнт рахує audio_id = sha256(audioNorm(текст)) і бере
+     * {base}{audio_id}.mp3. Відбиток у base відділяє файли й кеш клієнта від інших голосів і версій. Без R2 чи голосу —
+     * server: false: кнопки показують «Озвучка скоро появится», голосу пристрою й синтезу немає.
+     */
     audio: libraryEnabled()
-      ? { ...ttsStatus(), server: true, library: true, provider: 'elevenlabs' as const, voiceId: libraryVoice(), fingerprint: libraryFingerprint(libraryVoice()!), recognition: { server: sttStatus().configured, ...sttStatus() } }
-      : { server: ttsConfigured(), library: false, ...ttsStatus(), recognition: { server: sttStatus().configured, ...sttStatus() } },
+      ? { server: true, library: true, provider: 'elevenlabs' as const, voice: 'Kamil', fingerprint: libraryFingerprint(libraryVoice()!), base: `/api/audio/${libraryFingerprint(libraryVoice()!)}/`, generation: audioGenerationMode(), recognition: { server: sttStatus().configured, ...sttStatus() } }
+      : { server: false, library: true, provider: null, voice: null, fingerprint: null, base: null, generation: audioGenerationMode(), recognition: { server: sttStatus().configured, ...sttStatus() } },
   };
 }
 

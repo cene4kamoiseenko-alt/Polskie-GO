@@ -1,7 +1,7 @@
 /**
  * Google TTS: захист грошей і ключа, порівняння голосів в адмінці, вимова на справжньому контенті.
- *  • добовий бюджет проєкту TTS_GLOBAL_DAILY_CHARS (tts_spend): понад нього /api/tts — 429 без запиту до провайдера,
- *    кеш і прогрів адмінки не блокуються;
+ *  • гравці не витрачають символів зовсім: /api/tts лише віддає готові файли бібліотеки (AUDIO_GENERATION_MODE=admin_only),
+ *    платний синтез — тільки адмінка, і він іде в облік admin (tts_spend);
  *  • ключ Google не потрапляє в адресу (ні в синтезі, ні в списку голосів);
  *  • жодна фраза контенту не випадає з серверної озвучки (емодзі прибираються);
  *  • /api/admin/tts/sample синтезує лише голоси з офіційного списку і фрази бенчмарку/контенту, облік — admin.
@@ -9,7 +9,7 @@
  */
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { BENCHMARK_PHRASES } from '../src/services/tts-catalog';
-import { allContentPhrases, contentPhrases, listPolishVoices, ttsTextAllowed } from '../src/services/tts';
+import { allContentPhrases, contentPhrases, listPolishVoices, synthesize, ttsTextAllowed } from '../src/services/tts';
 import { pronunciationRisks } from '../src/services/tts-pronunciation';
 import { ttsSpendSummary } from '../src/services/quota';
 import { disposeEnv, getEnv, login, request } from './helpers';
@@ -54,36 +54,25 @@ async function admin() {
 }
 
 describe('Google TTS: добовий бюджет проєкту', () => {
-  it('понад TTS_GLOBAL_DAILY_CHARS — 429 tts_budget_exceeded без запиту до Google; кеш грає; прогрів адмінки не блокується', async () => {
+  it('гравці не витрачають бюджет: /api/tts — 404 без запиту до Google; прогрів адмінки рахується як admin', async () => {
     await withEnv({ GOOGLE_TTS_API_KEY: KEY, GOOGLE_TTS_VOICE: 'pl-PL-Chirp3-HD-Kore', TTS_GLOBAL_DAILY_CHARS: '25' }, async ({ app, env }) => {
       const calls = mockGoogle();
-      // Різні гравці: квота на користувача (300 фраз) тут ні до чого — спрацьовує саме спільний бюджет.
       const a = await login();
-      const b = await login();
       const tts = (token: string, text: string) => app.request(`/api/tts?text=${encodeURIComponent(text)}`, { headers: { authorization: `Bearer ${token}` } }, env);
-      expect((await tts(a.token, 'Dzień dobry!')).status).toBe(200); // 12 символів
-      expect((await tts(b.token, 'Do widzenia')).status).toBe(200); // 11 → 23 з 25
-      const over = await tts(b.token, 'Dobranoc'); // 8 → 31 > 25
-      expect(over.status).toBe(429);
-      expect(((await over.json()) as { error: string }).error).toBe('tts_budget_exceeded');
-      expect(calls).toHaveLength(2);
-      // Уже синтезоване грає з кешу — бюджет не витрачається.
-      const cached = await tts(a.token, 'Do widzenia');
-      expect(cached.status).toBe(200);
-      expect(cached.headers.get('x-tts-cache')).toBe('hit');
-      expect(calls).toHaveLength(2);
+      for (const text of ['Dzień dobry!', 'Do widzenia', 'Dobranoc']) expect((await tts(a.token, text)).status).toBe(404);
+      expect(calls).toHaveLength(0);
       let spend = await ttsSpendSummary();
-      expect(spend).toMatchObject({ limit: 25, today: { user: { chars: 23, requests: 2 }, admin: { chars: 0, requests: 0 } } });
-      // Прогрів адмінки: власник підтвердив ціну — бюджет гравців його не зупиняє, але облік є.
+      expect(spend).toMatchObject({ limit: 25, today: { user: { chars: 0, requests: 0 } } });
+      // Прогрів адмінки (без бібліотеки R2): власник підтвердив ціну — облік admin, гравцям символи не списуються.
       const token = await admin();
       const warm = await request('POST', '/api/admin/tts/warm', { offset: 0 }, { authorization: `Bearer ${token}` });
       expect(warm.status).toBe(200);
       expect(warm.body.synthesized).toBeGreaterThan(0);
       spend = await ttsSpendSummary();
-      expect(spend.today.user.chars).toBe(23);
+      expect(spend.today.user.chars).toBe(0);
       expect(spend.today.admin.chars).toBeGreaterThan(0);
       const st = await request('GET', '/api/admin/tts/status', undefined, { authorization: `Bearer ${token}` });
-      expect(st.body.spend).toMatchObject({ limit: 25, today: { user: { chars: 23 } } });
+      expect(st.body.spend).toMatchObject({ limit: 25, today: { user: { chars: 0 } } });
       expect(JSON.stringify(st.body)).not.toContain(KEY);
     });
   });
@@ -97,10 +86,10 @@ describe('Google TTS: добовий бюджет проєкту', () => {
 
 describe('Google TTS: ключ не в адресі', () => {
   it('синтез і список голосів передають ключ заголовком X-Goog-Api-Key', async () => {
-    await withEnv({ GOOGLE_TTS_API_KEY: KEY, GOOGLE_TTS_VOICE: 'pl-PL-Chirp3-HD-Kore' }, async ({ app, env }) => {
+    await withEnv({ GOOGLE_TTS_API_KEY: KEY, GOOGLE_TTS_VOICE: 'pl-PL-Chirp3-HD-Kore' }, async () => {
       const calls = mockGoogle();
-      const { token } = await login();
-      expect((await app.request(`/api/tts?text=${encodeURIComponent('Klucz w nagłówku.')}`, { headers: { authorization: `Bearer ${token}` } }, env)).status).toBe(200);
+      await login();
+      expect((await synthesize('Klucz w nagłówku.', 'normal', { payer: 'admin' })).data.length).toBeGreaterThan(0);
       const voices = await listPolishVoices('google');
       expect(voices.map((v) => v.id)).toEqual(['pl-PL-Chirp3-HD-Kore']);
       expect(calls).toHaveLength(2);
@@ -192,11 +181,12 @@ describe('Адмінка: порівняння голосів на слух', ()
     });
   });
 
-  it('TTS_PROVIDER=off + ключ: гравці чують голос пристрою, а власник уже порівнює голоси (безпечний перший крок підключення)', async () => {
+  it('TTS_PROVIDER=off + ключ: гравці без синтезу, а власник уже порівнює голоси (безпечний перший крок підключення)', async () => {
     await withEnv({ GOOGLE_TTS_API_KEY: KEY, TTS_PROVIDER: 'off' }, async ({ app, env }) => {
       const calls = mockGoogle();
       const { token: user } = await login();
-      expect((await app.request(`/api/tts?text=${encodeURIComponent('Dzień dobry')}`, { headers: { authorization: `Bearer ${user}` } }, env)).status).toBe(503);
+      // Гравець: лише готові файли бібліотеки (тут бібліотеки немає) — 404, синтезу немає.
+      expect((await app.request(`/api/tts?text=${encodeURIComponent('Dzień dobry')}`, { headers: { authorization: `Bearer ${user}` } }, env)).status).toBe(404);
       const token = await admin();
       const cmp = await request('GET', '/api/admin/tts/compare', undefined, { authorization: `Bearer ${token}` });
       expect(cmp.body.voices.length).toBe(34);

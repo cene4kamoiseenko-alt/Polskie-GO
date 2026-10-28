@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { tg, haptic } from '../lib/telegram';
-import { speak, useSpeechState } from '../lib/audio';
+import { speak, useAudioMissing, useSpeechState } from '../lib/audio';
 import { Beaver } from './Beaver';
 import { GameIcon, type IconName } from './GameIcon';
 import { Icon, type LineIconName } from './Icon';
@@ -379,17 +379,21 @@ export function RichText({ text, className }: { text: string; className?: string
   );
 }
 
-/** Кнопка польської озвучки: стан завантаження, відтворення та помилки; slow — сповільнено. */
+/**
+ * Кнопка польської озвучки: стан завантаження, відтворення та помилки; slow — сповільнено.
+ * Готового файлу ще немає — кнопка приглушена, натискання показує «Озвучка скоро появится» (без запиту й синтезу).
+ */
 export function SpeakButton({ text, url, size = 'md', slow = false }: { text: string; url?: string | null; size?: 'sm' | 'md' | 'lg'; slow?: boolean }) {
   const { t } = useT();
   const toast = useToast();
   const { status, issue } = useSpeechState(text, slow);
+  const unavailable = useAudioMissing(text) && !url;
   const lastIssue = useRef<string | null>(null);
   useEffect(() => {
     if (status !== 'error') { lastIssue.current = null; return; }
     if (!issue || lastIssue.current === issue) return;
     lastIssue.current = issue;
-    toast(t(issue === 'no_polish_voice' ? 'audio_no_voice' : issue === 'blocked' ? 'audio_blocked' : 'audio_error'), '🔇');
+    toast(t(issue === 'missing' ? 'audio_soon' : issue === 'blocked' ? 'audio_blocked' : 'audio_error'), '🔇');
   }, [status, issue, toast, t]);
   // sm — 40 px: не меньше минимальной зоны касания (раньше 36 px, scripts/lesson-render-check.ts).
   const dims = size === 'lg' ? 'h-16 w-16' : size === 'sm' ? 'h-10 w-10' : 'h-11 w-11';
@@ -399,15 +403,17 @@ export function SpeakButton({ text, url, size = 'md', slow = false }: { text: st
       onClick={(e) => {
         e.stopPropagation();
         haptic.tap();
-        void speak(text, { url: url ?? undefined, slow });
+        if (unavailable) toast(t('audio_soon'), '🔇');
+        else void speak(text, { url: url ?? undefined, slow });
       }}
       className={cx(
         'relative grid shrink-0 place-items-center rounded-2xl transition-transform active:scale-90',
         // Колір іконки задається лише одним класом: інакше text-white перекривав text-sky-dark і «повільна» кнопка була порожньою.
-        status === 'error' ? 'bg-[#B9C1CB] text-white shadow-[0_3px_0_#8D97A3]' : slow ? 'bg-elev text-sky-dark shadow-[0_3px_0_var(--border)]' : 'bg-sky text-white shadow-[0_3px_0_var(--color-sky-dark)]',
+        status === 'error' || unavailable ? 'bg-[#B9C1CB] text-white shadow-[0_3px_0_#8D97A3]' : slow ? 'bg-elev text-sky-dark shadow-[0_3px_0_var(--border)]' : 'bg-sky text-white shadow-[0_3px_0_var(--color-sky-dark)]',
         dims,
       )}
-      aria-label={slow ? t('ex_slow') : t('audio_listen')}
+      aria-label={unavailable ? t('audio_soon') : slow ? t('ex_slow') : t('audio_listen')}
+      aria-disabled={unavailable || undefined}
       aria-busy={status === 'loading'}
     >
       {status === 'loading' ? (
@@ -415,7 +421,7 @@ export function SpeakButton({ text, url, size = 'md', slow = false }: { text: st
       ) : slow ? (
         <SlowIcon size={icon} />
       ) : (
-        <SpeakerIcon size={icon} playing={status === 'playing'} muted={status === 'error'} />
+        <SpeakerIcon size={icon} playing={status === 'playing'} muted={status === 'error' || unavailable} />
       )}
     </button>
   );
@@ -429,7 +435,8 @@ export function SpeakPill({ text, url, slow = false }: { text: string; url?: str
   const { t } = useT();
   // Причину збою пояснює повідомлення поруч із кнопками (CantListen), тож без тосту поверх шапки уроку.
   const { status } = useSpeechState(text, slow);
-  const failed = status === 'error';
+  const missing = useAudioMissing(text);
+  const failed = status === 'error' || (missing && !url);
   return (
     <button
       type="button"

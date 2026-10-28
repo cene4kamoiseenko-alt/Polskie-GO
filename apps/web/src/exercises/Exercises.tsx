@@ -8,7 +8,7 @@ import { alignSpeechWords, isLoneLetter, type I18n } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import type { AnswerResult, PublicItem } from '../lib/types';
 import { assetUrl } from '../lib/api';
-import { recognizePolish, sfx, speak, speechRecognitionAvailable, stopSpeech, useSpeechState } from '../lib/audio';
+import { recognizePolish, sfx, speak, speechRecognitionAvailable, stopSpeech, useAudioMissing, useSpeechState } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Icon, type LineIconName } from '../components/Icon';
 import { useMe } from '../lib/queries';
@@ -126,22 +126,23 @@ function PromptCard({ children }: { children: ReactNode }) {
 }
 
 /**
- * Аудіювання без звуку не можна чесно пройти: на пристрої немає польського голосу або озвучка не завантажилась.
+ * Аудіювання без звуку не можна чесно пройти: готового запису ще немає («Озвучка скоро появится») або він не завантажився.
  * Тоді завдання можна пропустити — без XP і без помилки (сервер приймає { skipped: true } лише для звукових типів).
  */
 function CantListen({ text, onSkip, place }: { text: string; onSkip: () => void; place: 'controls' | 'bottom' }) {
   const { t } = useT();
   const { status, issue } = useSpeechState(text);
   const slowState = useSpeechState(text, true);
-  const failed = status === 'error' || slowState.status === 'error';
-  const why = status === 'error' ? issue : slowState.issue;
+  const missing = useAudioMissing(text);
+  const failed = missing || status === 'error' || slowState.status === 'error';
+  const why = missing ? 'missing' : status === 'error' ? issue : slowState.issue;
   const skip = () => { stopSpeech(); onSkip(); };
   // Біля кнопок — лише чесне повідомлення про недоступну озвучку; внизу — тиха вторинна дія.
   if (place === 'controls') {
     if (!failed) return null;
     return (
       <div className="rounded-2xl bg-muted p-3 text-center">
-        <p className="mb-2 text-sm font-bold">{t(why === 'no_polish_voice' ? 'ex_audio_missing' : why === 'blocked' ? 'audio_blocked' : 'audio_error')}</p>
+        <p className="mb-2 text-sm font-bold">{t(why === 'missing' ? 'audio_soon' : why === 'blocked' ? 'audio_blocked' : 'audio_error')}</p>
         <button type="button" className="link-secondary" onClick={skip}>{t('ex_audio_skip')}</button>
       </div>
     );

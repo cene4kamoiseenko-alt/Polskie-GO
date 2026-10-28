@@ -44,12 +44,15 @@ const fakeMp3 = (tag: string) => {
   return b;
 };
 
+/** Підміна ElevenLabs. calls — лише платні запити синтезу (text-to-speech); безкоштовні GET (акаунт, голос) — у reads. */
 function mockEleven(opts: { status?: number; body?: Uint8Array | string; cost?: string } = {}) {
   const calls: { url: string; body: Record<string, unknown> }[] = [];
+  const reads: string[] = [];
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
     const u = String(url);
     if (!u.startsWith('https://api.elevenlabs.io/')) throw new Error(`unexpected fetch ${u}`);
-    calls.push({ url: u, body: init?.body ? JSON.parse(String(init.body)) : {} });
+    if (u.includes('/text-to-speech/')) calls.push({ url: u, body: init?.body ? JSON.parse(String(init.body)) : {} });
+    else reads.push(u);
     if (u.includes('/v1/user/subscription')) return Response.json({ character_count: 1200, character_limit: 30000, next_character_count_reset_unix: 1_800_000_000, tier: 'starter' });
     if (u.endsWith('/v1/models')) {
       return Response.json([
@@ -63,7 +66,9 @@ function mockEleven(opts: { status?: number; body?: Uint8Array | string; cost?: 
     const body = opts.body ?? fakeMp3(String(calls.length));
     return new Response(body as BodyInit, { status: opts.status ?? 200, headers: { 'content-type': 'audio/mpeg', ...(opts.cost ? { 'character-cost': opts.cost } : {}) } });
   });
-  return calls;
+  // reads — не перелічувана властивість: toEqual([]) порівнює лише платні запити.
+  Object.defineProperty(calls, 'reads', { value: reads, enumerable: false });
+  return calls as typeof calls & { reads: string[] };
 }
 
 /** Аудіо-запит без розбору JSON: відповідь — MP3 або JSON помилки. */
@@ -105,7 +110,8 @@ describe('каталог озвучки', () => {
   });
 
   it('кнопки прослуховування є лише у відомих файлах клієнта (нова кнопка — доповнити правила audioTexts.ts і каталог)', () => {
-    const KNOWN = ['components/ui.tsx', 'exercises/Exercises.tsx', 'screens/Ai.tsx', 'screens/Dictionary.tsx', 'screens/Grammar.tsx', 'screens/Home.tsx', 'screens/Lesson.tsx', 'screens/Mission.tsx', 'screens/Onboarding.tsx', 'screens/Passport.tsx', 'screens/Settings.tsx', 'screens/Slang.tsx', 'screens/Story.tsx'];
+    // Ai.tsx — без кнопки: відповіді ШІ довільні, готового запису для них не буває.
+    const KNOWN = ['components/ui.tsx', 'exercises/Exercises.tsx', 'screens/Dictionary.tsx', 'screens/Grammar.tsx', 'screens/Home.tsx', 'screens/Lesson.tsx', 'screens/Mission.tsx', 'screens/Onboarding.tsx', 'screens/Passport.tsx', 'screens/Settings.tsx', 'screens/Slang.tsx', 'screens/Story.tsx'];
     const web = new URL('../../web/src/', import.meta.url);
     const files = (readdirSync(web, { recursive: true }) as string[])
       .filter((f) => /\.tsx?$/.test(f) && f !== 'lib/audio.ts')
@@ -139,9 +145,9 @@ describe('каталог озвучки', () => {
   });
 });
 
-describe('видача: режим бібліотеки', () => {
-  it('готовий файл голосу бібліотеки — з R2; повільна швидкість — той самий файл; файл іншого голосу не віддається', async () => {
-    await withEnv({ ELEVENLABS_VOICE_ID: VOICE, AUDIO_LIBRARY: 'on', ELEVENLABS_API_KEY: 'k' }, async (env) => {
+describe('видача: лише готові файли', () => {
+  it('готовий файл голосу бібліотеки — з R2 (без AUDIO_LIBRARY); повільна швидкість — той самий файл; файл іншого голосу не віддається', async () => {
+    await withEnv({ ELEVENLABS_VOICE_ID: VOICE, ELEVENLABS_API_KEY: 'k' }, async (env) => {
       const bucket = env.AUDIO as R2Bucket;
       const calls = mockEleven();
       const id = audioId(audioNorm('Dzień dobry, poproszę kawę.'));
@@ -158,24 +164,28 @@ describe('видача: режим бібліотеки', () => {
       const miss = await tts(u.token, 'Do widzenia!');
       expect(miss.status).toBe(404);
       expect(JSON.stringify(miss.json)).toContain('audio_missing');
-      // Синтез на запит у режимі бібліотеки не викликається ніколи.
+      // Синтез на запит не викликається ніколи — ні платний, ні навіть безкоштовні запити до ElevenLabs.
       expect(calls).toEqual([]);
+      expect(calls.reads).toEqual([]);
       const row = await db.query.audioMisses.findFirst({ where: eq(audioMisses.unitId, other) });
       expect(row?.count).toBe(1);
       const me = await u.call('GET', '/api/me');
-      expect(me.body.audio).toMatchObject({ server: true, library: true, fingerprint: libraryFingerprint(VOICE) });
+      expect(me.body.audio).toMatchObject({ server: true, library: true, fingerprint: libraryFingerprint(VOICE), base: `/api/audio/${libraryFingerprint(VOICE)}/`, generation: 'admin_only' });
     });
   });
 
-  it('уже оплачений запис голосу бібліотеки в кеші D1 віддається без синтезу', async () => {
-    await withEnv({ ELEVENLABS_VOICE_ID: VOICE, AUDIO_LIBRARY: 'on', ELEVENLABS_API_KEY: 'k' }, async () => {
+  it('запис голосу бібліотеки в кеші D1 гравцю не віддається (лише R2); генерація адмінки переносить його в R2 без кредитів', async () => {
+    await withEnv({ ELEVENLABS_VOICE_ID: VOICE, ELEVENLABS_API_KEY: 'k' }, async () => {
       const calls = mockEleven();
       const text = 'Poproszę bilet do Gdańska.';
       await db.insert(ttsCache).values({ key: ttsCacheKey({ provider: 'elevenlabs', voice: VOICE, model: 'eleven_multilingual_v2' }, 'normal', text), text, voice: `v1|elevenlabs|eleven_multilingual_v2|${VOICE}`, rate: 'normal', mime: 'audio/mpeg', data: Buffer.from(fakeMp3('cache')) });
       const u = await login();
-      const r = await tts(u.token, text);
-      expect(r.status).toBe(200);
-      expect(r.source).toBe('cache');
+      expect((await tts(u.token, text)).status).toBe(404);
+      const [r] = await generateBatch([unit(text)], 100);
+      expect(r).toMatchObject({ status: 'adopted', credits: 0 });
+      const after = await tts(u.token, text);
+      expect(after.status).toBe(200);
+      expect(after.source).toBe('library');
       expect(calls).toEqual([]);
     });
   });
@@ -283,7 +293,7 @@ describe('адмінка', () => {
       expect(r.body.voice).toMatchObject({ isKamil: true, male: true, polishModels: ['eleven_multilingual_v2'] });
       expect(r.body.kamilVoices.map((v: { id: string }) => v.id)).toEqual([VOICE]);
       expect(r.body.models.filter((m: { polish: boolean }) => m.polish).map((m: { id: string; creditsPerChar: number }) => [m.id, m.creditsPerChar])).toEqual([['eleven_multilingual_v2', 1], ['eleven_flash_v2_5', 0.5]]);
-      expect(calls.every((c) => !c.url.includes('/text-to-speech/'))).toBe(true);
+      expect(calls).toHaveLength(0);
       expect(r.body).toMatchObject({ voiceId: VOICE, problems: [] });
     });
   });
@@ -313,7 +323,7 @@ describe('адмінка', () => {
     });
   });
 
-  it('/api/health показує хід озвучки без входу: готові файли голосу бібліотеки, без id голосу', async () => {
+  it('/api/health показує хід озвучки без входу: голос бібліотеки, режим гравців і генерації, готові файли', async () => {
     await withEnv({ ELEVENLABS_VOICE_ID: VOICE, ELEVENLABS_API_KEY: 'k' }, async () => {
       mockEleven();
       const { app, env } = await getEnv();
@@ -321,8 +331,8 @@ describe('адмінка', () => {
       await generateBatch([unit('Sprawdzam zdrowie biblioteki.')], 100);
       const res = await app.request('/api/health', {}, env);
       const body = (await res.json()) as { audio: Record<string, unknown> };
-      expect(body.audio).toMatchObject({ r2: true, voice: true, players: 'on-demand', ready: before.audio.ready + 1 });
-      expect(JSON.stringify(body)).not.toContain(VOICE);
+      expect(body.audio).toMatchObject({ r2: true, voiceId: VOICE, players: 'library', generation: 'admin_only', ready: before.audio.ready + 1 });
+      expect(JSON.stringify(body)).not.toContain('"k"');
     });
   });
 

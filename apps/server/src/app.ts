@@ -15,7 +15,8 @@ import { gameRoutes } from './routes/game';
 import { telegramRoutes } from './routes/telegram';
 import { adminRoutes } from './routes/admin';
 import { readBotConfig } from './bot/maintain';
-import { libraryEnabled, libraryVoice } from './services/audio-library';
+import { libraryEnabled, libraryVoice, serveLibraryFile } from './services/audio-library';
+import { audioGenerationMode } from './services/audio-policy';
 
 export function buildApp() {
   const app = new Hono<AppEnv>();
@@ -63,13 +64,26 @@ export function buildApp() {
         version: version ? { commit: version.commit, builtAt: version.builtAt } : null,
         migration,
         edge: { colo: (c.req.raw.cf as { colo?: string } | undefined)?.colo ?? null, d1: { ms: d1Ms, region: meta.served_by_region ?? null, primary: meta.served_by_primary ?? null } },
-        audio: { r2: !!c.env.AUDIO, voice: !!voice, players: libraryEnabled() ? 'library' : 'on-demand', ready: audioBy.ready ?? 0, failed: audioBy.failed ?? 0, inProgress: (audioBy.generating ?? 0) + (audioBy.pending ?? 0) },
+        audio: {
+          r2: !!c.env.AUDIO,
+          voiceId: voice,
+          // Гравці: лише готові MP3 (library) або озвучки ще немає взагалі (none) — синтезу на запит не буває.
+          players: libraryEnabled() ? 'library' : 'none',
+          generation: audioGenerationMode(),
+          ready: audioBy.ready ?? 0,
+          failed: audioBy.failed ?? 0,
+          inProgress: (audioBy.generating ?? 0) + (audioBy.pending ?? 0),
+        },
         bot: bot ? { webhook: bot.webhook, callbackQuery: bot.callbackQuery, serverSecret: bot.secretGeneration > 0, confirmed: bot.secretConfirmed, checkedAt: new Date(bot.checkedAt).toISOString() } : null,
       },
       200,
       { 'cache-control': 'no-store' },
     );
   });
+
+  // Готовий MP3 аудіобібліотеки з R2 (services/audio-library.ts → serveLibraryFile): без входу, щоб працювали кеш
+  // браузера й Range-запити <audio>. Лише вже озвучене; ElevenLabs звідси не викликається ніколи.
+  app.get('/api/audio/:fp/:file', rateLimit(600, 60_000, 'audio'), (c) => serveLibraryFile(c.req.raw, c.req.param('fp'), c.req.param('file')));
 
   // Порядок важливий: адмінка й webhook мають власну авторизацію, далі — вхід, потім маршрути користувача.
   app.route('/api/admin', adminRoutes);

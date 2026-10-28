@@ -198,6 +198,10 @@ function AudioLibrary({ admin }: { admin: Admin }) {
   const [budget, setBudget] = useState(1000);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
+  // Ручний вибір: розділ, пошук за текстом, позначені фрази без файлу.
+  const [pickGroup, setPickGroup] = useState('all');
+  const [query, setQuery] = useState('');
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const stop = useRef(false);
   const say = (m: string) => setLog((l) => [m, ...l].slice(0, 40));
 
@@ -243,6 +247,7 @@ function AudioLibrary({ admin }: { admin: Admin }) {
     acc && !acc.library?.r2 && 'R2 не подключено (binding AUDIO)',
     acc && !acc.configured && 'нет ключа ELEVENLABS_API_KEY',
     acc && !acc.voiceId && 'не задан ELEVENLABS_VOICE_ID',
+    acc?.library?.generation === 'off' && 'генерация выключена (AUDIO_GENERATION_MODE=off)',
     !units && 'каталог не загрузился',
   ].filter(Boolean) as string[];
   const canGenerate = !!acc && !blockers.length;
@@ -257,7 +262,8 @@ function AudioLibrary({ admin }: { admin: Admin }) {
     try {
       for (let i = 0; i < items.length && !stop.current; i += 10) {
         const part = items.slice(i, i + 10);
-        const r: any = await api('/audio/generate', { body: { items: part.map((u) => ({ id: u.id, text: u.text, model: audioModel(u, strategy) })), maxCredits: Math.max(0, Math.floor(cap - spent)), rates } });
+        // allowOtherVoice — адмін уже підтвердив голос, який ElevenLabs не описує як чоловічий Kamil (сервер інакше відмовить).
+        const r: any = await api('/audio/generate', { body: { items: part.map((u) => ({ id: u.id, text: u.text, model: audioModel(u, strategy) })), maxCredits: Math.max(0, Math.floor(cap - spent)), rates, allowOtherVoice: !voiceOk } });
         spent += r.credits;
         for (const x of r.results) counts[x.status] = (counts[x.status] ?? 0) + 1;
         const failed = r.results.filter((x: any) => x.status === 'failed');
@@ -291,6 +297,12 @@ function AudioLibrary({ admin }: { admin: Admin }) {
 
   // Минимальный тест: 10 коротких фраз с числами, диакритикой и названиями — по первым из каталога каждой категории.
   const sample = (units ?? []).filter((u) => !ready.has(u.id) && u.chars <= 40 && (audioRisky(u.text) || /[łąęśćńźżó]/i.test(u.text))).slice(0, 10);
+  const q = query.trim().toLocaleLowerCase('pl');
+  const found = todo.filter((u) => (pickGroup === 'all' || String(u.group) === pickGroup) && (!q || u.text.toLocaleLowerCase('pl').includes(q)));
+  const pickedUnits = todo.filter((u) => picked.has(u.id));
+  const pickedCost = pickedUnits.reduce((n, u) => n + cost(u), 0);
+  const textOf = new Map((units ?? []).map((u) => [u.id, u.text]));
+  const togglePick = (id: string) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   return (
     <div className="space-y-4">
@@ -302,13 +314,21 @@ function AudioLibrary({ admin }: { admin: Admin }) {
             <div>Голос: <b>{acc.voice ? `${acc.voice.name ?? '?'} (${acc.voice.id})` : acc.voiceId ? `${acc.voiceId} (описание не получено)` : 'не задан — ELEVENLABS_VOICE_ID'}</b>{acc.voice && <> · пол: {acc.voice.gender ?? '?'} · {voiceOk ? <span className="text-emerald-700">мужской Kamil ✓</span> : <span className="text-rose-600">не Kamil / не мужской</span>}</>}</div>
             {acc.voice && <div>Польский проверен для моделей: {acc.voice.polishModels.join(', ') || '—'}</div>}
             {(acc.kamilVoices ?? []).length > 0 && (
-              <div>Голоса «Kamil» в аккаунте: {acc.kamilVoices.map((v: any) => `${v.name} — ${v.id} (${v.gender ?? 'пол ?'}${v.polishModels.length ? `, польский: ${v.polishModels.join(', ')}` : ''})`).join('; ')}</div>
+              <div>
+                Голоса «Kamil» в аккаунте (голос библиотеки — переменная ELEVENLABS_VOICE_ID в Cloudflare):
+                {acc.kamilVoices.map((v: any) => (
+                  <div key={v.id} className="ml-2">
+                    {v.id === acc.voiceId ? '✓ ' : '· '}{v.name} — <code>{v.id}</code> ({v.gender ?? 'пол ?'}{v.polishModels.length ? `, польский: ${v.polishModels.join(', ')}` : ''})
+                    {v.id !== acc.voiceId && <button className="ml-2 text-xs font-bold text-sky-700" onClick={() => void navigator.clipboard?.writeText(v.id)}>скопировать ID</button>}
+                  </div>
+                ))}
+              </div>
             )}
             {(acc.problems ?? []).map((p: string) => <div key={p} className="text-amber-700">ElevenLabs — {p}</div>)}
             {acc.configured && !(acc.problems ?? []).some((p: string) => p.startsWith('список')) && !(acc.kamilVoices ?? []).length && <div className="text-amber-700">В аккаунте нет голоса с именем Kamil: добавьте его из Voice Library ElevenLabs.</div>}
             {acc.credits && <div>Кредиты: использовано {acc.credits.used.toLocaleString('ru')} из {acc.credits.limit.toLocaleString('ru')}, остаток <b>{acc.credits.left.toLocaleString('ru')}</b>{acc.credits.resetAt && <>, обновление {new Date(acc.credits.resetAt).toLocaleDateString('ru')}</>}</div>}
             <div>Модели с польским: {acc.models.filter((m: any) => m.polish).map((m: any) => `${m.name} (${m.creditsPerChar ?? '?'} кр./символ)`).join(', ') || '—'}</div>
-            <div>R2: {acc.library.r2 ? <span className="text-emerald-700">подключено</span> : <span className="text-rose-600">не подключено (binding AUDIO)</span>} · режим для игроков: <b>{acc.library.mode === 'library' ? 'только готовые файлы' : 'синтез по запросу (AUDIO_LIBRARY не on)'}</b></div>
+            <div>R2: {acc.library.r2 ? <span className="text-emerald-700">подключено</span> : <span className="text-rose-600">не подключено (binding AUDIO)</span>} · игроки: <b>{acc.library.mode === 'library' ? 'только готовые MP3, без генерации' : 'озвучки нет (нужны R2 и ELEVENLABS_VOICE_ID)'}</b> · генерация: <b>{acc.library.generation === 'off' ? 'выключена' : 'только из админки'}</b></div>
           </>
         )}
       </div>
@@ -346,12 +366,52 @@ function AudioLibrary({ admin }: { admin: Admin }) {
         {log.length > 0 && <div className="max-h-48 overflow-auto rounded bg-slate-50 p-2 font-mono text-xs">{log.map((l, i) => <div key={i}>{l}</div>)}</div>}
       </div>
 
+      <div className="panel space-y-3 p-4">
+        <div className="font-bold">Выбрать фразы вручную</div>
+        <div className="flex flex-wrap gap-2">
+          <select className="input max-w-full" value={pickGroup} onChange={(e) => setPickGroup(e.target.value)}>
+            <option value="all">Все разделы</option>
+            {Object.entries(groups).map(([g, label]) => <option key={g} value={g}>{g}. {label}</option>)}
+          </select>
+          <input className="input min-w-0 flex-1" placeholder="Поиск по тексту" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <div className="text-sm">
+          Без файла найдено: <b>{found.length}</b> ·{' '}
+          <button className="font-bold text-sky-700" disabled={!found.length} onClick={() => setPicked((p) => new Set([...p, ...found.slice(0, 200).map((u) => u.id)]))}>отметить первые {Math.min(200, found.length)}</button> ·{' '}
+          <button className="font-bold text-sky-700" disabled={!picked.size} onClick={() => setPicked(new Set())}>снять отметки</button>
+        </div>
+        <div className="max-h-64 overflow-auto rounded border">
+          {found.slice(0, 100).map((u) => (
+            <label key={u.id} className="flex items-center gap-2 border-b px-2 py-1 text-sm last:border-0">
+              <input type="checkbox" checked={picked.has(u.id)} onChange={() => togglePick(u.id)} />
+              <span className="min-w-0 flex-1 truncate">{u.text}</span>
+              <span className="whitespace-nowrap text-xs text-slate-500">{u.group} · ≈ {Math.ceil(cost(u))} кр.</span>
+            </label>
+          ))}
+          {found.length > 100 && <div className="px-2 py-1 text-xs text-slate-500">…и ещё {found.length - 100}: уточните поиск</div>}
+        </div>
+        <button className="btn-p" disabled={busy || !canGenerate || !pickedUnits.length} onClick={() => generate(pickedUnits, pickedCost + 1, 'Озвучка выбранных фраз')}>
+          Озвучить выбранные: {pickedUnits.length} (≈ {Math.ceil(pickedCost).toLocaleString('ru')} кредитов)
+        </button>
+      </div>
+
       {summary && (
         <div className="panel p-4 text-sm">
           <div className="mb-1 font-bold">Файлы по статусам</div>
           {summary.byStatus.length ? summary.byStatus.map((r: any) => <div key={`${r.voice}${r.status}`}>{r.voice} · {r.status}: {r.n} файлов, {Math.round(r.credits).toLocaleString('ru')} кредитов, {(r.bytes / 1048576).toFixed(1)} МБ</div>) : <div className="text-slate-500">Пока пусто</div>}
+          <div className="mb-1 mt-3 font-bold">Очередь и ошибки ({(summary.queue ?? []).length})</div>
+          {(summary.queue ?? []).length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-xs">
+                <thead><tr className="text-left text-slate-500"><th>Фраза</th><th>Статус</th><th>Ошибка</th><th>Попыток</th></tr></thead>
+                <tbody>{summary.queue.map((r: any) => <tr key={r.id} className="border-t"><td>{r.text}</td><td>{r.status}</td><td className="text-rose-600">{r.error ?? ''}</td><td>{r.attempts}</td></tr>)}</tbody>
+              </table>
+            </div>
+          ) : <div className="text-slate-500">Нет</div>}
+          <div className="mb-1 mt-3 font-bold">Журнал расходов (UTC, синтез; файлы из кэша — бесплатно)</div>
+          {(summary.spend ?? []).length ? summary.spend.map((d: any) => <div key={d.day}>{d.day}: {d.files} файлов, {Math.round(d.credits).toLocaleString('ru')} кредитов, {Number(d.chars).toLocaleString('ru')} символов</div>) : <div className="text-slate-500">Пока пусто</div>}
           <div className="mb-1 mt-3 font-bold">Просили, но файла нет ({summary.misses.length})</div>
-          {summary.misses.map((m: any) => <div key={m.unitId}>{m.count}× «{m.text}»</div>)}
+          {summary.misses.map((m: any) => <div key={m.unitId}>{m.count}× «{m.text || textOf.get(m.unitId) || m.unitId}»</div>)}
         </div>
       )}
     </div>

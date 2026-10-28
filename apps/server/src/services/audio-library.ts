@@ -1,9 +1,10 @@
 /**
  * Аудіобібліотека ElevenLabs у R2: заздалегідь створені MP3 для всіх польських текстів застосунку.
  *
- * Користувач лише отримує готовий файл: у режимі бібліотеки (AUDIO_LIBRARY=on і binding AUDIO) /api/tts не викликає
- * синтез; файлу немає → 404 audio_missing, клієнт переходить на польський голос пристрою, текст потрапляє в audio_misses.
- * Генерація — лише з адмінки або CLI (scripts/audio-library.ts), партіями, з лімітом кредитів: перед кожним запитом
+ * Гравець лише отримує готовий файл (GET /api/audio/<відбиток>/<audio_id>.mp3, старі клієнти — /api/tts): синтезу на
+ * запит немає ніде; файлу немає → 404, клієнт показує «Озвучка скоро появится» (без голосу пристрою), а натискання
+ * потрапляє в audio_misses. Генерація — лише з адмінки або CLI (scripts/audio-library.ts; AUDIO_GENERATION_MODE,
+ * services/audio-policy.ts), партіями, з лімітом кредитів і перевіркою voice_id: перед кожним запитом
  * перевіряється R2 і наявний кеш D1 того самого голосу; паралельний запит того самого тексту рядок не захопить.
  *
  * Ключ R2: pl/<версія>/<voice_id>/<aa>/<sha256(audioNorm)>.mp3 — голос у шляху, тож файли іншого голосу (старий жіночий)
@@ -17,6 +18,7 @@ import { audioAssets, audioMisses, ttsCache } from '../db/schema';
 import { getBindings, type Bindings } from '../env';
 import { HttpError } from '../lib/errors';
 import { audioId, audioObjectKey, ttsChars } from './audio-catalog';
+import { audioGenerationMode } from './audio-policy';
 import { ttsCacheKey, ttsInputText } from './tts';
 
 type Env = Partial<Bindings>;
@@ -38,8 +40,11 @@ const settingsJson = JSON.stringify({ ...LIBRARY_SETTINGS, output_format: LIBRAR
 /** Голос бібліотеки — лише явно заданий ELEVENLABS_VOICE_ID (без типового англійського голосу). */
 export const libraryVoice = (env: Env = getBindings()) => (env.ELEVENLABS_VOICE_ID ?? '').trim() || null;
 export const libraryAvailable = (env: Env = getBindings()) => !!env.AUDIO && !!libraryVoice(env);
-/** Режим бібліотеки для користувачів: файли з R2, без синтезу на запит. */
-export const libraryEnabled = (env: Env = getBindings()) => libraryAvailable(env) && (env.AUDIO_LIBRARY ?? '').trim().toLowerCase() === 'on';
+/**
+ * Режим «лише готові файли» для гравців — завжди, коли є R2 і голос бібліотеки (AUDIO_LIBRARY більше не потрібен):
+ * кнопка динаміка не запускає синтез ніколи, навіть якщо бібліотека ще порожня.
+ */
+export const libraryEnabled = (env: Env = getBindings()) => libraryAvailable(env);
 /** Відбиток бібліотеки для ключів кешу клієнта: зміна голосу чи версії — нові ключі, старі записи не грають. */
 export const libraryFingerprint = (voice: string) => createHash('sha256').update(`library|elevenlabs|${voice}|${AUDIO_LIBRARY_VERSION}`).digest('hex').slice(0, 12);
 
@@ -61,23 +66,69 @@ export function looksLikeMp3(bytes: Uint8Array): boolean {
 
 // ── Видача ──
 
-/** Готовий файл для тексту або null. Кеш D1 того самого голосу — запасне джерело, без синтезу. */
-export async function libraryAudio(rawText: string, env: Env = getBindings()): Promise<{ body: ReadableStream | ArrayBuffer; source: 'library' | 'cache' } | null> {
+/** Готовий файл для тексту (старі клієнти: /api/tts?text=…) або null. Лише R2 голосу бібліотеки: без кешу D1 і синтезу. */
+export async function libraryAudio(rawText: string, env: Env = getBindings()): Promise<{ body: ReadableStream; source: 'library' } | null> {
   const voice = libraryVoice(env);
   if (!env.AUDIO || !voice) return null;
   const norm = audioNorm(rawText);
   if (!norm) return null;
-  const id = audioId(norm);
-  const obj = await env.AUDIO.get(audioObjectKey(id, voice));
-  if (obj) return { body: obj.body, source: 'library' };
-  const text = ttsInputText(rawText);
-  const keys = LIBRARY_MODELS.map((model) => ttsCacheKey({ provider: 'elevenlabs', voice, model }, 'normal', text));
-  const hit = await db.query.ttsCache.findFirst({ where: inArray(ttsCache.key, keys) });
-  if (hit) {
-    const u = new Uint8Array(hit.data);
-    return { body: u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer, source: 'cache' };
+  const obj = await env.AUDIO.get(audioObjectKey(audioId(norm), voice));
+  return obj ? { body: obj.body, source: 'library' } : null;
+}
+
+/** Готовий файл живе вічно: зміна голосу чи версії дає інший відбиток в адресі, а не новий вміст за старою. */
+const IMMUTABLE = 'public, max-age=31536000, immutable';
+/** Файлу ще немає: браузер не питає знову 5 хвилин, а після озвучки файл з'явиться без оновлення застосунку. */
+const MISSING = 'public, max-age=300';
+
+/**
+ * GET /api/audio/<відбиток>/<audio_id>.mp3 — готовий MP3 з приватного R2 через Worker. Без входу: адреса — sha256
+ * нормалізованого тексту, а не текст, і нічого, крім уже озвученого, звідси не отримати. ElevenLabs не викликається.
+ * Range (iOS Safari просить bytes=0-1, далі шматки) → 206, за межами файлу → 416; If-None-Match → 304; відбиток старого голосу → 404.
+ */
+export async function serveLibraryFile(req: Request, fingerprint: string, file: string, env: Env = getBindings()): Promise<Response> {
+  const missing = (error: string) => Response.json({ error }, { status: 404, headers: { 'cache-control': MISSING } });
+  const id = /^([0-9a-f]{64})\.mp3$/.exec(file)?.[1];
+  const voice = libraryVoice(env);
+  if (!id || !/^[0-9a-f]{12}$/.test(fingerprint)) return missing('not_found');
+  if (!env.AUDIO || !voice) return missing('audio_missing');
+  if (fingerprint !== libraryFingerprint(voice)) return missing('audio_version');
+  const key = audioObjectKey(id, voice);
+  const etag = req.headers.get('if-none-match')?.replace(/^W\//, '').replace(/"/g, '').trim();
+  const rangeHeader = req.headers.get('range');
+  let range: { offset: number; length: number } | undefined;
+  let size: number | undefined;
+  if (rangeHeader) {
+    // Один діапазон bytes=a-b | a- | -n; розмір — з head (запити Range шле лише <audio>, клієнт качає файл цілком).
+    const head = await env.AUDIO.head(key);
+    if (!head) return missing('audio_missing');
+    size = head.size;
+    const m = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+    const start = m && m[1] !== '' ? Number(m[1]) : m && m[2] !== '' ? Math.max(0, size - Number(m[2])) : NaN;
+    const end = m && m[1] !== '' && m[2] !== '' ? Math.min(Number(m[2]), size - 1) : size - 1;
+    if (!m || !Number.isFinite(start) || start >= size || end < start) {
+      return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}`, 'accept-ranges': 'bytes', 'cache-control': MISSING } });
+    }
+    range = { offset: start, length: end - start + 1 };
   }
-  return null;
+  const obj: R2Object | R2ObjectBody | null = await env.AUDIO.get(key, { ...(etag ? { onlyIf: { etagDoesNotMatch: etag } } : {}), ...(range ? { range } : {}) });
+  if (!obj) return missing('audio_missing');
+  // Заголовки задаються явно (не writeHttpMetadata): усі файли бібліотеки — MP3, і так однаково в Miniflare та Cloudflare.
+  const headers = new Headers();
+  headers.set('content-type', 'audio/mpeg');
+  headers.set('cache-control', IMMUTABLE);
+  headers.set('etag', obj.httpEtag);
+  headers.set('accept-ranges', 'bytes');
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('x-audio-source', 'library');
+  if (!('body' in obj)) return new Response(null, { status: 304, headers });
+  if (range) {
+    headers.set('content-range', `bytes ${range.offset}-${range.offset + range.length - 1}/${size ?? obj.size}`);
+    headers.set('content-length', String(range.length));
+    return new Response(obj.body, { status: 206, headers });
+  }
+  headers.set('content-length', String(obj.size));
+  return new Response(obj.body, { status: 200, headers });
 }
 
 /** Текст, якого немає в бібліотеці: лічильник для адмінки (нові тексти контенту, відповіді ШІ). */
@@ -109,7 +160,26 @@ export async function librarySummary(voice: string | null) {
     .from(audioAssets)
     .groupBy(audioAssets.voiceId, audioAssets.status);
   const misses = await db.select().from(audioMisses).orderBy(sql`${audioMisses.count} DESC`).limit(50);
-  return { voice, byStatus, misses };
+  // Черга й помилки голосу бібліотеки: що не готове і чому (останні 50).
+  const queue = voice
+    ? await db
+        .select({ id: audioAssets.unitId, text: audioAssets.text, status: audioAssets.status, model: audioAssets.modelId, error: audioAssets.error, attempts: audioAssets.attempts, at: audioAssets.updatedAt })
+        .from(audioAssets)
+        .where(and(eq(audioAssets.voiceId, voice), sql`${audioAssets.status} != 'ready'`))
+        .orderBy(sql`${audioAssets.updatedAt} DESC`)
+        .limit(50)
+    : [];
+  // Журнал витрат: кредити й нові файли по днях (UTC) — синтез; перенесені з кешу файли кредитів не коштують.
+  const spend = voice
+    ? await db
+        .select({ day: sql<string>`date(${audioAssets.updatedAt} / 1000, 'unixepoch')`, files: sql<number>`count(*)`, credits: sql<number>`coalesce(sum(${audioAssets.credits}), 0)`, chars: sql<number>`coalesce(sum(${audioAssets.chars}), 0)` })
+        .from(audioAssets)
+        .where(and(eq(audioAssets.voiceId, voice), eq(audioAssets.status, 'ready'), eq(audioAssets.source, 'generated')))
+        .groupBy(sql`1`)
+        .orderBy(sql`1 DESC`)
+        .limit(30)
+    : [];
+  return { voice, generation: audioGenerationMode(), byStatus, misses, queue, spend };
 }
 
 // ── ElevenLabs ──
@@ -151,7 +221,7 @@ type ElVoice = { voice_id: string; name?: string; category?: string; labels?: Re
 export async function libraryAccount(env: Env = getBindings()) {
   const key = env.ELEVENLABS_API_KEY;
   const voiceId = libraryVoice(env);
-  const library = { r2: !!env.AUDIO, mode: libraryEnabled(env) ? 'library' : 'on-demand', version: AUDIO_LIBRARY_VERSION, fingerprint: voiceId ? libraryFingerprint(voiceId) : null };
+  const library = { r2: !!env.AUDIO, mode: libraryEnabled(env) ? 'library' : 'none', generation: audioGenerationMode(env), version: AUDIO_LIBRARY_VERSION, fingerprint: voiceId ? libraryFingerprint(voiceId) : null };
   if (!key) return { configured: false, library, voiceId, voice: null, credits: null, models: [], kamilVoices: [], problems: ['в Worker нет секрета ELEVENLABS_API_KEY'] };
   // Кожен запит окремо: ключ лише з правом синтезу (без user_read, voices_read, models_read) не ламає сторінку —
   // генерації потрібен тільки text-to-speech, а причину відмови власник бачить у problems.
@@ -205,6 +275,30 @@ export async function libraryAccount(env: Env = getBindings()) {
 
 // ── Генерація ──
 
+/**
+ * Перед генерацією — voice_id через API ElevenLabs (GET /v1/voices/{id}), результат пам'ятається 10 хвилин.
+ * Голосу немає → відмова; голос є, але не чоловічий Kamil → відмова, якщо адмін явно не підтвердив інший голос.
+ * Ключ без права voices_read не може перевірити голос — тоді генерація йде (синтез сам відмовить на чужий id),
+ * а адмінка попереджає про це окремо (libraryAccount → problems).
+ */
+const VOICE_CHECK_MS = 10 * 60_000;
+let voiceChecked: { voice: string; at: number; kamil: boolean | null } | null = null;
+async function checkLibraryVoice(voice: string, key: string, allowOtherVoice: boolean) {
+  if (!voiceChecked || voiceChecked.voice !== voice || Date.now() - voiceChecked.at > VOICE_CHECK_MS) {
+    let kamil: boolean | null = null;
+    try {
+      const v = await elevenGet<ElVoice>(`/v1/voices/${encodeURIComponent(voice)}`, key);
+      kamil = /kamil/i.test(v.name ?? '') && (v.labels?.gender ?? '').toLowerCase() === 'male';
+    } catch (e) {
+      const m = e instanceof Error ? e.message : '';
+      if (/voice_not_found|http_404|http_400/.test(m)) throw new HttpError(400, 'voice_not_found', elevenReason(e, voice));
+      if (!/missing_permissions|http_401|http_403|unreachable/.test(m) && !(e instanceof HttpError && e.code === 'elevenlabs_unreachable')) throw e;
+    }
+    voiceChecked = { voice, at: Date.now(), kamil };
+  }
+  if (voiceChecked.kamil === false && !allowOtherVoice) throw new HttpError(400, 'voice_not_kamil', 'ELEVENLABS_VOICE_ID — не мужской голос Kamil');
+}
+
 export type GenerateItem = { id: string; text: string; model: LibraryModel };
 export type GenerateResult = { id: string; status: 'generated' | 'adopted' | 'exists' | 'locked' | 'budget' | 'failed'; credits: number; bytes?: number; error?: string; retryable?: boolean };
 
@@ -236,11 +330,19 @@ async function putObject(env: Env, objectKey: string, bytes: Uint8Array, meta: R
  * Партія генерації (послідовно, до 25 текстів). maxCredits — стеля витрат цієї партії: текст, що в неї не вміщується,
  * повертається як budget і лишається в черзі. Порядок на кожен текст: R2 → кеш D1 цього голосу → ElevenLabs.
  */
-export async function generateBatch(items: GenerateItem[], maxCredits: number, rates: Partial<Record<LibraryModel, number>> = {}, env: Env = getBindings()): Promise<GenerateResult[]> {
+export async function generateBatch(
+  items: GenerateItem[],
+  maxCredits: number,
+  rates: Partial<Record<LibraryModel, number>> = {},
+  env: Env = getBindings(),
+  opts: { allowOtherVoice?: boolean } = {},
+): Promise<GenerateResult[]> {
   const voice = libraryVoice(env);
   const key = env.ELEVENLABS_API_KEY;
+  if (audioGenerationMode(env) === 'off') throw new HttpError(403, 'generation_off', 'Генерация озвучки выключена (AUDIO_GENERATION_MODE=off)');
   if (!env.AUDIO) throw new HttpError(400, 'r2_not_configured', 'Немає binding AUDIO (R2)');
   if (!voice || !key) throw new HttpError(400, 'elevenlabs_not_configured', 'Потрібні ELEVENLABS_API_KEY і ELEVENLABS_VOICE_ID');
+  await checkLibraryVoice(voice, key, !!opts.allowOtherVoice);
   let left = maxCredits;
   const out: GenerateResult[] = [];
   for (const item of items) {

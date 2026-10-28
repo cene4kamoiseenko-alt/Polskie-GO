@@ -31,12 +31,13 @@
     }
   ],
   // Аудіобібліотека (docs/AUDIO_LIBRARY_RU.md): готові MP3 у бакеті R2 (Standard, приватний — читає лише Worker).
-  // Сам binding користувачам нічого не змінює: видача з бібліотеки вмикається змінною AUDIO_LIBRARY=on у панелі.
-  // Бакет має існувати до викладу, інакше виклад упаде. У staging бакета немає — там бібліотека вимкнена.
+  // Гравці отримують лише готові MP3 звідси (GET /api/audio/<відбиток>/<audio_id>.mp3); синтезу на запит немає.
+  // Бакет має існувати до викладу, інакше виклад упаде. У staging бакета немає — там озвучки немає взагалі.
   "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "polski-go-audio" }],
   // Нагадування та розсилки — кожні 15 хвилин.
   "triggers": { "crons": ["*/15 * * * *"] },
   // Несекретні налаштування. Секрети (TELEGRAM_BOT_TOKEN, SESSION_SECRET, ...) — у панелі Cloudflare.
-  "vars": { "ENVIRONMENT": "production" },
+  // AUDIO_GENERATION_MODE: платна генерація озвучки лише з адмінки (services/audio-policy.ts); off — вимкнути зовсім.
+  "vars": { "ENVIRONMENT": "production", "AUDIO_GENERATION_MODE": "admin_only" },
   "keep_vars": true
 }
