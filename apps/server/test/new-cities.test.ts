@@ -17,6 +17,8 @@ import { SZCZECIN } from '../src/content/szczecin';
 import { SZCZECIN_VOCAB } from '../src/content/vocab-szczecin';
 import { GDANSK } from '../src/content/gdansk';
 import { GDANSK_VOCAB } from '../src/content/vocab-gdansk';
+import { GDYNIA } from '../src/content/gdynia';
+import { GDYNIA_VOCAB } from '../src/content/vocab-gdynia';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -69,6 +71,16 @@ citySuite({
   routes: ['gda-podroz', 'gda-miasto', 'gda-w-drodze', 'gda-trojmiasto', 'gda-egzamin'],
   lessons: ['gda-1-pociag', 'gda-2-nocleg', 'gda-3-warto', 'gda-4-plaza', 'gda-5-zgubilem', 'gda-6-lotnisko', 'gda-7-historia', 'gda-8-trojmiasto'],
   boss: 'gda-boss',
+  levels: ['A2'],
+});
+
+citySuite({
+  label: 'Gdynia',
+  content: GDYNIA,
+  vocab: GDYNIA_VOCAB,
+  routes: ['gdy-gram', 'gdy-trening', 'gdy-kibic', 'gdy-czas-wolny', 'gdy-egzamin'],
+  lessons: ['gdy-1-grac', 'gdy-2-uprawiam', 'gdy-3-jak-czesto', 'gdy-4-silownia', 'gdy-5-mecz', 'gdy-6-zeglarstwo', 'gdy-7-kontuzja', 'gdy-8-hobby'],
+  boss: 'gdy-boss',
   levels: ['A2'],
 });
 

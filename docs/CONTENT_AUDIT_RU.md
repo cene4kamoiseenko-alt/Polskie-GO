@@ -227,6 +227,21 @@ Weź przestań. У каждого — регистр, с кем можно, си
 - Факты сверены: Żuraw — средневековый портовый кран (Национальный морской музей); забастовка на верфи — август 1980, Лех Валенса — электрик, президент с 1990; Польша в НАТО с 1999, в ЕС с 2004; мол в Сопоте — самый длинный деревянный в Европе; Гдыня — самый молодой город Тримяста.
 - Нужна проверка носителем.
 
+## Gdynia — «Спорт и хобби», A2 (2026-10-28)
+- Файлы: `gdynia.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-gdynia.ts` (43 слова; basen, rower, szatnia, bramka, kamizelka, plecy, codziennie, często, nigdy уже были в словаре).
+- Темы не повторяют Познань (interesować się — там один пример в экзамене; здесь в L8 другой), Гданьск (пляж, kąpać się), Лодзь (здоровье — там у врача, здесь спортивная травма и boli / bolą).
+  - L1 `gdy-1-grac`: **grać w + винительный** (w piłkę, w tenisa, w szachy) ≠ **grać na + предложный** (na gitarze, na pianinie); od trzech lat.
+  - L2 `gdy-2-uprawiam`: **uprawiać sport**, **chodzić na + винительный** (na basen, na jogę) ≠ **jeździć na + предложный** (na nartach, na rolkach); chodzę na basen ≠ pływam w basenie.
+  - L3 `gdy-3-jak-czesto`: **raz / dwa razy / pięć razy** w tygodniu, **co + винительный** (co sobotę), czasem, rzadko; **nigdy nie** (двойное отрицание); wczoraj — не «как часто».
+  - L4 `gdy-4-silownia`: karnet **na miesiąc / na trzy miesiące / na pięć miesięcy**, klucz **do szafki**, **czy mogę + инфинитив**, z trenerem.
+  - L5 `gdy-5-mecz`: **kibicować + дательный без «za»** (Arce, Lechii, Polsce), **dwa do jednego**, remis, **przegrać z + творительный**, strzelić gola; ложный друг drużyna ≠ «дружина» (жена — żona).
+  - L6 `gdy-6-zeglarstwo`: **отглагольные существительные на -nie** (pływanie, bieganie, żeglowanie) как подлежащее; lubię pływać = lubię pływanie; **nauczyć się + инфинитив**; «Dar Pomorza».
+  - L7 `gdy-7-kontuzja`: **boli / bolą mnie** (не «boli mi»), plecy — только множественное, skręciłem / skręciłam kostkę, **musisz odpocząć**.
+  - L8 `gdy-8-hobby`: w wolnym czasie, **interesuję się + творительный**, **повелительное на -my** (zagrajmy, chodźmy, spotkajmy się) ≠ будущее zagramy.
+  - Экзамен `gdy-boss`: 12 заданий.
+- Факты: Arka Gdynia и Lechia Gdańsk — настоящие клубы; счёт матча в чтении — учебный, не реальный матч. «Dar Pomorza» — парусник-музей в Гдыне. Цены абонемента и курса — учебные.
+- Нужна проверка носителем.
+
 ## Szczecin — «Работа и профессии», A2 (2026-10-28)
 - Файлы: `szczecin.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-szczecin.ts` (40 слов; woleć и zamienić się уже были в словаре).
 - Темы сверены с опубликованными уроками: Łódź (być + творительный, BHP), Poznań (zajmować się, targi), Katowice (czy może pan) не повторяются.

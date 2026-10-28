@@ -296,10 +296,10 @@
       "name_pl": "Gdynia",
       "name_ru": "Гдыня",
       "cefr": "A2",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/gdynia.webp",
         "status": "final",
@@ -314,7 +314,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Все три ориентира промпта на кадре",
-      "missing_content": "уроков 0; тема «Спорт і хобі». Нужен файл в apps/web/src/assets/cities/ после подтверждения",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-10-28, тема «Спорт і хобі», A2)",
       "progress": "не проверено"
     },
     {
@@ -547,9 +547,10 @@
       "zielona-gora 8",
       "gorzow 8",
       "szczecin 8",
-      "gdansk 8"
+      "gdansk 8",
+      "gdynia 8"
     ],
-    "cities_without_lessons": 9,
+    "cities_without_lessons": 8,
     "exam_cities": [
       "warszawa",
       "lodz",

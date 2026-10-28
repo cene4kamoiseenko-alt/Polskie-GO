@@ -48,6 +48,7 @@ const PICTO: Record<string, Spec> = {
   '👕': ['shirt', 'thing'], '👓': ['glasses', 'thing'], '🎁': ['gift', 'thing'], '🛍️': ['shopping-bag', 'thing'], '🏷️': ['tag', 'thing'], '⚖️': ['scale', 'thing'],
   // Музика, свято, конкурс
   '🎵': ['music', 'symbol'], '🎤': ['mic', 'symbol'], '🏆': ['trophy', 'symbol'], '🎂': ['cake', 'food'], '🎉': ['party-popper', 'symbol'], '🗳️': ['vote', 'symbol'],
+  '🎸': ['guitar', 'symbol'], '🎹': ['piano', 'symbol'], '🍳': ['cooking-pot', 'food'],
   '📷': ['camera', 'thing'], '🪙': ['coins', 'thing'], '👛': ['wallet', 'thing'], '💯': ['percent', 'symbol'], '🍒': ['cherry', 'food'], '🥕': ['carrot', 'nature'],
   // Запасні піктограми для предметів, які в завданнях малюються як ілюстрації (ITEM_ART у Illustrations.tsx): ключ тут потрібен, якщо малюнка не знайдено.
   '🧥': ['shirt', 'thing'], '👗': ['shirt', 'thing'], '👟': ['footprints', 'way'], '🍓': ['cherry', 'food'],

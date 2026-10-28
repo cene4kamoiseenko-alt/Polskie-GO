@@ -802,4 +802,9 @@ Workers Builds не виден через доступные инструмен�
 - Проверки (сцены): сервер 531/531, shared 158/158, typecheck, content-lint без ошибок; `scripts/mission-screens.ts`
   на 320/360/390/430 — 388 проверок, все пройдены (Premium-миссии — с тестовой подпиской в локальной базе стенда;
   Chromium, не телефон).
+- **Gdynia** (A2, «Спорт и хобби»): grać w / na, chodzić na + винительный ≠ jeździć na + предложный, частота (raz,
+  dwa razy, co sobotę, nigdy nie), абонемент (na trzy miesiące / na pięć miesięcy, klucz do szafki), матч (kibicować +
+  дательный без «za», dwa do jednego, przegrać z), отглагольные существительные (pływanie, bieganie), травма (boli /
+  bolą mnie), хобби и «давай» на -my (zagrajmy ≠ zagramy). 43 слова; пиктограммы 🎸 🎹 🍳 (Lucide guitar, piano,
+  cooking-pot). Уроки теперь в 12 городах из 20.
 
