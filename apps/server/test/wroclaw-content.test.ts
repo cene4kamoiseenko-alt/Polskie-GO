@@ -13,7 +13,11 @@ describe('уроки Вроцлава 5–16', () => {
     expect(routes.map((r) => r.slug)).toEqual(NEW_ROUTES);
     // Порядок маршрутов города: старые три, пять новых, экзамен последним (бос открывается после всех обычных уроков).
     expect(WROCLAW.routes.map((r) => r.slug)).toEqual(['wro-kawiarnia', 'wro-sklep', 'wro-restauracja', ...NEW_ROUTES, 'wro-egzamin']);
-    expect(CITY_CONTENT.find((c) => c.city === 'wroclaw')).toBe(WROCLAW);
+    // У CITY_CONTENT місто за стандартом (city-standard.ts): 8 уроків цього файлу та іспит, решта — в архіві.
+    const published = CITY_CONTENT.find((c) => c.city === 'wroclaw')!.routes.flatMap((r) => r.lessons);
+    expect(published.map((l) => l.slug)).toEqual(['wro-1-kawa', 'wro-2-zabka', 'wro-3-ceny', 'wro-4-restauracja', 'wro-5-ubrania', 'wro-6-przymierzalnia', 'wro-14-prezent', 'wro-15-porownanie', 'wro-boss']);
+    const source = new Map(WROCLAW.routes.flatMap((r) => r.lessons).map((l) => [l.slug, l]));
+    for (const l of published) expect(source.has(l.slug), l.slug).toBe(true);
     expect(lessons.map((x) => x.lesson.slug)).toEqual([
       'wro-5-ubrania', 'wro-6-przymierzalnia', 'wro-7-zwrot', 'wro-8-targ', 'wro-9-lista', 'wro-10-tysiac',
       'wro-11-rezerwacja', 'wro-12-smaki', 'wro-13-krasnale', 'wro-14-prezent', 'wro-15-porownanie', 'wro-16-powtorka',

@@ -12,18 +12,17 @@ import { LESSON_MOVES, ROUTE_ICON_FIXES, TEXT_FIXES } from './fixes';
 import { CITIES, REMOVED_CITIES, project } from './cities';
 import { VOCAB } from './vocab';
 import { VOCAB_FIXES } from './vocab-fixes';
-import { WARSZAWA } from './warszawa';
-import { KRAKOW } from './krakow';
-import { WROCLAW } from './wroclaw';
-import { LODZ } from './lodz';
-import { KATOWICE } from './katowice';
-import { OPOLE } from './opole';
+import { CITY_PLANS, STANDARD_CITIES, keptIndexes } from './city-standard';
+import { POZNAN } from './poznan';
 import { PLACEMENT, EXAM_A1 } from './exams';
 import { ACHIEVEMENTS, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from './gamification';
 import { MISSIONS } from './missions';
 import type { CityContent, LessonSeed } from './types';
 
-export const CITY_CONTENT: CityContent[] = [WARSZAWA, LODZ, KRAKOW, KATOWICE, OPOLE, WROCLAW];
+/** Міста з уроками за стандартом (city-standard.ts): 8 уроків та іспит, по 12 завдань. */
+export const CITY_CONTENT: CityContent[] = [...STANDARD_CITIES, POZNAN];
+/** Ті самі міста до стандарту — лише для тестів міграції (БД, засіяна до скорочення міст). */
+export const PRE_STANDARD_CONTENT: CityContent[] = CITY_PLANS.map(([full]) => full);
 
 /** Нагороди за іспит міста, додані після запуску: [місто, предмет]. Ті, хто вже склав іспит, теж їх отримують. */
 const LATE_CITY_REWARDS: [string, string][] = [['wroclaw', 'costume-krasnal']];
@@ -70,9 +69,106 @@ function insert(table: string, row: Record<string, Value>, conflict: string[], f
   return `${head} ON CONFLICT (${conflict.map((c) => `"${c}"`).join(', ')}) DO ${updates.length ? `UPDATE SET ${updates.join(', ')}` : 'NOTHING'};`;
 }
 
-export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
+/**
+ * Учень склав іспит міста, коли далі не було міст з уроками: наступне місто відкрилося як «скоро», а поточним лишилося
+ * пройдене (completeCity не переносить на місто без уроків). Коли в найближчому відкритому непройденому місті з'являються уроки,
+ * переносимо поточне місто туди. Ідемпотентно: зачіпає лише тих, у кого поточне місто пройдене і таке місто попереду є.
+ */
+const NEXT_OPEN_CITY = `(SELECT c.id FROM user_cities uc JOIN cities c ON c.id = uc.city_id
+  WHERE uc.user_id = player_progress.user_id AND uc.boss_passed_at IS NULL AND c.status = 'PUBLISHED'
+    AND c."order" > (SELECT cur."order" FROM cities cur WHERE cur.id = player_progress.current_city_id)
+    AND EXISTS (SELECT 1 FROM lessons l JOIN city_routes r ON r.id = l.route_id WHERE r.city_id = c.id AND l.status = 'PUBLISHED' AND r.status = 'PUBLISHED')
+  ORDER BY c."order" LIMIT 1)`;
+export const STRANDED_CURRENT_CITY_SQL = `UPDATE player_progress SET current_city_id = ${NEXT_OPEN_CITY}
+WHERE EXISTS (SELECT 1 FROM user_cities d WHERE d.user_id = player_progress.user_id AND d.city_id = player_progress.current_city_id AND d.boss_passed_at IS NOT NULL)
+  AND ${NEXT_OPEN_CITY} IS NOT NULL;`.replace(/\s+/g, ' ');
+
+const exerciseId = (lessonSlug: string, n: number) => `e_${hash(lessonSlug)}_${n}`;
+
+/** Рядок вправи: ідентифікатор за сталим номером (exerciseIds), позиція — за порядком в уроці. */
+function exerciseSql(lessonSlug: string, l: LessonSeed, i: number, force: boolean) {
+  const ex = l.exercises[i];
+  return insert(
+    'exercises',
+    { id: exerciseId(lessonSlug, l.exerciseIds?.[i] ?? i), lesson_id: ref('lessons', { slug: lessonSlug }), order: i, type: ex.type, skill: ex.skill, data: ex.data, explanation: ex.explanation ?? null },
+    ['lesson_id', 'order'],
+    force,
+  );
+}
+
+/** Архівний урок для завдань, прибраних зі скорочених уроків: поза картою (без теми) і поза практикою (ARCHIVED). */
+export const TASK_ARCHIVE = 'archiwum-zadan';
+/** Позиція прибраного завдання в архівному уроці: стала для пари (урок, номер) і не залежить від складу плану. */
+export function archiveOrder(lessonSlug: string, n: number): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < lessonSlug.length; i++) h = Math.imul(h ^ lessonSlug.charCodeAt(i), 16777619);
+  return ((h >>> 0) % 1_000_000) * 100 + n;
+}
+
+/**
+ * Скорочення міст до стандарту (city-standard.ts) на наявній БД. Нічого не видаляє й повторно нічого не змінює:
+ * теми й уроки поза планом — ARCHIVED; зайві завдання уроку — до архівного уроку; решта завдань — на позиції 0…11 за порядком;
+ * нові завдання скорочених уроків вставляються вже після звільнення позицій; квиток міста — не більше нової кількості уроків.
+ */
+export function standardSql(): string[] {
+  const out: string[] = [];
+  const archive = ref('lessons', { slug: TASK_ARCHIVE }).sql;
+  out.push(
+    insert(
+      'lessons',
+      {
+        id: `l_${TASK_ARCHIVE}`, slug: TASK_ARCHIVE, order: 0, kind: 'LESSON',
+        title: { uk: 'Архів завдань', ru: 'Архив заданий', en: 'Task archive' },
+        topic: { uk: 'Завдання, прибрані з уроків за стандартом міста', ru: 'Задания, убранные из уроков по стандарту города', en: 'Tasks removed from lessons by the city standard' },
+        cefr: 'A1', difficulty: 1,
+        explanation: { uk: 'Службовий урок: не показується учням.', ru: 'Служебный урок: ученикам не показывается.', en: 'Service lesson: never shown to learners.' },
+        examples: [], status: 'ARCHIVED', route_id: null,
+      },
+      ['slug'],
+      false,
+    ),
+  );
+  for (const [full, plan] of CITY_PLANS) {
+    // Порядок архівних тем — поза номерами 1…n (унікальний індекс міста), після зсуву на +2000 у циклі міст.
+    full.routes.filter((r) => !plan.routes.includes(r.slug)).forEach((r, i) => {
+      out.push(`UPDATE city_routes SET status = 'ARCHIVED', "order" = ${1000 + i} WHERE slug = ${lit(r.slug)};`);
+    });
+    const all = full.routes.flatMap((r) => r.lessons);
+    const archived = all.filter((l) => plan.keep[l.slug] === undefined).map((l) => lit(l.slug));
+    if (archived.length) out.push(`UPDATE lessons SET status = 'ARCHIVED' WHERE slug IN (${archived.join(', ')}) AND status = 'PUBLISHED';`);
+    for (const l of all) {
+      if (plan.keep[l.slug] === undefined) continue;
+      const lessonId = ref('lessons', { slug: l.slug }).sql;
+      const kept = keptIndexes(l, plan);
+      for (const n of l.exercises.keys()) {
+        if (kept.includes(n)) continue;
+        const o = archiveOrder(l.slug, n);
+        out.push(
+          `UPDATE exercises SET lesson_id = ${archive}, "order" = ${o} WHERE id = ${lit(exerciseId(l.slug, n))} AND lesson_id = ${lessonId} AND NOT EXISTS (SELECT 1 FROM exercises x WHERE x.lesson_id = ${archive} AND x."order" = ${o});`,
+        );
+      }
+      // За зростанням: позиція i вже вільна (прибране завдання перенесене, попереднє — зсунуте); повтор нічого не змінює.
+      kept.forEach((n, i) => {
+        if (n === i) return;
+        out.push(
+          `UPDATE exercises SET "order" = ${i} WHERE id = ${lit(exerciseId(l.slug, n))} AND lesson_id = ${lessonId} AND NOT EXISTS (SELECT 1 FROM exercises x WHERE x.lesson_id = ${lessonId} AND x."order" = ${i});`,
+        );
+      });
+    }
+    const content = CITY_CONTENT.find((c) => c.city === full.city)!;
+    const lessons = content.routes.flatMap((r) => r.lessons);
+    // Нові завдання скороченого уроку: у циклі міст їхні позиції ще були зайняті старими завданнями.
+    for (const l of lessons) if (plan.add?.[l.slug] && Array.isArray(plan.keep[l.slug])) for (const i of l.exercises.keys()) out.push(exerciseSql(l.slug, l, i, false));
+    const regular = lessons.filter((l) => (l.kind ?? 'LESSON') === 'LESSON').length;
+    out.push(`UPDATE cities SET ticket_lessons = ${regular} WHERE slug = ${lit(full.city)} AND ticket_lessons > ${regular};`);
+  }
+  return out;
+}
+
+export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = {}): string[] {
   const force = !!opts.force;
   const out: string[] = [];
+  const cityContent = opts.preStandard ? PRE_STANDARD_CONTENT : CITY_CONTENT;
   resetIds();
 
   // ── Налаштування гри та тарифи ──
@@ -134,16 +230,7 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
     const lessonId = ref('lessons', { slug: l.slug });
     // Урок, що лишився без локації (наприклад, локацію додали пізніше), прив'язуємо до неї.
     if (routeSlug) out.push(`UPDATE lessons SET route_id = ${ref('city_routes', { slug: routeSlug }).sql} WHERE slug = ${lit(l.slug)} AND route_id IS NULL;`);
-    for (const [i, ex] of l.exercises.entries()) {
-      out.push(
-        insert(
-          'exercises',
-          { id: `e_${hash(l.slug)}_${i}`, lesson_id: lessonId, order: i, type: ex.type, skill: ex.skill, data: ex.data, explanation: ex.explanation ?? null },
-          ['lesson_id', 'order'],
-          force,
-        ),
-      );
-    }
+    for (const i of l.exercises.keys()) out.push(exerciseSql(l.slug, l, i, force));
     if (force) {
       out.push(`DELETE FROM exercises WHERE lesson_id = ${lessonId.sql} AND "order" >= ${l.exercises.length};`);
       out.push(`DELETE FROM lesson_words WHERE lesson_id = ${lessonId.sql};`);
@@ -155,7 +242,7 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
     }
   };
 
-  for (const content of CITY_CONTENT) {
+  for (const content of cityContent) {
     const cityId = ref('cities', { slug: content.city });
     let regular = 0;
     // Порядок локацій визначає код (нові локації можуть з'явитися на початку міста):
@@ -177,6 +264,7 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   }
   lessonSql(PLACEMENT, 0, null);
   lessonSql(EXAM_A1, 0, null);
+  out.push(STRANDED_CURRENT_CITY_SQL);
 
   // ── Явні виправлення текстів (лише якщо в БД досі старе значення з коду) ──
   for (const f of [...TEXT_FIXES, ...CONTINUATION_TEXT_FIXES, ...ROUTE_ICON_FIXES]) {
@@ -192,6 +280,8 @@ export function buildSeedSql(opts: { force?: boolean } = {}): string[] {
   out.push(...exerciseFixSql());
   // Те саме для словника: рівень і приклади оновлюються лише там, де досі старе значення з коду.
   out.push(...vocabFixSql());
+  // Стандарт міста — після точкових виправлень: вони адресують завдання за старими позиціями.
+  if (!opts.preStandard) out.push(...standardSql());
 
   // ── Косметика ──
   for (const [i, item] of ITEMS.entries()) {

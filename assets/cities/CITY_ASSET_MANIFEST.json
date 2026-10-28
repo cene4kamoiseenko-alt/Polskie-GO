@@ -20,10 +20,10 @@
       "name_pl": "Warszawa",
       "name_ru": "Варшава",
       "cefr": "A1",
-      "routes": 7,
-      "lessons": 25,
+      "routes": 4,
+      "lessons": 8,
       "exam": true,
-      "tasks_per_lesson": "17–23",
+      "tasks_per_lesson": "12",
       "image": {
         "repo": "apps/web/src/assets/cities/warszawa.webp",
         "status": "final",
@@ -33,7 +33,7 @@
         "owner_candidate": null
       },
       "landmarks": "колона Сигізмунда, Замок — совпадает с описанием",
-      "missing_content": "нет основного блока; проверить, что route-stats = 25 уроков, а не 26 из старого расчёта",
+      "missing_content": "стандарт города (2026-10-28): 8 уроков + экзамен по 12 заданий — знакомство, числа, вокзал и билеты; остальные 17 уроков в архиве (прогресс сохранён)",
       "progress": "не проверено (нет доступа к базе)"
     },
     {
@@ -41,10 +41,10 @@
       "name_pl": "Łódź",
       "name_ru": "Лодзь",
       "cefr": "A1",
-      "routes": 7,
-      "lessons": 16,
+      "routes": 5,
+      "lessons": 8,
       "exam": true,
-      "tasks_per_lesson": "12–16",
+      "tasks_per_lesson": "12",
       "image": {
         "repo": "apps/web/src/assets/cities/lodz.webp",
         "status": "final",
@@ -59,7 +59,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Piotrkowska и фабричная труба видны; закрывает пробел «Piotrkowska»",
-      "missing_content": "уроков 16 — полный набор; интерим-кадр заменить кандидатом после подтверждения",
+      "missing_content": "стандарт города (2026-10-28): 8 уроков + экзамен по 12 заданий — звуки, люди, работа и безопасность, время и утро; поиск работы, график, здоровье — в архиве",
       "progress": "не проверено"
     },
     {
@@ -67,10 +67,10 @@
       "name_pl": "Kraków",
       "name_ru": "Краков",
       "cefr": "A1",
-      "routes": 11,
-      "lessons": 40,
+      "routes": 5,
+      "lessons": 8,
       "exam": true,
-      "tasks_per_lesson": "10–23",
+      "tasks_per_lesson": "12",
       "image": {
         "repo": "apps/web/src/assets/cities/krakow.webp",
         "status": "final",
@@ -80,7 +80,7 @@
         "owner_candidate": null
       },
       "landmarks": "Рынок, Суконные ряды, Мариацкий костёл — совпадает",
-      "missing_content": "описание города в CITIES называет рынок «найбільшим ринком Європи» — формулировка завышена; уточнить (например, «одна з найбільших середньовічних площ»)",
+      "missing_content": "стандарт города (2026-10-28): 8 уроков + экзамен по 12 заданий — семья, дом, неделя и być, Rynek; вокзал, Żabka, ресторан, трамвай, отель, университет — в архиве. Описание в CITIES называет рынок «найбільшим ринком Європи» — уточнить формулировку",
       "progress": "не проверено"
     },
     {
@@ -88,10 +88,10 @@
       "name_pl": "Katowice",
       "name_ru": "Катовице",
       "cefr": "A1",
-      "routes": 7,
-      "lessons": 13,
+      "routes": 5,
+      "lessons": 8,
       "exam": true,
-      "tasks_per_lesson": "11–14",
+      "tasks_per_lesson": "12",
       "image": {
         "repo": "apps/web/src/assets/cities/katowice.webp",
         "status": "final",
@@ -106,7 +106,7 @@
         "integrated": "2026-10-28"
       },
       "landmarks": "Spodek, копёр и кубы Музея Силезии, NOSPR — совпадают с заданием (проверено по мастеру 2026-10-28)",
-      "missing_content": "уроков 13 из 13 запланированных, экзамен; написано 2026-10-27 (kat-5…13). Не вошли пункты плана Haiku: «mówić/powiedzieć», «brać/wziąć», «Spodek и районы». Нужна проверка носителем",
+      "missing_content": "стандарт города (2026-10-28): 8 уроков + экзамен по 12 заданий — транспорт, глаголы движения, пары слов, поездки и такси, квартира; самокат, почта, звонки — в архиве. Нужна проверка носителем",
       "progress": "не проверено"
     },
     {
@@ -115,9 +115,9 @@
       "name_ru": "Ополе",
       "cefr": "A1",
       "routes": 4,
-      "lessons": 10,
+      "lessons": 8,
       "exam": true,
-      "tasks_per_lesson": "11–14",
+      "tasks_per_lesson": "12",
       "image": {
         "repo": "apps/web/src/assets/cities/opole.webp",
         "status": "final",
@@ -132,7 +132,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Башня Пястов и амфитеатр Opole узнаваемы",
-      "missing_content": "уроков 10, экзамен; уроки 5–10 (планы, приглашения, мнение, концерт, песня, конкурс) написаны 2026-10-27; урок сленга — только после проверки носителем",
+      "missing_content": "стандарт города (2026-10-28): 8 уроков + экзамен по 12 заданий; «Моё мнение» и «Песня» — в архиве; урок сленга — только после проверки носителем",
       "progress": "не проверено"
     },
     {
@@ -140,10 +140,10 @@
       "name_pl": "Wrocław",
       "name_ru": "Вроцлав",
       "cefr": "A1",
-      "routes": 9,
-      "lessons": 16,
+      "routes": 6,
+      "lessons": 8,
       "exam": true,
-      "tasks_per_lesson": "10–14",
+      "tasks_per_lesson": "12",
       "image": {
         "repo": "apps/web/src/assets/cities/wroclaw.webp",
         "status": "final",
@@ -158,7 +158,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Ратуша и краснали (гномы) узнаваемы; закрывает пробел «Rynek»",
-      "missing_content": "уроков 16, экзамен; уроки 5–16 подключены 2026-10-27, черновики drafts/ удалены. Нужна проверка носителем",
+      "missing_content": "стандарт города (2026-10-28): 8 уроков + экзамен по 12 заданий — кафе, магазин, цены, ресторан, одежда, подарки и сравнение; рынок, вечер и повторение — в архиве. Нужна проверка носителем",
       "progress": "не проверено"
     },
     {
@@ -166,10 +166,10 @@
       "name_pl": "Poznań",
       "name_ru": "Познань",
       "cefr": "A1",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 5,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": "12",
       "image": {
         "repo": "apps/web/src/assets/cities/poznan.webp",
         "status": "final",
@@ -184,7 +184,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Козлы на башне ратуши видны; закрывает пробел",
-      "missing_content": "уроков 0; тема города «Місто, транспорт і робота» — не начата",
+      "missing_content": "стандарт города (2026-10-28): 8 уроков + экзамен по 12 заданий — откуда/где/куда, козлики и «ile razy», месяцы и даты, zajmować się, ярмарка, musieć/móc, выходные. Нужна проверка носителем",
       "progress": "не проверено"
     },
     {
@@ -545,21 +545,23 @@
     "missing_in_repo": 0,
     "owner_candidates_full_size": 8,
     "cities_with_lessons": [
-      "warszawa 25",
-      "lodz 16",
-      "krakow 40",
-      "katowice 13",
-      "opole 10",
-      "wroclaw 16"
+      "warszawa 8",
+      "lodz 8",
+      "krakow 8",
+      "katowice 8",
+      "opole 8",
+      "wroclaw 8",
+      "poznan 8"
     ],
-    "cities_without_lessons": 14,
+    "cities_without_lessons": 13,
     "exam_cities": [
       "warszawa",
       "lodz",
       "krakow",
       "katowice",
       "opole",
-      "wroclaw"
+      "wroclaw",
+      "poznan"
     ],
     "final_cities": [
       "warszawa",

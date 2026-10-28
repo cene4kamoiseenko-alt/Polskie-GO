@@ -53,13 +53,14 @@ const runs = (types: string[]) => {
   return max;
 };
 
-export function expansionRules(label: string, lessons: LessonSeed[]) {
+export function expansionRules(label: string, lessons: LessonSeed[], levels: string[] = ['A1', 'A2', 'B1']) {
   it(`${label}: CEFR, сложность, пояснение и примеры, слова из словаря`, () => {
     for (const l of lessons) {
-      expect(['A1', 'A2', 'B1'], l.slug).toContain(l.cefr);
+      expect(levels, l.slug).toContain(l.cefr);
       expect(l.difficulty, l.slug).toBeGreaterThanOrEqual(1);
       expect(l.difficulty, l.slug).toBeLessThanOrEqual(5);
-      expect(l.examples.length, l.slug).toBeGreaterThan(0);
+      // Экзамен города (BOSS) — проверка без новых примеров, как у всех городов.
+      if ((l.kind ?? 'LESSON') === 'LESSON') expect(l.examples.length, l.slug).toBeGreaterThan(0);
       for (const ex of l.examples) expect(CYRILLIC.test(ex.pl), `${l.slug}: ${ex.pl}`).toBe(false);
       for (const w of l.words) expect(knownPl.has(w), `${l.slug}: слово «${w}» не в словаре`).toBe(true);
       expect(emptyI18n(l), `${l.slug} пустые переводы`).toEqual([]);

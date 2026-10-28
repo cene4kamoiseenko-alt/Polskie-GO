@@ -87,41 +87,12 @@ describe('Żywy polski', () => {
   });
 });
 
-import { KRK_DWORZEC } from '../src/content/krakow-dworzec';
-import { KRK_ZABKA } from '../src/content/krakow-zabka';
-import { KRK_RYNEK } from '../src/content/krakow-rynek';
-import { KRK_RESTAURACJA } from '../src/content/krakow-restauracja';
-import { KRK_TRAMWAJ } from '../src/content/krakow-tramwaj';
-import { KRK_HOTEL } from '../src/content/krakow-hotel';
-import { KRK_UNIWERSYTET } from '../src/content/krakow-uniwersytet';
-
-describe('Локації міст (3.0)', () => {
-  const WARSZAWA = CITY_CONTENT.find((c) => c.city === 'warszawa')!.routes;
-  const LOCATIONS = [
-    KRK_DWORZEC, KRK_ZABKA, KRK_RYNEK, KRK_RESTAURACJA, KRK_TRAMWAJ, KRK_HOTEL, KRK_UNIWERSYTET,
-    ...WARSZAWA.filter((r) => r.slug !== 'waw-egzamin'),
-  ];
-  it('у локації 3–6 уроків, звичайний урок 15–20 завдань, місія 20–30; щонайменше 5 різних механік', () => {
-    for (const loc of LOCATIONS) {
-      expect(loc.lessons.length, loc.slug).toBeGreaterThanOrEqual(3);
-      expect(loc.lessons.length, loc.slug).toBeLessThanOrEqual(6);
-      expect(loc.lessons.at(-1)!.slug.endsWith('-misja'), `${loc.slug}: остання — місія`).toBe(true);
-      for (const l of loc.lessons) {
-        const mission = l.slug.endsWith('-misja');
-        expect(l.exercises.length, l.slug).toBeGreaterThanOrEqual(mission ? 20 : 15);
-        expect(l.exercises.length, l.slug).toBeLessThanOrEqual(mission ? 30 : 20);
-        // «Механіка» = тип вправи; WORD_TRANSLATION з картинками рахуємо окремо.
-        const mech = new Set(l.exercises.map((e) => (e.type === 'WORD_TRANSLATION' && (e.data.options as { image?: string }[])[0]?.image ? 'PICTURE_CHOICE' : e.type)));
-        expect(mech.size, `${l.slug}: ${[...mech].join(',')}`).toBeGreaterThanOrEqual(mission ? 8 : 5);
-      }
-    }
-  });
-
-  it('Варшава: шість локацій перед іспитом, іспит 25–30 завдань', () => {
-    expect(WARSZAWA.map((r) => r.slug)).toEqual(['waw-powitania', 'waw-przedstawianie', 'waw-liczby', 'waw-stare-miasto', 'waw-kawiarnia', 'waw-sasiedzi', 'waw-egzamin']);
-    const boss = WARSZAWA.at(-1)!.lessons[0];
-    expect(boss.exercises.length).toBeGreaterThanOrEqual(25);
-    expect(boss.exercises.length).toBeLessThanOrEqual(30);
+// Локації 3.0 (урок 15–20 завдань, місія 20–30, шість локацій Варшави) замінено стандартом міста 2026-10-28:
+// 8 уроків та іспит по 12 завдань — city-standard.test.ts.
+describe('Міста', () => {
+  it('Варшава: знайомство, числа, вокзал і квитки, іспит', () => {
+    const WARSZAWA = CITY_CONTENT.find((c) => c.city === 'warszawa')!.routes;
+    expect(WARSZAWA.map((r) => r.slug)).toEqual(['waw-powitania', 'waw-liczby', 'waw-przedstawianie', 'waw-egzamin']);
   });
 
   it('у місті немає однакових завдань', () => {

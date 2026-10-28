@@ -51,6 +51,11 @@ const ROUTE_SCENES: Record<string, SceneName> = {
   'wro-wieczor': 'restaurant',
   'wro-prezenty': 'gift-shop',
   'wro-powtorka': 'market-square',
+  'pzn-miasto': 'market-square',
+  'pzn-kalendarz': 'bakery',
+  'pzn-praca': 'office',
+  'pzn-dzien': 'restaurant',
+  'pzn-egzamin': 'market-square',
 };
 
 /** Ширші набори предметів, щоб вітрина не повторювалась у сусідніх завданнях. */

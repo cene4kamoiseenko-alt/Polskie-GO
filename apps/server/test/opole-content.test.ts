@@ -13,7 +13,11 @@ const lessons = routes.flatMap((r) => r.lessons.map((l) => ({ route: r.slug, les
 describe('уроки Ополя 5–10', () => {
   it('маршруты и уроки идут по плану, после старых и перед экзаменом', () => {
     expect(OPOLE.routes.map((r) => r.slug)).toEqual(['opo-zywy', ...NEW_ROUTES, 'opo-egzamin']);
-    expect(CITY_CONTENT.find((c) => c.city === 'opole')).toBe(OPOLE);
+    // У CITY_CONTENT місто за стандартом (city-standard.ts): 8 уроків цього файлу та іспит, решта — в архіві.
+    const published = CITY_CONTENT.find((c) => c.city === 'opole')!.routes.flatMap((r) => r.lessons);
+    expect(published.map((l) => l.slug)).toEqual(['opo-1-siema', 'opo-2-reakcje', 'opo-3-ogarniac', 'opo-4-nic-nikt', 'opo-5-weekend', 'opo-6-zaproszenie', 'opo-8-koncert', 'opo-10-nagroda', 'opo-boss']);
+    const source = new Map(OPOLE.routes.flatMap((r) => r.lessons).map((l) => [l.slug, l]));
+    for (const l of published) expect(source.has(l.slug), l.slug).toBe(true);
     expect(lessons.map((x) => x.lesson.slug)).toEqual(['opo-5-weekend', 'opo-6-zaproszenie', 'opo-7-zdanie', 'opo-8-koncert', 'opo-9-piosenka', 'opo-10-nagroda']);
     expect(OPOLE.routes[0].lessons.map((l) => l.slug)).toEqual(['opo-1-siema', 'opo-2-reakcje', 'opo-3-ogarniac', 'opo-4-nic-nikt']);
     expect(OPOLE.routes.at(-1)!.lessons.map((l) => l.slug)).toEqual(['opo-boss']);

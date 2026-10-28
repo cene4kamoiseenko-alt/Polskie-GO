@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CITY_CONTENT } from '../src/content/seed';
+import { CITY_CONTENT, PRE_STANDARD_CONTENT } from '../src/content/seed';
 import { EXAM_A1, PLACEMENT } from '../src/content/exams';
 import { ROUTE_ICON_FIXES } from '../src/content/fixes';
 
@@ -34,7 +34,8 @@ describe('Візуальні ключі контенту', () => {
     for (const c of CITY_CONTENT) for (const r of c.routes) expect(r.icon, r.slug).toMatch(/^[a-z][a-z-]*$/);
     for (const f of ROUTE_ICON_FIXES) {
       expect(f.from).not.toMatch(/^[a-z-]+$/);
-      expect(CITY_CONTENT.some((c) => c.routes.some((r) => r.slug === f.slug && r.icon === f.to)), f.slug).toBe(true);
+      // Архівні теми (стандарт міста) лишаються в БД — правило так само має вести до ключа іконки.
+      expect([...CITY_CONTENT, ...PRE_STANDARD_CONTENT].some((c) => c.routes.some((r) => r.slug === f.slug && r.icon === f.to)), f.slug).toBe(true);
     }
   });
 });

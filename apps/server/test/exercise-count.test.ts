@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
+import { CITY_CONTENT } from '../src/content/seed';
 import { disposeEnv, getEnv, login } from './helpers';
 
 afterAll(disposeEnv);
@@ -46,7 +47,7 @@ describe('lessons.exercise_count (замість GROUP BY у getJourney)', () =>
     const j = await call('GET', '/api/journey');
     expect(j.status).toBe(200);
     const lessonsOut = (j.body.cities as { routes: { lessons: { id: string; exerciseCount: number }[] }[] }[]).flatMap((c) => c.routes.flatMap((r) => r.lessons));
-    expect(lessonsOut.length).toBeGreaterThan(80);
+    expect(lessonsOut.length).toBe(CITY_CONTENT.flatMap((c) => c.routes.flatMap((r) => r.lessons)).length);
     const real = new Map(
       (await env.DB.prepare('SELECT lesson_id AS id, count(*) AS n FROM exercises GROUP BY lesson_id').all<{ id: string; n: number }>()).results.map((r) => [r.id, r.n]),
     );

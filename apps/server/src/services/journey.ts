@@ -114,7 +114,10 @@ export async function getJourney(userId: string) {
     // Для LEGACY_BEFORE_EXPANSION «до розширення» — раніше, ніж з'явився перший урок поза знімком (created_at);
     // хто проходить старі уроки після розширення, проходить і нові. Решта міст — старі уроки в будь-який час (правило 3.x).
     const before = LEGACY_BEFORE_EXPANSION.has(city.slug);
-    const legacyDone = (LEGACY_CITY_LESSONS[city.slug] ?? []).some((snapshot) => {
+    // Уроки знімка, що пішли в архів за стандартом міста (city-standard.ts), не рахуються: учень проходив їх, але на карті
+    // їх більше немає. Порожній знімок нічого не відкриває.
+    const legacyDone = (LEGACY_CITY_LESSONS[city.slug] ?? []).map((s) => s.filter((slug) => all.some((l) => l.slug === slug))).some((snapshot) => {
+      if (!snapshot.length) return false;
       const added = before ? regular.filter((l) => !snapshot.includes(l.slug)).map((l) => l.createdAt.getTime()) : [];
       const expandedAt = added.length ? Math.min(...added) : Infinity;
       return snapshot.every((slug) => {
@@ -208,7 +211,14 @@ export async function getJourney(userId: string) {
     }
   }
 
-  const current = result.find((c) => c.id === progress[0]?.currentCityId) ?? result.find((c) => c.unlocked) ?? result[0];
+  let current = result.find((c) => c.id === progress[0]?.currentCityId) ?? result.find((c) => c.unlocked) ?? result[0];
+  // Іспит міста складено, коли далі ще не було міст з уроками: наступне місто відкрилося як «скоро», а поточним лишилося
+  // пройдене. Щойно в ньому з'являються уроки (новий контент або адмінка), ведемо учня туди — як зробив би сам іспит
+  // (completeCity), навіть якщо в пройденому місті лишилися уроки для повторення. Seed переносить і сам рядок.
+  if (current?.completed) {
+    const from = current;
+    current = result.find((c) => c.order > from.order && c.unlocked && c.hasContent && !c.completed) ?? from;
+  }
   const next = current ? findNextLesson(current) : null;
   return { cities: result, currentCityId: current?.id ?? null, nextLesson: next };
 }

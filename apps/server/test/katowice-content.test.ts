@@ -13,7 +13,11 @@ const lessons = routes.flatMap((r) => r.lessons.map((l) => ({ route: r.slug, les
 describe('уроки Катовице 5–13', () => {
   it('маршруты и уроки идут по плану, после старых и перед экзаменом', () => {
     expect(KATOWICE.routes.map((r) => r.slug)).toEqual(['kat-ruch', 'kat-pary', ...NEW_ROUTES, 'kat-egzamin']);
-    expect(CITY_CONTENT.find((c) => c.city === 'katowice')).toBe(KATOWICE);
+    // У CITY_CONTENT місто за стандартом (city-standard.ts): 8 уроків цього файлу та іспит, решта — в архіві.
+    const published = CITY_CONTENT.find((c) => c.city === 'katowice')!.routes.flatMap((r) => r.lessons);
+    expect(published.map((l) => l.slug)).toEqual(['kat-1-transport', 'kat-2-isc-jechac', 'kat-3-wiedziec-znac', 'kat-4-te-ta', 'kat-5-przyjechac', 'kat-7-taksowka', 'kat-9-wynajem', 'kat-10-awaria', 'kat-boss']);
+    const source = new Map(KATOWICE.routes.flatMap((r) => r.lessons).map((l) => [l.slug, l]));
+    for (const l of published) expect(source.has(l.slug), l.slug).toBe(true);
     expect(lessons.map((x) => x.lesson.slug)).toEqual([
       'kat-5-przyjechac', 'kat-6-hulajnoga', 'kat-7-taksowka', 'kat-8-poczta', 'kat-9-wynajem', 'kat-10-awaria', 'kat-11-telefon', 'kat-12-prosby', 'kat-13-zgubione',
     ]);

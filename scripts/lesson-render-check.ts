@@ -1,7 +1,9 @@
 /**
- * Новые уроки Wrocław 5–16, Katowice 5–13, Opole 5–10 на узких экранах (Chromium, не Telegram).
+ * Уроки городов на узких экранах (Chromium, не Telegram): все задания всех городов с уроками — после стандарта города
+ * (8 уроков, по 12 заданий, 2026-10-28) это 7 городов × 8 уроков × 12 заданий.
  *
- *   node --import tsx scripts/lesson-render-check.ts
+ *   node --import tsx scripts/lesson-render-check.ts            — все города
+ *   node --import tsx scripts/lesson-render-check.ts poznan     — только перечисленные
  *
  * 1. Через API (как apps/server/test/expansion-suite.ts) открывает город, проходит старые уроки, затем каждый новый:
  *    берёт его реальные задания из POST /api/sessions и проходит урок правильными ответами — так открывается следующий.
@@ -22,11 +24,10 @@ const root = process.cwd();
 const require = createRequire(root + '/package.json');
 const OUT = resolve(root, 'test-results/lesson-render');
 
-const CITIES = [
-  { city: 'wroclaw', old: ['wro-1-kawa', 'wro-2-zabka', 'wro-3-ceny', 'wro-4-restauracja'] },
-  { city: 'katowice', old: ['kat-1-transport', 'kat-2-isc-jechac', 'kat-3-wiedziec-znac', 'kat-4-te-ta'] },
-  { city: 'opole', old: ['opo-1-siema', 'opo-2-reakcje', 'opo-3-ogarniac', 'opo-4-nic-nikt'] },
-];
+// old — уроки, которые проходятся без снимков (пусто: проверяются все).
+const CITIES = ['warszawa', 'lodz', 'krakow', 'katowice', 'opole', 'wroclaw', 'poznan']
+  .map((city) => ({ city, old: [] as string[] }))
+  .filter((c) => process.argv.length <= 2 || process.argv.slice(2).includes(c.city));
 
 type Lesson = { id: string; slug: string; kind: string };
 type City = { slug: string; routes: { lessons: Lesson[] }[] };
@@ -45,7 +46,8 @@ async function main() {
   for (const cfg of CITIES) {
     const { call, user } = await stand.login();
     const city = (await db.query.cities.findFirst({ where: eq(schema.cities.slug, cfg.city) }))!;
-    await db.insert(schema.userCities).values({ userId: user.id, cityId: city.id, source: 'journey' });
+    // Варшава открыта новому ученику сразу.
+    await db.insert(schema.userCities).values({ userId: user.id, cityId: city.id, source: 'journey' }).onConflictDoNothing();
     const journey = async () => ((await call('GET', '/api/journey')).body.cities as City[]).find((c) => c.slug === cfg.city)!;
     const lessons = (await journey()).routes.flatMap((r) => r.lessons).filter((l) => l.kind === 'LESSON');
     for (const l of lessons) {

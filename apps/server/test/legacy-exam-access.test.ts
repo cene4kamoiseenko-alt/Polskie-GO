@@ -14,8 +14,10 @@ type Call = Awaited<ReturnType<typeof login>>['call'];
 const WAW = ['waw-1-czesc', 'waw-2-uprzejmosc', 'waw-3-imie', 'waw-4-skad', 'waw-5-liczby', 'waw-6-wiek'];
 const KRK = ['krk-1-rodzina', 'krk-2-mam', 'krk-3-dom', 'krk-4-tydzien', 'krk-5-byc'];
 const LODZ_OLD = ['lodz-1-alfabet', 'lodz-2-dwuznaki', 'lodz-3-zawody', 'lodz-4-oni-one'];
-const LODZ_NEW = ['lodz-5-gdzie-pracujesz', 'lodz-6-szukam-pracy', 'lodz-7-rozmowa', 'lodz-8-pierwszy-dzien'];
-const LODZ_9_16 = ['lodz-9-ktora-godzina', 'lodz-10-poranek', 'lodz-11-grafik', 'lodz-12-urlop', 'lodz-13-boli-mnie', 'lodz-14-przychodnia', 'lodz-15-apteka', 'lodz-16-plany'];
+// Після стандарту міста (2026-10-28) з розширень Лодзі лишилися уроки 5 і 8, 9 і 10; решта — в архіві (у цій чистій БД їх немає,
+// знімки рахують лише уроки на карті — journey.ts; архівні уроки з прогресом перевіряє city-standard.test.ts).
+const LODZ_NEW = ['lodz-5-gdzie-pracujesz', 'lodz-8-pierwszy-dzien'];
+const LODZ_9_16 = ['lodz-9-ktora-godzina', 'lodz-10-poranek'];
 
 async function openCity(userId: string, slug: string) {
   const city = (await db.query.cities.findFirst({ where: eq(cities.slug, slug) }))!;
@@ -91,7 +93,7 @@ describe('Доступ до іспиту за старими уроками (leg
     expect(city.routes.flatMap((r) => r.lessons).find((l) => l.slug === LODZ_NEW[0])!.state).toBe('available');
   });
 
-  it('Лодзь, друге розширення: уроки 1–8 до появи 9–16 відкривають іспит, після — ні; дев\'ятий урок відкритий', async () => {
+  it('Лодзь, друге розширення: уроки 1–8 (що лишилися) до появи 9–16 відкривають іспит, після — ні; дев\'ятий урок відкритий', async () => {
     const at = await expandedAt(LODZ_9_16);
     const before = await login();
     await openCity(before.user.id, 'lodz');

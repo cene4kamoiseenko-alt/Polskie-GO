@@ -15,18 +15,19 @@ async function openLodz(userId: string) {
   await db.insert(userCities).values({ userId, cityId: lodz.id, source: 'journey' });
 }
 
-describe('Łódź після розширень (теми «Praca w Łodzi», «День і графік», «Здоров\'я», повторення)', () => {
-  it('уроки 1–16 відкриваються по черзі й проходяться через API; іспит — лише після шістнадцятого', async () => {
+// Після стандарту міста (2026-10-28) у Лодзі 8 уроків: 1–4, робота (5, 8), день (9, 10); решта розширень — в архіві.
+describe('Łódź за стандартом (звуки, люди, робота, день)', () => {
+  it('8 уроків відкриваються по черзі й проходяться через API; іспит — лише після восьмого', async () => {
     const { call, user } = await login();
     await openLodz(user.id);
     const lodz = async () => ((await call('GET', '/api/journey')).body.cities as City[]).find((c) => c.slug === 'lodz')!;
 
     const praca = (await lodz()).routes.find((r) => r.slug === 'lodz-praca')!;
-    expect(praca.lessons.map((l) => l.slug)).toEqual(['lodz-5-gdzie-pracujesz', 'lodz-6-szukam-pracy', 'lodz-7-rozmowa', 'lodz-8-pierwszy-dzien']);
-    expect((await lodz()).routes.map((r) => r.slug)).toEqual(['lodz-dzwieki', 'lodz-ludzie', 'lodz-praca', 'lodz-dzien', 'lodz-zdrowie', 'lodz-powtorka', 'lodz-egzamin']);
+    expect(praca.lessons.map((l) => l.slug)).toEqual(['lodz-5-gdzie-pracujesz', 'lodz-8-pierwszy-dzien']);
+    expect((await lodz()).routes.map((r) => r.slug)).toEqual(['lodz-dzwieki', 'lodz-ludzie', 'lodz-praca', 'lodz-dzien', 'lodz-egzamin']);
 
     const regular = (await lodz()).routes.flatMap((r) => r.lessons).filter((l) => l.kind === 'LESSON');
-    expect(regular).toHaveLength(16);
+    expect(regular).toHaveLength(8);
     for (const [i, l] of regular.entries()) {
       const now = (await lodz()).routes.flatMap((r) => r.lessons).find((x) => x.id === l.id)!;
       expect(now.state, l.slug).toBe('available');
@@ -46,7 +47,7 @@ describe('Łódź після розширень (теми «Praca w Łodzi», «
     expect(city.bossAvailable).toBe(true);
     const boss = city.routes.flatMap((r) => r.lessons).find((l) => l.kind === 'BOSS')!;
     expect(boss.state).toBe('available');
-    // 16 уроків через API по черзі — довший сценарій за типовий тайм-аут.
+    // Усі уроки через API по черзі — довший сценарій за типовий тайм-аут.
   }, 240_000);
 
   it('старі чотири уроки відкривають іспит лише тим, хто пройшов їх до розширення; нові уроки лишаються відкритими', async () => {
@@ -65,7 +66,7 @@ describe('Łódź після розширень (теми «Praca w Łodzi», «
 
     // Обидва розширення після того, як учень пройшов старі уроки: іспит лишається відкритим.
     const added = (await lodz()).routes.flatMap((r) => r.lessons).filter((l) => l.kind === 'LESSON' && !old.includes(l.slug)).map((l) => l.slug);
-    expect(added).toHaveLength(12);
+    expect(added).toHaveLength(4);
     const seeded = (await db.select({ createdAt: lessons.createdAt }).from(lessons).where(eq(lessons.slug, added[0])))[0].createdAt;
     await db.update(lessons).set({ createdAt: new Date(Date.now() + 60_000) }).where(inArray(lessons.slug, added));
     try {
@@ -73,7 +74,7 @@ describe('Łódź після розширень (теми «Praca w Łodzi», «
       expect(city.bossAvailable).toBe(true);
       const all = city.routes.flatMap((r) => r.lessons);
       expect(all.find((l) => l.slug === 'lodz-5-gdzie-pracujesz')!.state).toBe('available');
-      expect(all.find((l) => l.slug === 'lodz-6-szukam-pracy')!.state).toBe('locked');
+      expect(all.find((l) => l.slug === 'lodz-8-pierwszy-dzien')!.state).toBe('locked');
     } finally {
       await db.update(lessons).set({ createdAt: seeded }).where(inArray(lessons.slug, added));
     }

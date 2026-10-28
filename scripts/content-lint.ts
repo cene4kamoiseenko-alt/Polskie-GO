@@ -124,35 +124,23 @@ const ALSO_PLAIN = new Set(['laska', 'pan', 'tak', 'ze', 'sie', 'co', 'czy', 'a'
 // Перевірені вручну хибні спрацювання (аудит 2026-10-26, docs/CONTENT_AUDIT_RU.md): слово без діакритики тут правильне.
 // Ключ — «завдання слово»: та сама форма в іншому завданні знову потрапить у звіт і буде перевірена окремо.
 const PLAIN_OK: Record<string, string[]> = {
-  'Називний відмінок або форма, що збігається з ним: woda (не wodą — орудний), jedna stacja, cisza nocna, zupa pomidorowa, zupa jest zimna; pomoc — іменник «допомога» (знахідний = називному), pomóc — інше слово, дієслово': [
-    'krk-d3-bilet#7 woda', 'krk-z1-produkty#4 woda', 'krk-z1-produkty#13 woda', 'krk-z1-produkty#16 woda', 'krk-z2-ceny#5 woda', 'krk-z2-ceny#9 woda',
-    'krk-z5-misja#4 woda', 'krk-z5-misja#4 niegazowana', 'krk-z5-misja#12 woda', 'krk-z5-misja#18 woda', 'waw-k4-misja#3 woda', 'wro-1-kawa#0 woda', 'wro-1-kawa#6 woda',
-    'waw-c3-metro#11 jedna', 'waw-c4-misja#2 jedna', 'waw-c4-misja#3 jedna', 'waw-c2-bilety#2 miejska', 'waw-p5-misja#7 poczta',
-    'waw-n2-blok#3 nocna', 'waw-n2-blok#4 nocna', 'waw-n2-blok#7 nocna', 'waw-n4-misja#4 nocna', 'waw-n4-misja#6 nocna',
-    'krk-re1-dania#10 pomidorowa', 'wro-boss#8 pomidorowa', 'krk-re3-kelner#5 zimna', 'krk-re3-kelner#10 zimna', 'waw-f3-gusty#6 zimna',
-    'waw-s4-misja#8 pomoc', 'krk-r4-droga#8 pomoc', 'opo-1-siema#4 pomoc', 'waw-n4-misja#17 pomoc',
-    'wro-5-ubrania#3 czerwona', 'wro-5-ubrania#4 czerwona',
+  'Називний відмінок або форма, що збігається з ним: woda (не wodą — орудний), karta miejska, zupa pomidorowa, czerwona sukienka; pomoc — іменник «допомога» (знахідний = називному), pomóc — інше слово, дієслово': [
+    'wro-1-kawa#0 woda', 'wro-1-kawa#6 woda', 'waw-c2-bilety#1 miejska', 'wro-boss#8 pomidorowa', 'krk-r4-droga#6 pomoc', 'opo-1-siema#4 pomoc',
+    'wro-5-ubrania#2 czerwona', 'wro-5-ubrania#3 czerwona',
   ],
-  '3-тя особа однини (on/ona/Kuba/Bobek …): chce, pije, kupuje, zostaje; форма на -ę — це 1-ша особа': [
-    'exam-a1#3 chce', 'waw-f4-misja#3 chce', 'wro-4-restauracja#4 chce', 'waw-f3-gusty#9 pije', 'waw-f3-gusty#10 pije', 'kat-4-te-ta#0 kupuje', 'lodz-1-alfabet#0 zostaje',
-    'lodz-10-poranek#6 pije', 'lodz-16-plany#5 zostaje', 'lodz-16-plany#6 zostaje', 'lodz-boss#14 chce',
-  ],
-  'Навмисний неправильний варіант на відмінок (називний замість знахідного чи орудного); правильна відповідь — інший варіант': [
-    'waw-f1-kawa#4 cytryna', 'krk-z1-produkty#7 woda', 'krk-z1-produkty#14 woda', 'krk-z5-misja#3 woda', 'krk-z5-misja#5 woda', 'krk-re2-zamawianie#4 pomidorowa',
-  ],
-  'Називний відмінок у парі, дистракторі чи годині та 3-тя особа: hulajnoga, ścieżka rowerowa, paczka, poczta, dwunasta (12:20), chce, potrzebuje': [
-    'kat-6-hulajnoga#2 hulajnoga', 'kat-6-hulajnoga#7 rowerowa', 'kat-6-hulajnoga#9 hulajnoga', 'kat-6-hulajnoga#9 rowerowa',
-    'kat-8-poczta#1 paczka', 'kat-8-poczta#2 paczka', 'kat-8-poczta#3 poczta', 'kat-8-poczta#11 poczta', 'kat-8-poczta#8 chce', 'kat-8-poczta#9 potrzebuje',
-    'krk-d4-peron#12 dwunasta',
+  '3-тя особа однини (on/ona/Kuba/Bobek …): chce, pije, kupuje, zostaje, zajmuje, interesuje; форма на -ę — це 1-ша особа': [
+    'exam-a1#3 chce', 'wro-4-restauracja#4 chce', 'kat-4-te-ta#0 kupuje', 'lodz-1-alfabet#0 zostaje', 'lodz-10-poranek#6 pije',
+    // «Czym się pan zajmuje?», «firma zajmuje się…», «Ewa interesuje się…» — 3-тя особа (zajmuję/interesuję — «я…»).
+    'lodz-3-zawody#0 zajmuje', 'kat-4-te-ta#0 interesuje', 'pzn-5-zajmuje-sie#1 zajmuje', 'pzn-5-zajmuje-sie#3 zajmuje', 'pzn-5-zajmuje-sie#5 zajmuje',
+    'pzn-5-zajmuje-sie#8 zajmuje', 'pzn-5-zajmuje-sie#8 interesuje', 'pzn-6-targi#0 zajmuje', 'pzn-6-targi#11 zajmuje', 'pzn-boss#11 zajmuje',
   ],
   'Називний жіночий рід у відповіді, питанні та дистракторі (Jaka jest twoja kurtka?, Ta sukienka jest czerwona, Ta czerwona jest tańsza): форма на -a правильна, знахідний -ą тут не потрібен': [
-    'wro-5-ubrania#10 jaka', 'wro-5-ubrania#11 czerwona', 'wro-5-ubrania#13 czerwona', 'wro-15-porownanie#8 czerwona',
+    'wro-5-ubrania#9 jaka', 'wro-5-ubrania#10 czerwona', 'wro-5-ubrania#11 czerwona', 'wro-15-porownanie#8 czerwona',
   ],
-  'Ополе: навмисний неправильний варіант (називний замість місцевого після o: dwunasta) і жіночий називний jaka («яка музика»), а не знахідний jaką': [
-    'opo-5-weekend#5 dwunasta', 'opo-7-zdanie#4 jaka',
-  ],
-  'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': [
-    'krk-h1-recepcja#11 maja', 'krk-h1-recepcja#12 maja', 'krk-h5-misja#3 maja', 'krk-u4-biblioteka#10 maja', 'krk-u4-biblioteka#14 maja',
+  'Ополе: навмисний неправильний варіант (називний замість місцевого після o: dwunasta)': ['opo-5-weekend#5 dwunasta'],
+  'Місяць «maja» (родовий від maj: «piętnastego maja», «14 maja») — не дієслово mają': ['pzn-4-daty#3 maja', 'pzn-4-daty#4 maja', 'pzn-4-daty#11 maja'],
+  'Називний відмінок галузі чи години (пара, «jest dwunasta») і навмисний дистрактор «Zajmuję się logistyka»; орудний logistyką / dwunastą тут не потрібен': [
+    'pzn-5-zajmuje-sie#0 logistyka', 'pzn-5-zajmuje-sie#4 logistyka', 'pzn-2-koziolki#6 dwunasta', 'pzn-boss#0 dwunasta',
   ],
   'Вправа на розрізнення літер: варіант без діакритики — навмисний дистрактор (ż / z, rz / r)': [
     'lodz-1-alfabet#6 zaba', 'lodz-2-dwuznaki#2 reka', 'lodz-boss#1 reka',

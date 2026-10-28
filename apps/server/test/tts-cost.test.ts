@@ -117,7 +117,7 @@ describe('Вимова на справжньому контенті', () => {
   it('жодна фраза контенту не випадає з серверної озвучки (раніше — дві фрази з емодзі-стрілками)', async () => {
     await getEnv();
     const all = await allContentPhrases();
-    expect(all.length).toBeGreaterThan(3000);
+    expect(all.length).toBeGreaterThan(2000);
     expect(all.filter((p) => !ttsTextAllowed(p))).toEqual([]);
     expect(await contentPhrases()).toEqual(all);
     expect(all).toContain('(Iść prosto i skręcić w lewo)');
@@ -127,12 +127,12 @@ describe('Вимова на справжньому контенті', () => {
     await getEnv();
     const risks = pronunciationRisks(await allContentPhrases(), 5);
     const ids = risks.map((r) => r.id);
-    expect(ids).toEqual(expect.arrayContaining(['time', 'price', 'code', 'number']));
+    // Лінії метро (M1/M2) були лише в архівному уроці waw-c3-metro (стандарт міста): детектор «code» перевіряє pick нижче.
+    expect(ids).toEqual(expect.arrayContaining(['time', 'price', 'number']));
     for (const r of risks) {
       expect(r.items.length).toBeLessThanOrEqual(5);
       expect(r.count).toBeGreaterThanOrEqual(r.items.length);
     }
-    expect(risks.find((r) => r.id === 'code')!.items.some((t) => /\bM[12]\b/.test(t))).toBe(true);
     const pick = (texts: string[]) => Object.fromEntries(pronunciationRisks(texts).map((r) => [r.id, r.items]));
     expect(pick(['10:30', '4,40 zł', 'złoty', 'linia M2', 'Mam PESEL.', 'ul. Freta', 'na 75 minut', 'W', 'Dzień dobry'])).toEqual({
       time: ['10:30'], price: ['4,40 zł'], code: ['linia M2'], acronym: ['Mam PESEL.'], abbr: ['ul. Freta'], number: ['na 75 minut'], letter: ['W'],

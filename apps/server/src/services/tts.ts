@@ -469,13 +469,16 @@ export async function contentPhrases(): Promise<string[]> {
   return (await allContentPhrases()).filter((x) => ALLOWED.test(x));
 }
 
-/** Те саме без фільтра ALLOWED: тест перевіряє, що жодна фраза контенту не випадає з серверної озвучки. */
+/**
+ * Те саме без фільтра ALLOWED: тест перевіряє, що жодна фраза контенту не випадає з серверної озвучки.
+ * Лише опубліковані уроки: архівні (стандарт міста, city-standard.ts) прогрів не синтезує — платні символи на них не витрачаються.
+ */
 export async function allContentPhrases(): Promise<string[]> {
   const { vocabularyEntries, exercises, lessons, questSteps } = await import('../db/schema');
   const [vocab, ex, ls, steps] = await Promise.all([
     db.select({ pl: vocabularyEntries.pl, examples: vocabularyEntries.examples }).from(vocabularyEntries),
-    db.select({ type: exercises.type, data: exercises.data }).from(exercises),
-    db.select({ examples: lessons.examples }).from(lessons),
+    db.select({ type: exercises.type, data: exercises.data }).from(exercises).innerJoin(lessons, eq(lessons.id, exercises.lessonId)).where(eq(lessons.status, 'PUBLISHED')),
+    db.select({ examples: lessons.examples }).from(lessons).where(eq(lessons.status, 'PUBLISHED')),
     db.select({ data: questSteps.data }).from(questSteps),
   ]);
   const out = new Set<string>();
