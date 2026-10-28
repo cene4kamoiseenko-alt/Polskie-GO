@@ -15,6 +15,7 @@ import { gameRoutes } from './routes/game';
 import { telegramRoutes } from './routes/telegram';
 import { adminRoutes } from './routes/admin';
 import { readBotConfig } from './bot/maintain';
+import { libraryEnabled, libraryVoice } from './services/audio-library';
 
 export function buildApp() {
   const app = new Hono<AppEnv>();
@@ -49,6 +50,12 @@ export function buildApp() {
     const meta = (last?.meta ?? {}) as { served_by_region?: string; served_by_primary?: boolean };
     const migration = last?.results[0]?.name ?? null;
     const bot = await readBotConfig();
+    // Аудіобібліотека: скільки файлів голосу бібліотеки готово — щоб перевірити хід озвучки без входу в адмінку. Без id голосу.
+    const voice = libraryVoice();
+    const audioRows = voice
+      ? await c.env.DB.prepare('SELECT status, count(*) AS n FROM audio_assets WHERE voice_id = ? GROUP BY status').bind(voice).all<{ status: string; n: number }>().catch(() => null)
+      : null;
+    const audioBy = Object.fromEntries((audioRows?.results ?? []).map((r) => [r.status, r.n]));
     return c.json(
       {
         ok: true,
@@ -56,6 +63,7 @@ export function buildApp() {
         version: version ? { commit: version.commit, builtAt: version.builtAt } : null,
         migration,
         edge: { colo: (c.req.raw.cf as { colo?: string } | undefined)?.colo ?? null, d1: { ms: d1Ms, region: meta.served_by_region ?? null, primary: meta.served_by_primary ?? null } },
+        audio: { r2: !!c.env.AUDIO, voice: !!voice, players: libraryEnabled() ? 'library' : 'on-demand', ready: audioBy.ready ?? 0, failed: audioBy.failed ?? 0, inProgress: (audioBy.generating ?? 0) + (audioBy.pending ?? 0) },
         bot: bot ? { webhook: bot.webhook, callbackQuery: bot.callbackQuery, serverSecret: bot.secretGeneration > 0, confirmed: bot.secretConfirmed, checkedAt: new Date(bot.checkedAt).toISOString() } : null,
       },
       200,

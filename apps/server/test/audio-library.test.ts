@@ -313,6 +313,19 @@ describe('адмінка', () => {
     });
   });
 
+  it('/api/health показує хід озвучки без входу: готові файли голосу бібліотеки, без id голосу', async () => {
+    await withEnv({ ELEVENLABS_VOICE_ID: VOICE, ELEVENLABS_API_KEY: 'k' }, async () => {
+      mockEleven();
+      const { app, env } = await getEnv();
+      const before = (await (await app.request('/api/health', {}, env)).json()) as { audio: { ready: number } };
+      await generateBatch([unit('Sprawdzam zdrowie biblioteki.')], 100);
+      const res = await app.request('/api/health', {}, env);
+      const body = (await res.json()) as { audio: Record<string, unknown> };
+      expect(body.audio).toMatchObject({ r2: true, voice: true, players: 'on-demand', ready: before.audio.ready + 1 });
+      expect(JSON.stringify(body)).not.toContain(VOICE);
+    });
+  });
+
   it('генерація через API — лише суперадмін, до 25 текстів; статус повертає готові id', async () => {
     await withEnv({ ELEVENLABS_VOICE_ID: VOICE, ELEVENLABS_API_KEY: 'k' }, async () => {
       mockEleven();
