@@ -8,7 +8,7 @@ import { atomic, db, type Stmt } from '../db';
 import { cosmeticItems, newId, questSteps, quests, userCities, userInventory, userQuests, xpEvents } from '../db/schema';
 import { badRequest, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
-import { grantItem, grantXp, grantZlotki, loadCtx, type UserCtx } from './rewards';
+import { ctxFrom, ctxReads, dayCandidates, grantItem, grantXp, grantZlotki, loadCtx, periodCandidates, type UserCtx } from './rewards';
 
 export type QuestEvents = Partial<Record<'LESSONS' | 'XP' | 'NEW_WORDS' | 'REVIEWS' | 'DIALOGUES' | 'LISTENING' | 'CITY_COMPLETED', number>> & {
   /** Поточна серія правильних відповідей поспіль. */
@@ -27,26 +27,38 @@ function hashStr(s: string): number {
 }
 
 /**
+ * Рядки для questState — щоб додати їх у спільний пакет читань запиту: квести користувача за всіма ключами, якими
+ * може бути «сьогодні» й «цей тиждень» (пояс ще невідомий), і всі щоденні та щотижневі квести.
+ * Без JOIN: Drizzle у db.batch плутає однойменні колонки.
+ */
+export const questReads = (userId: string, now: Date) =>
+  [
+    db.select().from(userQuests).where(and(eq(userQuests.userId, userId), inArray(userQuests.periodKey, periodCandidates(now)))),
+    db.select().from(quests).where(inArray(quests.kind, ['DAILY', 'WEEKLY'])).orderBy(asc(quests.order)),
+  ] as const;
+export type QuestReads = { mine: UserQuestRow[]; all: QuestRow[] };
+
+/**
  * Квести на сьогодні та цей тиждень: наявні + ті, що треба призначити.
  * Повертає рядки (з урахуванням ще не записаних) і запити на створення.
  */
-export async function questState(ctx: UserCtx) {
+export async function questState(ctx: UserCtx, pre?: QuestReads) {
   const { userId, day, week } = ctx;
-  const [mine, pool] = await Promise.all([
-    db
-      .select({ uq: userQuests, quest: quests })
-      .from(userQuests)
-      .innerJoin(quests, eq(quests.id, userQuests.questId))
-      .where(and(eq(userQuests.userId, userId), inArray(userQuests.periodKey, [day, week]))),
-    db
-      .select()
-      .from(quests)
-      .where(and(inArray(quests.kind, ['DAILY', 'WEEKLY']), eq(quests.status, 'PUBLISHED')))
-      .orderBy(asc(quests.order)),
-  ]);
+  let read = pre;
+  if (!read) {
+    const [mine, all] = await db.batch(questReads(userId, ctx.now));
+    read = { mine, all };
+  }
+  const own = read.mine.filter((uq) => uq.periodKey === day || uq.periodKey === week);
+  const byId = new Map(read.all.map((q) => [q.id, q]));
+  const mine = own.flatMap((uq) => {
+    const quest = byId.get(uq.questId);
+    return quest ? [{ uq, quest }] : [];
+  });
+  const pool = read.all.filter((q) => q.status === 'PUBLISHED');
   const rows: { uq: UserQuestRow; quest: QuestRow }[] = [...mine];
   const toCreate: { quest: QuestRow; periodKey: string }[] = [];
-  if (!mine.some((r) => r.uq.periodKey === day)) {
+  if (!own.some((uq) => uq.periodKey === day)) {
     const daily = pool.filter((q) => q.kind === 'DAILY');
     // Завжди один квест на уроки + два випадкові інші (детерміновано для користувача і дня).
     const rnd = seededRandom(hashStr(userId + day));
@@ -56,7 +68,7 @@ export async function questState(ctx: UserCtx) {
     for (const q of picked) toCreate.push({ quest: q, periodKey: day });
   }
   for (const q of pool.filter((x) => x.kind === 'WEEKLY')) {
-    if (!mine.some((r) => r.uq.questId === q.id && r.uq.periodKey === week)) toCreate.push({ quest: q, periodKey: week });
+    if (!own.some((uq) => uq.questId === q.id && uq.periodKey === week)) toCreate.push({ quest: q, periodKey: week });
   }
   const stmts: Stmt[] = [];
   for (const c of toCreate) {
@@ -68,11 +80,11 @@ export async function questState(ctx: UserCtx) {
 }
 
 /** Оновити прогрес активних квестів подіями. Повертає щойно виконані квести і запити. */
-export async function applyQuestEvents(ctx: UserCtx, events: QuestEvents) {
+export async function applyQuestEvents(ctx: UserCtx, events: QuestEvents, pre?: QuestReads) {
   const metrics = Object.entries(events).filter(([, v]) => (v ?? 0) > 0).map(([k]) => k);
   const completed: { id: string; title: unknown; icon: string }[] = [];
   if (!metrics.length) return { completed, stmts: [] as Stmt[] };
-  const { rows, stmts } = await questState(ctx);
+  const { rows, stmts } = await questState(ctx, pre);
   for (const { uq, quest } of rows) {
     if (uq.status !== 'ACTIVE' || !metrics.includes(quest.metric)) continue;
     const value = events[quest.metric as keyof QuestEvents] ?? 0;
@@ -91,15 +103,24 @@ export async function applyQuestEvents(ctx: UserCtx, events: QuestEvents) {
 }
 
 export async function listQuests(userId: string) {
-  const ctx = await loadCtx(userId);
-  const { stmts } = await questState(ctx);
-  await atomic(stmts);
-  const rows = await db
-    .select({ uq: userQuests, quest: quests })
-    .from(userQuests)
-    .innerJoin(quests, eq(quests.id, userQuests.questId))
-    .where(and(eq(userQuests.userId, userId), inArray(userQuests.periodKey, [ctx.day, ctx.week])))
-    .orderBy(asc(userQuests.createdAt), asc(quests.order));
+  // Усе потрібне — одним пакетом: контекст, квести, скриня дня і сюжетні квести. Пояс користувача ще невідомий,
+  // тому квести й скриня читаються за всіма можливими ключами «сьогодні» і відбираються після.
+  const now = new Date();
+  const days = dayCandidates(now);
+  const [settings, progress, mine, all, chests, ...story] = await db.batch([
+    ...ctxReads(userId),
+    ...questReads(userId, now),
+    db.select({ key: xpEvents.idempotencyKey }).from(xpEvents).where(inArray(xpEvents.idempotencyKey, days.map((d) => chestKey(userId, d)))),
+    ...storyReads(userId),
+  ]);
+  const ctx = ctxFrom(userId, now, settings, progress);
+  let { rows, stmts } = await questState(ctx, { mine, all });
+  if (stmts.length) {
+    // Перший запит дня призначає квести. Паралельний запит міг призначити їх раніше — тоді діють його рядки, перечитуємо.
+    await atomic(stmts);
+    ({ rows } = await questState(ctx));
+  }
+  rows = [...rows].sort((a, b) => a.uq.createdAt.getTime() - b.uq.createdAt.getTime() || a.quest.order - b.quest.order);
   const map = ({ uq, quest }: (typeof rows)[number]) => ({
     id: uq.id,
     slug: quest.slug,
@@ -115,10 +136,10 @@ export async function listQuests(userId: string) {
   });
   const daily = rows.filter((r) => r.quest.kind === 'DAILY');
   return {
-    chest: await dailyChestState(userId, ctx.day, daily.map((r) => r.uq.status)),
+    chest: chestState(chests.some((c) => c.key === chestKey(userId, ctx.day)), daily.map((r) => r.uq.status)),
     daily: daily.map(map),
     weekly: rows.filter((r) => r.quest.kind === 'WEEKLY').map(map),
-    story: await listStory(userId),
+    story: storyFrom(story as StoryRows),
     // Щоденні завдання оновлюються опівночі в поясі користувача (не за UTC).
     resetsAt: nextDayStart(ctx.now, ctx.tz).toISOString(),
   };
@@ -130,10 +151,14 @@ export async function listQuests(userId: string) {
 export const DAILY_CHEST = { xp: 50, zlotki: 25 };
 const chestKey = (userId: string, day: string) => `daily-chest:${userId}:${day}`;
 
-async function dailyChestState(userId: string, day: string, statuses: string[]) {
-  const claimed = !!(await db.select({ id: xpEvents.id }).from(xpEvents).where(eq(xpEvents.idempotencyKey, chestKey(userId, day))).get());
+function chestState(claimed: boolean, statuses: string[]) {
   const done = statuses.filter((s) => s === 'COMPLETED' || s === 'CLAIMED').length;
   return { ...DAILY_CHEST, done, total: statuses.length, ready: statuses.length > 0 && done === statuses.length, claimed };
+}
+
+async function dailyChestState(userId: string, day: string, statuses: string[]) {
+  const claimed = !!(await db.select({ id: xpEvents.id }).from(xpEvents).where(eq(xpEvents.idempotencyKey, chestKey(userId, day))).get());
+  return chestState(claimed, statuses);
 }
 
 export async function claimDailyChest(userId: string) {
@@ -212,13 +237,16 @@ function publicNode(node: StoryNode) {
   };
 }
 
-async function listStory(userId: string) {
-  const [qs, steps, mine, cities] = await db.batch([
+const storyReads = (userId: string) =>
+  [
     db.select().from(quests).where(and(eq(quests.kind, 'STORY'), eq(quests.status, 'PUBLISHED'))).orderBy(asc(quests.order)),
     db.select({ questId: questSteps.questId }).from(questSteps),
     db.select().from(userQuests).where(and(eq(userQuests.userId, userId), eq(userQuests.periodKey, 'story'))),
     db.select({ cityId: userCities.cityId }).from(userCities).where(eq(userCities.userId, userId)),
-  ]);
+  ] as const;
+type StoryRows = readonly [QuestRow[], { questId: string }[], UserQuestRow[], { cityId: string }[]];
+
+function storyFrom([qs, steps, mine, cities]: StoryRows) {
   const unlockedCities = new Set(cities.map((c) => c.cityId));
   const byQuest = new Map(mine.map((m) => [m.questId, m]));
   return qs.map((q) => {

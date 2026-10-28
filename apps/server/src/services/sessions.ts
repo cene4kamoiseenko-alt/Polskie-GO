@@ -14,16 +14,16 @@ import {
 import { atomic, chunks, db, type Stmt } from '../db';
 import {
   cities, cityRoutes, cosmeticItems, dailyActivity, exerciseAttempts, exercises, languageSkills, learningSessions, lessonWords, lessons,
-  newId, playerProgress, reviewSchedule, userCities, userInventory, userLessonProgress, userProfiles, userVocabulary, vocabularyEntries,
+  newId, playerProgress, reviewSchedule, subscriptions, userCities, userInventory, userLessonProgress, userProfiles, userVocabulary, vocabularyEntries,
 } from '../db/schema';
 import { HttpError, badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { getRewards } from './gameConfig';
-import { getJourney, lessonAccess } from './journey';
+import { getJourney, journeyFrom, journeyReads, lessonStateIn, type JourneyCity } from './journey';
 import { readSpeechAttempt } from './speech-attempts';
-import { isPremium } from './premium';
-import { applyQuestEvents, type QuestEvents } from './quests';
-import { grantItem, grantXp, grantZlotki, loadCtx, touchActivity } from './rewards';
+import { activeSubWhere } from './premium';
+import { applyQuestEvents, questReads, type QuestEvents } from './quests';
+import { ctxFrom, ctxReads, dayCandidates, grantItem, grantXp, grantZlotki, touchActivity } from './rewards';
 import { CITY_REWARDS } from '../content/gamification';
 import { GRAMMAR } from '../content/grammar';
 
@@ -179,6 +179,26 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
   return shuffle(items, rnd);
 }
 
+/** Де урок на карті (з уже побудованої карти — без запитів); урока на карті немає — null. */
+function placeOnMap(map: JourneyCity[], lessonId: string) {
+  for (const city of map)
+    for (const route of city.routes) {
+      const index = route.lessons.findIndex((l) => l.id === lessonId);
+      if (index < 0) continue;
+      return {
+        citySlug: city.slug,
+        cityName: city.namePl,
+        color: city.color,
+        routeSlug: route.slug,
+        routeTitle: route.title as I18n,
+        routeIcon: route.icon,
+        index: index + 1,
+        count: route.lessons.length,
+      };
+    }
+  return null;
+}
+
 /** Де урок на карті: місто, локація (маршрут) і номер уроку в ній — для шапки екрана вправ. */
 async function lessonPlace(lesson: typeof lessons.$inferSelect) {
   if (!lesson.routeId) return null;
@@ -212,24 +232,40 @@ export async function startSession(userId: string, input: { lessonId?: string; m
   let place: Awaited<ReturnType<typeof lessonPlace>> = null;
 
   if (input.lessonId) {
-    lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, input.lessonId) });
-    if (!lesson || lesson.status !== 'PUBLISHED') throw notFound('lesson_not_found');
-    if (lesson.isPremium && !(await isPremium(userId))) throw forbidden('premium_required');
-    const access = await lessonAccess(userId, lesson.id);
-    if (access === 'locked') throw forbidden('lesson_locked');
-    if (access === 'not_found') throw notFound('lesson_not_found');
-    if (lesson.kind === 'EXAM') realMode = 'EXAM';
-    if (lesson.kind === 'PLACEMENT') realMode = 'PLACEMENT';
-    const [exRows, lw, lp] = await Promise.all([
-      db.select().from(exercises).where(eq(exercises.lessonId, lesson.id)).orderBy(asc(exercises.order)),
+    const lessonId = input.lessonId;
+    // Урок, карта (доступ і місце уроку), вправи, незавершена сесія і підписка — одним пакетом D1;
+    // слова уроку (JOIN, у пакет не можна) — паралельно з ним.
+    const [[lessonRows, exRows, prevRows, subRows, ...journey], lw] = await Promise.all([
+      db.batch([
+        db.select().from(lessons).where(eq(lessons.id, lessonId)),
+        db.select().from(exercises).where(eq(exercises.lessonId, lessonId)).orderBy(asc(exercises.order)),
+        db
+          .select()
+          .from(learningSessions)
+          .where(and(eq(learningSessions.userId, userId), eq(learningSessions.status, 'ACTIVE'), eq(learningSessions.lessonId, lessonId), eq(learningSessions.mode, 'LESSON')))
+          .orderBy(desc(learningSessions.startedAt))
+          .limit(1),
+        db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId)).limit(1),
+        ...journeyReads(userId),
+      ]),
       db
         .select({ id: vocabularyEntries.id, pl: vocabularyEntries.pl, translations: vocabularyEntries.translations, pronunciation: vocabularyEntries.pronunciation, emoji: vocabularyEntries.emoji, audioUrl: vocabularyEntries.audioUrl })
         .from(lessonWords)
         .innerJoin(vocabularyEntries, eq(vocabularyEntries.id, lessonWords.entryId))
-        .where(eq(lessonWords.lessonId, lesson.id))
+        .where(eq(lessonWords.lessonId, lessonId))
         .orderBy(asc(lessonWords.order)),
-      lessonPlace(lesson),
     ]);
+    lesson = lessonRows[0];
+    if (!lesson || lesson.status !== 'PUBLISHED') throw notFound('lesson_not_found');
+    if (lesson.isPremium && !subRows.length) throw forbidden('premium_required');
+    const map = journeyFrom(journey).result;
+    if (lesson.kind === 'EXAM') realMode = 'EXAM';
+    if (lesson.kind === 'PLACEMENT') realMode = 'PLACEMENT';
+    // Іспити й вхідний тест відкриті завжди; урок — лише доступний або пройдений (для повторення).
+    const access = realMode === 'LESSON' ? lessonStateIn(map, lesson.id) : 'exam';
+    if (access === 'locked') throw forbidden('lesson_locked');
+    if (access === 'not_found') throw notFound('lesson_not_found');
+    const lp = placeOnMap(map, lesson.id) ?? (await lessonPlace(lesson));
     // Черга уроку: не більше трьох однакових механік поспіль (порядок у БД не змінюється).
     items = spreadByType(lessonToItems(exRows));
     words = lw;
@@ -237,12 +273,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
 
     // Незавершений урок (у межах TTL сесії) продовжується з того самого завдання.
     if (realMode === 'LESSON') {
-      const [prev] = await db
-        .select()
-        .from(learningSessions)
-        .where(and(eq(learningSessions.userId, userId), eq(learningSessions.status, 'ACTIVE'), eq(learningSessions.lessonId, lesson.id), eq(learningSessions.mode, 'LESSON')))
-        .orderBy(desc(learningSessions.startedAt))
-        .limit(1);
+      const prev = prevRows[0];
       const st = prev?.state as unknown as SessionState | undefined;
       const prevItems = prev?.items as ExerciseItem[] | undefined;
       const done = prevItems?.filter((i) => st?.answers[i.key]?.done).map((i) => i.key) ?? [];
@@ -291,11 +322,45 @@ export async function startSession(userId: string, input: { lessonId?: string; m
 }
 
 async function loadSession(userId: string, sessionId: string): Promise<SessionRow> {
-  const s = await db.query.learningSessions.findFirst({ where: eq(learningSessions.id, sessionId) });
+  return activeSession(userId, await db.query.learningSessions.findFirst({ where: eq(learningSessions.id, sessionId) }));
+}
+
+/** Сесія належить користувачу, активна й не прострочена. */
+function activeSession(userId: string, s: SessionRow | undefined): SessionRow {
   if (!s || s.userId !== userId) throw notFound('session_not_found');
   if (s.status !== 'ACTIVE') throw badRequest('session_closed');
   if (Date.now() - s.startedAt.getTime() > SESSION_TTL_MS) throw new HttpError(410, 'session_expired');
   return s;
+}
+
+const REVIEW_SKILLS = ['review.vocab', 'review.listening', 'review.writing'];
+
+/**
+ * Рядки, які знадобляться для запису відповіді, — за ключем завдання ще до читання сесії (один пакет D1 замість трьох
+ * послідовних звернень): ключ завдання уроку — це id вправи, ключ слова — `w:<id слова>:<варіант>`.
+ * Що саме прочитано, звіряється із завданням сесії (`prefetched`); якщо не збіглося — читаємо окремо.
+ */
+function answerReads(userId: string, key: string) {
+  const word = key.startsWith('w:') ? key.split(':')[1] ?? '' : '';
+  const exercise = word ? '' : key;
+  return {
+    word,
+    exercise,
+    reads: [
+      db.select({ skill: exercises.skill }).from(exercises).where(eq(exercises.id, exercise)),
+      db
+        .select({ skill: languageSkills.skill, mastery: languageSkills.mastery })
+        .from(languageSkills)
+        .where(
+          and(
+            eq(languageSkills.userId, userId),
+            or(inArray(languageSkills.skill, REVIEW_SKILLS), inArray(languageSkills.skill, db.select({ skill: exercises.skill }).from(exercises).where(eq(exercises.id, exercise)))),
+          ),
+        ),
+      db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), eq(reviewSchedule.itemId, word))),
+      db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'EXERCISE'), eq(reviewSchedule.itemId, exercise))),
+    ] as const,
+  };
 }
 
 /** Зберегти стан сесії з перевіркою версії: паралельна зміна відкотить увесь пакет. */
@@ -362,8 +427,17 @@ export async function assertSpeechItem(userId: string, sessionId: string, key: s
 }
 
 export async function answerItem(userId: string, sessionId: string, key: string, answer: AnswerPayload) {
-  // Сесія і контекст користувача читаються паралельно — менше послідовних звернень до D1.
-  const [s, ctx] = await Promise.all([loadSession(userId, sessionId), loadCtx(userId)]);
+  // Усе для перевірки й запису — одним пакетом читань: сесія, контекст, навичка, розклад повторень і квести.
+  const now = new Date();
+  const pre = answerReads(userId, key);
+  const [sessionRows, settings, progress, exSkill, skills, wordRevs, exRevs, mine, all] = await db.batch([
+    db.select().from(learningSessions).where(eq(learningSessions.id, sessionId)),
+    ...ctxReads(userId),
+    ...pre.reads,
+    ...questReads(userId, now),
+  ]);
+  const s = activeSession(userId, sessionRows[0]);
+  const ctx = ctxFrom(userId, now, settings, progress);
   const items = s.items as ExerciseItem[];
   const item = items.find((i) => i.key === key);
   if (!item) throw badRequest('unknown_item');
@@ -435,11 +509,16 @@ export async function answerItem(userId: string, sessionId: string, key: string,
     const ok = !!st.firstCorrect;
     const events: QuestEvents = { PERFECT_STREAK: state.run };
     if ((item.type === 'LISTENING' || item.type === 'DICTATION') && st.firstCorrect) events.LISTENING = 1;
-    const [[skillRow, wordRev, exRev], quests] = await Promise.all([db.batch([
-      db.select({ mastery: languageSkills.mastery }).from(languageSkills).where(and(eq(languageSkills.userId, userId), eq(languageSkills.skill, item.skill))),
-      db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), eq(reviewSchedule.itemId, item.vocabId ?? ''))),
-      db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'EXERCISE'), eq(reviewSchedule.itemId, item.exerciseId ?? ''))),
-    ]), applyQuestEvents(ctx, events)]);
+    const prefetched =
+      (item.vocabId ?? '') === pre.word && (item.exerciseId ?? '') === pre.exercise && (REVIEW_SKILLS.includes(item.skill) || exSkill[0]?.skill === item.skill);
+    const [skillRow, wordRev, exRev] = prefetched
+      ? [skills.filter((x) => x.skill === item.skill), wordRevs, exRevs]
+      : await db.batch([
+          db.select({ skill: languageSkills.skill, mastery: languageSkills.mastery }).from(languageSkills).where(and(eq(languageSkills.userId, userId), eq(languageSkills.skill, item.skill))),
+          db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), eq(reviewSchedule.itemId, item.vocabId ?? ''))),
+          db.select().from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'EXERCISE'), eq(reviewSchedule.itemId, item.exerciseId ?? ''))),
+        ]);
+    const quests = await applyQuestEvents(ctx, events, { mine, all });
     stmts.push(
       db.insert(exerciseAttempts).values({ userId, sessionId: s.id, exerciseId: item.exerciseId ?? null, itemKey: key, type: item.type, skill: item.skill, answer, isCorrect: ok }),
       skillStmt(userId, item.skill, skillRow[0], ok),
@@ -473,7 +552,42 @@ export async function finishSession(userId: string, sessionId: string): Promise<
 }
 
 async function finishOnce(userId: string, sessionId: string) {
-  const [cfg, s, ctx] = await Promise.all([getRewards(), loadSession(userId, sessionId), loadCtx(userId)]);
+  // Усе для підсумку — одним пакетом D1 (урок сесії — підзапитом за id сесії): сесія, контекст, урок і місто, прогрес уроку,
+  // нагороджені проходження за добу, денна активність (за всіма можливими «сьогодні») і квести. Слова уроку (JOIN) — паралельно.
+  const now = new Date();
+  const lessonOf = sql`(SELECT lesson_id FROM learning_sessions WHERE id = ${sessionId})`;
+  const [[sessionRows, settings, progress, lessonRows, cityRows, ulpRows, rewardedRows, activityRows, mine, all], lw, cfg] = await Promise.all([
+    db.batch([
+      db.select().from(learningSessions).where(eq(learningSessions.id, sessionId)),
+      ...ctxReads(userId),
+      db.select().from(lessons).where(eq(lessons.id, lessonOf)),
+      db.select({ cityId: cityRoutes.cityId }).from(cityRoutes).where(eq(cityRoutes.id, sql`(SELECT route_id FROM lessons WHERE id = ${lessonOf})`)),
+      db.select().from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, lessonOf))),
+      db
+        .select({ finishedAt: learningSessions.finishedAt })
+        .from(learningSessions)
+        .where(
+          and(
+            eq(learningSessions.userId, userId),
+            eq(learningSessions.lessonId, lessonOf),
+            eq(learningSessions.status, 'FINISHED'),
+            gt(learningSessions.xpAwarded, 0),
+            gte(learningSessions.finishedAt, new Date(now.getTime() - 24 * 3600_000)),
+          ),
+        ),
+      db.select().from(dailyActivity).where(and(eq(dailyActivity.userId, userId), inArray(dailyActivity.day, dayCandidates(now)))),
+      ...questReads(userId, now),
+    ]),
+    db
+      .select({ entryId: lessonWords.entryId, pl: vocabularyEntries.pl, translations: vocabularyEntries.translations, mine: userVocabulary.entryId })
+      .from(lessonWords)
+      .innerJoin(vocabularyEntries, eq(vocabularyEntries.id, lessonWords.entryId))
+      .leftJoin(userVocabulary, and(eq(userVocabulary.entryId, lessonWords.entryId), eq(userVocabulary.userId, userId)))
+      .where(eq(lessonWords.lessonId, lessonOf)),
+    getRewards(),
+  ]);
+  const s = activeSession(userId, sessionRows[0]);
+  const ctx = ctxFrom(userId, now, settings, progress);
   const items = s.items as ExerciseItem[];
   const state = s.state as unknown as SessionState;
   const elapsed = Date.now() - s.startedAt.getTime();
@@ -489,7 +603,6 @@ async function finishOnce(userId: string, sessionId: string) {
   const total = isSpeed ? items.length : counted.length;
   const correct = counted.filter((i) => state.answers[i.key].firstCorrect).length;
   const accuracy = total ? correct / total : 0;
-  const { now } = ctx;
   const p = ctx.progress;
   const key = `session:${s.id}`;
   const stmts: Stmt[] = [];
@@ -505,39 +618,14 @@ async function finishOnce(userId: string, sessionId: string) {
   let placement: null | { level: Cefr; unlocked: string[] } = null;
 
   if (s.mode === 'LESSON' && s.lessonId) {
-    const [lessonRow, ulpRow, lw] = await Promise.all([
-      db.select({ lesson: lessons, cityId: cityRoutes.cityId }).from(lessons).leftJoin(cityRoutes, eq(cityRoutes.id, lessons.routeId)).where(eq(lessons.id, s.lessonId)),
-      db.select().from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, s.lessonId))),
-      db
-        .select({ entryId: lessonWords.entryId, pl: vocabularyEntries.pl, translations: vocabularyEntries.translations, mine: userVocabulary.entryId })
-        .from(lessonWords)
-        .innerJoin(vocabularyEntries, eq(vocabularyEntries.id, lessonWords.entryId))
-        .leftJoin(userVocabulary, and(eq(userVocabulary.entryId, lessonWords.entryId), eq(userVocabulary.userId, userId)))
-        .where(eq(lessonWords.lessonId, s.lessonId)),
-    ]);
-    const { lesson, cityId } = lessonRow[0];
-    const ulp = ulpRow[0];
+    const lesson = lessonRows[0];
+    const cityId = cityRows[0]?.cityId ?? null;
+    const ulp = ulpRows[0];
     const isBoss = lesson.kind === 'BOSS';
     passed = accuracy >= (isBoss || isMissionSlug(lesson.slug) ? BOSS_PASS_RATIO : LESSON_PASS_RATIO);
     const firstCompletion = !ulp?.firstCompletedAt;
-    const replaysToday = firstCompletion
-      ? 0
-      : ((
-          await db
-            .select({ n: count() })
-            .from(learningSessions)
-            .where(
-              and(
-                eq(learningSessions.userId, userId),
-                eq(learningSessions.lessonId, lesson.id),
-                eq(learningSessions.status, 'FINISHED'),
-                gt(learningSessions.xpAwarded, 0),
-                // Повтори — це нагороджені проходження після першого, за останні 24 години.
-                gte(learningSessions.finishedAt, new Date(now.getTime() - 24 * 3600_000)),
-                gt(learningSessions.finishedAt, ulp!.firstCompletedAt!),
-              ),
-            )
-        )[0]?.n ?? 0);
+    // Повтори — це нагороджені проходження після першого, за останні 24 години.
+    const replaysToday = firstCompletion ? 0 : rewardedRows.filter((r) => r.finishedAt && r.finishedAt > ulp!.firstCompletedAt!).length;
     const r = lessonReward({ cfg, correct, total, firstCompletion, replaysToday, isBoss, passed });
     xp = r.xp;
     zlotki = r.zlotki;
@@ -606,12 +694,8 @@ async function finishOnce(userId: string, sessionId: string) {
       }
     }
   } else if (s.mode === 'EXAM' && s.lessonId) {
-    const [lessonRow, prevRow] = await db.batch([
-      db.select().from(lessons).where(eq(lessons.id, s.lessonId)),
-      db.select().from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, s.lessonId))),
-    ]);
-    const lesson = lessonRow[0];
-    const prev = prevRow[0];
+    const lesson = lessonRows[0];
+    const prev = ulpRows[0];
     passed = accuracy >= EXAM_PASS_RATIO;
     if (passed) {
       const next = maxCefr(p.languageLevel, lesson.cefr);
@@ -647,7 +731,7 @@ async function finishOnce(userId: string, sessionId: string) {
     stmts.push(...res.stmts);
   } else {
     // Тренування: XP за правильні відповіді з денним лімітом.
-    const act = await db.query.dailyActivity.findFirst({ where: and(eq(dailyActivity.userId, userId), eq(dailyActivity.day, ctx.day)) });
+    const act = activityRows.find((r) => r.day === ctx.day);
     const left = Math.max(0, cfg.practiceXpDailyCap - (act?.practiceXp ?? 0));
     xp = Math.min(left, correct * cfg.exerciseXp + (s.mode === 'FIVE_MIN' && total ? 5 : 0));
     if (s.mode === 'REVIEW' || s.mode === 'MISTAKES' || s.mode === 'FIVE_MIN') events.REVIEWS = counted.filter((i) => i.vocabId || s.mode !== 'FIVE_MIN').length;
@@ -670,7 +754,7 @@ async function finishOnce(userId: string, sessionId: string) {
     practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR'].includes(s.mode) ? xpRes.granted : 0,
   });
 
-  const quests = await applyQuestEvents(ctx, events);
+  const quests = await applyQuestEvents(ctx, events, { mine, all });
 
   await atomic([
     // Першим — закриття сесії з перевіркою версії: повторне завершення відкотить увесь пакет.
@@ -685,7 +769,6 @@ async function finishOnce(userId: string, sessionId: string) {
   // Досягнення — після запису: метрики (уроки, розділи міст, повторення) уже враховують цей урок.
   const returned = s.mode === 'LESSON' && passed && !!prevActiveDay && dayDiff(prevActiveDay, ctx.day) >= 7;
   const ach = await evaluateAchievements(userId, null, returned ? { RETURN: 1 } : {});
-  if (ach.stmts.length) await atomic(ach.stmts);
 
   const mistakes = counted.filter((i) => state.answers[i.key].firstCorrect === false).map((i) => ({ key: i.key, type: i.type, skill: i.skill }));
 
@@ -710,11 +793,14 @@ async function finishOnce(userId: string, sessionId: string) {
     achievements: ach.unlocked,
     durationSec: Math.round(elapsed / 1000),
   };
-  // Підсумок зберігається в сесії для повторного запиту завершення (версія: +1 до вже закритої сесії).
-  await db
-    .update(learningSessions)
-    .set({ state: { ...state, finishResult: response } as unknown as Record<string, unknown>, version: s.version + 2 })
-    .where(eq(learningSessions.id, s.id));
+  // Нагороди досягнень і підсумок у сесії (для повторного запиту завершення; версія: +1 до вже закритої сесії) — одним пакетом.
+  await atomic([
+    ...ach.stmts,
+    db
+      .update(learningSessions)
+      .set({ state: { ...state, finishResult: response } as unknown as Record<string, unknown>, version: s.version + 2 })
+      .where(eq(learningSessions.id, s.id)),
+  ]);
   return response;
 }
 

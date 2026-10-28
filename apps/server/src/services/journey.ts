@@ -7,7 +7,7 @@
  *    (або всіх уроків міста до розширення курсу — LEGACY_CITY_LESSONS).
  */
 import type { Cefr } from '@polski-go/shared';
-import { and, asc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, lt } from 'drizzle-orm';
 import { atomic, db } from '../db';
 import { badRequest, notFound } from '../lib/errors';
 import { getRewards } from './gameConfig';
@@ -81,16 +81,70 @@ export async function openRouteChest(userId: string, routeId: string) {
   return { xp: xp.granted, zlotki: zl.granted, levelUp: xp.levelAfter > xp.levelBefore ? xp.levelAfter : null };
 }
 
-export async function getJourney(userId: string) {
-  // Кількість вправ — колонка lessons.exercise_count (тригери, міграція 0005), без GROUP BY по exercises.
-  const [cityRows, routeRows, lessonRows, userCityRows, lessonProgress, progress] = await db.batch([
+/**
+ * Запити карти — щоб додати їх у спільний пакет читань запиту (як у startSession).
+ * Кількість вправ — колонка lessons.exercise_count (тригери, міграція 0005), без GROUP BY по exercises.
+ */
+export const journeyReads = (userId: string) =>
+  [
     db.select().from(cities).where(eq(cities.status, 'PUBLISHED')).orderBy(asc(cities.order)),
     db.select().from(cityRoutes).where(eq(cityRoutes.status, 'PUBLISHED')).orderBy(asc(cityRoutes.order)),
     db.select().from(lessons).where(and(eq(lessons.status, 'PUBLISHED'), isNotNull(lessons.routeId))).orderBy(asc(lessons.order)),
     db.select().from(userCities).where(eq(userCities.userId, userId)),
     db.select().from(userLessonProgress).where(eq(userLessonProgress.userId, userId)),
     db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
+  ] as const;
+export type JourneyRows = readonly [
+  (typeof cities.$inferSelect)[],
+  (typeof cityRoutes.$inferSelect)[],
+  (typeof lessons.$inferSelect)[],
+  (typeof userCities.$inferSelect)[],
+  (typeof userLessonProgress.$inferSelect)[],
+  (typeof playerProgress.$inferSelect)[],
+];
+
+export async function getJourney(userId: string) {
+  // Один пакет: карта і вже відкриті скрині тем (ключі `route-chest:<user>:…` — діапазоном по унікальному індексу ключа).
+  const prefix = routeChestKey(userId, '');
+  const [[chests, ...rows], cfg] = await Promise.all([
+    db.batch([
+      db.select({ key: xpEvents.idempotencyKey }).from(xpEvents).where(and(gte(xpEvents.idempotencyKey, prefix), lt(xpEvents.idempotencyKey, `${prefix}\uffff`))),
+      ...journeyReads(userId),
+    ]),
+    getRewards(),
   ]);
+  const { result, progress } = journeyFrom(rows);
+
+  // Скрині тем: готова, коли пройдено всі звичайні уроки теми; відкрита — є подія XP з її ключем.
+  const completedRoutes = result.flatMap((c) => c.routes).filter((r) => {
+    const regular = r.lessons.filter((l) => l.kind === 'LESSON');
+    return regular.length > 0 && regular.every((l) => l.state === 'completed');
+  });
+  const opened = new Set(chests.map((e) => e.key));
+  const ready = new Set(completedRoutes.map((r) => r.id));
+  for (const city of result) {
+    for (const r of city.routes) {
+      const hasLessons = r.lessons.some((l) => l.kind === 'LESSON');
+      r.chest = hasLessons
+        ? { state: !ready.has(r.id) ? 'locked' : opened.has(routeChestKey(userId, r.id)) ? 'opened' : 'ready', xp: cfg.routeChestXp, zlotki: cfg.routeChestZlotki }
+        : null;
+    }
+  }
+
+  let current = result.find((c) => c.id === progress[0]?.currentCityId) ?? result.find((c) => c.unlocked) ?? result[0];
+  // Іспит міста складено, коли далі ще не було міст з уроками: наступне місто відкрилося як «скоро», а поточним лишилося
+  // пройдене. Щойно в ньому з'являються уроки (новий контент або адмінка), ведемо учня туди — як зробив би сам іспит
+  // (completeCity), навіть якщо в пройденому місті лишилися уроки для повторення. Seed переносить і сам рядок.
+  if (current?.completed) {
+    const from = current;
+    current = result.find((c) => c.order > from.order && c.unlocked && c.hasContent && !c.completed) ?? from;
+  }
+  const next = current ? findNextLesson(current) : null;
+  return { cities: result, currentCityId: current?.id ?? null, nextLesson: next };
+}
+
+/** Стан міст і уроків із рядків `journeyReads` (без скринь тем — для них потрібен ще один запит). */
+export function journeyFrom([cityRows, routeRows, lessonRows, userCityRows, lessonProgress, progress]: JourneyRows) {
   const cityList = cityRows.map((city) => ({
     ...city,
     routes: routeRows
@@ -190,37 +244,7 @@ export async function getJourney(userId: string) {
     };
   });
 
-  // Скрині тем: готова, коли пройдено всі звичайні уроки теми; відкрита — є подія XP з її ключем.
-  const cfg = await getRewards();
-  const completedRoutes = result.flatMap((c) => c.routes).filter((r) => {
-    const regular = r.lessons.filter((l) => l.kind === 'LESSON');
-    return regular.length > 0 && regular.every((l) => l.state === 'completed');
-  });
-  const opened = completedRoutes.length
-    ? new Set(
-        (await db.select({ key: xpEvents.idempotencyKey }).from(xpEvents).where(inArray(xpEvents.idempotencyKey, completedRoutes.map((r) => routeChestKey(userId, r.id))))).map((e) => e.key),
-      )
-    : new Set<string>();
-  const ready = new Set(completedRoutes.map((r) => r.id));
-  for (const city of result) {
-    for (const r of city.routes) {
-      const hasLessons = r.lessons.some((l) => l.kind === 'LESSON');
-      r.chest = hasLessons
-        ? { state: opened.has(routeChestKey(userId, r.id)) ? 'opened' : ready.has(r.id) ? 'ready' : 'locked', xp: cfg.routeChestXp, zlotki: cfg.routeChestZlotki }
-        : null;
-    }
-  }
-
-  let current = result.find((c) => c.id === progress[0]?.currentCityId) ?? result.find((c) => c.unlocked) ?? result[0];
-  // Іспит міста складено, коли далі ще не було міст з уроками: наступне місто відкрилося як «скоро», а поточним лишилося
-  // пройдене. Щойно в ньому з'являються уроки (новий контент або адмінка), ведемо учня туди — як зробив би сам іспит
-  // (completeCity), навіть якщо в пройденому місті лишилися уроки для повторення. Seed переносить і сам рядок.
-  if (current?.completed) {
-    const from = current;
-    current = result.find((c) => c.order > from.order && c.unlocked && c.hasContent && !c.completed) ?? from;
-  }
-  const next = current ? findNextLesson(current) : null;
-  return { cities: result, currentCityId: current?.id ?? null, nextLesson: next };
+  return { result, progress };
 }
 
 export function findNextLesson(city: JourneyCity): JourneyLesson | null {
@@ -233,7 +257,11 @@ export async function lessonAccess(userId: string, lessonId: string): Promise<Le
   const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, lessonId), columns: { kind: true, status: true } });
   if (!lesson || lesson.status !== 'PUBLISHED') return 'not_found';
   if (lesson.kind === 'EXAM' || lesson.kind === 'PLACEMENT') return 'exam';
-  const j = await getJourney(userId);
-  for (const c of j.cities) for (const r of c.routes) for (const l of r.lessons) if (l.id === lessonId) return l.state;
+  return lessonStateIn(journeyFrom(await db.batch(journeyReads(userId))).result, lessonId);
+}
+
+/** Стан уроку на карті (`journeyFrom`); урока немає на карті — 'not_found'. */
+export function lessonStateIn(result: JourneyCity[], lessonId: string): LessonState | 'not_found' {
+  for (const c of result) for (const r of c.routes) for (const l of r.lessons) if (l.id === lessonId) return l.state;
   return 'not_found';
 }

@@ -1,46 +1,53 @@
 import { sttStatus } from './stt';
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
 import { dayKey, effectiveStreak, lastDays, levelFromXp, type Cefr } from '@polski-go/shared';
-import { and, count, desc, eq, gt, inArray, isNotNull, lte, or } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import {
   aiUsage, cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
-  quests, reviewSchedule, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
+  quests, reviewSchedule, subscriptions, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
 } from '../db/schema';
 import { getRewards } from './gameConfig';
+import { dayCandidates } from './rewards';
 import { ttsConfigured, ttsStatus } from './tts';
-import { activeSubscription } from './premium';
+import { activeSubWhere } from './premium';
 import { outfit } from './shop';
 
 export { goalXpFor as goalXp } from './goal';
 import { goalXpFor as goalXp } from './goal';
 
 export async function getMe(userId: string) {
-  // Незалежні дані — паралельно; залежне від часового поясу (сьогоднішній день) — другим кроком.
-  const [userRow, settingsRow, profileRow, progressRow, walletRow, sub, look, cfg] = await Promise.all([
-    db.select().from(users).where(eq(users.id, userId)),
-    db.select().from(userSettings).where(eq(userSettings.userId, userId)),
-    db.select().from(userProfiles).where(eq(userProfiles.userId, userId)),
-    db.select({ p: playerProgress, city: cities }).from(playerProgress).leftJoin(cities, eq(cities.id, playerProgress.currentCityId)).where(eq(playerProgress.userId, userId)),
-    db.select().from(gameWallets).where(eq(gameWallets.userId, userId)),
-    activeSubscription(userId),
+  // Один пакет D1: «сьогоднішні» рядки (денна активність, ліміт ШІ) читаються за всіма можливими ключами дня,
+  // бо пояс користувача стає відомим лише з цього ж пакета. Вбрання (JOIN) і нагороди (кеш) — паралельно.
+  const now = new Date();
+  const days = dayCandidates(now);
+  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, usageRows], look, cfg] = await Promise.all([
+    db.batch([
+      db.select().from(users).where(eq(users.id, userId)),
+      db.select().from(userSettings).where(eq(userSettings.userId, userId)),
+      db.select().from(userProfiles).where(eq(userProfiles.userId, userId)),
+      db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
+      db.select().from(cities).where(eq(cities.id, sql`(SELECT current_city_id FROM player_progress WHERE user_id = ${userId})`)),
+      db.select().from(gameWallets).where(eq(gameWallets.userId, userId)),
+      db.select().from(subscriptions).where(activeSubWhere(userId, now)).orderBy(desc(subscriptions.expiresAt)).limit(1),
+      db.select().from(dailyActivity).where(and(eq(dailyActivity.userId, userId), inArray(dailyActivity.day, days))),
+      db.select({ n: count() }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), lte(reviewSchedule.dueAt, now))),
+      db
+        .select({ n: count() })
+        .from(reviewSchedule)
+        .where(and(eq(reviewSchedule.userId, userId), or(eq(reviewSchedule.itemType, 'EXERCISE'), and(eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))))),
+      db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
+      db.select().from(aiUsage).where(and(eq(aiUsage.userId, userId), inArray(aiUsage.day, days))),
+    ]),
     outfit(userId),
     getRewards(),
   ]);
-  const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0].p, currentCity: progressRow[0].city } };
+  const sub = subRow[0] ?? null;
+  const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0], currentCity: cityRow[0] ?? null } };
   const tz = user.settings?.timezone ?? 'Europe/Warsaw';
-  const now = new Date();
   const today = dayKey(now, tz);
-  const [todayRow, dueRow, mistakesRow, unseenRow, usageRow] = await db.batch([
-    db.select().from(dailyActivity).where(and(eq(dailyActivity.userId, userId), eq(dailyActivity.day, today))),
-    db.select({ n: count() }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), lte(reviewSchedule.dueAt, now))),
-    db
-      .select({ n: count() })
-      .from(reviewSchedule)
-      .where(and(eq(reviewSchedule.userId, userId), or(eq(reviewSchedule.itemType, 'EXERCISE'), and(eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))))),
-    db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
-    db.select().from(aiUsage).where(and(eq(aiUsage.userId, userId), eq(aiUsage.day, today))),
-  ]);
+  const todayRow = activityRows.filter((r) => r.day === today);
+  const usageRow = usageRows.filter((r) => r.day === today);
   const todayAct = todayRow[0];
   const usage = usageRow[0];
   const dueReviews = dueRow[0]?.n ?? 0;

@@ -2,7 +2,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { ZodError } from 'zod';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { bindDb, db, mapDbError } from './db';
 import { uploads } from './db/schema';
 import { config, setEnv } from './env';
@@ -40,10 +40,14 @@ export function buildApp() {
     const version = await c.env.ASSETS?.fetch(new URL('/version.json', c.req.url))
       .then((r) => (r.ok ? (r.json() as Promise<Record<string, string>>) : null))
       .catch(() => null);
-    const migration = await db
-      .all<{ name: string }>(sql`SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1`)
-      .then((r) => r[0]?.name ?? null)
+    // Один запит до D1 заодно показує, де працює Worker і де база (для перевірки Smart Placement) і скільки триває обмін.
+    const t0 = Date.now();
+    const last = await c.env.DB.prepare('SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1')
+      .all<{ name: string }>()
       .catch(() => null);
+    const d1Ms = Date.now() - t0;
+    const meta = (last?.meta ?? {}) as { served_by_region?: string; served_by_primary?: boolean };
+    const migration = last?.results[0]?.name ?? null;
     const bot = await readBotConfig();
     return c.json(
       {
@@ -51,6 +55,7 @@ export function buildApp() {
         environment: config.environment,
         version: version ? { commit: version.commit, builtAt: version.builtAt } : null,
         migration,
+        edge: { colo: (c.req.raw.cf as { colo?: string } | undefined)?.colo ?? null, d1: { ms: d1Ms, region: meta.served_by_region ?? null, primary: meta.served_by_primary ?? null } },
         bot: bot ? { webhook: bot.webhook, callbackQuery: bot.callbackQuery, serverSecret: bot.secretGeneration > 0, confirmed: bot.secretConfirmed, checkedAt: new Date(bot.checkedAt).toISOString() } : null,
       },
       200,

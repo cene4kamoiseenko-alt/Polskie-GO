@@ -34,7 +34,8 @@ export function parseJsonc(text) {
 }
 
 /** Ключи верхнего уровня, которые staging вправе иметь. Остальные привязки (kv, r2, queues, services, ai…) могли бы указывать на ресурсы production. */
-const ALLOWED_KEYS = new Set(['$schema', 'name', 'main', 'compatibility_date', 'compatibility_flags', 'observability', 'workers_dev', 'assets', 'd1_databases', 'triggers', 'vars', 'keep_vars']);
+// placement (Smart Placement) і minify не задають ні прив'язок, ні маршрутів — лише де й у якому вигляді виконується той самий Worker.
+const ALLOWED_KEYS = new Set(['$schema', 'name', 'main', 'compatibility_date', 'compatibility_flags', 'observability', 'placement', 'minify', 'workers_dev', 'assets', 'd1_databases', 'triggers', 'vars', 'keep_vars']);
 const SECRET_LIKE = /TOKEN|SECRET|KEY|PASSWORD|WEBHOOK|SETUP/i;
 
 /** Проблемы конфигурации staging относительно production (пустой список — всё в порядке). */

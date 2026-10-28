@@ -10,6 +10,11 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Smart Placement: запит з D1 робить кілька звернень до бази, тож Worker запускається поруч із нею, а не біля
+  // користувача (статичні файли все одно віддаються з найближчого дата-центру). Перевірка: /api/health → edge.
+  "placement": { "mode": "smart" },
+  // Менший скрипт — швидший холодний старт ізоляту.
+  "minify": true,
   // Публічна адреса https://polskie-go.<акаунт>.workers.dev (її відкриває Telegram).
   "workers_dev": true,
   "assets": {

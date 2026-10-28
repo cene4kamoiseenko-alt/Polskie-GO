@@ -13,6 +13,9 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Як у production: Worker поруч із D1 і мінімізований скрипт (перевірка: /api/health → edge).
+  "placement": { "mode": "smart" },
+  "minify": true,
   "workers_dev": true,
   "assets": {
     "directory": "dist-cf",

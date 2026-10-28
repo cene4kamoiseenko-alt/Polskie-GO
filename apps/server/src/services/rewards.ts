@@ -21,15 +21,37 @@ export type Progress = typeof playerProgress.$inferSelect;
 /** Контекст користувача для одного запиту: часовий пояс, день, прогрес. */
 export type UserCtx = { userId: string; now: Date; tz: string; day: string; week: string; progress: Progress };
 
-export async function loadCtx(userId: string, now = new Date()): Promise<UserCtx> {
-  const [settings, progress] = await db.batch([
+/** Запити контексту — щоб додати їх у спільний пакет читань запиту (`db.batch([...ctxReads(id), ...])`). */
+export const ctxReads = (userId: string) =>
+  [
     db.select({ timezone: userSettings.timezone }).from(userSettings).where(eq(userSettings.userId, userId)),
     db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
-  ]);
+  ] as const;
+
+/** Контекст із рядків `ctxReads`. */
+export function ctxFrom(userId: string, now: Date, settings: { timezone: string }[], progress: Progress[]): UserCtx {
   if (!progress[0]) throw new Error(`progress missing for ${userId}`);
   const tz = settings[0]?.timezone ?? 'Europe/Warsaw';
   const day = dayKey(now, tz);
   return { userId, now, tz, day, week: weekKey(day), progress: { ...progress[0] } };
+}
+
+export async function loadCtx(userId: string, now = new Date()): Promise<UserCtx> {
+  const [settings, progress] = await db.batch(ctxReads(userId));
+  return ctxFrom(userId, now, settings, progress);
+}
+
+/**
+ * Ключі днів і тижнів, якими може бути «сьогодні» в будь-якому часовому поясі (UTC−12…UTC+14).
+ * Рядки за цими ключами можна прочитати ще до того, як відомий пояс користувача, — в одному пакеті з `ctxReads` —
+ * і потім відібрати потрібні за `ctx.day` і `ctx.week`.
+ */
+export function dayCandidates(now: Date): string[] {
+  return [...new Set([-12, 0, 14].map((h) => dayKey(new Date(now.getTime() + h * 3600_000), 'UTC')))];
+}
+export function periodCandidates(now: Date): string[] {
+  const days = dayCandidates(now);
+  return [...days, ...new Set(days.map(weekKey))];
 }
 
 export async function userTimezone(userId: string): Promise<string> {

@@ -62,8 +62,11 @@ r.get('/achievements', async (c) => {
     db.select().from(playerProgress).where(eq(playerProgress.userId, userId)),
   ]);
   const owned = new Set(mine.map((m) => m.achievementId));
-  const metrics = await achievementMetrics(userId, progress[0], all.filter((a) => !owned.has(a.id)).map((a) => a.metric));
-  await db.update(userAchievements).set({ seen: true }).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false)));
+  // Позначка «переглянуто» не впливає на метрики — пишеться паралельно з їх підрахунком (isNew береться з уже прочитаних рядків).
+  const [metrics] = await Promise.all([
+    achievementMetrics(userId, progress[0], all.filter((a) => !owned.has(a.id)).map((a) => a.metric)),
+    db.update(userAchievements).set({ seen: true }).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
+  ]);
   return c.json(
     all.map((a) => {
       const m = mine.find((x) => x.achievementId === a.id);

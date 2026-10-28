@@ -13,7 +13,7 @@ import { answerItem, assertSpeechItem, finishSession, startSession } from '../se
 import { issueSpeechAttempt } from '../services/speech-attempts';
 import { consumeQuota } from '../services/quota';
 import { synthesize, ttsStatus } from '../services/tts';
-import { TOPICS } from '../content/vocab';
+import { TOPICS } from '../content/topics';
 import { GRAMMAR } from '../content/grammar';
 
 export const learnRoutes = new Hono<AppEnv>();
