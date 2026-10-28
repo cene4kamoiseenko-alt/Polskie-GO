@@ -1,6 +1,12 @@
 /// <reference lib="dom" />
+/**
+ * Відтворення в клієнті (apps/web/src/lib/audio.ts) у змодельованому браузері: лише готові MP3 бібліотеки за audio_id.
+ * Синтезу немає ніде: speechSynthesis не викликається ніколи, файлу немає — стан «missing» без голосу пристрою.
+ */
+import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-vi.mock('../../web/src/lib/api', () => ({ apiBlob: vi.fn(), assetUrl: (s) => s }));
+import { audioNorm } from '@polski-go/shared';
+vi.mock('../../web/src/lib/api', () => ({ API_BASE: '', api: vi.fn(async () => ({ ok: true })), assetUrl: (s) => s }));
 class FakeAudio {
     static latest;
     src = '';
@@ -16,41 +22,175 @@ class FakeAudio {
     pause = vi.fn(() => { this.paused = true; this.onpause?.(); });
     constructor() { FakeAudio.latest = this; }
 }
-async function setup(voices = []) {
+const BASE = '/api/audio/abc123abc123/';
+const fileOf = (text, base = BASE) => `${base}${createHash('sha256').update(audioNorm(text)).digest('hex')}.mp3`;
+const mp3 = () => new Response(new Blob(['ID3audio'], { type: 'audio/mpeg' }), { status: 200 });
+/** fetch: готові файли — 200, інші — 404; кожен виклик записується. */
+function stubFetch(ready = () => true) {
+    const fetch = vi.fn(async (url) => (ready(String(url)) ? mp3() : Response.json({ error: 'audio_missing' }, { status: 404 })));
+    vi.stubGlobal('fetch', fetch);
+    return fetch;
+}
+async function setup() {
     vi.resetModules();
-    const synth = { getVoices: () => voices, addEventListener: vi.fn(), cancel: vi.fn(), speak: vi.fn(), speaking: false, pending: false };
+    const synth = { getVoices: () => [{ lang: 'pl-PL', name: 'Zosia' }], addEventListener: vi.fn(), cancel: vi.fn(), speak: vi.fn(), speaking: false, pending: false };
     vi.stubGlobal('Audio', FakeAudio);
     vi.stubGlobal('window', { speechSynthesis: synth });
     vi.stubGlobal('speechSynthesis', synth);
-    vi.stubGlobal('SpeechSynthesisUtterance', class {
-        text;
-        constructor(text) {
-            this.text = text;
-        }
-    });
+    vi.stubGlobal('SpeechSynthesisUtterance', class { constructor(text) { this.text = text; } });
     vi.stubGlobal('document', { addEventListener: vi.fn() });
-    return { audio: await import('../../web/src/lib/audio'), synth };
+    const audio = await import('../../web/src/lib/audio');
+    const { api } = await import('../../web/src/lib/api');
+    api.mockClear();
+    return { audio, synth, api };
 }
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
-describe('Speech playback lifecycle (simulated browser, no real TTS)', () => {
-    it('never selects an unverified device voice when voice list is empty', async () => {
-        vi.useFakeTimers();
+describe('Відтворення лише готових MP3 (змодельований браузер)', () => {
+    it('грає файл бібліотеки за audio_id: {base}{sha256(audioNorm)}.mp3; повільно — той самий файл із 0,75', async () => {
         const { audio, synth } = await setup();
-        const task = audio.speak('Cześć');
-        await vi.advanceTimersByTimeAsync(600);
-        await task;
+        const fetch = stubFetch();
+        audio.configureAudio({ base: BASE });
+        const task = audio.speak('Dzień dobry!');
+        await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
+        expect(fetch).toHaveBeenCalledOnce();
+        // Знак оклику лишається частиною вимови («Dzień dobry!» ≠ «Dzień dobry»), крапка й регістр — ні.
+        expect(String(fetch.mock.calls[0][0])).toBe(fileOf('dzień dobry!'));
+        FakeAudio.latest.onplaying(); FakeAudio.latest.onended();
+        expect(await task).toEqual({ played: true, source: 'library', issue: null });
+        const slow = audio.speak('Dzień dobry!', { slow: true });
+        await vi.waitFor(() => expect(FakeAudio.latest.playbackRate).toBe(0.75));
+        expect(fetch).toHaveBeenCalledOnce();
+        FakeAudio.latest.onplaying(); FakeAudio.latest.onended();
+        await slow;
         expect(synth.speak).not.toHaveBeenCalled();
     });
-    it('cancels a pending device voice before it can play on the next screen', async () => {
-        vi.useFakeTimers();
-        const { audio, synth } = await setup();
-        const task = audio.speak('Dobranoc');
-        audio.stopSpeech();
-        await vi.advanceTimersByTimeAsync(600);
-        await task;
+    it('20 повторних натискань — один запит файлу', async () => {
+        const { audio } = await setup();
+        const fetch = stubFetch();
+        audio.configureAudio({ base: BASE });
+        for (let i = 0; i < 20; i++) {
+            const task = audio.speak('Poproszę kawę.');
+            await vi.waitFor(() => expect(FakeAudio.latest.onplaying).toBeTypeOf('function'));
+            FakeAudio.latest.onplaying(); FakeAudio.latest.onended();
+            await task;
+        }
+        expect(fetch).toHaveBeenCalledOnce();
+    });
+    it('файлу немає — «missing» без голосу пристрою; одне повідомлення адмінці; повтор — без запиту', async () => {
+        const { audio, synth, api } = await setup();
+        const fetch = stubFetch(() => false);
+        audio.configureAudio({ base: BASE });
+        expect(await audio.speak('Nie ma nagrania.')).toEqual({ played: false, source: null, issue: 'missing' });
+        expect(await audio.speak('Nie ma nagrania.')).toEqual({ played: false, source: null, issue: 'missing' });
+        expect(fetch).toHaveBeenCalledOnce();
+        expect(api).toHaveBeenCalledOnce();
+        expect(api.mock.calls[0]).toEqual(['/audio/miss', { body: { text: 'Nie ma nagrania.' } }]);
         expect(synth.speak).not.toHaveBeenCalled();
     });
-    it('settles a stopped audio promise even if playback has not started', async () => {
+    it('без бібліотеки (base null) — «missing» без запитів і без голосу пристрою', async () => {
+        const { audio, synth } = await setup();
+        const fetch = stubFetch();
+        audio.configureAudio({ base: null });
+        expect(await audio.speak('Cześć')).toEqual({ played: false, source: null, issue: 'missing' });
+        expect(fetch).not.toHaveBeenCalled();
+        expect(synth.speak).not.toHaveBeenCalled();
+    });
+    it('збій мережі — «network», не «missing»: наступне натискання пробує знову; голосу пристрою немає', async () => {
+        const { audio, synth } = await setup();
+        const fetch = vi.fn(async () => new Response('err', { status: 500 }));
+        vi.stubGlobal('fetch', fetch);
+        audio.configureAudio({ base: BASE });
+        expect((await audio.speak('Dziękuję')).issue).toBe('network');
+        expect((await audio.speak('Dziękuję')).issue).toBe('network');
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(synth.speak).not.toHaveBeenCalled();
+    });
+    it('попереднє завантаження й натискання ділять один запит', async () => {
+        const { audio } = await setup();
+        let complete;
+        const fetch = vi.fn(() => new Promise((resolve) => { complete = resolve; }));
+        vi.stubGlobal('fetch', fetch);
+        audio.configureAudio({ base: BASE });
+        audio.prefetchSpeech(['To jest test.']);
+        const task = audio.speak('To jest test.');
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+        complete(mp3());
+        await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
+        expect(fetch).toHaveBeenCalledOnce();
+        audio.stopSpeech(); await task;
+    });
+    it('зламаний запис (url) → готовий файл бібліотеки тієї самої фрази', async () => {
+        const { audio } = await setup();
+        const fetch = stubFetch();
+        audio.configureAudio({ base: BASE });
+        const task = audio.speak('Dzień dobry', { url: '/missing.mp3' });
+        expect(FakeAudio.latest.src).toBe('/missing.mp3');
+        FakeAudio.latest.onerror();
+        await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
+        expect(String(fetch.mock.calls[0][0])).toBe(fileOf('Dzień dobry'));
+        FakeAudio.latest.onplaying(); FakeAudio.latest.onended();
+        expect(await task).toEqual({ played: true, source: 'library', issue: null });
+    });
+    it('попереднє завантаження — не більше 40 запитів на хвилину; уже завантажене не запитується знову', async () => {
+        const { audio } = await setup();
+        const fetch = stubFetch();
+        audio.configureAudio({ base: BASE });
+        for (let i = 0; i < 30; i++) audio.prefetchSpeech([`Zdanie ${i} a`, `Zdanie ${i} b`, `Zdanie ${i} c`]);
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(40));
+        await new Promise((r) => setTimeout(r, 20));
+        expect(fetch).toHaveBeenCalledTimes(40);
+        audio.prefetchSpeech(['Zdanie 0 a']);
+        const task = audio.speak('Zdanie 29 c');
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(41));
+        audio.stopSpeech(); await task;
+    });
+    it('після перезапуску файл береться з Cache Storage без запиту до сервера', async () => {
+        const store = new Map();
+        const cache = { match: vi.fn(async (k) => store.get(k)), put: vi.fn(async (k, r) => { store.set(k, new Response(await r.blob())); }), keys: vi.fn(async () => [...store.keys()]), delete: vi.fn() };
+        const first = await setup();
+        vi.stubGlobal('caches', { open: vi.fn(async () => cache), delete: vi.fn(async () => true) });
+        stubFetch();
+        first.audio.configureAudio({ base: BASE });
+        first.audio.prefetchSpeech(['Na zdrowie']);
+        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledOnce());
+        expect(cache.put.mock.calls[0][0]).toBe(fileOf('Na zdrowie'));
+        // «Перезапуск»: новий модуль, порожня пам'ять, той самий Cache Storage.
+        const second = await setup();
+        vi.stubGlobal('caches', { open: vi.fn(async () => cache), delete: vi.fn(async () => true) });
+        const fetch2 = stubFetch();
+        second.audio.configureAudio({ base: BASE });
+        const task = second.audio.speak('Na zdrowie');
+        await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
+        expect(fetch2).not.toHaveBeenCalled();
+        second.audio.stopSpeech(); await task;
+    });
+    it('інший голос (інший відбиток в адресі) — інший файл; старі кеші синтезу pg-tts-v1/v2 прибираються', async () => {
+        const store = new Map();
+        const cache = { match: vi.fn(async (k) => store.get(k)), put: vi.fn(async (k, r) => { store.set(k, new Response(await r.blob())); }), keys: vi.fn(async () => [...store.keys()]), delete: vi.fn() };
+        const storage = { open: vi.fn(async () => cache), delete: vi.fn(async () => true) };
+        const { audio } = await setup();
+        vi.stubGlobal('caches', storage);
+        const fetch = stubFetch();
+        audio.configureAudio({ base: BASE });
+        audio.prefetchSpeech(['Smacznego']);
+        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledOnce());
+        audio.prefetchSpeech(['Smacznego']);
+        const other = '/api/audio/def456def456/';
+        audio.configureAudio({ base: other });
+        audio.prefetchSpeech(['Smacznego']);
+        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledTimes(2));
+        expect(fetch.mock.calls.map((c) => String(c[0]))).toEqual([fileOf('Smacznego'), fileOf('Smacznego', other)]);
+        expect(storage.delete.mock.calls.map((c) => c[0]).sort()).toEqual(['pg-tts-v1', 'pg-tts-v2']);
+    });
+    it('окрема літера (прийменник w / z) не озвучується: голос прочитав би її назву, «duże wu»', async () => {
+        const { audio, synth } = await setup();
+        const fetch = stubFetch();
+        audio.configureAudio({ base: BASE });
+        for (const x of ['W', 'w', 'z', 'I']) expect(await audio.speak(x)).toEqual({ played: false, source: null, issue: null });
+        expect(synth.speak).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
+    });
+    it('зупинка до початку відтворення завершує обіцянку', async () => {
         const { audio } = await setup();
         const task = audio.speak('Dzień dobry', { url: '/recording.mp3' });
         audio.stopSpeech();
@@ -58,144 +198,17 @@ describe('Speech playback lifecycle (simulated browser, no real TTS)', () => {
         expect(FakeAudio.latest.pause).toHaveBeenCalled();
         expect(FakeAudio.latest.onplaying).toBeNull();
     });
-    it('times out a playback that never starts', async () => {
+    it('запис, що так і не почав грати, зупиняється за тайм-аутом', async () => {
         vi.useFakeTimers();
         const { audio } = await setup();
+        stubFetch(() => false);
+        audio.configureAudio({ base: BASE });
         const task = audio.speak('Dzień dobry', { url: '/broken.mp3' });
-        // 15 с очікування запису, потім спроба голосу пристрою (600 мс на список голосів).
         await vi.advanceTimersByTimeAsync(16_000);
         await task;
         expect(FakeAudio.latest.pause).toHaveBeenCalled();
     });
-    it('shares an in-flight synthesis between prefetch and playback', async () => {
-        const { audio } = await setup();
-        const { apiBlob } = await import('../../web/src/lib/api');
-        let complete;
-        apiBlob.mockReset().mockImplementation(() => new Promise(resolve => { complete = resolve; }));
-        audio.configureAudio({ server: true });
-        audio.prefetchSpeech(['To jest test.']);
-        const task = audio.speak('To jest test.');
-        // Спершу перевіряється постійний кеш (асинхронно), потім — один спільний запит.
-        await vi.waitFor(() => expect(apiBlob).toHaveBeenCalledOnce());
-        complete(new Blob(['audio'], { type: 'audio/mpeg' }));
-        await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
-        expect(apiBlob).toHaveBeenCalledOnce();
-        audio.stopSpeech(); await task;
-    });
-    it('falls back from a broken recording to server synthesis of the same phrase', async () => {
-        const { audio } = await setup();
-        const { apiBlob } = await import('../../web/src/lib/api');
-        apiBlob.mockReset().mockResolvedValue(new Blob(['audio'], { type: 'audio/mpeg' }));
-        audio.configureAudio({ server: true });
-        const task = audio.speak('Dzień dobry', { url: '/missing.mp3' });
-        expect(FakeAudio.latest.src).toBe('/missing.mp3');
-        FakeAudio.latest.onerror();
-        await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
-        expect(apiBlob).toHaveBeenCalledOnce();
-        expect(String(apiBlob.mock.calls[0][0])).toContain('rate=normal');
-        FakeAudio.latest.onplaying(); FakeAudio.latest.onended();
-        await task;
-    });
-    it('falls back from failed server synthesis to a Polish device voice, never to another language', async () => {
-        const { audio, synth } = await setup([{ lang: 'en-US', name: 'Samantha' }, { lang: 'pl-PL', name: 'Zosia' }]);
-        const { apiBlob } = await import('../../web/src/lib/api');
-        apiBlob.mockReset().mockRejectedValue(new Error('network'));
-        audio.configureAudio({ server: true });
-        const task = audio.speak('Dziękuję');
-        await vi.waitFor(() => expect(synth.speak).toHaveBeenCalledOnce());
-        const u = synth.speak.mock.calls[0][0];
-        expect(u.voice.name).toBe('Zosia');
-        expect(u.lang).toBe('pl-PL');
-        u.onstart(); u.onend();
-        await task;
-    });
-    it('keeps prefetch under the /tts rate limit and does not refetch what is already cached', async () => {
-        const { audio } = await setup();
-        const { apiBlob } = await import('../../web/src/lib/api');
-        apiBlob.mockReset().mockImplementation(async () => new Blob(['audio'], { type: 'audio/mpeg' }));
-        audio.configureAudio({ server: true });
-        for (let i = 0; i < 30; i++) audio.prefetchSpeech([`Zdanie ${i} a`, `Zdanie ${i} b`, `Zdanie ${i} c`]);
-        await vi.waitFor(() => expect(apiBlob).toHaveBeenCalledTimes(40));
-        await new Promise((r) => setTimeout(r, 20));
-        expect(apiBlob).toHaveBeenCalledTimes(40);
-        // Уже завантажене повторно не запитується; озвучка на вимогу не обмежена бюджетом наперед.
-        audio.prefetchSpeech(['Zdanie 0 a']);
-        const task = audio.speak('Zdanie 29 c');
-        await vi.waitFor(() => expect(apiBlob).toHaveBeenCalledTimes(41));
-        audio.stopSpeech(); await task;
-    });
-    it('reuses audio saved in Cache Storage after a restart without asking the server', async () => {
-        const store = new Map();
-        const cache = { match: vi.fn(async (k) => store.get(k)), put: vi.fn(async (k, r) => { store.set(k, new Response(await r.blob())); }), keys: vi.fn(async () => [...store.keys()]), delete: vi.fn() };
-        const first = await setup();
-        vi.stubGlobal('caches', { open: vi.fn(async () => cache) });
-        vi.stubGlobal('location', { origin: 'https://app.test' });
-        const api1 = (await import('../../web/src/lib/api')).apiBlob;
-        api1.mockReset().mockResolvedValue(new Blob(['audio'], { type: 'audio/mpeg' }));
-        first.audio.configureAudio({ server: true });
-        first.audio.prefetchSpeech(['Na zdrowie']);
-        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledOnce());
-        // «Перезапуск»: новий модуль, порожня пам'ять, той самий Cache Storage.
-        const second = await setup();
-        vi.stubGlobal('caches', { open: vi.fn(async () => cache) });
-        vi.stubGlobal('location', { origin: 'https://app.test' });
-        const api2 = (await import('../../web/src/lib/api')).apiBlob;
-        api2.mockReset();
-        second.audio.configureAudio({ server: true });
-        const task = second.audio.speak('Na zdrowie');
-        await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
-        expect(api2).not.toHaveBeenCalled();
-        second.audio.stopSpeech(); await task;
-    });
-    it('a different server voice (fingerprint) is not served from the old cache and drops the unlabeled pg-tts-v1 once', async () => {
-        const store = new Map();
-        const cache = { match: vi.fn(async (k) => store.get(k)), put: vi.fn(async (k, r) => { store.set(k, new Response(await r.blob())); }), keys: vi.fn(async () => [...store.keys()]), delete: vi.fn() };
-        const storage = { open: vi.fn(async () => cache), delete: vi.fn(async () => true) };
-        const { audio } = await setup();
-        vi.stubGlobal('caches', storage);
-        vi.stubGlobal('location', { origin: 'https://app.test' });
-        const { apiBlob } = await import('../../web/src/lib/api');
-        apiBlob.mockReset().mockImplementation(async () => new Blob(['audio'], { type: 'audio/mpeg' }));
-        audio.configureAudio({ server: true, voice: 'aaa111' });
-        audio.prefetchSpeech(['Smacznego']);
-        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledOnce());
-        expect(String(apiBlob.mock.calls[0][0])).toContain('&v=aaa111');
-        // Той самий голос — з кешу; новий голос — новий запит з новим відбитком.
-        audio.prefetchSpeech(['Smacznego']);
-        audio.configureAudio({ server: true, voice: 'bbb222' });
-        audio.prefetchSpeech(['Smacznego']);
-        await vi.waitFor(() => expect(cache.put).toHaveBeenCalledTimes(2));
-        expect(apiBlob).toHaveBeenCalledTimes(2);
-        expect(String(apiBlob.mock.calls[1][0])).toContain('&v=bbb222');
-        expect(new Set(store.keys()).size).toBe(2);
-        expect(storage.delete).toHaveBeenCalledOnce();
-        expect(storage.delete).toHaveBeenCalledWith('pg-tts-v1');
-    });
-    it('soft device-voice policy (prepared, off by default) speaks pl-PL and marks the voice as unverified', async () => {
-        vi.useFakeTimers();
-        const { audio, synth } = await setup();
-        audio.configureAudio({ server: false, deviceVoice: 'soft' });
-        const task = audio.speak('Cześć');
-        await vi.advanceTimersByTimeAsync(600);
-        expect(synth.speak).toHaveBeenCalledOnce();
-        const u = synth.speak.mock.calls[0][0];
-        expect(u.lang).toBe('pl-PL');
-        expect(u.voice).toBeUndefined();
-        u.onstart(); u.onend();
-        await task;
-    });
-
-    it('a lone letter (preposition w / z) is never voiced on its own: a voice would say its name, "duże wu"', async () => {
-        const zosia = { name: 'Zosia', lang: 'pl-PL', localService: true, default: false };
-        const { audio, synth } = await setup([zosia]);
-        const { apiBlob } = await import('../../web/src/lib/api');
-        apiBlob.mockReset();
-        audio.configureAudio({ server: true });
-        for (const x of ['W', 'w', 'z', 'I']) expect(await audio.speak(x)).toEqual({ played: false, source: null, issue: null });
-        expect(synth.speak).not.toHaveBeenCalled();
-        expect(apiBlob).not.toHaveBeenCalled();
-    });
-    it('reports which source really started playing (health check by playback, not by request)', async () => {
+    it('джерело — те, що справді почало грати (перевірка відтворенням, а не запитом)', async () => {
         const { audio } = await setup();
         const task = audio.speak('Dzień dobry', { url: '/recording.mp3' });
         await vi.waitFor(() => expect(FakeAudio.latest.onplaying).toBeTypeOf('function'));
