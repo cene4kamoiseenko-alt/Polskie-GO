@@ -348,10 +348,10 @@
       "name_pl": "Toruń",
       "name_ru": "Торунь",
       "cefr": "B1",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/torun.webp",
         "status": "final",
@@ -366,7 +366,7 @@
         "integrated": "2026-10-28"
       },
       "landmarks": "Готическая ратуша, памятник Копернику и Висла с замком совпадают — проверено 2026-10-28",
-      "missing_content": "уроков 0; тема «Плани і майбутнє»",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-10-29, тема «Плани і майбутнє», B1)",
       "progress": "не проверено"
     },
     {
@@ -549,9 +549,10 @@
       "szczecin 8",
       "gdansk 8",
       "gdynia 8",
-      "bydgoszcz 8"
+      "bydgoszcz 8",
+      "torun 8"
     ],
-    "cities_without_lessons": 7,
+    "cities_without_lessons": 6,
     "exam_cities": [
       "warszawa",
       "lodz",
@@ -563,7 +564,10 @@
       "zielona-gora",
       "gorzow",
       "szczecin",
-      "gdansk"
+      "gdansk",
+      "gdynia",
+      "bydgoszcz",
+      "torun"
     ],
     "final_cities": [
       "warszawa",

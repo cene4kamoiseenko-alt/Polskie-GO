@@ -17,6 +17,7 @@ import { SZCZECIN_VOCAB } from './vocab-szczecin';
 import { GDANSK_VOCAB } from './vocab-gdansk';
 import { GDYNIA_VOCAB } from './vocab-gdynia';
 import { BYDGOSZCZ_VOCAB } from './vocab-bydgoszcz';
+import { TORUN_VOCAB } from './vocab-torun';
 import { LODZ_VOCAB } from './vocab-lodz';
 import { WROCLAW_VOCAB } from './vocab-wroclaw';
 
@@ -325,5 +326,6 @@ export const VOCAB: VocabSeed[] = [
   ...GDANSK_VOCAB,
   ...GDYNIA_VOCAB,
   ...BYDGOSZCZ_VOCAB,
+  ...TORUN_VOCAB,
   ...WROCLAW_VOCAB,
 ];

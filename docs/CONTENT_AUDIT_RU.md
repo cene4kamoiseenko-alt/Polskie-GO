@@ -479,3 +479,18 @@ pełny etat, nadgodziny, doświadczenie, zamienić się, apteczka (A2 или B1)
 - Контент-линт: два ложных срабатывания диакритики («w niedziele» — множественное, «15 maja» — дата) внесены в PLAIN_OK.
 - Нужна проверка носителем.
 
+## Toruń — «Планы и будущее», B1 (2026-10-29)
+- Файлы: `torun.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-torun.ts` (45 слов; plan, jutro, awans, egzamin, jeśli, chyba, termin, podróż, walizka и др. уже были в словаре).
+  - L1 `tor-1-bede`: несовершенное будущее — **będę / będziesz / będziemy** + инфинитив (или -ł), **w przyszłym tygodniu** (предложный), pojutrze, wkrótce, niedługo; «będę sprzątam» — ошибка.
+  - L2 `tor-2-zrobie`: совершенное будущее — **zrobię, kupię, napiszę, spróbuję**; с совершенным будущим **будę не ставится**; **podjąć decyzję** (не «zrobić decyzję»), zdecydować ≠ postanowić.
+  - L3 `tor-3-zamiary`: **zamierzam / mam zamiar** + инфинитив, **marzę o** + предложный, **moim marzeniem jest**, **mój cel to**.
+  - L4 `tor-4-kariera`: **zostać** + творительный (lekarzem, kierownikiem), **zdawać** (сдавать) ≠ **zdać** (сдать), osiągnąć cel, awansować, zmienić pracę.
+  - L5 `tor-5-wakacje`: **samolotem** (творительный), **oszczędzać na** + винительный, **mniej / więcej** + родительный (pieniędzy), spakuję, remont, przeprowadzka.
+  - L6 `tor-6-jezeli`: **jeżeli / jeśli** + будущее в обеих частях; шкала уверенности na pewno → prawdopodobnie / pewnie → chyba → może; **mam nadzieję, że**.
+  - L7 `tor-7-obietnice`: **obiecuję, że** + будущее, **dotrzymać obietnicy** (родительный), **radzę ci** (дательный) + инфинитив, w kalendarzu, dam ci znać, mam pomysł, **szanse na** + винительный.
+  - L8 `tor-8-kopernik`: Mikołaj Kopernik (род. в Торуни в 1473 г.), astronom, **wokół Słońca** (родительный), Dom Kopernika, planetarium, Krzywa Wieża, Старый город в списке ЮНЕСКО, Muzeum Piernika (можно самому испечь пряник), upieczemy.
+  - Экзамен `tor-boss`: 12 заданий, ситуация — Рынок Старого города.
+- Факты проверить носителем и по городским источникам: год рождения Коперника (1473), мастер-классы в Музее пряника. Объявления, прогнозы и анкеты — учебные.
+- Контент-линт: по Торуню замечаний нет.
+- Нужна проверка носителем.
+

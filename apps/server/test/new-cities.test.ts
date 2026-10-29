@@ -21,6 +21,8 @@ import { GDYNIA } from '../src/content/gdynia';
 import { GDYNIA_VOCAB } from '../src/content/vocab-gdynia';
 import { BYDGOSZCZ } from '../src/content/bydgoszcz';
 import { BYDGOSZCZ_VOCAB } from '../src/content/vocab-bydgoszcz';
+import { TORUN } from '../src/content/torun';
+import { TORUN_VOCAB } from '../src/content/vocab-torun';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -130,5 +132,15 @@ citySuite({
   routes: ['byd-weekend', 'byd-wspomnienia', 'byd-historie', 'byd-legendy', 'byd-egzamin'],
   lessons: ['byd-1-weekend', 'byd-2-aspekt', 'byd-3-dziecinstwo', 'byd-4-pojechalem', 'byd-5-co-sie-stalo', 'byd-6-zyciorys', 'byd-7-plotki', 'byd-8-legendy'],
   boss: 'byd-boss',
+  levels: ['B1'],
+});
+
+citySuite({
+  label: 'Toruń',
+  content: TORUN,
+  vocab: TORUN_VOCAB,
+  routes: ['tor-plany', 'tor-marzenia', 'tor-warunki', 'tor-miasto', 'tor-egzamin'],
+  lessons: ['tor-1-bede', 'tor-2-zrobie', 'tor-3-zamiary', 'tor-4-kariera', 'tor-5-wakacje', 'tor-6-jezeli', 'tor-7-obietnice', 'tor-8-kopernik'],
+  boss: 'tor-boss',
   levels: ['B1'],
 });

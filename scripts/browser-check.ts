@@ -14,8 +14,8 @@
  *  - A2 головна, блок «Сегодня»: стани error (з повтором), empty, done, offline, active; скелетонів поза loading немає;
  *  - A3 шторка міста на /map (360/390/430): остання тема й CTA у viewport, прокрутка не закриває, ✕ / Escape / drag за ручку
  *    закривають; знімки — test-results/screens/sheet-{ширина}.png.
- *    A3.8 (390): три окремі стани міста в шторці — оформлення (CITY_ART), уроки, доступ; Gorzów без малюнка — «скоро»,
- *    без кнопки «Учить»; Łódź — тимчасовий малюнок lazy зі srcset 640w. Знімки — sheet-status-{gorzow,lodz}-390.png.
+ *    A3.8 (390): три окремі стани міста в шторці — оформлення (CITY_ART), уроки, доступ; Kielce (малюнок готовий, уроків ще немає; Gorzów і Toruń отримали уроки),
+ *    без кнопки «Учить»; Łódź — тимчасовий малюнок lazy зі srcset 640w. Знімки — sheet-status-{kielce,lodz}-390.png.
  *  - A4 маркер Бобека на /map (360/390/430): живописний растр <image data-map-beaver> із ненульовим розміром, стоїть над своїм
  *    містом, цілком у видимій області SVG і прокручуваної карти, справді декодується й малюється; поточне місто та подорож
  *    (/map?travel=from,to, з емуляцією prefers-reduced-motion — путник одразу в кінцевому місті);
@@ -490,12 +490,12 @@ async function main() {
       await openSheet();
       const cur = await state();
       check(cur.art === 'true' && cur.lessons === 'true' && cur.access === 'true', `A3.8 текущий город: оформление, уроки и доступ готовы ${JSON.stringify(cur)}`);
-      await openCity('Gorzów Wielkopolski');
+      await openCity('Kielce');
       const gw = await state();
-      check(gw.art === 'true' && gw.lessons === 'false' && gw.access === 'false', `A3.8 Gorzów: рисунок готов (final), уроков нет, город закрыт ${JSON.stringify(gw)}`);
-      check(await dialog.locator('[data-city-art="final"] img').count() === 1, 'A3.8 Gorzów: баннер — настоящий рисунок, а не общая сцена');
-      check(await dialog.locator('[data-city-go]').count() === 0, 'A3.8 Gorzów: кнопки «Учить» нет — пустой маршрут не открывается');
-      await sp.screenshot({ path: `${SHEETS}/sheet-status-gorzow-390.png` });
+      check(gw.art === 'true' && gw.lessons === 'false' && gw.access === 'false', `A3.8 Kielce: рисунок готов (final), уроков нет, город закрыт ${JSON.stringify(gw)}`);
+      check(await dialog.locator('[data-city-art="final"] img').count() === 1, 'A3.8 Kielce: баннер — настоящий рисунок, а не общая сцена');
+      check(await dialog.locator('[data-city-go]').count() === 0, 'A3.8 Kielce: кнопки «Учить» нет — пустой маршрут не открывается');
+      await sp.screenshot({ path: `${SHEETS}/sheet-status-kielce-390.png` });
       // Katowice — город с уроками и панорамой владельца 2026-10-28 (final).
       await openCity('Katowice');
       const kt = await state();
