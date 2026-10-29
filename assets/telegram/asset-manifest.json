@@ -566,55 +566,6 @@
       "description": "Бобек в красной толстовке с рюкзаком держит развёрнутую бумажную карту Польши с метками городов на площади Старого города в золотой час. Горы, море и города узнаваемы по силуэтам. Без текста; в ru-версии заголовок «КАРТА» в стиле досок a10."
     },
     {
-      "scene": "quests",
-      "command": "/quests",
-      "reason": "нет исходника: commands/quests.jpg — дубль /lesson с польской плашкой, ru/quests.jpg снят как мыльный",
-      "needed_files": [
-        "scenes/ru/quests.jpg",
-        "scenes/neutral/quests.jpg"
-      ],
-      "description": "Бобек радуется рядом с доской-чеклистом с галочками без слов, кубком и подарком. Тёплое освещение, польская кофейня. Без чисел и XP."
-    },
-    {
-      "scene": "profile",
-      "command": "/profile",
-      "reason": "нет исходника: плашка «TWOJA SERIA!» (commands/profile.jpg) снята 2026-10-27, /profile временно показывает нейтральный кадр старта commands/start.jpg",
-      "needed_files": [
-        "scenes/ru/profile.jpg",
-        "scenes/neutral/profile.jpg"
-      ],
-      "description": "Бобек перед рамкой-карточкой профиля и полкой значков (значки без надписей). Без уровня, XP и серии."
-    },
-    {
-      "scene": "help",
-      "command": "/help",
-      "reason": "нет исходника: ru/help.jpg снят как мыльный, commands/help.jpg остаётся для всех языков — без полос, но мягкий (детали 0,40, soft_fallback)",
-      "needed_files": [
-        "scenes/ru/help.jpg",
-        "scenes/neutral/help.jpg"
-      ],
-      "description": "Бобек у информационной стойки со знаком вопроса в облачке и картой. Без табличек с названиями городов."
-    },
-    {
-      "scene": "reminder_lesson",
-      "command": "напоминание «урок»",
-      "reason": "нет исходника: ru/reminder.jpg (часы 19:00, мыльные полосы) снят; commands/reminder-lesson.jpg — дубль /lesson",
-      "needed_files": [
-        "scenes/neutral/reminder-lesson.jpg"
-      ],
-      "description": "Бобек за столом с открытой тетрадью и будильником без читаемого времени (стрелки без цифр), вечерний тёплый свет. Без часов 19:00."
-    },
-    {
-      "scene": "streak",
-      "command": "напоминание «серия»",
-      "reason": "доска tg-streak.webp содержит статическую «7» и календарь с отмеченными днями: показывать как серию пользователя нельзя",
-      "needed_files": [
-        "scenes/neutral/streak.jpg",
-        "scenes/ru/streak.jpg"
-      ],
-      "description": "Огонёк и календарь без цифр и без отмеченных дней; Бобек в радостной позе. Число дней всегда в тексте сообщения."
-    },
-    {
       "scene": "correct_answer",
       "command": "/quiz (правильный ответ)",
       "reason": "доска tg-correct-answer.webp содержит «+20 XP», а QUIZ_XP = 10",
@@ -651,39 +602,12 @@
         "scenes/neutral/lesson-complete.jpg"
       ],
       "description": "Бобек со звездой и свитком, конфетти. Без числа XP и без названия города."
-    },
-    {
-      "scene": "neutral_for_uk_pl_en",
-      "command": "все команды для uk / pl / en",
-      "reason": "нет исходника: у uk / pl / en остаются commands/*.jpg; в них только три разных основы кадра (закат с логотипом, кофейня, справка), четыре пары дублей и плашки «CZAS NA POLSKI!», «TWOJA SERIA!», «BOBEK CZEKA!»",
-      "needed_files": [
-        "scenes/neutral/start.jpg",
-        "scenes/neutral/lesson.jpg",
-        "scenes/neutral/words.jpg",
-        "scenes/neutral/settings.jpg",
-        "scenes/neutral/stop.jpg",
-        "scenes/neutral/return.jpg"
-      ],
-      "description": "Те же композиции, что у досок a10, но без заголовков и подписей (чистая картинка), по одной уникальной сцене на команду; мастер от 1920×1080."
     }
   ],
   "legacy_neutral": [
-    "commands/start.jpg",
-    "commands/settings.jpg",
-    "commands/lesson.jpg",
-    "commands/quests.jpg",
-    "commands/reminder-lesson.jpg",
-    "commands/reminder-streak.jpg",
-    "commands/reminder-return.jpg",
     "commands/stop.jpg"
   ],
-  "soft_fallback": [
-    {
-      "file": "commands/help.jpg",
-      "detail": 0.404,
-      "reason": "кадр /help для всех языков (и для русского: доски справки нет). Без полос и рамок, полнокадровый, но мягкий: увеличен примерно из 800 px по ширине. Оставлен как безопасный запасной до исходника сцены help (blocked_scenes: help); не выдавать за мастер."
-    }
-  ],
+  "soft_fallback": [],
   "root_cause_blur": {
     "date": "2026-10-27",
     "symptom": "/words (и другие русские карточки) в Telegram: по краям кадра вертикальные размытые полосы, кадр выглядит как маленькая картинка, растянутая на ширину",
@@ -697,5 +621,28 @@
     "verdict": "reference_only, в бот и в приложение не подключён",
     "measured": "родные панели 230–306 × 271–342 px (вырезки из листа 1536×1024). 04_telegram_1280x720_JPG: панель увеличена в ~2,5 раза до ~570×720 и поставлена слева, справа — декоративная заливка; проверка файла: слева полоса 78 px, детали 0,37–0,39 (увеличены). Это тот же дефект «маленький кадр, растянутый на ширину», только с заливкой вместо размытия.",
     "use": "сюжеты и композиция панелей — референс для художника (что рисовать для map/quests/profile/help и миссий); Бобек вшит в каждую панель, для гардероба не подходит; doctor_pharmacy ≠ urzad-pesel."
+  },
+  "owner_pack_2026_10_29": {
+    "received": "2026-10-29, 16 картинок в чате (1536×1024): 12 сцен с Бобеком, 4 листа вещей гардероба (RGBA, по 6 вещей)",
+    "bot_commands": {
+      "commands/start.jpg": "Бобек с чемоданом машет на Старом городе Варшавы",
+      "commands/lesson.jpg": "Бобек пишет в тетради в кафе у озера",
+      "commands/words.jpg": "Бобек с карточками слов (яблоко, дом, трамвай, кофе)",
+      "commands/quests.jpg": "Бобек радуется рядом с зелёной галочкой",
+      "commands/profile.jpg": "Бобек с раскрытым паспортом путешественника",
+      "commands/settings.jpg": "Бобек у деревянной доски настроек (колокольчик, тема, звук, шестерёнка)",
+      "commands/help.jpg": "Бобек с карточками и знаком вопроса",
+      "commands/reminder-lesson.jpg": "Бобек с книгой и звездой",
+      "commands/reminder-streak.jpg": "Бобек с фонарём вечером у Вавеля",
+      "commands/reminder-return.jpg": "Бобек приглашает в свою комнату"
+    },
+    "crop": "3:2 → 16:9: строки 80–944 из 1024 (голова и лапы в кадре), только уменьшение до 1280×720; мастера — docs/design/a12/bot/*_original.webp",
+    "kept_old": [
+      "commands/map.jpg (карты нет, но без текста)",
+      "commands/stop.jpg (теперь не дубль: reminder-return заменён)"
+    ],
+    "mission": "Lidl у входа со списком и тележкой → SCENE_ART lidl (interim, Бобек в кадре)",
+    "items": "24 вещи гардероба → apps/web/src/assets/items/<slug>.webp (значки в магазине и гардеробе)",
+    "duplicate": "картинки 11 и 12 одинаковые — использована одна"
   }
 }

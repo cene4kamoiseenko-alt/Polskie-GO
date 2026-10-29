@@ -30,8 +30,8 @@ export const COMMAND_IMAGES: Record<CommandName, string> = {
   map: 'map.jpg',
   words: 'words.jpg',
   quests: 'quests.jpg',
-  // Кадр с плашкой «TWOJA SERIA!» (про серию, а не про профиль) снят: до сцены профиля — нейтральный кадр старта.
-  profile: 'start.jpg',
+  // Кадры владельца 2026-10-29 (docs/design/a12/bot): Бобек с паспортом путешественника — без текста, подходит всем языкам.
+  profile: 'profile.jpg',
   settings: 'settings.jpg',
   help: 'help.jpg',
   stop: 'stop.jpg',

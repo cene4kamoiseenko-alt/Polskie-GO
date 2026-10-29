@@ -133,6 +133,12 @@ export const SCENE_ART: Record<string, SceneArt> = {
     missions: ['train-wroclaw'], focus: '50% 30%', shows: 'Каса вокзалу (BILETY, PKP), касирка подає квиток, за склом перон і потяг',
     telegram: null, defects: ['над перонами табличка WROCŁAW і вроцлавська готика, а Бобек у місії купує квиток на Warszawa Centralna'],
   },
+  'store-lidl': {
+    ...common, id: 'store-lidl', file: 'lidl', brand: 'Lidl', native: [1536, 768], fallbackScene: 'supermarket',
+    source: { file: 'docs/design/a12/missions/lidl_original.webp', top: 150 },
+    missions: ['lidl-list'], focus: '30% 40%', shows: 'Вхід у Lidl, Бобек зі списком покупок і повним візком (овочі, хліб, молоко)',
+    telegram: null, defects: ['Бобек біля входу, а в місії він платить на касі самообслуговування'],
+  },
   'tram-stop': {
     ...common, id: 'tram-stop', file: 'tramwaj', brand: 'Tramwaj', native: [1536, 768], fallbackScene: 'tram-stop',
     source: { file: 'docs/design/a12/missions/tramwaj_original.webp', top: 80 },

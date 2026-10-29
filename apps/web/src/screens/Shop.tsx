@@ -20,7 +20,7 @@ import { WEAR_SLOTS } from '../components/ItemPreview';
 import { Icon } from '../components/Icon';
 import { Art } from '../components/GameArt';
 import { ErrorState, ScreenSkeleton, cx, useBackButton, useToast } from '../components/ui';
-import { costumeAsset, costumeScene, travellerScene } from '../lib/assets';
+import { costumeAsset, costumeScene, itemIcon, travellerScene } from '../lib/assets';
 import { resolveLook, toLookItemId, tryOn, unequip } from '@polski-go/shared';
 import { isVisualPending, shopVisualStatus, useWear } from '../lib/look';
 
@@ -100,7 +100,12 @@ function ItemArt({ item, size }: { item: ShopItem; size: number }) {
     const art = costumeAsset(item.assetKey);
     if (art) return <img src={art} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
   }
-  if (WEAR_SLOTS.includes(item.slot)) return <BeaverPart slot={item.slot} kind={item.assetKey} size={size} />;
+  if (WEAR_SLOTS.includes(item.slot)) {
+    // Мальований значок речі (листи владельца 2026-10-29); без нього — векторний значок предмета.
+    const icon = itemIcon(item.assetKey);
+    if (icon) return <img src={icon} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
+    return <BeaverPart slot={item.slot} kind={item.assetKey} size={size} />;
+  }
   return <PictoTile spec={ITEM_PICTO[item.assetKey] ?? null} size={size * 0.8} />;
 }
 

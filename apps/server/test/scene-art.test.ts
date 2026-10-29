@@ -19,7 +19,7 @@ const sources = new URL('docs/design/a11/stores/native/', repo);
 const doc = readFileSync(new URL('../../../docs/SCENE_ART_INVENTORY.md', import.meta.url), 'utf8');
 
 const STORES = ['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka'];
-const OWNER_PACK = ['bakery-pierniki', 'clinic-registration', 'flat-keys', 'milk-bar', 'office-first-day', 'station-pkp', 'street-zapiekanki', 'tram-stop'];
+const OWNER_PACK = ['bakery-pierniki', 'clinic-registration', 'flat-keys', 'milk-bar', 'office-first-day', 'station-pkp', 'store-lidl', 'street-zapiekanki', 'tram-stop'];
 const IDS = [...STORES, ...OWNER_PACK].sort();
 
 describe('Сцены миссий (магазины, InPost, ORLEN и пакет владельца)', () => {
@@ -68,7 +68,7 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     const pairs = Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [a, m] as const));
     expect(pairs.map(([, m]) => m).sort()).toEqual([
       'bar-mleczny', 'biedronka-breakfast', 'doctor-appointment', 'first-tram', 'first-workday', 'kazimierz-zapiekanka', 'landlord',
-      'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'zabka-first-order',
+      'lidl-list', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'zabka-first-order',
     ]);
     for (const [art, slug] of pairs) {
       const mission = MISSIONS.find((m) => m.slug === slug);
@@ -78,9 +78,9 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     }
     // Кофе на ORLEN — другая дія (стойка Stop Cafe), кадр с колонкой к ней не подходит: остаётся SVG-сцена.
     expect(MISSION_SCENE_ART['orlen-coffee']).toBeUndefined();
-    // Lidl идёт в той же SVG-сцене, что и Biedronka, но картинки магазина с другим брендом не получает.
+    // Lidl — свой кадр владельца (2026-10-29), не картинка Biedronki: SVG-сцена та же, бренд в кадре свой.
     expect(MISSIONS.find((m) => m.slug === 'lidl-list')!.scene).toBe('supermarket');
-    expect(MISSION_SCENE_ART['lidl-list']).toBeUndefined();
+    expect(SCENE_ART[MISSION_SCENE_ART['lidl-list']].brand).toBe('Lidl');
     // Офис с рукопожатием — первый рабочий день, не окошко urzędu: PESEL остаётся со своей SVG-сценой.
     expect(MISSION_SCENE_ART['urzad-pesel']).toBeUndefined();
     // На кадре flat-keys ключи передаёт женщина — в миссии хозяйка, а не хозяин.

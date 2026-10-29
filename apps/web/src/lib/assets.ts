@@ -6,6 +6,7 @@
  *   src/assets/cities/<slug>.webp       — панорама міста і <slug>@640.webp; статуси й розміри — CITY_ART (@polski-go/shared)
  *   src/assets/scenes/<file>.webp      — растрові сцени місій і <file>@640.webp; статуси й розміри — SCENE_ART (@polski-go/shared)
  *   src/assets/icons/<name>.webp        — ігрові іконки (lessons, quests, map, profile, leaderboard, streak, zlotki, level, …)
+ *   src/assets/items/<slug>.webp        — мальовані значки речей гардероба 256×256 (листи владельца 2026-10-29, docs/design/a12/items)
  *   src/assets/brand/<name>.webp        — логотип (logo) і портрет Бобека для аватара (avatar)
  *
  * Варіант ширини доставки — файл `<ключ>@<ширина>.webp` (256, 512, 1024) поруч з основним; якщо його немає,
@@ -56,6 +57,8 @@ export const beaverAsset = (mood: string) => {
 const costumeName = (key: string) => key.replace(/^costume-/, '');
 export const costumeAsset = (key: string) => pick('costumes', costumeName(key));
 export const costumeScene = (key: string) => pick('costumes', `${costumeName(key)}-scene`);
+/** Мальований значок речі гардероба (asset_key = slug предмета) або null — тоді векторний значок BeaverPart. */
+export const itemIcon = (key: string) => pick('items', key);
 /** Образ «Мандрівник» — стартовий одяг; для нього є лише сцена картки. */
 export const travellerScene = () => pick('costumes', 'traveller-scene');
 

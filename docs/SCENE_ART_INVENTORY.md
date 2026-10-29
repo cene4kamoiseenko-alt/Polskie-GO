@@ -74,6 +74,9 @@
 | `milk-bar` | Bar mleczny | `bar-mleczny` | 1672×836 | 1440×720 | interim | `bar-mleczny` | `milk-bar` | — |
 | `station-pkp` | PKP | `pkp` | 1536×768 | 1440×720 | interim | `train-wroclaw` | `train-station` | — |
 | `tram-stop` | Tramwaj | `tramwaj` | 1536×768 | 1440×720 | interim | `first-tram` | `tram-stop` | — |
+| `store-lidl` | Lidl | `lidl` | 1536×768 | 1440×720 | interim | `lidl-list` | `supermarket` | — |
+
+Пакет 2026-10-29 добавил `store-lidl` (Бобек со списком и тележкой у входа в Lidl, полоса 2:1 с `top: 150`): в миссии он платит на кассе самообслуживания — это записано в дефектах кадра.
 
 Что поменялось в миссиях из-за кадров:
 

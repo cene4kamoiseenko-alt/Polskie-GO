@@ -1,6 +1,6 @@
 /**
  * docs/UNFINISHED_ASSETS.md — точный перечень незавершённых ассетов — совпадает с кодом и манифестами:
- * 2 временных фона городов, 11 недостающих сцен бота, 13 кадров миссий с Бобеком внутри, слои Бобека этапов etalon-1 и etalon-2.
+ * 2 временных фона городов, 5 недостающих сцен бота, 14 кадров миссий с Бобеком внутри, слои Бобека этапов etalon-1 и etalon-2.
  * Когда мастер появится и статус в CITY_ART / SCENE_ART / манифесте изменится, документ нужно пересобрать:
  *   node --import tsx scripts/unfinished-assets.ts
  */
@@ -14,13 +14,13 @@ const botPublic = `${root}/apps/web/public/bot`;
 describe('перечень незавершённых ассетов', () => {
   const data = unfinishedAssets(root);
 
-  it('2 фона городов, 11 сцен бота, 13 кадров миссий с Бобеком, 18 + 8 слоёв Бобека', () => {
+  it('2 фона городов, 5 сцен бота, 14 кадров миссий с Бобеком, 18 + 8 слоёв Бобека', () => {
     expect(data.cities.map((c) => c.slug)).toEqual(['rzeszow', 'zakopane']);
-    expect(data.botScenes.map((b) => b.scene)).toEqual(['map', 'quests', 'profile', 'help', 'reminder_lesson', 'streak', 'correct_answer', 'quick_question', 'travel_passport', 'lesson_complete', 'neutral_for_uk_pl_en']);
+    expect(data.botScenes.map((b) => b.scene)).toEqual(['map', 'correct_answer', 'quick_question', 'travel_passport', 'lesson_complete']);
     expect(data.missions.map((m) => m.slug)).toHaveLength(17);
     expect(data.storeScenes.map((s) => s.id).sort()).toEqual([
       'bakery-pierniki', 'clinic-registration', 'flat-keys', 'fuel-orlen', 'milk-bar', 'office-first-day', 'parcel-inpost',
-      'station-pkp', 'store-biedronka', 'store-rossmann', 'store-zabka', 'street-zapiekanki', 'tram-stop',
+      'station-pkp', 'store-biedronka', 'store-lidl', 'store-rossmann', 'store-zabka', 'street-zapiekanki', 'tram-stop',
     ]);
     expect(data.layers.map((l) => l.missing.length)).toEqual([18, 8]);
   });
