@@ -463,3 +463,19 @@ pełny etat, nadgodziny, doświadczenie, zamienić się, apteczka (A2 или B1)
 «Фраза-цель в 3+» 4, «Миссии» 11 (по два правильных варианта в шаге), «Без авторского пояснения» по типам (FILL_GAP
 23 → 20: три новых задания входного теста идут с объяснением).
 Замечено попутно: в диалогах неверная реплика подписана переводом «(помилка у відмінку)» — подпись подсказывает ответ.
+
+## Bydgoszcz — «Прошедшее время и рассказы», B1 (2026-10-29)
+- Файлы: `bydgoszcz.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-bydgoszcz.ts` (45 слов; czytać, kiedyś, dziecko, pójść, przyjechać, legenda, wyspa, kamienica и др. уже были в словаре).
+  - L1 `byd-1-weekend`: прошедшее во множественном — **byliśmy / byłyśmy**, byliście / byłyście, **oni byli / one były**; прилагательное во множественном (zmęczeni / zmęczone); przedwczoraj, w zeszłym tygodniu.
+  - L2 `byd-2-aspekt`: вид в прошедшем — процесс **czytałem** / результат **przeczytałem**; pisać / napisać, oglądać / obejrzeć, kończyć / skończyć; «długo», «cały wieczór» ↔ «do końca», «w dwa dni»; прерванный процесс (Kiedy pisałem, zadzwoniła mama).
+  - L3 `byd-3-dziecinstwo`: привычки в прошлом (несовершенный), kiedyś / wtedy / w dzieciństwie, **na wsi**, na podwórku, kiedy byłem mały / byłam mała, wtedy **nie było** + родительный.
+  - L4 `byd-4-pojechalem`: **poszedłem / poszłam** (пешком) ≠ **pojechałem** (транспорт), przyjechać / wyjechać, **dwa lata temu** (2–4 lata, 5+ lat), niedawno, ostatnio.
+  - L5 `byd-5-co-sie-stalo`: рассказ — najpierw, potem, nagle, w końcu, **zanim**; **co się stało**, **nikomu nic się nie stało** (средний род); одиночные события — совершенный вид.
+  - L6 `byd-6-zyciorys`: биография — urodziłem się **w 1995 roku**, **przeprowadzić się** (с «się»), skończyć **studia**, wziąć **ślub**, przejść **na emeryturę** / być **na emeryturze**.
+  - L7 `byd-7-plotki`: косвенная речь — powiedział, **że**…; zapytał, **czy**…; odpowiedział, że…; время не сдвигается; **podobno** ≠ podobnie; plotka.
+  - L8 `byd-8-legendy`: **opowiadać / opowiedzieć**, Pan Twardowski — czarnoksiężnik, pakt **z diabłem**; figurka в окне каменицы на Старом Рынке (13:13 и 21:13), Łuczniczka в парке Кохановского (с 1910 г.), Wyspa Młyńska (młyny), Opera Nova над Брдой.
+  - Экзамен `byd-boss`: 12 заданий, ситуация — Старый Рынок.
+- Факты проверить носителем и по городским источникам: время появления фигурки Твардовского (13:13 и 21:13), год установки «Лучницы» (1910). Биографии и объявления — учебные.
+- Контент-линт: два ложных срабатывания диакритики («w niedziele» — множественное, «15 maja» — дата) внесены в PLAIN_OK.
+- Нужна проверка носителем.
+

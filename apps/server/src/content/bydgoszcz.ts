@@ -289,7 +289,7 @@ export const BYDGOSZCZ: CityContent = {
       slug: 'byd-historie',
       title: t('Історії з життя', 'Истории из жизни', 'Life stories'),
       description: t('Najpierw, nagle, w końcu; життєпис', 'Najpierw, nagle, w końcu; биография', 'Najpierw, nagle, w końcu; your life story'),
-      icon: 'book',
+      icon: 'writing',
       lessons: [
         {
           slug: 'byd-5-co-sie-stalo',
@@ -421,7 +421,7 @@ export const BYDGOSZCZ: CityContent = {
       slug: 'byd-legendy',
       title: t('Плітки й легенди', 'Сплетни и легенды', 'Gossip and legends'),
       description: t('Powiedział, że…; zapytał, czy…; легенди Бидгоща', 'Powiedział, że…; zapytał, czy…; легенды Быдгоща', 'Powiedział, że…; zapytał, czy…; Bydgoszcz legends'),
-      icon: 'castle',
+      icon: 'explore',
       lessons: [
         {
           slug: 'byd-7-plotki',

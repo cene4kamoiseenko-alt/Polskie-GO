@@ -19,6 +19,8 @@ import { GDANSK } from '../src/content/gdansk';
 import { GDANSK_VOCAB } from '../src/content/vocab-gdansk';
 import { GDYNIA } from '../src/content/gdynia';
 import { GDYNIA_VOCAB } from '../src/content/vocab-gdynia';
+import { BYDGOSZCZ } from '../src/content/bydgoszcz';
+import { BYDGOSZCZ_VOCAB } from '../src/content/vocab-bydgoszcz';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -119,4 +121,14 @@ describe('ученик сдал Вроцлав, когда в Познани е�
     expect((await u.call('GET', '/api/me')).body.progress.currentCity.slug).toBe('poznan');
     expect(await db.select().from(userCities).where(and(eq(userCities.userId, u.user.id), eq(userCities.cityId, u.pzn)))).toHaveLength(1);
   });
+});
+
+citySuite({
+  label: 'Bydgoszcz',
+  content: BYDGOSZCZ,
+  vocab: BYDGOSZCZ_VOCAB,
+  routes: ['byd-weekend', 'byd-wspomnienia', 'byd-historie', 'byd-legendy', 'byd-egzamin'],
+  lessons: ['byd-1-weekend', 'byd-2-aspekt', 'byd-3-dziecinstwo', 'byd-4-pojechalem', 'byd-5-co-sie-stalo', 'byd-6-zyciorys', 'byd-7-plotki', 'byd-8-legendy'],
+  boss: 'byd-boss',
+  levels: ['B1'],
 });

@@ -322,10 +322,10 @@
       "name_pl": "Bydgoszcz",
       "name_ru": "Быдгощ",
       "cefr": "B1",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/bydgoszcz.webp",
         "status": "final",
@@ -340,7 +340,7 @@
         "integrated": "2026-10-28"
       },
       "landmarks": "Фахверковые амбары (Spichrze) над Брдой и речной трамвай совпадают — проверено 2026-10-28",
-      "missing_content": "уроков 0; тема «Минулий час і розповіді»",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-10-29, тема «Минулий час і розповіді», B1)",
       "progress": "не проверено"
     },
     {
@@ -548,9 +548,10 @@
       "gorzow 8",
       "szczecin 8",
       "gdansk 8",
-      "gdynia 8"
+      "gdynia 8",
+      "bydgoszcz 8"
     ],
-    "cities_without_lessons": 8,
+    "cities_without_lessons": 7,
     "exam_cities": [
       "warszawa",
       "lodz",

@@ -149,6 +149,9 @@ const PLAIN_OK: Record<string, string[]> = {
     'gda-2-nocleg#11 jedna', 'gda-3-warto#0 chce', 'gda-4-plaza#0 czerwona', 'gda-4-plaza#6 czerwona', 'gda-5-zgubilem#6 kolejka',
     'gda-8-trojmiasto#0 kupuje', 'gda-8-trojmiasto#1 kupuje', 'gda-8-trojmiasto#3 kolejka', 'gda-8-trojmiasto#5 kupuje', 'gda-8-trojmiasto#6 kolejka',
   ],
+  'Бидгощ: «w niedziele» — множина («по неділях»), «15 maja» — дата (родовий місяця), не дієслово mają': [
+    'byd-3-dziecinstwo#7 niedziele', 'byd-4-pojechalem#6 maja',
+  ],
   'Гдиня: називний («Jaka jest cena…?», «Arka — Lechia 1:1») і 3-тя особа «Chce pan…?»; Лодзь: «Mój kolega jest kierowcą» (називний; форма kolegą з’явилася в Гдині)': [
     'gdy-4-silownia#10 jaka', 'gdy-5-mecz#6 lechia', 'gdy-6-zeglarstwo#0 chce', 'lodz-boss#7 kolega',
   ],
