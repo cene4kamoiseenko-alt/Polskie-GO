@@ -13,6 +13,8 @@ on:
       - 'scripts/validate-bobek-art.mjs'
       - 'scripts/check-bobek-preview.mjs'
       - 'scripts/bobek-release-gate.mjs'
+      - 'scripts/import-bobek-v2.mjs'
+      - 'scripts/check-bobek-v2.mjs'
       - 'docs/design/BOBEK_ART_APPROVAL.json'
       - 'package.json'
       - '.github/workflows/bobek-qa.yml'
@@ -41,6 +43,8 @@ jobs:
         run: npm run bobek:check
       - name: Preview flag and safe localStorage parsing
         run: npm run bobek:check:preview
+      - name: V2 pose and independent wardrobe manifest
+        run: npm run bobek:v2:check
       - name: Bobek release-readiness audit (informational while art is pending)
         run: npm run bobek:release
       - name: Beaver manifest and garment compatibility
