@@ -1449,3 +1449,201 @@ html.reduced-motion .beaver-look .look-motion-wave { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .premium-mission-card, .premium-hero { animation: none; }
 }
+
+/* ───────── Иллюстрированная карта (ADR-012, components/IllustratedMap) ───────── */
+/* Экран карты — ровно видимая область между шапкой Telegram и нижней навигацией (main добавляет nav-pad, поэтому −20 px). */
+.map-screen {
+  position: relative;
+  overflow: hidden;
+  height: calc(var(--tg-viewport-stable-height, 100dvh) - var(--safe-t) - var(--nav-h) - var(--safe-b));
+  min-height: 420px;
+  margin-bottom: -20px;
+}
+.map-viewport {
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  background-size: cover;
+  background-position: center;
+  background-color: #6fb6dc;
+  overscroll-behavior: contain;
+}
+.map-viewport[data-dragging] { cursor: grabbing; }
+.map-viewport:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -3px; }
+.map-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  background-size: 100% 100%;
+  --inv: 1;
+}
+.map-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  /* Верх и низ картинки мягко уходят в размытую копию: нет жёсткой линии края. */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%);
+}
+/* Кнопка города — прозрачная зона поверх нарисованной таблички; видна только в фокусе с клавиатуры. */
+.map-spot {
+  position: absolute;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 22px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+.map-spot:focus-visible {
+  outline: calc(3px * var(--inv)) solid var(--focus-ring);
+  outline-offset: 2px;
+  background: rgb(255 255 255 / 0.22);
+}
+.map-spot:active { background: rgb(255 255 255 / 0.18); }
+/* Значок состояния (замок / галочка) — постоянного экранного размера при любом масштабе. */
+.map-badge {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(min(var(--inv), 1.7));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  border: 2px solid #fff;
+  pointer-events: none;
+}
+.map-badge-locked { background: #5b6478; color: #fff; }
+.map-badge-done { background: #1fae5b; color: #fff; }
+/* Выбранный город: мягкое свечение вокруг таблички (не вторая подпись). */
+.map-selected {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: 0 0 0 calc(3px * var(--inv)) #fff, 0 0 0 calc(6px * var(--inv)) color-mix(in srgb, var(--color-pl-red) 75%, transparent), 0 0 24px 6px rgb(255 255 255 / 0.55);
+}
+/* «Ты здесь»: пульсирующее кольцо на звезде текущего города и красная булавка над ней. */
+.map-here {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.map-here-ring {
+  position: absolute;
+  left: -26px;
+  top: -26px;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 3px var(--color-pl-red), 0 0 18px 4px rgb(255 80 80 / 0.55);
+  animation: map-here-pulse 1.8s ease-in-out infinite;
+}
+.map-here-pin {
+  position: absolute;
+  left: 0;
+  top: -30px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--color-pl-red);
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.35);
+  transform: translate(-50%, -50%) scale(min(var(--inv), 1.6));
+  transform-origin: 50% 100%;
+}
+.map-here-static .map-here-ring { left: -3.5cqw; top: -3.5cqw; width: 7cqw; height: 7cqw; }
+[data-map-preview] { container-type: inline-size; }
+@keyframes map-here-pulse {
+  0%, 100% { transform: scale(0.92); opacity: 1; }
+  50% { transform: scale(1.12); opacity: 0.75; }
+}
+/* Маркер города, которого нет на картинке (Закопане): кремовая табличка как нарисованные. */
+.map-pill {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fffdf6, #f6ead2);
+  border: 1.5px solid #e2cfa6;
+  box-shadow: 0 3px 0 rgb(150 105 45 / 0.35), 0 5px 10px rgb(0 0 0 / 0.18);
+  color: #1d2a4a;
+  font-weight: 900;
+  font-size: 17px;
+  letter-spacing: -0.2px;
+  pointer-events: none;
+}
+.map-pill-star {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 40%, #6fb8ff, #1f6fe0);
+  border: 2.5px solid #fff;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.3);
+}
+.map-pill-star::after {
+  content: '★';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+/* Путешествие после экзамена: красная булавка едет между городами. */
+.map-traveler {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--color-pl-red);
+  color: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.35);
+  transform: translate(-50%, -50%) scale(min(var(--inv), 1.6));
+  pointer-events: none;
+}
+/* Шапка и карточка поверх карты: кремовое «стекло», текст читается на любой части рисунка. */
+.map-hud {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 70%, transparent 100%);
+}
+.map-card {
+  background: color-mix(in srgb, var(--bg-elev) 96%, transparent);
+  border-radius: 26px;
+  box-shadow: 0 10px 30px -8px rgb(20 40 60 / 0.45), 0 0 0 1px var(--border);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-here-ring { animation: none; }
+}
+html.reduced-motion .map-here-ring { animation: none; }
+.map-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.3;
+  background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  box-shadow: var(--shadow-card);
+}

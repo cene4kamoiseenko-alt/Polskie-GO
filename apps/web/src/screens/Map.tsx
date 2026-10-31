@@ -2,48 +2,50 @@ import { motion } from '../lib/motion';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
-import { useJourney, useRefreshAll } from '../lib/queries';
+import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { JourneyCity } from '../lib/types';
-import { PolandMap } from '../components/PolandMap';
+import { IllustratedMap, type MapHandle, type SpotState } from '../components/IllustratedMap';
 import { CityBanner } from '../components/Scenery';
 import { Icon } from '../components/Icon';
 import { ErrorState, Progress, ScreenSkeleton, Sheet, cx, useToast } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { iconAsset } from '../lib/assets';
-import { CITY_ART } from '@polski-go/shared';
+import { CITY_ART, MAP_SPOTS, type MapSpot } from '@polski-go/shared';
 import { TopStats } from './Home';
 import { haptic } from '../lib/telegram';
 import { sfx } from '../lib/audio';
 
-const ZOOMS = [1, 1.7, 2.6];
-const LEVELS = ['A1', 'A2', 'B1', 'B2'];
-/** Ширина полотна карти в SVG-одиницях (viewBox з відступами). */
-const VB_W = 1040;
-const VB_H = 1040;
+/** Высота элемента (панели поверх карты) с обновлением при изменении. */
+function useHeight<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [h, setH] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setH(el.offsetHeight);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+  return [ref, h] as const;
+}
+
+const keyForCity = (slug: string | undefined) => (slug ? Object.keys(MAP_SPOTS).find((k) => MAP_SPOTS[k].city === slug) ?? null : null);
 
 export default function MapScreen() {
-  const { t, tr } = useT();
+  const { t } = useT();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const journey = useJourney();
-  const [selected, setSelected] = useState<JourneyCity | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [level, setLevel] = useState<string | null>(null);
-  const [travel, setTravel] = useState<{ from: JourneyCity; to: JourneyCity } | null>(null);
-  const box = useRef<HTMLDivElement>(null);
-  // Масштаб двома пальцями: розведення — ближче, зведення — далі (кроками, панорамування — нативний скрол).
-  const pinch = useRef<number | null>(null);
-  const dist = (e: React.TouchEvent) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-  const pinchStart = (e: React.TouchEvent) => { pinch.current = e.touches.length === 2 ? dist(e) : null; };
-  const pinchMove = (e: React.TouchEvent) => {
-    if (e.touches.length !== 2 || !pinch.current) return;
-    const ratio = dist(e) / pinch.current;
-    if (ratio > 1.25 || ratio < 0.8) {
-      setZoom((z) => Math.max(0, Math.min(ZOOMS.length - 1, z + (ratio > 1 ? 1 : -1))));
-      pinch.current = dist(e);
-      haptic.select();
-    }
-  };
+  const me = useMe().data;
+  const map = useRef<MapHandle>(null);
+  /** Выбранная точка карты (ключ MAP_SPOTS); по умолчанию — текущий город. */
+  const [spot, setSpot] = useState<string | null>(null);
+  const [sheet, setSheet] = useState(false);
+  const [travel, setTravel] = useState<{ from: string; to: string } | null>(null);
+  const [hud, hudH] = useHeight<HTMLDivElement>();
+  const [card, cardH] = useHeight<HTMLDivElement>();
 
   // Анімація подорожі після складеного іспиту міста: /map?travel=<fromId>,<toId>
   useEffect(() => {
@@ -52,218 +54,248 @@ export default function MapScreen() {
     const [a, b] = tv.split(',');
     const from = journey.data.cities.find((c) => c.id === a);
     const to = journey.data.cities.find((c) => c.id === b);
-    if (from && to) {
-      setTravel({ from, to });
+    const fk = keyForCity(from?.slug);
+    const tk = keyForCity(to?.slug);
+    if (fk && tk) {
+      setTravel({ from: fk, to: tk });
+      setSpot(tk);
       sfx.win();
       haptic.success();
-      const tm = setTimeout(() => finishTravel(to), 4200);
+      const tm = setTimeout(() => finishTravel(), 4200);
       return () => clearTimeout(tm);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, journey.data, setParams]);
 
-  const finishTravel = (to: JourneyCity) => {
+  const finishTravel = () => {
     setTravel(null);
     setParams({}, { replace: true });
-    setSelected(to);
   };
-  const skipTravel = () => travel && finishTravel(travel.to);
   // Стабільний обробник: Sheet перевішує системну BackButton лише при зміні функції.
-  const closeSheet = useCallback(() => setSelected(null), []);
-
-  // Центруємо видиму область на поточному місті (нативний скрол — швидко навіть на слабких телефонах).
-  const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
-  useLayoutEffect(() => {
-    const el = box.current;
-    if (!el || !current) return;
-    const w = el.clientWidth * ZOOMS[zoom];
-    const h = w * (VB_H / VB_W);
-    const id = requestAnimationFrame(() =>
-      el.scrollTo({ left: ((current.mapX + 20) / VB_W) * w - el.clientWidth / 2, top: ((current.mapY + 60) / VB_H) * h - el.clientHeight / 2 }),
-    );
-    return () => cancelAnimationFrame(id);
-  }, [zoom, current?.id, journey.isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  const closeSheet = useCallback(() => setSheet(false), []);
 
   if (journey.isLoading) return <ScreenSkeleton />;
   if (journey.error) return <ErrorState error={journey.error} onRetry={() => journey.refetch()} />;
   const j = journey.data!;
-  // Відкрита картка міста — завжди зі свіжих даних (після скрині чи уроку стан змінюється).
-  const sel = selected ? j.cities.find((c) => c.id === selected.id) ?? selected : null;
+  const current = j.cities.find((c) => c.id === j.currentCityId);
+  const key = spot ?? keyForCity(current?.slug);
+  const sel: MapSpot | null = key ? MAP_SPOTS[key] ?? null : null;
+  // Картка міста — завжди зі свіжих даних (після скрині чи уроку стан змінюється).
+  const city = sel?.city ? j.cities.find((c) => c.slug === sel.city) : undefined;
   const completedCount = j.cities.filter((c) => c.completed).length;
   const sorted = [...j.cities].sort((a, b) => a.order - b.order);
   const prevOf = (c: JourneyCity) => sorted[sorted.findIndex((x) => x.id === c.id) - 1];
+  const stateWord: Record<SpotState, string> = { current: t('map_you_are_here'), done: t('map_completed'), open: t('map_st_open'), locked: t('map_st_locked'), none: t('map_not_in_route') };
+
+  const select = (k: string) => {
+    haptic.tap();
+    setSpot(k);
+    map.current?.reveal(k);
+  };
+
+  /** Следующий настоящий урок города: первый доступный по серверному состоянию. Карта ничего не открывает сама. */
+  const go = (c: JourneyCity) => {
+    haptic.tap();
+    const next = c.routes.flatMap((r) => r.lessons).find((l) => l.state === 'available');
+    if (!next) return nav(`/learn?city=${c.id}`);
+    if (next.isPremium && !me?.premium.active) return nav('/premium');
+    nav(`/lesson/${next.id}`);
+  };
 
   return (
-    <div className="space-y-3">
-      <TopStats compact />
-      <div className="px-4">
-        <h1 className="text-[26px] font-black leading-tight">{t('map_journey')}</h1>
-        <p className="text-sm font-bold muted">{t('map_journey_d', { done: completedCount, total: j.cities.length })}</p>
-      </div>
+    <div className="map-screen" data-map-screen>
+      <IllustratedMap
+        ref={map}
+        cities={j.cities}
+        currentCityId={j.currentCityId}
+        selected={key}
+        onSelect={select}
+        padTop={hudH}
+        padBottom={cardH + 12}
+        travel={travel}
+        ariaLabel={t('map_aria')}
+        ariaHint={t('map_aria_hint')}
+        spotLabel={(s, st, c) => `${s.label}: ${stateWord[st]}${c?.hasContent ? `, ${t('map_lessons', { done: c.lessonsDone, total: c.lessonsTotal })}` : ''}`}
+        zoomLabels={{ in: `${t('map_zoom')} +`, out: `${t('map_zoom')} −`, home: t('map_to_current') }}
+      />
 
-      {/* Фільтр рівнів: показує, які рівні вже мають уроки, а які ще готуються */}
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4">
-        {[null, ...LEVELS].map((lv) => {
-          const ready = lv ? j.cities.filter((c) => c.cefr === lv && c.hasContent).length : null;
-          return (
-            <button
-              key={lv ?? 'all'}
-              onClick={() => { haptic.select(); setLevel(lv); }}
-              className={cx('flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition', level === lv ? 'bg-pl-red text-white shadow-[0_3px_0_var(--fill-coral)]' : 'bg-elev shadow-[var(--shadow-card)]')}
-            >
-              {lv ?? t('map_all')}
-              {lv && ready === 0 && <span className={cx('text-[10px] font-extrabold', level === lv ? 'text-white/80' : 'muted')}>{t('map_soon')}</span>}
-            </button>
-          );
-        })}
+      {/* Шапка поверх карты: настоящие XP / серия / Złotki и прогресс путешествия */}
+      <div ref={hud} className="map-hud pointer-events-none absolute inset-x-0 top-0 z-[3] pb-3">
+        <div className="pointer-events-auto"><TopStats compact /></div>
+        <div className="mt-1.5 flex items-center gap-2 px-4">
+          <h1 className="map-chip pointer-events-auto">
+            {t('map_journey')} <span className="text-pl-red">{completedCount}/{j.cities.length}</span>
+          </h1>
+        </div>
       </div>
-      {level && (
-        <p className="px-5 text-xs font-bold muted">
-          {j.cities.some((c) => c.cefr === level && c.hasContent) ? t('map_level_ready', { n: j.cities.filter((c) => c.cefr === level && c.hasContent).length }) : t('map_level_soon', { level })}
-        </p>
-      )}
 
       {travel && (
         <motion.button
           initial={{ y: -10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="mx-4 flex w-[calc(100%-2rem)] items-center justify-between gap-2 rounded-2xl bg-pl-red px-4 py-2 font-black text-white"
-          onClick={skipTravel}
+          className="absolute inset-x-4 z-[4] flex items-center justify-between gap-2 rounded-2xl bg-pl-red px-4 py-2 font-black text-white shadow-lg"
+          style={{ top: hudH + 6 }}
+          onClick={finishTravel}
         >
-          <span>{t('map_travel', { city: travel.to.namePl })}</span>
+          <span>{t('map_travel', { city: travel ? MAP_SPOTS[travel.to].label : '' })}</span>
           <span className="text-sm opacity-80">{t('map_skip')}</span>
         </motion.button>
       )}
 
-      <div className="relative mx-3">
-        <div
-          ref={box}
-          className="no-scrollbar max-h-[64vh] touch-pan-x touch-pan-y overflow-auto rounded-[28px] border-[3px] border-white/15 shadow-[var(--shadow-card)]"
-          style={{ background: '#1F6FB0', height: zoom === 0 ? 'auto' : '64vh' }}
-          onTouchStart={pinchStart}
-          onTouchMove={pinchMove}
-          onWheel={(e) => { if (e.ctrlKey) { e.preventDefault(); setZoom((z) => Math.max(0, Math.min(ZOOMS.length - 1, z + (e.deltaY < 0 ? 1 : -1)))); } }}
-        >
-          <div style={{ width: `${ZOOMS[zoom] * 100}%` }}>
-            <PolandMap cities={j.cities} currentCityId={j.currentCityId} travel={travel} hereLabel={t('map_you_are_here')} soonLabel={t('map_soon')} level={level} onCityClick={(c) => { haptic.tap(); setSelected(c); }} />
+      {/* Компактная карточка выбранного города (не на полэкрана): название, реальный прогресс, переход в урок */}
+      <div ref={card} className="absolute inset-x-3 bottom-3 z-[3]">
+        {sel && (
+          <div className="map-card flex items-center gap-3 p-2.5" data-map-card={key ?? ''} data-state={city ? (city.id === j.currentCityId ? 'current' : city.completed ? 'done' : city.unlocked ? 'open' : 'locked') : 'none'}>
+            {city ? (
+              <>
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  onClick={() => { haptic.tap(); setSheet(true); }}
+                  aria-label={`${city.namePl}: ${t('map_details')}`}
+                  data-map-details
+                  {...(city.id === j.currentCityId ? { 'data-current-city': '' } : {})}
+                >
+                  <CityBanner slug={city.slug} color={city.color} height={64} sizes="72px" shade={false} className="w-16 shrink-0 rounded-2xl" />
+                  <span className="min-w-0 flex-1">
+                    <span className={cx('inline-flex max-w-full items-center gap-1 truncate whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide',
+                      city.id === j.currentCityId ? 'bg-[#FFE3A3] text-[#7A4A00]' : city.completed ? 'bg-[#D7F5E3] text-[#126B3A]' : city.unlocked ? 'bg-[#D9F0FF] text-[#0B5A8C]' : 'bg-[var(--bg-muted)] muted')}>
+                      {!city.unlocked && <Icon name="lock" size={10} strokeWidth={3} />}
+                      {city.completed && <Icon name="check" size={10} strokeWidth={3} />}
+                      {city.id === j.currentCityId ? t('map_you_are_here') : city.completed ? t('map_completed') : city.unlocked ? t('map_stage', { n: city.order }) : `${t('map_st_locked')} · ${t('map_stage', { n: city.order })}`}
+                    </span>
+                    <span className="block truncate text-[19px] font-black leading-tight" lang="pl" title={city.namePl}>{city.namePl}</span>
+                    {!city.unlocked ? (
+                      <span className="line-clamp-2 block text-xs font-bold leading-tight muted">
+                        {prevOf(city) ? t('map_unlock_after', { city: prevOf(city)!.namePl }) : t('map_locked_hint')}
+                      </span>
+                    ) : city.hasContent ? (
+                      <>
+                        <span className="block text-xs font-bold muted">{t('map_lessons', { done: city.lessonsDone, total: city.lessonsTotal })}</span>
+                        <Progress value={city.progress} height={7} className="mt-1" />
+                      </>
+                    ) : (
+                      <span className="line-clamp-2 block text-xs font-bold leading-tight muted">{t('map_soon_hint')}</span>
+                    )}
+                  </span>
+                </button>
+                {city.unlocked && city.hasContent ? (
+                  <button type="button" data-map-go className="btn btn-red min-h-0 shrink-0 gap-0.5 px-3 py-3 text-[14px]" onClick={() => go(city)}>
+                    {city.completed ? t('map_repeat') : t('map_continue')}
+                    <Icon name="chevron-right" size={16} strokeWidth={2.8} className="-mr-1" />
+                  </button>
+                ) : (
+                  <button type="button" className="btn min-h-0 shrink-0 gap-1 bg-[var(--bg)] px-3 py-3 text-sm" onClick={() => { haptic.tap(); setSheet(true); }}>
+                    {t('map_details')}
+                  </button>
+                )}
+              </>
+            ) : (
+              // Точка без этапа маршрута (Sopot): честное объяснение и переход к ближайшему городу.
+              <>
+                <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-[var(--bg)] muted"><Icon name="map" size={28} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="inline-flex rounded-md bg-[var(--bg-muted)] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide muted">{t('map_not_in_route')}</span>
+                  <span className="block truncate text-[19px] font-black leading-tight" lang="pl">{sel.label}</span>
+                  <span className="line-clamp-2 block text-xs font-bold leading-tight muted">{t('map_sopot_text')}</span>
+                </span>
+                <button type="button" className="btn min-h-0 shrink-0 bg-[var(--bg)] px-3 py-3 text-sm" onClick={() => select('gdansk')}>
+                  Gdańsk <Icon name="chevron-right" size={16} />
+                </button>
+              </>
+            )}
           </div>
-        </div>
-        {/* Масштаб */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-2">
-          {[
-            ['+', () => setZoom((z) => Math.min(ZOOMS.length - 1, z + 1)), zoom === ZOOMS.length - 1],
-            ['−', () => setZoom((z) => Math.max(0, z - 1)), zoom === 0],
-          ].map(([label, fn, disabled]) => (
-            <button key={label as string} onClick={fn as () => void} disabled={disabled as boolean} aria-label={`${t('map_zoom')} ${label}`} className="grid h-11 w-11 place-items-center rounded-2xl bg-night/90 text-2xl font-black text-white shadow-md ring-1 ring-white/15 active:scale-95 disabled:opacity-40">
-              {label as string}
-            </button>
-          ))}
-        </div>
+        )}
       </div>
-
-      {/* Прогрес подорожі Польщею */}
-      <div className="card mx-4 flex items-center gap-3 px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-black">{t('map_poland_progress', { n: j.cities.filter((c) => c.completed).length, total: j.cities.length })}</div>
-          <Progress value={j.cities.filter((c) => c.completed).length} max={j.cities.length} height={8} color="var(--color-pl-red)" className="mt-1.5" />
-        </div>
-        <span className="text-lg font-black text-pl-red">{Math.round((j.cities.filter((c) => c.completed).length / Math.max(1, j.cities.length)) * 100)}%</span>
-      </div>
-
-      {current && (
-        <button data-current-city onClick={() => setSelected(current)} className="mx-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-3xl bg-elev p-3 text-left shadow-[var(--shadow-card)]">
-          <CityBanner slug={current.slug} color={current.color} height={56} sizes="80px" className="w-20 shrink-0 rounded-2xl" />
-          <div className="min-w-0 flex-1">
-            <div className="font-black">{current.namePl}</div>
-            <div className="muted mb-1 text-xs font-bold">{t('map_lessons', { done: current.lessonsDone, total: current.lessonsTotal })}</div>
-            <Progress value={current.progress} height={8} />
-          </div>
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-pl-red text-white"><Icon name="arrow-right" size={20} strokeWidth={2.6} /></span>
-        </button>
-      )}
 
       <Sheet
-        open={!!selected}
+        open={sheet && !!city}
         onClose={closeSheet}
-        label={sel?.namePl}
+        label={city?.namePl}
         footer={
-          sel && sel.unlocked && sel.hasContent ? (
-            <button data-city-go className="btn btn-red w-full text-lg" onClick={() => nav(`/learn?city=${sel.id}`)}>
-              {sel.completed ? `${t('map_completed')} · ` : ''}
+          city && city.unlocked && city.hasContent ? (
+            <button data-city-go className="btn btn-red w-full text-lg" onClick={() => nav(`/learn?city=${city.id}`)}>
+              {city.completed ? `${t('map_completed')} · ` : ''}
               {t('map_go_learn')}
               <Icon name="arrow-right" size={22} strokeWidth={2.6} />
             </button>
           ) : undefined
         }
       >
-        {sel && (
-          <div className="space-y-4">
-            <CityBanner slug={sel.slug} color={sel.color} height={140} shade={false} className="-mx-1 rounded-3xl">
-              <div className="absolute left-3 top-3 flex gap-1.5">
-                <span className="rounded-lg bg-white/95 px-2 py-0.5 text-xs font-black text-navy">{t('map_stage', { n: sel.order })}</span>
-                <span className="rounded-lg bg-pl-red px-2 py-0.5 text-xs font-black text-white">{sel.cefr}</span>
-              </div>
-            </CityBanner>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[28px] font-black leading-tight">{sel.namePl}</h2>
-                {sel.id === j.currentCityId && (
-                  <span className="flex items-center gap-1 rounded-full bg-pl-red/10 px-2 py-0.5 text-xs font-black text-pl-red">
-                    <Icon name="pin" size={13} /> {t('map_you_are_here')}
-                  </span>
-                )}
-              </div>
-              <div className="font-black muted">{tr(sel.theme)}</div>
-              <p className="mt-1 text-sm font-semibold muted">{tr(sel.description)}</p>
-            </div>
-            <CityStatus city={sel} />
-            {sel.hasContent && (
-              <div>
-                <div className="mb-1 flex justify-between text-sm font-black">
-                  <span>{t('map_lessons', { done: sel.lessonsDone, total: sel.lessonsTotal })}</span>
-                  <span>{sel.progress}%</span>
-                </div>
-                <Progress value={sel.progress} />
-              </div>
-            )}
-            {sel.hasContent && (
-              <div>
-                <h3 className="mb-2 text-sm font-black uppercase tracking-wide muted">{t('map_topics')}</h3>
-                <div className="space-y-2">
-                  {sel.routes.map((r, i) => {
-                    const done = r.lessons.filter((l) => l.state === 'completed').length;
-                    const full = done === r.lessons.length;
-                    return (
-                      <div key={r.id} data-route={r.slug} className={cx('card flex items-center gap-3 px-3 py-2.5', !sel.unlocked && 'opacity-60')}>
-                        <span className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-black', full ? 'bg-brand text-white' : 'bg-[var(--bg)] text-navy')}>
-                          {full ? <Icon name="check" size={18} strokeWidth={3} /> : i + 1}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block line-clamp-2 font-black leading-tight">{tr(r.title)}</span>
-                          <span className="block line-clamp-2 text-xs font-bold leading-tight muted">{tr(r.description)}</span>
-                        </span>
-                        <span className="text-sm font-black muted">{done}/{r.lessons.length}</span>
-                        {r.chest && <RouteChest routeId={r.id} chest={r.chest} />}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            {!sel.unlocked ? (
-              <div className="flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-3 font-bold">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--bg-muted)] muted">
-                  <Icon name="lock" size={20} />
-                </span>
-                {prevOf(sel) ? t('map_unlock_after', { city: prevOf(sel)!.namePl }) : t('map_locked_hint')}
-              </div>
-            ) : !sel.hasContent ? (
-              <div className="rounded-2xl bg-[var(--bg)] p-3 text-center text-sm font-bold">{t('map_soon_full')}</div>
-            ) : null}
-            {!sel.hasContent && !sel.unlocked && <p className="muted text-center text-xs font-bold">{t('map_soon_full')}</p>}
-          </div>
-        )}
+        {city && <CitySheet city={city} isCurrent={city.id === j.currentCityId} prev={prevOf(city)} />}
       </Sheet>
+    </div>
+  );
+}
+
+/** Шторка «Подробнее»: панорама, темы города, сундуки тем и требования доступа (как раньше на старой карте). */
+function CitySheet({ city: sel, isCurrent, prev }: { city: JourneyCity; isCurrent: boolean; prev?: JourneyCity }) {
+  const { t, tr } = useT();
+  return (
+    <div className="space-y-4">
+      <CityBanner slug={sel.slug} color={sel.color} height={140} shade={false} className="-mx-1 rounded-3xl">
+        <div className="absolute left-3 top-3 flex gap-1.5">
+          <span className="rounded-lg bg-white/95 px-2 py-0.5 text-xs font-black text-navy">{t('map_stage', { n: sel.order })}</span>
+          <span className="rounded-lg bg-pl-red px-2 py-0.5 text-xs font-black text-white">{sel.cefr}</span>
+        </div>
+      </CityBanner>
+      <div>
+        <div className="flex items-center gap-2">
+          <h2 className="text-[28px] font-black leading-tight">{sel.namePl}</h2>
+          {isCurrent && (
+            <span className="flex items-center gap-1 rounded-full bg-pl-red/10 px-2 py-0.5 text-xs font-black text-pl-red">
+              <Icon name="pin" size={13} /> {t('map_you_are_here')}
+            </span>
+          )}
+        </div>
+        <div className="font-black muted">{tr(sel.theme)}</div>
+        <p className="mt-1 text-sm font-semibold muted">{tr(sel.description)}</p>
+      </div>
+      <CityStatus city={sel} />
+      {sel.hasContent && (
+        <div>
+          <div className="mb-1 flex justify-between text-sm font-black">
+            <span>{t('map_lessons', { done: sel.lessonsDone, total: sel.lessonsTotal })}</span>
+            <span>{sel.progress}%</span>
+          </div>
+          <Progress value={sel.progress} />
+        </div>
+      )}
+      {sel.hasContent && (
+        <div>
+          <h3 className="mb-2 text-sm font-black uppercase tracking-wide muted">{t('map_topics')}</h3>
+          <div className="space-y-2">
+            {sel.routes.map((r, i) => {
+              const done = r.lessons.filter((l) => l.state === 'completed').length;
+              const full = done === r.lessons.length;
+              return (
+                <div key={r.id} data-route={r.slug} className={cx('card flex items-center gap-3 px-3 py-2.5', !sel.unlocked && 'opacity-60')}>
+                  <span className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-black', full ? 'bg-brand text-white' : 'bg-[var(--bg)] text-navy')}>
+                    {full ? <Icon name="check" size={18} strokeWidth={3} /> : i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block line-clamp-2 font-black leading-tight">{tr(r.title)}</span>
+                    <span className="block line-clamp-2 text-xs font-bold leading-tight muted">{tr(r.description)}</span>
+                  </span>
+                  <span className="text-sm font-black muted">{done}/{r.lessons.length}</span>
+                  {r.chest && <RouteChest routeId={r.id} chest={r.chest} />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {!sel.unlocked ? (
+        <div className="flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-3 font-bold">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--bg-muted)] muted">
+            <Icon name="lock" size={20} />
+          </span>
+          {prev ? t('map_unlock_after', { city: prev.namePl }) : t('map_locked_hint')}
+        </div>
+      ) : !sel.hasContent ? (
+        <div className="rounded-2xl bg-[var(--bg)] p-3 text-center text-sm font-bold">{t('map_soon_full')}</div>
+      ) : null}
+      {!sel.hasContent && !sel.unlocked && <p className="muted text-center text-xs font-bold">{t('map_soon_full')}</p>}
     </div>
   );
 }

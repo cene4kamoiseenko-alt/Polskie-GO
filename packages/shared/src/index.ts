@@ -13,3 +13,4 @@ export * from './look';
 export * from './cityArt';
 export * from './sceneArt';
 export * from './botScreens';
+export * from './mapArt';

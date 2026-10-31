@@ -121,7 +121,10 @@ async function main() {
           // Карта — прокручуваний контейнер: повносторінковий знімок збиває його прокрутку, тож знімаємо видиму область.
           await shot(e.p, `${name}-${tag}`, name !== 'E-map');
           if (name === 'E-map') {
-            await e.p.locator('svg[aria-label="Mapa Polski"] g[role="button"]:has(text:text-is("Warszawa"))').first().click({ timeout: 3000 }).catch(() => {});
+            // Иллюстрированная карта (ADR-012): кнопка города выбирает его в карточку, «Подробнее» открывает шторку.
+            await e.p.locator('[data-spot="warszawa"]').focus().catch(() => {});
+            await e.p.keyboard.press('Enter').catch(() => {});
+            await e.p.locator('[data-map-card] [data-map-details]').click({ timeout: 3000 }).catch(() => {});
             await e.p.waitForTimeout(800);
             await shot(e.p, `E-map-city-${tag}`, true);
           }

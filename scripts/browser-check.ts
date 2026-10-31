@@ -16,12 +16,12 @@
  *    закривають; знімки — test-results/screens/sheet-{ширина}.png.
  *    A3.8 (390): три окремі стани міста в шторці — оформлення (CITY_ART), уроки, доступ; Kielce (малюнок готовий, уроків ще немає; Gorzów і Toruń отримали уроки),
  *    без кнопки «Учить»; Łódź — тимчасовий малюнок lazy зі srcset 640w. Знімки — sheet-status-{kielce,lodz}-390.png.
- *  - A4 маркер Бобека на /map (360/390/430): живописний растр <image data-map-beaver> із ненульовим розміром, стоїть над своїм
- *    містом, цілком у видимій області SVG і прокручуваної карти, справді декодується й малюється; поточне місто та подорож
- *    (/map?travel=from,to, з емуляцією prefers-reduced-motion — путник одразу в кінцевому місті);
- *    знімки — test-results/screens/map-beaver-{ширина}.png і map-beaver-travel-{ширина}.png.
+ *  - A4 ілюстрована карта /map (ADR-012; 360/390/430): 21 прозора кнопка міста збігається з намальованою табличкою (рамки MAP_SPOTS
+ *    відносно картинки), кільце «ти тут» — на поточному місті у видимому вікні, подорож /map?travel=from,to з prefers-reduced-motion —
+ *    маркер одразу в кінцевому місті. Детальні жести (pinch, колесо, клавіатура, офлайн) — scripts/map-screens.ts.
+ *    Знімки — test-results/screens/map-{ширина}.png і map-travel-{ширина}.png.
  *  - L1 «один образ на всіх екранах» (ADR-005 §10; 360/390/430): у користувача костюм кухаря, ковпак і окуляри без живописного
- *    шару (pending). На головній, у профілі, гардеробі, на карті й в уроці кожен корінь [data-look] без data-look-preview="true"
+ *    шару (pending). На головній, у профілі, гардеробі й в уроці (на ілюстрованій карті Бобек намальований, ADR-012) кожен корінь [data-look] без data-look-preview="true"
  *    має ті самі data-look-equipped і data-look-items, що й resolveLook ядра для його me.outfit.wear; Бобек ненульового розміру,
  *    кожен шар (<img> або SVG-<image>) справді декодується. Те саме — для стартового образу (390).
  *    Знімки — test-results/screens/look-{екран}-390.png і look-default-{екран}-390.png.
@@ -41,6 +41,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromiumPath, startStand } from './lib/stand';
+import { MAP_ART, MAP_SPOTS, mapHitRect, mapStarPoint } from '../packages/shared/src/mapArt';
 import { equipmentFromWear, lookDataAttributes, resolveLook, toLookItemId, tryOn } from '../packages/shared/src/look/index';
 import { signInitData } from '../apps/server/src/lib/telegram';
 
@@ -614,7 +615,10 @@ async function main() {
       const state = () => dialog.locator('[data-status]').evaluateAll((els) => Object.fromEntries(els.map((e) => [e.getAttribute('data-status'), e.getAttribute('data-ok')])));
       const openCity = async (name: string) => {
         if (await dialog.count()) { await sp.keyboard.press('Escape'); await closed(); }
-        await sp.getByRole('button', { name, exact: true }).click();
+        // Иллюстрированная карта: кнопка города выбирает его в карточку (Enter после фокуса подводит камеру), «Подробнее» открывает шторку.
+        await sp.locator(`[data-spot][aria-label^="${name}:"]`).focus();
+        await sp.keyboard.press('Enter');
+        await sp.locator(`[data-map-card] [data-map-details]`).click();
         await dialog.waitFor({ state: 'visible', timeout: 10_000 });
         await settle();
       };
@@ -645,120 +649,56 @@ async function main() {
     });
     await sheetUser.context.close();
 
-    // ── A4: Бобек на маркере карты. Раньше внутри SVG стоял HTML-<div> (0×0, невидим). Теперь маркер — SVG-<image> с живописным растром.
-    // Проверяется не только getBoundingClientRect (у <image> он ненулевой и без загруженной картинки), но и что файл декодируется
-    // и что картинка реально рисуется (снимок области с маркером отличается от снимка с visibility:hidden).
-    console.log('A4: Бобек на маркере карты');
+    // ── A4: иллюстрированная карта (ADR-012). Подписи впечены в картинку, поверх — прозрачные кнопки; их рамки относительно
+    // картинки должны совпадать с MAP_SPOTS, иначе нажатие «мимо» таблички. Подробные жесты — scripts/map-screens.ts.
+    console.log('A4: иллюстрированная карта');
     const pinUser = await userPage('880009');
     const pn = pinUser.page;
-    // tsx (esbuild keepNames) оборачивает именованные функции в __name(); в браузере такого помощника нет, а проба ниже содержит вложенные функции.
-    await pn.addInitScript(() => { (window as unknown as { __name: (f: unknown) => unknown }).__name = (f) => f; });
-    type PinCity = { id: string; order: number; mapX: number; namePl: string };
+    type PinCity = { id: string; slug: string; order: number; namePl: string };
     const pinJourney = (await pinUser.call('GET', '/api/journey')).body as { cities: PinCity[]; currentCityId: string };
     const orderedCities = [...pinJourney.cities].sort((a, b) => a.order - b.order);
     const pinHome = pinJourney.cities.find((c) => c.id === pinJourney.currentCityId);
     check(pinHome && orderedCities.length >= 2, `A4 есть текущий город (${pinHome?.namePl}) и минимум два города для проверки поездки (${orderedCities.length} шт.)`);
-    /** Экранная X города (SVG-координата mapX через getScreenCTM карты) — над ней должен стоять центр маркера. */
-    const cityScreenX = (kind: 'current' | 'travel', mapX: number) =>
-      pn.locator(`image[data-map-beaver="${kind}"]`).evaluate((el, x) => new DOMPoint(x, 0).matrixTransform((el as SVGGraphicsElement).ownerSVGElement!.getScreenCTM()!).x, mapX);
-    /** Размеры маркера, его видимая область (viewport ∩ все контейнеры с overflow: SVG, прокручиваемая карта) и результат декодирования файла. */
-    const probePin = (kind: 'current' | 'travel') =>
-      pn.locator(`image[data-map-beaver="${kind}"]`).evaluate(async (el, k) => {
-        const rectOf = () => {
-          const r = el.getBoundingClientRect();
-          return { x: r.x, y: r.y, w: r.width, h: r.height };
-        };
-        const clipOf = () => {
-          let l = 0, t = 0, r = innerWidth, b = innerHeight;
-          for (let n = el.parentElement; n; n = n.parentElement) {
-            const cs = getComputedStyle(n);
-            if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
-            const bb = n.getBoundingClientRect();
-            // У HTML-контейнера обрезает padding-box (без рамки и полосы прокрутки), у SVG — его собственный прямоугольник.
-            const box = n instanceof HTMLElement ? { l: bb.left + n.clientLeft, t: bb.top + n.clientTop, r: bb.left + n.clientLeft + n.clientWidth, b: bb.top + n.clientTop + n.clientHeight } : { l: bb.left, t: bb.top, r: bb.right, b: bb.bottom };
-            l = Math.max(l, box.l); t = Math.max(t, box.t); r = Math.min(r, box.r); b = Math.min(b, box.b);
-          }
-          return { l, t, r, b };
-        };
-        const inside = (a: ReturnType<typeof rectOf>, c: ReturnType<typeof clipOf>) => a.x >= c.l - 1 && a.y >= c.t - 1 && a.x + a.w <= c.r + 1 && a.y + a.h <= c.b + 1;
-        // Рамку карты (контейнер с прокруткой) приводим в окно по вертикали; саму карту при этом не двигаем.
-        let frame: HTMLElement | null = null;
-        for (let n = el.parentElement; n; n = n.parentElement) {
-          if (n instanceof HTMLElement && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) { frame = n; break; }
-        }
-        frame?.scrollIntoView({ block: 'center' });
-        await new Promise((ok) => requestAnimationFrame(() => ok(null)));
-        const visibleBeforeScroll = inside(rectOf(), clipOf());
-        // В дороге маркер может быть вне центрированной на «текущем» городе области — тогда подводим карту к нему (информативно, не провал).
-        if (k === 'travel' && !visibleBeforeScroll) {
-          el.scrollIntoView({ block: 'center', inline: 'center' });
-          await new Promise((ok) => requestAnimationFrame(() => ok(null)));
-        }
-        const rect = rectOf();
-        const clip = clipOf();
-        const href = (el as SVGImageElement).href.baseVal;
-        const probe = new Image();
-        probe.src = href;
-        let natural: { w: number; h: number } | null = null;
-        try {
-          await probe.decode();
-          natural = { w: probe.naturalWidth, h: probe.naturalHeight };
-        } catch { /* файл не загрузился */ }
-        const htmlRoot = document.documentElement;
-        return { rect, clip, visibleBeforeScroll, inside: inside(rect, clip), href, natural, viewport: { w: innerWidth, h: innerHeight }, overflowX: htmlRoot.scrollWidth > innerWidth, tag: el.tagName.toLowerCase() };
-      }, kind);
-
-    async function checkPin(tag: string, kind: 'current' | 'travel', city: PinCity, vp: { width: number; height: number }, file: string) {
-      const pin = await probePin(kind);
-      const r = pin.rect;
-      check(pin.tag === 'image', `${tag}.1 маркер — SVG-<image>, а не HTML-элемент внутри SVG`);
-      check(r.w > 20 && r.h > 20, `${tag}.1 [data-map-beaver] имеет размер ${Math.round(r.w)}×${Math.round(r.h)} px (> 20×20)`);
-      const cx = await cityScreenX(kind, city.mapX);
-      check(Math.abs(r.x + r.w / 2 - cx) < 2, `${tag}.1 маркер стоит над городом ${city.namePl} (центр ${Math.round(r.x + r.w / 2)} px, город ${Math.round(cx)} px)`);
-      check(pin.inside, `${tag}.2 маркер целиком в видимой области SVG и карты (x ${Math.round(r.x)}–${Math.round(r.x + r.w)}, y ${Math.round(r.y)}–${Math.round(r.y + r.h)}; область ${Math.round(pin.clip.l)}–${Math.round(pin.clip.r)} × ${Math.round(pin.clip.t)}–${Math.round(pin.clip.b)})`);
-      check(r.x >= 0 && r.x + r.w <= vp.width, `${tag}.2 маркер внутри ширины viewport ${vp.width}`);
-      check(!pin.overflowX, `${tag}.2 нет горизонтального переполнения страницы`);
-      check(pin.natural && pin.natural.w > 0 && pin.natural.h > 0, `${tag}.3 растр ${pin.href} загружается и декодируется (${pin.natural?.w}×${pin.natural?.h})`);
-      await pn.screenshot({ path: `${SCREENS}/${file}` });
-      console.log(`  · ${tag}.4 скриншот: test-results/screens/${file}${kind === 'travel' ? `; маркер в дороге виден без прокрутки карты: ${pin.visibleBeforeScroll ? 'да' : 'нет'}` : ''}`);
-      const clip = { x: Math.max(0, r.x - 6), y: Math.max(0, r.y - 6), width: Math.min(vp.width, r.w + 12), height: Math.min(vp.height, r.h + 12) };
-      const loc = pn.locator(`image[data-map-beaver="${kind}"]`);
-      const shown = await pn.screenshot({ clip });
-      await loc.evaluate((el) => { el.style.visibility = 'hidden'; });
-      const hidden = await pn.screenshot({ clip });
-      await loc.evaluate((el) => { el.style.visibility = ''; });
-      check(!shown.equals(hidden), `${tag}.4 картинка маркера реально рисуется (область с ним отличается от области без него)`);
-    }
-
+    const spotOf = (slug: string) => Object.keys(MAP_SPOTS).find((k) => MAP_SPOTS[k].city === slug)!;
     for (const width of [360, 390, 430]) {
       const tag = `A4 ${width}`;
-      const vp = { width, height: 844 };
-      await pn.setViewportSize(vp);
-      await soft(`${tag}.current поточный город`, async () => {
+      await pn.setViewportSize({ width, height: 844 });
+      await soft(`${tag} карта`, async () => {
         await pn.goto(pinUser.url('/map'), { waitUntil: 'networkidle' });
         await pn.locator('[data-current-city]').waitFor({ timeout: 20_000 });
-        await pn.locator('image[data-map-beaver="current"]').waitFor({ timeout: 10_000 });
-        await pn.waitForTimeout(400); // карта центрируется на текущем городе в requestAnimationFrame
-        await checkPin(`${tag}.current`, 'current', pinHome, vp, `map-beaver-${width}.png`);
+        await pn.waitForFunction(() => (document.querySelector('.map-art') as HTMLImageElement | null)?.complete, undefined, { timeout: 20_000 });
+        await pn.waitForTimeout(400);
+        const geo = await pn.evaluate(({ W }) => {
+          const ir = document.querySelector('.map-art')!.getBoundingClientRect();
+          const k = W / ir.width;
+          const spots = [...document.querySelectorAll<HTMLElement>('[data-spot]')].map((b) => {
+            const r = b.getBoundingClientRect();
+            return { key: b.dataset.spot!, rect: [(r.left - ir.left) * k, (r.top - ir.top) * k, (r.right - ir.left) * k, (r.bottom - ir.top) * k], label: b.getAttribute('aria-label') ?? '' };
+          });
+          const here = document.querySelector('[data-map-here]')!;
+          const hr = here.getBoundingClientRect();
+          const card = document.querySelector('[data-map-card]')!.getBoundingClientRect();
+          const hud = document.querySelector('.map-hud')!.getBoundingClientRect();
+          return { spots, here: here.getAttribute('data-map-here'), hereVisible: hr.top > hud.bottom - 20 && hr.bottom < card.top, overflow: document.documentElement.scrollWidth > innerWidth + 1 };
+        }, { W: MAP_ART.width });
+        const off = geo.spots.filter((x) => x.rect.some((v, i) => Math.abs(v - mapHitRect(MAP_SPOTS[x.key])[i]) > 1.5)).map((x) => x.key);
+        check(geo.spots.length === Object.keys(MAP_SPOTS).length && off.length === 0, `${tag}.1 ${geo.spots.length} кнопок городов совпадают с табличками картинки${off.length ? ' — мимо: ' + off.join(', ') : ''}`);
+        check(geo.spots.every((x) => x.label.length > 3), `${tag}.1 у каждой кнопки есть aria-label`);
+        check(geo.here === spotOf(pinHome!.slug) && geo.hereVisible, `${tag}.2 «ты здесь» на ${pinHome!.namePl} и в видимом окне`);
+        check(!geo.overflow, `${tag}.2 нет горизонтального переполнения страницы`);
+        await pn.screenshot({ path: `${SCREENS}/map-${width}.png` });
       });
-      // Поездка: /map?travel=<from>,<to> — штатный вход экрана (после экзамена города). TravelPin берёт useReducedMotion() — системную
-      // настройку, а не «Меньше анимаций» из профиля, поэтому включаем prefers-reduced-motion штатной эмуляцией Playwright: путник сразу
-      // в конечном городе, проверка детерминирована. Экран сам завершает поездку через 4,2 с — проверки укладываются в это окно.
       const to = orderedCities[1];
       await soft(`${tag}.travel поездка`, async () => {
         await pn.emulateMedia({ reducedMotion: 'reduce' });
         try {
           await pn.goto(pinUser.url('/map') + `&travel=${orderedCities[0].id},${to.id}`, { waitUntil: 'domcontentloaded' });
-          const traveller = pn.locator('image[data-map-beaver="travel"]');
-          await traveller.waitFor({ timeout: 20_000 });
-          await traveller.evaluate((el, x) => new Promise<void>((done) => {
-            const svg = (el as SVGGraphicsElement).ownerSVGElement!;
-            const at = () => { const r = el.getBoundingClientRect(); return Math.abs(r.x + r.width / 2 - new DOMPoint(x, 0).matrixTransform(svg.getScreenCTM()!).x) < 2; };
-            const t0 = performance.now();
-            const tick = () => (at() || performance.now() - t0 > 2000 ? done() : requestAnimationFrame(tick));
-            tick();
-          }), to.mapX);
-          await checkPin(`${tag}.travel`, 'travel', to, vp, `map-beaver-travel-${width}.png`);
+          await pn.locator('[data-map-traveler][data-arrived]').waitFor({ timeout: 20_000 });
+          const at = await pn.locator('[data-map-traveler]').getAttribute('data-at');
+          const want = mapStarPoint(MAP_SPOTS[spotOf(to.slug)]).map(Math.round).join(',');
+          check(at === want, `${tag}.3 маркер поездки сразу в ${to.namePl} (${at} = ${want})`);
+          check(await pn.locator(`[data-map-card="${spotOf(to.slug)}"]`).count() === 1, `${tag}.3 карточка показывает город прибытия ${to.namePl}`);
+          await pn.screenshot({ path: `${SCREENS}/map-travel-${width}.png` });
         } finally {
           await pn.emulateMedia({ reducedMotion: null });
         }
@@ -786,7 +726,6 @@ async function main() {
         ['home', '/', '[data-today]'],
         ['profile', '/profile', '[data-look]'],
         ['wardrobe', '/shop', '[role="tablist"]'],
-        ['map', '/map', 'image[data-map-beaver="current"]'],
         ['lesson', `/lesson/${lessonId}`, '[data-action="start"]'],
       ];
       const seen: { screen: string; equipped: string | null; items: string | null }[] = [];

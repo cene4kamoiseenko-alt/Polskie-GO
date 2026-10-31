@@ -14,7 +14,7 @@ import { useJourney, useUpdateSettings } from '../lib/queries';
 import type { Me } from '../lib/types';
 import { Beaver } from '../components/Beaver';
 import { Progress, cx } from '../components/ui';
-import { PolandMap } from '../components/PolandMap';
+import { MapPreview } from '../components/IllustratedMap';
 import { Logo, Skyline } from '../components/Scenery';
 import { LangFlag } from '../components/pictograms/Flag';
 import { PictoTile } from '../components/pictograms/Pictogram';
@@ -222,7 +222,7 @@ export default function Onboarding() {
               <h2 className="text-2xl font-black">{t('ob_map_title')}</h2>
               <p className="muted mt-1 font-semibold">{t('ob_map_text')}</p>
               <div className="mt-4 w-full overflow-hidden rounded-3xl">
-                {journey.data && <PolandMap cities={journey.data.cities} currentCityId={journey.data.currentCityId} compact />}
+                {journey.data && <MapPreview currentSlug={journey.data.cities.find((c) => c.id === journey.data!.currentCityId)?.slug ?? null} />}
               </div>
             </div>
           )}

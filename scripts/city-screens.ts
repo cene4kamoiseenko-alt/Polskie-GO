@@ -70,7 +70,10 @@ async function main() {
       for (const [name, slug, art] of [['Gdańsk', 'gdansk', 'final'], ['Katowice', 'katowice', 'final'], ['Zakopane', 'zakopane', 'interim']] as const) {
         const dialog = p.locator('[role="dialog"]');
         if (await dialog.count()) { await p.keyboard.press('Escape'); await p.waitForTimeout(500); }
-        await p.getByRole('button', { name, exact: true }).click();
+        // Иллюстрированная карта (ADR-012): выбрать город (Enter после фокуса подводит камеру) и открыть «Подробнее».
+        await p.locator(`[data-spot="${slug}"]`).focus();
+        await p.keyboard.press('Enter');
+        await p.locator('[data-map-card] [data-map-details]').click();
         await dialog.waitFor({ state: 'visible', timeout: 10_000 });
         await settle();
         await p.screenshot({ path: `${OUT}/map-${slug}-${width}.png` });

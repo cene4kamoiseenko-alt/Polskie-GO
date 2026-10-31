@@ -1,0 +1,188 @@
+{
+  "image": "assets/map_full.png",
+  "image_width": 941,
+  "image_height": 1068,
+  "coordinate_system": "positions are for visual hotspots ONLY, not GPS or exact geographical data",
+  "cities": [
+    {
+      "id": "gdynia",
+      "label": "Gdynia",
+      "image_x": 300,
+      "image_y": 126,
+      "left_pct": 31.881,
+      "top_pct": 11.798,
+      "demo_status": "locked"
+    },
+    {
+      "id": "sopot",
+      "label": "Sopot",
+      "image_x": 408,
+      "image_y": 158,
+      "left_pct": 43.358,
+      "top_pct": 14.794,
+      "demo_status": "locked"
+    },
+    {
+      "id": "gdansk",
+      "label": "Gdańsk",
+      "image_x": 547,
+      "image_y": 144,
+      "left_pct": 58.13,
+      "top_pct": 13.483,
+      "demo_status": "locked"
+    },
+    {
+      "id": "szczecin",
+      "label": "Szczecin",
+      "image_x": 147,
+      "image_y": 285,
+      "left_pct": 15.622,
+      "top_pct": 26.685,
+      "demo_status": "locked"
+    },
+    {
+      "id": "bydgoszcz",
+      "label": "Bydgoszcz",
+      "image_x": 360,
+      "image_y": 277,
+      "left_pct": 38.257,
+      "top_pct": 25.936,
+      "demo_status": "locked"
+    },
+    {
+      "id": "olsztyn",
+      "label": "Olsztyn",
+      "image_x": 618,
+      "image_y": 275,
+      "left_pct": 65.675,
+      "top_pct": 25.749,
+      "demo_status": "locked"
+    },
+    {
+      "id": "bialystok",
+      "label": "Białystok",
+      "image_x": 804,
+      "image_y": 360,
+      "left_pct": 85.441,
+      "top_pct": 33.708,
+      "demo_status": "locked"
+    },
+    {
+      "id": "gorzow_wielkopolski",
+      "label": "Gorzów Wielkopolski",
+      "image_x": 118,
+      "image_y": 417,
+      "left_pct": 12.54,
+      "top_pct": 39.045,
+      "demo_status": "locked"
+    },
+    {
+      "id": "poznan",
+      "label": "Poznań",
+      "image_x": 328,
+      "image_y": 433,
+      "left_pct": 34.857,
+      "top_pct": 40.543,
+      "demo_status": "locked"
+    },
+    {
+      "id": "torun",
+      "label": "Toruń",
+      "image_x": 489,
+      "image_y": 424,
+      "left_pct": 51.966,
+      "top_pct": 39.7,
+      "demo_status": "locked"
+    },
+    {
+      "id": "warszawa",
+      "label": "Warszawa",
+      "image_x": 691,
+      "image_y": 466,
+      "left_pct": 73.433,
+      "top_pct": 43.633,
+      "demo_status": "unlocked"
+    },
+    {
+      "id": "zielona_gora",
+      "label": "Zielona Góra",
+      "image_x": 151,
+      "image_y": 560,
+      "left_pct": 16.047,
+      "top_pct": 52.434,
+      "demo_status": "locked"
+    },
+    {
+      "id": "lodz",
+      "label": "Łódź",
+      "image_x": 505,
+      "image_y": 577,
+      "left_pct": 53.666,
+      "top_pct": 54.026,
+      "demo_status": "locked"
+    },
+    {
+      "id": "lublin",
+      "label": "Lublin",
+      "image_x": 832,
+      "image_y": 620,
+      "left_pct": 88.417,
+      "top_pct": 58.052,
+      "demo_status": "locked"
+    },
+    {
+      "id": "wroclaw",
+      "label": "Wrocław",
+      "image_x": 329,
+      "image_y": 663,
+      "left_pct": 34.963,
+      "top_pct": 62.079,
+      "demo_status": "unlocked"
+    },
+    {
+      "id": "kielce",
+      "label": "Kielce",
+      "image_x": 654,
+      "image_y": 708,
+      "left_pct": 69.501,
+      "top_pct": 66.292,
+      "demo_status": "locked"
+    },
+    {
+      "id": "katowice",
+      "label": "Katowice",
+      "image_x": 484,
+      "image_y": 779,
+      "left_pct": 51.435,
+      "top_pct": 72.94,
+      "demo_status": "locked"
+    },
+    {
+      "id": "opole",
+      "label": "Opole",
+      "image_x": 330,
+      "image_y": 811,
+      "left_pct": 35.069,
+      "top_pct": 75.936,
+      "demo_status": "locked"
+    },
+    {
+      "id": "rzeszow",
+      "label": "Rzeszów",
+      "image_x": 818,
+      "image_y": 824,
+      "left_pct": 86.929,
+      "top_pct": 77.154,
+      "demo_status": "locked"
+    },
+    {
+      "id": "krakow",
+      "label": "Kraków",
+      "image_x": 591,
+      "image_y": 958,
+      "left_pct": 62.806,
+      "top_pct": 89.7,
+      "demo_status": "unlocked"
+    }
+  ]
+}
