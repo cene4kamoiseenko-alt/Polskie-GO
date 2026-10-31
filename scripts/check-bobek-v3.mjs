@@ -39,8 +39,8 @@ for (const outfit of [start,jacket.equipment]) {
   assert.equal(look.drawn.includes('backpack-travel'),true);
   assert.equal(look.drawn.includes(outfit.includes('hoodie-red')?'hoodie-red':'jacket-denim'),true);
   assert(look.layers.every((layer)=>layer.asset.startsWith('bobek-v3/idle/')));
-  assert(look.layers.some((layer)=>layer.part==='head'));
-  assert(look.layers.some((layer)=>layer.part==='torso'));
+  assert(look.layers.some((layer)=>layer.id==='v3-base:head'));
+  assert(look.layers.some((layer)=>layer.id==='v3-base:torso'));
   // Other moods are intentionally NOT represented by fabricated 2.5D art.
   const wave=resolveLook(null,outfit,{manifest:M,mood:'wave'});
   assert.equal(wave.pose,'front-idle');
