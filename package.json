@@ -25,7 +25,8 @@
     "screens": "node --import tsx scripts/screens.ts",
     "assets": "node scripts/validate-assets.mjs",
     "bobek:check": "node scripts/validate-bobek-art.mjs",
-    "bobek:check:production": "node scripts/validate-bobek-art.mjs --production"
+    "bobek:check:production": "node scripts/validate-bobek-art.mjs --production",
+    "bobek:check:preview": "node --import tsx scripts/check-bobek-preview.mjs"
   },
   "engines": {
     "node": ">=20"
