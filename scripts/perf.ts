@@ -35,6 +35,13 @@ const FRAMES = `(ms) => new Promise((res) => { const ts = []; const t0 = perform
     res({ frames: ts.length, maxGapMs: Math.round(max), gapsOver50: long }); } };
   requestAnimationFrame(f); })`;
 
+/**
+ * Межі продуктивності (див. кінець main). Змінювати свідомо: з поясненням у PROJECT_PROGRESS.md.
+ * Шум одного прогону headless Chromium на сервері — ±250 мс (замір 2026-10-31: та сама збірка 2429–2909 мс),
+ * тому межі часу — над найгіршим із 7 прогонів; обсяги (JS, картинки) стабільні й ловлять справжнє зростання.
+ */
+const BUDGET = { coldReadyMs: 3000, coldLcpMs: 2500, coldJsKb: 760, coldImagesKb: 800, warmReadyMs: 1500 };
+
 async function main() {
   if (!process.argv.includes('--no-build') && !process.env.PERF_DIST) {
     const { build } = await import(root + '/node_modules/vite/dist/node/index.js');
@@ -163,6 +170,24 @@ async function main() {
   }
   writeFileSync(resolve(OUT, 'perf.json'), JSON.stringify(out, null, 2));
   console.log(JSON.stringify(out, null, 2));
+
+  // Бюджет: регресія валить прогін (код 1). PERF_BUDGET=off — лише виміряти (наприклад, для PERF_DIST зі старою збіркою).
+  if (process.env.PERF_BUDGET !== 'off') {
+    const cold = out.cold_start as { readyMs: number; lcpMs: number; transferKb: { js: number; images: number } };
+    const warm = out.warm_reopen as { readyMs: number };
+    const over = (
+      [
+        ['холодний старт, мс', cold.readyMs, BUDGET.coldReadyMs],
+        ['LCP холодного старту, мс', cold.lcpMs, BUDGET.coldLcpMs],
+        ['JS холодного старту, КБ', cold.transferKb.js, BUDGET.coldJsKb],
+        ['картинки холодного старту, КБ', cold.transferKb.images, BUDGET.coldImagesKb],
+        ['повторне відкриття, мс', warm.readyMs, BUDGET.warmReadyMs],
+      ] as [string, number, number][]
+    ).filter(([, v, max]) => v > max);
+    for (const [name, v, max] of over) console.error(`ПЕРЕВИЩЕНО: ${name} ${v} > ${max}`);
+    if (over.length) process.exit(1);
+    console.log('Бюджет продуктивності: у межах');
+  }
 }
 
 main().catch((e) => {

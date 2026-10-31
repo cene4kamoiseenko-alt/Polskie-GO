@@ -28,15 +28,19 @@ export default function MissionScreen() {
   const q = useQuery({ queryKey: ['mission-run', slug], queryFn: () => api<MissionRun>(`/missions/${slug}/start`, { method: 'POST' }), staleTime: Infinity, gcTime: 0 });
   const [phase, setPhase] = useState<'intro' | 'play' | 'done'>('intro');
   const [result, setResult] = useState<MissionFinish | null>(null);
+  // Місія сезонного пропуску повертає до пропуску, решта — до списку місій.
+  const season = !!q.data?.mission.season;
   const exit = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['missions'] });
-    nav('/life', { replace: true });
-  }, [nav, qc]);
+    nav(season ? '/pass' : '/life', { replace: true });
+  }, [nav, qc, season]);
   useBackButton(exit);
 
   if (q.isLoading) return <ScreenSkeleton />;
   // Сцена Premium без Premium (пряме посилання): ведемо на екран Premium, а не показуємо помилку.
   if (q.error instanceof ApiError && q.error.code === 'premium_required') return <Navigate to="/premium" replace />;
+  // Сезон пропуску ще не почався (пряме посилання): показуємо календар пропуску.
+  if (q.error instanceof ApiError && q.error.code === 'season_not_started') return <Navigate to="/pass" replace />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const run = q.data!;
   if (phase === 'intro') return <Intro run={run} onStart={() => setPhase('play')} onClose={exit} />;

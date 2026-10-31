@@ -98,9 +98,9 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     for (const lang of ['ru', 'uk', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
   });
 
-  it('для каждой из 17 миссий (14 + 3 сцены Premium) описан фон без Бобека и действие игрока', () => {
+  it('для каждой из 26 миссий (14 + 3 сцены Premium + 9 миссий пропуска месяца) описан фон без Бобека и действие игрока', () => {
     const slugs = [...MISSIONS.map((m) => m.slug), ...MISSIONS_SOON.map((m) => m.slug)].sort();
-    expect(slugs).toHaveLength(17);
+    expect(slugs).toHaveLength(26);
     expect(Object.keys(MISSION_BACKGROUND_BRIEF).sort()).toEqual(slugs);
     for (const [slug, b] of Object.entries(MISSION_BACKGROUND_BRIEF)) {
       expect(b.action.length, slug).toBeGreaterThan(10);

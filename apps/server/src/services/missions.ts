@@ -5,11 +5,13 @@
  * Перше проходження дає повну нагороду, повторні — невеликий XP раз на день.
  */
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-import { normalize, seededRandom, shuffle, type I18n } from '@polski-go/shared';
+import { dayKey, normalize, seededRandom, shuffle, type I18n } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
-import { cosmeticItems, missionRuns, newId, reviewSchedule, subscriptions, userMissionSteps, userMissions, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
+import { cosmeticItems, missionRuns, newId, reviewSchedule, subscriptions, userMissionSteps, userMissions, userSettings, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
 import { activeSubWhere, isPremium } from './premium';
 import { MISSIONS, MISSIONS_SOON, missionBySlug, type Mission, type MissionStep } from '../content/missions';
+import { SEASONS, isFreeSeasonMission, seasonBySlug, seasonState, type Season, type SeasonState } from '../content/seasons';
+import { ACHIEVEMENTS } from '../content/gamification';
 import { badRequest, forbidden, notFound, HttpError } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { applyQuestEvents } from './quests';
@@ -38,24 +40,67 @@ function publicStep(m: Mission, step: MissionStep, seed: string) {
 function summaryOf(m: Mission) {
   return {
     slug: m.slug, category: m.category, tags: m.tags, city: m.city, scene: m.scene, title: m.title, goal: m.goal,
-    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length, rewardItem: m.rewardItem ?? null, premium: !!m.premium,
+    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length, rewardItem: m.rewardItem ?? null, premium: !!m.premium, season: m.season ?? null,
   };
 }
 
-export async function listMissions(userId: string) {
-  const [mine, active, sub] = await db.batch([
+/**
+ * Доступ до місії сезонного пропуску: майбутній сезон — закритий для всіх; поточний — перша місія для всіх, решта з Premium;
+ * минулий (архів) — лише з Premium. `locked` — бракує саме Premium (картка веде на екран Premium).
+ */
+export function seasonAccess(s: Season, slug: string, day: string, premium: boolean): { state: SeasonState; open: boolean; locked: boolean } {
+  const state = seasonState(s, day);
+  if (state === 'upcoming') return { state, open: false, locked: false };
+  const free = state === 'active' && isFreeSeasonMission(s, slug);
+  return { state, open: premium || free, locked: !premium && !free };
+}
+
+const dayNum = (day: string) => Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10)) / 86_400_000;
+
+export async function listMissions(userId: string, now = new Date()) {
+  const [mine, active, sub, settings] = await db.batch([
     db.select().from(userMissions).where(eq(userMissions.userId, userId)),
     db.select({ slug: missionRuns.missionSlug, step: missionRuns.step }).from(missionRuns).where(and(eq(missionRuns.userId, userId), eq(missionRuns.status, 'ACTIVE'))),
-    db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId)).limit(1),
+    db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId, now)).limit(1),
+    db.select({ timezone: userSettings.timezone }).from(userSettings).where(eq(userSettings.userId, userId)),
   ]);
+  const premium = sub.length > 0;
+  const day = dayKey(now, settings[0]?.timezone ?? 'Europe/Warsaw');
+  const item = (m: Mission) => {
+    const u = mine.find((x) => x.missionSlug === m.slug);
+    const a = active.find((x) => x.slug === m.slug);
+    // locked — сцена Premium без активного Premium: картка показує замок і веде на екран Premium.
+    return { ...summaryOf(m), locked: !!m.premium && !premium, completions: u?.completions ?? 0, flawless: (u?.flawless ?? 0) > 0, inProgress: a ? a.step : null };
+  };
+  const season = (s: Season) => {
+    const state = seasonState(s, day);
+    const missions = s.missions.map((slug) => {
+      const access = seasonAccess(s, slug, day, premium);
+      return { ...item(missionBySlug(slug)!), locked: access.locked, open: access.open, free: isFreeSeasonMission(s, slug) };
+    });
+    const done = missions.filter((m) => m.completions > 0).length;
+    const ach = ACHIEVEMENTS.find((a) => a.slug === s.achievement);
+    return {
+      slug: s.slug, title: s.title, tagline: s.tagline, city: s.city, scene: s.scene, color: s.color, start: s.start, end: s.end, state,
+      // Днів до кінця, включно з сьогоднішнім; до початку — для майбутнього сезону.
+      daysLeft: state === 'active' ? dayNum(s.end) - dayNum(day) + 1 : null,
+      startsIn: state === 'upcoming' ? dayNum(s.start) - dayNum(day) : null,
+      done, total: missions.length,
+      reward: { achievement: s.achievement, zlotki: ach?.zlotki ?? 0, done: done === missions.length },
+      missions,
+    };
+  };
+  const seasons = SEASONS.map(season);
   return {
-    missions: MISSIONS.map((m) => {
-      const u = mine.find((x) => x.missionSlug === m.slug);
-      const a = active.find((x) => x.slug === m.slug);
-      // locked — сцена Premium без активного Premium: картка показує замок і веде на екран Premium.
-      return { ...summaryOf(m), locked: !!m.premium && !sub.length, completions: u?.completions ?? 0, flawless: (u?.flawless ?? 0) > 0, inProgress: a ? a.step : null };
-    }),
+    // Місії пропусків — лише в `pass`: у загальному списку їх немає.
+    missions: MISSIONS.filter((m) => !m.season).map(item),
     soon: MISSIONS_SOON,
+    pass: {
+      premium,
+      current: seasons.find((s) => s.state === 'active') ?? null,
+      upcoming: seasons.filter((s) => s.state === 'upcoming').sort((a, b) => a.start.localeCompare(b.start)),
+      archive: seasons.filter((s) => s.state === 'archive').sort((a, b) => b.start.localeCompare(a.start)),
+    },
   };
 }
 
@@ -77,10 +122,16 @@ function runView(m: Mission, run: Run) {
 }
 
 /** Почати місію або продовжити незавершене проходження. */
-export async function startMission(userId: string, slug: string) {
+export async function startMission(userId: string, slug: string, now = new Date()) {
   const m = missionBySlug(slug);
   if (!m) throw notFound('mission_not_found');
   if (m.premium && !(await isPremium(userId))) throw forbidden('premium_required');
+  if (m.season) {
+    const ctx = await loadCtx(userId, now);
+    const access = seasonAccess(seasonBySlug(m.season)!, slug, ctx.day, ctx.premium);
+    if (access.state === 'upcoming') throw forbidden('season_not_started');
+    if (!access.open) throw forbidden('premium_required');
+  }
   const existing = await activeRun(userId, slug);
   if (existing) return runView(m, existing);
   const run: Run = { id: newId(), userId, missionSlug: slug, step: 0, mistakes: 0, hints: 0, stepFailed: false, status: 'ACTIVE', version: 0, startedAt: new Date(), finishedAt: null };

@@ -211,9 +211,22 @@ export type MissionSummary = {
   minutes: number; xp: number; zlotki: number; steps: number;
   /** Сцена Premium. */
   premium: boolean;
+  /** Сезон пропуску місяця (slug) або null. */
+  season?: string | null;
 };
 /** locked — сцена Premium без активного Premium (картка веде на екран Premium). */
 export type MissionListItem = MissionSummary & { locked: boolean; completions: number; flawless: boolean; inProgress: number | null };
+/** Місія сезону: open — можна почати зараз; free — перша місія сезону, відкрита всім, поки сезон триває. */
+export type PassMission = MissionListItem & { open: boolean; free: boolean };
+/** Сезон пропуску місяця (GET /missions → pass). Дати — YYYY-MM-DD за поясом учня, включно. */
+export type PassSeason = {
+  slug: string; title: I18n; tagline: I18n; city: string; scene: string; color: string; start: string; end: string;
+  state: 'active' | 'upcoming' | 'archive';
+  daysLeft: number | null; startsIn: number | null; done: number; total: number;
+  reward: { achievement: string; zlotki: number; done: boolean };
+  missions: PassMission[];
+};
+export type PassData = { premium: boolean; current: PassSeason | null; upcoming: PassSeason[]; archive: PassSeason[] };
 export type MissionRun = {
   runId: string; step: number; mistakes: number; hints: number;
   mission: MissionSummary & { intro: I18n; note: I18n | null; npc: { name: string; role: I18n }; steps: MissionStepPublic[] };

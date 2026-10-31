@@ -780,6 +780,15 @@ html.reduced-motion .splash *::after {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-deep);
 }
+/* Пропуск місяця: колір сезону (--pass) — рамка й світіння; сцена ліворуч переходить у фон картки. */
+.pass-card {
+  --pass-bg: #13234a;
+  border-radius: 22px;
+  background: radial-gradient(140% 120% at 100% 0%, color-mix(in srgb, var(--pass, #ffc857) 28%, transparent) 0%, transparent 60%), var(--pass-bg);
+  border: 2px solid color-mix(in srgb, var(--pass, #ffc857) 70%, #ffc857);
+  box-shadow: 0 0 22px -8px color-mix(in srgb, var(--pass, #ffc857) 80%, transparent), var(--shadow-deep);
+}
+.pass-card-fade { background: linear-gradient(90deg, transparent 45%, var(--pass-bg) 100%); }
 .light .hud-pill,
 .light .stat-card,
 .light .task-card,

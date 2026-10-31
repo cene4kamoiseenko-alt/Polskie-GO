@@ -17,7 +17,8 @@ describe('перечень незавершённых ассетов', () => {
   it('2 фона городов, 5 сцен бота, 14 кадров миссий с Бобеком, 18 + 8 слоёв Бобека', () => {
     expect(data.cities.map((c) => c.slug)).toEqual(['rzeszow', 'zakopane']);
     expect(data.botScenes.map((b) => b.scene)).toEqual(['map', 'correct_answer', 'quick_question', 'travel_passport', 'lesson_complete']);
-    expect(data.missions.map((m) => m.slug)).toHaveLength(17);
+    // 14 + 3 сцены Premium + 9 миссий пропуска месяца (ADR-011).
+    expect(data.missions.map((m) => m.slug)).toHaveLength(26);
     expect(data.storeScenes.map((s) => s.id).sort()).toEqual([
       'bakery-pierniki', 'clinic-registration', 'flat-keys', 'fuel-orlen', 'milk-bar', 'office-first-day', 'parcel-inpost',
       'station-pkp', 'store-biedronka', 'store-lidl', 'store-rossmann', 'store-zabka', 'street-zapiekanki', 'tram-stop',

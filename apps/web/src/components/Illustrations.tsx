@@ -278,7 +278,9 @@ export type SceneName =
   | 'shop-corner' | 'cafe-pierogi' | 'supermarket' | 'petrol-station' | 'parcel-locker' | 'tram-stop' | 'train-station'
   | 'milk-bar' | 'bakery' | 'street-food' | 'drugstore' | 'flat' | 'work' | 'clinic'
   | 'hotel' | 'university' | 'market-square' | 'restaurant' | 'castle' | 'office'
-  | 'clothes-shop' | 'market-hall' | 'gift-shop';
+  | 'clothes-shop' | 'market-hall' | 'gift-shop'
+  // Сезонні пропуски (content/seasons.ts на сервері)
+  | 'pastry-shop' | 'old-market' | 'christmas-market' | 'amusement-park';
 
 type Shop = { sign: string; wall: string; awning: string; accent: string; items: ItemName[] };
 const SHOPS: Record<SceneName, Shop> = {
@@ -305,6 +307,10 @@ const SHOPS: Record<SceneName, Shop> = {
   'clothes-shop': { sign: 'ODZIEŻ', wall: '#FBEFF6', awning: '#E86FA8', accent: '#B84A82', items: ['shirt', 'jacket', 'shoes'] },
   'market-hall': { sign: 'HALA TARGOWA', wall: '#F1F6E8', awning: P.greenD, accent: '#177A52', items: ['strawberries', 'scale', 'basket'] },
   'gift-shop': { sign: 'PREZENTY', wall: '#FFF3E6', awning: '#F28B30', accent: '#C4691C', items: ['gift', 'bag', 'dress'] },
+  'pastry-shop': { sign: 'CUKIERNIA', wall: '#FFF1E6', awning: '#E86FA8', accent: '#B84A82', items: ['bread', 'paczki', 'coffee'] },
+  'old-market': { sign: 'STARY RYNEK', wall: '#FFF3D6', awning: P.coral, accent: P.coralD, items: ['map', 'bread', 'coffee'] },
+  'christmas-market': { sign: 'JARMARK', wall: '#F3F7EF', awning: '#C8102E', accent: '#1F7A4D', items: ['gift', 'coffee', 'paczki'] },
+  'amusement-park': { sign: 'PARK ROZRYWKI', wall: '#EEF0FF', awning: '#9D69FF', accent: '#6B45D8', items: ['ticket', 'map', 'backpack'] },
 };
 
 /** Предмети у вітрині сцени — щоб кожне завдання уроку мало свою «картинку», а не однаковий фон. */
@@ -376,6 +382,9 @@ const BADGE_ART: Record<string, { item: ItemName; color: string }> = {
   paws: { item: 'paws', color: P.yellow },
   'beaver-map': { item: 'beaver-map', color: P.coral },
   office: { item: 'card', color: P.navy },
+  'season-rogal': { item: 'bread', color: '#C8502E' },
+  'season-gift': { item: 'gift', color: '#1F8A5B' },
+  'season-ticket': { item: 'ticket', color: '#6B45D8' },
 };
 
 export type Tier = 'bronze' | 'silver' | 'gold' | 'legendary';

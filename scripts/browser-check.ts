@@ -154,7 +154,7 @@ async function main() {
     for (const width of [360, 390, 430]) {
       await home.page.setViewportSize({ width, height: 844 });
       await home.page.goto(home.url('/'), { waitUntil: 'networkidle' });
-      await home.page.getByText('Быстрый старт', { exact: true }).waitFor({ timeout: 20_000 });
+      await home.page.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 20_000 });
       await home.page.evaluate(() => document.fonts.ready);
       await home.page.screenshot({ path: `${SCREENS}/home-${width}.png`, fullPage: true });
       results.push({ route: '/', width, overflow: await home.page.evaluate(() => document.documentElement.scrollWidth > innerWidth) });
@@ -227,7 +227,7 @@ async function main() {
     await fp.locator('[data-action="home"]').click();
     await fp.locator('nav a[href="/"]').waitFor();
     const broken: string[] = [];
-    for (const path of ['/map', '/learn', '/quests', '/profile', '/dictionary', '/shop', '/life', '/achievements', '/passport', '/grammar', '/settings', '/life/zabka-first-order']) {
+    for (const path of ['/map', '/learn', '/quests', '/profile', '/dictionary', '/shop', '/life', '/pass', '/achievements', '/passport', '/grammar', '/settings', '/life/zabka-first-order']) {
       await fp.goto(fresh.url(path));
       await fp.waitForFunction(() => !document.querySelector('.splash') && !document.querySelector('[data-skeleton]'), undefined, { timeout: 20_000 }).catch(() => broken.push(`${path}: завантаження`));
       if (await fp.locator('[data-screen-error], [role="alert"]').count()) broken.push(`${path}: помилка`);
@@ -248,7 +248,7 @@ async function main() {
     await boot.page.screenshot({ path: `${SCREENS}/boot-offline.png` });
     await boot.page.unroute('**/api/**');
     await boot.context.setOffline(false);
-    await boot.page.getByText('Быстрый старт', { exact: true }).waitFor({ timeout: 20_000 });
+    await boot.page.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 20_000 });
     check(true, 'мережа повернулась — профіль довантажився сам, без перезапуску');
 
     await boot.page.route('**/api/me', async (r) => {
@@ -262,7 +262,7 @@ async function main() {
     check(await boot.page.locator('.splash-card button').count() === 1, 'повільний етап — спершу «профіль», після 8 с чесне «повільно» і кнопка повтору');
     await boot.page.screenshot({ path: `${SCREENS}/boot-slow.png` });
     await boot.page.unroute('**/api/me');
-    await boot.page.getByText('Быстрый старт', { exact: true }).waitFor({ timeout: 20_000 });
+    await boot.page.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 20_000 });
 
     await boot.page.route('**/src/screens/Shop.tsx*', (r) => r.abort('failed'));
     await boot.page.goto(boot.url('/shop'));
@@ -350,6 +350,27 @@ async function main() {
       }
       await todayState('active').waitFor({ timeout: 20_000 });
       check(true, 'A2.4 сеть вернулась — «Сегодня» само загрузило задания (active)');
+    });
+    // ── H: главная по варианту A — без дублей нижней панели; остальные разделы в шторках; пропуск месяца.
+    await soft('H главная A: шторки разделов и тренировки, пропуск', async () => {
+      await tp.goto(today.url('/'), { waitUntil: 'networkidle' });
+      await tp.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 20_000 });
+      check(await tp.getByText('Быстрый старт', { exact: true }).count() === 0, 'H главная без «Быстрого старта» (дублировал нижнюю панель)');
+      check(await tp.locator('[data-pass]').count() === 1, 'H на главной одна карточка пропуска месяца');
+      await tp.getByRole('button', { name: /Все разделы/ }).click();
+      const sections = tp.locator('[data-home-sheet="sections"] button');
+      await sections.first().waitFor({ timeout: 10_000 });
+      check(await sections.count() >= 8, `H шторка «Все разделы»: ${await sections.count()} разделов (Żywy polski, экзамены, гардероб, паспорт…)`);
+      await tp.keyboard.press('Escape');
+      await tp.locator('[data-home-sheet="sections"]').waitFor({ state: 'detached', timeout: 10_000 });
+      await tp.locator('section').filter({ hasText: 'Учиться дальше' }).getByRole('button', { name: /Тренировка/ }).click();
+      check(await tp.locator('[data-home-sheet="practice"] button').count() === 4, 'H шторка «Тренировка»: 4 режима');
+      await tp.keyboard.press('Escape');
+      await tp.locator('[data-pass]').click();
+      await tp.waitForURL(/\/pass$/, { timeout: 10_000 });
+      await tp.locator('[data-season-state]').first().waitFor({ timeout: 20_000 });
+      check(true, 'H карточка пропуска ведёт на экран пропуска с сезонами');
+      await tp.screenshot({ path: `${SCREENS}/pass-390.png`, fullPage: true });
     });
     await today.context.close();
 

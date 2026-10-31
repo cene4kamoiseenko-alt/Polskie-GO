@@ -9,6 +9,7 @@ import { ErrorState, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
 import { Scene } from '../components/Illustrations';
+import { PassCard } from './Home';
 
 const CATS: { id: string; key: TKey }[] = [
   { id: 'all', key: 'life_cat_all' },
@@ -34,6 +35,8 @@ export default function MissionsScreen() {
     <div className="pb-6">
       <ScreenHeader title={t('life_title')} subtitle={t('life_progress', { n: done, total: missions.length })} />
       <p className="muted px-4 text-sm font-semibold">{t('life_subtitle')}</p>
+      {/* Пропуск місяця: сезонні місії — окремо від загального списку */}
+      <div className="mt-3"><PassCard /></div>
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
         {CATS.map((c) => (
           <button key={c.id} onClick={() => { haptic.select(); setCat(c.id); }} className={cx('chip shrink-0 !py-1.5 transition-colors', cat === c.id && '!bg-ink text-white')} aria-pressed={cat === c.id}>

@@ -110,8 +110,8 @@ describe('каталог озвучки', () => {
   });
 
   it('кнопки прослуховування є лише у відомих файлах клієнта (нова кнопка — доповнити правила audioTexts.ts і каталог)', () => {
-    // Ai.tsx — без кнопки: відповіді ШІ довільні, готового запису для них не буває.
-    const KNOWN = ['components/ui.tsx', 'exercises/Exercises.tsx', 'screens/Dictionary.tsx', 'screens/Grammar.tsx', 'screens/Home.tsx', 'screens/Lesson.tsx', 'screens/Mission.tsx', 'screens/Onboarding.tsx', 'screens/Passport.tsx', 'screens/Settings.tsx', 'screens/Slang.tsx', 'screens/Story.tsx'];
+    // Ai.tsx — без кнопки: відповіді ШІ довільні, готового запису для них не буває. Home.tsx — без кнопки з 2026-10-31 (слово дня прибрано з головної).
+    const KNOWN = ['components/ui.tsx', 'exercises/Exercises.tsx', 'screens/Dictionary.tsx', 'screens/Grammar.tsx', 'screens/Lesson.tsx', 'screens/Mission.tsx', 'screens/Onboarding.tsx', 'screens/Passport.tsx', 'screens/Settings.tsx', 'screens/Slang.tsx', 'screens/Story.tsx'];
     const web = new URL('../../web/src/', import.meta.url);
     const files = (readdirSync(web, { recursive: true }) as string[])
       .filter((f) => /\.tsx?$/.test(f) && f !== 'lib/audio.ts')

@@ -27,9 +27,9 @@ export async function createInvoice(userId: string, planCode: string, lang: UiLa
   const description = tr(
     // Лише те, що Premium справді дає (див. /terms у боті та екран Premium).
     {
-      uk: 'Захист серії, сцени Premium (оренда, робота, лікар), удвічі більший ліміт XP за тренування, подарунок щомісяця й ексклюзивні речі для Бобека.',
-      ru: 'Защита серии, сцены Premium (аренда, работа, врач), вдвое больший лимит XP за тренировки, подарок каждый месяц и эксклюзивные вещи для Бобека.',
-      en: 'Streak shield, Premium scenes (renting, work, doctor), double XP limit for practice, a monthly gift and exclusive items for Bobek.',
+      uk: 'Пропуск місяця з сезонними місіями, сцени Premium (оренда, робота, лікар), захист серії, удвічі більший ліміт XP за тренування, подарунок щомісяця й ексклюзивні речі для Бобека.',
+      ru: 'Пропуск месяца с сезонными миссиями, сцены Premium (аренда, работа, врач), защита серии, вдвое больший лимит XP за тренировки, подарок каждый месяц и эксклюзивные вещи для Бобека.',
+      en: 'Monthly pass with seasonal missions, Premium scenes (renting, work, doctor), streak shield, double XP limit for practice, a monthly gift and exclusive items for Bobek.',
     },
     lang,
   );

@@ -8,6 +8,9 @@ import { haptic, tg } from '../lib/telegram';
 import { useMe } from '../lib/queries';
 import { Beaver } from '../components/Beaver';
 import { Card, Confetti, ScreenHeader, ScreenSkeleton, cx, useToast } from '../components/ui';
+import { Art } from '../components/GameArt';
+import { missionsQuery } from '../components/MissionCard';
+import { useNavigate } from 'react-router-dom';
 
 type Plan = { code: string; months: number; priceStars: number; recurring: boolean; title: never };
 type Gift = { month: string; ready: boolean; claimed: boolean; zlotki: number; item: { id: string; slug: string; slot: string; name: I18n } | null };
@@ -19,10 +22,10 @@ type PremiumData = {
   bot: string | null;
 };
 
-/** Що дає Premium — лише те, що справді працює (ШІ — коли його підключено на сервері). */
+/** Що дає Premium — лише те, що справді працює (ШІ — коли його підключено на сервері). Пропуск місяця — окремою карткою вгорі. */
 const FEATURES: [LineIconName, TKey, TKey][] = [
-  ['flame', 'prem_shield', 'prem_shield_d'],
   ['chat', 'prem_scenes', 'prem_scenes_d'],
+  ['flame', 'prem_shield', 'prem_shield_d'],
   ['bolt', 'prem_xp2', 'prem_xp2_d'],
   ['gift', 'prem_gift', 'prem_gift_d'],
   ['crown', 'prem_items', 'prem_items_d'],
@@ -39,7 +42,10 @@ export default function PremiumScreen() {
   const qc = useQueryClient();
   const toast = useToast();
   const me = useMe().data!;
+  const nav = useNavigate();
   const q = useQuery({ queryKey: ['premium'], queryFn: () => api<PremiumData>('/premium') });
+  const missions = useQuery(missionsQuery);
+  const pass = missions.data?.pass;
   const [plan, setPlan] = useState('MONTH_3');
   const [status, setStatus] = useState<'idle' | 'waiting' | 'paid' | 'slow'>('idle');
   const [gotGift, setGotGift] = useState<{ zlotki: number; item: Gift['item'] } | null>(null);
@@ -146,6 +152,20 @@ export default function PremiumScreen() {
           )}
         </Card>
       )}
+
+      {/* Пропуск місяця — головне, що дає Premium: сезонна локація з власними місіями. */}
+      <div className="card mx-4 space-y-3 p-4 ring-2 ring-xp" data-premium-pass>
+        <div className="flex items-start gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-xp/25"><Art name="crown" size={30} /></span>
+          <div className="min-w-0 flex-1">
+            <div className="text-lg font-black leading-tight">{t('prem_pass')}</div>
+            <div className="muted text-sm font-semibold leading-snug">{t('prem_pass_d')}</div>
+            {pass?.current && <div className="mt-1 text-sm font-black text-xp-dark">{t('prem_pass_now', { title: tr(pass.current.title) })}</div>}
+            {!pass?.current && pass?.upcoming[0] && <div className="mt-1 text-sm font-black text-xp-dark">{t('prem_pass_next', { title: tr(pass.upcoming[0].title) })}</div>}
+          </div>
+        </div>
+        <button className="btn btn-sky w-full !py-2 text-sm" onClick={() => nav('/pass')}>{t('prem_see_pass')}</button>
+      </div>
 
       {/* Подарунок місяця: з Premium — забрати; без — показуємо, що він дає. */}
       <Card className={cx('mx-4 flex items-center gap-3 p-4', gift.ready && 'ring-4 ring-xp')}>

@@ -4,12 +4,12 @@ import type { I18n } from '@polski-go/shared';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
 import { haptic } from '../lib/telegram';
-import type { MissionListItem } from '../lib/types';
+import type { MissionListItem, PassData } from '../lib/types';
 import { cx } from './ui';
 import { Icon } from './Icon';
 import { MissionScene } from './MissionScene';
 
-export type MissionsData = { missions: MissionListItem[]; soon: { slug: string; category: string; scene: string; title: I18n }[] };
+export type MissionsData = { missions: MissionListItem[]; soon: { slug: string; category: string; scene: string; title: I18n }[]; pass: PassData };
 
 export const missionsQuery = { queryKey: ['missions'], queryFn: () => api<MissionsData>('/missions') };
 

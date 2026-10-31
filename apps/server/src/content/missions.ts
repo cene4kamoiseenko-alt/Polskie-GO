@@ -11,6 +11,7 @@
  */
 import type { I18n } from '@polski-go/shared';
 import { t } from './builders';
+import { SEASON_MISSIONS } from './seasons';
 
 export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean };
 export type MissionOption = { pl?: string; text?: I18n; ok: boolean; why?: I18n };
@@ -31,7 +32,8 @@ export type MissionStep = {
   /** Теги ситуацій для досягнень: city-transport, dish:<страва>. */
   tags?: string[];
 };
-export type MissionCategory = 'shop' | 'food' | 'road' | 'transport' | 'home' | 'work';
+/** season — місія сезонного пропуску (content/seasons.ts): у загальному списку її немає, лише в пропуску. */
+export type MissionCategory = 'shop' | 'food' | 'road' | 'transport' | 'home' | 'work' | 'season';
 export type Mission = {
   slug: string;
   category: MissionCategory;
@@ -54,6 +56,8 @@ export type Mission = {
   rewardItem?: string;
   /** Сцена Premium: почати можна лише з активним Premium (решта місій — для всіх). */
   premium?: boolean;
+  /** Сезон пропуску (slug у SEASONS): доступ — за датами сезону й Premium, див. content/seasons.ts. */
+  season?: string;
 };
 
 const npc = (pl: string, uk: string, ru: string, en: string, hidden = false): MissionLine => ({ who: 'npc', pl, tr: t(uk, ru, en), hidden });
@@ -1237,5 +1241,8 @@ export const MISSIONS: Mission[] = [
 
 /** Місії, що готуються (показуються як «скоро», без можливості почати). */
 export const MISSIONS_SOON: { slug: string; category: MissionCategory; scene: string; title: I18n }[] = [];
+
+/** Звичайні місії й місії сезонних пропусків: досягнення, озвучка, seed і перевірки контенту бачать усі. */
+MISSIONS.push(...SEASON_MISSIONS);
 
 export const missionBySlug = (slug: string) => MISSIONS.find((m) => m.slug === slug);

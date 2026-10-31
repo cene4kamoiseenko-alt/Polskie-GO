@@ -4,19 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { brandAsset, cityArtImage } from '../lib/assets';
+import { brandAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
-import type { VocabEntry } from '../lib/types';
+import type { PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
-import { Icon, type LineIconName } from '../components/Icon';
-import { Progress, Section, Skeleton, SpeakButton, cx, isOfflineError, useToast } from '../components/ui';
+import { Icon } from '../components/Icon';
+import { Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
-import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
-import { Badge, Item } from '../components/Illustrations';
+import { missionsQuery } from '../components/MissionCard';
+import { Scene } from '../components/Illustrations';
 
 export const RANKS: [number, string][] = [
   [40, 'Mistrz polszczyzny'],
@@ -47,7 +47,7 @@ export function Wordmark({ size = 22 }: { size?: number }) {
   );
 }
 
-/** Шапка вкладок: логотип, серія, Złotki, Premium, налаштування. */
+/** Шапка вкладок: логотип, серія, Złotki, Premium. Налаштування — у профілі (без дубля в шапці). */
 export function TopStats({ compact }: { compact?: boolean }) {
   const { t } = useT();
   const nav = useNavigate();
@@ -68,9 +68,6 @@ export function TopStats({ compact }: { compact?: boolean }) {
       </button>
       <button onClick={() => nav('/premium')} aria-label="Premium" className={round}>
         <Art name="crown" size={24} />
-      </button>
-      <button onClick={() => nav('/settings')} aria-label={t('profile_settings')} className={cx(round, 'text-[var(--text-muted)]')}>
-        <Icon name="settings" size={20} />
       </button>
     </div>
   );
@@ -93,23 +90,20 @@ function CitySign({ name }: { name: string }) {
 }
 
 export function HomeScreen() {
-  const { t, tr } = useT();
+  const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data!;
   const journey = useJourney();
-  const wod = useQuery({ queryKey: ['wod'], queryFn: () => api<VocabEntry | null>('/vocab/word-of-day'), staleTime: 3600_000 });
+  const [sheet, setSheet] = useState<null | 'practice' | 'sections'>(null);
 
   const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
   const next = journey.data?.nextLesson;
-  const day = Math.floor(Date.now() / 86_400_000);
-  const cityPool = journey.data?.cities.filter((c) => c.hasContent) ?? [];
-  const cityOfDay = cityPool.length ? cityPool[day % cityPool.length] : undefined;
   const rank = rankFor(me.progress.level);
   // Розмір бобра — від ширини екрана (360 → 176, 430 → 200), щоб картки праворуч не перекривали персонажа.
   const heroBeaver = 188;
-  // Плитки швидкого старту ~115 px завширшки: досить варіанта 640 px.
-  const tileArt = cityArtImage(current?.slug ?? 'warszawa')?.small;
 
+  // Головна (варіант A): один головний крок — «Продовжити урок»; далі «Сьогодні», пропуск місяця й «Учитися далі».
+  // Решта розділів — у шторці «Усі розділи» та в нижній панелі (без дублів на головній).
   return (
     <div className="space-y-5 pb-2">
       <TopStats />
@@ -158,158 +152,140 @@ export function HomeScreen() {
         </CityHero>
       </div>
 
-      {/* Три лічильники */}
-      <div className="grid grid-cols-3 gap-2 px-4">
-        <button onClick={() => nav('/profile')} className="stat-card">
-          <Art name="flame" size={30} />
-          <span className="min-w-0 text-left"><span className="block text-[20px] font-black leading-none">{me.progress.streak}</span><span className="muted block text-[10.5px] font-bold leading-tight">{t('home_stat_streak')}</span></span>
-        </button>
-        <button onClick={() => nav('/shop')} className="stat-card">
-          <Art name="coin" size={30} />
-          <span className="min-w-0 flex-1 text-left"><span className="block text-[20px] font-black leading-none">{me.zlotki}</span><span className="muted block text-[10.5px] font-bold leading-tight">{t('home_stat_zlotki')}</span></span>
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[var(--border)] text-xs font-black">+</span>
-        </button>
-        <button onClick={() => nav('/profile')} className="stat-card">
-          <Art name="crown" size={26} />
-          <span className="min-w-0 text-left"><span className="block whitespace-nowrap text-[clamp(12.5px,3.6vw,15px)] font-black leading-tight">{t('home_level_n', { n: me.progress.level })}</span><span className="muted block text-[10.5px] font-bold leading-tight">{rank}</span></span>
-        </button>
-      </div>
-
       {/* Сьогодні: щоденні завдання + велика нагорода */}
       <TodayTasks lessonId={next?.id} />
 
-      {/* Швидкий старт */}
-      <Section title={t('home_quick_start')}>
-        <div className="grid grid-cols-3 gap-2">
-          {(
-            [
-              ['book', 'home_qs_lessons', 'home_qs_lessons_d', '/learn', 'linear-gradient(160deg,#FF6A8A 0%,#B8325F 55%,#5B1E52 100%)'],
-              ['scroll', 'home_qs_quests', 'home_qs_quests_d', '/quests', 'linear-gradient(160deg,#B48CFF 0%,#6B45D8 55%,#2E2273 100%)'],
-              ['map-pin', 'home_qs_map', 'home_qs_map_d', '/map', 'linear-gradient(160deg,#5CC8FF 0%,#2A7BD8 55%,#173E7A 100%)'],
-            ] as [ArtName, TKey, TKey, string, string][]
-          ).map(([art, title, sub, to, bg], i) => (
-            <motion.button
-              key={to}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 + i * 0.05 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => { haptic.tap(); nav(to); }}
-              className="qs-tile relative h-[142px] overflow-hidden rounded-[20px] p-2.5 text-left"
-              style={{ background: bg }}
-            >
-              {tileArt && <img src={tileArt} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-luminosity" />}
-              <span className="absolute inset-0 bg-gradient-to-t from-night/85 via-transparent to-transparent" />
-              <svg viewBox="0 0 120 40" className="absolute inset-x-0 bottom-0 w-full opacity-25" aria-hidden><path d="M0 40 V26 h10 v-8 h8 v8 h10 V14 l6 -8 l6 8 v12 h12 v-10 h10 v10 h14 V10 l4 -6 l4 6 v16 h12 v-6 h12 V40 Z" fill="#07182c" /></svg>
-              <span className="absolute right-1 top-1 drop-shadow-[0_6px_10px_rgba(0,0,0,0.35)]"><Art name={art} size={76} /></span>
-              <span className="absolute bottom-2 left-2.5 right-2">
-                <span className="block text-[17px] font-black leading-tight text-white drop-shadow">{t(title)}</span>
-                <span className="block min-h-[28px] pr-5 text-[10.5px] font-bold leading-tight text-white/85">{t(sub)}</span>
-              </span>
-              <span className="absolute bottom-2 right-2 grid h-6 w-6 place-items-center rounded-full bg-black/25 text-white"><Icon name="chevron-right" size={14} /></span>
-            </motion.button>
-          ))}
+      {/* Пропуск місяця: сезонна локація з власними місіями */}
+      <PassCard />
+
+      {/* Учитися далі: тренування, «Польська в житті», граматика, словник; решта — у шторці */}
+      <Section
+        title={t('home_learn_more')}
+        action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => { haptic.tap(); setSheet('sections'); }}>{t('home_all_sections')} <Icon name="arrow-right" size={16} /></button>}
+      >
+        <div className="grid grid-cols-4 gap-2">
+          <SectionTile icon="review" label={t('home_practice')} badge={me.counters.mistakes + me.counters.dueReviews} onClick={() => setSheet('practice')} />
+          <SectionTile icon="city" label={t('home_tile_life')} onClick={() => nav('/life')} />
+          <SectionTile icon="grammar" label={t('home_tile_grammar')} onClick={() => nav('/grammar')} />
+          <SectionTile icon="dictionary" label={t('home_tile_dict')} onClick={() => nav('/dictionary')} />
         </div>
       </Section>
 
-      {/* Місто дня + слово дня */}
-      {/* Без даних про міста (немає зв'язку, помилка) плитку міста ховаємо, а не тримаємо вічний скелетон. */}
-      <div className={cx('grid gap-2.5 px-4', cityOfDay || journey.isLoading ? 'grid-cols-[1.12fr_1fr]' : 'grid-cols-1')}>
-        {cityOfDay ? (
-          <button onClick={() => { haptic.tap(); nav('/map'); }} className="hero-card relative block h-[150px] overflow-hidden text-left">
-            <CityHero slug={cityOfDay.slug} color={cityOfDay.color} name="" height={150} evening sign={false} sizes="55vw" className="absolute inset-0" />
-            <div className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-transparent" />
-            <div className="absolute left-2.5 top-2 flex items-center gap-1 text-[12px] font-black text-white"><Art name="star" size={18} /> {t('home_city_of_day')}</div>
-            <div className="absolute inset-x-2.5 bottom-2">
-              <div className="text-[22px] font-black leading-none text-white">{cityOfDay.namePl}</div>
-              <div className="line-clamp-2 text-[11px] font-bold leading-tight text-mist">{tr(cityOfDay.theme)}</div>
-            </div>
-          </button>
-        ) : journey.isLoading ? (
-          <Skeleton className="h-[150px]" />
-        ) : null}
-        <div className="wod-card relative h-[150px] overflow-hidden p-2.5">
-          <div className="flex items-center gap-1 text-[12px] font-black text-white"><Art name="book" size={18} /> {t('home_word_of_day')}</div>
-          {wod.data ? (
-            <>
-              <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="break-words text-[clamp(15px,4.7vw,20px)] font-black leading-tight text-white">{wod.data.pl}</span>
-                <SpeakButton text={wod.data.pl} url={wod.data.audioUrl} size="sm" />
-              </div>
-              <div className="mt-1 line-clamp-2 pr-10 text-[12px] font-bold leading-tight text-mist">{tr(wod.data.translations)}</div>
-            </>
-          ) : wod.isLoading ? (
-            <Skeleton className="mt-2 h-10" />
-          ) : wod.isError || wod.isPaused ? (
-            <button className="mt-1.5 pr-12 text-left text-[12px] font-bold leading-tight text-mist" onClick={() => void wod.refetch()}>
-              {isOfflineError(wod.error) || wod.isPaused ? t('error_offline') : t('error_generic')} · <span className="text-sky">{t('error_retry')}</span>
-            </button>
-          ) : (
-            <button className="mt-1.5 pr-12 text-left text-[12px] font-bold leading-tight text-sky" onClick={() => nav('/dictionary')}>{t('home_tile_dict')} →</button>
-          )}
-          <span className="absolute -bottom-1 -right-1"><Art name="suitcase" size={58} /></span>
-        </div>
-      </div>
-
-      {/* Місія дня з розділу «Польська в житті» (3–5 хв) */}
-      <DailyMission />
-
-      {/* Premium: з Premium — нагадування про подарунок місяця; без — коротко, що дає Premium. */}
-      {me.premium.active ? (
-        me.premium.giftReady && (
-          <button onClick={() => { haptic.tap(); nav('/premium'); }} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3.5 text-left ring-4 ring-xp">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-xp/30 text-xp-dark"><Icon name="gift" size={24} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-black">{t('home_gift_ready')}</span>
-              <span className="muted block text-sm font-bold">{t('home_gift_ready_d')}</span>
-            </span>
-            <Icon name="chevron-right" size={20} className="shrink-0 opacity-60" />
-          </button>
-        )
-      ) : (
-        <button onClick={() => { haptic.tap(); nav('/premium'); }} className="mx-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-3xl p-3.5 text-left" style={{ background: 'linear-gradient(135deg,#FFF4D6,#FFE3E3 55%,#E9DDFF)' }}>
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/70 text-xp-dark"><Icon name="crown" size={24} filled /></span>
-          <span className="min-w-0 flex-1 text-night">
-            <span className="block font-black">POLSKI GO Premium</span>
-            <span className="block text-sm font-bold opacity-75">{t('home_premium_d')}</span>
+      {/* Подарунок місяця Premium — лише коли його можна забрати */}
+      {me.premium.active && me.premium.giftReady && (
+        <button onClick={() => { haptic.tap(); nav('/premium'); }} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3.5 text-left ring-4 ring-xp">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-xp/30 text-xp-dark"><Icon name="gift" size={24} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-black">{t('home_gift_ready')}</span>
+            <span className="muted block text-sm font-bold">{t('home_gift_ready_d')}</span>
           </span>
-          <Icon name="chevron-right" size={20} className="shrink-0 text-night opacity-60" />
+          <Icon name="chevron-right" size={20} className="shrink-0 opacity-60" />
         </button>
       )}
 
-      {/* Тренування: помилки, повторення, 5 хвилин, швидкий раунд */}
-      <Section title={t('home_more_practice')}>
-        <div className="grid grid-cols-2 gap-2.5">
-          <QuickTile icon="alert" color="#FF5265" title={t('home_fix_mistakes')} sub={me.counters.mistakes ? t('home_mistakes_n', { n: me.counters.mistakes }) : t('home_nothing')} badge={me.counters.mistakes} onClick={() => nav('/practice/MISTAKES')} />
-          <QuickTile icon="refresh" color="#25D79B" title={t('home_review_words')} sub={me.counters.dueReviews ? t('home_review_due', { n: me.counters.dueReviews }) : t('home_review_none')} badge={me.counters.dueReviews} onClick={() => nav('/practice/REVIEW')} />
-          <QuickTile icon="clock" color="#36B9FF" title={t('home_five')} sub={t('home_five_d')} onClick={() => nav('/practice/FIVE_MIN')} />
-          <QuickTile icon="bolt" color="#9D69FF" title={t('home_speed')} sub={t('home_speed_d')} onClick={() => nav('/practice/SPEED')} />
+      <Sheet open={sheet === 'practice'} onClose={() => setSheet(null)} label={t('home_practice')}>
+        <h2 className="mb-3 text-xl font-black">{t('home_practice')}</h2>
+        <div className="grid grid-cols-2 gap-2.5" data-home-sheet="practice">
+          <SheetTile icon="mistakes" title={t('home_fix_mistakes')} sub={me.counters.mistakes ? t('home_mistakes_n', { n: me.counters.mistakes }) : t('home_nothing')} badge={me.counters.mistakes} onClick={() => nav('/practice/MISTAKES')} />
+          <SheetTile icon="review" title={t('home_review_words')} sub={me.counters.dueReviews ? t('home_review_due', { n: me.counters.dueReviews }) : t('home_review_none')} badge={me.counters.dueReviews} onClick={() => nav('/practice/REVIEW')} />
+          <SheetTile icon="timer" title={t('home_five')} sub={t('home_five_d')} onClick={() => nav('/practice/FIVE_MIN')} />
+          <SheetTile icon="speed" title={t('home_speed')} sub={t('home_speed_d')} onClick={() => nav('/practice/SPEED')} />
         </div>
-      </Section>
+      </Sheet>
 
-      {/* Розділи */}
-      <Section title={t('home_more_sections')}>
-        <div className="grid grid-cols-4 gap-2">
+      <Sheet open={sheet === 'sections'} onClose={() => setSheet(null)} label={t('home_all_sections')}>
+        <h2 className="mb-3 text-xl font-black">{t('home_all_sections')}</h2>
+        <div className="grid grid-cols-3 gap-2" data-home-sheet="sections">
           {(
             [
-              ['grammar', 'home_tile_grammar', '/grammar'],
-              ['dictionary', 'home_tile_dict', '/dictionary'],
-              // ШІ-співрозмовник — лише коли його підключено на сервері; інакше на цьому місці — Premium.
-              me.ai.configured ? ['ai', 'home_tile_talk', '/ai'] : ['premium', 'home_tile_premium', '/premium'],
               ['story', 'home_tile_slang', '/slang'],
-              ['city', 'home_tile_life', '/life'],
               ['exam', 'home_tile_exams', '/exams'],
+              // ШІ-співрозмовник — лише коли його підключено на сервері.
+              ...(me.ai.configured ? [['ai', 'home_tile_talk', '/ai']] : []),
               ['wardrobe', 'home_shop', '/shop'],
+              ['map', 'home_passport', '/passport'],
+              ['rewards', 'home_achievements', '/achievements'],
               ['leaderboard', 'home_leaderboard', '/social'],
+              ['premium', 'home_tile_premium', '/premium'],
+              ['settings', 'profile_settings', '/settings'],
             ] as [IconName, TKey, string][]
           ).map(([icon, key, to]) => (
-            <button key={to} onClick={() => { haptic.tap(); nav(to); }} className="section-tile flex flex-col items-center gap-1 rounded-2xl px-1 py-2.5 transition active:scale-95">
-              <GameIcon name={icon} size={40} />
-              <span className="text-center text-[11px] font-black leading-tight">{t(key)}</span>
-            </button>
+            <SectionTile key={to} icon={icon} label={t(key)} onClick={() => nav(to)} />
           ))}
         </div>
-      </Section>
+      </Sheet>
+    </div>
+  );
+}
+
+/** Плитка розділу: велика ігрова іконка й підпис; бейдж — скільки чекає (помилки, повторення). */
+function SectionTile({ icon, label, badge, onClick }: { icon: IconName; label: string; badge?: number; onClick: () => void }) {
+  return (
+    <button onClick={() => { haptic.tap(); onClick(); }} className="section-tile relative flex min-h-[88px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2.5 transition active:scale-95">
+      <GameIcon name={icon} size={40} />
+      <span className="text-center text-[11.5px] font-black leading-tight">{label}</span>
+      {!!badge && <span className="absolute right-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] font-black text-white">{badge > 99 ? '99+' : badge}</span>}
+    </button>
+  );
+}
+
+/** Режим тренування в шторці: іконка, назва, підказка й бейдж. */
+function SheetTile({ icon, title, sub, badge, onClick }: { icon: IconName; title: string; sub: string; badge?: number; onClick: () => void }) {
+  return (
+    <button onClick={() => { haptic.tap(); onClick(); }} className="section-tile relative flex min-h-[72px] items-center gap-2.5 rounded-2xl p-2.5 text-left transition active:scale-[0.97]">
+      <GameIcon name={icon} size={36} />
+      <span className="min-w-0">
+        <span className="block text-[13.5px] font-black leading-tight">{title}</span>
+        <span className="muted block text-[11.5px] font-bold leading-tight">{sub}</span>
+      </span>
+      {!!badge && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] font-black text-white">{badge}</span>}
+    </button>
+  );
+}
+
+/**
+ * Пропуск місяця на головній: поточний сезон (прогрес, скільки днів лишилось) або найближчий майбутній.
+ * Дані — з того самого запиту /missions, що й екран місій (окремого запиту головна не робить).
+ */
+export function PassCard() {
+  const { t, tr, date } = useT();
+  const nav = useNavigate();
+  const q = useQuery(missionsQuery);
+  const pass = q.data?.pass;
+  if (!pass) return q.isLoading ? <div className="px-4"><Skeleton className="h-[112px]" /></div> : null;
+  const season: PassSeason | undefined = pass.current ?? pass.upcoming[0];
+  if (!season) return null;
+  const active = season.state === 'active';
+  return (
+    <div className="px-4">
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        onClick={() => { haptic.tap(); nav('/pass'); }}
+        className="pass-card relative flex min-h-[112px] w-full items-stretch overflow-hidden text-left"
+        style={{ ['--pass' as string]: season.color }}
+        data-pass={season.state}
+      >
+        <span className="relative w-[38%] shrink-0 overflow-hidden">
+          <Scene name={season.scene} className="absolute inset-0 h-full w-full" evening={season.slug === 'swieta'} />
+          <span className="pass-card-fade absolute inset-0" />
+        </span>
+        <span className="relative min-w-0 flex-1 py-3 pl-2 pr-8">
+          <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wide text-xp"><Art name="crown" size={16} /> {t('pass_title')}</span>
+          <span className="mt-0.5 block text-[17px] font-black leading-tight text-white">{tr(season.title)}</span>
+          {active ? (
+            <>
+              <span className="mt-1.5 flex items-center gap-2">
+                <Progress value={season.done} max={season.total} height={7} color="linear-gradient(90deg,#FFC857,#FFE08A)" />
+                <span className="shrink-0 text-[11px] font-black text-mist">{season.done}/{season.total}</span>
+              </span>
+              <span className="mt-1 block text-[11.5px] font-bold leading-snug text-mist">{t('pass_days_left', { n: season.daysLeft ?? 0 })} · {pass.premium ? t('pass_all_open') : t('pass_first_free')}</span>
+            </>
+          ) : (
+            <span className="mt-1 block text-[12px] font-bold leading-snug text-mist">{t('pass_starts', { date: date(`${season.start}T12:00:00`) })}</span>
+          )}
+        </span>
+        <Icon name="chevron-right" size={18} className="absolute bottom-3 right-2.5 text-white/70" />
+      </motion.button>
     </div>
   );
 }
@@ -359,8 +335,8 @@ function TodayTasks({ lessonId }: { lessonId?: string }) {
     ) : quests.isPaused ? (
       <TodayNote state="offline" mood="sleep" text={t('home_today_offline')} />
     ) : (
-      <div className="grid grid-cols-4 gap-2" data-today="loading" aria-busy="true">
-        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[118px]" />)}
+      <div className="grid gap-2" data-today="loading" aria-busy="true">
+        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[68px]" />)}
       </div>
     );
   } else if (!daily.length) {
@@ -375,45 +351,52 @@ function TodayTasks({ lessonId }: { lessonId?: string }) {
   } else {
     body = (
       <>
-        <div className="relative grid grid-cols-4 gap-2" data-today={allDone ? 'done' : 'active'}>
-          <div className="pointer-events-none absolute left-[8%] right-[33%] top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-brand/70 to-sky/40" />
+        <div className="grid gap-2" data-today={allDone ? 'done' : 'active'}>
           {daily.map((q, i) => {
             const done = isDone(q.status);
             return (
               <motion.button
                 key={q.slug}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.06 * i }}
+                transition={{ delay: 0.05 * i }}
                 onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
-                className={cx('task-card relative flex flex-col items-center gap-1 px-1 pb-2 pt-3 text-center', done && 'is-done')}
+                className={cx('task-card flex w-full items-center gap-3 px-3 py-2.5 text-left', done && 'is-done')}
               >
-                <span className={cx('absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full border-2', done ? 'border-brand bg-brand text-night' : 'border-white/40')}>
-                  {done && <Icon name="check" size={12} strokeWidth={3.2} />}
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-black/15"><Art name={TASK_ART[q.slug] ?? 'star'} size={38} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-black leading-tight">{tr(q.title)}</span>
+                  <span className="muted mt-0.5 line-clamp-2 block text-[12px] font-bold leading-snug">{tr(q.description)}</span>
                 </span>
-                <Art name={TASK_ART[q.slug] ?? 'star'} size={40} />
-                <span className="line-clamp-2 min-h-[28px] text-[11.5px] font-black leading-tight">{tr(q.title)}</span>
-                <span className="on-dark flex items-center gap-0.5 rounded-full bg-night/80 px-1.5 py-0.5 text-[11px] font-black text-xp"><Art name="coin" size={13} />+{q.zlotki}</span>
+                {done ? (
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-night"><Icon name="check" size={20} strokeWidth={3.2} /></span>
+                ) : (
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <span className="text-[13px] font-black tabular-nums">{Math.min(q.progress, q.target)}/{q.target}</span>
+                    <span className="grid h-7 w-7 place-items-center rounded-full border border-[var(--border)]"><Icon name="chevron-right" size={16} /></span>
+                  </span>
+                )}
               </motion.button>
             );
           })}
-          {/* Якщо сервер віддав менше трьох завдань — порожні клітинки замість скелетонів. */}
-          {Array.from({ length: 3 - daily.length }, (_, i) => <div key={`gap-${i}`} aria-hidden />)}
           <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
             onClick={() => (chest?.ready && !chest.claimed ? void claimChest() : nav('/quests'))}
-            className={cx('chest-card relative flex flex-col items-center px-1 pb-2 pt-1.5 text-center', chest?.ready && !chest.claimed && 'is-ready')}
+            className={cx('chest-card flex w-full items-center gap-3 px-3 py-2.5 text-left', chest?.ready && !chest.claimed && 'is-ready')}
             aria-label={t('home_big_reward')}
           >
-            <motion.span animate={chest?.ready && !chest.claimed ? { rotate: [0, -8, 8, -4, 0], scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 1.6, repeatDelay: 0.6 }}>
-              <Art name="gift" size={48} />
+            <motion.span className="shrink-0" animate={chest?.ready && !chest.claimed ? { rotate: [0, -8, 8, -4, 0], scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 1.6, repeatDelay: 0.6 }}>
+              <Art name="gift" size={44} />
             </motion.span>
-            <span className="text-[11px] font-black leading-tight text-white">{t('home_big_reward')}</span>
-            <span className="mt-0.5 text-[9.5px] font-bold leading-tight text-mist">
-              {chest?.claimed ? `✓ ${t('home_claimed')}` : chest?.ready ? t('home_claim') : `${chest?.done ?? 0}/${chest?.total ?? daily.length} · ${t('home_big_reward_d')}`}
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-black leading-tight text-white">{t('home_big_reward')}</span>
+              <span className="mt-0.5 block text-[12px] font-bold leading-snug text-mist">
+                {chest?.claimed ? `✓ ${t('home_claimed')}` : `${chest?.done ?? 0}/${chest?.total ?? daily.length} · ${t('home_big_reward_d')}`}
+              </span>
             </span>
+            {chest?.ready && !chest.claimed && <span className="btn btn-xp shrink-0 !min-h-[36px] !px-3 text-sm">{t('home_claim')}</span>}
           </motion.button>
         </div>
         {allDone && (
@@ -449,53 +432,5 @@ function TodayNote({ state, mood, text, action, onRetry }: { state?: string; moo
         )}
       </div>
     </div>
-  );
-}
-
-/** Місія дня: перша ще не пройдена місія (або по черзі, якщо пройдено всі) + паспорт і досягнення. */
-function DailyMission() {
-  const { t } = useT();
-  const nav = useNavigate();
-  const q = useQuery(missionsQuery);
-  const list = q.data?.missions ?? [];
-  const day = Math.floor(Date.now() / 86_400_000);
-  // Місія дня — з доступних; сцени Premium без Premium сюди не потрапляють (їх видно на екрані місій із замком).
-  const open = list.filter((m) => !m.locked);
-  const pick = open.find((m) => m.inProgress !== null) ?? open.find((m) => !m.completions) ?? open[day % Math.max(1, open.length)];
-  return (
-    <Section title={t('life_daily')} action={<button className="text-sm font-black text-pl-red" onClick={() => nav('/life')}>{t('home_all_missions')}</button>}>
-      {pick ? (
-        <MissionCard m={pick} compact onOpen={() => nav(missionHref(pick))} />
-      ) : q.isLoading ? (
-        <Skeleton className="h-40" />
-      ) : q.isError || q.isPaused ? (
-        <TodayNote mood="sad" text={isOfflineError(q.error) || q.isPaused ? t('error_offline') : t('error_generic')} onRetry={q.isError ? () => void q.refetch() : undefined} />
-      ) : null}
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <button onClick={() => { haptic.tap(); nav('/passport'); }} className="card flex items-center gap-2.5 p-3 text-left active:scale-[0.98]">
-          <Item name="map" size={40} />
-          <span className="text-sm font-black leading-tight">{t('home_passport')}</span>
-        </button>
-        <button onClick={() => { haptic.tap(); nav('/achievements'); }} className="card flex items-center gap-2.5 p-3 text-left active:scale-[0.98]">
-          <Badge icon="snack-bag" unlocked size={40} />
-          <span className="text-sm font-black leading-tight">{t('home_achievements')}</span>
-        </button>
-      </div>
-    </Section>
-  );
-}
-
-function QuickTile({ icon, color, title, sub, badge, onClick }: { icon: LineIconName; color: string; title: string; sub: string; badge?: number; onClick: () => void }) {
-  return (
-    <button onClick={() => { haptic.tap(); onClick(); }} className="card relative flex min-h-[64px] items-center gap-2.5 p-2.5 text-left transition active:scale-[0.97]">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white" style={{ background: color }}>
-        <Icon name={icon} size={19} strokeWidth={2.4} />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[13px] font-black leading-tight">{title}</span>
-        <span className="muted block text-[11px] font-bold leading-tight">{sub}</span>
-      </span>
-      {!!badge && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] font-black text-white">{badge}</span>}
-    </button>
   );
 }

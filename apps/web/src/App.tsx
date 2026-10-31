@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useIsFetching } from '@tanstack/react-query';
 import { SplashScene } from './components/Splash';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LazyMotion, MotionConfig, loadMotionFeatures, motion } from './lib/motion';
@@ -37,6 +38,7 @@ const MissionsScreen = lazy(() => import('./screens/Missions'));
 const MissionScreen = lazy(() => import('./screens/Mission'));
 const PassportScreen = lazy(() => import('./screens/Passport'));
 const SlangScreen = lazy(() => import('./screens/Slang'));
+const PassScreen = lazy(() => import('./screens/Pass'));
 
 const TAB_ROUTES = ['/', '/map', '/learn', '/quests', '/profile'];
 
@@ -128,9 +130,15 @@ export function App() {
     if (route) nav(route, { replace: true });
   }, [me.data?.onboarded, nav]);
 
+  // Передзавантаження екранів — лише коли перший екран отримав свої дані: 600 мс поспіль без запитів у польоті.
+  // Між відповіддю /me і запитами головної теж є «тиша» — без паузи чанки уроку й карти (≈100 КБ) змагалися б
+  // за мережу із запитами головної (замір npm run perf, 2026-10-31).
+  const fetching = useIsFetching();
   useEffect(() => {
-    if (me.data?.onboarded) prefetchScreens();
-  }, [me.data?.onboarded]);
+    if (!me.data?.onboarded || fetching > 0) return;
+    const timer = setTimeout(prefetchScreens, 600);
+    return () => clearTimeout(timer);
+  }, [me.data?.onboarded, fetching]);
 
   const showNav = TAB_ROUTES.includes(loc.pathname);
   const reduced = me.data?.settings.reducedMotion;
@@ -206,6 +214,7 @@ export function App() {
                 <Route path="/life/:slug" element={<MissionScreen />} />
                 <Route path="/passport" element={<PassportScreen />} />
                 <Route path="/slang" element={<SlangScreen />} />
+                <Route path="/pass" element={<PassScreen />} />
                 <Route path="*" element={<HomeScreen />} />
               </Routes>
               )}
