@@ -17,6 +17,7 @@ import { sfx } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { missionsQuery } from '../components/MissionCard';
 import { Scene } from '../components/Illustrations';
+import { SeasonCover } from '../components/MissionScene';
 
 export const RANKS: [number, string][] = [
   [40, 'Mistrz polszczyzny'],
@@ -266,7 +267,7 @@ export function PassCard() {
         data-pass={season.state}
       >
         <span className="relative w-[38%] shrink-0 overflow-hidden">
-          <Scene name={season.scene} className="absolute inset-0 h-full w-full" evening={season.slug === 'swieta'} />
+          <SeasonCover season={season} className="absolute inset-0 h-full w-full" />
           <span className="pass-card-fade absolute inset-0" />
         </span>
         <span className="relative min-w-0 flex-1 py-3 pl-2 pr-8">

@@ -30,3 +30,13 @@ export const MissionScene = memo(function MissionScene({ slug, scene, className,
     />
   );
 });
+
+/**
+ * Обкладинка сезону пропуску: картинка першої місії сезону, коли вона намальована (листопад — кондитерська в Познані),
+ * інакше SVG-сцена сезону. Однакова на головній, у «Польська в житті» і на /pass.
+ */
+export function SeasonCover({ season, className, dim }: { season: { slug: string; scene: string; missions: { slug: string }[] }; className?: string; dim?: boolean }) {
+  const first = season.missions[0]?.slug ?? '';
+  if (!missionSceneArt(first)) return <Scene name={season.scene} className={className} evening={season.slug === 'swieta'} dim={dim} />;
+  return <MissionScene slug={first} scene={season.scene} className={`${className ?? ''}${dim ? ' opacity-60' : ''}`} />;
+}

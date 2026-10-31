@@ -20,7 +20,8 @@ const doc = readFileSync(new URL('../../../docs/SCENE_ART_INVENTORY.md', import.
 
 const STORES = ['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka'];
 const OWNER_PACK = ['bakery-pierniki', 'clinic-registration', 'flat-keys', 'milk-bar', 'office-first-day', 'station-pkp', 'store-lidl', 'street-zapiekanki', 'tram-stop'];
-const IDS = [...STORES, ...OWNER_PACK].sort();
+const OWNER_PACK_1031 = ['cukiernia-rogale', 'pierogarnia', 'stop-cafe', 'urzad-okienko'];
+const IDS = [...STORES, ...OWNER_PACK, ...OWNER_PACK_1031].sort();
 
 describe('Сцены миссий (магазины, InPost, ORLEN и пакет владельца)', () => {
   it('scene_id стабильны, по одному на бренд, без повторов файлов', () => {
@@ -61,14 +62,14 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     expect(Object.values(SCENE_ART).every((a) => a.bakedBobek && a.status === 'interim')).toBe(true);
     // Магазины увеличены из маленьких вырезок коллажа; кадры владельца только уменьшены.
     for (const id of STORES) expect(SCENE_ART[id].native[0], id).toBeLessThan(SCENE_ART[id].width);
-    for (const id of OWNER_PACK) expect(SCENE_ART[id].native[0], id).toBeGreaterThanOrEqual(SCENE_ART[id].width);
+    for (const id of [...OWNER_PACK, ...OWNER_PACK_1031]) expect(SCENE_ART[id].native[0], id).toBeGreaterThanOrEqual(SCENE_ART[id].width);
   });
 
   it('картинка привязана к существующей миссии по slug и совпадает с её SVG-сценой', () => {
     const pairs = Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [a, m] as const));
     expect(pairs.map(([, m]) => m).sort()).toEqual([
-      'bar-mleczny', 'biedronka-breakfast', 'doctor-appointment', 'first-tram', 'first-workday', 'kazimierz-zapiekanka', 'landlord',
-      'lidl-list', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'zabka-first-order',
+      'bar-mleczny', 'biedronka-breakfast', 'doctor-appointment', 'first-tram', 'first-workday', 'kazimierz-zapiekanka', 'krakow-pierogi', 'landlord',
+      'lidl-list', 'marcin-rogal', 'orlen-coffee', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'urzad-pesel', 'zabka-first-order',
     ]);
     for (const [art, slug] of pairs) {
       const mission = MISSIONS.find((m) => m.slug === slug);
@@ -76,13 +77,15 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
       expect(mission!.scene, `${slug}: SVG-сцена`).toBe(art.fallbackScene);
       expect(MISSION_SCENE_ART[slug]).toBe(art.id);
     }
-    // Кофе на ORLEN — другая дія (стойка Stop Cafe), кадр с колонкой к ней не подходит: остаётся SVG-сцена.
-    expect(MISSION_SCENE_ART['orlen-coffee']).toBeUndefined();
+    // Кофе на ORLEN — свой кадр стойки Stop Cafe (2026-10-31), не кадр с колонкой.
+    expect(MISSION_SCENE_ART['orlen-coffee']).toBe('stop-cafe');
+    expect(MISSION_SCENE_ART['orlen-pump']).toBe('fuel-orlen');
     // Lidl — свой кадр владельца (2026-10-29), не картинка Biedronki: SVG-сцена та же, бренд в кадре свой.
     expect(MISSIONS.find((m) => m.slug === 'lidl-list')!.scene).toBe('supermarket');
     expect(SCENE_ART[MISSION_SCENE_ART['lidl-list']].brand).toBe('Lidl');
-    // Офис с рукопожатием — первый рабочий день, не окошко urzędu: PESEL остаётся со своей SVG-сценой.
-    expect(MISSION_SCENE_ART['urzad-pesel']).toBeUndefined();
+    // Офис с рукопожатием — первый рабочий день; у PESEL свой кадр — зал urzędu с окошками (2026-10-31).
+    expect(MISSION_SCENE_ART['urzad-pesel']).toBe('urzad-okienko');
+    expect(MISSION_SCENE_ART['first-workday']).toBe('office-first-day');
     // На кадре flat-keys ключи передаёт женщина — в миссии хозяйка, а не хозяин.
     expect(MISSIONS.find((m) => m.slug === 'landlord')!.npc.name).toBe('Pani Marta');
   });

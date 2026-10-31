@@ -12,8 +12,9 @@ import type { PassSeason } from '../lib/types';
 import { ErrorState, Progress, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Art } from '../components/GameArt';
-import { Badge, Scene } from '../components/Illustrations';
+import { Badge } from '../components/Illustrations';
 import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
+import { SeasonCover } from '../components/MissionScene';
 
 const BADGE_FOR: Record<string, string> = { 'listopad-poznan': 'season-rogal', swieta: 'season-gift', energylandia: 'season-ticket' };
 const LOCALE = { uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' } as const;
@@ -79,7 +80,7 @@ function SeasonBlock({ season, premium, compact }: { season: PassSeason; premium
   return (
     <div className="space-y-3 px-4" data-season={season.slug} data-season-state={season.state}>
       <div className="pass-card premium-season-banner relative overflow-hidden" style={{ ['--pass' as string]: season.color }}>
-        <Scene name={season.scene} className={cx('block w-full opacity-90', compact ? 'h-24' : 'h-36')} evening={season.slug === 'swieta'} />
+        <SeasonCover season={season} className={cx('block w-full opacity-90', compact ? 'h-24' : 'h-36')} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#13234a] via-[#13234a]/40 to-transparent" />
         {season.state === 'active' && <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[12px] font-black text-white">{t('pass_days_left', { n: season.daysLeft ?? 0 })}</span>}
         <div className="absolute inset-x-3 bottom-3">
@@ -121,7 +122,7 @@ function UpcomingRow({ season }: { season: PassSeason }) {
   const { t, tr, date } = useT();
   return (
     <div className="card flex items-center gap-3 overflow-hidden p-0" data-season={season.slug} data-season-state="upcoming">
-      <Scene name={season.scene} className="h-[76px] w-[96px] shrink-0" dim />
+      <SeasonCover season={season} className="h-[76px] w-[96px] shrink-0" dim />
       <div className="min-w-0 flex-1 py-2 pr-3">
         <div className="text-[15px] font-black leading-tight">{tr(season.title)}</div>
         <div className="muted text-[12px] font-bold leading-snug">{tr(season.tagline)}</div>

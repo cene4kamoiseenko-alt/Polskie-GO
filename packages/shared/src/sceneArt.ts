@@ -145,6 +145,31 @@ export const SCENE_ART: Record<string, SceneArt> = {
     missions: ['first-tram'], focus: '50% 30%', shows: 'Зупинка у Вроцлаві, Бобек із квитком, під’їжджає трамвай',
     telegram: null, defects: [],
   },
+  // ── Пакет власника 2026-10-31: чотири кадри 1536×1024 для місій, які досі мали SVG-сцену. ──
+  'stop-cafe': {
+    ...common, id: 'stop-cafe', file: 'stop-cafe', brand: 'ORLEN Stop Cafe', native: [1536, 768], fallbackScene: 'petrol-station',
+    source: { file: 'docs/design/a16/missions/stop-cafe_original.webp', top: 80 },
+    missions: ['orlen-coffee'], focus: '45% 35%', shows: 'Stop Cafe на станції ORLEN: бариста подає каву, Бобек зі стаканчиком, за вікном колонки під навісом',
+    telegram: null, defects: [],
+  },
+  'urzad-okienko': {
+    ...common, id: 'urzad-okienko', file: 'urzad', brand: 'Urząd', native: [1536, 768], fallbackScene: 'office',
+    source: { file: 'docs/design/a16/missions/urzad_original.webp', top: 100 },
+    missions: ['urzad-pesel'], focus: '45% 35%', shows: 'Зала обслуговування Urząd Miasta: віконця 1–3, співробітниця за склом, автомат талонів, Бобек із документами',
+    telegram: null, defects: [],
+  },
+  'cukiernia-rogale': {
+    ...common, id: 'cukiernia-rogale', file: 'cukiernia', brand: 'Cukiernia', native: [1536, 768], fallbackScene: 'pastry-shop',
+    source: { file: 'docs/design/a16/missions/cukiernia_original.webp', top: 80 },
+    missions: ['marcin-rogal'], focus: '45% 35%', shows: 'Cukiernia в Познані: вітрина з rogalami świętomarcińskimi, продавчиня, прапорці, за вікном Старий Ринок; Бобек із рогалем',
+    telegram: null, defects: ['Бобек у фартуху й ковпаку кондитера, а в місії він купує rogale на виніс'],
+  },
+  pierogarnia: {
+    ...common, id: 'pierogarnia', file: 'pierogarnia', brand: 'Pierogarnia', native: [1536, 768], fallbackScene: 'cafe-pierogi',
+    source: { file: 'docs/design/a16/missions/pierogarnia_original.webp', top: 180 },
+    missions: ['krakow-pierogi'], focus: '50% 35%', shows: 'Затишна pierogarnia з народним декором: żurek на столі, Бобек несе тарілку pierogów, за вікном Краків',
+    telegram: null, defects: ['Бобек несе тарілку у фартуху, як офіціант, а в місії він замовляє pierogi й żurek'],
+  },
 };
 
 /** slug місії → scene_id картинки. Місій без запису це не стосується: вони й далі показують SVG-сцену. */
