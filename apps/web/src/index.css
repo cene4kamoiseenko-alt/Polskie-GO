@@ -163,6 +163,17 @@ textarea {
 .safe-top {
   padding-top: var(--safe-t);
 }
+/*
+ * Повна висота екрана всередині обгортки .safe-top. Обгортка вже додає зверху відступ під шапку Telegram,
+ * тож 100dvh + відступ у повноекранному режимі (contentSafeAreaInset ≈ 90–100 px) виштовхували нижні кнопки
+ * за край: на кроці мови знайомства «Продовжити» не було видно (2026-10-31).
+ */
+.min-h-app {
+  min-height: calc(100dvh - var(--safe-t));
+}
+.h-app {
+  height: calc(100dvh - var(--safe-t));
+}
 .stat-pill {
   display: inline-flex;
   align-items: center;

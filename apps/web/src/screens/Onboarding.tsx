@@ -123,7 +123,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col px-5 pb-6 pt-4">
+    <div className="min-h-app flex flex-col px-5 pt-4">
       {step > 0 && (
         <div className="mb-4 flex items-center gap-3">
           <button className="text-2xl font-black" onClick={() => setStep((s) => s - 1)} aria-label={t('back')}>
@@ -229,7 +229,8 @@ export default function Onboarding() {
         </motion.div>
       </AnimatePresence>
 
-      <div className="pt-5">
+      {/* Кнопка завжди на екрані: прилипає до низу видимої області (над нижнім відступом Telegram), навіть коли крок довший за екран. */}
+      <div className="safe-bottom sticky bottom-0 z-10 -mx-5 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)] to-transparent px-5 pt-5" data-onboarding-action>
         {id === 'map' ? (
           <button className="btn btn-red w-full text-lg" disabled={busy} onClick={finish}>
             {placement ? t('ob_placement_yes') : t('ob_first_lesson')}

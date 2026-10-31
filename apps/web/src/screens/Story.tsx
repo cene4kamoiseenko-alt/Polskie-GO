@@ -76,7 +76,7 @@ export default function StoryScreen() {
   const done = st.status === 'COMPLETED' || st.status === 'CLAIMED';
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="min-h-app flex flex-col">
       <ScreenHeader title={tr(st.title)} subtitle={st.stageTitle ? `${t('quests_stage', { n: st.stage + 1, total: st.stages })} · ${tr(st.stageTitle)}` : undefined} />
       <div className="px-4">
         <Progress value={done ? st.stages : st.stage} max={st.stages} />

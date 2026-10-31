@@ -213,7 +213,7 @@ export default function LessonScreen() {
   if (phase === 'intro' && session.lesson) {
     const l = session.lesson;
     return (
-      <div className="flex min-h-[100dvh] flex-col px-4 pb-6 pt-3">
+      <div className="min-h-app flex flex-col px-4 pb-6 pt-3">
         <TopClose onClose={onQuit} />
         <div className="flex-1 space-y-4 overflow-y-auto">
           <div className="lesson-stage relative h-[180px] overflow-hidden rounded-[26px]">
@@ -290,7 +290,7 @@ export default function LessonScreen() {
 
   if (phase === 'finishing') {
     return (
-      <div className="grid min-h-[100dvh] place-items-center">
+      <div className="min-h-app grid place-items-center">
         <div className="flex flex-col items-center gap-3">
           <Beaver mood="think" size={140} />
           <div className="font-black">{t('lesson_finishing')}</div>
@@ -309,7 +309,7 @@ export default function LessonScreen() {
   const stageMood: StageMood = result ? (result.correct ? 'correct' : result.skipped ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="min-h-app flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-3">
         <button onClick={onQuit} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev text-[var(--text-muted)]" aria-label={t('close')}>
           <Icon name="x" size={20} />
@@ -527,7 +527,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
   }, []);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col px-5 pb-6 pt-6" data-lesson-result={r.passed ? 'passed' : 'failed'}>
+    <div className="min-h-app flex flex-col px-5 pb-[calc(var(--safe-b)+1.5rem)] pt-6" data-lesson-result={r.passed ? 'passed' : 'failed'}>
       <Confetti run={r.passed} />
       <XpBurst from={beaverRef} target={xpRef} run={burst && r.xp > 0} onArrive={() => setPulse((p) => p + 1)} />
       <div className="flex flex-1 flex-col items-center gap-4 text-center">

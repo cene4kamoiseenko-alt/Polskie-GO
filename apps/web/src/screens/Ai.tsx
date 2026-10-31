@@ -191,7 +191,7 @@ export default function AiScreen() {
   const hints = HINTS[mode === 'roleplay' ? scene : mode];
   const title = mode === 'roleplay' ? t(`ai_scene_${scene}` as TKey) : t(`ai_mode_${mode}` as TKey);
   return (
-    <div className="flex h-[100dvh] flex-col">
+    <div className="h-app flex flex-col">
       <ScreenHeader
         title={title}
         subtitle={t('ai_limit', { used: me.ai.used, limit: me.ai.limit })}

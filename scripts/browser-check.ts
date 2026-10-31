@@ -351,6 +351,30 @@ async function main() {
       await todayState('active').waitFor({ timeout: 20_000 });
       check(true, 'A2.4 сеть вернулась — «Сегодня» само загрузило задания (active)');
     });
+    // ── O1: знакомство в полноэкранном режиме Telegram. Обёртка добавляет сверху отступ под шапку Telegram;
+    // раньше экран был 100dvh + отступ, и «Продолжить» уезжал за нижний край (на шаге языка «дальше не пускает»).
+    await soft('O1 знакомство: кнопка видна на каждом шаге при отступе Telegram 100 px (320×568)', async () => {
+      const fresh = await userPage('880050', undefined, { onboarded: false });
+      const op = fresh.page;
+      await op.setViewportSize({ width: 320, height: 568 });
+      await op.addInitScript(`document.addEventListener('DOMContentLoaded', () => document.documentElement.style.setProperty('--tg-content-safe-area-inset-top', '100px'))`);
+      await op.goto(fresh.url('/'));
+      await op.locator('button.btn-red').first().click({ timeout: 20_000 });
+      const hidden: string[] = [];
+      for (let i = 0; i < 8; i++) {
+        const btn = op.locator('[data-onboarding-action] button');
+        await btn.waitFor({ timeout: 10_000 });
+        const pos = await btn.evaluate((b) => { const r = b.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: window.innerHeight }; });
+        const title = (await op.locator('h2').first().innerText().catch(() => '?')).slice(0, 30);
+        if (pos.top < 0 || pos.bottom > pos.h) hidden.push(`${title}: ${Math.round(pos.top)}–${Math.round(pos.bottom)} из ${pos.h}`);
+        if (/урок|тест/i.test(await btn.innerText())) break;
+        await btn.click();
+        await op.waitForTimeout(400);
+      }
+      check(hidden.length === 0, `O1 «Продолжить» в пределах экрана на всех шагах знакомства${hidden.length ? ': ' + hidden.join('; ') : ''}`);
+      await fresh.context.close();
+    });
+
     // ── H: главная по варианту A — без дублей нижней панели; остальные разделы в шторках; пропуск месяца.
     await soft('H главная A: шторки разделов и тренировки, пропуск', async () => {
       await tp.goto(today.url('/'), { waitUntil: 'networkidle' });
