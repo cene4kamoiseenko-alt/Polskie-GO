@@ -23,6 +23,10 @@ export type MapSpot = {
   kind: 'big' | 'small';
   /** Подпись нарисована в картинке. false — маркер рисует приложение (города, которых нет на картинке). */
   baked: boolean;
+  /** Нарисованные здания города (модели): нажатие на них тоже выбирает город. */
+  models?: MapRect[];
+  /** Картинка-медальон для города, которого нет на рисунке (рисует приложение). */
+  medallion?: 'zakopane';
   /** id точки в data/cities.json пакета и её координаты. */
   pack?: { id: string; x: number; y: number };
   /** Почему у точки нет этапа (city: null). */
@@ -66,8 +70,45 @@ export const MAP_SPOTS: Record<string, MapSpot> = {
   rzeszow: S('Rzeszów', 'rzeszow', [768, 827, 871, 858], 'small', { id: 'rzeszow', x: 818, y: 824 }),
   krakow: S('Kraków', 'krakow', [560, 956, 686, 995], 'big', { id: 'krakow', x: 591, y: 958 }),
   // Закопане — финал маршрута, на картинке его нет: маркер рисует приложение в горах к юго-западу от Кракова (справа — уже граница).
-  zakopane: { label: 'Zakopane', city: 'zakopane', pill: [404, 996, 498, 1026], kind: 'small', baked: false },
+  zakopane: { label: 'Zakopane', city: 'zakopane', pill: [388, 996, 498, 1026], kind: 'small', baked: false },
 };
+
+/**
+ * Здания городов на рисунке (измерены по картинке, как и таблички): нажатие на модель города выбирает город.
+ * Рамки не заходят в зоны соседних городов (проверяет apps/server/test/map-art.test.ts).
+ * У Кракова две зоны — здания и нарисованный рядом Бобек.
+ */
+const MODELS: Record<string, MapRect[]> = {
+  gdynia: [[296, 18, 356, 96]],
+  sopot: [[372, 0, 452, 98]],
+  gdansk: [[477, 15, 580, 118]],
+  szczecin: [[120, 180, 208, 253]],
+  bydgoszcz: [[300, 187, 370, 235]],
+  olsztyn: [[582, 184, 662, 245]],
+  bialystok: [[772, 243, 842, 323]],
+  gorzow: [[70, 320, 133, 375]],
+  poznan: [[255, 312, 372, 420]],
+  torun: [[448, 308, 550, 390]],
+  warszawa: [[602, 325, 750, 453]],
+  'zielona-gora': [[198, 462, 256, 518], [256, 482, 284, 518]],
+  lodz: [[462, 482, 552, 545]],
+  lublin: [[775, 520, 885, 590]],
+  wroclaw: [[228, 520, 388, 650]],
+  kielce: [[620, 600, 745, 670]],
+  katowice: [[448, 698, 558, 748]],
+  opole: [[300, 710, 388, 785]],
+  rzeszow: [[780, 735, 873, 800]],
+  krakow: [[507, 818, 600, 948], [585, 760, 742, 950]],
+  // Закопане: на рисунке города нет — медальон с видом Татр (кадр из панорамы города) над табличкой.
+  zakopane: [[403, 908, 483, 988]],
+};
+for (const [key, rects] of Object.entries(MODELS)) MAP_SPOTS[key].models = rects;
+MAP_SPOTS.zakopane.medallion = 'zakopane';
+
+/** Все зоны нажатия города: табличка со звездой и нарисованные здания. */
+export function mapTapRects(spot: MapSpot): MapRect[] {
+  return [mapHitRect(spot), ...(spot.models ?? [])];
+}
 
 /** Соответствие id точек пакета (data/cities.json) и slug городов приложения там, где они расходятся. */
 export const MAP_PACK_ALIASES: Record<string, string> = { gorzow_wielkopolski: 'gorzow', zielona_gora: 'zielona-gora' };
@@ -78,8 +119,12 @@ export function mapHitRect(spot: MapSpot): MapRect {
   return spot.kind === 'big' ? [x0 - 54, y0 - 20, x1 + 8, y1 + 18] : [x0 - 8, y0 - 36, x1 + 8, y1 + 10];
 }
 
-/** Центр звезды города: сюда ставятся кольцо «ты здесь» и маршрут путешествия. */
+/** Центр звезды города: сюда ставятся кольцо «ты здесь» и маршрут путешествия (у медальона — его центр). */
 export function mapStarPoint(spot: MapSpot): [number, number] {
+  if (spot.medallion && spot.models?.[0]) {
+    const [mx0, my0, mx1, my1] = spot.models[0];
+    return [(mx0 + mx1) / 2, (my0 + my1) / 2];
+  }
   const [x0, y0, x1, y1] = spot.pill;
   return spot.kind === 'big' ? [x0 - 24, (y0 + y1) / 2] : [(x0 + x1) / 2 - 6, y0 - 15];
 }

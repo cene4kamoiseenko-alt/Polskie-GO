@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { JourneyCity } from '../lib/types';
-import { IllustratedMap, type MapHandle, type SpotState } from '../components/IllustratedMap';
+import { IllustratedMap, MEDALLIONS, type MapHandle, type SpotState } from '../components/IllustratedMap';
 import { CityBanner } from '../components/Scenery';
 import { Icon } from '../components/Icon';
 import { ErrorState, Progress, ScreenSkeleton, Sheet, cx, useToast } from '../components/ui';
@@ -156,7 +156,12 @@ export default function MapScreen() {
                   data-map-details
                   {...(city.id === j.currentCityId ? { 'data-current-city': '' } : {})}
                 >
-                  <CityBanner slug={city.slug} color={city.color} height={64} sizes="72px" shade={false} className="w-16 shrink-0 rounded-2xl" />
+                  {/* У города без финальной панорамы, но с медальоном на карте (Закопане) — тот же вид Татр, а не общая сценка. */}
+                  {sel.medallion && CITY_ART[city.slug]?.status !== 'final' ? (
+                    <img src={MEDALLIONS[sel.medallion]} alt="" width={64} height={64} className="h-16 w-16 shrink-0 rounded-2xl object-cover" data-card-medallion />
+                  ) : (
+                    <CityBanner slug={city.slug} color={city.color} height={64} sizes="72px" shade={false} className="w-16 shrink-0 rounded-2xl" />
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className={cx('inline-flex max-w-full items-center gap-1 truncate whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide',
                       city.id === j.currentCityId ? 'bg-[#FFE3A3] text-[#7A4A00]' : city.completed ? 'bg-[#D7F5E3] text-[#126B3A]' : city.unlocked ? 'bg-[#D9F0FF] text-[#0B5A8C]' : 'bg-[var(--bg-muted)] muted')}>

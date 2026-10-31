@@ -145,6 +145,31 @@ async function main() {
       check(c0.state === 'current' && /Продолжить|Повторить/.test(c0.text), `${tag}: карточка текущего города с кнопкой «Продолжить» (${c0.key})`);
       await p.screenshot({ path: `${OUT}/map-${width}.png` });
 
+      // Нарисованные здания: в центре видимой модели нажимается её зона (или кнопка того же города), а касание выбирает город.
+      const models = await p.evaluate(() => {
+        const card = document.querySelector('[data-map-card]')!.getBoundingClientRect();
+        const hud = document.querySelector('.map-hud')!.getBoundingClientRect();
+        const ctrl = document.querySelector('[data-map-ctrl]')!.getBoundingClientRect();
+        const vp = document.querySelector('[data-illustrated-map]')!.getBoundingClientRect();
+        return [...document.querySelectorAll<HTMLElement>('[data-spot-model]')].map((el) => {
+          const r = el.getBoundingClientRect();
+          const x = r.left + r.width / 2, y = r.top + r.height / 2;
+          const visible = x > vp.left + 4 && x < vp.right - 4 && y > hud.bottom + 4 && y < card.top - 4 && !(x > ctrl.left - 4 && y > ctrl.top - 4 && y < ctrl.bottom + 4);
+          const top = visible ? document.elementFromPoint(x, y) : null;
+          const got = top?.closest('[data-spot-model]')?.getAttribute('data-spot-model') ?? top?.closest('[data-spot]')?.getAttribute('data-spot') ?? null;
+          return { key: el.dataset.spotModel!, visible, got, x, y };
+        });
+      });
+      const vis = models.filter((m) => m.visible);
+      const wrong = vis.filter((m) => m.got !== m.key).map((m) => `${m.key}→${m.got}`);
+      check(vis.length > 3 && wrong.length === 0, `${tag}: в центре ${vis.length} видимых зданий нажимается свой город${wrong.length ? ' — чужой: ' + wrong.join(', ') : ''}`);
+      const tapModel = vis.find((m) => m.key !== here.key && m.key !== 'sopot');
+      if (tapModel) {
+        await p.touchscreen.tap(tapModel.x, tapModel.y);
+        await p.waitForTimeout(400);
+        check((await cardState(p)).key === tapModel.key, `${tag}: касание здания ${tapModel.key} выбирает город`);
+      }
+
       // Перетаскивание мышью
       const box = (await p.locator('[data-illustrated-map]').boundingBox())!;
       const cx = box.x + box.width / 2;
@@ -245,6 +270,12 @@ async function main() {
       await choose(p, 'zakopane');
       const zk = await cardState(p);
       check(zk.key === 'zakopane' && /Zakopane/.test(zk.text) && await p.locator('.map-pill').count() === 1, `${tag}: Закопане — свой маркер на карте и карточка (${zk.state})`);
+      await p.waitForFunction(() => (document.querySelector('[data-medallion="zakopane"]') as HTMLImageElement | null)?.complete, undefined, { timeout: 10_000 });
+      check(await p.locator('[data-medallion="zakopane"]').evaluate((el) => (el as HTMLImageElement).naturalWidth > 0), `${tag}: у Закопане на карте есть картинка (медальон декодирован)`);
+      const zm = (await p.locator('[data-spot-model="zakopane"]').boundingBox())!;
+      await p.touchscreen.tap(zm.x + zm.width / 2, zm.y + zm.height / 2);
+      await p.waitForTimeout(300);
+      check((await cardState(p)).key === 'zakopane', `${tag}: касание медальона выбирает Закопане`);
       await p.screenshot({ path: `${OUT}/map-zakopane-${width}.png` });
 
       // 9. Длинное название

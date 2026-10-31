@@ -6,7 +6,7 @@
  */
 import { readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { MAP_ART, MAP_PACK_ALIASES, MAP_SPOTS, mapHitRect, mapSpotForCity, mapStarPoint, type MapRect } from '@polski-go/shared';
+import { MAP_ART, MAP_PACK_ALIASES, MAP_SPOTS, mapHitRect, mapSpotForCity, mapStarPoint, mapTapRects, type MapRect } from '@polski-go/shared';
 import { CITIES, REMOVED_CITIES } from '../src/content/cities';
 import { webpSize } from './image-size';
 
@@ -35,17 +35,34 @@ describe('иллюстрированная карта: зоны городов',
       expect(hit[2], key).toBeLessThanOrEqual(MAP_ART.width);
       expect(hit[3], key).toBeLessThanOrEqual(MAP_ART.height);
       expect(inside(hit, s.pill[0], s.pill[1]) && inside(hit, s.pill[2], s.pill[3]), key).toBe(true);
-      expect(inside(hit, ...mapStarPoint(s)), `${key}: звезда в зоне`).toBe(true);
+      // Звезда (у Закопане — центр медальона) лежит в одной из зон города: туда ставится кольцо «ты здесь».
+      expect(mapTapRects(s).some((r) => inside(r, ...mapStarPoint(s))), `${key}: звезда в зоне`).toBe(true);
       expect(Math.min(hit[2] - hit[0], hit[3] - hit[1]) * (360 / 560), key).toBeGreaterThanOrEqual(44);
     }
   });
 
-  it('зоны городов не перекрываются: нажатие не может попасть в соседний город', () => {
+  it('зоны городов (табличка и нарисованные здания) не перекрываются: нажатие не может попасть в соседний город', () => {
     for (let i = 0; i < spots.length; i++) {
       for (let j = i + 1; j < spots.length; j++) {
-        expect(overlap(mapHitRect(spots[i][1]), mapHitRect(spots[j][1])), `${spots[i][0]} × ${spots[j][0]}`).toBe(false);
+        for (const a of mapTapRects(spots[i][1])) for (const b of mapTapRects(spots[j][1])) {
+          expect(overlap(a, b), `${spots[i][0]} × ${spots[j][0]}`).toBe(false);
+        }
       }
     }
+  });
+
+  it('у каждой точки есть зона здания (модели) внутри картинки, у Кракова — ещё и нарисованный Бобек', () => {
+    for (const [key, s] of spots) {
+      expect(s.models?.length, key).toBeGreaterThan(0);
+      for (const r of s.models!) {
+        expect(r[0] >= 0 && r[1] >= 0 && r[2] <= MAP_ART.width && r[3] <= MAP_ART.height && r[2] > r[0] && r[3] > r[1], `${key} ${r}`).toBe(true);
+      }
+      // Главная (первая) зона здания — не меньше 30 px по меньшей стороне на старте 360 px; дополнительные — уточнения формы.
+      const main = s.models![0];
+      expect(Math.min(main[2] - main[0], main[3] - main[1]) * (360 / 560), `${key}: здание не меньше 30 px на старте`).toBeGreaterThanOrEqual(30);
+    }
+    const bob = MAP_ART.bakedBobek;
+    expect(MAP_SPOTS.krakow.models!.some((r) => overlap(r, bob))).toBe(true);
   });
 
   it('20 точек пакета: каждая попадает в свою зону (разметка художника и рамки таблички согласны), алиасы id объявлены', () => {
@@ -83,5 +100,9 @@ describe('иллюстрированная карта: зоны городов',
     expect(z.baked).toBe(false);
     for (const [key, s] of spots) if (key !== 'zakopane') expect(overlap(z.pill, s.pill), key).toBe(false);
     expect(overlap(mapHitRect(z), MAP_ART.bakedBobek)).toBe(false);
+    // Медальон с видом Татр — над табличкой, не закрывает нарисованные таблички других городов.
+    expect(z.medallion).toBe('zakopane');
+    for (const [key, s] of spots) if (key !== 'zakopane') expect(overlap(z.models![0], s.pill), key).toBe(false);
+    expect(readFileSync(new URL('apps/web/src/assets/map/zakopane-medallion.webp', repo)).length).toBeLessThan(40 * 1024);
   });
 });

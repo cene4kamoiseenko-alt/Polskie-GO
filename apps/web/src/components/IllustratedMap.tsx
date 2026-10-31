@@ -13,6 +13,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MAP_ART, MAP_SPOTS, mapHitRect, mapStarPoint, type MapSpot } from '@polski-go/shared';
 import mapSrc from '../assets/map/poland-map.webp';
+import zakopaneMedallion from '../assets/map/zakopane-medallion.webp';
 import type { JourneyCity } from '../lib/types';
 import { useReducedMotion } from '../lib/motion';
 import { Icon } from './Icon';
@@ -21,6 +22,8 @@ import { cx } from './ui';
 const W = MAP_ART.width;
 const H = MAP_ART.height;
 const MAX_SCALE = 1.6;
+/** Медальоны городов, которых нет на рисунке. */
+export const MEDALLIONS: Record<string, string> = { zakopane: zakopaneMedallion };
 /** Размытая превью-копия карты (24 px): видна, пока грузится основной файл, и заполняет поля за краем картинки. */
 export const MAP_LQIP =
   'data:image/webp;base64,UklGRmYBAABXRUJQVlA4IFoBAAAwBgCdASoYABsAPtFYpEuoJSOhsAgBABoJbAC1CE37G58Auwb4GkCZxCvdP+DfbXQRh3eltGnEM6wAAOJvBZ/sjL+9Hy4qsYJgWENOfojp0h2C0vHD4UJhvs+gU7TuMRXClfX2DFURMtjUTmLZI3c3AyADMbUt1dqYRDBo13zW78X9rHZGDDvQUdwM0mmA5zoBXdPseRPMbRKvh+2vpX3Oi/Xb6yxSC4BXBE7IumAgEaQIYK9C1BhKl2Q72g3U7aODboRlU6I1rXRhhrlkPPJRNf/a/+h+B7BzdnsdiWrACkq19J/pWrWKfazH7Qg8Kc50rYVmte9LeVtKK6cTAMBa+xQZMmY369yfkqyIBrXGN3x4Xot1Zmcfif4vvYZ9hf6KfBbBXbTECN3V9T55jwJTEqRIoZ3/t16Xe3eB6p+KZS5NoQDSJEAt27S3TARAxCvSK8uckgdrAAAA';
@@ -434,10 +437,18 @@ export const IllustratedMap = forwardRef<MapHandle, Props>(function IllustratedM
       <span id="map-hint" className="sr-only">{props.ariaHint}</span>
       <div ref={stage} className="map-stage" style={{ width: W, height: H, backgroundImage: `url(${MAP_LQIP})` }}>
         <img src={mapSrc} width={W} height={H} alt="" className="map-art" draggable={false} decoding="async" {...{ fetchpriority: 'high' }} />
+        {/* Медальон города, которого нет на рисунке (Закопане): вид Татр в рамке. */}
+        {Object.entries(MAP_SPOTS).filter(([, s]) => s.medallion && s.models?.[0]).map(([k, s]) => (
+          <img key={`m-${k}`} src={MEDALLIONS[s.medallion!]} alt="" className="map-medallion" style={rectStyle(s.models![0])} draggable={false} decoding="async" data-medallion={k} />
+        ))}
+        {/* Нарисованные здания: нажатие на модель города выбирает его, как и табличка (для клавиатуры — одна кнопка-табличка). */}
+        {keys.flatMap((k) => (MAP_SPOTS[k].models ?? []).map((r, i) => (
+          <span key={`z-${k}-${i}`} className="map-model" style={rectStyle(r)} data-spot-model={k} aria-hidden onClick={() => { if (!dragged.current) onSelect(k); }} />
+        )))}
         {/* Закопане: на картинке его нет — маркер в том же стиле, что нарисованные таблички. */}
         {Object.entries(MAP_SPOTS).filter(([, s]) => !s.baked).map(([k, s]) => (
           <span key={k} className="map-pill" style={rectStyle(s.pill)} lang="pl" aria-hidden>
-            <span className="map-pill-star" style={{ left: mapStarPoint(s)[0] - s.pill[0], top: mapStarPoint(s)[1] - s.pill[1] }} />
+            {!s.medallion && <span className="map-pill-star" style={{ left: mapStarPoint(s)[0] - s.pill[0], top: mapStarPoint(s)[1] - s.pill[1] }} />}
             {s.label}
           </span>
         ))}
