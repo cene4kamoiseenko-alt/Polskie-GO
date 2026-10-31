@@ -61,7 +61,13 @@ async function main() {
       await p.goto(`${base}/life?devUser=${id}`);
       await p.locator('[data-scene-art]').first().waitFor({ timeout: 20_000 });
       await settle();
-      const cards = p.locator('[data-scene-art]');
+      // Обложка сезонного пропуска (.pass-card) — тоже живописный кадр, но не карточка миссии: считается отдельно.
+      const cover = p.locator('.pass-card [data-scene-art]');
+      if (await cover.count()) {
+        const c = await cover.first().evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, id: el.dataset.sceneArt }));
+        check(c.ok, `${width}px /life: обложка пропуска ${c.id} декодирована`);
+      }
+      const cards = p.locator('[data-scene-art]:not(.pass-card [data-scene-art])');
       const count = await cards.count();
       check(count === WITH_ART.length, `${width}px /life: картинок сцен ${count} из ${WITH_ART.length}`);
       for (let i = 0; i < count; i++) {
