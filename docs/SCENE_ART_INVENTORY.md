@@ -76,9 +76,9 @@
 | `tram-stop` | Tramwaj | `tramwaj` | 1536×768 | 1440×720 | interim | `first-tram` | `tram-stop` | — |
 | `store-lidl` | Lidl | `lidl` | 1536×768 | 1440×720 | interim | `lidl-list` | `supermarket` | — |
 
-## Пакет владельца 2026-10-31: четыре сцены для миссий, у которых была SVG-сцена
+## Пакет владельца 2026-10-31: семь сцен (четыре — миссиям со SVG-сценой, три — новым Premium-миссиям)
 
-Кадры 1536×1024, полоса 2:1 во всю ширину (1536×768, смещение — `source.top`), только уменьшены до 1440×720 и 640×320. Оригиналы — `docs/design/a16/missions/<файл>_original.webp`. Бобек в кадре — статус **interim**, как у пакета 2026-10-28. Там же лежат ещё три кадра без миссии в коде: аэропорт LOT, рецепция горнолыжного отеля, Старый город Варшавы.
+Кадры 1536×1024, полоса 2:1 во всю ширину (1536×768, смещение — `source.top`), только уменьшены до 1440×720 и 640×320. Оригиналы — `docs/design/a16/missions/<файл>_original.webp`. Бобек в кадре — статус **interim**, как у пакета 2026-10-28. Ещё три кадра — для новых Premium-миссий «Подорожі» (`content/missions-travel.ts`): аэропорт LOT, горный отель в Закопане, Варшава за один день.
 
 | scene_id | Место | Файл | Рождённый размер | Размер в приложении | Статус | Миссии | Заменяет SVG | Telegram |
 |---|---|---|---|---|---|---|---|---|
@@ -86,6 +86,9 @@
 | `urzad-okienko` | Urząd | `urzad` | 1536×768 | 1440×720 | interim | `urzad-pesel` | `office` | — |
 | `cukiernia-rogale` | Cukiernia | `cukiernia` | 1536×768 | 1440×720 | interim | `marcin-rogal` | `pastry-shop` | — |
 | `pierogarnia` | Pierogarnia | `pierogarnia` | 1536×768 | 1440×720 | interim | `krakow-pierogi` | `cafe-pierogi` | — |
+| `lotnisko-lot` | LOT | `lotnisko-lot` | 1536×768 | 1440×720 | interim | `lotnisko-lot` | `train-station` | — |
+| `recepcja-narty` | Zakopane | `recepcja-narty` | 1536×768 | 1440×720 | interim | `zakopane-ferie` | `hotel` | — |
+| `warszawa-starowka` | Warszawa | `warszawa-starowka` | 1536×768 | 1440×720 | interim | `warszawa-dzien` | `castle` | — |
 
 Дефекты: в `cukiernia-rogale` Бобек в фартуке и колпаке кондитера (в миссии он покупатель); в `pierogarnia` Бобек несёт тарелку, как официант (в миссии он заказывает).
 

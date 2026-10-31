@@ -83,7 +83,7 @@ describe('пропуск місяця: доступ', () => {
     const { user } = await login();
     const list = await listMissions(user.id, NOV);
     expect(list.missions.some((m) => m.season)).toBe(false);
-    expect(list.missions.filter((m) => m.locked).map((m) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment']);
+    expect(list.missions.filter((m) => m.locked).map((m) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment', 'lotnisko-lot', 'zakopane-ferie', 'warszawa-dzien']);
 
     const cur = list.pass.current!;
     expect(cur).toMatchObject({ slug: 'listopad-poznan', state: 'active', daysLeft: 20, done: 0, total: 3 });

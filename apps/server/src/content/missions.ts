@@ -12,6 +12,7 @@
 import type { I18n } from '@polski-go/shared';
 import { t } from './builders';
 import { SEASON_MISSIONS } from './seasons';
+import { TRAVEL_MISSIONS } from './missions-travel';
 
 export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean };
 export type MissionOption = { pl?: string; text?: I18n; ok: boolean; why?: I18n };
@@ -1242,7 +1243,7 @@ export const MISSIONS: Mission[] = [
 /** Місії, що готуються (показуються як «скоро», без можливості почати). */
 export const MISSIONS_SOON: { slug: string; category: MissionCategory; scene: string; title: I18n }[] = [];
 
-/** Звичайні місії й місії сезонних пропусків: досягнення, озвучка, seed і перевірки контенту бачать усі. */
-MISSIONS.push(...SEASON_MISSIONS);
+/** Звичайні місії, Premium-подорожі (content/missions-travel.ts) і місії сезонних пропусків: досягнення, озвучка, seed і перевірки контенту бачать усі. */
+MISSIONS.push(...TRAVEL_MISSIONS, ...SEASON_MISSIONS);
 
 export const missionBySlug = (slug: string) => MISSIONS.find((m) => m.slug === slug);

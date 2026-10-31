@@ -184,7 +184,7 @@ describe('Місії: проходження', () => {
     expect(list.body.missions.find((m: { slug: string }) => m.slug === 'first-tram').completions).toBe(1);
     // Колишні «скоро» стали сценами Premium: без Premium вони в списку із замком.
     expect(list.body.soon).toEqual([]);
-    expect(list.body.missions.filter((m: { locked: boolean }) => m.locked).map((m: { slug: string }) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment']);
+    expect(list.body.missions.filter((m: { locked: boolean }) => m.locked).map((m: { slug: string }) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment', 'lotnisko-lot', 'zakopane-ferie', 'warszawa-dzien']);
   });
   it('костюм за місію: лише за перше проходження, магазин показує умову, seed видає тим, хто пройшов раніше', async () => {
     const { call, user } = await login();

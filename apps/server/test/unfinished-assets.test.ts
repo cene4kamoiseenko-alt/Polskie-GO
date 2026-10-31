@@ -1,6 +1,6 @@
 /**
  * docs/UNFINISHED_ASSETS.md — точный перечень незавершённых ассетов — совпадает с кодом и манифестами:
- * 2 временных фона городов, 5 недостающих сцен бота, 18 кадров миссий с Бобеком внутри, слои Бобека этапов etalon-1 и etalon-2.
+ * 2 временных фона городов, 5 недостающих сцен бота, 21 кадр миссий с Бобеком внутри, слои Бобека этапов etalon-1 и etalon-2.
  * Когда мастер появится и статус в CITY_ART / SCENE_ART / манифесте изменится, документ нужно пересобрать:
  *   node --import tsx scripts/unfinished-assets.ts
  */
@@ -14,14 +14,14 @@ const botPublic = `${root}/apps/web/public/bot`;
 describe('перечень незавершённых ассетов', () => {
   const data = unfinishedAssets(root);
 
-  it('2 фона городов, 5 сцен бота, 18 кадров миссий с Бобеком, 18 + 8 слоёв Бобека', () => {
+  it('2 фона городов, 5 сцен бота, 21 кадр миссий с Бобеком, 18 + 8 слоёв Бобека', () => {
     expect(data.cities.map((c) => c.slug)).toEqual(['rzeszow', 'zakopane']);
     expect(data.botScenes.map((b) => b.scene)).toEqual(['map', 'correct_answer', 'quick_question', 'travel_passport', 'lesson_complete']);
-    // 14 + 3 сцены Premium + 9 миссий пропуска месяца (ADR-011).
-    expect(data.missions.map((m) => m.slug)).toHaveLength(26);
+    // 14 + 6 сцен Premium + 9 миссий пропуска месяца (ADR-011).
+    expect(data.missions.map((m) => m.slug)).toHaveLength(29);
     expect(data.storeScenes.map((s) => s.id).sort()).toEqual([
-      'bakery-pierniki', 'clinic-registration', 'cukiernia-rogale', 'flat-keys', 'fuel-orlen', 'milk-bar', 'office-first-day', 'parcel-inpost',
-      'pierogarnia', 'station-pkp', 'stop-cafe', 'store-biedronka', 'store-lidl', 'store-rossmann', 'store-zabka', 'street-zapiekanki', 'tram-stop', 'urzad-okienko',
+      'bakery-pierniki', 'clinic-registration', 'cukiernia-rogale', 'flat-keys', 'fuel-orlen', 'lotnisko-lot', 'milk-bar', 'office-first-day', 'parcel-inpost',
+      'pierogarnia', 'recepcja-narty', 'station-pkp', 'stop-cafe', 'store-biedronka', 'store-lidl', 'store-rossmann', 'store-zabka', 'street-zapiekanki', 'tram-stop', 'urzad-okienko', 'warszawa-starowka',
     ]);
     expect(data.layers.map((l) => l.missing.length)).toEqual([18, 8]);
   });

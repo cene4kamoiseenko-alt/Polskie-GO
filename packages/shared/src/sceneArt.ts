@@ -170,6 +170,25 @@ export const SCENE_ART: Record<string, SceneArt> = {
     missions: ['krakow-pierogi'], focus: '50% 35%', shows: 'Затишна pierogarnia з народним декором: żurek на столі, Бобек несе тарілку pierogów, за вікном Краків',
     telegram: null, defects: ['Бобек несе тарілку у фартуху, як офіціант, а в місії він замовляє pierogi й żurek'],
   },
+  // ── Premium-подорожі (content/missions-travel.ts), кадри власника 2026-10-31. ──
+  'lotnisko-lot': {
+    ...common, id: 'lotnisko-lot', file: 'lotnisko-lot', brand: 'LOT', native: [1536, 768], fallbackScene: 'train-station',
+    source: { file: 'docs/design/a16/missions/lotnisko-lot_original.webp', top: 150 },
+    missions: ['lotnisko-lot'], focus: '40% 35%', shows: 'Стійка реєстрації LOT в аеропорту Кракова: працівниця, табло вильотів, літак за склом, Вавель на тлі; Бобек із валізою й посадковим',
+    telegram: null, defects: [],
+  },
+  'recepcja-narty': {
+    ...common, id: 'recepcja-narty', file: 'recepcja-narty', brand: 'Zakopane', native: [1536, 768], fallbackScene: 'hotel',
+    source: { file: 'docs/design/a16/missions/recepcja-narty_original.webp', top: 90 },
+    missions: ['zakopane-ferie'], focus: '45% 35%', shows: 'Рецепція гірського готелю: адміністраторка подає картку, лижі на стійці, за вікном засніжені Татри; Бобек у зимовій куртці',
+    telegram: null, defects: [],
+  },
+  'warszawa-starowka': {
+    ...common, id: 'warszawa-starowka', file: 'warszawa-starowka', brand: 'Warszawa', native: [1536, 768], fallbackScene: 'castle',
+    source: { file: 'docs/design/a16/missions/warszawa-starowka_original.webp', top: 160 },
+    missions: ['warszawa-dzien'], focus: '45% 35%', shows: 'Замкова площа у Варшаві: колона Сигізмунда, Королівський замок, кіоск із листівками; Бобек із картою й фотоапаратом',
+    telegram: null, defects: [],
+  },
 };
 
 /** slug місії → scene_id картинки. Місій без запису це не стосується: вони й далі показують SVG-сцену. */
@@ -216,5 +235,9 @@ export const MISSION_BACKGROUND_BRIEF: Record<string, { action: string; backgrou
   'sylwester-impreza': { action: 'встречает Новый год с друзьями', background: 'Квартира с видом на ночной город: фейерверки за окном, часы около полуночи без читаемых цифр, серпантин, бокалы с соком на столе.' },
   'park-bilety': { action: 'покупает билеты в кассе парка развлечений', background: 'Вход в большой парк развлечений летом: кассы с окошками, турникеты, вдали американские горки и колесо обозрения; без логотипов парка.' },
   'park-kolejka': { action: 'стоит в очереди на американские горки', background: 'Очередь к американским горкам: ограждение-змейка, ростомер у входа, шкафчики для рюкзаков, вагончики горок над головой.' },
+  // ── Premium-подорожі (content/missions-travel.ts) ──
+  'lotnisko-lot': { action: 'проходит регистрацию на рейс LOT', background: 'Стойка регистрации LOT в аэропорту Кракова: сотрудница, табло вылетов, самолёт за стеклом, Вавель вдали.' },
+  'zakopane-ferie': { action: 'заселяется в горный отель и спрашивает про ски-пасс', background: 'Рецепция горного отеля в Закопане: администратор, лыжи у стойки, за окном заснеженные Татры.' },
+  'warszawa-dzien': { action: 'ищет Королевский замок и покупает открытки', background: 'Замковая площадь в Варшаве: колонна Сигизмунда, Королевский замок, киоск с открытками и магнитами.' },
   'park-zguba': { action: 'забирает потерянный телефон в пункте информации', background: 'Пункт информации парка развлечений: стойка с сотрудницей, коробка находок, карта парка на стене без читаемого текста; рядом вход.' },
 };

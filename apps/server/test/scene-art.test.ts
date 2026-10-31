@@ -20,7 +20,7 @@ const doc = readFileSync(new URL('../../../docs/SCENE_ART_INVENTORY.md', import.
 
 const STORES = ['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka'];
 const OWNER_PACK = ['bakery-pierniki', 'clinic-registration', 'flat-keys', 'milk-bar', 'office-first-day', 'station-pkp', 'store-lidl', 'street-zapiekanki', 'tram-stop'];
-const OWNER_PACK_1031 = ['cukiernia-rogale', 'pierogarnia', 'stop-cafe', 'urzad-okienko'];
+const OWNER_PACK_1031 = ['cukiernia-rogale', 'lotnisko-lot', 'pierogarnia', 'recepcja-narty', 'stop-cafe', 'urzad-okienko', 'warszawa-starowka'];
 const IDS = [...STORES, ...OWNER_PACK, ...OWNER_PACK_1031].sort();
 
 describe('Сцены миссий (магазины, InPost, ORLEN и пакет владельца)', () => {
@@ -69,7 +69,7 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     const pairs = Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [a, m] as const));
     expect(pairs.map(([, m]) => m).sort()).toEqual([
       'bar-mleczny', 'biedronka-breakfast', 'doctor-appointment', 'first-tram', 'first-workday', 'kazimierz-zapiekanka', 'krakow-pierogi', 'landlord',
-      'lidl-list', 'marcin-rogal', 'orlen-coffee', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'urzad-pesel', 'zabka-first-order',
+      'lidl-list', 'lotnisko-lot', 'marcin-rogal', 'orlen-coffee', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'urzad-pesel', 'warszawa-dzien', 'zabka-first-order', 'zakopane-ferie',
     ]);
     for (const [art, slug] of pairs) {
       const mission = MISSIONS.find((m) => m.slug === slug);
@@ -101,9 +101,9 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     for (const lang of ['ru', 'uk', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
   });
 
-  it('для каждой из 26 миссий (14 + 3 сцены Premium + 9 миссий пропуска месяца) описан фон без Бобека и действие игрока', () => {
+  it('для каждой из 29 миссий (14 + 6 сцен Premium + 9 миссий пропуска месяца) описан фон без Бобека и действие игрока', () => {
     const slugs = [...MISSIONS.map((m) => m.slug), ...MISSIONS_SOON.map((m) => m.slug)].sort();
-    expect(slugs).toHaveLength(26);
+    expect(slugs).toHaveLength(29);
     expect(Object.keys(MISSION_BACKGROUND_BRIEF).sort()).toEqual(slugs);
     for (const [slug, b] of Object.entries(MISSION_BACKGROUND_BRIEF)) {
       expect(b.action.length, slug).toBeGreaterThan(10);
