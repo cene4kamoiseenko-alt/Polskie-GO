@@ -24,6 +24,7 @@ type PremiumData = {
 
 /** Що дає Premium — лише те, що справді працює (ШІ — коли його підключено на сервері). Пропуск місяця — окремою карткою вгорі. */
 const FEATURES: [LineIconName, TKey, TKey][] = [
+  ['crown', 'prem_pass', 'prem_pass_feat_d'],
   ['chat', 'prem_scenes', 'prem_scenes_d'],
   ['flame', 'prem_shield', 'prem_shield_d'],
   ['bolt', 'prem_xp2', 'prem_xp2_d'],
@@ -129,7 +130,7 @@ export default function PremiumScreen() {
         <div className="premium-hero-crown flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-[0.15em]"><Icon name="crown" size={18} filled /> POLSKI GO</div>
         <Beaver size={150} mood="pay" />
         <div className="premium-hero-title text-[28px] font-black leading-tight">PREMIUM</div>
-        <div className="premium-hero-subtitle mt-1 text-[13px] font-bold">{t('prem_pass_d')}</div>
+        <div className="premium-hero-subtitle mt-1 text-[13px] font-bold">{t('prem_hero_d')}</div>
       </div>
 
       {status === 'waiting' && <div className="mx-4 rounded-2xl bg-sky/20 p-3 text-center font-black"><span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-sky-dark/30 border-t-sky-dark align-middle" />{t('prem_waiting')}</div>}
@@ -224,7 +225,8 @@ export default function PremiumScreen() {
               <Icon name="crown" size={20} filled />{' '}
               {data.paymentsConfigured ? t('prem_buy', { n: data.plans.find((p) => p.code === plan)?.priceStars ?? '' }) : t('prem_not_configured')}
             </button>
-            <p className="muted mt-2 text-center text-xs font-bold">{t('prem_stars_note')}</p>
+            <p className="mt-2 text-center text-sm font-black text-xp-dark" data-premium-includes-pass><Icon name="crown" size={16} filled className="mr-1 inline-block align-[-3px]" />{t('prem_pass_included')}</p>
+            <p className="muted mt-1 text-center text-xs font-bold">{t('prem_stars_note')}</p>
           </div>
         </>
       )}

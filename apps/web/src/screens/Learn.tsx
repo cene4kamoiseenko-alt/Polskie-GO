@@ -53,9 +53,9 @@ function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson;
           <motion.div className="absolute -top-10 z-10 whitespace-nowrap rounded-xl bg-elev px-3 py-1 text-xs font-black uppercase text-brand-dark shadow" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}>
             {t('learn_start_here')}
           </motion.div>
-          {/* Бобек стоїть поруч із наступним уроком — з протилежного від вигину боку. */}
-          <div className="pointer-events-none absolute top-0" style={off >= 0 ? { right: '100%', marginRight: 6 } : { left: '100%', marginLeft: 6 }}>
-            <Beaver mood="laptop" size={64} />
+          {/* Бобек стоїть поруч із наступним уроком — з протилежного від вигину боку; низ на рівні вузла, щоб не налазити на підпис. */}
+          <div className="pointer-events-none absolute" style={{ top: -34, ...(off >= 0 ? { right: '100%', marginRight: 2 } : { left: '100%', marginLeft: 2 }) }} data-learn-beaver>
+            <Beaver mood="learn" size={112} />
           </div>
         </>
       )}

@@ -50,7 +50,7 @@ export function Wordmark({ size = 22 }: { size?: number }) {
 
 /** Шапка вкладок: логотип, серія, Złotki, Premium. Налаштування — у профілі (без дубля в шапці). */
 /** noSafe — шапка лежит внутри экрана, который уже отступил от шапки Telegram (карта): второй отступ не нужен. */
-export function TopStats({ compact, noSafe }: { compact?: boolean; noSafe?: boolean }) {
+export function TopStats({ compact, noSafe, left }: { compact?: boolean; noSafe?: boolean; /** Вместо логотипа (карта: прогресс путешествия). */ left?: ReactNode }) {
   const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data;
@@ -59,9 +59,11 @@ export function TopStats({ compact, noSafe }: { compact?: boolean; noSafe?: bool
   const round = 'grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev shadow-[var(--shadow-card)]';
   return (
     <div className={cx(!noSafe && 'safe-top', 'flex items-center gap-1.5 px-4 pt-2')}>
-      <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-auto min-w-0 shrink">
-        <Wordmark size={19} />
-      </button>
+      {left ?? (
+        <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-auto min-w-0 shrink">
+          <Wordmark size={19} />
+        </button>
+      )}
       <button onClick={() => nav('/profile')} aria-label={t('profile_streak')} className="hud-pill">
         <Art name="flame" size={22} /> <span className="text-coral">{me.progress.streak}</span>
       </button>

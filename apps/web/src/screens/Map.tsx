@@ -120,12 +120,19 @@ export default function MapScreen() {
       />
 
       {/* Шапка поверх карты: настоящие XP / серия / Złotki и прогресс путешествия */}
+      {/* Одна строка поверх карты: прогресс путешествия вместо логотипа и настоящие серия / Złotki / Premium — верх карты (Гдыня) не закрыт. */}
       <div ref={hud} className="map-hud pointer-events-none absolute inset-x-0 top-0 z-[3] pb-2">
-        <div className="pointer-events-auto"><TopStats compact noSafe /></div>
-        <div className="mt-1.5 flex items-center gap-2 px-4">
-          <h1 className="map-chip pointer-events-auto">
-            {t('map_journey')} <span className="text-pl-red">{completedCount}/{j.cities.length}</span>
-          </h1>
+        <div className="pointer-events-auto">
+          <TopStats
+            compact
+            noSafe
+            left={
+              <h1 className="map-chip mr-auto min-w-0 shrink" aria-label={t('map_journey_d', { done: completedCount, total: j.cities.length })}>
+                <Icon name="map" size={16} className="shrink-0 text-pl-red" />
+                <span className="truncate">{t('map_cities_short')}</span> <span className="shrink-0 text-pl-red">{completedCount}/{j.cities.length}</span>
+              </h1>
+            }
+          />
         </div>
       </div>
 

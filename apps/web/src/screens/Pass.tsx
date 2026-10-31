@@ -22,7 +22,7 @@ const LOCALE = { uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' } as const;
 const dayMonth = (day: string, lang: keyof typeof LOCALE) => new Date(`${day}T12:00:00`).toLocaleDateString(LOCALE[lang], { day: 'numeric', month: 'long' });
 
 export default function PassScreen() {
-  const { t } = useT();
+  const { t, tr, date } = useT();
   const nav = useNavigate();
   const me = useMe().data!;
   const q = useQuery(missionsQuery);
@@ -30,6 +30,7 @@ export default function PassScreen() {
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const pass = q.data!.pass;
   const premium = pass.premium || me.premium.active;
+  const next = pass.upcoming[0];
   return (
     <div className="space-y-5 pb-8">
       <ScreenHeader title={t('pass_title')} subtitle={t('pass_subtitle')} />
@@ -37,19 +38,37 @@ export default function PassScreen() {
       {pass.current ? (
         <SeasonBlock season={pass.current} premium={premium} />
       ) : (
-        <p className="muted mx-4 rounded-2xl bg-muted p-3 text-sm font-bold" data-pass="none">{t('pass_none')}</p>
+        <p className="muted mx-4 rounded-2xl bg-muted p-3 text-sm font-bold" data-pass="none">
+          {next
+            ? t('pass_none_next', { title: tr(next.title), when: next.startsIn === 1 ? t('pass_tomorrow') : next.startsIn !== null && next.startsIn <= 60 ? t('pass_in_days', { n: next.startsIn }) : t('pass_starts', { date: date(`${next.start}T12:00:00`) }) })
+            : t('pass_none')}
+        </p>
       )}
 
-      {!premium && (
-        <button onClick={() => { haptic.tap(); nav('/premium'); }} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3.5 text-left ring-2 ring-xp" data-pass-unlock>
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-xp/25"><Art name="crown" size={28} /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-black">{t('pass_unlock')}</span>
-            <span className="muted block text-[13px] font-bold leading-snug">{t('pass_unlock_d')}</span>
-          </span>
-          <Icon name="chevron-right" size={20} className="shrink-0 opacity-60" />
-        </button>
-      )}
+      {/* Как получить пропуск: правила доступа (их проверяет сервер) и переход в Premium — в обоих состояниях. */}
+      <section className="card mx-4 space-y-3 p-4" data-pass-how>
+        <h2 className="flex items-center gap-2 text-lg font-black"><Art name="crown" size={24} /> {t('pass_how_title')}</h2>
+        <ol className="space-y-2">
+          {(['pass_how_1', 'pass_how_2', 'pass_how_3'] as const).map((k, i) => (
+            <li key={k} className="flex items-start gap-2.5 text-sm font-semibold leading-snug">
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-xp/25 text-xs font-black text-xp-dark">{i + 1}</span>
+              <span>{t(k)}</span>
+            </li>
+          ))}
+        </ol>
+        {premium ? (
+          <button onClick={() => { haptic.tap(); nav('/premium'); }} className="flex w-full items-center gap-2 rounded-2xl bg-brand/15 px-3 py-2.5 text-left text-sm font-black" data-pass-premium="active">
+            <Icon name="check" size={18} strokeWidth={3} className="shrink-0 text-brand" />
+            <span className="min-w-0 flex-1">{t('pass_have')}</span>
+            <span className="muted shrink-0 text-xs">{t('pass_my_premium')}</span>
+            <Icon name="chevron-right" size={18} className="shrink-0 opacity-60" />
+          </button>
+        ) : (
+          <button onClick={() => { haptic.tap(); nav('/premium'); }} className="btn btn-xp w-full text-base" data-pass-unlock>
+            <Icon name="crown" size={20} filled /> {t('pass_get')}
+          </button>
+        )}
+      </section>
 
       {pass.upcoming.length > 0 && (
         <section className="px-4">
