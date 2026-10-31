@@ -125,7 +125,7 @@ export default function LookPrototype() {
                 data-proto-step={s.n}
                 onClick={() => setSaved((cur) => {
                   const r = s.run(cur.equipment);
-                  return { equipment: r.e, state: r.state };
+                  return { ...cur, equipment: r.e, state: r.state };
                 })}
               >
                 {s.n}. {s.label}
