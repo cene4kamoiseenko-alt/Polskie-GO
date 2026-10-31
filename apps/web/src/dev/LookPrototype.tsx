@@ -14,10 +14,12 @@ import { LOOK_PROTOTYPE_MANIFEST as M, PROTO_STATES } from './lookPrototypeManif
 import { protoAssetUrl } from './protoAssets';
 import { hasBobekV2Art, bobekV2AssetUrl } from './lookV2Assets';
 import { LOOK_V2_DRAFT_MANIFEST } from './lookV2Manifest';
+import { LOOK_V3_DRAFT_MANIFEST } from './lookV3Manifest';
+import { hasBobekV3Art, bobekV3AssetUrl } from './lookV3Assets';
 import { getBobekPreviewSnapshot, notifyBobekPreviewChanged, setBobekPreviewEnabled } from '../lib/bobekPreview';
 
 const STORE = 'pg_look_prototype_v1';
-type Saved = { equipment: string[]; state: string; art: 'legacy' | 'v2' };
+type Saved = { equipment: string[]; state: string; art: 'legacy' | 'v2' | 'v3' };
 const DEFAULT: Saved = { equipment: ['hoodie-red', 'backpack-travel'], state: 'idle', art: 'legacy' };
 
 function load(): Saved {
@@ -25,7 +27,7 @@ function load(): Saved {
     const raw = localStorage.getItem(STORE);
     if (!raw) return DEFAULT;
     const v = JSON.parse(raw) as Partial<Saved>;
-    return { equipment: Array.isArray(v.equipment) ? v.equipment.filter((x) => typeof x === 'string' && ['hoodie-red', 'jacket-denim', 'backpack-travel', 'cap-red', 'glasses-round'].includes(x)).slice(0, 5) : DEFAULT.equipment, state: PROTO_STATES.some((s) => s.id === v.state) ? v.state! : DEFAULT.state, art: v.art === 'v2' ? 'v2' : 'legacy' };
+    return { equipment: Array.isArray(v.equipment) ? v.equipment.filter((x) => typeof x === 'string' && ['hoodie-red', 'jacket-denim', 'backpack-travel', 'cap-red', 'glasses-round'].includes(x)).slice(0, 5) : DEFAULT.equipment, state: PROTO_STATES.some((s) => s.id === v.state) ? v.state! : DEFAULT.state, art: v.art === 'v3' ? 'v3' : v.art === 'v2' ? 'v2' : 'legacy' };
   } catch {
     return DEFAULT;
   }
@@ -60,9 +62,10 @@ export default function LookPrototype() {
   }, [saved]);
 
   const mood = PROTO_STATES.find((s) => s.id === saved.state)?.mood ?? 'happy';
-  const v2 = saved.art === 'v2' && hasBobekV2Art;
-  const activeManifest = v2 ? LOOK_V2_DRAFT_MANIFEST : M;
-  const resolveAsset = v2 ? bobekV2AssetUrl : protoAssetUrl;
+  const v3 = saved.art === 'v3' && hasBobekV3Art;
+  const v2 = !v3 && saved.art === 'v2' && hasBobekV2Art;
+  const activeManifest = v3 ? LOOK_V3_DRAFT_MANIFEST : v2 ? LOOK_V2_DRAFT_MANIFEST : M;
+  const resolveAsset = v3 ? bobekV3AssetUrl : v2 ? bobekV2AssetUrl : protoAssetUrl;
   const look = useMemo(() => resolveLook(null, saved.equipment, { manifest: activeManifest, mood }), [saved.equipment, activeManifest, mood]);
   const has = (id: string) => look.drawn.includes(id);
   const toggle = (id: string) => setSaved((s) => ({ ...s, equipment: has(id) ? unequip(s.equipment, id, M).equipment : equip(s.equipment, id, M).equipment }));
@@ -100,12 +103,15 @@ export default function LookPrototype() {
 
           <section className="card mt-3 p-3" aria-label="Джерело графіки Бобека">
             <p className="font-bold text-sm">Оберіть арт-модель для QA</p>
-            <p className="mt-1 text-xs">V2 — авторська SVG/WebP-збірка з окремою основою й двома різними верхами, ще НЕ затверджена за якістю. Не змінює звичайний застосунок без QA-перемикача.</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <button className="btn btn-ghost min-h-11 text-sm" aria-pressed={!v2} data-proto-art="legacy" onClick={() => setSaved((cur) => ({ ...cur, art: 'legacy' }))}>Поточні шари</button>
-              <button className="btn btn-ghost min-h-11 text-sm" aria-pressed={v2} data-proto-art="v2" disabled={!hasBobekV2Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v2' }))}>Новий Бобек V2</button>
+            <p className="mt-1 text-xs">V2 — плоский авторський арт з 5 позами. V3 — об'ємний 2.5D cutout з незалежною одежою, але поки ТІЛЬКИ фронтальна спокійна поза. Інші емоції у V3 показують цю ж позу (fallback). Усі варіанти — лише QA.</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={!v2 && !v3} data-proto-art="legacy" onClick={() => setSaved((cur) => ({ ...cur, art: 'legacy' }))}>Старі шари</button>
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v2} data-proto-art="v2" disabled={!hasBobekV2Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v2' }))}>Бобек V2</button>
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v3} data-proto-art="v3" disabled={!hasBobekV3Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v3' }))}>2.5D V3</button>
             </div>
-            {!hasBobekV2Art && <p className="mt-2 text-xs text-coral">V2 поки відсутній у цій збірці. Імпортуйте ZIP з арт-паком та перезберіть застосунок.</p>}
+            {!hasBobekV2Art && <p className="mt-2 text-xs text-coral">Для V2 виконайте npm run bobek:v2:generate перед build:web.</p>}
+            {!hasBobekV3Art && <p className="mt-2 text-xs text-coral">Для V3 виконайте npm run bobek:v3:generate перед build:web.</p>}
+            {v3 && <p className="mt-2 text-xs font-medium text-coral">V3 — не анімований риг: лише front-idle. Одяг / плечові стики в процесі ручного доопрацювання.</p>}
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
