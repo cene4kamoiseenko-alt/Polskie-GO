@@ -35,6 +35,8 @@ jobs:
       - run: npm ci
       - name: TypeScript types
         run: npm run typecheck
+      - name: Build real web client (detect Vite bundling errors)
+        run: npm run build:web
       - name: Sprite dimensions and alpha
         run: npm run bobek:check
       - name: Preview flag and safe localStorage parsing
