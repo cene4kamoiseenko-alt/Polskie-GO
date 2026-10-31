@@ -15,6 +15,8 @@ on:
       - 'scripts/bobek-release-gate.mjs'
       - 'scripts/import-bobek-v2.mjs'
       - 'scripts/check-bobek-v2.mjs'
+      - 'scripts/generate-bobek-v2.mjs'
+      - 'assets/bobek-v2-sources.json.gz.b64'
       - 'docs/design/BOBEK_ART_APPROVAL.json'
       - 'package.json'
       - '.github/workflows/bobek-qa.yml'
@@ -37,6 +39,8 @@ jobs:
       - run: npm ci
       - name: TypeScript types
         run: npm run typecheck
+      - name: Generate independent V2 QA art (35 source SVG / 105 WebP)
+        run: npm run bobek:v2:generate
       - name: Build real web client (detect Vite bundling errors)
         run: npm run build:web
       - name: Sprite dimensions and alpha
