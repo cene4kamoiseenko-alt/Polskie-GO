@@ -34,12 +34,14 @@ export const LOOK_V2_DRAFT_MANIFEST: LookManifest = {
   base: {
     ...LOOK_PROTOTYPE_MANIFEST.base,
     version: VERSION,
-    layers: LOOK_PROTOTYPE_MANIFEST.base.layers.map(remap),
+    // V2 body already paints the waving hand in the pose; don't request obsolete masks.
+    layers: LOOK_PROTOTYPE_MANIFEST.base.layers.filter((layer) => !layer.asset.includes('arm-body')).map(remap),
   },
   items: LOOK_PROTOTYPE_MANIFEST.items.map((item) => ({
     ...item,
     compatibility: item.compatibility ? { ...item.compatibility, baseVersion: VERSION } : null,
-    layers: item.layers.map((layer) => remapItemLayer(item.id, layer)),
+    // All V2 jacket sleeves are painted in its complete pose-specific top layer.
+    layers: item.layers.filter((layer) => !layer.asset.includes('arm-top-')).map((layer) => remapItemLayer(item.id, layer)),
     note: 'Нова авторська послійна графіка, лише QA чернетка. Не для production.',
   })),
 };
