@@ -28,7 +28,8 @@
     "bobek:check:production": "node scripts/validate-bobek-art.mjs --production",
     "bobek:check:preview": "node --import tsx scripts/check-bobek-preview.mjs",
     "bobek:release": "node --import tsx scripts/bobek-release-gate.mjs",
-    "bobek:release:strict": "node --import tsx scripts/bobek-release-gate.mjs --strict"
+    "bobek:release:strict": "node --import tsx scripts/bobek-release-gate.mjs --strict",
+    "bobek:v2:import": "node scripts/import-bobek-v2.mjs"
   },
   "engines": {
     "node": ">=20"
