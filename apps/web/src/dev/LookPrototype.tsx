@@ -11,15 +11,8 @@ import { equip, resolveLook, unequip, type LookEquipment } from '@polski-go/shar
 import { BeaverLook } from '../components/Beaver';
 import { LazyMotion, MotionConfig, loadMotionFeatures } from '../lib/motion';
 import { LOOK_PROTOTYPE_MANIFEST as M, PROTO_STATES } from './lookPrototypeManifest';
-
-const files = import.meta.glob('./look-proto/**/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
-
-/** Ключ шару 'proto/idle/body' → URL: варіант @512, якщо його досить, інакше основний 1024. */
-export function protoAssetUrl(key: string, width: number): string | null {
-  const path = key.replace(/^proto\//, './look-proto/');
-  if (width <= 512 && files[`${path}@512.webp`]) return files[`${path}@512.webp`];
-  return files[`${path}.webp`] ?? files[`${path}@512.webp`] ?? null;
-}
+import { protoAssetUrl } from './protoAssets';
+import { getBobekPreviewSnapshot, notifyBobekPreviewChanged, setBobekPreviewEnabled } from '../lib/bobekPreview';
 
 const STORE = 'pg_look_prototype_v1';
 type Saved = { equipment: string[]; state: string };
@@ -46,6 +39,8 @@ const STEPS = [
 
 export default function LookPrototype() {
   const [saved, setSaved] = useState<Saved>(load);
+  const [appPreview, setAppPreview] = useState(() => getBobekPreviewSnapshot().startsWith('1\n'));
+
   const [restored] = useState(() => {
     try {
       return localStorage.getItem(STORE) !== null;
@@ -56,6 +51,7 @@ export default function LookPrototype() {
   useEffect(() => {
     try {
       localStorage.setItem(STORE, JSON.stringify(saved));
+      notifyBobekPreviewChanged();
     } catch {
       /* приватний режим: прототип працює без збереження */
     }
@@ -75,6 +71,28 @@ export default function LookPrototype() {
             Механика слоёв на временной графике: позы разложены из существующих картинок, синяя «куртка» — перекрашенное худи, кепка и очки
             нарисованы скриптом. Не финальная модель.
           </p>
+
+          <section className="card mt-3 p-3" aria-label="Перевірка образу у застосунку">
+            <p className="text-sm font-bold">Перевірити одного Бобека у справжньому POLSKI GO</p>
+            <p className="mt-1 text-xs">
+              Це окремий QA-режим. Усі Бобеки у фронтальному ракурсі показуватимуть комплект нижче.
+              Магазин і серверне вбрання не зміняться. Без QA-режиму користувачі бачать поточний образ.
+              Тимчасові графічні шари ще потребують перемалювання.
+            </p>
+            <button
+              className={`btn mt-2 min-h-11 w-full ${appPreview ? 'btn-red' : 'btn-ghost'}`}
+              aria-pressed={appPreview}
+              data-bobek-preview-toggle
+              onClick={() => {
+                const next = !appPreview;
+                setBobekPreviewEnabled(next);
+                setAppPreview(next);
+              }}
+            >
+              {appPreview ? 'Вимкнути QA-образ' : 'Увімкнути QA-образ на всіх екранах'}
+            </button>
+            <a className="btn btn-ghost mt-2 min-h-11 w-full" href="/" data-bobek-preview-open-app>Відкрити застосунок</a>
+          </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
             <BeaverLook look={look} size={240} resolveAsset={protoAssetUrl} />
