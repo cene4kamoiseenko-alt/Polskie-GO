@@ -23,7 +23,7 @@ function load(): Saved {
     const raw = localStorage.getItem(STORE);
     if (!raw) return DEFAULT;
     const v = JSON.parse(raw) as Partial<Saved>;
-    return { equipment: Array.isArray(v.equipment) ? v.equipment.filter((x) => typeof x === 'string') : DEFAULT.equipment, state: typeof v.state === 'string' ? v.state : DEFAULT.state };
+    return { equipment: Array.isArray(v.equipment) ? v.equipment.filter((x) => typeof x === 'string' && ['hoodie-red', 'jacket-denim', 'backpack-travel', 'cap-red', 'glasses-round'].includes(x)).slice(0, 5) : DEFAULT.equipment, state: PROTO_STATES.some((s) => s.id === v.state) ? v.state! : DEFAULT.state };
   } catch {
     return DEFAULT;
   }
@@ -85,8 +85,7 @@ export default function LookPrototype() {
               data-bobek-preview-toggle
               onClick={() => {
                 const next = !appPreview;
-                setBobekPreviewEnabled(next);
-                setAppPreview(next);
+                setAppPreview(setBobekPreviewEnabled(next));
               }}
             >
               {appPreview ? 'Вимкнути QA-образ' : 'Увімкнути QA-образ на всіх екранах'}
