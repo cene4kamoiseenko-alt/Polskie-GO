@@ -646,6 +646,13 @@ async function main() {
       check(zk.art === 'false' && await banner.count() === 1, `A3.8 Zakopane: оформление не выдаётся за готовое ${JSON.stringify(zk)}`);
       check(await banner.locator('img').count() === 1, 'A3.8 Zakopane: в шторке фото города (временный кадр с разрешения владельца)');
       await sp.screenshot({ path: `${SHEETS}/sheet-status-zakopane-390.png` });
+      // Rzeszów — так же (решение владельца 2026-10-31): временный кадр виден, оформление «скоро».
+      await openCity('Rzeszów');
+      const rz = await state();
+      const rzBanner = dialog.locator('[data-city-art="interim"]');
+      check(rz.art === 'false' && await rzBanner.count() === 1, `A3.8 Rzeszów: оформление не выдаётся за готовое ${JSON.stringify(rz)}`);
+      check(await rzBanner.locator('img').count() === 1, 'A3.8 Rzeszów: в шторке фото города (временный кадр с разрешения владельца)');
+      await sp.screenshot({ path: `${SHEETS}/sheet-status-rzeszow-390.png` });
     });
     await sheetUser.context.close();
 

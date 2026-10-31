@@ -42,6 +42,12 @@ describe('Фони міст', () => {
     }
   });
 
+  it('тимчасовий кадр показується лише з дозволу власника (shown): Zakopane і Rzeszów, 2026-10-31; у final прапорця немає', () => {
+    const shown = Object.entries(CITY_ART).filter(([, art]) => art.shown).map(([slug]) => slug).sort();
+    expect(shown).toEqual(['rzeszow', 'zakopane']);
+    for (const slug of shown) expect(CITY_ART[slug].status, slug).toBe('interim');
+  });
+
   it('документ інвентаря згадує кожне місто і його статус', () => {
     for (const [slug, art] of Object.entries(CITY_ART)) expect(doc, slug).toMatch(new RegExp(`\\| \`${slug}\` \\|[^\\n]*\\| ${art.status} \\|`));
   });

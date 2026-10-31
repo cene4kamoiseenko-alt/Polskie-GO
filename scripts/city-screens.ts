@@ -67,7 +67,7 @@ async function main() {
       await p.screenshot({ path: `${OUT}/map-${width}.png` });
       await noHScroll('карта');
 
-      for (const [name, slug, art] of [['Gdańsk', 'gdansk', 'final'], ['Katowice', 'katowice', 'final'], ['Zakopane', 'zakopane', 'interim']] as const) {
+      for (const [name, slug, art] of [['Gdańsk', 'gdansk', 'final'], ['Katowice', 'katowice', 'final'], ['Zakopane', 'zakopane', 'interim'], ['Rzeszów', 'rzeszow', 'interim']] as const) {
         const dialog = p.locator('[role="dialog"]');
         if (await dialog.count()) { await p.keyboard.press('Escape'); await p.waitForTimeout(500); }
         // Иллюстрированная карта (ADR-012): выбрать город (Enter после фокуса подводит камеру) и открыть «Подробнее».
@@ -78,7 +78,7 @@ async function main() {
         await settle();
         await p.screenshot({ path: `${OUT}/map-${slug}-${width}.png` });
         if (art === 'interim') {
-          // Zakopane: временный кадр, показ разрешён владельцем 2026-10-31 (CITY_ART.shown).
+          // Zakopane и Rzeszów: временный кадр, показ разрешён владельцем 2026-10-31 (CITY_ART.shown).
           const img = dialog.locator('[data-city-art="interim"] img');
           check(await img.count() === 1 && await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0 && el.srcset.includes('640w')), `${width}px шторка ${name}: фото города (временный кадр с разрешения владельца), srcset с 640w`);
           await noHScroll(`шторка ${name}`);
