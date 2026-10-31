@@ -49,7 +49,8 @@ export function Wordmark({ size = 22 }: { size?: number }) {
 }
 
 /** Шапка вкладок: логотип, серія, Złotki, Premium. Налаштування — у профілі (без дубля в шапці). */
-export function TopStats({ compact }: { compact?: boolean }) {
+/** noSafe — шапка лежит внутри экрана, который уже отступил от шапки Telegram (карта): второй отступ не нужен. */
+export function TopStats({ compact, noSafe }: { compact?: boolean; noSafe?: boolean }) {
   const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data;
@@ -57,7 +58,7 @@ export function TopStats({ compact }: { compact?: boolean }) {
   if (!me) return <div className="h-14" />;
   const round = 'grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev shadow-[var(--shadow-card)]';
   return (
-    <div className="safe-top flex items-center gap-1.5 px-4 pt-2">
+    <div className={cx(!noSafe && 'safe-top', 'flex items-center gap-1.5 px-4 pt-2')}>
       <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-auto min-w-0 shrink">
         <Wordmark size={19} />
       </button>

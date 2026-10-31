@@ -78,8 +78,9 @@ async function main() {
         await settle();
         await p.screenshot({ path: `${OUT}/map-${slug}-${width}.png` });
         if (art === 'interim') {
-          const banner = dialog.locator('[data-city-art="interim"]');
-          check(await banner.locator('img').count() === 0 && await banner.locator('svg').count() > 0, `${width}px шторка ${name}: без финальной панорамы — рисованная сцена, не мутный кадр`);
+          // Zakopane: временный кадр, показ разрешён владельцем 2026-10-31 (CITY_ART.shown).
+          const img = dialog.locator('[data-city-art="interim"] img');
+          check(await img.count() === 1 && await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0 && el.srcset.includes('640w')), `${width}px шторка ${name}: фото города (временный кадр с разрешения владельца), srcset с 640w`);
           await noHScroll(`шторка ${name}`);
           continue;
         }

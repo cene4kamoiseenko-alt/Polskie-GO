@@ -71,7 +71,9 @@ export const cityAsset = (slug: string) => pick('cities', slug);
  * клієнт малює ілюстрацію з позначкою «скоро» (рішення власника 2026-10-27).
  */
 export function cityArtImage(slug: string): { src: string; srcSet?: string; small: string } | null {
-  if (CITY_ART[slug]?.status !== 'final') return null;
+  const art = CITY_ART[slug];
+  // Фінальний кадр — завжди; тимчасовий — лише з дозволу власника (shown), інакше клієнт малює ілюстрацію.
+  if (!art || !(art.status === 'final' || (art.status === 'interim' && art.shown))) return null;
   const src = pick('cities', slug);
   if (!src) return null;
   const small = files[`../assets/cities/${slug}@${CITY_ART_SMALL}.webp`];

@@ -120,8 +120,8 @@ export default function MapScreen() {
       />
 
       {/* Шапка поверх карты: настоящие XP / серия / Złotki и прогресс путешествия */}
-      <div ref={hud} className="map-hud pointer-events-none absolute inset-x-0 top-0 z-[3] pb-3">
-        <div className="pointer-events-auto"><TopStats compact /></div>
+      <div ref={hud} className="map-hud pointer-events-none absolute inset-x-0 top-0 z-[3] pb-2">
+        <div className="pointer-events-auto"><TopStats compact noSafe /></div>
         <div className="mt-1.5 flex items-center gap-2 px-4">
           <h1 className="map-chip pointer-events-auto">
             {t('map_journey')} <span className="text-pl-red">{completedCount}/{j.cities.length}</span>

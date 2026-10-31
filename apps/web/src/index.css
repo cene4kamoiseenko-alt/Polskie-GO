@@ -1466,9 +1466,8 @@ html.reduced-motion .beaver-look .look-motion-wave { animation: none; }
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  background-size: cover;
-  background-position: center;
-  background-color: #6fb6dc;
+  /* Под картинкой снизу (за карточкой города) — светлая облачная дымка, как облака по краю рисунка. */
+  background: linear-gradient(180deg, #8cc4e4 0%, #dfe9ee 55%, #eef3f5 100%);
   overscroll-behavior: contain;
 }
 .map-viewport[data-dragging] { cursor: grabbing; }
@@ -1488,9 +1487,9 @@ html.reduced-motion .beaver-look .look-motion-wave { animation: none; }
   height: 100%;
   pointer-events: none;
   -webkit-user-drag: none;
-  /* Верх и низ картинки мягко уходят в размытую копию: нет жёсткой линии края. */
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%);
+  /* Низ картинки (облака и горы) мягко уходит в облачную дымку за карточкой: нет жёсткой линии края. Верх всегда у края экрана. */
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 48px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 48px), transparent 100%);
 }
 /* Кнопка города — прозрачная зона поверх нарисованной таблички; видна только в фокусе с клавиатуры. */
 .map-spot {
@@ -1622,7 +1621,8 @@ html.reduced-motion .beaver-look .look-motion-wave { animation: none; }
 }
 /* Шапка и карточка поверх карты: кремовое «стекло», текст читается на любой части рисунка. */
 .map-hud {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 70%, transparent 100%);
+  /* Без подложки-градиента: у значков серии, Złotki и чипа свой фон, карта видна до самого верха. */
+  background: none;
 }
 .map-card {
   background: color-mix(in srgb, var(--bg-elev) 96%, transparent);
@@ -1640,8 +1640,8 @@ html.reduced-motion .map-here-ring { animation: none; }
   align-items: center;
   gap: 6px;
   border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 15px;
+  padding: 3px 10px;
+  font-size: 13px;
   font-weight: 900;
   line-height: 1.3;
   background: color-mix(in srgb, var(--bg-elev) 94%, transparent);

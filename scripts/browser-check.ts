@@ -638,13 +638,13 @@ async function main() {
       check(await dialog.locator('[data-city-art="final"] img').count() === 1, 'A3.8 Katowice: баннер — панорама владельца');
       check((kt.access === 'true') === (await dialog.locator('[data-city-go]').count() === 1), `A3.8 Katowice: кнопка «Учить» есть только при открытом доступе (доступ ${kt.access})`);
       await sp.screenshot({ path: `${SHEETS}/sheet-status-katowice-390.png` });
-      // Zakopane — без финальной панорамы: мутный временный кадр не показывается (решение владельца 2026-10-27),
-      // вместо него рисованная сцена, «оформление» — «скоро».
+      // Zakopane — без финальной панорамы. Владелец 2026-10-31 попросил фото: временный кадр (shown) показывается,
+      // но «оформление» по-прежнему «скоро» (не выдаётся за финальное).
       await openCity('Zakopane');
       const zk = await state();
       const banner = dialog.locator('[data-city-art="interim"]');
       check(zk.art === 'false' && await banner.count() === 1, `A3.8 Zakopane: оформление не выдаётся за готовое ${JSON.stringify(zk)}`);
-      check(await banner.locator('img').count() === 0 && await banner.locator('svg').count() > 0, 'A3.8 Zakopane: вместо мутного временного кадра — рисованная сцена (svg), без <img>');
+      check(await banner.locator('img').count() === 1, 'A3.8 Zakopane: в шторке фото города (временный кадр с разрешения владельца)');
       await sp.screenshot({ path: `${SHEETS}/sheet-status-zakopane-390.png` });
     });
     await sheetUser.context.close();

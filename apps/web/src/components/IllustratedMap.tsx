@@ -80,6 +80,7 @@ export const IllustratedMap = forwardRef<MapHandle, Props>(function IllustratedM
   const inertia = useRef(0);
   const ready = useRef(false);
   const [zoomState, setZoomState] = useState<{ atMin: boolean; atMax: boolean }>({ atMin: false, atMax: false });
+  const [loaded, setLoaded] = useState(false);
 
   const byId = useMemo(() => new Map(cities.map((c) => [c.slug, c])), [cities]);
   const currentSlug = cities.find((c) => c.id === currentCityId)?.slug ?? null;
@@ -93,11 +94,15 @@ export const IllustratedMap = forwardRef<MapHandle, Props>(function IllustratedM
   const minScale = useCallback(() => {
     const el = box.current;
     if (!el) return 0.5;
-    const win = Math.max(1, el.clientHeight - pads.current.top - pads.current.bottom);
+    // Сверху карта всегда доходит до края экрана (шапка лежит поверх неё), снизу — до карточки города.
+    const win = Math.max(1, el.clientHeight - pads.current.bottom);
     return Math.min(MAX_SCALE, Math.max(el.clientWidth / W, win / H));
   }, []);
 
-  /** Не даём уйти за край: по ширине карта всегда закрывает экран, по высоте — окно между панелями. */
+  /**
+   * Не даём уйти за край: по ширине карта всегда закрывает экран; сверху её край не опускается ниже края экрана
+   * (никаких пустых полос под шапкой), снизу поднимается не выше карточки — чтобы Краков и Закопане можно было вывести над ней.
+   */
   const clamp = useCallback(() => {
     const el = box.current;
     if (!el) return;
@@ -106,10 +111,9 @@ export const IllustratedMap = forwardRef<MapHandle, Props>(function IllustratedM
     const w = W * c.s;
     const h = H * c.s;
     const vw = el.clientWidth;
-    const top = pads.current.top;
     const bottom = el.clientHeight - pads.current.bottom;
     c.x = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, c.x));
-    c.y = h <= bottom - top ? top + (bottom - top - h) / 2 : Math.min(top, Math.max(bottom - h, c.y));
+    c.y = h <= bottom ? (bottom - h) / 2 : Math.min(0, Math.max(bottom - h, c.y));
   }, [minScale]);
 
   const lastZoom = useRef('');
@@ -425,7 +429,6 @@ export const IllustratedMap = forwardRef<MapHandle, Props>(function IllustratedM
     <div
       ref={box}
       className="map-viewport absolute inset-0"
-      style={{ backgroundImage: `url(${MAP_LQIP})` }}
       tabIndex={0}
       role="region"
       aria-label={props.ariaLabel}
@@ -435,8 +438,9 @@ export const IllustratedMap = forwardRef<MapHandle, Props>(function IllustratedM
       onKeyDown={onKey}
     >
       <span id="map-hint" className="sr-only">{props.ariaHint}</span>
-      <div ref={stage} className="map-stage" style={{ width: W, height: H, backgroundImage: `url(${MAP_LQIP})` }}>
-        <img src={mapSrc} width={W} height={H} alt="" className="map-art" draggable={false} decoding="async" {...{ fetchpriority: 'high' }} />
+      {/* Размытая копия видна только пока грузится картинка; после загрузки — чистая карта без «мыльных» краёв. */}
+      <div ref={stage} className="map-stage" style={{ width: W, height: H, backgroundImage: loaded ? undefined : `url(${MAP_LQIP})` }} data-loaded={loaded || undefined}>
+        <img src={mapSrc} width={W} height={H} alt="" className="map-art" draggable={false} decoding="async" {...{ fetchpriority: 'high' }} onLoad={() => setLoaded(true)} ref={(el) => { if (el?.complete && el.naturalWidth && !loaded) setLoaded(true); }} />
         {/* Медальон города, которого нет на рисунке (Закопане): вид Татр в рамке. */}
         {Object.entries(MAP_SPOTS).filter(([, s]) => s.medallion && s.models?.[0]).map(([k, s]) => (
           <img key={`m-${k}`} src={MEDALLIONS[s.medallion!]} alt="" className="map-medallion" style={rectStyle(s.models![0])} draggable={false} decoding="async" data-medallion={k} />
