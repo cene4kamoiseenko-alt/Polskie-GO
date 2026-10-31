@@ -4,7 +4,7 @@
  * Що є насправді:
  * - Шарової живописної бази ще немає (`base.status = 'pending'`): поки малюється цілісний
  *   базовий образ `legacyBase` — 14 поз `apps/web/src/assets/beaver/*.webp`, у кожну впечатані
- *   червоне худі PL і зелений рюкзак. Полотна різні (512 і 768), масштаб і положення голови
+ *   червоне худі PL і зелений рюкзак. Полотна різні (512, 768 і 1024 — wave, read, celebrate: майстри власника 2026-10-31), масштаб і положення голови
  *   між позами відрізняються — шари на них не накладаються.
  * - 7 цілісних костюмів `apps/web/src/assets/costumes/*.webp` (512×512, альфа) — `legacy-whole-look`.
  * - Решта одягу каталогу живописних шарів не має — `pending`: не малюється, у гардеробі «скоро».
@@ -142,15 +142,15 @@ export const LOOK_MANIFEST: LookManifest = {
     id: 'legacy-base',
     includes: { top: 'hoodie-red', backpack: 'backpack-travel' },
     poses: {
-      wave: { asset: 'beaver/wave', size: { w: 768, h: 768 }, view: 'front' },
+      wave: { asset: 'beaver/wave', size: { w: 1024, h: 1024 }, view: 'front' },
       greet: { asset: 'beaver/greet', size: { w: 512, h: 512 }, view: 'front' },
       think: { asset: 'beaver/think', size: { w: 768, h: 768 }, view: 'front' },
       doubt: { asset: 'beaver/doubt', size: { w: 512, h: 512 }, view: 'front' },
       correct: { asset: 'beaver/correct', size: { w: 512, h: 512 }, view: 'front' },
       support: { asset: 'beaver/support', size: { w: 512, h: 512 }, view: 'front' },
       victory: { asset: 'beaver/victory', size: { w: 512, h: 512 }, view: 'front' },
-      celebrate: { asset: 'beaver/celebrate', size: { w: 768, h: 768 }, view: 'front' },
-      read: { asset: 'beaver/read', size: { w: 768, h: 768 }, view: 'front' },
+      celebrate: { asset: 'beaver/celebrate', size: { w: 1024, h: 1024 }, view: 'front' },
+      read: { asset: 'beaver/read', size: { w: 1024, h: 1024 }, view: 'front' },
       travel: { asset: 'beaver/travel', size: { w: 512, h: 512 }, view: 'front' },
       front: { asset: 'beaver/front', size: { w: 512, h: 512 }, view: 'front' },
       'three-quarter': { asset: 'beaver/three-quarter', size: { w: 512, h: 512 }, view: 'three-quarter' },

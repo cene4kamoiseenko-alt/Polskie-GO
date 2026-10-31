@@ -125,11 +125,11 @@ export default function PremiumScreen() {
     <div className="space-y-5 pb-8">
       <Confetti run={status === 'paid' || !!gotGift} />
       <ScreenHeader title={t('prem_title')} subtitle={t('prem_subtitle')} />
-      <div className="mx-4 flex flex-col items-center rounded-[28px] p-5 text-center" style={{ background: 'linear-gradient(160deg,#FFE3E3,#FFF4D6 60%,#E9DDFF)' }}>
+      <div className="premium-hero mx-4 rounded-[28px] p-5 text-center">
+        <div className="premium-hero-crown flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-[0.15em]"><Icon name="crown" size={18} filled /> POLSKI GO</div>
         <Beaver size={150} mood="celebrate" />
-        <div className="text-3xl font-black">
-          <span className="text-pl-red">POLSKI GO</span> <span className="text-xp-dark">PREMIUM</span>
-        </div>
+        <div className="premium-hero-title text-[28px] font-black leading-tight">PREMIUM</div>
+        <div className="premium-hero-subtitle mt-1 text-[13px] font-bold">{t('prem_pass_d')}</div>
       </div>
 
       {status === 'waiting' && <div className="mx-4 rounded-2xl bg-sky/20 p-3 text-center font-black"><span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-sky-dark/30 border-t-sky-dark align-middle" />{t('prem_waiting')}</div>}
@@ -154,7 +154,7 @@ export default function PremiumScreen() {
       )}
 
       {/* Пропуск місяця — головне, що дає Premium: сезонна локація з власними місіями. */}
-      <div className="card mx-4 space-y-3 p-4 ring-2 ring-xp" data-premium-pass>
+      <div className="premium-pass-feature card mx-4 space-y-3 p-4" data-premium-pass>
         <div className="flex items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-xp/25"><Art name="crown" size={30} /></span>
           <div className="min-w-0 flex-1">

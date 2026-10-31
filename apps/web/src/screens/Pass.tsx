@@ -78,7 +78,7 @@ function SeasonBlock({ season, premium, compact }: { season: PassSeason; premium
   const nav = useNavigate();
   return (
     <div className="space-y-3 px-4" data-season={season.slug} data-season-state={season.state}>
-      <div className="pass-card relative overflow-hidden" style={{ ['--pass' as string]: season.color }}>
+      <div className="pass-card premium-season-banner relative overflow-hidden" style={{ ['--pass' as string]: season.color }}>
         <Scene name={season.scene} className={cx('block w-full opacity-90', compact ? 'h-24' : 'h-36')} evening={season.slug === 'swieta'} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#13234a] via-[#13234a]/40 to-transparent" />
         {season.state === 'active' && <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[12px] font-black text-white">{t('pass_days_left', { n: season.daysLeft ?? 0 })}</span>}

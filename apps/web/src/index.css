@@ -1386,3 +1386,66 @@ html.reduced-motion .beaver-look .look-motion-wave { animation: none; }
   .beaver-look.is-live .look-motion-blink,
   .beaver-look.is-live .look-motion-wave { animation: none; }
 }
+
+/* POLSKI GO Premium missions — deliberately the same card anatomy as ordinary missions.
+   Distinction is conveyed by crown + frame, not solely by hue or extra actions. */
+.premium-mission-card {
+  background: linear-gradient(155deg, #29224d 0%, #1b2444 55%, #112641 100%);
+  border: 1.5px solid rgb(255 201 96 / .78);
+  box-shadow: 0 10px 30px -17px rgb(255 190 76 / .6), inset 0 1px 0 rgb(255 255 255 / .08);
+  color: #fff9ef;
+}
+.premium-mission-card .muted { color: #c6c7dd; }
+.premium-mission-image-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgb(13 16 42 / .4) 0%, transparent 43%);
+}
+.premium-mission-action {
+  background: linear-gradient(160deg, #fbd679, #d99622);
+  color: #402806;
+  box-shadow: 0 3px 0 #986115, 0 4px 17px -7px rgb(255 202 74 / .6);
+}
+.premium-mission-action-locked {
+  background: #584b69;
+  color: #ffe6a4;
+  border: 1px solid #cba85a;
+}
+.premium-mission-locked .premium-mission-image-shade {
+  background: linear-gradient(0deg, rgb(18 16 40 / .54), rgb(14 12 30 / .2));
+}
+.premium-hero {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 48% 22%, #553a8e 0%, #322352 46%, #161a3c 100%);
+  border: 1.5px solid rgb(247 197 85 / .7);
+  box-shadow: 0 8px 30px -11px rgb(255 195 84 / .5), inset 0 1px 0 rgb(255 255 255 / .12);
+  color: #fff9ee;
+}
+.premium-hero::before, .premium-hero::after {
+  content: '✦'; position: absolute; color: #fce29a; font-size: 26px;
+  text-shadow: 0 0 14px rgb(255 207 87 / .9);
+  pointer-events: none;
+}
+.premium-hero::before { top: 27px; left: 13%; }
+.premium-hero::after { top: 92px; right: 10%; font-size: 17px; }
+.premium-hero-crown { color: #ffe3a0; }
+.premium-hero-title {
+  background: linear-gradient(180deg, #fff7d7, #ffc857);
+  background-clip: text; -webkit-background-clip: text; color: transparent;
+  letter-spacing: .035em;
+}
+.premium-hero-subtitle { color: #e5d7f4; }
+.premium-pass-feature {
+  background: linear-gradient(135deg, #322553, #18264b 75%);
+  border: 1.5px solid #d5ad59;
+  box-shadow: 0 8px 26px -12px rgb(255 200 87 / .5);
+  color: #fff9ee; /* Must stay legible even in user-selected light theme. */
+}
+.premium-pass-feature .muted { color: #ddd6ed; }
+.premium-pass-feature .text-xp-dark { color: #ffe3a0; }
+.premium-season-banner { background-color: #211c44; }
+@media (prefers-reduced-motion: reduce) {
+  .premium-mission-card, .premium-hero { animation: none; }
+}
