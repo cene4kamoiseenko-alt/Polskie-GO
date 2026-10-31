@@ -210,7 +210,7 @@ describe('що дає Premium', () => {
     ]);
     const steps = Object.fromEntries(premium.map((m: { slug: string; steps: number }) => [m.slug, m.steps]));
     expect(steps).toEqual({
-      landlord: 7, 'first-workday': 7, 'doctor-appointment': 7, 'lotnisko-lot': 6, 'zakopane-ferie': 6, 'warszawa-dzien': 6,
+      landlord: 21, 'first-workday': 21, 'doctor-appointment': 21, 'lotnisko-lot': 20, 'zakopane-ferie': 20, 'warszawa-dzien': 19,
     });
     expect(premium.every((m: { locked: boolean }) => m.locked)).toBe(true);
     expect(list.missions.filter((m: { locked: boolean }) => m.locked)).toHaveLength(6);
@@ -222,7 +222,7 @@ describe('що дає Premium', () => {
     expect((await prem.call('GET', '/api/missions')).body.missions.some((m: { locked: boolean }) => m.locked)).toBe(false);
     const run = await prem.call('POST', '/api/missions/doctor-appointment/start');
     expect(run.status).toBe(200);
-    expect(run.body.mission.steps).toHaveLength(7);
+    expect(run.body.mission.steps).toHaveLength(21);
   });
 
   it('подарунок місяця: без Premium — 403; з Premium — 150 Złotki і річ Premium один раз на місяць', async () => {
