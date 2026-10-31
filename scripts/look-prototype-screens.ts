@@ -76,7 +76,7 @@ async function main() {
     check(blinkAnim === 'look-blink', `моргание: ${blinkAnim}`);
 
     // 5 секунд кадров для GIF: змах и одно моргание (цикл 4,6 с).
-    const card = p.locator('[data-look-prototype] .card').first();
+    const card = p.locator('[data-bobek-demo-card]');
     for (let i = 0; i < 50; i++) {
       await card.screenshot({ path: join(frames, `f${String(i).padStart(3, '0')}.png`), scale: 'css' });
       await p.waitForTimeout(60);
