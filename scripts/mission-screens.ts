@@ -82,8 +82,8 @@ async function main() {
       await p.screenshot({ path: `${OUT}/life-full-${width}.png`, fullPage: true });
       await noHScroll('/life');
 
-      // Экран входа в каждую миссию с картинкой и в Lidl (без картинки).
-      for (const slug of [...WITH_ART, 'lidl-list']) {
+      // Экран входа в каждую миссию с картинкой и в три миссии без картинки (свой Бобек в позе по сюжету: кофе, оплата, привет).
+      for (const slug of [...WITH_ART, 'orlen-coffee', 'krakow-pierogi', 'urzad-pesel']) {
         await p.goto(`${base}/life/${slug}?devUser=${id}`);
         await p.locator('h1').first().waitFor({ timeout: 20_000 });
         await settle();

@@ -123,9 +123,15 @@ describe('образ: resolveLook на поточних ассетах', () => {
 
   it('стан → поза; пози без картинки показують запасну з позначкою', () => {
     expect(resolveLook(STARTER, ['backpack-travel'], { mood: 'cheer' }).layers[0].asset).toBe('beaver/correct');
-    const sleep = resolveLook(STARTER, ['backpack-travel'], { mood: 'sleep' });
-    expect(sleep.layers[0].asset).toBe('beaver/greet');
-    expect(sleep.poseFallback).toBe(true);
+    // Позы владельца 2026-10-31: у сна, удивления, «объясняет» и пяти новых состояний — своя картинка.
+    for (const [mood, asset] of [['sleep', 'sleep'], ['surprised', 'surprised'], ['explain', 'idea'], ['coffee', 'coffee'], ['pay', 'pay'], ['parcel', 'parcel'], ['tired', 'tired'], ['laptop', 'laptop']]) {
+      const r = resolveLook(STARTER, ['backpack-travel'], { mood });
+      expect(r.layers[0].asset, mood).toBe(`beaver/${asset}`);
+      expect(r.poseFallback, mood).toBe(false);
+    }
+    const royal = resolveLook(STARTER, ['backpack-travel'], { mood: 'royal' });
+    expect(royal.layers[0].asset).toBe('beaver/greet');
+    expect(royal.poseFallback).toBe(true);
     expect(resolveLook(STARTER, ['backpack-travel'], { view: 'back' }).layers[0].asset).toBe('beaver/back');
     for (const mood of ['constructor', '__proto__', 'toString', 'nope']) {
       const r = resolveLook(STARTER, ['backpack-travel'], { mood });

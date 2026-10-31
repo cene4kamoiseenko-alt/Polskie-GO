@@ -156,12 +156,22 @@ export const LOOK_MANIFEST: LookManifest = {
       'three-quarter': { asset: 'beaver/three-quarter', size: { w: 512, h: 512 }, view: 'three-quarter' },
       side: { asset: 'beaver/side', size: { w: 512, h: 512 }, view: 'side' },
       back: { asset: 'beaver/back', size: { w: 512, h: 512 }, view: 'back' },
+      // Пози власника 2026-10-31 (оригінали — docs/design/v16/bobek/): той самий масштаб і лінія ніг, що в wave.
+      coffee: { asset: 'beaver/coffee', size: { w: 1024, h: 1024 }, view: 'front' },
+      pay: { asset: 'beaver/pay', size: { w: 1024, h: 1024 }, view: 'front' },
+      parcel: { asset: 'beaver/parcel', size: { w: 1024, h: 1024 }, view: 'front' },
+      idea: { asset: 'beaver/idea', size: { w: 1024, h: 1024 }, view: 'front' },
+      surprised: { asset: 'beaver/surprised', size: { w: 1024, h: 1024 }, view: 'front' },
+      tired: { asset: 'beaver/tired', size: { w: 1024, h: 1024 }, view: 'front' },
+      laptop: { asset: 'beaver/laptop', size: { w: 1024, h: 1024 }, view: 'front' },
+      sleep: { asset: 'beaver/sleep', size: { w: 1024, h: 1024 }, view: 'front' },
     },
-    // Те саме, що BEAVER_POSES у apps/web/src/lib/assets.ts. sleep, royal, music — пози немає.
+    // royal, music — пози немає (запасна поза).
     moods: {
-      wave: 'wave', happy: 'greet', travel: 'travel', map: 'front', explain: 'three-quarter',
-      think: 'think', wait: 'doubt', surprised: 'doubt', mic: 'wave', cheer: 'correct',
+      wave: 'wave', happy: 'greet', travel: 'travel', map: 'front', explain: 'idea',
+      think: 'think', wait: 'doubt', surprised: 'surprised', mic: 'wave', cheer: 'correct',
       sad: 'support', celebrate: 'victory', gift: 'celebrate', read: 'read', learn: 'read',
+      sleep: 'sleep', coffee: 'coffee', pay: 'pay', parcel: 'parcel', tired: 'tired', laptop: 'laptop',
     },
     views: { 'three-quarter': 'three-quarter', side: 'side', back: 'back' },
     fallbackPose: 'greet',

@@ -88,6 +88,14 @@ function TopBar({ onClose, value, max }: { onClose: () => void; value: number; m
   );
 }
 
+/** Поза Бобека на вступі місії — за сюжетом: кава, посилка, оплата на касі; решта — вітається. */
+const PAY_MISSIONS = new Set(['zabka-first-order', 'biedronka-breakfast', 'lidl-list', 'rossmann-basics', 'orlen-pump', 'torun-bakery', 'bar-mleczny', 'krakow-pierogi', 'kazimierz-zapiekanka', 'marcin-rogal', 'jarmark-oscypek', 'park-bilety', 'first-tram', 'train-wroclaw']);
+function introMood(slug: string): BeaverMood {
+  if (slug === 'orlen-coffee') return 'coffee';
+  if (slug === 'paczkomat') return 'parcel';
+  return PAY_MISSIONS.has(slug) ? 'pay' : 'wave';
+}
+
 function Intro({ run, onStart, onClose }: { run: MissionRun; onStart: () => void; onClose: () => void }) {
   const { t, tr } = useT();
   const m = run.mission;
@@ -103,7 +111,7 @@ function Intro({ run, onStart, onClose }: { run: MissionRun; onStart: () => void
         {/* Тимчасові кадри вже мають Бобека в картинці: другого поверх не малюємо. */}
         {!baked && (
           <motion.div className="absolute -bottom-6 right-3" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-            <Beaver mood="wave" size={104} />
+            <Beaver mood={introMood(m.slug)} size={104} />
           </motion.div>
         )}
       </div>

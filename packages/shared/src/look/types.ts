@@ -37,6 +37,8 @@ export type LookView = (typeof LOOK_VIEWS)[number];
 export const LOOK_MOODS = [
   'happy', 'wave', 'sad', 'think', 'celebrate', 'sleep', 'travel', 'gift', 'cheer',
   'surprised', 'read', 'learn', 'royal', 'wait', 'explain', 'music', 'mic', 'map',
+  // Пози власника 2026-10-31: кава, оплата карткою, посилка, втома, ноутбук.
+  'coffee', 'pay', 'parcel', 'tired', 'laptop',
 ] as const;
 export type LookMood = (typeof LOOK_MOODS)[number];
 

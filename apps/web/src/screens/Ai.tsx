@@ -123,7 +123,7 @@ export default function AiScreen() {
         <ScreenHeader title={t('ai_title')} subtitle={t('ai_subtitle')} right={<GameIcon name="ai" size={40} />} />
         <div className="relative mx-4 overflow-hidden rounded-[28px] p-4 shadow-[var(--shadow-card)]" style={{ background: 'linear-gradient(160deg, #DFF3FF 0%, #EDE4FF 100%)' }}>
           <div className="flex items-end gap-3">
-            <Beaver mood="learn" size={110} />
+            <Beaver mood="laptop" size={110} />
             <div className="min-w-0 flex-1 space-y-2 pb-2">
               <div className="rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm font-bold shadow-sm">{t('ai_welcome')}</div>
               {status}

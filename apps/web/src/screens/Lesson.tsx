@@ -475,7 +475,7 @@ function QuitModal({ open, onStay, onQuit }: { open: boolean; onStay: () => void
   const { t } = useT();
   return (
     <Modal open={open} onClose={onStay}>
-      <Beaver mood="sad" size={110} />
+      <Beaver mood="tired" size={110} />
       <h2 className="mt-2 text-xl font-black">{t('lesson_quit')}</h2>
       <p className="muted mt-1 font-semibold">{t('lesson_quit_text')}</p>
       <div className="mt-5 space-y-3">

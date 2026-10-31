@@ -70,7 +70,8 @@ describe('Живописний Бобек у вебі: ассети за ман�
   it('стан без пози в маніфесті — запасна поза (не вигадана), таблиця станів одна', () => {
     expect(beaverAsset('cheer')).toBe(assetByKey('beaver/correct'));
     expect(beaverAsset('happy')).toBe(assetByKey('beaver/greet'));
-    for (const mood of ['sleep', 'royal', 'music']) {
+    for (const mood of ['sleep', 'coffee', 'pay', 'parcel', 'tired', 'laptop', 'surprised']) expect(beaverAsset(mood), mood).not.toBeNull();
+    for (const mood of ['royal', 'music']) {
       expect(beaverAsset(mood), mood).toBeNull();
       const look = resolveLook(null, STARTER, { mood });
       expect(look.poseFallback, mood).toBe(true);
