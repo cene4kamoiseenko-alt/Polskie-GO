@@ -103,6 +103,6 @@ describe('міграція 0013 на копії даних', () => {
     const me = await call('GET', '/api/me', token);
     expect(me.status).toBe(200);
     expect((await call('GET', '/api/premium', token)).body.gift).toMatchObject({ ready: false, claimed: false });
-    expect((await call('GET', '/api/missions', token)).body.missions.filter((m: { locked: boolean }) => m.locked)).toHaveLength(3);
+    expect((await call('GET', '/api/missions', token)).body.missions.filter((m: { locked: boolean }) => m.locked)).toHaveLength(6);
   });
 });

@@ -205,9 +205,15 @@ describe('що дає Premium', () => {
     const free = await login();
     const list = (await free.call('GET', '/api/missions')).body;
     const premium = list.missions.filter((m: { premium: boolean }) => m.premium);
-    expect(premium.map((m: { slug: string }) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment']);
-    expect(premium.every((m: { locked: boolean; steps: number }) => m.locked && m.steps === 7)).toBe(true);
-    expect(list.missions.filter((m: { locked: boolean }) => m.locked)).toHaveLength(3);
+    expect(premium.map((m: { slug: string }) => m.slug)).toEqual([
+      'landlord', 'first-workday', 'doctor-appointment', 'lotnisko-lot', 'zakopane-ferie', 'warszawa-dzien',
+    ]);
+    const steps = Object.fromEntries(premium.map((m: { slug: string; steps: number }) => [m.slug, m.steps]));
+    expect(steps).toEqual({
+      landlord: 7, 'first-workday': 7, 'doctor-appointment': 7, 'lotnisko-lot': 6, 'zakopane-ferie': 6, 'warszawa-dzien': 6,
+    });
+    expect(premium.every((m: { locked: boolean }) => m.locked)).toBe(true);
+    expect(list.missions.filter((m: { locked: boolean }) => m.locked)).toHaveLength(6);
     expect(list.soon).toEqual([]);
     expect((await free.call('POST', '/api/missions/landlord/start')).body.error).toBe('premium_required');
 
