@@ -16,13 +16,39 @@ const placement = {
   jacket: [269, 532, 510, 319],
   pack: [229, 511, 220, 326],
   cap: [351, 62, 315, 185],
-  glasses: [348, 335, 326, 128],
+  // V3 source is already full of optical highlights; glasses must cover eyes, not the muzzle.
+  glasses: [416, 255, 326, 128],
 };
 const size = 1024;
 const layers = {};
 for (const name of parts) {
   const input = Buffer.from(raw[name], 'base64');
-  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  // The concept-sheet background removal also removed *enclosed white details*
+  // (pupil highlights and two front teeth). Restore only enclosed transparent
+  // islands; transparent exterior/background remains unchanged.
+  let sourceImage = input;
+  if (name === 'body') {
+    const { data: pixels, info: px } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const w = px.width, h = px.height, channels = px.channels;
+    const transparent = new Uint8Array(w*h);
+    for (let i=0; i<transparent.length; i++) transparent[i] = pixels[i*channels+3] <= 10 ? 1 : 0;
+    const exterior = new Uint8Array(w*h), queue = new Int32Array(w*h);
+    let start=0,end=0;
+    const add=(p) => { if (transparent[p] && !exterior[p]) { exterior[p]=1; queue[end++]=p; } };
+    for (let x=0;x<w;x++) { add(x); add((h-1)*w+x); }
+    for (let y=0;y<h;y++) { add(y*w); add(y*w+w-1); }
+    while(start<end) {
+      const i=queue[start++], x=i%w, y=Math.floor(i/w);
+      if(x>0) add(i-1); if(x+1<w) add(i+1);
+      if(y>0) add(i-w); if(y+1<h) add(i+w);
+    }
+    for(let i=0;i<transparent.length;i++) if(transparent[i] && !exterior[i]) {
+      const base=i*channels;
+      pixels[base]=255; pixels[base+1]=255; pixels[base+2]=255; pixels[base+3]=255;
+    }
+    sourceImage = await sharp(pixels, { raw: { width:w, height:h, channels } }).png().toBuffer();
+  }
+  const { data, info } = await sharp(sourceImage).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   let left = info.width, top = info.height, right = -1, bottom = -1;
   for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
     const alpha = data[(y * info.width + x) * info.channels + 3];
@@ -33,7 +59,7 @@ for (const name of parts) {
   }
   if (right < left) throw Error('Empty artwork layer: ' + name);
   const [x, y, width, height] = placement[name];
-  const cropped = await sharp(input)
+  const cropped = await sharp(sourceImage)
     .extract({left, top, width: right-left+1, height: bottom-top+1})
     .resize(width, height, {fit:'fill',kernel:'lanczos3'}).png().toBuffer();
   layers[name] = await sharp({create:{width:size,height:size,channels:4,background:{r:0,g:0,b:0,alpha:0}}})
