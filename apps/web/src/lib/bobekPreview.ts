@@ -9,6 +9,8 @@ export const BOBEK_PREVIEW_FLAG = 'pg_bobek_layers_preview';
 export const BOBEK_PROTOTYPE_STORE = 'pg_look_prototype_v1';
 const EVENT = 'polski-go:bobek-preview-changed';
 const DEFAULT_ITEMS = ['hoodie-red', 'backpack-travel'];
+/** Прототип дозволяє лише 5 справжніх id свого маніфесту, не весь серверний каталог. */
+const PREVIEW_ITEMS = new Set([...DEFAULT_ITEMS, 'jacket-denim', 'cap-red', 'glasses-round']);
 
 export function getBobekPreviewSnapshot(): string {
   if (typeof window === 'undefined') return '';
@@ -50,7 +52,7 @@ export function readBobekPreviewEquipment(snapshot: string): string[] | null {
   try {
     const data = JSON.parse(raw) as { equipment?: unknown };
     if (!Array.isArray(data.equipment)) return [...DEFAULT_ITEMS];
-    return data.equipment.filter((id): id is string => typeof id === 'string');
+    return data.equipment.filter((id): id is string => typeof id === 'string' && PREVIEW_ITEMS.has(id)).slice(0, PREVIEW_ITEMS.size);
   } catch {
     return [...DEFAULT_ITEMS];
   }
