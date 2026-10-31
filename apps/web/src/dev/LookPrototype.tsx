@@ -94,7 +94,7 @@ export default function LookPrototype() {
             <a className="btn btn-ghost mt-2 min-h-11 w-full" href="/" data-bobek-preview-open-app>Відкрити застосунок</a>
           </section>
 
-          <div className="card mt-3 flex flex-col items-center p-3" style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
+          <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
             <BeaverLook look={look} size={240} resolveAsset={protoAssetUrl} />
             <div className="mt-2 w-full break-words font-mono text-[11px] leading-tight text-[var(--text-muted)]" data-proto-state>
               pose: {look.pose} · drawn: {look.drawn.join(' ')} · layers: {look.layers.length}
