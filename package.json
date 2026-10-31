@@ -23,7 +23,9 @@
     "perf": "node --import tsx scripts/perf.ts",
     "a11y": "node --import tsx scripts/a11y.ts",
     "screens": "node --import tsx scripts/screens.ts",
-    "assets": "node scripts/validate-assets.mjs"
+    "assets": "node scripts/validate-assets.mjs",
+    "bobek:check": "node scripts/validate-bobek-art.mjs",
+    "bobek:check:production": "node scripts/validate-bobek-art.mjs --production"
   },
   "engines": {
     "node": ">=20"
