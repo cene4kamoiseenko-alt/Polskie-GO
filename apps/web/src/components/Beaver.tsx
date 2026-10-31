@@ -13,11 +13,16 @@
  * якого видно (IntersectionObserver), розміром від 96 px, без «Менше анімацій» / prefers-reduced-motion і не більше
  * одного на екрані (найбільшого).
  */
-import { memo, useEffect, useRef, useSyncExternalStore, type CSSProperties } from 'react';
+import { lazy, memo, Suspense, useEffect, useRef, useSyncExternalStore, type CSSProperties } from 'react';
 import { LOOK_CANVAS, layerDataAttributes, lookDataAttributes, type LookMood, type LookRenderLayer, type LookView, type ResolvedLook } from '@polski-go/shared';
 import { motion, useInView, useReducedMotion } from '../lib/motion';
 import { lookAssetUrl, lookDeliveryWidth } from '../lib/assets';
 import { useLook } from '../lib/look';
+import { getBobekPreviewSnapshot, readBobekPreviewEquipment, subscribeBobekPreview } from '../lib/bobekPreview';
+
+// QA-риг завантажується лише на вимогу. Від звичайної збірки Бобека не відбираємо якість чи швидкість.
+const PreviewBobek = lazy(() => import('../dev/PreviewBobek'));
+
 
 /**
  * Стани: привітання (wave), правильна відповідь (cheer), підтримка після помилки (sad), роздуми (think),
@@ -149,8 +154,19 @@ export const BeaverLook = memo(function BeaverLook({
   );
 });
 
-/** Бобек користувача: той самий збережений образ на кожному екрані. */
+/**
+ * Production залишено недоторканим. Лише явний QA opt-in на /__look-prototype
+ * показує прототипний комплект на ВСІХ front-screen станах Бобека.
+ * Для side/back залишаємо справжні assets: прототип не має цих ракурсів.
+ */
 export const Beaver = memo(function Beaver({ mood = 'happy', view = 'front', ...rest }: ViewProps & { mood?: BeaverMood; view?: LookView }) {
   const look = useLook(mood, view);
-  return <BeaverLook look={look} {...rest} />;
+  const snapshot = useSyncExternalStore(subscribeBobekPreview, getBobekPreviewSnapshot, () => '');
+  const previewEquipment = readBobekPreviewEquipment(snapshot);
+  if (previewEquipment === null || view !== 'front') return <BeaverLook look={look} {...rest} />;
+  return (
+    <Suspense fallback={<BeaverLook look={look} {...rest} />}>
+      <PreviewBobek equipment={previewEquipment} mood={mood} {...rest} />
+    </Suspense>
+  );
 });
