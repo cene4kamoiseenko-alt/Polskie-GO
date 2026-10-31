@@ -76,7 +76,7 @@ async function main() {
     check(blinkAnim === 'look-blink', `моргание: ${blinkAnim}`);
 
     // 5 секунд кадров для GIF: змах и одно моргание (цикл 4,6 с).
-    const card = p.locator('[data-look-prototype] .card').first();
+    const card = p.locator('[data-bobek-demo-card]');
     for (let i = 0; i < 50; i++) {
       await card.screenshot({ path: join(frames, `f${String(i).padStart(3, '0')}.png`), scale: 'css' });
       await p.waitForTimeout(60);
@@ -107,6 +107,20 @@ async function main() {
     await p.setViewportSize({ width: 320, height: 700 });
     await p.waitForTimeout(400);
     check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '320 px: нет горизонтальной прокрутки');
+
+    // QA-режим для всього застосунку: тільки явний opt-in, зберігається між перезапусками,
+    // вимикається одним натисканням; не змінює ігровий інвентар.
+    const previewToggle = p.locator('[data-bobek-preview-toggle]');
+    check(await previewToggle.getAttribute('aria-pressed') === 'false', 'QA-образ вимкнений за замовчуванням');
+    await previewToggle.click();
+    check(await previewToggle.getAttribute('aria-pressed') === 'true', 'можна ввімкнути QA-образ');
+    check(await p.evaluate(() => localStorage.getItem('pg_bobek_layers_preview') === '1'), 'QA-образ зберігся в localStorage');
+    await p.reload();
+    await previewToggle.waitFor();
+    check(await previewToggle.getAttribute('aria-pressed') === 'true', 'QA-образ відновився після перезавантаження');
+    await previewToggle.click();
+    check(await previewToggle.getAttribute('aria-pressed') === 'false', 'QA-образ можна вимкнути');
+    check(await p.evaluate(() => localStorage.getItem('pg_bobek_layers_preview') === null), 'production-образ знову активний');
 
     // Лист шагов.
     const W = 300;

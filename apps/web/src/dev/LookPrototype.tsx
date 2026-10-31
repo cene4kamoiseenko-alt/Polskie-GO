@@ -11,26 +11,23 @@ import { equip, resolveLook, unequip, type LookEquipment } from '@polski-go/shar
 import { BeaverLook } from '../components/Beaver';
 import { LazyMotion, MotionConfig, loadMotionFeatures } from '../lib/motion';
 import { LOOK_PROTOTYPE_MANIFEST as M, PROTO_STATES } from './lookPrototypeManifest';
-
-const files = import.meta.glob('./look-proto/**/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
-
-/** Ключ шару 'proto/idle/body' → URL: варіант @512, якщо його досить, інакше основний 1024. */
-export function protoAssetUrl(key: string, width: number): string | null {
-  const path = key.replace(/^proto\//, './look-proto/');
-  if (width <= 512 && files[`${path}@512.webp`]) return files[`${path}@512.webp`];
-  return files[`${path}.webp`] ?? files[`${path}@512.webp`] ?? null;
-}
+import { protoAssetUrl } from './protoAssets';
+import { hasBobekV2Art, bobekV2AssetUrl } from './lookV2Assets';
+import { LOOK_V2_DRAFT_MANIFEST } from './lookV2Manifest';
+import { LOOK_V3_DRAFT_MANIFEST } from './lookV3Manifest';
+import { hasBobekV3Art, bobekV3AssetUrl } from './lookV3Assets';
+import { getBobekPreviewSnapshot, notifyBobekPreviewChanged, setBobekPreviewEnabled } from '../lib/bobekPreview';
 
 const STORE = 'pg_look_prototype_v1';
-type Saved = { equipment: string[]; state: string };
-const DEFAULT: Saved = { equipment: ['hoodie-red', 'backpack-travel'], state: 'idle' };
+type Saved = { equipment: string[]; state: string; art: 'legacy' | 'v2' | 'v3' };
+const DEFAULT: Saved = { equipment: ['hoodie-red', 'backpack-travel'], state: 'idle', art: 'legacy' };
 
 function load(): Saved {
   try {
     const raw = localStorage.getItem(STORE);
     if (!raw) return DEFAULT;
     const v = JSON.parse(raw) as Partial<Saved>;
-    return { equipment: Array.isArray(v.equipment) ? v.equipment.filter((x) => typeof x === 'string') : DEFAULT.equipment, state: typeof v.state === 'string' ? v.state : DEFAULT.state };
+    return { equipment: Array.isArray(v.equipment) ? v.equipment.filter((x) => typeof x === 'string' && ['hoodie-red', 'jacket-denim', 'backpack-travel', 'cap-red', 'glasses-round'].includes(x)).slice(0, 5) : DEFAULT.equipment, state: PROTO_STATES.some((s) => s.id === v.state) ? v.state! : DEFAULT.state, art: v.art === 'v3' ? 'v3' : v.art === 'v2' ? 'v2' : 'legacy' };
   } catch {
     return DEFAULT;
   }
@@ -46,6 +43,8 @@ const STEPS = [
 
 export default function LookPrototype() {
   const [saved, setSaved] = useState<Saved>(load);
+  const [appPreview, setAppPreview] = useState(() => getBobekPreviewSnapshot().startsWith('1\n'));
+
   const [restored] = useState(() => {
     try {
       return localStorage.getItem(STORE) !== null;
@@ -56,13 +55,18 @@ export default function LookPrototype() {
   useEffect(() => {
     try {
       localStorage.setItem(STORE, JSON.stringify(saved));
+      notifyBobekPreviewChanged();
     } catch {
       /* приватний режим: прототип працює без збереження */
     }
   }, [saved]);
 
   const mood = PROTO_STATES.find((s) => s.id === saved.state)?.mood ?? 'happy';
-  const look = useMemo(() => resolveLook(null, saved.equipment, { manifest: M, mood }), [saved.equipment, mood]);
+  const v3 = saved.art === 'v3' && hasBobekV3Art;
+  const v2 = !v3 && saved.art === 'v2' && hasBobekV2Art;
+  const activeManifest = v3 ? LOOK_V3_DRAFT_MANIFEST : v2 ? LOOK_V2_DRAFT_MANIFEST : M;
+  const resolveAsset = v3 ? bobekV3AssetUrl : v2 ? bobekV2AssetUrl : protoAssetUrl;
+  const look = useMemo(() => resolveLook(null, saved.equipment, { manifest: activeManifest, mood }), [saved.equipment, activeManifest, mood]);
   const has = (id: string) => look.drawn.includes(id);
   const toggle = (id: string) => setSaved((s) => ({ ...s, equipment: has(id) ? unequip(s.equipment, id, M).equipment : equip(s.equipment, id, M).equipment }));
 
@@ -76,8 +80,42 @@ export default function LookPrototype() {
             нарисованы скриптом. Не финальная модель.
           </p>
 
-          <div className="card mt-3 flex flex-col items-center p-3" style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
-            <BeaverLook look={look} size={240} resolveAsset={protoAssetUrl} />
+          <section className="card mt-3 p-3" aria-label="Перевірка образу у застосунку">
+            <p className="text-sm font-bold">Перевірити одного Бобека у справжньому POLSKI GO</p>
+            <p className="mt-1 text-xs">
+              Це окремий QA-режим. Усі Бобеки у фронтальному ракурсі показуватимуть комплект нижче.
+              Магазин і серверне вбрання не зміняться. Без QA-режиму користувачі бачать поточний образ.
+              Тимчасові графічні шари ще потребують перемалювання.
+            </p>
+            <button
+              className={`btn mt-2 min-h-11 w-full ${appPreview ? 'btn-red' : 'btn-ghost'}`}
+              aria-pressed={appPreview}
+              data-bobek-preview-toggle
+              onClick={() => {
+                const next = !appPreview;
+                setAppPreview(setBobekPreviewEnabled(next));
+              }}
+            >
+              {appPreview ? 'Вимкнути QA-образ' : 'Увімкнути QA-образ на всіх екранах'}
+            </button>
+            <a className="btn btn-ghost mt-2 min-h-11 w-full" href="/" data-bobek-preview-open-app>Відкрити застосунок</a>
+          </section>
+
+          <section className="card mt-3 p-3" aria-label="Джерело графіки Бобека">
+            <p className="font-bold text-sm">Оберіть арт-модель для QA</p>
+            <p className="mt-1 text-xs">V2 — плоский авторський арт з 5 позами. V3 — об'ємний 2.5D cutout з незалежною одежою, але поки ТІЛЬКИ фронтальна спокійна поза. Інші емоції у V3 показують цю ж позу (fallback). Усі варіанти — лише QA.</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={!v2 && !v3} data-proto-art="legacy" onClick={() => setSaved((cur) => ({ ...cur, art: 'legacy' }))}>Старі шари</button>
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v2} data-proto-art="v2" disabled={!hasBobekV2Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v2' }))}>Бобек V2</button>
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v3} data-proto-art="v3" disabled={!hasBobekV3Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v3' }))}>2.5D V3</button>
+            </div>
+            {!hasBobekV2Art && <p className="mt-2 text-xs text-coral">Для V2 виконайте npm run bobek:v2:generate перед build:web.</p>}
+            {!hasBobekV3Art && <p className="mt-2 text-xs text-coral">Для V3 виконайте npm run bobek:v3:generate перед build:web.</p>}
+            {v3 && <p className="mt-2 text-xs font-medium text-coral">V3 — не анімований риг: лише front-idle. Одяг / плечові стики в процесі ручного доопрацювання.</p>}
+          </section>
+
+          <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
+            <BeaverLook look={look} size={240} resolveAsset={resolveAsset} />
             <div className="mt-2 w-full break-words font-mono text-[11px] leading-tight text-[var(--text-muted)]" data-proto-state>
               pose: {look.pose} · drawn: {look.drawn.join(' ')} · layers: {look.layers.length}
               {restored && <span data-proto-restored> · комплект восстановлен после перезапуска</span>}
@@ -93,7 +131,7 @@ export default function LookPrototype() {
                 data-proto-step={s.n}
                 onClick={() => setSaved((cur) => {
                   const r = s.run(cur.equipment);
-                  return { equipment: r.e, state: r.state };
+                  return { ...cur, equipment: r.e, state: r.state };
                 })}
               >
                 {s.n}. {s.label}
@@ -128,7 +166,7 @@ export default function LookPrototype() {
           <div className="mt-2 grid grid-cols-5 gap-1">
             {PROTO_STATES.map((s) => (
               <div key={s.id} className="flex flex-col items-center">
-                <BeaverLook look={resolveLook(null, saved.equipment, { manifest: M, mood: s.mood })} size={64} animate={false} resolveAsset={protoAssetUrl} />
+                <BeaverLook look={resolveLook(null, saved.equipment, { manifest: activeManifest, mood: s.mood })} size={64} animate={false} resolveAsset={resolveAsset} />
                 <span className="text-[10px] font-bold">{s.label}</span>
               </div>
             ))}

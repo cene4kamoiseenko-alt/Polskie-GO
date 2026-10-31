@@ -1,0 +1,62 @@
+# Проверяем новые слои и интеграцию Бобека при каждом PR. Никаких деплоев и секретов.
+name: Bobek visual QA
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/components/Beaver.tsx'
+      - 'apps/web/src/dev/**'
+      - 'apps/web/src/lib/bobekPreview.ts'
+      - 'apps/web/src/assets/look/**'
+      - 'packages/shared/src/look/**'
+      - 'scripts/look-prototype-screens.ts'
+      - 'scripts/validate-bobek-art.mjs'
+      - 'scripts/check-bobek-preview.mjs'
+      - 'scripts/bobek-release-gate.mjs'
+      - 'scripts/import-bobek-v2.mjs'
+      - 'scripts/check-bobek-v2.mjs'
+      - 'scripts/generate-bobek-v2.mjs'
+      - 'assets/bobek-v2-sources.json.gz.b64'
+      - 'assets/bobek-v3-sources.json.gz.b64'
+      - 'scripts/generate-bobek-v3.mjs'
+      - 'scripts/check-bobek-v3.mjs'
+      - 'docs/design/BOBEK_ART_APPROVAL.json'
+      - 'package.json'
+      - '.github/workflows/bobek-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bobek:
+    name: Bobek typecheck / sprites / manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript types
+        run: npm run typecheck
+      - name: Generate independent V2 QA art (35 source SVG / 105 WebP)
+        run: npm run bobek:v2:generate
+      - name: Generate premium 2.5D V3 QA artwork (7 cutout layers / 21 WebP)
+        run: npm run bobek:v3:generate
+      - name: V3 alpha, outfit differences and pose honesty
+        run: npm run bobek:v3:check
+      - name: Build real web client (detect Vite bundling errors)
+        run: npm run build:web
+      - name: Sprite dimensions and alpha
+        run: npm run bobek:check
+      - name: Preview flag and safe localStorage parsing
+        run: npm run bobek:check:preview
+      - name: V2 pose and independent wardrobe manifest
+        run: npm run bobek:v2:check
+      - name: Bobek release-readiness audit (informational while art is pending)
+        run: npm run bobek:release
+      - name: Beaver manifest and garment compatibility
+        run: npm run test -w @polski-go/server -- test/look-prototype.test.ts
