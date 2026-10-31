@@ -12,6 +12,8 @@ on:
       - 'scripts/look-prototype-screens.ts'
       - 'scripts/validate-bobek-art.mjs'
       - 'scripts/check-bobek-preview.mjs'
+      - 'scripts/bobek-release-gate.mjs'
+      - 'docs/design/BOBEK_ART_APPROVAL.json'
       - 'package.json'
       - '.github/workflows/bobek-qa.yml'
   workflow_dispatch:
@@ -37,5 +39,7 @@ jobs:
         run: npm run bobek:check
       - name: Preview flag and safe localStorage parsing
         run: npm run bobek:check:preview
+      - name: Bobek release-readiness audit (informational while art is pending)
+        run: npm run bobek:release
       - name: Beaver manifest and garment compatibility
         run: npm run test -w @polski-go/server -- test/look-prototype.test.ts
