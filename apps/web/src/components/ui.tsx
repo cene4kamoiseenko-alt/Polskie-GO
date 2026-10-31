@@ -78,7 +78,7 @@ export function ScreenSkeleton() {
 export function EmptyState({ text, action }: { text: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-      <Beaver mood="think" size={110} />
+      <Beaver mood="surprised" size={110} />
       <p className="muted font-bold">{text}</p>
       {action}
     </div>

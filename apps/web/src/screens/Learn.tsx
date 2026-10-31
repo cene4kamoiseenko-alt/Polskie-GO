@@ -55,7 +55,7 @@ function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson;
           </motion.div>
           {/* Бобек стоїть поруч із наступним уроком — з протилежного від вигину боку. */}
           <div className="pointer-events-none absolute top-0" style={off >= 0 ? { right: '100%', marginRight: 6 } : { left: '100%', marginLeft: 6 }}>
-            <Beaver mood="wave" size={64} />
+            <Beaver mood="laptop" size={64} />
           </div>
         </>
       )}

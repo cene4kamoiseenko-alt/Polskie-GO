@@ -170,7 +170,7 @@ export const LOOK_MANIFEST: LookManifest = {
     moods: {
       wave: 'wave', happy: 'greet', travel: 'travel', map: 'front', explain: 'idea',
       think: 'think', wait: 'doubt', surprised: 'surprised', mic: 'wave', cheer: 'correct',
-      sad: 'support', celebrate: 'victory', gift: 'celebrate', read: 'read', learn: 'read',
+      sad: 'support', celebrate: 'victory', gift: 'parcel', read: 'read', learn: 'read',
       sleep: 'sleep', coffee: 'coffee', pay: 'pay', parcel: 'parcel', tired: 'tired', laptop: 'laptop',
     },
     views: { 'three-quarter': 'three-quarter', side: 'side', back: 'back' },

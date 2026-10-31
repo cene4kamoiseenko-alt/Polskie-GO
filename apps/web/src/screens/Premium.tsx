@@ -127,7 +127,7 @@ export default function PremiumScreen() {
       <ScreenHeader title={t('prem_title')} subtitle={t('prem_subtitle')} />
       <div className="premium-hero mx-4 rounded-[28px] p-5 text-center">
         <div className="premium-hero-crown flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-[0.15em]"><Icon name="crown" size={18} filled /> POLSKI GO</div>
-        <Beaver size={150} mood="celebrate" />
+        <Beaver size={150} mood="pay" />
         <div className="premium-hero-title text-[28px] font-black leading-tight">PREMIUM</div>
         <div className="premium-hero-subtitle mt-1 text-[13px] font-bold">{t('prem_pass_d')}</div>
       </div>
