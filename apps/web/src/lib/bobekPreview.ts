@@ -35,14 +35,19 @@ export function notifyBobekPreviewChanged(): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENT));
 }
 
-export function setBobekPreviewEnabled(enabled: boolean): void {
+/**
+ * Повертає ФАКТИЧНИЙ стан: на iOS у private mode запис у storage може бути заблокований.
+ * UI не повинен удавати, що QA-режим увімкнений, коли стан не зберігся.
+ */
+export function setBobekPreviewEnabled(enabled: boolean): boolean {
   try {
     if (enabled) localStorage.setItem(BOBEK_PREVIEW_FLAG, '1');
     else localStorage.removeItem(BOBEK_PREVIEW_FLAG);
   } catch {
-    // ІOS private mode: QA перемикач просто недоступний.
+    // У приватному режимі місце зберігання може бути недоступним.
   }
   notifyBobekPreviewChanged();
+  return getBobekPreviewSnapshot().startsWith('1\n');
 }
 
 export function readBobekPreviewEquipment(snapshot: string): string[] | null {
