@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from '../lib/motion';
 import { WordTile } from '../components/Illustrations';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useGoBack } from '../lib/back';
 import { useT, type TKey } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
@@ -32,6 +33,7 @@ export default function LessonScreen() {
   const topic = search.get('topic') ?? undefined;
   const { t, tr } = useT();
   const nav = useNavigate();
+  const goBack = useGoBack();
   const me = useMe().data;
   const refresh = useRefreshAll();
   const [phase, setPhase] = useState<Phase>('loading');
@@ -283,7 +285,7 @@ export default function LessonScreen() {
             {t('start')} →
           </button>
         </div>
-        <QuitModal open={quit} onStay={() => setQuit(false)} onQuit={() => nav(-1)} />
+        <QuitModal open={quit} onStay={() => setQuit(false)} onQuit={goBack} />
       </div>
     );
   }
@@ -454,7 +456,7 @@ export default function LessonScreen() {
         </div>
       </div>
       )}
-      <QuitModal open={quit} onStay={() => setQuit(false)} onQuit={() => nav(-1)} />
+      <QuitModal open={quit} onStay={() => setQuit(false)} onQuit={goBack} />
     </div>
   );
 }

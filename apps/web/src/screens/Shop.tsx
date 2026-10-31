@@ -7,6 +7,8 @@
 import { AnimatePresence, motion } from '../lib/motion';
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useGoBack } from '../lib/back';
+import { useSwipe, useTabSwipe } from '../lib/swipe';
 import { useT, type TKey } from '../i18n';
 import { ApiError, api } from '../lib/api';
 import { useRefreshAll, useShop } from '../lib/queries';
@@ -131,12 +133,14 @@ function VisualSoon({ label }: { label: string }) {
 const costumeKey = (i: ShopItem) => (i.id === TRAVELLER_ID ? 'traveller' : i.assetKey.replace(/^costume-/, ''));
 
 type Tab = 'rewards' | 'shop';
+const TAB_ORDER: readonly Tab[] = ['rewards', 'shop'];
 
 export default function ShopScreen() {
   const { t, tr } = useT();
   const [params, setParams] = useSearchParams();
   const houseMode = params.get('house') === '1';
   const nav = useNavigate();
+  const goBack = useGoBack();
   const shop = useShop();
   const wear = useWear();
   const refresh = useRefreshAll();
@@ -150,7 +154,7 @@ export default function ShopScreen() {
   // Захист від подвійного натискання: стан busy оновлюється лише з наступним рендером.
   const lock = useRef(false);
   // «Назад» спершу скасовує примірку, а вже потім виходить з гардероба.
-  useBackButton(useCallback(() => (pickedId ? setPickedId(null) : nav(-1)), [pickedId, nav]));
+  useBackButton(useCallback(() => (pickedId ? setPickedId(null) : goBack()), [pickedId, goBack]));
 
   const all = shop.data?.items ?? [];
   const equippedCostume = all.find((i) => i.slot === 'COSTUME' && i.equipped) ?? null;
@@ -199,6 +203,9 @@ export default function ShopScreen() {
     setPickedId(null);
     setParams(next === 'shop' ? { tab: 'shop' } : {}, { replace: true });
   };
+  // Свайпи: по екрану — вкладки «Нагороди» / «Магазин» (у режимі дому вкладок немає), по примірочній — сусідня річ.
+  const swipeTabs = useTabSwipe(houseMode ? [] : TAB_ORDER, tab, setTab);
+  const swipeStage = useSwipe({ onLeft: () => step(1), onRight: () => step(-1) });
 
   /** Запит до сервера. Після покупки картка лишається відкритою (тепер «Вдягнути»), після вдягання — закривається. */
   const act = async (fn: () => Promise<unknown>, okText: string, keepPicked = false) => {
@@ -346,7 +353,7 @@ export default function ShopScreen() {
     </button>
   );
   return (
-    <div className="pb-56">
+    <div ref={swipeTabs.ref} className="pb-56" data-tab-swipe="shop">
       {/* Заголовок */}
       <div className="safe-top relative z-10 flex items-center gap-3 px-4 pt-3">
         <h1 className="flex-1 text-[34px] font-black leading-none">{houseMode ? t('house_edit') : t('shop_title')}</h1>
@@ -355,7 +362,7 @@ export default function ShopScreen() {
 
       {/* Примірочна: той самий Бобек, що й на інших екранах; примірка позначена data-look-preview="true" */}
       {!houseMode && (
-        <div className="wardrobe-stage relative mx-4 mt-3 overflow-hidden">
+        <div ref={stepList.length > 1 ? swipeStage : undefined} className="wardrobe-stage relative mx-4 mt-3 overflow-hidden" data-stage-swipe>
           <div className="absolute inset-0">
             <DressingRoom />
             <div className="absolute inset-x-0 bottom-[30px] flex justify-center">
@@ -391,6 +398,7 @@ export default function ShopScreen() {
         </div>
       )}
 
+      <div key={tab} className={swipeTabs.enter}>
       {tab === 'rewards' ? (
         <>
           <h2 className="mx-4 mt-5 text-[20px] font-black">{t('wardrobe_costumes')}</h2>
@@ -420,6 +428,7 @@ export default function ShopScreen() {
           <div className="mt-3 grid grid-cols-2 gap-3 px-4">{items.map((i, n) => (i.slot === 'COSTUME' ? costumeCard(i, n) : itemCard(i, n)))}</div>
         </>
       )}
+      </div>
       <div className="mx-4 mt-5 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-elev p-3.5">
         <span className="info-dot grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 text-lg font-black">i</span>
         <span className="muted text-[13px] font-bold leading-snug">{t('shop_earn_hint')}</span>
@@ -428,7 +437,7 @@ export default function ShopScreen() {
       {/* Панель дії для вибраного предмета: у два рядки (річ і «×», нижче кнопка на всю ширину): на 320 px в один рядок назва обрізалась під кнопкою */}
       <AnimatePresence>
         {picked && (
-          <motion.div initial={{ y: 160 }} animate={{ y: 0 }} exit={{ y: 160 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-xl px-3">
+          <motion.div initial={{ y: 160 }} animate={{ y: 0 }} exit={{ y: 160 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-xl px-3" data-no-swipe>
             <div className="action-sheet rounded-[22px] p-3">
               <div className="flex items-start gap-3">
                 <span className="action-sheet-art grid h-14 w-14 shrink-0 place-items-center rounded-2xl">

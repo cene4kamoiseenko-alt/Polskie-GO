@@ -16,6 +16,7 @@ import { Skyline } from '../components/Scenery';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, cx, useToast } from '../components/ui';
 import { TopStats } from './Home';
 import { inkOn } from '../lib/color';
+import { useTabSwipe } from '../lib/swipe';
 
 function useCountdown(to?: string) {
   const [now, setNow] = useState(Date.now());
@@ -74,6 +75,7 @@ export function QuestCard({ q, onClaim, busy }: { q: Quest; onClaim: (q: Quest) 
 }
 
 type Tab = 'daily' | 'weekly' | 'special';
+const TAB_ORDER: readonly Tab[] = ['daily', 'weekly', 'special'];
 
 export default function QuestsScreen() {
   const { t, tr } = useT();
@@ -85,6 +87,8 @@ export default function QuestsScreen() {
   const [tab, setTab] = useState<Tab>('daily');
   const [reward, setReward] = useState<Reward | null>(null);
   const countdown = useCountdown(quests.data?.resetsAt);
+  // Свайп по екрану перемикає вкладки «Щоденні» / «Тижневі» / «Особливі».
+  const swipe = useTabSwipe(TAB_ORDER, tab, (k) => { haptic.select(); setTab(k); });
 
   const claim = async (q: Quest) => {
     if (!q.id) return;
@@ -123,7 +127,7 @@ export default function QuestsScreen() {
   const finished = list.filter((x) => x.status === 'COMPLETED' || x.status === 'CLAIMED').length;
 
   return (
-    <div className="space-y-4 pb-4">
+    <div ref={swipe.ref} className="space-y-4 pb-4" data-tab-swipe="quests">
       <TopStats compact />
 
       {/* Герой-сцена */}
@@ -174,6 +178,7 @@ export default function QuestsScreen() {
         })}
       </div>
 
+      <div key={tab} className={swipe.enter}>
       {list.length === 0 ? (
         <EmptyState text={t('quests_empty')} />
       ) : tab !== 'special' ? (
@@ -239,6 +244,7 @@ export default function QuestsScreen() {
           ))}
         </div>
       )}
+      </div>
 
       <RewardModal reward={reward} onClose={() => setReward(null)} />
     </div>

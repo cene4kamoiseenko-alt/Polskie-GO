@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from '../lib/motion';
 import { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useGoBack } from '../lib/back';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { useMe } from '../lib/queries';
@@ -123,7 +124,7 @@ export default function SocialScreen() {
   const [code, setCode] = useState('');
   const lb = useQuery({ queryKey: ['lb', tab], queryFn: () => api<Board>(`/leaderboard?scope=${tab}`) });
   const friends = useQuery({ queryKey: ['friends'], queryFn: () => api<{ friends: Friend[]; referralCode: string; inviteLink: string }>('/friends'), enabled: tab === 'friends' });
-  useBackButton(useCallback(() => nav(-1), [nav]));
+  useBackButton(useGoBack());
 
   const add = async () => {
     try {

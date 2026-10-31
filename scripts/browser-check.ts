@@ -31,6 +31,9 @@
  *    Chromium, не реальные устройства), параметр убирается из адреса; неизвестное значение и адрес-обманка остаются на главной;
  *    startapp=screen_<экран>, ref_ и premium не конфликтуют. Telegram подменён: window.Telegram.WebApp с подписанными initData
  *    (сервер проверяет подпись), новичок сначала проходит знакомство и затем попадает на экран из start_param; повторный запуск — сразу на экран.
+ *  - G «Назад» и свайпы (сенсорные события через CDP, 390×844): «Назад» на экране, открытом кнопкой бота, ведёт на главную;
+ *    свайп от левого края закрывает шторку и возвращает назад, вертикальный и короткий жест — нет; вкладки заданий и гардероба
+ *    листаются свайпом, ряд категорий — нет; примерочная листает вещи; тост смахивается вверх.
  *
  * Запуск: npm run e2e   (знімки — test-results/screens, підсумок — test-results/browser-results.json)
  */
@@ -113,13 +116,13 @@ async function main() {
   const errors: string[] = [];
 
   /** Новий користувач (за замовчуванням — з пройденим онбордингом) і сторінка з його токеном. */
-  async function userPage(devUser: string, init?: () => void, opts: { onboarded?: boolean } = {}) {
+  async function userPage(devUser: string, init?: () => void, opts: { onboarded?: boolean; touch?: boolean } = {}) {
     const u = await login();
     if (opts.onboarded !== false) {
       await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
       await u.call('PATCH', '/api/me/settings', { theme: 'dark', reducedMotion: true });
     }
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, ...(opts.touch ? { isMobile: true, hasTouch: true } : {}) });
     const page = await context.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
     await page.addInitScript(({ token, devUser }) => {
@@ -373,6 +376,89 @@ async function main() {
       }
       check(hidden.length === 0, `O1 «Продолжить» в пределах экрана на всех шагах знакомства${hidden.length ? ': ' + hidden.join('; ') : ''}`);
       await fresh.context.close();
+    });
+
+    // ── G: «Назад» и свайпы (2026-10-31). Экран, открытый кнопкой бота, — первый в истории: «Назад» раньше уводил
+    // «до приложения» и в Telegram не делал ничего. Свайпы — сенсорные (CDP touch), на 390×844.
+    await soft('G «Назад» без истории и свайпы: край, вкладки, примерочная, тост', async () => {
+      const g = await userPage('880060', undefined, { touch: true });
+      const gp = g.page;
+      const cdp = await g.context.newCDPSession(gp);
+      const swipe = async (x0: number, y0: number, x1: number, y1: number) => {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
+        for (let i = 1; i <= 10; i++) {
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + ((x1 - x0) * i) / 10, y: y0 + ((y1 - y0) * i) / 10 }] });
+          await gp.waitForTimeout(16);
+        }
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await gp.waitForTimeout(450);
+      };
+      const path = () => gp.evaluate(() => location.pathname);
+      const tab = () => gp.evaluate(() => [...document.querySelectorAll('[role=tab]')].findIndex((t) => t.getAttribute('aria-selected') === 'true'));
+      const settled = () => gp.waitForFunction(() => !document.querySelector('.splash') && !document.querySelector('[data-skeleton]'), undefined, { timeout: 20_000 });
+
+      await gp.goto(`${base}/?devUser=880060&bot_screen=settings`);
+      await gp.waitForFunction(() => location.pathname === '/settings', undefined, { timeout: 20_000 });
+      await settled();
+      await gp.getByRole('button', { name: 'back' }).click();
+      await gp.waitForTimeout(500);
+      check((await path()) === '/', `G1 «Назад» в настройках, открытых кнопкой бота, ведёт на главную (было: уход из приложения): ${await path()}`);
+
+      await gp.goto(g.url('/'));
+      await gp.getByRole('button', { name: /Все разделы/ }).click({ timeout: 20_000 });
+      await gp.locator('[data-home-sheet="sections"]').waitFor({ timeout: 10_000 });
+      await swipe(6, 420, 170, 425);
+      check((await gp.locator('[data-home-sheet="sections"]').count()) === 0 && (await path()) === '/', 'G2 свайп от левого края закрывает шторку, экран тот же');
+      await gp.getByRole('button', { name: /Все разделы/ }).click();
+      await gp.locator('[data-home-sheet="sections"] button', { hasText: 'Настройки' }).click();
+      await gp.waitForURL(/\/settings$/, { timeout: 10_000 });
+      await settled();
+      await swipe(6, 300, 16, 560);
+      await swipe(6, 300, 50, 304);
+      check((await path()) === '/settings', 'G2 вертикальный жест у края и короткий свайп — не «Назад»');
+      await gp.getByRole('button', { name: 'Сохранить', exact: true }).click();
+      const toast = gp.locator('[data-toast]');
+      await toast.waitFor({ timeout: 10_000 });
+      const tb = (await toast.boundingBox())!;
+      await swipe(tb.x + tb.width / 2, tb.y + tb.height / 2, tb.x + tb.width / 2, tb.y - 40);
+      check((await toast.count()) === 0, 'G5 тост «Сохранено» смахивается вверх (он перекрывал заголовок)');
+      await swipe(6, 400, 170, 405);
+      check((await path()) === '/', `G2 свайп от края из настроек → главная: ${await path()}`);
+
+      await gp.goto(g.url('/quests'));
+      await settled();
+      await gp.locator('[role=tab]').first().waitFor({ timeout: 20_000 });
+      await swipe(330, 600, 110, 606);
+      const t1 = await tab();
+      await swipe(110, 600, 330, 606);
+      const t0 = await tab();
+      await swipe(200, 640, 210, 380);
+      check(t1 === 1 && t0 === 0 && (await tab()) === 0 && (await path()) === '/quests', `G3 задания: свайп влево/вправо листает вкладки, вертикальная прокрутка — нет (${t1}, ${t0}, ${await tab()})`);
+
+      await gp.goto(g.url('/shop'));
+      await settled();
+      const stage = gp.locator('[data-stage-swipe]');
+      await stage.waitFor({ timeout: 20_000 });
+      const sb = (await stage.boundingBox())!;
+      const item = () => gp.evaluate(() => document.querySelector('.action-sheet .line-clamp-2')?.textContent ?? null);
+      const mid = sb.y + sb.height / 2;
+      await swipe(sb.x + sb.width * 0.8, mid, sb.x + sb.width * 0.2, mid);
+      const a = await item();
+      await swipe(sb.x + sb.width * 0.8, mid, sb.x + sb.width * 0.2, mid);
+      const b = await item();
+      await swipe(sb.x + sb.width * 0.2, mid, sb.x + sb.width * 0.8, mid);
+      check(!!a && !!b && a !== b && (await item()) === a && (await tab()) === 0, `G4 примерочная: свайп листает вещи, вкладка не меняется (${a} → ${b} → ${await item()})`);
+      await gp.locator('.action-sheet button[aria-label]').first().click();
+      await gp.evaluate(() => window.scrollTo(0, 380));
+      await gp.waitForTimeout(300);
+      await swipe(330, 420, 100, 426);
+      const shopTab = await tab();
+      const chip = gp.locator('.chip-tab').first();
+      await chip.waitFor({ timeout: 5_000 });
+      const cb = (await chip.boundingBox())!;
+      await swipe(320, cb.y + cb.height / 2, 80, cb.y + cb.height / 2);
+      check(shopTab === 1 && (await tab()) === 1 && /tab=shop/.test(gp.url()), `G4 гардероб: свайп по экрану → «Магазин», ряд категорий листается сам (${shopTab}, ${await tab()})`);
+      await g.context.close();
     });
 
     // ── H: главная по варианту A — без дублей нижней панели; остальные разделы в шторках; пропуск месяца.

@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { tg, haptic } from '../lib/telegram';
+import { useGoBack } from '../lib/back';
+import { EDGE_ZONE } from '../lib/swipe';
 import { speak, useAudioMissing, useSpeechState } from '../lib/audio';
 import { Beaver } from './Beaver';
 import { GameIcon, type IconName } from './GameIcon';
@@ -110,8 +112,8 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 
 /** Заголовок вкладеного екрана з кнопкою «Назад» (у Telegram — системна BackButton). */
 export function ScreenHeader({ title, subtitle, right, onBack }: { title: string; subtitle?: string; right?: ReactNode; onBack?: () => void }) {
-  const nav = useNavigate();
-  const back = useCallback(() => (onBack ? onBack() : nav(-1)), [nav, onBack]);
+  const goBack = useGoBack();
+  const back = useCallback(() => (onBack ? onBack() : goBack()), [goBack, onBack]);
   useBackButton(back);
   return (
     <div className="flex items-center gap-3 px-4 pb-2 pt-3">
@@ -129,27 +131,116 @@ export function ScreenHeader({ title, subtitle, right, onBack }: { title: string
   );
 }
 
-/** Стек обробників системної кнопки «Назад»: спрацьовує лише верхній (шторка поверх екрана). */
+/**
+ * Стек обробників «Назад»: спрацьовує лише верхній (шторка поверх екрана). Ним користуються системна кнопка
+ * Telegram і свайп від лівого краю (EdgeSwipeBack), тож стек ведеться й поза Telegram.
+ */
 const backStack: { fn: () => void }[] = [];
 const dispatchBack = () => backStack[backStack.length - 1]?.fn();
 let backBound = false;
 
 export function useBackButton(onBack: (() => void) | null) {
   useEffect(() => {
-    if (!tg || !onBack) return;
+    if (!onBack) return;
     const entry = { fn: onBack };
     backStack.push(entry);
-    if (!backBound) {
-      tg.BackButton.onClick(dispatchBack);
-      backBound = true;
+    if (tg) {
+      if (!backBound) {
+        tg.BackButton.onClick(dispatchBack);
+        backBound = true;
+      }
+      tg.BackButton.show();
     }
-    tg.BackButton.show();
     return () => {
       const i = backStack.indexOf(entry);
       if (i >= 0) backStack.splice(i, 1);
       if (!backStack.length) tg?.BackButton.hide();
     };
   }, [onBack]);
+}
+
+/** Скільки треба протягнути від краю, щоб відпускання спрацювало як «Назад». */
+const EDGE_TRIGGER = 72;
+
+/**
+ * Свайп від лівого краю — те саме, що «Назад» (верхній обробник стека: шторка, вихід з уроку з підтвердженням, екран).
+ * Кулька зі стрілкою тягнеться за пальцем; після порогу стає кольоровою з вібрацією, відпустити — назад, повернути палець — скасувати.
+ * Поверх модального вікна жест не діє. Стиль кульки змінюється напряму в DOM, щоб не перемальовувати React на кожен рух.
+ */
+export function EdgeSwipeBack() {
+  const bubble = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let g: { x: number; y: number; axis: 'x' | null; armed: boolean } | null = null;
+    const paint = (dx: number, y: number, armed: boolean) => {
+      const el = bubble.current;
+      if (!el) return;
+      const pull = Math.min(dx, EDGE_TRIGGER * 1.3);
+      el.style.opacity = String(Math.min(1, dx / EDGE_TRIGGER));
+      el.style.transform = `translate(${Math.round(pull * 0.7 - 52)}px, ${Math.round(y - 26)}px)`;
+      el.setAttribute('data-edge-back', armed ? 'armed' : 'pull');
+    };
+    const hide = () => {
+      const el = bubble.current;
+      if (!el) return;
+      el.style.opacity = '0';
+      el.setAttribute('data-edge-back', 'idle');
+    };
+    const start = (e: TouchEvent) => {
+      g = null;
+      if (e.touches.length !== 1 || !backStack.length || document.querySelector('[data-modal]')) return;
+      const p = e.touches[0];
+      if (p.clientX > EDGE_ZONE) return;
+      g = { x: p.clientX, y: p.clientY, axis: null, armed: false };
+    };
+    const move = (e: TouchEvent) => {
+      if (!g) return;
+      const p = e.touches[0];
+      const dx = p.clientX - g.x;
+      const dy = p.clientY - g.y;
+      if (!g.axis) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        if (dx <= 0 || Math.abs(dx) < Math.abs(dy) * 1.2) {
+          g = null;
+          return;
+        }
+        g.axis = 'x';
+      }
+      const armed = dx >= EDGE_TRIGGER;
+      if (armed !== g.armed) {
+        g.armed = armed;
+        if (armed) haptic.select();
+      }
+      paint(Math.max(0, dx), p.clientY, armed);
+    };
+    const end = () => {
+      const fire = g?.armed;
+      g = null;
+      hide();
+      if (fire) {
+        haptic.tap();
+        dispatchBack();
+      }
+    };
+    const cancel = () => {
+      g = null;
+      hide();
+    };
+    window.addEventListener('touchstart', start, { passive: true });
+    window.addEventListener('touchmove', move, { passive: true });
+    window.addEventListener('touchend', end);
+    window.addEventListener('touchcancel', cancel);
+    return () => {
+      window.removeEventListener('touchstart', start);
+      window.removeEventListener('touchmove', move);
+      window.removeEventListener('touchend', end);
+      window.removeEventListener('touchcancel', cancel);
+    };
+  }, []);
+  return (
+    <div ref={bubble} aria-hidden className="edge-back" data-edge-back="idle">
+      <Icon name="chevron-right" size={22} strokeWidth={2.8} className="rotate-180" />
+    </div>
+  );
 }
 
 /**
@@ -228,7 +319,7 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose?: ()
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] grid place-items-center p-6">
+        <div className="fixed inset-0 z-[60] grid place-items-center p-6" data-modal>
           <motion.div className="absolute inset-0 bg-black/55" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div className="card relative w-full max-w-sm p-6 text-center" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 18 }}>
             {children}
@@ -246,18 +337,33 @@ export const useToast = () => useContext(ToastCtx);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const dismiss = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const push = useCallback((text: string, icon?: string) => {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, text, icon }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800);
-  }, []);
+    setTimeout(() => dismiss(id), 2800);
+  }, [dismiss]);
   return (
     <ToastCtx.Provider value={push}>
       {children}
       <div className="safe-top pointer-events-none fixed inset-x-0 top-2 z-[80] flex flex-col items-center gap-2 px-4">
         <AnimatePresence>
           {toasts.map((t) => (
-            <motion.div key={t.id} initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="card flex items-center gap-2 px-4 py-3 font-bold">
+            // Тост перекриває заголовок екрана — його можна смахнути вгору або прибрати дотиком.
+            <motion.div
+              key={t.id}
+              data-toast
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -40, opacity: 0 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0.9, bottom: 0.1 }}
+              dragMomentum={false}
+              onDragEnd={(_, info) => (info.offset.y < -20 || info.velocity.y < -300) && dismiss(t.id)}
+              onTap={() => dismiss(t.id)}
+              className="card pointer-events-auto flex touch-none items-center gap-2 px-4 py-3 font-bold"
+            >
               {t.icon && <ToastIcon icon={t.icon} />}
               {t.text}
             </motion.div>

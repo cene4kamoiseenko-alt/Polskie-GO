@@ -96,6 +96,9 @@ body,
 }
 html {
   background: var(--bg);
+  /* Корінь прокрутки — html: без цього Chrome на свайп вправо (вкладки, примірочна) сам іде «назад» в історії
+     браузера й закриває застосунок; у body це правило на вікно не переходить. */
+  overscroll-behavior: none;
 }
 
 body {
@@ -174,6 +177,44 @@ textarea {
 .h-app {
   height: calc(100dvh - var(--safe-t));
 }
+
+/* Свайп від лівого краю = «Назад»: кулька зі стрілкою виїжджає за пальцем (EdgeSwipeBack у components/ui). */
+.edge-back {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 9999px;
+  background: var(--bg-elev);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, background-color 0.12s, color 0.12s;
+}
+.edge-back[data-edge-back='armed'] {
+  background: var(--color-brand);
+  color: #07182c;
+}
+
+/* Перемикання вкладок (свайпом або натисканням): вміст коротко з'являється з боку, куди перейшли.
+   fill-mode backwards: після анімації transform не лишається, і fixed-нащадки (панель примірки) не прив'язуються до блоку. */
+@keyframes tab-enter-next {
+  from { transform: translateX(28px); opacity: 0.35; }
+}
+@keyframes tab-enter-prev {
+  from { transform: translateX(-28px); opacity: 0.35; }
+}
+.tab-enter-next { animation: tab-enter-next 0.2s ease-out backwards; }
+.tab-enter-prev { animation: tab-enter-prev 0.2s ease-out backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .tab-enter-next, .tab-enter-prev { animation: none; }
+}
+html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { animation: none; }
 .stat-pill {
   display: inline-flex;
   align-items: center;

@@ -10,7 +10,7 @@ import { useMe } from './lib/queries';
 import { configureAudio, setSoundEnabled, stopSpeech } from './lib/audio';
 import { ApiError } from './lib/api';
 import { bootMark } from './lib/boot';
-import { BottomNav, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
+import { BottomNav, EdgeSwipeBack, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
 import { ScreenBoundary } from './components/ScreenBoundary';
 
@@ -232,6 +232,7 @@ export function App() {
         <MotionConfig reducedMotion={reduced ? 'always' : 'user'}>
           <ToastProvider>
             <div className="safe-top mx-auto min-h-full max-w-xl">{body}</div>
+            <EdgeSwipeBack />
           </ToastProvider>
         </MotionConfig>
       </LazyMotion>

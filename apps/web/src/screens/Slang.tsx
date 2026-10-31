@@ -10,6 +10,7 @@ import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { haptic } from '../lib/telegram';
 import { sfx } from '../lib/audio';
+import { useTabSwipe } from '../lib/swipe';
 import { ErrorState, ScreenHeader, ScreenSkeleton, SpeakButton, cx } from '../components/ui';
 import { Beaver } from '../components/Beaver';
 import { Icon } from '../components/Icon';
@@ -139,17 +140,21 @@ function Trainer({ items }: { items: Item[] }) {
   );
 }
 
+const SLANG_TABS = ['list', 'train'] as const;
+
 export default function SlangScreen() {
   const { t, tr } = useT();
   const q = useQuery({ queryKey: ['slang'], queryFn: () => api<Data>('/slang'), staleTime: Infinity });
   const [tab, setTab] = useState<'list' | 'train'>('list');
   const [group, setGroup] = useState('all');
+  // Свайп по екрану: «Словник» ↔ «Тренування».
+  const swipe = useTabSwipe(SLANG_TABS, tab, (k) => { haptic.select(); setTab(k); });
   if (q.isLoading) return <ScreenSkeleton />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const { groups, items } = q.data!;
   const list = items.filter((x) => group === 'all' || x.group === group);
   return (
-    <div className="pb-8">
+    <div ref={swipe.ref} className="pb-8" data-tab-swipe="slang">
       <ScreenHeader title="Żywy polski" subtitle={t('slang_subtitle', { n: items.length })} />
       <div className="mx-4 flex items-center gap-3 overflow-hidden rounded-3xl p-3" style={{ background: 'linear-gradient(135deg, #DFF5FF, #FFF1C9)' }}>
         <Beaver mood="explain" size={76} />
@@ -165,6 +170,7 @@ export default function SlangScreen() {
           </button>
         ))}
       </div>
+      <div key={tab} className={swipe.enter}>
       {tab === 'list' ? (
         <>
           <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -179,6 +185,7 @@ export default function SlangScreen() {
       ) : (
         <div className="mt-4"><Trainer items={items} /></div>
       )}
+      </div>
     </div>
   );
 }
