@@ -183,7 +183,7 @@ export function App() {
   }, [failed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   let body;
-  if (me.isLoading || (me.data && !minShown)) body = <SplashScene loading onRetry={() => void me.refetch()} />;
+  if (me.isLoading) body = <SplashScene loading onRetry={() => void me.refetch()} />;
   else if (me.error) {
     const banned = me.error instanceof ApiError && me.error.code === 'banned';
     body = banned ? <ErrorState error={new Error('banned')} /> : <SplashScene error onRetry={() => me.refetch()} />;
@@ -247,12 +247,27 @@ export function App() {
     );
   }
 
+  // Пауза минимального показа: заставка сверху, а первый экран уже грузится под ней (скрыт и недоступен), чтобы к концу паузы быть готовым, а не начинать загрузку после неё.
+  const holding = !!me.data && !minShown;
+  const shown = holding ? (
+    <>
+      {me.data?.onboarded && (
+        <div aria-hidden style={{ position: 'fixed', inset: 0, overflow: 'hidden', visibility: 'hidden', pointerEvents: 'none' }} {...({ inert: '' } as object)}>
+          {body}
+        </div>
+      )}
+      <SplashScene loading onRetry={() => void me.refetch()} />
+    </>
+  ) : (
+    body
+  );
+
   return (
     <I18nProvider lang={lang}>
       <LazyMotion features={loadMotionFeatures}>
         <MotionConfig reducedMotion={reduced ? 'always' : 'user'}>
           <ToastProvider>
-            <div className="safe-top mx-auto min-h-full max-w-xl">{body}</div>
+            <div className="safe-top mx-auto min-h-full max-w-xl">{shown}</div>
             <EdgeSwipeBack />
           </ToastProvider>
         </MotionConfig>
