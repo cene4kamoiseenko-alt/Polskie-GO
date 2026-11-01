@@ -47,12 +47,12 @@ describe('Живописний Бобек у вебі: ассети за ман�
   });
 
   it('костюм з цілісною картинкою малює саме її; річ без живописного шару не підмінюється іншою картинкою', () => {
-    const chef = resolveLook(null, { ...STARTER, COSTUME: 'costume-chef', HAT: 'hat-chef', GLASSES: 'glasses-round' }, { mood: 'wave' });
+    const chef = resolveLook(null, { ...STARTER, COSTUME: 'costume-chef', HAT: 'hat-chef', GLASSES: 'glasses-sun' }, { mood: 'wave' });
     expect(chef.mode).toBe('legacy-costume');
     expect(chef.layers.map((l) => l.asset)).toEqual(['costumes/chef']);
     expect(lookAssetUrl('costumes/chef', 256)).toBe(assetByKey('costumes/chef'));
     expect(chef.drawn).toEqual(['costume-chef', 'hat-chef']);
-    expect(chef.pending).toEqual(['glasses-round']);
+    expect(chef.pending).toEqual(['glasses-sun']);
   });
 
   it('pending-річ ніколи не малюється: картинка та сама, що й без неї, річ — у pending', () => {
@@ -63,7 +63,10 @@ describe('Живописний Бобек у вебі: ассети за ман�
       const look = resolveLook(null, { ...STARTER, [it.catalogSlot]: it.id });
       expect(look.drawn, it.id).not.toContain(it.id);
       expect(look.pending, it.id).toEqual([it.id]);
-      expect(look.layers.map((l) => l.asset), it.id).toEqual(plain.layers.map((l) => l.asset));
+      // pending-рюкзак вытесняет стартовый (один предмет на слот), и честная картинка — образ без рюкзака (ADR-013);
+      // любая другая pending-вещь картинку не меняет.
+      const expected = it.catalogSlot === 'BACKPACK' ? ['variants/hoodie_wave'] : plain.layers.map((l) => l.asset);
+      expect(look.layers.map((l) => l.asset), it.id).toEqual(expected);
     }
   });
 
