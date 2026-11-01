@@ -3,7 +3,7 @@
  *
  *   node --import tsx scripts/variants-screens.ts   → test-results/variants-screens/*.png
  *
- * 1. QA-галерея /__gallery?look: 21 образ (16 сетки и 5 с куртками), у каждого картинка декодируется, режим variant (стартовый набор — legacy-base),
+ * 1. QA-галерея /__gallery?look: 32 образа (16 сетки и 16 с куртками, часть — с красной вязаной шапкой), у каждого картинка декодируется, режим variant (стартовый набор — legacy-base),
  *    нет горизонтальной прокрутки; снимок на тёмном фоне (видна прозрачность вырезки).
  * 3. Скины (категория «Костюмы»): шесть карточек по 400 Złotki с картинкой, примерка цельным образом, покупка, «Надеть» снимает кепку, очки и шарф.
  * 2. Магазин на 320 / 390 / 430: примерка кепки показывает образ «худи + кепка + рюкзак» (data-look-mode=variant, картинка
@@ -44,18 +44,18 @@ async function main() {
       await p.locator('[data-gallery="look"]').waitFor({ timeout: 20_000 });
       await p.waitForFunction(() => Array.from(document.images).every((i) => i.complete), undefined, { timeout: 20_000 }).catch(() => {});
       await p.waitForTimeout(500);
-      const tiles = await p.locator('[data-gallery-look^="hoodie"]').evaluateAll((els) =>
+      const tiles = await p.locator('[data-gallery-variant]').evaluateAll((els) =>
         els.map((el) => ({
-          id: el.getAttribute('data-gallery-look')!,
+          id: el.getAttribute('data-gallery-variant')!,
           mode: el.querySelector('[data-look]')?.getAttribute('data-look-mode'),
           loaded: Array.from(el.querySelectorAll('img')).length > 0 && Array.from(el.querySelectorAll('img')).every((i) => i.naturalWidth > 0),
         })),
       );
-      check(tiles.length === 21, `галерея: 21 готовый образ — 16 сетки и 5 с куртками (${tiles.length})`);
+      check(tiles.length === 32, `галерея: 32 готовых образа — 16 сетки и 16 с куртками (${tiles.length})`);
       const broken = tiles.filter((t) => !t.loaded).map((t) => t.id);
       check(broken.length === 0, `галерея: у каждого образа картинка загружена${broken.length ? ` (нет: ${broken.join(', ')})` : ''}`);
       const wrongMode = tiles.filter((t) => t.mode !== (t.id === 'hoodie-pack' ? 'legacy-base' : 'variant')).map((t) => `${t.id}:${t.mode}`);
-      check(wrongMode.length === 0, `галерея: режим variant у 20 образов, стартовый набор — legacy-base${wrongMode.length ? ` (${wrongMode.join(', ')})` : ''}`);
+      check(wrongMode.length === 0, `галерея: режим variant у 31 образа, стартовый набор — legacy-base${wrongMode.length ? ` (${wrongMode.join(', ')})` : ''}`);
       check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'галерея: нет горизонтальной прокрутки');
       await p.screenshot({ path: `${OUT}/gallery-dark.png`, fullPage: true });
       await ctx.close();
@@ -67,7 +67,7 @@ async function main() {
       const u = await login();
       await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
       const id = String(++devUser);
-      for (const slug of ['cap-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) {
+      for (const slug of ['cap-red', 'beanie-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) {
         await env.DB.prepare("INSERT INTO user_inventory (user_id, item_id, equipped, source) SELECT ?, id, 0, 'variants-check' FROM cosmetic_items WHERE slug = ?").bind(u.user.id, slug).run();
       }
       const shop = (await u.call('GET', '/api/shop')).body as { items: ShopRow[] };
@@ -173,6 +173,33 @@ async function main() {
       check((await note.count()) === 1 && /нет картинки/.test((await note.textContent()) ?? ''), `${width}px примерка шарфа поверх куртки: «Для этого сочетания нет картинки» (${(await note.textContent().catch(() => '')) ?? ''})`);
       check(!((await stage().getAttribute('data-look-items')) ?? '').split(' ').includes('scarf-pl'), `${width}px примерка шарфа: шарфа на Бобеке нет`);
       await p.screenshot({ path: `${OUT}/denim-try-scarf-${width}.png` });
+
+      // Красная вязаная шапка (четвёртая партия): занимает слот кепки, образ «джинсовая + шапка + очки + рюкзак» — без худи под курткой.
+      await u.call('POST', '/api/inventory/equip', { itemId: itemId('beanie-red'), equipped: true });
+      const wearBeanie = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
+      check(wearBeanie.HAT === 'beanie-red' && wearBeanie.JACKET === 'jacket-denim', `${width}px шапка вытеснила кепку, куртка на месте (${Object.values(wearBeanie).sort().join(' ')})`);
+      await p.goto(`${base}/shop?tab=shop&devUser=${id}`);
+      await p.locator('[role="tablist"]').waitFor({ timeout: 20_000 });
+      await settle();
+      check(((await stage().getAttribute('data-look-items')) ?? '').split(' ').sort().join(' ') === 'backpack-travel beanie-red glasses-round jacket-denim', `${width}px шапка: нарисованы куртка, шапка, очки, рюкзак (${await stage().getAttribute('data-look-items')})`);
+      await layerOk('шапка', /\/denim-beanie-glasses-pack_wave/);
+      await p.screenshot({ path: `${OUT}/denim-beanie-${width}.png` });
+      // Дождевик вместо джинсовой: образ «дождевик + шапка + очки + рюкзак» без худи (в имени файла нет hoodie).
+      await u.call('POST', '/api/inventory/equip', { itemId: itemId('jacket-rain'), equipped: true });
+      await p.reload();
+      await p.locator('[role="tablist"]').waitFor({ timeout: 20_000 });
+      await settle();
+      await layerOk('дождевик', /\/rain-beanie-glasses-pack_wave/);
+      check(!/hoodie/.test(await stage().locator('img[data-look-layer]').evaluate((i) => (i as HTMLImageElement).currentSrc)), `${width}px дождевик: в картинке нет худи (имя файла без hoodie)`);
+      await p.screenshot({ path: `${OUT}/rain-beanie-${width}.png` });
+      // Снять всё, кроме дождевика: образ только с дождевиком.
+      for (const key of ['beanie-red', 'glasses-round', 'backpack-travel']) await u.call('POST', '/api/inventory/equip', { itemId: itemId(key), equipped: false });
+      await p.reload();
+      await p.locator('[role="tablist"]').waitFor({ timeout: 20_000 });
+      await settle();
+      check(((await stage().getAttribute('data-look-items')) ?? '') === 'jacket-rain', `${width}px только дождевик: нарисован он один (${await stage().getAttribute('data-look-items')})`);
+      await layerOk('только дождевик', /\/rain_wave/);
+      check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${width}px магазин с курткой: нет горизонтальной прокрутки`);
       await ctx.close();
     }
     // ── 3. Скины: шесть дорогих цельных образов в категории «Костюмы» ──

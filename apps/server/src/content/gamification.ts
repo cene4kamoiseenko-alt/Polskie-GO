@@ -294,6 +294,7 @@ export const ITEMS: ItemSeed[] = [
   it('cap-green', 'HAT', t('Зелена кепка', 'Зелёная кепка', 'Green cap'), 40),
   it('cap-red', 'HAT', t('Червона кепка', 'Красная кепка', 'Red cap'), 40),
   it('beanie-blue', 'HAT', t('Синя шапка', 'Синяя шапка', 'Blue beanie'), 60),
+  it('beanie-red', 'HAT', t('Червона шапка', 'Красная шапка', 'Red beanie'), 60),
   it('hat-chef', 'HAT', t('Ковпак кухаря', 'Колпак повара', 'Chef hat'), 80, { rarity: 'rare' }),
   it('hat-krasnal', 'HAT', t('Ковпачок вроцлавського гнома', 'Колпак вроцлавского гнома', 'Wrocław gnome hat'), 0, { rewardOnly: true, rarity: 'epic', city: 'wroclaw' }),
   it('crown-gold', 'HAT', t('Золота корона', 'Золотая корона', 'Golden crown'), 150, { premium: true, rarity: 'legendary' }),

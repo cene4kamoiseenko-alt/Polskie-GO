@@ -2,7 +2,7 @@
  * Готовые образы Бобека (ADR-008): таблица «набор вещей → картинка», режим `variant` резолвера, файлы на диске.
  * Стартовый набор (худи + рюкзак) остаётся цельным образом с 14 позами — это проверено отдельно.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   LOOK_MANIFEST,
@@ -33,8 +33,8 @@ const codes = (m: LookManifest) => errors(m).map((i) => i.code);
 const withVariants = (list: readonly LookVariant[]): LookManifest => ({ ...LOOK_MANIFEST, variants: { ...LOOK_VARIANTS, list } });
 
 describe('готовые образы: таблица', () => {
-  it('полная сетка: все 16 сочетаний четырёх вещей, у каждого есть поза wave, поза open — у 8; плюс 5 образов с куртками (вторая и третья партии)', () => {
-    expect(LOOK_VARIANTS.list).toHaveLength(21);
+  it('полная сетка: все 16 сочетаний четырёх вещей, у каждого есть поза wave, поза open — у 8; плюс 16 образов с куртками (партии 2–4)', () => {
+    expect(LOOK_VARIANTS.list).toHaveLength(32);
     expect(grid()).toHaveLength(16);
     const keys = grid().map((v) => v.items.join('+'));
     expect(new Set(keys).size).toBe(16);
@@ -209,56 +209,103 @@ describe('готовые образы: resolveLook', () => {
   });
 });
 
-describe('готовые образы: куртки (вторая партия, частичная сетка)', () => {
+describe('готовые образы: куртки и шапка (партии 2–4, частичная сетка)', () => {
+  /** Все 16 сочетаний с куртками: образ без худи (четвёртая партия) и четыре с худи под курткой (`hoodie-…`). */
   const SETS: [string[], string][] = [
-    [['jacket-denim', 'backpack-travel'], 'variants/hoodie-denim-pack_wave'],
+    // без худи
+    [['jacket-denim'], 'variants/denim_wave'],
+    [['jacket-denim', 'glasses-round'], 'variants/denim-glasses_wave'],
+    [['jacket-denim', 'beanie-red'], 'variants/denim-beanie_wave'],
+    [['jacket-denim', 'cap-red'], 'variants/denim-cap_wave'],
+    [['jacket-denim', 'backpack-travel'], 'variants/denim-pack_wave'],
+    [['jacket-denim', 'beanie-red', 'glasses-round', 'backpack-travel'], 'variants/denim-beanie-glasses-pack_wave'],
+    [['jacket-rain'], 'variants/rain_wave'],
+    [['jacket-rain', 'glasses-round'], 'variants/rain-glasses_wave'],
+    [['jacket-rain', 'beanie-red'], 'variants/rain-beanie_wave'],
+    [['jacket-rain', 'cap-red'], 'variants/rain-cap_wave'],
+    [['jacket-rain', 'backpack-travel'], 'variants/rain-pack_wave'],
+    [['jacket-rain', 'beanie-red', 'glasses-round', 'backpack-travel'], 'variants/rain-beanie-glasses-pack_wave'],
+    // худи под курткой: для этих сочетаний образа без худи пока нет
     [['jacket-denim', 'cap-red', 'glasses-round', 'backpack-travel'], 'variants/hoodie-denim-cap-glasses-pack_wave'],
-    [['jacket-rain', 'backpack-travel'], 'variants/hoodie-rain-pack_wave'],
+    [['jacket-denim', 'cap-red', 'glasses-round'], 'variants/hoodie-denim-cap-glasses_wave'],
     [['jacket-rain', 'glasses-round', 'backpack-travel'], 'variants/hoodie-rain-glasses-pack_wave'],
     [['jacket-rain', 'cap-red', 'glasses-round', 'backpack-travel'], 'variants/hoodie-rain-cap-glasses-pack_wave'],
   ];
 
-  it('пять сочетаний есть: куртка заменяет худи в данных, но худи остаётся «подкладкой» картинки', () => {
+  it('16 сочетаний есть и совпадают с таблицей: куртка заменяет худи в данных, картинка именно этого набора', () => {
+    expect(SETS).toHaveLength(16);
+    expect(LOOK_VARIANTS.list.filter((v) => v.items.some((id) => JACKETS.includes(id)))).toHaveLength(16);
     for (const [set, asset] of SETS) {
       const look = resolveLook(null, set);
       expect(look.mode, set.join('+')).toBe('variant');
       expect(look.layers.map((l) => l.asset), set.join('+')).toEqual([asset]);
       expect(look.drawn, set.join('+')).toEqual([...set].sort());
       expect(look.pending, set.join('+')).toEqual([]);
+      expect(look.hidden, set.join('+')).toEqual([]);
       const jacket = set.find((id) => id.startsWith('jacket-'))!;
       expect(look.slots.top, set.join('+')).toEqual({ wanted: jacket, shown: jacket, outcome: 'drawn' });
     }
   });
 
-  it('сочетания нет: рисуется образ с курткой, остальное — no-variant (куртка важнее рюкзака и очков)', () => {
-    // джинсовая + очки + рюкзак (без кепки): точного нет; «куртка + рюкзак» и «очки + рюкзак» одного размера — побеждает куртка
+  it('образы без худи не называются hoodie-…; худи под курткой остаётся только у четырёх, где образа без худи нет', () => {
+    const jackets = LOOK_VARIANTS.list.filter((v) => v.items.some((id) => JACKETS.includes(id)));
+    expect(jackets.filter((v) => v.id.startsWith('hoodie-')).map((v) => v.id).sort()).toEqual([
+      'hoodie-denim-cap-glasses', 'hoodie-denim-cap-glasses-pack', 'hoodie-rain-cap-glasses-pack', 'hoodie-rain-glasses-pack',
+    ]);
+    expect(jackets.filter((v) => !v.id.startsWith('hoodie-'))).toHaveLength(12);
+    // куртка и худи делят слот top: набора «худи + куртка» не бывает
+    expect(equip(['hoodie-red'], 'jacket-denim').evicted).toEqual(['hoodie-red']);
+  });
+
+  it('красная шапка: prerendered, на одном слоте с кепкой (вытесняет её), видна только с куртками', () => {
+    const beanie = LOOK_MANIFEST.items.find((i) => i.id === 'beanie-red')!;
+    expect(beanie).toMatchObject({ catalogSlot: 'HAT', status: 'prerendered', rarity: 'common', domain: 'beaver' });
+    expect(beanie.occupies).toEqual(['headwear']);
+    expect(equip(['cap-red', 'backpack-travel'], 'beanie-red')).toMatchObject({ evicted: ['cap-red'], equipment: ['backpack-travel', 'beanie-red'] });
+    expect(equip(['beanie-red'], 'cap-red').evicted).toEqual(['beanie-red']);
+    // с курткой шапка нарисована
+    const withJacket = resolveLook(null, ['jacket-rain', 'beanie-red']);
+    expect(withJacket.slots.headwear).toEqual({ wanted: 'beanie-red', shown: 'beanie-red', outcome: 'drawn' });
+    // без куртки образа с шапкой нет: рисуется худи, шапка — no-variant, честно «нет картинки»
+    const bare = resolveLook(null, ['beanie-red']);
+    expect(bare.layers.map((l) => l.asset)).toEqual(['variants/hoodie_wave']);
+    expect(bare.items.find((o) => o.id === 'beanie-red')).toMatchObject({ drawn: false, reason: 'no-variant' });
+    expect(canPurchase({ id: 'i_beanie-red', slot: 'HAT' })).toEqual({ ok: true, status: 'prerendered' });
+  });
+
+  it('сочетания нет: рисуется образ с курткой, остальное — no-variant; из равных побеждает важнее по priority (куртка, кепка, шапка, очки, шарф, рюкзак)', () => {
+    // джинсовая + очки + рюкзак (без шапки): «куртка + очки» и «куртка + рюкзак» одного размера — очки важнее рюкзака
     const look = resolveLook(null, ['jacket-denim', 'glasses-round', 'backpack-travel']);
     expect(look.mode).toBe('variant');
-    expect(look.layers.map((l) => l.asset)).toEqual(['variants/hoodie-denim-pack_wave']);
-    expect(look.drawn).toEqual(['backpack-travel', 'jacket-denim']);
-    expect(look.items.find((o) => o.id === 'glasses-round')).toMatchObject({ drawn: false, reason: 'no-variant' });
-    // джинсовая + кепка + рюкзак (без очков): «кепка + рюкзак» по алфавиту стоит раньше, но куртка важнее — рисуется куртка
+    expect(look.layers.map((l) => l.asset)).toEqual(['variants/denim-glasses_wave']);
+    expect(look.drawn).toEqual(['glasses-round', 'jacket-denim']);
+    expect(look.items.find((o) => o.id === 'backpack-travel')).toMatchObject({ drawn: false, reason: 'no-variant' });
+    // джинсовая + кепка + рюкзак: кепка важнее рюкзака
     const cap = resolveLook(null, ['jacket-denim', 'cap-red', 'backpack-travel']);
-    expect(cap.layers.map((l) => l.asset)).toEqual(['variants/hoodie-denim-pack_wave']);
-    expect(cap.items.find((o) => o.id === 'cap-red')).toMatchObject({ drawn: false, reason: 'no-variant' });
-    // дождевик + кепка + рюкзак (без очков): «кепка + рюкзак» по алфавиту раньше, но куртка важнее
-    const rainCap = resolveLook(null, ['jacket-rain', 'cap-red', 'backpack-travel']);
-    expect(rainCap.layers.map((l) => l.asset)).toEqual(['variants/hoodie-rain-pack_wave']);
-    // шарф поверх дождевика с очками: образ «дождевик + очки + рюкзак», шарф не нарисован
+    expect(cap.layers.map((l) => l.asset)).toEqual(['variants/denim-cap_wave']);
+    expect(cap.items.find((o) => o.id === 'backpack-travel')).toMatchObject({ drawn: false, reason: 'no-variant' });
+    // дождевик + шапка + очки (без рюкзака): шапка важнее очков
+    const rainBeanie = resolveLook(null, ['jacket-rain', 'beanie-red', 'glasses-round']);
+    expect(rainBeanie.layers.map((l) => l.asset)).toEqual(['variants/rain-beanie_wave']);
+    expect(rainBeanie.items.find((o) => o.id === 'glasses-round')).toMatchObject({ drawn: false, reason: 'no-variant' });
+    // шарф поверх дождевика с очками и рюкзаком: образ «дождевик + очки + рюкзак» (с худи под курткой), шарф не нарисован
     const scarf = resolveLook(null, ['jacket-rain', 'glasses-round', 'scarf-pl', 'backpack-travel']);
     expect(scarf.layers.map((l) => l.asset)).toEqual(['variants/hoodie-rain-glasses-pack_wave']);
     expect(scarf.items.find((o) => o.id === 'scarf-pl')).toMatchObject({ drawn: false, reason: 'no-variant' });
-    // без рюкзака: образ с курткой без рюкзака тоже нет — берётся «худи», куртка не нарисована
-    const bare = resolveLook(null, ['jacket-denim']);
-    expect(bare.layers.map((l) => l.asset)).toEqual(['variants/hoodie_wave']);
-    expect(bare.items.find((o) => o.id === 'jacket-denim')).toMatchObject({ drawn: false, reason: 'no-variant' });
+    // джинсовая + кепка + очки + шарф: наибольший вмещающийся — «куртка + кепка + очки»
+    const three = resolveLook(null, ['jacket-denim', 'cap-red', 'glasses-round', 'scarf-pl']);
+    expect(three.layers.map((l) => l.asset)).toEqual(['variants/hoodie-denim-cap-glasses_wave']);
+    // куртка и шарф: образ только с курткой, шарфа на картинке нет
+    const jacketScarf = resolveLook(null, ['jacket-denim', 'scarf-pl']);
+    expect(jacketScarf.layers.map((l) => l.asset)).toEqual(['variants/denim_wave']);
+    expect(jacketScarf.items.find((o) => o.id === 'scarf-pl')).toMatchObject({ drawn: false, reason: 'no-variant' });
   });
 
   it('примерка шарфа поверх джинсовой куртки: честно «не видно», образ остаётся с курткой', () => {
     const p = tryOn(['jacket-denim', 'backpack-travel'], 'scarf-pl', { inventory: ['hoodie-red', 'jacket-denim', 'scarf-pl', 'backpack-travel'] });
     expect(p.candidateVisible).toBe(false);
     expect(p.candidateReason).toBe('no-variant');
-    expect(p.after.layers.map((l) => l.asset)).toEqual(['variants/hoodie-denim-pack_wave']);
+    expect(p.after.layers.map((l) => l.asset)).toEqual(['variants/denim-pack_wave']);
   });
 
   it('примерка куртки поверх кепки: куртка вытесняет худи только в данных, кепка остаётся', () => {
@@ -266,6 +313,15 @@ describe('готовые образы: куртки (вторая партия, 
     expect(p.candidateVisible).toBe(true);
     expect(p.after.layers.map((l) => l.asset)).toEqual(['variants/hoodie-denim-cap-glasses-pack_wave']);
     expect(p.removed).toEqual([]);
+  });
+
+  it('примерка шапки поверх кепки с курткой: кепка снимается, картинка со шапкой', () => {
+    const p = tryOn(['jacket-denim', 'cap-red', 'glasses-round', 'backpack-travel'], 'beanie-red', {
+      inventory: ['hoodie-red', 'jacket-denim', 'cap-red', 'beanie-red', 'glasses-round', 'backpack-travel'],
+    });
+    expect(p.removed).toEqual(['cap-red']);
+    expect(p.candidateVisible).toBe(true);
+    expect(p.after.layers.map((l) => l.asset)).toEqual(['variants/denim-beanie-glasses-pack_wave']);
   });
 
   it('две куртки не носят вместе, костюм вытесняет куртку', () => {
@@ -286,6 +342,13 @@ describe('готовые образы: куртки (вторая партия, 
       const asset = v.images.wave!;
       for (const file of [`${asset}.webp`, `${asset}@512.webp`, `${asset}@256.webp`]) expect(exists(file), file).toBe(true);
     }
+  });
+
+  it('в assets/variants нет лишних файлов: каждый .webp относится к образу таблицы (заменённые мастерами партии 4 удалены)', () => {
+    const wanted = new Set(LOOK_VARIANTS.list.flatMap((v) => Object.values(v.images).map((a) => a.replace('variants/', ''))));
+    const files = readdirSync(new URL('variants/', ASSETS)).filter((f) => f.endsWith('.webp'));
+    const stale = files.filter((f) => !wanted.has(f.replace(/(@\d+)?\.webp$/, '')));
+    expect(stale).toEqual([]);
   });
 });
 

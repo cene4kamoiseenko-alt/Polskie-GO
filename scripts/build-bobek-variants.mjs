@@ -3,13 +3,15 @@
  *
  *   node scripts/build-bobek-variants.mjs                 — собрать все образы в apps/web/src/assets/variants/
  *   node scripts/build-bobek-variants.mjs --sheet out.png  — + контрольный лист (24 образа на тёмном фоне, не в репозиторий)
- *   node scripts/build-bobek-variants.mjs --only refresh   — только одна серия (wave | open | jackets | refresh), для отладки очистки
+ *   node scripts/build-bobek-variants.mjs --only refresh   — только одна серия (wave | open | jackets | refresh | bare), для отладки очистки
  *
  * Три серии мастеров:
  *   01–16 — «wave»: 512×512 с прозрачностью, машет рукой с картой, все 16 сочетаний (худи + кепка/очки/шарф/рюкзак);
  *   24–31 — «open»: 1254×1254 на ровном бежевом фоне, руки разведены, 8 сочетаний;
  *   41–44 — «wave», вторая партия: 1254×1254 с прозрачностью, куртки поверх худи (джинсовая, дождевик), рюкзак на каждой картинке;
  *   61–66 — скины: цельные образы (куртка + головной убор + шарф или наушники), из партии 2; собираются как костюмы в assets/costumes;
+ *   71–84 — «wave», четвёртая партия: 1254×1254 на светлом фоне (вырезается), куртки (джинсовая, дождевик) без худи и красная шапка-бини; линия ног
+ *     каждой картинки встаёт на линию wave (`snapBottom`), масштаб общий; сочетание с тем же набором вещей заменяет картинку из партии 2 (ключ — набор без худи);
  *   51–56 — «wave», третья партия: 1254×1254 на светлом фоне (вырезается), кепка с надписью PL, обновлённые и новые сочетания;
  *     кадр у каждой картинки свой, поэтому она ставится на холст по рамке образа-аналога (`LIKE`), а не по общему для серии преобразованию.
  * Мастера второй и третьей партий лежат в docs/design/v18/bobek-part2/ и bobek-part3/; образы, которые не используются (вещи вне каталога,
@@ -33,7 +35,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
 
-const MASTER_DIRS = ['bobek31', 'bobek-part2', 'bobek-part3'].map((d) => new URL(`../docs/design/v18/${d}/`, import.meta.url));
+const MASTER_DIRS = ['bobek31', 'bobek-part2', 'bobek-part3', 'bobek-part4'].map((d) => new URL(`../docs/design/v18/${d}/`, import.meta.url));
 const WAVE = new URL('../apps/web/src/assets/beaver/wave.webp', import.meta.url);
 const OUT = new URL('../apps/web/src/assets/variants/', import.meta.url);
 const COSTUMES_OUT = new URL('../apps/web/src/assets/costumes/', import.meta.url);
@@ -41,11 +43,12 @@ const COSTUMES_OUT = new URL('../apps/web/src/assets/costumes/', import.meta.url
 /** Вещи в именах мастеров → id предметов каталога. Рюкзак «зелёный» — это backpack-travel. */
 const ITEM_OF = {
   'hoodie-red': 'hoodie-red', 'jacket-denim': 'jacket-denim', 'jacket-rain': 'jacket-rain',
-  'cap-red': 'cap-red', 'glasses-round': 'glasses-round', 'scarf-pl': 'scarf-pl', 'backpack-green': 'backpack-travel',
+  'cap-red': 'cap-red', 'beanie-red': 'beanie-red', 'glasses-round': 'glasses-round', 'scarf-pl': 'scarf-pl', 'backpack-green': 'backpack-travel',
 };
-const SHORT = { 'hoodie-red': 'hoodie', 'jacket-denim': 'denim', 'jacket-rain': 'rain', 'cap-red': 'cap', 'glasses-round': 'glasses', 'scarf-pl': 'scarf', 'backpack-travel': 'pack' };
+const SHORT = { 'hoodie-red': 'hoodie', 'jacket-denim': 'denim', 'jacket-rain': 'rain', 'cap-red': 'cap', 'beanie-red': 'beanie', 'glasses-round': 'glasses', 'scarf-pl': 'scarf', 'backpack-travel': 'pack' };
 /** Порядок вещей в имени файла; совпадает с variants.ts (куртки поверх худи, затем голова, шея, рюкзак). */
-const ORDER = ['hoodie-red', 'jacket-denim', 'jacket-rain', 'cap-red', 'glasses-round', 'scarf-pl', 'backpack-travel'];
+const ORDER = ['hoodie-red', 'jacket-denim', 'jacket-rain', 'cap-red', 'beanie-red', 'glasses-round', 'scarf-pl', 'backpack-travel'];
+const JACKETS = ['jacket-denim', 'jacket-rain'];
 
 /**
  * Серия по номеру мастера: поза, опорный кадр, размеры доставки. Главный файл — первый размер.
@@ -62,6 +65,10 @@ const SERIES = [
   // Скины (цельные образы-костюмы, ADR-013): мастера из той же партии, что куртки (общий кадр, опорный кадр 41), но результат — файлы костюмов
   // apps/web/src/assets/costumes/<имя>.webp (512, как у прежних костюмов) и @256, @512, @1024 для BeaverLook.
   { id: 'skins', skin: true, from: 61, to: 66, ref: 41, clean: 'ghosts', ghostR: 8 },
+  // Четвёртая партия: 1254×1254 на светлом фоне (вырезается), куртки без худи (худи под курткой не рисуется: куртка и худи делят слот top)
+  // и красная шапка-бини. Кадр общий для картинок с одним базовым кадром (опорный — 71, чубчик сверху, как у 41); отличающиеся — по `LIKE`.
+  // `snapBottom` — линия ног у каждой картинки ставится ровно на линию wave: у пяти генераций она отличалась на 2–7 px (из 1024), и Бобек «подпрыгивал».
+  { id: 'bare', pose: 'wave', from: 71, to: 84, ref: 71, sizes: [1024, 512, 256], clean: 'matte', snapBottom: true },
 ];
 
 const args = process.argv.slice(2);
@@ -204,7 +211,8 @@ function parse(file, dir) {
     return ITEM_OF[k];
   });
   const ordered = ORDER.filter((id) => items.includes(id));
-  if (ordered.length !== items.length || !ordered.includes('hoodie-red')) throw new Error(`${file}: ожидаю худи и неповторяющиеся вещи`);
+  // Образ без худи допустим только с курткой: куртка занимает тот же слот top, и худи под ней не нужно.
+  if (ordered.length !== items.length || !(ordered.includes('hoodie-red') || ordered.some((id) => JACKETS.includes(id)))) throw new Error(`${file}: ожидаю худи или куртку и неповторяющиеся вещи`);
   return { file, dir, n, series, items: [...ordered].sort(), name: ordered.map((id) => SHORT[id]).join('-') };
 }
 
@@ -220,7 +228,8 @@ const LIKE = { 51: 42, 52: 16, 53: 54, 54: 14, 55: 44 };
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const all = MASTER_DIRS.flatMap((dir) => readdirSync(dir).map((file) => parse(file, dir))).filter(Boolean).sort((a, b) => a.n - b.n);
 const byN = new Map(all.map((m) => [m.n, m]));
-const keyOf = (m) => (m.skin ? `skin:${m.name}` : `${m.name}_${m.series.pose}`);
+// Ключ — набор вещей без худи (худи не отдельная ось: оно либо на картинке, либо заменено курткой): картинка без худи заменяет картинку того же набора с худи.
+const keyOf = (m) => (m.skin ? `skin:${m.name}` : `${m.items.filter((id) => id !== 'hoodie-red').join('+')}_${m.series.pose}`);
 const winner = new Map();
 for (const m of all) winner.set(keyOf(m), m);
 const masters = all.filter((m) => winner.get(keyOf(m)) === m && (!only || m.series.id === only));
@@ -259,7 +268,8 @@ async function transformOf(m) {
       const k = target.h / (ref.box.y1 - ref.box.y0) / target.canvas; // доли холста wave на пиксель мастера
       s.t = { k, ox: target.cx / target.canvas - (k * (ref.box.x0 + ref.box.x1)) / 2, oy: target.bottom / target.canvas - k * ref.box.y1 };
     }
-    m.t = s.t;
+    // Масштаб общий, сдвиг по вертикали — по линии ног этой картинки (если серия просит).
+    m.t = s.snapBottom ? { ...s.t, oy: s.t.oy + (target.bottom / target.canvas - (s.t.oy + s.t.k * m.box.y1)) } : s.t;
   }
   return m.t;
 }

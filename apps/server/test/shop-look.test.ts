@@ -69,7 +69,7 @@ describe('Каталог магазину: visualStatus', () => {
     expect(by.get('costume-artist')!.visualStatus).toBe('legacy-whole-look');
     expect(by.get('hoodie-red')!.visualStatus).toBe('prerendered');
     expect(by.get('backpack-travel')!.visualStatus).toBe('prerendered');
-    for (const slug of ['cap-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) expect(by.get(slug)!.visualStatus, slug).toBe('prerendered');
+    for (const slug of ['cap-red', 'beanie-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) expect(by.get(slug)!.visualStatus, slug).toBe('prerendered');
     for (const slug of ['scarf-ua', 'glasses-sun', 'vest-krakowiak']) expect(by.get(slug)!.visualStatus, slug).toBe('pending');
     expect(by.get('frame-green')!.visualStatus).toBe('ready');
     expect(by.get('plant')!.visualStatus).toBe('not-wearable');
@@ -80,7 +80,7 @@ describe('Каталог магазину: visualStatus', () => {
       .map((i) => i.slug)
       .sort();
     expect(sellable).toEqual([
-      'cap-red', 'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red',
+      'beanie-red', 'cap-red', 'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red',
       'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
     ]);
   });

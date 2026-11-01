@@ -32,9 +32,9 @@ function Attrs({ l }: { l: ResolvedLook }) {
   );
 }
 
-function Tile({ title, l, size = 110, note }: { title: string; l: ResolvedLook; size?: number; note?: string }) {
+function Tile({ title, l, size = 110, note, variant }: { title: string; l: ResolvedLook; size?: number; note?: string; variant?: boolean }) {
   return (
-    <figure className="card flex flex-col items-center p-2" data-gallery-look={title}>
+    <figure className="card flex flex-col items-center p-2" data-gallery-look={title} {...(variant ? { 'data-gallery-variant': title } : {})}>
       <div className="relative" style={{ ...CHECKER, outline: BOX ? '1px dashed #e5484d' : undefined }}>
         <BeaverLook look={l} size={size} animate={false} />
         {BOX && <span className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: size, outline: '1px dotted #36b9ff' }} />}
@@ -86,11 +86,11 @@ export function LookGallery() {
 
       <Section
         title="Готові образи (ADR-008)"
-        hint="Усі 16 сполучень худі + кепка / окуляри / шарф / рюкзак. Стартовий набір (лише рюкзак) лишається цілісним образом з 14 позами. Підпис — mode і поза."
+        hint="16 сполучень худі + кепка / окуляри / шарф / рюкзак і 16 сполучень з курткою (джинсова, дощовик) і червоною в'язаною шапкою; куртка — без худі, лише чотири образи з худі під курткою мають префікс hoodie-. Стартовий набір (лише рюкзак) лишається цілісним образом з 14 позами. Підпис — mode і поза."
         cols="grid-cols-4"
       >
         {LOOK_VARIANTS.list.map((v) => (
-          <Tile key={v.id} title={v.id} l={look(v.items)} size={84} />
+          <Tile key={v.id} title={v.id} l={look(v.items)} size={84} variant />
         ))}
       </Section>
 

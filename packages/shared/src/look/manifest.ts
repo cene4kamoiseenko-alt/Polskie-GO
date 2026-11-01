@@ -4,7 +4,7 @@
  * Що є насправді:
  * - Шарової живописної бази немає й не буде (рішення власника 2026-11-01): образ — це готова картинка набору речей.
  *   Худі, кепка, круглі окуляри, польський шарф і рюкзак мають готові образи в усіх 16 сполученнях, джинсова куртка й
- *   жовтий дощовик — у 4 (`variants.ts`, статус `prerendered`).
+ *   жовтий дощовик — у 16 сполученнях (з рюкзаком, окулярами, кепкою, червоною в'язаною шапкою; `variants.ts`, статус `prerendered`).
  * - Стартовий набір (худі + рюкзак) лишається цілісним базовим образом `legacyBase` — 14 поз
  *   `apps/web/src/assets/beaver/*.webp`, у кожну впечатані червоне худі PL і зелений рюкзак. Полотна різні (512, 768 і 1024 — wave, read, celebrate: майстри власника 2026-10-31), масштаб і положення голови
  *   між позами відрізняються — шари на них не накладаються.
@@ -87,6 +87,7 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   // Головні убори
   pending('cap-green', 'HAT'),
   prerendered('cap-red', 'HAT'),
+  prerendered('beanie-red', 'HAT', 'common', 'Червона в\'язана шапка з нашивкою PL: готові образи лише з джинсовою курткою й дощовиком (четверта партія).'),
   pending('beanie-blue', 'HAT', 'common', { hides: ['tuft'] }),
   pending('hat-chef', 'HAT', 'rare'),
   pending('hat-krasnal', 'HAT', 'epic', { hides: ['tuft'] }),
@@ -100,8 +101,8 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   pending('scarf-ua', 'SCARF', 'rare'),
   pending('scarf-green', 'SCARF'),
   // Верх
-  prerendered('jacket-denim', 'JACKET', 'common', 'Куртка поверх худі: готові образи з рюкзаком, з кепкою й окулярами (часткова сітка, друга партія).'),
-  prerendered('jacket-rain', 'JACKET', 'common', 'Дощовик поверх худі: готові образи з рюкзаком і з окулярами (часткова сітка, друга партія).'),
+  prerendered('jacket-denim', 'JACKET', 'common', 'Куртка замість худі (слот top): готові образи з рюкзаком, окулярами, кепкою, шапкою (часткова сітка, партії 2–4).'),
+  prerendered('jacket-rain', 'JACKET', 'common', 'Дощовик замість худі (слот top): готові образи з рюкзаком, окулярами, кепкою, шапкою (часткова сітка, партії 2–4).'),
   pending('vest-krakowiak', 'JACKET', 'epic', { replaces: ['torso'] }),
   // Рюкзаки
   pending('backpack-map', 'BACKPACK', 'rare'),
