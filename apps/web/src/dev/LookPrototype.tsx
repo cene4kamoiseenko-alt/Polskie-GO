@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { equip, resolveLook, unequip, type LookEquipment } from '@polski-go/shared';
-import { Beaver, BeaverLook } from '../components/Beaver';
+import { BeaverLook } from '../components/Beaver';
 import { LazyMotion, MotionConfig, loadMotionFeatures } from '../lib/motion';
 import { LOOK_PROTOTYPE_MANIFEST as M, PROTO_STATES } from './lookPrototypeManifest';
 import { protoAssetUrl } from './protoAssets';
@@ -143,7 +143,7 @@ export default function LookPrototype() {
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
-            {!LAYERED_APP_PREVIEW_APPROVED ? <Beaver mood="happy" size={240} animate={false} /> : <BeaverLook look={look} size={240} resolveAsset={resolveAsset} />}
+            {!LAYERED_APP_PREVIEW_APPROVED ? <BeaverLook look={resolveLook(null, [], {mood:'happy'})} size={240} animate={false} /> : <BeaverLook look={look} size={240} resolveAsset={resolveAsset} />}
             <div className="mt-2 w-full break-words font-mono text-[11px] leading-tight text-[var(--text-muted)]" data-proto-state>
               {!LAYERED_APP_PREVIEW_APPROVED ? 'Відображається стабільний оригінал. Експериментальні шари вимкнені.' : `pose: ${look.pose} · drawn: ${look.drawn.join(' ')} · layers: ${look.layers.length}`}
               {restored && <span data-proto-restored> · комплект восстановлен после перезапуска</span>}
@@ -195,7 +195,7 @@ export default function LookPrototype() {
           <div className="mt-2 grid grid-cols-5 gap-1">
             {PROTO_STATES.map((s) => (
               <div key={s.id} className="flex flex-col items-center">
-                {!LAYERED_APP_PREVIEW_APPROVED ? <Beaver mood={s.mood} size={64} animate={false} /> : <BeaverLook look={resolveLook(null, saved.equipment, { manifest: activeManifest, mood: s.mood })} size={64} animate={false} resolveAsset={resolveAsset} />
+                {!LAYERED_APP_PREVIEW_APPROVED ? <BeaverLook look={resolveLook(null, [], {mood:s.mood})} size={64} animate={false} /> : <BeaverLook look={resolveLook(null, saved.equipment, { manifest: activeManifest, mood: s.mood })} size={64} animate={false} resolveAsset={resolveAsset} />
                 <span className="text-[10px] font-bold">{s.label}</span>
               </div>
             ))}
