@@ -36,7 +36,9 @@
     "bobek:v3:check": "node --import tsx scripts/check-bobek-v3.mjs",
     "bobek:v3:frames": "node --import tsx scripts/bobek-v3-frame-qa.mjs",
     "bobek:coherent:generate": "node scripts/generate-bobek-coherent.mjs",
-    "bobek:coherent:check": "node --import tsx scripts/check-bobek-coherent.mjs"
+    "bobek:coherent:check": "node --import tsx scripts/check-bobek-coherent.mjs",
+    "bobek:v4:colorway": "node scripts/generate-bobek-v4-colorway.mjs",
+    "bobek:v4:check": "node scripts/check-bobek-v4-colorway.mjs"
   },
   "engines": {
     "node": ">=20"
