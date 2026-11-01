@@ -255,8 +255,10 @@ async function main() {
     await boot.page.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 20_000 });
     check(true, 'мережа повернулась — профіль довантажився сам, без перезапуску');
 
+    // Окно, в котором видно «связь медленная»: от (этап «профиль» + 8 с) до ответа. Раньше задержка была 9,5 с — окно ≈ 0,7 с, и при медленном
+    // старте страницы (этап «профиль» позже 1,5 с) оно исчезало совсем; 12 с дают ≈ 2,7 с запаса.
     await boot.page.route('**/api/me', async (r) => {
-      await new Promise((ok) => setTimeout(ok, 9500));
+      await new Promise((ok) => setTimeout(ok, 12_000));
       await r.continue().catch(() => {});
     });
     await boot.page.reload();
