@@ -1,0 +1,110 @@
+{
+  "title": "Bobek V4 — new master geometry registration contract",
+  "status": "REFERENCE_ONLY_NOT_ANIMATABLE",
+  "character_identity_ref": "apps/web/src/assets/beaver/front.webp",
+  "wave_expression_ref": "apps/web/src/assets/beaver/wave.webp",
+  "original": {
+    "front": {
+      "canvas": [
+        512,
+        512
+      ],
+      "alphaBounds": [
+        7,
+        18,
+        505,
+        510
+      ]
+    },
+    "wave": {
+      "canvas": [
+        1024,
+        1024
+      ],
+      "alphaBounds": [
+        85,
+        56,
+        939,
+        968
+      ]
+    },
+    "sameGeometry": false,
+    "note": "Production whole-look images are DIFFERENT drawings. Do not split and cross-composite parts across these two poses."
+  },
+  "authoring": {
+    "canvas": [
+      1024,
+      1024
+    ],
+    "sourcePaintingMin": [
+      2048,
+      2048
+    ],
+    "transparent": true,
+    "exactCharacterIdentity": true,
+    "anchorsApproxOnly": {
+      "neck": [
+        510,
+        537
+      ],
+      "shoulderLeft": [
+        345,
+        535
+      ],
+      "shoulderRight": [
+        668,
+        535
+      ],
+      "torsoCenter": [
+        510,
+        690
+      ],
+      "garmentHem": [
+        510,
+        817
+      ],
+      "footline": [
+        510,
+        980
+      ]
+    },
+    "anchorsCannotBeApprovedWithoutDrawing": true,
+    "requiredLayerNames": [
+      "fur-body",
+      "head",
+      "left-arm-back",
+      "right-arm-back",
+      "left-paw",
+      "right-paw",
+      "tail",
+      "hoodie-front",
+      "hoodie-back",
+      "hoodie-left-sleeve",
+      "hoodie-right-sleeve",
+      "denim-front",
+      "denim-back",
+      "denim-left-sleeve",
+      "denim-right-sleeve"
+    ],
+    "firstAcceptedFrames": [
+      "red-idle",
+      "blue-idle",
+      "red-wave-start",
+      "red-wave-end",
+      "blue-wave-start",
+      "blue-wave-end"
+    ],
+    "noIndependentCropping": true,
+    "noRegeneratedFaces": true,
+    "noFalseProductionApproval": true
+  },
+  "qa": {
+    "productionGateMustRemainFalse": true,
+    "mustPassHumanArtReview": true,
+    "requiresScreenshots": [
+      320,
+      390
+    ],
+    "testBothOutfits": true
+  }
+}
