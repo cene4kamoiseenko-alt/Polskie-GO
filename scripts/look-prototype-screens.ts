@@ -58,6 +58,27 @@ async function main(){
     check(healthy,'both original whole-look art assets decoded');
     check(await page.locator('[data-bobek-demo-card]').count()===1,
       'stable default preview visible instead of broken outfit');
+    const redButton=page.locator('[data-bobek-v4-colorway="red"]');
+    const blueButton=page.locator('[data-bobek-v4-colorway="blue"]');
+    check(await redButton.count()===1&&await blueButton.count()===1,
+      'V4 shows separate, explicit safe red/blue WHOLE-look options');
+    check(!(await blueButton.isDisabled()),
+      'pre-generated blue colorway is selectable inside QA only');
+    const display=page.locator('[data-bobek-v4-display]');
+    await blueButton.click();
+    check(await blueButton.getAttribute('aria-pressed')==='true',
+      'safe blue hoodie color selected');
+    await display.waitFor();
+    check((await display.getAttribute('src'))?.includes('front-blue-colorway'),
+      'blue selection displays registered master instead of drifting garment layers');
+    check(await display.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth===512),
+      'blue colorway decodes at original character native size');
+    await page.screenshot({path:join(out,'blue-whole-look-390.png'),fullPage:true});
+    await redButton.click();
+    check(await redButton.getAttribute('aria-pressed')==='true',
+      'red approved master restored without persisting an outfit');
+    check((await display.getAttribute('src'))?.includes('front-approved'),
+      'red master source is restored exactly');
     for(const width of [390,320]){
       await page.setViewportSize({width,height:844});
       await page.screenshot({path:join(out,`stable-${width}.png`),fullPage:true});
