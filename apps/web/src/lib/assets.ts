@@ -16,7 +16,7 @@ import { CITY_ART, CITY_ART_SMALL, LOOK_CANVAS, LOOK_MANIFEST, MISSION_SCENE_ART
 
 const files = import.meta.glob('../assets/**/*.{webp,png}', { eager: true, import: 'default' }) as Record<string, string>;
 
-function pick(dir: string, name: string): string | null {
+export function pick(dir: string, name: string): string | null {
   return files[`../assets/${dir}/${name}.webp`] ?? files[`../assets/${dir}/${name}.png`] ?? null;
 }
 
@@ -63,22 +63,10 @@ export const itemIcon = (key: string) => pick('items', key);
 export const travellerScene = () => pick('costumes', 'traveller-scene');
 
 /**
- * Арты пропуска месяца (src/assets/pass, мастера владельца 2026-11-01, docs/design/v19/pass; сборка — scripts/build-pass-art.mjs):
- *  · карточки миссий: «11 ноября» — Stary Rynek 2:1 (1400 px и @640), «Анджейки» — вырезка референса 866 px (кадра пока нет);
- *  · вырезка героя карточки «Продолжить»: рогалики (приближённая маска референса) и Бобек-бариста;
- *  · обложка сезона «Ноябрь в Познани» (16:9, 1200 px и @640).
- * Ключ — slug миссии (обложка — slug сезона); нет записи — карточка берёт сцену миссии, обложка — сцену первой миссии сезона.
- * Арты ТОЛЬКО для пропуска: фон самой миссии — из реестра сцен (SCENE_ART, кадры 2:1 без пустых полей).
+ * Обложки сезонов пропуска (src/assets/pass, мастера владельца 2026-11-01, docs/design/v19/pass; сборка — scripts/build-pass-art.mjs): «Ноябрь в Познани» (16:9, 1200 px и @640),
+ * «Польское Рождество» и «Поездка в Energylandię». Ключ — slug сезона; нет записи — сцена первой миссии сезона. Остальные арты пропуска и «Квестов» живут в `lib/screenArt.ts`
+ * (грузится вместе с этими экранами: обложка нужна и на главной, поэтому она здесь, а лишний код не раздувает стартовую загрузку — бюджет JS в scripts/perf.ts).
  */
-const PASS_ART: Record<string, { file: string; width: number }> = {
-  'listopad-swieto': { file: 'stary-rynek', width: 1400 },
-  'andrzejki-wosk': { file: 'andrzejki', width: 866 },
-};
-/** Размеры вырезок — файла, не экрана (атрибуты width/height держат место, пока картинка грузится). */
-const PASS_CUTOUT: Record<string, { file: string; w: number; h: number }> = {
-  'marcin-rogal': { file: 'rogaliki', w: 245, h: 147 },
-  'listopad-swieto': { file: 'barista', w: 275, h: 340 },
-};
 const PASS_SEASON_COVER: Record<string, { file: string; width: number }> = {
   'listopad-poznan': { file: 'season-listopad', width: 1200 },
   // Названия «Polskie Boże Narodzenie» и «Поездка в Energylandię» нарисованы на самих кадрах (мастера владельца).
@@ -86,47 +74,17 @@ const PASS_SEASON_COVER: Record<string, { file: string; width: number }> = {
   energylandia: { file: 'season-energylandia', width: 1200 },
 };
 
-/** Картинка карточки миссии в пропуске (src + srcset) или null. */
-export function passArt(slug: string): { src: string; srcSet: string | undefined } | null {
-  return artImage('pass', PASS_ART[slug]);
-}
-
 /** Обложка сезона пропуска (по slug сезона) или null — тогда сцена первой миссии сезона, как раньше. */
 export function passSeasonCover(seasonSlug: string): { src: string; srcSet: string | undefined } | null {
   return artImage('pass', PASS_SEASON_COVER[seasonSlug]);
 }
 
 /** Файл `<dir>/<file>.webp` и его узкий вариант `@640` для srcset (`width` — ширина основного файла) или null, если файла нет. */
-function artImage(dir: string, entry: { file: string; width: number } | undefined): { src: string; srcSet: string | undefined } | null {
+export function artImage(dir: string, entry: { file: string; width: number } | undefined): { src: string; srcSet: string | undefined } | null {
   const src = entry ? pick(dir, entry.file) : null;
   if (!entry || !src) return null;
   const small = pick(dir, `${entry.file}@640`);
   return { src, srcSet: small ? `${small} 640w, ${src} ${entry.width}w` : undefined };
-}
-
-/**
- * Арты экрана «Квесты» (src/assets/quests, мастера владельца 2026-11-01, docs/design/v19/quests; сборка — scripts/build-quests-art.mjs):
- * баннер, миниатюра «Польский в жизни» и картинки сюжетных квестов по slug (`pos` — какая часть кадра остаётся в окне карточки 2,5 : 1).
- * Нет файла или квеста в таблице — экран рисует прежнюю SVG-сцену.
- */
-export const questHero = () => artImage('quests', { file: 'hero', width: 1200 });
-export const questLifeThumb = () => pick('quests', 'life');
-const QUEST_STORY_ART: Record<string, { file: string; pos: string }> = {
-  's-warszawa-dworzec': { file: 'story-warszawa', pos: '50% 22%' },
-  's-krakow-mieszkanie': { file: 'story-krakow', pos: '50% 30%' },
-  's-wroclaw-zgubiony': { file: 'story-wroclaw', pos: '50% 26%' },
-};
-export function questStoryArt(slug: string): { src: string; srcSet: string | undefined; pos: string } | null {
-  const e = QUEST_STORY_ART[slug];
-  const img = e ? artImage('quests', { file: e.file, width: 1200 }) : null;
-  return e && img ? { ...img, pos: e.pos } : null;
-}
-
-/** Вырезка героя карточки «Продолжить» (прозрачный WebP) с размерами файла или null. */
-export function passCutout(slug: string): { src: string; w: number; h: number } | null {
-  const c = PASS_CUTOUT[slug];
-  const src = c ? pick('pass', c.file) : null;
-  return c && src ? { src, w: c.w, h: c.h } : null;
 }
 
 export const cityAsset = (slug: string) => pick('cities', slug);

@@ -5,7 +5,7 @@
  */
 import { motion } from '../lib/motion';
 import { useT } from '../i18n';
-import { passArt, passCutout } from '../lib/assets';
+import { passArt, passCutout } from '../lib/screenArt';
 import { haptic } from '../lib/telegram';
 import type { PassMission } from '../lib/types';
 import { Icon } from './Icon';

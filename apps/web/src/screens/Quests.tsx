@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
-import { questHero, questLifeThumb, questStoryArt } from '../lib/assets';
+import { questHero, questLifeThumb, questStoryArt } from '../lib/screenArt';
 import { useQuests, useRefreshAll } from '../lib/queries';
 import type { Quest } from '../lib/types';
 import { sfx } from '../lib/audio';

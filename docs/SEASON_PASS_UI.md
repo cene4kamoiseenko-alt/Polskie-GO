@@ -21,7 +21,7 @@
 | экран, подключение карточек | `apps/web/src/screens/Pass.tsx` |
 | карточки «Продолжить» и миссии | `apps/web/src/components/PassCards.tsx` |
 | стили `.pg-*` | `apps/web/src/index.css` (блок «Пропуск месяца») |
-| арты, вырезки, обложка | `apps/web/src/assets/pass/{stary-rynek,season-listopad,andrzejki}{,@640}.webp`, `rogaliki.webp`, `barista.webp`; помощники `passArt()`, `passCutout()`, `passSeasonCover()` в `lib/assets.ts`; сборка — `scripts/build-pass-art.mjs` |
+| арты, вырезки, обложка | `apps/web/src/assets/pass/{stary-rynek,season-listopad,andrzejki}{,@640}.webp`, `rogaliki.webp`, `barista.webp`; помощники `passArt()`, `passCutout()` в `lib/screenArt.ts` и `passSeasonCover()` в `lib/assets.ts`; сборка — `scripts/build-pass-art.mjs` |
 | мастера | `docs/design/v19/pass/` (референс, арты, вырезки, мастера владельца Stary Rynek ×2 и Бобек-бариста) |
 | строка `pass_locked_state` («нужен Premium», подпись для скринридера) | `i18n/{ru,uk,en}.ts` |
 | проверка | `scripts/pass-screens.ts` |
@@ -31,7 +31,7 @@
 
 ## Новые арты владельца (2026-11-01, вторая партия)
 
-Владелец прислал без подписей три картинки Stary Rynek: два кадра с Бобеком-бариста и вырезку самого Бобека. Подключены так (одна строка в `lib/assets.ts` меняет назначение):
+Владелец прислал без подписей три картинки Stary Rynek: два кадра с Бобеком-бариста и вырезку самого Бобека. Подключены так (одна строка в `lib/screenArt.ts` меняет назначение):
 
 | Картинка | Куда |
 |---|---|

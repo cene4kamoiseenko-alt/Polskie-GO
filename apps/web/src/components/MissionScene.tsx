@@ -42,7 +42,8 @@ export function SeasonCover({ season, className, dim }: { season: { slug: string
       <img
         src={cover.src}
         srcSet={cover.srcSet}
-        sizes="(min-width: 576px) 576px, 100vw"
+        // Обложка стоит под затемнением и текстом, и она на главной (холодный старт): на телефонах с DPR ≤ 2 хватает узкого файла 640 (66 КБ вместо 173).
+        sizes="(min-width: 576px) 576px, 70vw"
         alt=""
         className={`${className ?? ''} object-cover${dim ? ' opacity-60' : ''}`}
         style={{ objectPosition: '50% 38%' }}

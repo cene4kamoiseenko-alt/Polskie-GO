@@ -9,7 +9,7 @@
  *  season_swieta_16x9.webp, season_energylandia_16x9.webp (1672×941, с названием на картинке) → season-swieta{,@640}.webp, season-energylandia{,@640}.webp — обложки сезонов «Польское Рождество» и «Поездка в Energylandię»
  *  bobek_barista_cutout.webp  (1122×1402, RGBA)           → barista.webp — вырезка героя карточки «Продолжить» (Бобек-бариста с флагом-розеткой на фартуке)
  * Вырезка чистится так же, как слои заставки (scripts/lib/sprite.mjs): альфа 253 → 255, дырочки, цвет кромки — по ближайшему плотному пикселю.
- * Размеры вырезки (ширина × высота) печатаются в конце: их нужно держать в `PASS_CUTOUT` (apps/web/src/lib/assets.ts).
+ * Размеры вырезки (ширина × высота) печатаются в конце: их нужно держать в `PASS_CUTOUT` (apps/web/src/lib/screenArt.ts).
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { bounds, cleanSprite, crop, readRGBA, sharp, webp } from './lib/sprite.mjs';

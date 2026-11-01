@@ -9,7 +9,7 @@
  *  story_warszawa_dworzec_16x9.webp  (1672×941)  → story-warszawa.webp{,@640}      — квест s-warszawa-dworzec «Бобр прибывает в Варшаву»
  *  story_krakow_mieszkanie_16x9.webp (1672×941)  → story-krakow.webp{,@640}        — квест s-krakow-mieszkanie «Бобр ищет квартиру»
  *  story_wroclaw_zgubiony_16x9.webp  (1672×941)  → story-wroclaw.webp{,@640}       — квест s-wroclaw-zgubiony «Бобр потерялся во Вроцлаве»
- * Соответствие квест → файл — `QUEST_STORY_ART` в apps/web/src/lib/assets.ts. Обложки сезонов «Рождество» и «Energylandia» собирает scripts/build-pass-art.mjs.
+ * Соответствие квест → файл — `QUEST_STORY_ART` в apps/web/src/lib/screenArt.ts. Обложки сезонов «Рождество» и «Energylandia» собирает scripts/build-pass-art.mjs.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { sharp } from './lib/sprite.mjs';

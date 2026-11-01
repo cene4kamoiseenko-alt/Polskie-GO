@@ -14,7 +14,7 @@
 | календарь сезонов на `/pass`, «Польское Рождество» | «Polskie Boże Narodzenie», Краковский рождественский рынок | `assets/pass/season-swieta{,@640}.webp` |
 | «Поездка в Energylandię» | Бобек у входа в парк, название на картинке | `assets/pass/season-energylandia{,@640}.webp` |
 
-Подключение — `lib/assets.ts` (`questHero()`, `questLifeThumb()`, `questStoryArt(slug)`, `PASS_SEASON_COVER`); экран — `screens/Quests.tsx`; обложка сезона — `SeasonCover` в `components/MissionScene.tsx` (общая для `/pass`, главной и «Польского в жизни»).
+Подключение — `lib/screenArt.ts` (`questHero()`, `questLifeThumb()`, `questStoryArt(slug)`; отдельный файл, чтобы код артов не попадал в стартовую загрузку — бюджет JS почти исчерпан) и `lib/assets.ts` (`PASS_SEASON_COVER`: обложка нужна и на главной); экран — `screens/Quests.tsx`; обложка сезона — `SeasonCover` в `components/MissionScene.tsx` (общая для `/pass`, главной и «Польского в жизни»).
 Мастера — `docs/design/v19/quests/` и `docs/design/v19/pass/`; сборка — `scripts/build-quests-art.mjs` и `scripts/build-pass-art.mjs`.
 
 ## Поведение
