@@ -157,6 +157,7 @@ export default function LookPrototype() {
                 key={s.n}
                 className="btn btn-ghost min-h-11 justify-start text-left text-sm"
                 data-proto-step={s.n}
+                disabled={!LAYERED_APP_PREVIEW_APPROVED}
                 onClick={() => setSaved((cur) => {
                   const r = s.run(cur.equipment);
                   return { ...cur, equipment: r.e, state: r.state };
@@ -165,7 +166,7 @@ export default function LookPrototype() {
                 {s.n}. {s.label}
               </button>
             ))}
-            <button className="btn btn-red min-h-11 text-sm" data-proto-step={6} onClick={() => location.reload()}>
+            <button className="btn btn-red min-h-11 text-sm" data-proto-step={6} disabled={!LAYERED_APP_PREVIEW_APPROVED} onClick={() => location.reload()}>
               6. Перезапустить
             </button>
           </div>
@@ -173,7 +174,7 @@ export default function LookPrototype() {
           <h2 className="mt-4 text-sm font-black uppercase tracking-wide">Одежда</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             {(['hoodie-red', 'jacket-denim', 'cap-red', 'glasses-round'] as const).map((id) => (
-              <button key={id} className={`chip min-h-11 ${has(id) ? 'is-selected' : ''}`} aria-pressed={has(id)} data-proto-item={id} onClick={() => toggle(id)}>
+              <button key={id} className={`chip min-h-11 ${has(id) ? 'is-selected' : ''}`} aria-pressed={has(id)} data-proto-item={id} disabled={!LAYERED_APP_PREVIEW_APPROVED} onClick={() => toggle(id)}>
                 {has(id) ? '✓ ' : ''}
                 {id}
               </button>
@@ -183,7 +184,7 @@ export default function LookPrototype() {
           <h2 className="mt-4 text-sm font-black uppercase tracking-wide">Анимация</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             {PROTO_STATES.map((s) => (
-              <button key={s.id} className={`chip min-h-11 ${saved.state === s.id ? 'is-selected' : ''}`} aria-pressed={saved.state === s.id} data-proto-state-btn={s.id} onClick={() => setSaved((cur) => ({ ...cur, state: s.id }))}>
+              <button key={s.id} className={`chip min-h-11 ${saved.state === s.id ? 'is-selected' : ''}`} aria-pressed={saved.state === s.id} data-proto-state-btn={s.id} disabled={!LAYERED_APP_PREVIEW_APPROVED} onClick={() => setSaved((cur) => ({ ...cur, state: s.id }))}>
                 {s.label}
               </button>
             ))}
