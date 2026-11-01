@@ -124,16 +124,14 @@ export default function LookPrototype() {
             {v3 && <p className="mt-2 text-xs font-medium text-coral">V3.2 — пробна анімація з червоним або синім рукавом. Стик плеча, складки тканини й лапа потребують ручного перемалювання; не фінальний риг.</p>}
           </section>
 
-          <section className="card mt-3 p-3" aria-label="Однаковий силует Бобека без плаваючого одягу" data-bobek-coherent-preview>
-            <p className="text-sm font-bold">Новий контрольний еталон — один цілісний спрайт</p>
-            <p className="mt-1 text-xs">Ця основа не допускає зсувів плеча, коміра чи худі: одяг і тіло збережені разом для кожної пози. Синій варіант — тільки пробне перефарбування ХУДІ, не готова джинсова куртка і не система гардероба.</p>
+          <section className="card mt-3 p-3" aria-label="Оригінальний незмінний образ Бобека" data-bobek-coherent-preview>
+            <p className="text-sm font-bold">Еталон персонажа: без зсуву одягу</p>
+            <p className="mt-1 text-xs">Це оригінальні цілісні картинки POLSKI GO без жодних додаткових шарів: front (512px) та wave (1024px). Обидва варіанти V3.2 з худі/курткою заблоковані через неправильну посадку. Нового гардероба тут поки немає.</p>
             {coherentPreviewReady ? (
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {([
-                  ['front-red','Червоне худі · спереду'],
-                  ['front-blue-hoodie-proof','Синє худі · тест кольору'],
-                  ['wave-red','Червоне худі · привітання'],
-                  ['wave-blue-hoodie-proof','Синє худі · привітання'],
+                  ['front-approved','Затверджений образ · фронт'],
+                  ['wave-approved','Затверджений образ · привітання'],
                 ] as const).map(([key,label])=>(
                   <figure key={key} className="rounded-xl bg-white/80 p-2">
                     <img className="w-full" src={coherentPreviewUrl(key)} alt={label} loading="lazy"/>
@@ -141,7 +139,7 @@ export default function LookPrototype() {
                   </figure>
                 ))}
               </div>
-            ):<p className="mt-2 text-xs text-coral">Згенеруйте контрольний арт: npm run bobek:coherent:generate</p>}
+            ):<p className="mt-2 text-xs text-coral">Генерація оригінального еталона: npm run bobek:coherent:generate</p>}
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
