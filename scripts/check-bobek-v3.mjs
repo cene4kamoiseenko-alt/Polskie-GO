@@ -27,6 +27,25 @@ for(const [pose,names] of Object.entries(spriteSets)) for(const name of names) f
 }
 assert.equal(checked,30);
 const alpha=async(pose,name)=>sharp(join(folder,pose,name+'.webp')).extractChannel(3).raw().toBuffer();
+// Geometry guard: the neckline must sit on the shoulders, not under the neck,
+// and the hem must stay above the paws. It caught the V3.1 "fallen hoodie" bug.
+const bounds = async (pose,name) => {
+  const {data,info}=await sharp(join(folder,pose,name+'.webp')).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  let left=info.width,top=info.height,right=-1,bottom=-1;
+  for(let y=0;y<info.height;y++)for(let x=0;x<info.width;x++){
+    if(data[(y*info.width+x)*info.channels+3]<16)continue;
+    left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);
+  }
+  return {left,top,right,bottom};
+};
+for(const top of ['top-hoodie-red','top-jacket-denim']){
+  const b=await bounds('idle',top);
+  assert(b.top>=450 && b.top<=510,`${top}: collar detached (top=${b.top})`);
+  assert(b.bottom<=820,`${top}: hem overlaps the paws (bottom=${b.bottom})`);
+}
+const hoodieWave=await bounds('wave','top-hoodie-red');
+assert(hoodieWave.top>=450&&hoodieWave.top<=510,'Wave hoodie collar must align with idle hoodie');
+assert(hoodieWave.bottom<=820,'Wave hoodie hem must not cover feet');
 assert.notDeepEqual(await alpha('idle','top-hoodie-red'),await alpha('idle','top-jacket-denim'),'Independent clothing silhouettes required');
 assert.notDeepEqual(await alpha('idle','torso'),await alpha('wave','torso'),'Idle right arm must be removed for wave');
 assert.notDeepEqual(await alpha('idle','top-hoodie-red'),await alpha('wave','top-hoodie-red'),'Hoodie standing sleeve must be removed for wave');
