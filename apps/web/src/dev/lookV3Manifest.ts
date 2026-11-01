@@ -63,7 +63,7 @@ export const LOOK_V3_DRAFT_MANIFEST: LookManifest = {
   legacyBase:LOOK_MANIFEST.legacyBase,
   items:[
     hoodie,jacket,
-    accessory('backpack-travel','BACKPACK','backpack','backpack-straps','backpack','pack'),
+    accessory('backpack-travel','BACKPACK','backpack','backpack-back','backpack','pack'),
     accessory('glasses-round','GLASSES','glasses','glasses','glasses-round','glasses'),
     accessory('cap-red','HAT','headwear','headwear','cap-red','hat'),
   ],
