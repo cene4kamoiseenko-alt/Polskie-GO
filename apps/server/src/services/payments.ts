@@ -10,8 +10,11 @@ import { and, desc, eq, gt, inArray } from 'drizzle-orm';
 import { tr, type I18n, type UiLang } from '@polski-go/shared';
 import { atomic, db, isUniqueViolation } from '../db';
 import { paymentEvents, subscriptionPlans, subscriptions, users } from '../db/schema';
-import { badRequest, notFound } from '../lib/errors';
+import { HttpError, badRequest, notFound } from '../lib/errors';
 import { botApi } from '../lib/telegram';
+import { getRewards } from './gameConfig';
+import { welcomeKey } from './premium-gift';
+import { grantZlotki } from './rewards';
 
 export const STARS_SUBSCRIPTION_PERIOD = 2_592_000; // 30 днів у секундах
 
@@ -22,6 +25,14 @@ export async function listPlans() {
 export async function createInvoice(userId: string, planCode: string, lang: UiLang) {
   const plan = await db.query.subscriptionPlans.findFirst({ where: eq(subscriptionPlans.code, planCode) });
   if (!plan || !plan.isActive) throw notFound('plan_not_found');
+  // Вторая автопродлеваемая подписка поверх первой означала бы двойное списание каждые 30 дней. Отменённая (но ещё
+  // действующая) подписка не мешает оформить новую; разовые тарифы продлевают срок и не конфликтуют.
+  if (plan.recurring) {
+    const live = await db.query.subscriptions.findFirst({
+      where: and(eq(subscriptions.userId, userId), eq(subscriptions.status, 'ACTIVE'), eq(subscriptions.isRecurring, true), gt(subscriptions.expiresAt, new Date())),
+    });
+    if (live) throw new HttpError(409, 'already_subscribed', 'A recurring subscription is already active');
+  }
   const payload = `prem:${planCode}:${userId}:${randomBytes(6).toString('hex')}`;
   const title = `POLSKI GO Premium — ${tr(plan.title as I18n, lang)}`;
   const description = tr(
@@ -149,7 +160,15 @@ export async function handleSuccessfulPayment(fromId: number, p: SuccessfulPayme
         ? // Автопродовження існуючої підписки Stars.
           db.update(subscriptions).set({ expiresAt, status: 'ACTIVE', telegramChargeId: p.telegram_payment_charge_id, cancelledAt: null }).where(eq(subscriptions.id, current.id))
         : db.insert(subscriptions).values({ userId: user.id, planCode: plan.code, status: 'ACTIVE', startsAt: now, expiresAt, isRecurring: plan.recurring, telegramChargeId: p.telegram_payment_charge_id });
-    await atomic([event, write]);
+    // Награды за оплату — в том же пакете, что и событие платежа: повторная доставка (тот же charge id) откатит пакет целиком.
+    // Приветственный бонус — один раз на человека (ключ по пользователю), бонус предоплаченного тарифа — за каждый платёж.
+    const rewards = await getRewards();
+    const planBonus = plan.code === 'MONTH_3' ? rewards.premiumPlan3Zlotki : plan.code === 'MONTH_12' ? rewards.premiumPlan12Zlotki : 0;
+    const bonuses = [
+      grantZlotki(user.id, rewards.premiumWelcomeZlotki, 'premium-welcome', welcomeKey(user.id), now),
+      grantZlotki(user.id, planBonus, 'premium-plan', `premium-plan:${p.telegram_payment_charge_id}`, now),
+    ];
+    await atomic([event, write, ...bonuses.flatMap((b) => b.stmts)]);
     return { duplicate: false, expiresAt };
   } catch (e) {
     if (isUniqueViolation(e)) return { duplicate: true };

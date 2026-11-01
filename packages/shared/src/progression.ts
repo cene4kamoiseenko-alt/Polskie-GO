@@ -26,6 +26,18 @@ export const DEFAULT_REWARDS = {
   practiceXpDailyCap: 300,
   freeAiMessagesPerDay: 10,
   premiumAiMessagesPerDay: 150,
+  /**
+   * Награды Premium в Złotki (docs/PREMIUM_LOGIC_V2.md). Меняются в админке без выкладки.
+   * Подарок месяца — раз в месяц; приветственный — один раз, при первой оплате; лояльность — на 3-й, 6-й и 12-й полученный
+   * подарок (то есть на 3-й, 6-й, 12-й месяц с Premium); бонус тарифа — за каждую оплату предоплаченного тарифа на 3 / 12 месяцев.
+   */
+  premiumGiftZlotki: 150,
+  premiumWelcomeZlotki: 100,
+  premiumLoyalty3Zlotki: 100,
+  premiumLoyalty6Zlotki: 200,
+  premiumLoyalty12Zlotki: 400,
+  premiumPlan3Zlotki: 75,
+  premiumPlan12Zlotki: 400,
 };
 export type RewardConfig = typeof DEFAULT_REWARDS;
 

@@ -21,6 +21,7 @@ import { botQuizRounds, notificationCampaigns, notificationLog, playerProgress, 
 import { botApi, TelegramError } from './lib/telegram';
 import { config } from './env';
 import { pruneUsage } from './services/quota';
+import { pruneLoginFailures } from './services/admin-guard';
 import { reminderImage } from './bot/catalog';
 import { COPY, type Card, type ReminderKind } from './bot/copy';
 import { pickLang } from './bot/data';
@@ -274,6 +275,7 @@ export async function sendCampaignChunk(budget = SEND_BUDGET) {
 
 export async function runScheduled(now = new Date()) {
   await pruneUsage(now);
+  await pruneLoginFailures(now);
   await db.delete(telegramUpdates).where(lt(telegramUpdates.createdAt, new Date(now.getTime() - UPDATES_KEEP_MS)));
   // Таблиці з міграції 0009: до її застосування запит упаде — це не повинно зупиняти нагадування.
   await db

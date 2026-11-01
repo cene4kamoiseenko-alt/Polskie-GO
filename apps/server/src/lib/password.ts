@@ -19,3 +19,13 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const actual = await pbkdf2(password, Buffer.from(saltB64, 'base64'), Number(iter), expected.length, 'sha256');
   return timingSafeEqual(expected, actual);
 }
+
+/**
+ * Проверка «впустую» для несуществующей учётной записи: тот же PBKDF2, что и у настоящей. Без неё ответ на неизвестный email
+ * приходит заметно быстрее ответа на известный, и по времени можно узнать, какие адреса администраторов существуют.
+ */
+const DUMMY = `pbkdf2$${ITERATIONS}$${Buffer.alloc(16).toString('base64')}$${Buffer.alloc(32).toString('base64')}`;
+export async function verifyPasswordDummy(password: string): Promise<false> {
+  await verifyPassword(password, DUMMY);
+  return false;
+}

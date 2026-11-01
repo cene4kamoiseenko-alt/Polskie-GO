@@ -12,7 +12,7 @@ import { buyItem, equipItem, listShop, outfit } from '../services/shop';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
-import { claimPremiumGift, premiumGift } from '../services/premium-gift';
+import { claimPremiumGift, premiumBonuses, premiumGift } from '../services/premium-gift';
 import { achievementMetrics } from '../services/achievements';
 import { answerMission, listMissions, missionHint, startMission } from '../services/missions';
 import { passport } from '../services/passport';
@@ -112,10 +112,14 @@ r.post('/friends/:id/respond', async (c) => {
 
 // ── Premium ──
 r.get('/premium', async (c) => {
-  const [plans, sub, gift] = await Promise.all([listPlans(), activeSubscription(c.get('userId')), premiumGift(c.get('userId'))]);
+  const [plans, sub, gift, bonuses] = await Promise.all([listPlans(), activeSubscription(c.get('userId')), premiumGift(c.get('userId')), premiumBonuses(c.get('userId'))]);
   return c.json({
     plans: plans.map((p) => ({ code: p.code, months: p.months, priceStars: p.priceStars, recurring: p.recurring, title: p.title })),
     subscription: sub ? { planCode: sub.planCode, expiresAt: sub.expiresAt, recurring: sub.isRecurring, cancelled: sub.status === 'CANCELLED' } : null,
+    // Купить можно, пока нет действующей автопродлеваемой подписки: с ней второй счёт дал бы двойное списание (409 на сервере).
+    // После отмены или с разовым тарифом можно продлить: срок прибавляется к текущему.
+    canBuy: !sub || sub.status === 'CANCELLED' || !sub.isRecurring,
+    bonuses,
     paymentsConfigured: !!config.botToken,
     gift,
     /** Бот для /terms і /paysupport (умови й підтримка з оплат — вимоги Telegram). */

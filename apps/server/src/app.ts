@@ -29,6 +29,23 @@ export function buildApp() {
 
   app.use('/api/*', cors({ origin: (origin) => (!config.isProdLike || config.corsOrigins.includes(origin) ? origin : null), credentials: false }));
 
+  // Заголовки безопасности для всего, что отдаёт Worker: браузер не угадывает тип содержимого и не сообщает адрес страницы.
+  // Статические файлы Mini App получают те же заголовки из apps/web/public/_headers.
+  app.use('*', async (c, next) => {
+    await next();
+    const set = (res: Response) => {
+      res.headers.set('x-content-type-options', 'nosniff');
+      res.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+    };
+    try {
+      set(c.res);
+    } catch {
+      // Ответ из fetch() неизменяем: копируем и ставим заголовки на копию.
+      c.res = new Response(c.res.body, c.res);
+      set(c.res);
+    }
+  });
+
   app.onError((err, c) => {
     const e = mapDbError(err);
     if (e instanceof HttpError) return c.json({ error: e.code, message: e.message }, e.status as never);
@@ -100,7 +117,14 @@ export function buildApp() {
   app.get('/uploads/:name', async (c) => {
     const row = await db.query.uploads.findFirst({ where: eq(uploads.name, c.req.param('name')) });
     if (!row) return c.notFound();
-    return c.body(new Uint8Array(row.data), 200, { 'content-type': row.type, 'cache-control': 'public, max-age=31536000, immutable' });
+    // Файл лежит на одном адресе с приложением, где хранится токен входа: sandbox и default-src 'none' не дают загруженному
+    // содержимому (даже поддельному) выполнить скрипт на этом адресе.
+    return c.body(new Uint8Array(row.data), 200, {
+      'content-type': row.type,
+      'cache-control': 'public, max-age=31536000, immutable',
+      'content-security-policy': "default-src 'none'; sandbox",
+      'x-content-type-options': 'nosniff',
+    });
   });
 
   // Адмінка — окремий SPA під /admin/ у тих самих статичних файлах. Файли збірки (/admin/assets/…, audio-manifest.json)

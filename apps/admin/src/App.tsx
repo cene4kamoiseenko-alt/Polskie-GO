@@ -1389,6 +1389,10 @@ function Rewards() {
     perfectZlotki: 'Złotki за идеальный урок', dailyQuestZlotki: 'Złotki ежедневного квеста (справочно)', storyQuestZlotki: 'Złotki сюжета (справочно)', cityExamZlotki: 'Złotki за экзамен города',
     replayFactor: 'Доля XP за повтор урока (0–1)', maxRewardedReplaysPerDay: 'Повторов урока с наградой в сутки', practiceXpDailyCap: 'Лимит XP тренировок в день',
     freeAiMessagesPerDay: 'AI-сообщений в день (Free)', premiumAiMessagesPerDay: 'AI-сообщений в день (Premium)',
+    premiumGiftZlotki: 'Premium: подарок месяца, Złotki', premiumWelcomeZlotki: 'Premium: приветственный бонус при первой оплате, Złotki',
+    premiumLoyalty3Zlotki: 'Premium: бонус на 3-м подарке (3-й месяц), Złotki', premiumLoyalty6Zlotki: 'Premium: бонус на 6-м подарке, Złotki',
+    premiumLoyalty12Zlotki: 'Premium: бонус на 12-м подарке, Złotki', premiumPlan3Zlotki: 'Premium: бонус за тариф на 3 месяца, Złotki',
+    premiumPlan12Zlotki: 'Premium: бонус за тариф на 12 месяцев, Złotki',
   };
   return (
     <div className="max-w-2xl space-y-4">

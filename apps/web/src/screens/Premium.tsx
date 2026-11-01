@@ -13,10 +13,14 @@ import { missionsQuery } from '../components/MissionCard';
 import { useNavigate } from 'react-router-dom';
 
 type Plan = { code: string; months: number; priceStars: number; recurring: boolean; title: never };
-type Gift = { month: string; ready: boolean; claimed: boolean; zlotki: number; item: { id: string; slug: string; slot: string; name: I18n } | null };
+type Loyalty = { claimed: number; steps: { at: number; zlotki: number; done: boolean }[] };
+type Gift = { month: string; ready: boolean; claimed: boolean; zlotki: number; item: { id: string; slug: string; slot: string; name: I18n } | null; loyalty: Loyalty };
+type Bonuses = { welcome: { zlotki: number; received: boolean }; plan: Record<string, number> };
 type PremiumData = {
   plans: Plan[];
   subscription: null | { expiresAt: string; recurring: boolean; cancelled: boolean };
+  canBuy: boolean;
+  bonuses: Bonuses;
   paymentsConfigured: boolean;
   gift: Gift;
   bot: string | null;
@@ -49,7 +53,7 @@ export default function PremiumScreen() {
   const pass = missions.data?.pass;
   const [plan, setPlan] = useState('MONTH_3');
   const [status, setStatus] = useState<'idle' | 'waiting' | 'paid' | 'slow'>('idle');
-  const [gotGift, setGotGift] = useState<{ zlotki: number; item: Gift['item'] } | null>(null);
+  const [gotGift, setGotGift] = useState<{ zlotki: number; loyaltyBonus: number; item: Gift['item'] } | null>(null);
 
   // Premium активує сервер після підтвердження платежу від Telegram — тут лише чекаємо його.
   // Не дочекалися — це не «оплата не пройшла»: платіж може підтвердитися пізніше, Premium увімкнеться сам.
@@ -93,7 +97,7 @@ export default function PremiumScreen() {
 
   const claimGift = async () => {
     try {
-      const r = await api<{ zlotki: number; item: Gift['item'] }>('/premium/gift', { body: {} });
+      const r = await api<{ zlotki: number; loyaltyBonus: number; item: Gift['item'] }>('/premium/gift', { body: {} });
       setGotGift(r);
       haptic.success();
       qc.invalidateQueries({ queryKey: ['me'] });
@@ -147,9 +151,12 @@ export default function PremiumScreen() {
             </div>
           )}
           {sub.recurring && !sub.cancelled && (
-            <button className="w-full py-1 font-black text-coral" onClick={cancel}>
-              {t('prem_cancel')}
-            </button>
+            <>
+              <p className="muted text-xs font-bold">{t('prem_recurring_note')}</p>
+              <button className="w-full py-1 font-black text-coral" onClick={cancel}>
+                {t('prem_cancel')}
+              </button>
+            </>
           )}
         </Card>
       )}
@@ -175,7 +182,7 @@ export default function PremiumScreen() {
           <div className="font-black">{t('prem_gift_title')}</div>
           <div className="muted text-sm font-bold">
             {gotGift
-              ? t('prem_gift_got', { n: gotGift.zlotki, item: gotGift.item ? ` · ${tr(gotGift.item.name)}` : '' })
+              ? t('prem_gift_got', { n: gotGift.zlotki, item: gotGift.item ? ` · ${tr(gotGift.item.name)}` : '' }) + (gotGift.loyaltyBonus ? t('prem_gift_loyalty', { n: gotGift.loyaltyBonus }) : '')
               : gift.claimed
                 ? t('prem_gift_claimed', { date: date(nextMonthStart(gift.month)) })
                 : sub
@@ -187,6 +194,28 @@ export default function PremiumScreen() {
           <button className="btn btn-xp shrink-0 !px-3 !py-2 text-sm" onClick={claimGift}>{t('prem_gift_claim')}</button>
         )}
       </Card>
+
+      {/* Бонусы Premium: приветственный, лояльность (3-й, 6-й, 12-й месяц), бонус предоплаченных тарифов. Суммы — с сервера (настройки нагрод). */}
+      <div className="card mx-4 space-y-3 p-4" data-premium-bonuses>
+        <div className="font-black">{t('prem_bonus_title')}</div>
+        <div className="flex items-start gap-2 text-sm font-bold" data-premium-welcome={data.bonuses.welcome.received ? 'received' : 'pending'}>
+          <Icon name="gift" size={18} className="mt-0.5 shrink-0 text-xp-dark" />
+          {data.bonuses.welcome.received ? t('prem_welcome_got', { n: data.bonuses.welcome.zlotki }) : t('prem_welcome', { n: data.bonuses.welcome.zlotki })}
+        </div>
+        <div>
+          <div className="text-sm font-black">{t('prem_loyalty_title', { n: gift.loyalty.claimed })}</div>
+          <div className="mt-2 grid grid-cols-3 gap-2" data-premium-loyalty>
+            {gift.loyalty.steps.map((st) => (
+              <div key={st.at} data-loyalty-step={st.at} data-done={st.done} className={cx('rounded-xl border-2 px-1 py-2 text-center text-xs font-black', st.done ? 'border-brand bg-brand/15 text-brand-dark' : 'border-soft')}>
+                {st.done && '✓ '}
+                {t('prem_loyalty_step', { at: st.at, n: st.zlotki })}
+              </div>
+            ))}
+          </div>
+          <p className="muted mt-2 text-xs font-bold">{t('prem_loyalty_d')}</p>
+        </div>
+        <p className="muted text-xs font-bold">{t('prem_plan_bonus_note')}</p>
+      </div>
 
       <Card className="mx-4 space-y-3 p-4">
         {features.map(([icon, title, desc]) => (
@@ -201,8 +230,14 @@ export default function PremiumScreen() {
         <p className="muted pt-1 text-xs font-bold">{t('prem_free_note')}</p>
       </Card>
 
-      {!sub && (
+      {data.canBuy && (
         <>
+          {sub && (
+            <div className="px-4" data-premium-extend>
+              <div className="font-black">{t('prem_extend_title')}</div>
+              <p className="muted text-xs font-bold">{t('prem_extend_d')}</p>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-2 px-4">
             {data.plans.map((p) => {
               const save = base && p.months > 1 ? Math.round((1 - p.priceStars / (base.priceStars * p.months)) * 100) : 0;
@@ -216,6 +251,7 @@ export default function PremiumScreen() {
                   <span className="flex items-center gap-1 text-xl font-black"><Icon name="star" size={18} className="text-xp-dark" /> {p.priceStars}</span>
                   <span className="muted text-[11px] font-bold">≈ {monthly(p)} Stars{t('prem_month')}</span>
                   <span className="muted text-center text-[10px] font-bold leading-tight">{p.recurring ? t('prem_recurring') : t('prem_once')}</span>
+                  {(data.bonuses.plan[p.code] ?? 0) > 0 && <span className="text-[11px] font-black text-xp-dark" data-plan-bonus={p.code}>+{data.bonuses.plan[p.code]} Złotki</span>}
                 </button>
               );
             })}

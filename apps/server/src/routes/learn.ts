@@ -76,7 +76,7 @@ r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {
 });
 /** Гравець натиснув динамік, а файлу ще немає: лічильник «Просили, но файла нет» в адмінці. Без синтезу. */
 r.post('/audio/miss', rateLimit(30, 60_000, 'audio-miss'), async (c) => {
-  const { text } = z.object({ text: z.string().min(1).max(300) }).parse(await c.req.json());
+  const { text } = z.object({ text: z.string().min(1).max(300) }).parse(await body(c));
   await recordMiss(text);
   return c.json({ ok: true });
 });

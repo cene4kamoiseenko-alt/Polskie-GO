@@ -14,7 +14,8 @@ import * as t from '../db/schema';
 import { forgetUser, requireAdmin } from '../auth';
 import { body, query, rateLimit, type AppEnv } from '../hono';
 import { HttpError, badRequest, notFound } from '../lib/errors';
-import { hashPassword, verifyPassword } from '../lib/password';
+import { hashPassword, verifyPassword, verifyPasswordDummy } from '../lib/password';
+import { assertLoginAllowed, recordLoginFailure } from '../services/admin-guard';
 import { signToken } from '../lib/token';
 import { invalidateRewards } from '../services/gameConfig';
 import {
@@ -152,7 +153,10 @@ function needRole(c: Context<AppEnv>, ...roles: Role[]) {
 export const adminRoutes = new Hono<AppEnv>();
 
 adminRoutes.post('/login', rateLimit(10, 5 * 60_000, 'admin-login'), async (c) => {
-  const { email, password } = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(await body(c));
+  const { email, password } = z.object({ email: z.string().email().max(254), password: z.string().min(1).max(256) }).parse(await body(c));
+  // Адрес пишется так, как его видит Cloudflare (подделать нельзя); без него (тесты, локально) все считаются одним адресом.
+  const ip = c.req.header('cf-connecting-ip') ?? 'unknown';
+  await assertLoginAllowed(email.toLowerCase(), ip);
   let admin = await db.query.adminUsers.findFirst({ where: eq(t.adminUsers.email, email) });
   // Перший вхід: суперадмін створюється з секретів ADMIN_EMAIL / ADMIN_PASSWORD Worker.
   const env = getBindings();
@@ -164,7 +168,11 @@ adminRoutes.post('/login', rateLimit(10, 5 * 60_000, 'admin-login'), async (c) =
       .returning();
     admin ??= await db.query.adminUsers.findFirst({ where: eq(t.adminUsers.email, email) });
   }
-  if (!admin || !admin.isActive || !(await verifyPassword(password, admin.passwordHash))) throw new HttpError(401, 'invalid_credentials');
+  const ok = admin && admin.isActive ? await verifyPassword(password, admin.passwordHash) : await verifyPasswordDummy(password);
+  if (!admin || !ok) {
+    await recordLoginFailure(email.toLowerCase(), ip);
+    throw new HttpError(401, 'invalid_credentials');
+  }
   await atomic([
     db.update(t.adminUsers).set({ lastLoginAt: new Date() }).where(eq(t.adminUsers.id, admin.id)),
     db.insert(t.adminAuditLogs).values({ adminId: admin.id, action: 'login', entity: 'admin', entityId: admin.id }),

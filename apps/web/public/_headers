@@ -1,0 +1,9 @@
+# Заголовки статических файлов (Cloudflare Workers Static Assets). Ответы Worker (/api, /telegram, /uploads) ставят их сами (app.ts).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Админку не вставляют в чужие страницы. Mini App вставлять в Telegram Web нужно, поэтому для неё frame-ancestors не задан.
+/admin/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
