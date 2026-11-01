@@ -70,6 +70,18 @@ jobs:
         run: npm run bobek:coherent:check
       - name: Build real web client (detect Vite bundling errors)
         run: npm run build:web
+      - name: Install headless Chromium for actual UI safety check
+        run: npx playwright install --with-deps chromium
+      - name: Verify canonical Bobek on 320px and 390px and reject persisted V3 outfit
+        run: node --import tsx scripts/look-prototype-screens.ts
+      - name: Upload mobile proof of protected original Bobek
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bobek-safe-original-screens
+          path: docs/qa/bobek-stable
+          if-no-files-found: warn
+          retention-days: 30
       - name: Sprite dimensions and alpha
         run: npm run bobek:check
       - name: Preview flag and safe localStorage parsing
