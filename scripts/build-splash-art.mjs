@@ -16,7 +16,7 @@
  *     Бобек в тех же пропорциях), ставится так, чтобы колонна Сигизмунда стояла слева за Бобеком, и достраивается:
  *       · небо сверху (под логотипом) — цвет верхних строк мастера с лёгким сгущением к зениту и облаками, отражёнными от верхнего края (колонну не отражаем);
  *       · брусчатка снизу (под карточкой) — зеркальное продолжение чистой полосы площади, ниже она темнее и мягче.
- *     Размер файла — KBG от кадра, чтобы на телефонах с DPR 3 фон не растягивался.
+ *     Размер файла — KBG × кадр (1,0; 1,2 и слои по 1,4 давали LCP холодного старта за бюджетом: картинки 636 КБ).
  *  2. Бобек. Альфа вырезки нормализуется (в мастере «непрозрачное» — 253 из 255: слой 1 % прозрачный), крошки с альфой < 8 убираются, цвет кромки
  *     (прозрачность < 250) берётся у ближайшего плотного пикселя (в мастере кромка по контуру подкрашена красным), слой обрезается по содержимому и
  *     масштабируется так, чтобы видимая высота Бобека была BOBEK_VISIBLE_H, а ноги стояли на линии BOBEK_FEET.
@@ -44,10 +44,10 @@ const SCENE = { w: 1536, h: 1024, scale: 0.84, x: -170, y: 390 };
 /** Колонна Сигизмунда в мастере (x от … до): небо над ней не отражаем — перевёрнутая статуя. Мостовая начинается ниже ступеней и оснований домов (y). */
 const STATUE_X = [300, 520];
 const PAVEMENT_FROM = 892;
-/** Файл фона в долях кадра (на телефонах с DPR 3 экран шире кадра в 1,2–1,5 раза: больше пикселей — резче). */
-const KBG = 1.2;
-/** Слои Бобека и логотипа — в долях кадра: Бобек на экране крупный, на DPR 3 нужно ≈ 1,4 пикселя на пиксель кадра. */
-const KSP = 1.4;
+/** Файл фона в долях кадра. Больше — резче на телефонах с DPR 3, но тяжелее: см. бюджет картинок в scripts/perf.ts. */
+const KBG = 1.0;
+/** Слои Бобека и логотипа — в долях кадра (Бобек на экране крупный: на DPR 3 желательно больше, но 1,4 не уложилось в бюджет LCP). */
+const KSP = 1.25;
 
 /** Бобек: видимая высота (по альфе > 128), линия ног и центр по горизонтали в кадре. Как в концепте владельца. */
 const BOBEK_VISIBLE_H = 620;
@@ -139,7 +139,7 @@ async function buildBackground() {
   u8.set(blurred.subarray(ctx * Wc * 3), yb * Wc * 3);
   const base = sharp(u8, { raw: { width: Wc, height: Hc, channels: 3 } });
   return {
-    bg: await base.clone().webp({ quality: 82, effort: 6 }).toBuffer(),
+    bg: await base.clone().webp({ quality: 78, effort: 6 }).toBuffer(),
     bg640: await base.clone().resize(640, Math.round((640 * H) / W), { kernel: 'lanczos3' }).webp({ quality: 80, effort: 6 }).toBuffer(),
     size: [Wc, Hc],
     sky: yo, ground: yb,
@@ -158,7 +158,7 @@ async function buildBobek() {
   const w = cropped.w * sc, h = cropped.h * sc;
   const left = BOBEK_CENTER_X - ((vis[0] + vis[2] + 1) / 2 - all[0]) * sc;
   const top = BOBEK_FEET - (vis[3] + 1 - all[1]) * sc;
-  const buf = await webp(cropped, Math.round(w * KSP), Math.round(h * KSP), { quality: 90 });
+  const buf = await webp(cropped, Math.round(w * KSP), Math.round(h * KSP), { quality: 86 });
   const feet = ((vis[3] + 1 - all[1]) * sc) / h; // линия ног в долях высоты слоя: точка вращения покачивания
   return { buf, box: [left, top, w, h], feet, stats, visible: [vis[2] - vis[0] + 1, vis[3] - vis[1] + 1] };
 }
@@ -172,7 +172,7 @@ async function buildLogo() {
   const w = cropped.w * sc, h = cropped.h * sc;
   const left = LOGO_CENTER_X - ((vis[0] + vis[2] + 1) / 2 - all[0]) * sc;
   const top = LOGO_LETTERS_TOP - (vis[1] - all[1]) * sc;
-  const buf = await webp(cropped, Math.round(w * KSP), Math.round(h * KSP), { quality: 92 });
+  const buf = await webp(cropped, Math.round(w * KSP), Math.round(h * KSP), { quality: 88 });
   return { buf, box: [left, top, w, h], stats };
 }
 

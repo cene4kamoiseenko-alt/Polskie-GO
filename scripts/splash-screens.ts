@@ -62,7 +62,7 @@ async function checkBobekLayer(theme: string, expected: { w: number; h: number }
 }
 
 async function main() {
-  await checkBobekLayer('royal', { w: 728, h: 869 });
+  await checkBobekLayer('royal', { w: 650, h: 776 });
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
   const { base, login } = stand;
