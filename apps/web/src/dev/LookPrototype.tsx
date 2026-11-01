@@ -115,8 +115,8 @@ export default function LookPrototype() {
             <p className="mt-1 text-xs">V2 — плоский авторський арт з 5 позами. V3.2 — 2.5D cutout: перший рухомий жест wave для обох верхів, але синій рукав тимчасово перефарбовано для перевірки посадки. Інші емоції показують idle. Усі варіанти — лише QA.</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={!v2 && !v3} data-proto-art="legacy" onClick={() => setSaved((cur) => ({ ...cur, art: 'legacy' }))}>Старі шари</button>
-              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v2} data-proto-art="v2" disabled={!hasBobekV2Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v2' }))}>Бобек V2</button>
-              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v3} data-proto-art="v3" disabled={!hasBobekV3Art || !V3_ART_APPROVED} onClick={() => setSaved((cur) => ({ ...cur, art: 'v3' }))}>2.5D V3.2</button>
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v2} data-proto-art="v2" disabled={!hasBobekV2Art || !LAYERED_APP_PREVIEW_APPROVED} onClick={() => setSaved((cur) => ({ ...cur, art: 'v2' }))}>Бобек V2</button>
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v3} data-proto-art="v3" disabled={!hasBobekV3Art || !V3_ART_APPROVED || !LAYERED_APP_PREVIEW_APPROVED} onClick={() => setSaved((cur) => ({ ...cur, art: 'v3' }))}>2.5D V3.2</button>
             </div>
             {!hasBobekV2Art && <p className="mt-2 text-xs text-coral">Для V2 виконайте npm run bobek:v2:generate перед build:web.</p>}
             {!hasBobekV3Art && <p className="mt-2 text-xs text-coral">Для V3 виконайте npm run bobek:v3:generate перед build:web.</p>}
@@ -143,9 +143,9 @@ export default function LookPrototype() {
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
-            {blockedV3 ? <Beaver mood="happy" size={240} animate={false} /> : <BeaverLook look={look} size={240} resolveAsset={resolveAsset} />}
+            {!LAYERED_APP_PREVIEW_APPROVED ? <Beaver mood="happy" size={240} animate={false} /> : <BeaverLook look={look} size={240} resolveAsset={resolveAsset} />}
             <div className="mt-2 w-full break-words font-mono text-[11px] leading-tight text-[var(--text-muted)]" data-proto-state>
-              pose: {look.pose} · drawn: {look.drawn.join(' ')} · layers: {look.layers.length}
+              {!LAYERED_APP_PREVIEW_APPROVED ? 'Відображається стабільний оригінал. Експериментальні шари вимкнені.' : `pose: ${look.pose} · drawn: ${look.drawn.join(' ')} · layers: ${look.layers.length}`}
               {restored && <span data-proto-restored> · комплект восстановлен после перезапуска</span>}
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function LookPrototype() {
           <div className="mt-2 grid grid-cols-5 gap-1">
             {PROTO_STATES.map((s) => (
               <div key={s.id} className="flex flex-col items-center">
-                {blockedV3 ? <Beaver mood={s.mood} size={64} animate={false} /> : <BeaverLook look={resolveLook(null, saved.equipment, { manifest: activeManifest, mood: s.mood })} size={64} animate={false} resolveAsset={resolveAsset} />}
+                {!LAYERED_APP_PREVIEW_APPROVED ? <Beaver mood={s.mood} size={64} animate={false} /> : <BeaverLook look={resolveLook(null, saved.equipment, { manifest: activeManifest, mood: s.mood })} size={64} animate={false} resolveAsset={resolveAsset} />
                 <span className="text-[10px] font-bold">{s.label}</span>
               </div>
             ))}
