@@ -195,7 +195,7 @@ export default function LookPrototype() {
           <div className="mt-2 grid grid-cols-5 gap-1">
             {PROTO_STATES.map((s) => (
               <div key={s.id} className="flex flex-col items-center">
-                {!LAYERED_APP_PREVIEW_APPROVED ? <BeaverLook look={resolveLook(null, [], {mood:s.mood})} size={64} animate={false} /> : <BeaverLook look={resolveLook(null, saved.equipment, { manifest: activeManifest, mood: s.mood })} size={64} animate={false} resolveAsset={resolveAsset} />
+                {!LAYERED_APP_PREVIEW_APPROVED ? <BeaverLook look={resolveLook(null, [], {mood:s.mood})} size={64} animate={false} /> : <BeaverLook look={resolveLook(null, saved.equipment, { manifest: activeManifest, mood: s.mood })} size={64} animate={false} resolveAsset={resolveAsset} />}
                 <span className="text-[10px] font-bold">{s.label}</span>
               </div>
             ))}
