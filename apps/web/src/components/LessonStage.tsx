@@ -213,7 +213,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
           className="absolute right-3 top-3 flex flex-col items-center"
         >
           <span className="grid h-14 w-14 place-items-center rounded-full shadow-lg"><NpcFace emoji={npc.emoji} name={npc.name} size={56} /></span>
-          <span className="mt-1 max-w-[110px] truncate rounded-full bg-night/80 px-2 py-0.5 text-[11px] font-black text-white">{npc.name}</span>
+          <span className="mt-1 max-w-[150px] truncate rounded-full bg-night/80 px-2 py-0.5 text-[11px] font-black text-white">{npc.name}</span>
         </motion.div>
       )}
 
