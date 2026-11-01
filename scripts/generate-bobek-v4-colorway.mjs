@@ -44,7 +44,7 @@ for(let y=0;y<512;y++)for(let x=0;x<512;x++){
 }
 if(changed<10000||changed>30000)throw Error('Unacceptable garment color mask; colorway refused: '+changed);
 const render=(buffer)=>sharp(buffer,{raw:{width:512,height:512,channels:4}});
-await render(recolored).webp({quality:96,effort:4}).toFile(join(out,'front-blue-colorway.webp'));
+await render(recolored).webp({lossless:true,effort:4}).toFile(join(out,'front-blue-colorway.webp'));
 await render(recolored).resize(256,256).webp({quality:92,effort:4}).toFile(join(out,'front-blue-colorway@256.webp'));
 await render(overlay).webp({lossless:true,effort:4}).toFile(join(out,'front-blue-overlay.webp'));
 writeFileSync(join(out,'front-blue-mask-report.json'),JSON.stringify({
