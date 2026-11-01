@@ -5,6 +5,7 @@
  *
  * 1. QA-галерея /__gallery?look: 21 образ (16 сетки и 5 с куртками), у каждого картинка декодируется, режим variant (стартовый набор — legacy-base),
  *    нет горизонтальной прокрутки; снимок на тёмном фоне (видна прозрачность вырезки).
+ * 3. Скины (категория «Костюмы»): шесть карточек по 400 Złotki с картинкой, примерка цельным образом, покупка, «Надеть» снимает кепку, очки и шарф.
  * 2. Магазин на 320 / 390 / 430: примерка кепки показывает образ «худи + кепка + рюкзак» (data-look-mode=variant, картинка
  *    загружена), «Надеть» сохраняется на сервере и переживает перезагрузку, полный набор (кепка + очки + шарф + рюкзак) рисуется
  *    одним образом, а главная показывает тот же набор (один образ на всех экранах), рюкзак можно снять — образ без рюкзака.
@@ -172,6 +173,84 @@ async function main() {
       check((await note.count()) === 1 && /нет картинки/.test((await note.textContent()) ?? ''), `${width}px примерка шарфа поверх куртки: «Для этого сочетания нет картинки» (${(await note.textContent().catch(() => '')) ?? ''})`);
       check(!((await stage().getAttribute('data-look-items')) ?? '').split(' ').includes('scarf-pl'), `${width}px примерка шарфа: шарфа на Бобеке нет`);
       await p.screenshot({ path: `${OUT}/denim-try-scarf-${width}.png` });
+      await ctx.close();
+    }
+    // ── 3. Скины: шесть дорогих цельных образов в категории «Костюмы» ──
+    const SKINS = ['costume-street', 'costume-street-red', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-duffle'];
+    for (const width of WIDTHS) {
+      const u = await login();
+      await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
+      const id = String(++devUser);
+      for (const slug of ['cap-red', 'glasses-round', 'scarf-pl']) {
+        await env.DB.prepare("INSERT INTO user_inventory (user_id, item_id, equipped, source) SELECT ?, id, 1, 'skins-check' FROM cosmetic_items WHERE slug = ?").bind(u.user.id, slug).run();
+      }
+      await env.DB.prepare('UPDATE game_wallets SET balance = 1000 WHERE user_id = ?').bind(u.user.id).run();
+      const shop = (await u.call('GET', '/api/shop')).body as { balance: number; items: (ShopRow & { price: number; rarity: string; rewardOnly: boolean; visualStatus: string })[] };
+      const skins = SKINS.map((slug) => shop.items.find((i) => i.assetKey === slug)!);
+      check(skins.every((i) => i && i.price === 400 && i.rarity === 'legendary' && !i.rewardOnly && i.visualStatus === 'legacy-whole-look'), `${width}px скины: 6 штук, 400 Złotki, легендарные, не награды`);
+
+      const ctx = await browser.newContext({ viewport: { width, height: HEIGHT[width] }, deviceScaleFactor: 2, locale: 'ru-RU' });
+      const p = await ctx.newPage();
+      await p.addInitScript(({ token, id }) => {
+        localStorage.setItem('pg_auth', JSON.stringify({ token, owner: `dev:${id}`, exp: Date.now() + 86_400_000 }));
+      }, { token: u.token, id });
+      const settle = async () => {
+        await p.waitForFunction(() => !document.querySelector('[data-skeleton]'), undefined, { timeout: 20_000 }).catch(() => {});
+        await p.evaluate(() => document.fonts.ready);
+        await p.waitForTimeout(700);
+      };
+      const stage = () => p.locator('.wardrobe-stage [data-look]').first();
+      await p.goto(`${base}/shop?tab=shop&devUser=${id}`);
+      await p.locator('[role="tablist"]').waitFor({ timeout: 20_000 });
+      await settle();
+      await p.locator('.chip-tab', { hasText: 'Костюмы' }).first().click();
+      await p.waitForTimeout(500);
+      const cards = skins.map((i) => p.locator('article.costume-card', { has: p.locator('h3', { hasText: new RegExp(`^${i.name.ru.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }));
+      for (const [k, c] of cards.entries()) await c.scrollIntoViewIfNeeded().catch(() => {});
+      await p.waitForTimeout(600);
+      const present = await Promise.all(cards.map((c) => c.count()));
+      check(present.every((n) => n === 1), `${width}px скины: у каждого своя карточка в «Костюмах» (${present.join('')})`);
+      const state = await p.evaluate(() =>
+        Array.from(document.querySelectorAll('article.costume-card')).map((a) => ({
+          name: a.querySelector('h3')?.textContent?.trim() ?? '',
+          imgOk: Array.from(a.querySelectorAll('.costume-card-art img')).every((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0) && a.querySelectorAll('.costume-card-art img').length > 0,
+          price: /400/.test(a.textContent ?? ''),
+          clipped: Array.from(a.querySelectorAll('h3')).some((h) => h.scrollWidth > h.clientWidth + 1),
+        })),
+      );
+      const mine = state.filter((x) => skins.some((i) => i.name.ru === x.name));
+      check(mine.length === 6 && mine.every((x) => x.imgOk), `${width}px скины: картинка каждого скина загружена (${mine.filter((x) => !x.imgOk).map((x) => x.name).join(', ') || 'все'})`);
+      check(mine.every((x) => x.price), `${width}px скины: на карточке цена 400`);
+      check(mine.every((x) => !x.clipped), `${width}px скины: названия не обрезаны`);
+      check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${width}px скины: нет горизонтальной прокрутки`);
+      await p.screenshot({ path: `${OUT}/skins-shop-${width}.png`, fullPage: true });
+
+      // Примерка → покупка → «Надеть»: скин снимает кепку, очки и шарф, рюкзак остаётся.
+      const first = skins[0];
+      await cards[0].locator('button[aria-pressed]').click();
+      const sheet = p.locator('.action-sheet');
+      await sheet.waitFor({ timeout: 5_000 });
+      await p.waitForTimeout(700);
+      check((await stage().getAttribute('data-look-mode')) === 'legacy-costume' && (await stage().getAttribute('data-look-preview')) === 'true', `${width}px скин: примерка рисует цельную картинку (data-look-mode legacy-costume, preview)`);
+      check(((await stage().getAttribute('data-look-items')) ?? '').split(' ').sort().join(' ') === `backpack-travel ${first.assetKey}`, `${width}px скин: на образе скин и рюкзак с картинки (${await stage().getAttribute('data-look-items')})`);
+      check((await sheet.locator('[data-visual-status="pending"]').count()) === 0, `${width}px скин: нет пометки «визуал готовится»`);
+      await p.screenshot({ path: `${OUT}/skin-try-${width}.png` });
+      const buy = sheet.locator('button.btn-primary');
+      check((await buy.count()) === 1 && /400/.test((await buy.textContent()) ?? ''), `${width}px скин: кнопка покупки с ценой 400`);
+      await buy.click();
+      await sheet.getByRole('button', { name: 'Надеть' }).waitFor({ timeout: 10_000 });
+      const bought = (await u.call('GET', '/api/shop')).body as { balance: number };
+      // Первая покупка даёт награду достижения (+10): списано ровно 400 за вычетом неё.
+      check(bought.balance >= 600 && bought.balance < 700, `${width}px скин: куплен за 400, баланс 1000 → ${bought.balance} (с наградой за первую покупку)`);
+      await sheet.getByRole('button', { name: 'Надеть' }).click();
+      await sheet.waitFor({ state: 'detached', timeout: 10_000 });
+      const wear = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
+      check(wear.COSTUME === first.assetKey && !wear.HAT && !wear.GLASSES && !wear.SCARF && wear.BACKPACK === 'backpack-travel', `${width}px скин надет: кепка, очки, шарф сняты, рюкзак остался (${Object.values(wear).sort().join(' ')})`);
+      await p.goto(`${base}/?devUser=${id}`);
+      await settle();
+      const home = await p.locator('[data-look]:not([data-look-preview="true"])').first().getAttribute('data-look-mode');
+      check(home === 'legacy-costume', `${width}px скин: на главной цельный образ (${home})`);
+      await p.screenshot({ path: `${OUT}/skin-home-${width}.png` });
       await ctx.close();
     }
   } finally {

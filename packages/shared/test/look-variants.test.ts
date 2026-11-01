@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   LOOK_MANIFEST,
+  equip,
   LOOK_VARIANTS,
   LOOK_VARIANT_AXES,
   LOOK_VARIANT_JACKETS,
@@ -310,5 +311,61 @@ describe('готовые образы: примерка и покупка', () =
   it('готовые образы можно покупать, pending — нет', () => {
     for (const [id, slot] of [['i_cap-red', 'HAT'], ['i_glasses-round', 'GLASSES'], ['i_scarf-pl', 'SCARF']] as const) expect(canPurchase({ id, slot })).toEqual({ ok: true, status: 'prerendered' });
     expect(canPurchase({ id: 'i_scarf-ua', slot: 'SCARF' })).toMatchObject({ ok: false, reason: 'visual-pending' });
+  });
+});
+
+const SKINS = ['costume-street', 'costume-street-red', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-duffle'];
+
+describe('скины: цельные дорогие образы (вещи вне прежнего каталога)', () => {
+  const by = (id: string) => LOOK_MANIFEST.items.find((i) => i.id === id)!;
+
+  it('шесть скинов: цельная картинка, легендарные, занимают всю одежду кроме рюкзака, рюкзак — на картинке', () => {
+    for (const id of SKINS) {
+      const it = by(id);
+      expect(it, id).toMatchObject({ catalogSlot: 'COSTUME', status: 'legacy-whole-look', rarity: 'legendary', domain: 'beaver' });
+      expect([...it.occupies].sort(), id).toEqual(['accessory', 'glasses', 'headwear', 'neck', 'shoes', 'top']);
+      expect(it.legacy?.shows, id).toEqual({ backpack: 'backpack-travel' });
+      expect(it.legacy?.scene, id).toBeUndefined();
+    }
+    expect(errors()).toEqual([]);
+  });
+
+  it('скин вытесняет кепку, очки, шарф, куртку, кроссовки и флажок, но не рюкзак', () => {
+    const r = equip(['cap-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'sneakers-white', 'flag-pl', 'backpack-travel'], 'costume-street');
+    expect(r.evicted).toEqual(['cap-red', 'flag-pl', 'glasses-round', 'jacket-denim', 'scarf-pl', 'sneakers-white']);
+    expect(r.equipment).toEqual(['backpack-travel', 'costume-street']);
+    // два скина не носят вместе
+    expect(equip(['costume-puffer'], 'costume-duffle').evicted).toEqual(['costume-puffer']);
+  });
+
+  it('образ со скином — цельная картинка скина, рюкзак на ней виден, готовые образы закрыты', () => {
+    for (const id of SKINS) {
+      const look = resolveLook(null, [id, 'backpack-travel']);
+      expect(look.mode, id).toBe('legacy-costume');
+      expect(look.layers.map((l) => l.asset), id).toEqual([`costumes/${id.replace('costume-', '')}`]);
+      expect(look.drawn, id).toEqual(['backpack-travel', id]);
+      expect(look.pending, id).toEqual([]);
+    }
+    // при данных со старым конфликтом скин побеждает кепку
+    const old = resolveLook(null, ['costume-sherpa', 'cap-red']);
+    expect(old.items.find((o) => o.id === 'cap-red')).toMatchObject({ drawn: false, reason: 'slot-conflict', by: 'costume-sherpa' });
+  });
+
+  it('картинки скинов лежат на диске: главный файл, @256, @512, @1024', () => {
+    for (const id of SKINS) {
+      const name = id.replace('costume-', '');
+      for (const file of [`costumes/${name}.webp`, `costumes/${name}@256.webp`, `costumes/${name}@512.webp`, `costumes/${name}@1024.webp`]) expect(exists(file), file).toBe(true);
+    }
+  });
+
+  it('покупка: скины продаются за Złotki, а не только как награда', () => {
+    for (const id of SKINS) expect(canPurchase({ id: `i_${id}`, slot: 'COSTUME' }), id).toEqual({ ok: true, status: 'legacy-whole-look' });
+  });
+
+  it('примерка скина поверх полного набора показывает, что снимется', () => {
+    const p = tryOn(['cap-red', 'glasses-round', 'scarf-pl', 'backpack-travel'], 'costume-puffer');
+    expect(p.candidateVisible).toBe(true);
+    expect(p.removed).toEqual(['cap-red', 'glasses-round', 'scarf-pl']);
+    expect(p.after.mode).toBe('legacy-costume');
   });
 });

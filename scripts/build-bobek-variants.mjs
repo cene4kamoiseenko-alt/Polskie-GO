@@ -9,6 +9,7 @@
  *   01–16 — «wave»: 512×512 с прозрачностью, машет рукой с картой, все 16 сочетаний (худи + кепка/очки/шарф/рюкзак);
  *   24–31 — «open»: 1254×1254 на ровном бежевом фоне, руки разведены, 8 сочетаний;
  *   41–44 — «wave», вторая партия: 1254×1254 с прозрачностью, куртки поверх худи (джинсовая, дождевик), рюкзак на каждой картинке;
+ *   61–66 — скины: цельные образы (куртка + головной убор + шарф или наушники), из партии 2; собираются как костюмы в assets/costumes;
  *   51–56 — «wave», третья партия: 1254×1254 на светлом фоне (вырезается), кепка с надписью PL, обновлённые и новые сочетания;
  *     кадр у каждой картинки свой, поэтому она ставится на холст по рамке образа-аналога (`LIKE`), а не по общему для серии преобразованию.
  * Мастера второй и третьей партий лежат в docs/design/v18/bobek-part2/ и bobek-part3/; образы, которые не используются (вещи вне каталога,
@@ -35,6 +36,7 @@ const sharp = require('sharp');
 const MASTER_DIRS = ['bobek31', 'bobek-part2', 'bobek-part3'].map((d) => new URL(`../docs/design/v18/${d}/`, import.meta.url));
 const WAVE = new URL('../apps/web/src/assets/beaver/wave.webp', import.meta.url);
 const OUT = new URL('../apps/web/src/assets/variants/', import.meta.url);
+const COSTUMES_OUT = new URL('../apps/web/src/assets/costumes/', import.meta.url);
 
 /** Вещи в именах мастеров → id предметов каталога. Рюкзак «зелёный» — это backpack-travel. */
 const ITEM_OF = {
@@ -57,6 +59,9 @@ const SERIES = [
   // Третья партия: 1254×1254 на светлом фоне, кадрирование у каждой картинки своё (в предыдущих партиях было общее), поэтому преобразование
   // у каждой своё — по рамке образа-аналога (`LIKE` ниже), а не одно на серию.
   { id: 'refresh', pose: 'wave', from: 51, to: 56, sizes: [1024, 512, 256], clean: 'matte' },
+  // Скины (цельные образы-костюмы, ADR-013): мастера из той же партии, что куртки (общий кадр, опорный кадр 41), но результат — файлы костюмов
+  // apps/web/src/assets/costumes/<имя>.webp (512, как у прежних костюмов) и @256, @512, @1024 для BeaverLook.
+  { id: 'skins', skin: true, from: 61, to: 66, ref: 41, clean: 'ghosts', ghostR: 8 },
 ];
 
 const args = process.argv.slice(2);
@@ -182,10 +187,17 @@ function matte(img) {
 
 /** `05_hoodie-red_backpack-green.webp` → { n: 5, items: ['backpack-travel', 'hoodie-red'], name: 'hoodie-pack' }. Прочие файлы (в `held/`, не по формату) пропускаются. */
 function parse(file, dir) {
+  const skin = /^(\d\d)_skin_([a-z-]+)\.webp$/.exec(file);
+  if (skin) {
+    const n = Number(skin[1]);
+    const series = SERIES.find((x) => x.skin && n >= x.from && n <= x.to);
+    if (!series) throw new Error(`${file}: номер ${n} вне серии скинов`);
+    return { file, dir, n, series, skin: true, items: [], name: skin[2] };
+  }
   const m = /^(\d\d)_(.+)\.webp$/.exec(file);
   if (!m) return null;
   const n = Number(m[1]);
-  const series = SERIES.find((s) => n >= s.from && n <= s.to);
+  const series = SERIES.find((s) => !s.skin && n >= s.from && n <= s.to);
   if (!series) return null;
   const items = m[2].split('_').map((k) => {
     if (!ITEM_OF[k]) throw new Error(`${file}: неизвестная вещь «${k}»`);
@@ -208,7 +220,7 @@ const LIKE = { 51: 42, 52: 16, 53: 54, 54: 14, 55: 44 };
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const all = MASTER_DIRS.flatMap((dir) => readdirSync(dir).map((file) => parse(file, dir))).filter(Boolean).sort((a, b) => a.n - b.n);
 const byN = new Map(all.map((m) => [m.n, m]));
-const keyOf = (m) => `${m.name}_${m.series.pose}`;
+const keyOf = (m) => (m.skin ? `skin:${m.name}` : `${m.name}_${m.series.pose}`);
 const winner = new Map();
 for (const m of all) winner.set(keyOf(m), m);
 const masters = all.filter((m) => winner.get(keyOf(m)) === m && (!only || m.series.id === only));
@@ -273,18 +285,26 @@ async function render(m, C) {
 }
 
 mkdirSync(OUT, { recursive: true });
+mkdirSync(COSTUMES_OUT, { recursive: true });
+/** Файлы мастера: образы — главный (первый размер) и @размер; скины — как прежние костюмы: <имя>.webp (512), @256, @512 (копия главного), @1024. */
+const outputsOf = (m) =>
+  m.skin
+    ? [{ C: 512, file: `${m.name}.webp`, q: 90 }, { C: 512, file: `${m.name}@512.webp`, q: 90 }, { C: 256, file: `${m.name}@256.webp`, q: 86 }, { C: 1024, file: `${m.name}@1024.webp`, q: 90 }]
+    : m.series.sizes.map((C, i) => ({ C, file: `${m.name}_${m.series.pose}${i === 0 ? '' : `@${C}`}.webp`, q: i === 0 ? 90 : 86 }));
 let total = 0;
 const rows = [];
 for (const m of masters) {
   const sizes = [];
-  for (const [i, C] of m.series.sizes.entries()) {
-    const file = new URL(`${m.name}_${m.series.pose}${i === 0 ? '' : `@${C}`}.webp`, OUT);
-    const buf = await (await render(m, C)).webp({ quality: i === 0 ? 90 : 86, alphaQuality: 100, effort: 6 }).toBuffer();
-    writeFileSync(file, buf);
+  const cache = new Map();
+  for (const { C, file, q } of outputsOf(m)) {
+    const key = `${C}:${q}`;
+    if (!cache.has(key)) cache.set(key, await (await render(m, C)).webp({ quality: q, alphaQuality: 100, effort: 6 }).toBuffer());
+    const buf = cache.get(key);
+    writeFileSync(new URL(file, m.skin ? COSTUMES_OUT : OUT), buf);
     total += buf.length;
-    sizes.push(`${C}: ${Math.round(buf.length / 1024)} КБ`);
+    sizes.push(`${file.includes('@') ? file.split('@')[1].replace('.webp', '') : 'main'}: ${Math.round(buf.length / 1024)} КБ`);
   }
-  rows.push(`${String(m.n).padStart(2, '0')} ${m.name.padEnd(30)} ${m.series.pose.padEnd(5)} стёрто ${String(m.cleaned).padStart(6)} px   ${sizes.join(' · ')}`);
+  rows.push(`${String(m.n).padStart(2, '0')} ${m.name.padEnd(30)} ${(m.skin ? 'skin' : m.series.pose).padEnd(5)} стёрто ${String(m.cleaned).padStart(6)} px   ${sizes.join(' · ')}`);
 }
 console.log(`Образов: ${masters.length}; WebP всего ${(total / 1048576).toFixed(2)} МБ\n${rows.join('\n')}`);
 console.log(`Рамка wave: ${target.canvas} px, высота ${target.h}, низ ${target.bottom}, центр ${target.cx}`);

@@ -37,7 +37,7 @@ describe('образ: маніфест поточного стану', () => {
     for (const id of ['hoodie-red', 'backpack-travel', 'cap-red', 'glasses-round', 'scarf-pl']) expect(by(id).status, id).toBe('prerendered');
     expect(LOOK_MANIFEST.legacyBase.includes).toEqual({ top: 'hoodie-red', backpack: 'backpack-travel' });
     const legacyCostumes = LOOK_MANIFEST.items.filter((i) => i.legacy).map((i) => i.id).sort();
-    expect(legacyCostumes).toEqual(['costume-artist', 'costume-barista', 'costume-chef', 'costume-conductor', 'costume-dragon', 'costume-krasnal', 'costume-winter']);
+    expect(legacyCostumes).toEqual(['costume-artist', 'costume-barista', 'costume-chef', 'costume-conductor', 'costume-dragon', 'costume-duffle', 'costume-krasnal', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red', 'costume-winter']);
     expect(by('costume-syrenka').status).toBe('pending');
     for (const id of ['cap-green', 'glasses-sun', 'scarf-ua', 'vest-krakowiak', 'sneakers-white']) expect(by(id).status, id).toBe('pending');
     for (const id of ['jacket-denim', 'jacket-rain']) expect(by(id).status, id).toBe('prerendered');

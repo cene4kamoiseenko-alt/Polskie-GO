@@ -33,7 +33,21 @@ describe('образ ↔ каталог', () => {
     // Купити можна лише те, що має живописне зображення: готовий образ (кепка, круглі окуляри, польський шарф, джинсова куртка, дощовик),
     // цілісний костюм або рамку. Решта чекає наступної частини образів (ADR-008).
     expect(Object.entries(verdicts).filter(([, ok]) => ok).map(([s]) => s).sort()).toEqual([
-      'cap-red', 'costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
+      'cap-red', 'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red',
+      'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
     ]);
+  });
+
+  it('скины дорогие: легендарные, лишь за Złotki и дороже любой другой вещи магазина', () => {
+    const skins = wearables.filter((i) => /^costume-(street|puffer|sherpa|duffle)/.test(i.slug));
+    expect(skins.map((i) => i.slug).sort()).toEqual(['costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red']);
+    const others = wearables.filter((i) => !skins.includes(i));
+    const maxOther = Math.max(...others.map((i) => i.price));
+    for (const s of skins) {
+      expect(s.rarity, s.slug).toBe('legendary');
+      expect(s.rewardOnly, s.slug).toBeFalsy();
+      expect(s.premium, s.slug).toBeFalsy();
+      expect(s.price, s.slug).toBeGreaterThan(maxOther);
+    }
   });
 });

@@ -79,7 +79,10 @@ describe('Каталог магазину: visualStatus', () => {
       .filter((i) => !i.rewardOnly && (i.price as number) > 0 && i.visualStatus !== 'not-wearable' && i.visualStatus !== 'pending' && i.visualStatus !== 'unknown')
       .map((i) => i.slug)
       .sort();
-    expect(sellable).toEqual(['cap-red', 'costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl']);
+    expect(sellable).toEqual([
+      'cap-red', 'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red',
+      'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
+    ]);
   });
 });
 

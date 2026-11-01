@@ -346,6 +346,14 @@ export const ITEMS: ItemSeed[] = [
   it('costume-krasnal', 'COSTUME', t('Костюм гнома з Вроцлава', 'Костюм гнома из Вроцлава', 'Wrocław gnome outfit'), 0, { rewardOnly: true, rarity: 'legendary', city: 'wroclaw' }),
   it('costume-artist', 'COSTUME', t('Костюм художника', 'Костюм художника', 'Artist outfit'), 180, { rarity: 'epic' }),
   it('costume-winter', 'COSTUME', t('Зимовий образ', 'Зимний образ', 'Winter look'), 120, { rarity: 'rare' }),
+  // Скини: цільні образи (Бобек уже в усьому одязі; рюкзак лишається за гравцем). Дорогі, лише за Złotki (рішення власника 2026-11-01:
+  // «дорогі й цільні»). Ціна й рідкість — стартові значення, змінюються в адмінці; самий дорогий з попередніх — 200.
+  it('costume-street', 'COSTUME', t('Стрітстайл', 'Стритстайл', 'Streetwear'), 400, { rarity: 'legendary' }),
+  it('costume-street-red', 'COSTUME', t('Червоний стрітстайл', 'Красный стритстайл', 'Red streetwear'), 400, { rarity: 'legendary' }),
+  it('costume-puffer', 'COSTUME', t('Сніговий пуховик', 'Снежный пуховик', 'Snow puffer'), 400, { rarity: 'legendary' }),
+  it('costume-puffer-stripes', 'COSTUME', t('Пуховик із червоною шапкою', 'Пуховик с красной шапкой', 'Puffer with red beanie'), 400, { rarity: 'legendary' }),
+  it('costume-sherpa', 'COSTUME', t('Пальто з хутром', 'Пальто с мехом', 'Sherpa coat'), 400, { rarity: 'legendary' }),
+  it('costume-duffle', 'COSTUME', t('Дафлкот', 'Дафлкот', 'Duffle coat'), 400, { rarity: 'legendary' }),
 ];
 
 /** Нагороди за проходження іспиту міста (сувенір + костюм). */

@@ -55,15 +55,22 @@ function prerendered(id: string, catalogSlot: 'HAT' | 'GLASSES' | 'SCARF' | 'JAC
  * - рюкзаки й сумки ніколи не входять у костюм: слот `backpack` лишається за гравцем, а намальована
  *   на картинці сумка — `shows` з 'prop:…'. Так надягання костюма не знімає рюкзак у даних.
  */
-function legacyCostume(id: string, rarity: LookRarity, occupies: readonly LookWearSlot[], shows: LookLegacyCostumeArt['shows'], note: string): LookItem {
+function legacyCostume(id: string, rarity: LookRarity, occupies: readonly LookWearSlot[], shows: LookLegacyCostumeArt['shows'], note: string, hasScene = true): LookItem {
   const name = id.replace(/^costume-/, '');
   return {
     id, catalogSlot: 'COSTUME', domain: 'beaver', occupies, rarity,
     status: 'legacy-whole-look', fallback: 'legacy-whole-look', compatibility: null, layers: [],
-    legacy: { asset: `costumes/${name}`, scene: `costumes/${name}-scene`, size: { w: 512, h: 512 }, view: 'front', shows },
+    legacy: { asset: `costumes/${name}`, ...(hasScene ? { scene: `costumes/${name}-scene` } : {}), size: { w: 512, h: 512 }, view: 'front', shows },
     note,
   };
 }
+
+/**
+ * Скин — цільний образ без сцени картки (картка в магазині показує сам образ). Займає весь одяг, крім рюкзака: головний убір, окуляри, шарф,
+ * верх, взуття й реквізит. Рюкзак намальований на картинці — `shows`, у даних лишається за гравцем.
+ */
+const SKIN_SLOTS: readonly LookWearSlot[] = ['headwear', 'glasses', 'neck', 'top', 'shoes', 'accessory'];
+const skin = (id: string, note: string): LookItem => legacyCostume(id, 'legendary', SKIN_SLOTS, { backpack: 'backpack-travel' }, note, false);
 
 function frame(id: string, rarity: LookRarity): LookItem {
   return {
@@ -121,6 +128,13 @@ export const LOOK_ITEMS: readonly LookItem[] = [
     'Шапка, шарф, пуховик з рукавицями, черевики — власних предметів немає. Коричневий рюкзак — лише на картинці.'),
   legacyCostume('costume-dragon', 'legendary', ['body', 'head'], { backpack: 'prop:brown-strap' },
     'Комбінезон з крилами й капюшон. Коричневий ремінь сумки на плечі — лише на картинці.'),
+  // Скини (2026-11-01): цільні дорогі образи, друга партія мастерів (docs/design/v18/bobek-part2).
+  skin('costume-street', 'Чорний бомбер з червоними смугами, чорні навушники на шиї, худі під курткою. Зелений рюкзак — на картинці.'),
+  skin('costume-street-red', 'Чорний бомбер, червоні навушники на шиї, худі під курткою. Зелений рюкзак — на картинці.'),
+  skin('costume-puffer', 'Жовтий пуховик, в\'язана шапка зі сніжинками, біло-червоний шарф PL. Зелений рюкзак — на картинці.'),
+  skin('costume-puffer-stripes', 'Жовтий пуховик, червона шапка з помпоном, смугастий шарф. Зелений рюкзак — на картинці.'),
+  skin('costume-sherpa', 'Синє пальто з хутром, хутряні навушники, біло-червоний шарф PL. Зелений рюкзак — на картинці.'),
+  skin('costume-duffle', 'Синій дафлкот із дерев\'яними ґудзиками, хутряні навушники, смугастий шарф. Зелений рюкзак — на картинці.'),
   pending('costume-syrenka', 'COSTUME', 'epic', { occupies: ['body'], note: 'Живописної картинки немає ні цілісної, ні шарової.' }),
   // Рамки профілю
   frame('frame-green', 'common'),
