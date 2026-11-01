@@ -1,3 +1,7 @@
+# STOP-SHIP — 1 November 2026
+
+**V3.2 is disabled in the app. The user observed BOTH outfits visually detached from the body despite green numeric tests.** This document is historical technical evidence only, not approval or instructions to enable. See [BOBEK_ART_REBUILD_PLAN.md](BOBEK_ART_REBUILD_PLAN.md) and the fail-closed switch `apps/web/src/dev/bobekArtGate.ts`.
+
 # POLSKI GO · Bobek V3.2 — two dressed waving arms (QA)
 
 **Status:** visual prototype only. The classic production Bobek and all server-side cosmetics remain unchanged.
