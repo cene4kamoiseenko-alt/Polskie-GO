@@ -95,6 +95,10 @@ async function main(){
         `V5 outfit selection works: ${expected}`);
       check((await v5image.getAttribute('src'))?.includes(expected),
         `V5 paints expected registered master ${expected}`);
+      await page.waitForFunction((want:string)=>{
+        const img=document.querySelector('[data-bobek-v5-image]') as HTMLImageElement|null;
+        return Boolean(img&&img.getAttribute('src')?.includes(want)&&img.complete&&img.naturalWidth===1024);
+      },expected,{timeout:15000});
       check(await v5image.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth===1024),
         `V5 ${expected} decoded at 1024 canvas size`);
       await page.screenshot({path:join(out,`v5-${expected}-390.png`),fullPage:true});
