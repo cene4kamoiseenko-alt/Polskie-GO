@@ -19,6 +19,7 @@ import { motion, useInView, useReducedMotion } from '../lib/motion';
 import { lookAssetUrl, lookDeliveryWidth } from '../lib/assets';
 import { useLook } from '../lib/look';
 import { getBobekPreviewSnapshot, readBobekPreviewEquipment, subscribeBobekPreview } from '../lib/bobekPreview';
+import { LAYERED_APP_PREVIEW_APPROVED } from '../dev/bobekArtGate';
 
 // QA-риг завантажується лише на вимогу. Від звичайної збірки Бобека не відбираємо якість чи швидкість.
 const PreviewBobek = lazy(() => import('../dev/PreviewBobek'));
@@ -163,7 +164,8 @@ export const Beaver = memo(function Beaver({ mood = 'happy', view = 'front', ...
   const look = useLook(mood, view);
   const snapshot = useSyncExternalStore(subscribeBobekPreview, getBobekPreviewSnapshot, () => '');
   const previewEquipment = readBobekPreviewEquipment(snapshot);
-  if (previewEquipment === null || view !== 'front') return <BeaverLook look={look} {...rest} />;
+  // Fail-closed: persisted QA flags must not restore artwork with floating clothes.
+  if (!LAYERED_APP_PREVIEW_APPROVED || previewEquipment === null || view !== 'front') return <BeaverLook look={look} {...rest} />;
   return (
     <Suspense fallback={<BeaverLook look={look} {...rest} />}>
       <PreviewBobek equipment={previewEquipment} mood={mood} {...rest} />
