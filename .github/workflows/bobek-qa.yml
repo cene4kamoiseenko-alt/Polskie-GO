@@ -21,6 +21,7 @@ on:
       - 'assets/bobek-v31-sources.json.gz.b64'
       - 'scripts/generate-bobek-v3.mjs'
       - 'scripts/check-bobek-v3.mjs'
+      - 'scripts/bobek-v3-frame-qa.mjs'
       - 'docs/design/BOBEK_ART_APPROVAL.json'
       - 'package.json'
       - '.github/workflows/bobek-qa.yml'
@@ -49,6 +50,16 @@ jobs:
         run: npm run bobek:v3:generate
       - name: V3.1 alpha, separated arm and denim-safe pose
         run: npm run bobek:v3:check
+      - name: Render real V3.1 animation frames and check shoulder connection
+        run: npm run bobek:v3:frames
+      - name: Upload composited V3.1 art frames for human review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bobek-v31-visual-qa
+          path: docs/qa/bobek-v3-frames
+          if-no-files-found: warn
+          retention-days: 30
       - name: Build real web client (detect Vite bundling errors)
         run: npm run build:web
       - name: Sprite dimensions and alpha
