@@ -2,7 +2,11 @@
  * Реальний прогрес запуску застосунку для заставки.
  * Етапи відмічаються там, де вони справді завершуються: модуль завантажено → авторизація →
  * профіль користувача → перший екран. Між етапами смуга лише плавно «підповзає»
- * до наступного етапу, але не досягає його, доки етап не завершиться. Штучних затримок немає.
+ * до наступного етапу, але не досягає його, доки етап не завершиться. Штучних відсотків і затримок завантаження немає.
+ *
+ * Єдина свідома пауза — мінімальний час показу заставки (SPLASH_MIN_MS, рішення власника 2026-11-01: на швидкому з'єднанні заставку не встигали
+ * побачити): коли все вже завантажено, а мінімум ще не вичерпано, смуга доходить до 100 % за час, що лишився (bootFinish), і запускається перший екран.
+ * Якщо завантаження саме тривало довше мінімуму, нічого не додається.
  */
 import { useEffect, useState } from 'react';
 
@@ -11,8 +15,13 @@ export type BootStage = 'start' | 'auth' | 'profile' | 'screen';
 const TARGET: Record<BootStage, number> = { start: 0.12, auth: 0.45, profile: 0.82, screen: 1 };
 const ORDER: BootStage[] = ['start', 'auth', 'profile', 'screen'];
 
+/** Мінімум показу заставки від початку завантаження сторінки, мс (знімається однією константою). */
+export const SPLASH_MIN_MS = 1700;
+
 let stage: BootStage = 'start';
 let stageAt = performance.now();
+/** Завершальний відрізок «усе завантажено, чекаємо мінімум»: смуга йде від досягнутого до 100 % лінійно до finish.at. */
+let finish: { from: number; start: number; at: number } | null = null;
 const listeners = new Set<() => void>();
 
 export function bootMark(next: BootStage) {
@@ -22,8 +31,20 @@ export function bootMark(next: BootStage) {
   for (const l of listeners) l();
 }
 
+/** Усе завантажено, але мінімум показу заставки ще не вичерпано: смуга доходить до 100 % рівно до моменту `endAt` (performance.now()). */
+export function bootFinish(endAt: number) {
+  if (finish) return;
+  const start = performance.now();
+  finish = { from: bootProgress(start), start, at: Math.max(endAt, start + 1) };
+  for (const l of listeners) l();
+}
+
 /** Поточна частка 0…1 з плавним наближенням до наступного етапу. */
 export function bootProgress(now = performance.now()): number {
+  if (finish) {
+    const t = Math.min(1, Math.max(0, (now - finish.start) / (finish.at - finish.start)));
+    return finish.from + (1 - finish.from) * (1 - (1 - t) * (1 - t));
+  }
   const base = TARGET[stage];
   const nextStage = ORDER[ORDER.indexOf(stage) + 1];
   if (!nextStage) return 1;

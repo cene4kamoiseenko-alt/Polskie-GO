@@ -9,7 +9,8 @@
  * 3. Ошибка сервера, нет сети (значок wi-fi, «Повторить» в кадре), медленный профиль (честное «связь медленная» и одна кнопка).
  * 4. Мгновенная заставка index.html (без JS) и заставка React: логотип на одном и том же месте с точностью до пикселя — без прыжка.
  * 5. Знакомство: сцена приподнята, логотип цел, слоган и шаги под ним, реплика и кнопки в кадре.
- * 6. Dev-темы ?splash=sunset | adventure (в сборку не попадают); тема soft не берётся.
+ * 6. Логотип с украшением — группа шириной не больше 80 % экрана по центру, ниже шапки Telegram (safe area + 12 px, не выше 44 px), украшение внутри группы.
+ * 7. Минимальное время показа заставки (SPLASH_MIN_MS = 1700 мс): быстрый повторный запуск держит её не меньше, смена идёт до 100 %.
  * 0. Слой Бобека (файл): вырезка архива обрезала лапы и оставляла по их краю просвечивающие серые полосы (владелец увидел на телефоне 2026-11-01) —
  *    внутри силуэта нет полупрозрачных пикселей, лапы достроены ниже обреза мастера.
  */
@@ -37,9 +38,9 @@ type Box = { x: number; y: number; w: number; h: number; r: number; b: number };
 const VISIBLE = 575 / 606;
 
 /** Слой Бобека как файл: нет просвечивающих мест внутри силуэта, лапы достроены (см. scripts/build-splash-art.mjs, repairBobek). */
-async function checkBobekLayer(theme: string, expected: { w: number; h: number }, pawsRebuilt = true) {
+async function checkBobekLayer(theme: string, expected: { w: number; h: number }) {
   const sharp = require('sharp');
-  const { data, info } = await sharp(resolve(root, `apps/web/src/${theme === 'royal' ? 'assets/splash' : 'dev/splash-themes'}/${theme}/bobek.webp`)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(resolve(root, `apps/web/src/assets/splash/${theme}/bobek.webp`)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: w, height: h } = info;
   check(w === expected.w && h === expected.h, `слой Бобека ${theme}: ${w}×${h} (мастер + 46 px запаса вниз = ${expected.w}×${expected.h})`);
   const a = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : data[(y * w + x) * 4 + 3]);
@@ -54,8 +55,6 @@ async function checkBobekLayer(theme: string, expected: { w: number; h: number }
     }
   }
   check(interior === 0, `слой Бобека ${theme}: внутри силуэта нет просвечивающих пикселей (${interior})`);
-  // У adventure вырезка лап не обрезала (они целиком в мастере): достраивать нечего, запас вниз пустой.
-  if (!pawsRebuilt) return;
   let low = 0;
   for (let y = h - 36; y < h; y++) for (let x = 0; x < w; x++) if (a(x, y) >= 200) low++;
   check(low >= 300, `слой Бобека ${theme}: лапы достроены ниже обреза мастера (${low} плотных пикселей в нижних 36 строках)`);
@@ -63,8 +62,6 @@ async function checkBobekLayer(theme: string, expected: { w: number; h: number }
 
 async function main() {
   await checkBobekLayer('royal', { w: 528, h: 606 });
-  await checkBobekLayer('sunset', { w: 509, h: 613 });
-  await checkBobekLayer('adventure', { w: 552, h: 649 }, false);
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
   const { base, login } = stand;
@@ -118,9 +115,15 @@ async function main() {
       const overlap = feet - card.y;
       check(overlap <= beaver.h * VISIBLE * 0.06, `${tag}: карточка почти не заходит на Бобека (перекрытие ${Math.round(overlap)} px из ${Math.round(beaver.h * VISIBLE)})`);
       check(card.y >= logo.b, `${tag}: карточка ниже логотипа`);
+      const brand = await box(u.page, '.splash-lockup');
+      const orn = await box(u.page, '.splash-orn');
+      check(brand.w <= w * 0.8 && brand.w >= w * 0.55, `${tag}: логотип с украшением — не больше 80 % экрана (${Math.round((brand.w / w) * 100)} %)`);
+      check(Math.abs(brand.x + brand.w / 2 - w / 2) <= 1.5, `${tag}: группа логотипа по центру`);
+      check(brand.y >= 43.5, `${tag}: группа логотипа ниже кнопок Telegram (верх ${Math.round(brand.y)} px, не выше 44)`);
+      check(orn.x >= brand.x - 1 && orn.r <= brand.r + 1 && orn.y >= brand.y - 1 && orn.b <= logo.b, `${tag}: украшение внутри группы, над логотипом`);
       check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
-      const imgs = await u.page.locator('.splash img.splash-bg, .splash img.splash-logo, .splash img.splash-beaver').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0));
-      check(imgs.length === 3 && imgs.every(Boolean), `${tag}: фон, логотип и Бобек загружены`);
+      const imgs = await u.page.locator('.splash img.splash-bg, .splash img.splash-logo, .splash img.splash-orn, .splash img.splash-beaver').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0));
+      check(imgs.length === 4 && imgs.every(Boolean), `${tag}: фон, логотип, украшение и Бобек загружены`);
       // Процент и полоса читаются одним запросом: прогресс обновляется ~15 раз в секунду, два запроса подряд могли бы попасть на разные кадры.
       const { doing, pct, bar } = await u.page.evaluate(() => ({
         doing: document.querySelector('[data-boot]')?.getAttribute('data-boot') ?? null,
@@ -250,6 +253,7 @@ async function main() {
       await pre.locator('.pre-logo').waitFor({ timeout: 10_000 });
       await pre.waitForTimeout(1200);
       const a = await box(pre, '.pre-logo');
+      const preOrn = await box(pre, '.pre-orn');
       const preBg = await box(pre, '.pre-bg');
       await pre.screenshot({ path: `${OUT}/pre-${w}.png` });
       await ctxNoJs.close();
@@ -258,8 +262,9 @@ async function main() {
       await u.page.locator('.splash-logo').waitFor({ timeout: 20_000 });
       const b = await box(u.page, '.splash-logo');
       const bgB = await box(u.page, '.splash-bg');
-      const d = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.w - b.w), Math.abs(a.h - b.h), Math.abs(preBg.w - bgB.w), Math.abs(preBg.y - bgB.y));
-      check(d <= 1, `${w}px: логотип и фон в index.html и в React совпадают до пикселя (разница ${d.toFixed(2)} px)`);
+      const ornB = await box(u.page, '.splash-orn');
+      const d = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.w - b.w), Math.abs(a.h - b.h), Math.abs(preBg.w - bgB.w), Math.abs(preBg.y - bgB.y), Math.abs(preOrn.x - ornB.x), Math.abs(preOrn.y - ornB.y), Math.abs(preOrn.w - ornB.w));
+      check(d <= 1, `${w}px: логотип, украшение и фон в index.html и в React совпадают до пикселя (разница ${d.toFixed(2)} px)`);
       await u.context.close();
     }
 
@@ -287,20 +292,44 @@ async function main() {
       await u.context.close();
     }
 
-    // ── 6. Dev-темы ──
-    for (const theme of ['sunset', 'adventure', 'soft']) {
+    // ── 6. Логотип под шапкой Telegram: safe area, которую сообщает WebView (CSS-переменные Telegram) ──
+    {
       const u = await userPage(String(++n), [390, 844]);
       await holdMe(u.page, 8_000);
-      await u.page.goto(u.url(`/?splash=${theme}`));
+      await u.page.goto(u.url('/'));
       await u.page.locator('.splash-card').waitFor({ timeout: 20_000 });
-      await u.page.waitForTimeout(1200);
-      const t = await u.page.locator('.splash').getAttribute('data-splash-theme');
-      if (theme === 'soft') {
-        check(t === 'royal', 'тема soft («Мягкий», размытый Бобек) не берётся: остаётся рабочая royal');
-      } else {
-        check(t === theme, `dev-тема ${theme} включается через ?splash=`);
-        await u.page.screenshot({ path: `${OUT}/theme-${theme}.png` });
+      // Telegram выставляет эти переменные после загрузки своего SDK, уже когда страница показана.
+      await u.page.evaluate(() => document.documentElement.style.setProperty('--tg-content-safe-area-inset-top', '70px'));
+      await u.page.waitForTimeout(600);
+      const brand = await box(u.page, '.splash-lockup');
+      check(brand.y >= 70 + 12 - 0.5, `шапка Telegram 70 px: логотип начинается не выше 82 px (${Math.round(brand.y)})`);
+      await u.page.screenshot({ path: `${OUT}/safe-area-390.png` });
+      await u.context.close();
+    }
+
+    // ── 7. Минимальное время показа: быстрый повторный запуск держит заставку, смена идёт до 100 % ──
+    {
+      const SPLASH_MIN_MS = 1700;
+      const u = await userPage(String(++n), [390, 844]);
+      await u.page.goto(u.url('/'));
+      await u.page.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 30_000 });
+      await u.page.waitForTimeout(500);
+      const t0 = Date.now();
+      await u.page.reload();
+      let maxPct = 0, goneAt = -1, sawDone = false;
+      while (Date.now() - t0 < 9000) {
+        const st = await u.page.evaluate(() => {
+          const pct = document.querySelector('.splash-pct');
+          return { splash: !!document.querySelector('.splash'), pct: pct ? Number(pct.textContent?.replace('%', '')) : null };
+        });
+        if (st.pct !== null) maxPct = Math.max(maxPct, st.pct);
+        if (st.pct === 100) sawDone = true;
+        if (!st.splash && goneAt < 0) { goneAt = Date.now() - t0; break; }
+        await u.page.waitForTimeout(40);
       }
+      check(goneAt >= SPLASH_MIN_MS - 250, `повторный запуск: заставка держится не меньше ${SPLASH_MIN_MS} мс (исчезла на ${goneAt} мс)`);
+      check(goneAt > 0 && goneAt < 6000, `повторный запуск: после минимума заставка уходит сама (${goneAt} мс)`);
+      check(sawDone || maxPct >= 97, `повторный запуск: перед уходом полоса доходит до 100 % (максимум ${maxPct} %)`);
       await u.context.close();
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);

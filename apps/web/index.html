@@ -8,6 +8,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- Заставка: спершу логотип (він малюється першим і задає FCP), потім фон (Варшава, шари власника); той самий srcset і sizes, що в <img> нижче й у Splash.tsx. -->
     <link rel="preload" as="image" href="/src/assets/splash/royal/logo.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/src/assets/splash/royal/orn.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="/src/assets/splash/royal/bg.webp" imagesrcset="/src/assets/splash/royal/bg@640.webp 640w, /src/assets/splash/royal/bg.webp 941w" imagesizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw" fetchpriority="low" />
     <script>
       // Профіль запитуємо одразу, паралельно із завантаженням JS: збереженим токеном і лише для того ж
@@ -38,18 +39,27 @@
       .pre-stage { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 941); height: calc(var(--u) * 1672); transform: translate(-50%, -50%); }
       .pre-bg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s ease-out; }
       .pre-bg.on { opacity: 1; }
-      .pre-logo { position: absolute; left: 14.134%; top: 9.031%; width: 73.965%; height: 10.705%; object-fit: contain;
-        filter: drop-shadow(0 5px 5px rgb(3 13 60 / 0.45)); animation: pre-logo-arrive 0.85s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+      /* Логотип с украшением — группа под шапкой Telegram, масштаб по ширине экрана (те же числа, что в index.css и lib/splashArt.ts). */
+      .pre-brandbar { position: absolute; left: 0; right: 0; top: max(calc(var(--safe-t, 0px) + 12px), 44px); display: flex; justify-content: center; }
+      .pre-lockup { --ug: min(calc(100vw / 941), calc(100vh / 1672 * 1.2)); position: relative; width: calc(var(--ug) * 696); height: calc(var(--ug) * 310);
+        animation: pre-logo-arrive 0.85s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+      @supports (height: 100dvh) { .pre-lockup { --ug: min(calc(100vw / 941), calc(100dvh / 1672 * 1.2)); } }
+      .pre-orn, .pre-logo { position: absolute; display: block; object-fit: contain; }
+      .pre-orn { left: 19.397%; top: 0; width: 60.920%; height: 43.226%; }
+      .pre-logo { left: 0; top: 42.258%; width: 100%; height: 57.742%; filter: drop-shadow(0 5px 5px rgb(3 13 60 / 0.45)); }
       /* Не с нуля: элемент с opacity 0 браузер не засчитывает как первую отрисовку (FCP), а анимация идёт на композиторе и страницу не перерисовывает. */
       @keyframes pre-logo-arrive { from { transform: translateY(-15px) scale(0.94); opacity: 0.01; } }
-      @media (prefers-reduced-motion: reduce) { .pre-logo { animation: none; } .pre-bg { transition: none; } }
+      @media (prefers-reduced-motion: reduce) { .pre-lockup { animation: none; } .pre-bg { transition: none; } }
     </style>
   </head>
   <body>
     <div id="root"><div class="pre-splash" aria-hidden="true"><div class="pre-stage">
       <img class="pre-bg" src="/src/assets/splash/royal/bg.webp" srcset="/src/assets/splash/royal/bg@640.webp 640w, /src/assets/splash/royal/bg.webp 941w" sizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw" width="941" height="1672" alt="" fetchpriority="low" onload="this.classList.add('on')" />
+    </div>
+    <div class="pre-brandbar"><div class="pre-lockup">
+      <img class="pre-orn" src="/src/assets/splash/royal/orn.webp" width="424" height="134" alt="" fetchpriority="high" />
       <img class="pre-logo" src="/src/assets/splash/royal/logo.webp" width="696" height="179" alt="" fetchpriority="high" />
-    </div></div></div>
+    </div></div></div></div>
     <script>
       // Фон мог встигнути завантажитись до того, як розбір сторінки повісив onload: тоді проявляємо його одразу.
       (function () { var i = document.querySelector('.pre-bg'); if (i && i.complete) i.classList.add('on'); })();

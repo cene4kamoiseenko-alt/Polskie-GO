@@ -530,13 +530,13 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
     --u: max(calc(100vw / 941), calc(100dvh / 1672));
   }
 }
-/* Знайомство: сцена вище на 5,5 % висоти — унизу місце під репліку й кнопки; верх логотипа не ближче 30 px до краю (корона над ним уходит). */
+/* Знайомство: сцена вище на 5,5 % висоти — унизу місце під репліку й кнопки (логотип стоїть окремо і не рухається). */
 .splash.is-lifted {
-  --lift: min(5.5vh, calc(var(--u) * var(--logo-top-art) - 30px));
+  --lift: 5.5vh;
 }
 @supports (height: 100dvh) {
   .splash.is-lifted {
-    --lift: min(5.5dvh, calc(var(--u) * var(--logo-top-art) - 30px));
+    --lift: 5.5dvh;
   }
 }
 .splash-stage {
@@ -554,16 +554,6 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
   display: block;
   width: 100%;
   height: 100%;
-  pointer-events: none;
-}
-.splash-logo {
-  position: absolute;
-  left: var(--logo-l);
-  top: var(--logo-t);
-  width: var(--logo-w);
-  height: var(--logo-h);
-  object-fit: contain;
-  filter: drop-shadow(0 5px 5px rgb(3 13 60 / 0.45));
   pointer-events: none;
 }
 .splash-hero {
@@ -602,15 +592,57 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
     linear-gradient(180deg, rgb(2 14 52 / 0.16) 0%, rgb(2 14 52 / 0) 22%),
     linear-gradient(180deg, rgb(8 22 46 / 0) 52%, rgb(8 22 46 / 0.4) 72%, rgb(7 24 44 / 0.9) 90%, var(--splash-ink) 100%);
 }
-/* Слоган и шаги знакомства — под логотипом, на сцене (едут вместе с ней). */
-.splash-head {
+/* Логотип с украшением: группа под шапкой Telegram (safe area + запас, не выше 44 px — поверх WebView бывают кнопки «закрыть» и «ещё»), масштаб по ширине экрана:
+   --ug — пикселей экрана на пиксель кадра (на высоких телефонах сцена шире экрана, а логотип от этого не растёт). Слоган и шаги знакомства — под ней. */
+.splash {
+  --ug: min(calc(100vw / 941), calc(100vh / 1672 * 1.2));
+}
+@supports (height: 100dvh) {
+  .splash {
+    --ug: min(calc(100vw / 941), calc(100dvh / 1672 * 1.2));
+  }
+}
+.splash-brandbar {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(var(--logo-b) + 8px);
+  top: max(calc(var(--safe-t) + 12px), 44px);
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
+  pointer-events: none;
+}
+.splash-lockup {
+  position: relative;
+  width: calc(var(--ug) * var(--brand-w));
+  height: calc(var(--ug) * var(--brand-h));
+}
+.splash-orn,
+.splash-logo {
+  position: absolute;
+  display: block;
+  object-fit: contain;
+  user-select: none;
+}
+.splash-orn {
+  left: var(--orn-l);
+  top: var(--orn-t);
+  width: var(--orn-w);
+  height: var(--orn-h);
+}
+.splash-logo {
+  left: var(--logo-l);
+  top: var(--logo-t);
+  width: var(--logo-w);
+  height: var(--logo-h);
+  filter: drop-shadow(0 5px 5px rgb(3 13 60 / 0.45));
+}
+.splash-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px;
 }
 .splash-slogan {
   max-width: min(92vw, 420px);

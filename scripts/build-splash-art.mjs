@@ -1,7 +1,7 @@
 /**
  * Слои экрана загрузки (мастера владельца 2026-11-01: docs/design/v19/loading/) → ассеты приложения.
  *
- *   node scripts/build-splash-art.mjs                 — собрать все темы (royal, sunset, adventure)
+ *   node scripts/build-splash-art.mjs                 — собрать тему royal
  *   node scripts/build-splash-art.mjs --only royal    — одну тему
  *   node scripts/build-splash-art.mjs --sheet out.png — + контрольный лист (покой / Бобек сдвинут / логотип в начале появления)
  *
@@ -17,7 +17,10 @@
  *     фонарный столб у тела Бобека в бледную полосу, а у лап и хвоста оставляли мазки;
  *  3. Бобек (сам слой): по краю лап у вырезки полупрозрачные серые полосы (след мягкой тени, принятый за фон) — через пальцы просвечивает брусчатка.
  *     Внутри силуэта (замыкание маски на 10 px, без 3 px кромки) слой делается непрозрачным, цвет берётся из оригинального композита, где лапы целые;
- *  4. карточка: полоса y 1226…1582 на всю ширину — интерполяция + настоящая брусчатка из чистой нижней полосы кадра, зеркально (чем ближе к
+ *  4. украшение над логотипом (замок, лавр, дуги — в «чистом» фоне они запечены и частично стёрты заливкой под логотипом: нижняя дуга обрезана с обоих концов)
+ *     вынимается отдельным слоем `orn.webp` из оригинального композита по белизне (min(R,G,B) на синем небе); в фоне это место заливается небом.
+ *     Логотип и украшение приложение собирает в одну группу, которую можно уменьшить и опустить под шапку Telegram, ничего не рассоединяя;
+ *  5. карточка: полоса y 1226…1582 на всю ширину — интерполяция + настоящая брусчатка из чистой нижней полосы кадра, зеркально (чем ближе к
  *     низу, тем больше): сверху вплотную к лапам остаются тень и мягкий свет.
  * Результат: bg.webp (941 px, как исходник), bg@640.webp, bobek.webp, logo.webp (RGBA) в apps/web/src/assets/splash/royal/ и
  * apps/web/src/dev/splash-themes/<тема>/; положение слоёв (кадр 941×1672) — в apps/web/src/lib/splashArt.ts.
@@ -29,16 +32,12 @@ const require = createRequire(import.meta.url);
 const sharp = require('sharp');
 
 const SRC = new URL('../docs/design/v19/loading/', import.meta.url);
-/** royal — рабочая тема (в сборку); остальные — только для разработки и QA (`?splash=<тема>`): вне src/assets, иначе lib/assets.ts (glob) втянул бы их в production. */
 const OUT_APP = new URL('../apps/web/src/assets/splash/', import.meta.url);
-const OUT_DEV = new URL('../apps/web/src/dev/splash-themes/', import.meta.url);
 const W = 941;
 const H = 1672;
 
-/** Положение слоёв в кадре 941×1672: [x, y, ширина, высота] — из loading.js архива. */
+/** Положение слоёв в кадре 941×1672: [x, y, ширина, высота] — из loading.js архива. Тема одна (royal): sunset и adventure не берутся (мастера лежат в docs/design/v19/loading). */
 const THEMES = {
-  sunset: { bobek: [200, 624, 509, 567], logo: [112, 135, 728, 197] },
-  adventure: { bobek: [167, 577, 552, 603], logo: [95, 117, 749, 204] },
   royal: { bobek: [168, 640, 528, 560], logo: [133, 151, 696, 179] },
 };
 const R_LOGO = 14;
@@ -304,7 +303,45 @@ async function repairBobek(name, box, orig) {
   return { buf, mask: outMask, grown, fixed, box: [box[0], box[1], sw, sh] };
 }
 
-const ORIGINAL = { sunset: '01_sunset_original', adventure: '03_adventure_original', royal: '04_royal_original' };
+/** Область поиска украшения над логотипом (кадр 941×1672) и его порог белизны: небо у́же 90 по min(R,G,B), белое украшение — выше 230. */
+const ORN = { x0: 262, y0: 20, x1: 850, y1: 215, lo: 90, hi: 230 };
+
+/**
+ * Украшение над логотипом отдельным слоем. Белое на синем небе: прозрачность — по белизне min(R,G,B) (жёлтая листва даёт малое B, небо — малое R),
+ * цвет — белый. Пиксели самого логотипа (его альфа) не берём. Возвращает RGBA рамки украшения, саму рамку и маску (с запасом 3 px) для заливки неба.
+ */
+async function extractOrnament(orig, logoMask) {
+  const logoDil = dilate(logoMask, 2);
+  const alpha = new Float32Array(W * H);
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = ORN.y0; y < ORN.y1; y++) {
+    for (let x = ORN.x0; x < ORN.x1; x++) {
+      const i = y * W + x;
+      if (logoDil[i]) continue;
+      if (x < 330 && y < 110) continue; // блики листвы левой ветки: украшения там нет
+      const w = Math.min(orig[i * 3], orig[i * 3 + 1], orig[i * 3 + 2]);
+      let a = Math.max(0, Math.min(1, (w - ORN.lo) / (ORN.hi - ORN.lo)));
+      if (a < 0.06) a = 0;
+      alpha[i] = a;
+      if (a > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+  }
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+  const rgba = new Uint8Array(bw * bh * 4);
+  const mask = new Uint8Array(W * H);
+  for (let y = 0; y < bh; y++) {
+    for (let x = 0; x < bw; x++) {
+      const a = alpha[(y0 + y) * W + x0 + x], p = (y * bw + x) * 4;
+      rgba[p] = rgba[p + 1] = rgba[p + 2] = 255;
+      rgba[p + 3] = Math.round(a * 255);
+      if (a > 0.03) mask[(y0 + y) * W + x0 + x] = 1;
+    }
+  }
+  const buf = await sharp(Buffer.from(rgba), { raw: { width: bw, height: bh, channels: 4 } }).webp({ quality: 95, alphaQuality: 100, effort: 6 }).toBuffer();
+  return { buf, box: [x0, y0, bw, bh], mask: dilate(mask, 3) };
+}
+
+const ORIGINAL = { royal: '04_royal_original' };
 
 async function buildTheme(name) {
   const g = THEMES[name];
@@ -327,8 +364,10 @@ async function buildTheme(name) {
   }
   bandFill(px, knownB, zoneB);
 
-  // 1. Логотип: небо вокруг и под ним — интерполяция по окружению.
+  // 1. Логотип и украшение над ним: небо вокруг и под ним — интерполяция по окружению.
+  const orn = await extractOrnament(orig, logoMask);
   const holeA = dilate(logoMask, R_LOGO);
+  for (let i = 0; i < W * H; i++) if (orn.mask[i]) holeA[i] = 1;
   const knownA = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) knownA[i] = holeA[i] ? 0 : 1;
   const fillA = pushPull(px, knownA);
@@ -351,21 +390,22 @@ async function buildTheme(name) {
 
   const bu8 = new Uint8Array(W * H * 3);
   for (let i = 0; i < W * H * 3; i++) bu8[i] = Math.max(0, Math.min(255, Math.round(px[i])));
-  const dir = new URL(`${name}/`, name === 'royal' ? OUT_APP : OUT_DEV);
+  const dir = new URL(`${name}/`, OUT_APP);
   mkdirSync(dir, { recursive: true });
   const base = sharp(bu8, { raw: { width: W, height: H, channels: 3 } });
   const bg = await base.clone().webp({ quality: 82, effort: 6 }).toBuffer();
   const bg640 = await base.clone().resize(640, Math.round((640 * H) / W), { kernel: 'lanczos3' }).webp({ quality: 80, effort: 6 }).toBuffer();
   const bobek = repaired.buf;
   const logo = await sharp(readFileSync(new URL(`${name}_logo.webp`, SRC))).webp({ quality: 92, alphaQuality: 100, effort: 6 }).toBuffer();
-  const files = { 'bg.webp': bg, 'bg@640.webp': bg640, 'bobek.webp': bobek, 'logo.webp': logo };
+  const files = { 'bg.webp': bg, 'bg@640.webp': bg640, 'bobek.webp': bobek, 'logo.webp': logo, 'orn.webp': orn.buf };
   const sizes = [];
   for (const [file, buf] of Object.entries(files)) {
     await sharp(buf).toFile(new URL(file, dir).pathname);
     sizes.push(`${file} ${Math.round(buf.length / 1024)} КБ`);
   }
   console.log(`${name.padEnd(10)} логотип ${holeA.reduce((n, v) => n + v, 0)} px, полоса Бобека ${zoneB.reduce((n, v) => n + v, 0)} px, слой Бобека: достроено ${repaired.grown} px лап, непрозрачными сделано ${repaired.fixed} px · ${sizes.join(' · ')}`);
-  return { name, bg, g };
+  console.log(`${name.padEnd(10)} украшение: рамка ${orn.box.join(' ')} (x y w h); логотип ${g.logo.join(' ')}`);
+  return { name, bg, g, orn };
 }
 
 const names = Object.keys(THEMES).filter((n) => !only || n === only);
@@ -374,24 +414,19 @@ for (const n of names) built.push(await buildTheme(n));
 console.log(`Тем: ${built.length}. Геометрия слоёв (проценты кадра ${W}×${H}) живёт в apps/web/src/lib/splashArt.ts`);
 
 if (sheetPath) {
-  // Контрольный лист: для каждой темы — покой, Бобек на 10 px выше и логотип на 15 px выше (начало появления); кадры по 470 px шириной.
-  const cell = 470, ch = Math.round((cell * H) / W);
+  // Контрольный лист: сцена в сборе (фон, украшение, логотип, Бобек в покое), кадры по 470 px шириной.
+  const cell = 470, ch = Math.round((cell * H) / W), scale = cell / W;
   const tiles = [];
-  for (const [i, { name, bg, g }] of built.entries()) {
-    const scale = cell / W;
-    const layer = async (file, box, dx, dy) => {
-      const w = Math.round(box[2] * scale), h = Math.round(box[3] * scale);
-      const input = await sharp(readFileSync(new URL(file, SRC))).resize(w, h).png().toBuffer();
-      return { input, left: Math.round(box[0] * scale + dx), top: Math.round(box[1] * scale + dy) };
-    };
+  for (const [i, { name, bg, g, orn }] of built.entries()) {
+    const layer = async (input, box) => ({ input: await sharp(input).resize(Math.round(box[2] * scale), Math.round(box[3] * scale)).png().toBuffer(), left: Math.round(box[0] * scale), top: Math.round(box[1] * scale) });
     const base = await sharp(bg).resize(cell, ch).png().toBuffer();
-    for (const [j, v] of [{ bx: 0, by: 0, ly: 0 }, { bx: 0, by: -10, ly: -15 }].entries()) {
-      const bobek = await layer(`${name}_bobek.webp`, g.bobek, v.bx * scale, v.by * scale);
-      const logo = await layer(`${name}_logo.webp`, g.logo, 0, v.ly * scale);
-      const img = await sharp(base).composite([logo, bobek]).png().toBuffer();
-      tiles.push({ input: img, left: (i * 2 + j) * cell, top: 0 });
-    }
+    const bobekFile = new URL(`${name}/bobek.webp`, OUT_APP).pathname;
+    const bobekBox = [g.bobek[0], g.bobek[1], g.bobek[2], g.bobek[3] + PAD_BOTTOM];
+    const img = await sharp(base)
+      .composite([await layer(orn.buf, orn.box), await layer(readFileSync(new URL(`${name}_logo.webp`, SRC)), g.logo), await layer(readFileSync(bobekFile), bobekBox)])
+      .png().toBuffer();
+    tiles.push({ input: img, left: i * cell, top: 0 });
   }
-  await sharp({ create: { width: cell * built.length * 2, height: ch, channels: 3, background: { r: 20, g: 24, b: 40 } } }).composite(tiles).png().toFile(sheetPath);
+  await sharp({ create: { width: cell * built.length, height: ch, channels: 3, background: { r: 20, g: 24, b: 40 } } }).composite(tiles).png().toFile(sheetPath);
   console.log(`Лист: ${sheetPath}`);
 }

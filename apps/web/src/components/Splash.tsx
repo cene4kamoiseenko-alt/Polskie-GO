@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useT, type TKey } from '../i18n';
 import { iconAsset } from '../lib/assets';
-import { ROYAL_ART, loadSplashArt, requestedSplashTheme, splashGeometry, type SplashArt } from '../lib/splashArt';
+import { SPLASH_ART, splashGeometry } from '../lib/splashArt';
 import { Icon } from './Icon';
 import { bootState, useBootProgress, type BootStage } from '../lib/boot';
 
@@ -113,23 +113,20 @@ function ErrorUi({ onRetry, offline }: { onRetry?: () => void; offline: boolean 
 }
 
 /**
- * @param lift сцена приподнята (знакомство): внизу место под реплику и кнопки; логотип остаётся целиком.
+ * @param lift сцена приподнята (знакомство): внизу место под реплику и кнопки.
  */
 export function SplashScene({ slogan, steps, loading, error, onRetry, lift, children }: { slogan?: string; steps?: ReactNode; loading?: boolean; error?: boolean; onRetry?: () => void; lift?: boolean; children?: ReactNode }) {
   const reduce = useReducedMotion();
   const online = useOnline();
   const [intro] = useState(() => !introPlayed && !reduce);
-  const [art, setArt] = useState<SplashArt>(ROYAL_ART);
   useEffect(() => {
     introPlayed = true;
-    // Другие темы (?splash=sunset|adventure) — только в разработке.
-    const theme = requestedSplashTheme();
-    if (theme !== 'royal') void loadSplashArt(theme).then(setArt);
   }, []);
   const hasUi = loading || error;
+  const art = SPLASH_ART;
 
   return (
-    <div className={`splash relative min-h-[100dvh] overflow-hidden ${intro ? 'is-intro' : ''} ${lift ? 'is-lifted' : ''}`} style={splashGeometry(art.theme)} data-splash-theme={art.theme}>
+    <div className={`splash relative min-h-[100dvh] overflow-hidden ${intro ? 'is-intro' : ''} ${lift ? 'is-lifted' : ''}`} style={splashGeometry()}>
       <div className="splash-stage">
         {/* Сцена 941×1672: `srcset` отдаёт узкий файл только малым экранам, а на телефонах с DPR 3 — полный кадр. */}
         <img
@@ -143,15 +140,21 @@ export function SplashScene({ slogan, steps, loading, error, onRetry, lift, chil
           decoding="async"
           draggable={false}
         />
-        {/* Тот же логотип, что и в мгновенной заставке index.html, на том же месте: без прыжка. */}
-        <img className="splash-logo" src={art.logo} alt="POLSKI GO" width={696} height={179} draggable={false} />
         <div className="splash-hero" aria-hidden>
-          <img className="splash-beaver" src={art.bobek} alt="" width={528} height={560} draggable={false} />
+          <img className="splash-beaver" src={art.bobek} alt="" width={528} height={606} draggable={false} />
           {error && !online && (
             <span className="splash-badge">
               <Icon name="wifi-off" size={26} strokeWidth={2.6} />
             </span>
           )}
+        </div>
+      </div>
+      <div className="splash-shade" aria-hidden />
+      {/* Логотип с украшением — группа под шапкой Telegram, масштаб по ширине экрана; те же размеры и места, что в мгновенной заставке index.html. */}
+      <div className="splash-brandbar">
+        <div className="splash-lockup">
+          <img className="splash-orn" src={art.orn} alt="" width={424} height={134} draggable={false} />
+          <img className="splash-logo" src={art.logo} alt="POLSKI GO" width={696} height={179} draggable={false} />
         </div>
         {(slogan || steps) && (
           <header className="splash-head">
@@ -160,7 +163,6 @@ export function SplashScene({ slogan, steps, loading, error, onRetry, lift, chil
           </header>
         )}
       </div>
-      <div className="splash-shade" aria-hidden />
       {hasUi && <div className="splash-ui absolute inset-x-0 bottom-0 z-30">{error ? <ErrorUi onRetry={onRetry} offline={!online} /> : <LoadingUi onRetry={onRetry} />}</div>}
       {children}
     </div>

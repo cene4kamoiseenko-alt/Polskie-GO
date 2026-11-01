@@ -9,7 +9,7 @@ import { peekLaunchRoute, takeLaunchRoute } from './lib/launch';
 import { useMe } from './lib/queries';
 import { configureAudio, setSoundEnabled, stopSpeech } from './lib/audio';
 import { ApiError } from './lib/api';
-import { bootMark } from './lib/boot';
+import { SPLASH_MIN_MS, bootFinish, bootMark } from './lib/boot';
 import { BottomNav, EdgeSwipeBack, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
 import { ScreenBoundary } from './components/ScreenBoundary';
@@ -84,6 +84,8 @@ const PREFETCH_WAVES = [
   [() => import('./screens/Lesson'), () => import('./screens/Map'), () => import('./screens/Learn')],
   [() => import('./screens/Quests'), () => import('./screens/Profile'), () => import('./screens/Missions'), () => import('./screens/Mission'), () => import('./screens/Dictionary')],
 ];
+/** Минимум показа заставки уже выдержан в этом запуске (повторные монтирования App не ждут). */
+let minSplashDone = false;
 let prefetched = false;
 function prefetchScreens() {
   if (prefetched) return;
@@ -152,6 +154,25 @@ export function App() {
     if (me.data) bootMark('profile');
   }, [me.data]);
 
+  // Минимальное время показа заставки (SPLASH_MIN_MS от начала загрузки страницы): на быстром соединении её не успевали увидеть. Пауза нужна только если всё
+  // уже загружено раньше минимума: смуга за остаток времени доходит до 100 %. Ошибка заставку не удерживает.
+  const [minShown, setMinShown] = useState(() => minSplashDone || performance.now() >= SPLASH_MIN_MS);
+  useEffect(() => {
+    if (minShown || !me.data) return;
+    const left = SPLASH_MIN_MS - performance.now();
+    if (left <= 0) {
+      minSplashDone = true;
+      setMinShown(true);
+      return;
+    }
+    bootFinish(performance.now() + left);
+    const id = setTimeout(() => {
+      minSplashDone = true;
+      setMinShown(true);
+    }, left);
+    return () => clearTimeout(id);
+  }, [minShown, me.data]);
+
   // Профіль не завантажився через мережу — коли зв'язок повернеться, пробуємо знову самі.
   const failed = !!me.error;
   useEffect(() => {
@@ -162,7 +183,7 @@ export function App() {
   }, [failed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   let body;
-  if (me.isLoading) body = <SplashScene loading onRetry={() => void me.refetch()} />;
+  if (me.isLoading || (me.data && !minShown)) body = <SplashScene loading onRetry={() => void me.refetch()} />;
   else if (me.error) {
     const banned = me.error instanceof ApiError && me.error.code === 'banned';
     body = banned ? <ErrorState error={new Error('banned')} /> : <SplashScene error onRetry={() => me.refetch()} />;
