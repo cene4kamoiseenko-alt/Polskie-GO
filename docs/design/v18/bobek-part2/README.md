@@ -6,9 +6,9 @@
 | № | Файл | Статус |
 |---|---|---|
 | 41 | `41_hoodie-red_jacket-denim_backpack-green.webp` | подключён: `hoodie-denim-pack` |
-| 42 | `42_hoodie-red_jacket-denim_cap-red_glasses-round_backpack-green.webp` | подключён: `hoodie-denim-cap-glasses-pack` |
+| 42 | `42_hoodie-red_jacket-denim_cap-red_glasses-round_backpack-green.webp` | заменён версией 51 из третьей партии (кепка с PL); остаётся ориентиром кадра, не собирается |
 | 43 | `43_hoodie-red_jacket-rain_backpack-green.webp` | подключён: `hoodie-rain-pack` |
-| 44 | `44_hoodie-red_jacket-rain_glasses-round_backpack-green.webp` | подключён: `hoodie-rain-glasses-pack` |
+| 44 | `44_hoodie-red_jacket-rain_glasses-round_backpack-green.webp` | заменён версией 55 из третьей партии; остаётся ориентиром кадра, не собирается |
 | held | `01_`, `08_outfit_black-jacket-headphones_*` | чёрная куртка + наушники; вещей нет в каталоге — ждёт решения владельца |
 | held | `02_`, `06_outfit_puffer-*` | жёлтый пуховик + шапка + шарф; вещей нет в каталоге |
 | held | `05_`, `07_outfit_sherpa/duffle-coat-earmuffs_*` | пальто + тёплые наушники + шарф; вещей нет в каталоге |

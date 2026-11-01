@@ -3,7 +3,7 @@
  *
  *   node --import tsx scripts/variants-screens.ts   → test-results/variants-screens/*.png
  *
- * 1. QA-галерея /__gallery?look: 20 образов (16 сетки и 4 с куртками), у каждого картинка декодируется, режим variant (стартовый набор — legacy-base),
+ * 1. QA-галерея /__gallery?look: 21 образ (16 сетки и 5 с куртками), у каждого картинка декодируется, режим variant (стартовый набор — legacy-base),
  *    нет горизонтальной прокрутки; снимок на тёмном фоне (видна прозрачность вырезки).
  * 2. Магазин на 320 / 390 / 430: примерка кепки показывает образ «худи + кепка + рюкзак» (data-look-mode=variant, картинка
  *    загружена), «Надеть» сохраняется на сервере и переживает перезагрузку, полный набор (кепка + очки + шарф + рюкзак) рисуется
@@ -50,11 +50,11 @@ async function main() {
           loaded: Array.from(el.querySelectorAll('img')).length > 0 && Array.from(el.querySelectorAll('img')).every((i) => i.naturalWidth > 0),
         })),
       );
-      check(tiles.length === 20, `галерея: 20 готовых образов — 16 сетки и 4 с куртками (${tiles.length})`);
+      check(tiles.length === 21, `галерея: 21 готовый образ — 16 сетки и 5 с куртками (${tiles.length})`);
       const broken = tiles.filter((t) => !t.loaded).map((t) => t.id);
       check(broken.length === 0, `галерея: у каждого образа картинка загружена${broken.length ? ` (нет: ${broken.join(', ')})` : ''}`);
       const wrongMode = tiles.filter((t) => t.mode !== (t.id === 'hoodie-pack' ? 'legacy-base' : 'variant')).map((t) => `${t.id}:${t.mode}`);
-      check(wrongMode.length === 0, `галерея: режим variant у 19 образов, стартовый набор — legacy-base${wrongMode.length ? ` (${wrongMode.join(', ')})` : ''}`);
+      check(wrongMode.length === 0, `галерея: режим variant у 20 образов, стартовый набор — legacy-base${wrongMode.length ? ` (${wrongMode.join(', ')})` : ''}`);
       check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'галерея: нет горизонтальной прокрутки');
       await p.screenshot({ path: `${OUT}/gallery-dark.png`, fullPage: true });
       await ctx.close();

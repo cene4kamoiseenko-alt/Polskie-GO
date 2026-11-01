@@ -3,13 +3,16 @@
  *
  *   node scripts/build-bobek-variants.mjs                 — собрать все образы в apps/web/src/assets/variants/
  *   node scripts/build-bobek-variants.mjs --sheet out.png  — + контрольный лист (24 образа на тёмном фоне, не в репозиторий)
- *   node scripts/build-bobek-variants.mjs --only jackets   — только одна серия (wave | open | jackets), для отладки очистки
+ *   node scripts/build-bobek-variants.mjs --only refresh   — только одна серия (wave | open | jackets | refresh), для отладки очистки
  *
  * Три серии мастеров:
  *   01–16 — «wave»: 512×512 с прозрачностью, машет рукой с картой, все 16 сочетаний (худи + кепка/очки/шарф/рюкзак);
  *   24–31 — «open»: 1254×1254 на ровном бежевом фоне, руки разведены, 8 сочетаний;
- *   41–44 — «wave», вторая партия: 1254×1254 с прозрачностью, куртки поверх худи (джинсовая, дождевик), рюкзак на каждой картинке.
- * Мастера второй партии лежат в docs/design/v18/bobek-part2/, образы с вещами, которых нет в каталоге, — в её held/ (не подключены).
+ *   41–44 — «wave», вторая партия: 1254×1254 с прозрачностью, куртки поверх худи (джинсовая, дождевик), рюкзак на каждой картинке;
+ *   51–56 — «wave», третья партия: 1254×1254 на светлом фоне (вырезается), кепка с надписью PL, обновлённые и новые сочетания;
+ *     кадр у каждой картинки свой, поэтому она ставится на холст по рамке образа-аналога (`LIKE`), а не по общему для серии преобразованию.
+ * Мастера второй и третьей партий лежат в docs/design/v18/bobek-part2/ и bobek-part3/; образы, которые не используются (вещи вне каталога,
+ * дубли, заменённые версии), — в подпапках held/ и superseded/ (не собираются, но хранятся).
  *
  * Что делает конвейер (оригиналы не меняются, всё воспроизводимо):
  *  1. Серия 24–31: вырезает фон заливкой от края кадра (белое внутри фигуры — шарф, зубы, буквы PL — остаётся) и убирает
@@ -29,7 +32,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
 
-const MASTER_DIRS = [new URL('../docs/design/v18/bobek31/', import.meta.url), new URL('../docs/design/v18/bobek-part2/', import.meta.url)];
+const MASTER_DIRS = ['bobek31', 'bobek-part2', 'bobek-part3'].map((d) => new URL(`../docs/design/v18/${d}/`, import.meta.url));
 const WAVE = new URL('../apps/web/src/assets/beaver/wave.webp', import.meta.url);
 const OUT = new URL('../apps/web/src/assets/variants/', import.meta.url);
 
@@ -51,6 +54,9 @@ const SERIES = [
   { id: 'wave', pose: 'wave', from: 1, to: 16, ref: 5, sizes: [512, 256], clean: 'ghosts', ghostR: 4 },
   { id: 'open', pose: 'open', from: 24, to: 31, ref: 28, sizes: [1024, 512, 256], clean: 'matte' },
   { id: 'jackets', pose: 'wave', from: 41, to: 44, ref: 41, sizes: [1024, 512, 256], clean: 'ghosts', ghostR: 8 },
+  // Третья партия: 1254×1254 на светлом фоне, кадрирование у каждой картинки своё (в предыдущих партиях было общее), поэтому преобразование
+  // у каждой своё — по рамке образа-аналога (`LIKE` ниже), а не одно на серию.
+  { id: 'refresh', pose: 'wave', from: 51, to: 56, sizes: [1024, 512, 256], clean: 'matte' },
 ];
 
 const args = process.argv.slice(2);
@@ -190,32 +196,66 @@ function parse(file, dir) {
   return { file, dir, n, series, items: [...ordered].sort(), name: ordered.map((id) => SHORT[id]).join('-') };
 }
 
+/**
+ * Третья партия (51–55) кадрирована у каждой картинки по-своему, поэтому она ставится по рамке уже поставленного образа того же сочетания:
+ * общие ориентиры — верх (кепка или чубчик) и низ (ступни). Масштаб — по высоте рамки, сдвиг — по низу и середине рамки.
+ *   51 ← 42 джинсовая + кепка + очки + рюкзак, 52 ← 16 кепка + очки + шарф + рюкзак, 54 ← 14 кепка + очки + рюкзак, 55 ← 44 дождевик + очки + рюкзак;
+ *   53 (дождевик + кепка + очки + рюкзак) аналога не имеет: ставится по 54 — то же сочетание без дождевика, одна и та же генерация.
+ * Мастер, у которого тот же образ выпускает мастер с большим номером, заменён: файлы не пишутся, но он остаётся ориентиром.
+ */
+const LIKE = { 51: 42, 52: 16, 53: 54, 54: 14, 55: 44 };
+
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
-const masters = MASTER_DIRS.flatMap((dir) => readdirSync(dir).map((file) => parse(file, dir)))
-  .filter((m) => m && (!only || m.series.id === only))
-  .sort((a, b) => a.n - b.n);
+const all = MASTER_DIRS.flatMap((dir) => readdirSync(dir).map((file) => parse(file, dir))).filter(Boolean).sort((a, b) => a.n - b.n);
+const byN = new Map(all.map((m) => [m.n, m]));
+const keyOf = (m) => `${m.name}_${m.series.pose}`;
+const winner = new Map();
+for (const m of all) winner.set(keyOf(m), m);
+const masters = all.filter((m) => winner.get(keyOf(m)) === m && (!only || m.series.id === only));
+const superseded = all.filter((m) => winner.get(keyOf(m)) !== m);
 const waveRef = await load(WAVE);
 const waveBox = bbox(waveRef);
 const target = { h: waveBox.y1 - waveBox.y0, bottom: waveBox.y1, cx: (waveBox.x0 + waveBox.x1) / 2, canvas: waveRef.w };
 
-for (const m of masters) {
+async function prepare(m) {
+  if (m.img) return;
   m.img = await load(new URL(m.file, m.dir));
   m.cleaned = m.series.clean === 'matte' ? matte(m.img) : dropGhosts(m.img, m.series.ghostR);
   m.box = bbox(m.img);
 }
 
-/** Одно преобразование на серию: масштаб и сдвиг (в долях холста) так, чтобы опорный кадр встал на рамку wave. */
-for (const s of SERIES.filter((x) => masters.some((m) => m.series === x))) {
-  const ref = masters.find((m) => m.n === s.ref);
-  if (!ref) throw new Error(`Нет опорного мастера ${s.ref}`);
-  const K = target.h / (ref.box.y1 - ref.box.y0); // пикселей холста wave на пиксель мастера
-  const k = K / target.canvas;
-  s.t = { k, ox: target.cx / target.canvas - (k * (ref.box.x0 + ref.box.x1)) / 2, oy: target.bottom / target.canvas - k * ref.box.y1 };
+/** Масштаб и сдвиг (в долях холста): по опорному кадру серии, а для `LIKE` — по рамке образа-аналога на холсте. */
+async function transformOf(m) {
+  if (m.t) return m.t;
+  await prepare(m);
+  if (LIKE[m.n]) {
+    const like = byN.get(LIKE[m.n]);
+    if (!like) throw new Error(`${m.file}: нет мастера-аналога ${LIKE[m.n]}`);
+    const t = await transformOf(like);
+    const top = t.oy + t.k * like.box.y0;
+    const bottom = t.oy + t.k * like.box.y1;
+    const cx = t.ox + (t.k * (like.box.x0 + like.box.x1)) / 2;
+    const k = (bottom - top) / (m.box.y1 - m.box.y0);
+    m.t = { k, ox: cx - (k * (m.box.x0 + m.box.x1)) / 2, oy: bottom - k * m.box.y1 };
+  } else {
+    const s = m.series;
+    if (!s.t) {
+      // Одно преобразование на серию: опорный кадр встаёт на рамку wave.
+      const ref = byN.get(s.ref);
+      if (!ref) throw new Error(`Нет опорного мастера ${s.ref}`);
+      await prepare(ref);
+      const k = target.h / (ref.box.y1 - ref.box.y0) / target.canvas; // доли холста wave на пиксель мастера
+      s.t = { k, ox: target.cx / target.canvas - (k * (ref.box.x0 + ref.box.x1)) / 2, oy: target.bottom / target.canvas - k * ref.box.y1 };
+    }
+    m.t = s.t;
+  }
+  return m.t;
 }
+for (const m of masters) await transformOf(m);
 
 /** Холст C×C: исходник масштабируется до долей холста и кладётся с обрезкой краёв. */
 async function render(m, C) {
-  const { k, ox, oy } = m.series.t;
+  const { k, ox, oy } = m.t;
   const rw = Math.max(1, Math.round(m.img.w * k * C));
   const rh = Math.max(1, Math.round(m.img.h * k * C));
   const left = Math.round(ox * C);
@@ -248,6 +288,7 @@ for (const m of masters) {
 }
 console.log(`Образов: ${masters.length}; WebP всего ${(total / 1048576).toFixed(2)} МБ\n${rows.join('\n')}`);
 console.log(`Рамка wave: ${target.canvas} px, высота ${target.h}, низ ${target.bottom}, центр ${target.cx}`);
+if (superseded.length) console.log(`Заменены более поздними мастерами (не пишутся, остаются ориентирами): ${superseded.map((m) => `${String(m.n).padStart(2, '0')} ${m.name}`).join(', ')}`);
 
 if (sheetPath) {
   // Контрольный лист: главные файлы серий в 4 ряда по 6 на тёмном фоне, линия ног и рамка wave видны сразу.

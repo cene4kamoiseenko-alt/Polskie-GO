@@ -32,8 +32,8 @@ const codes = (m: LookManifest) => errors(m).map((i) => i.code);
 const withVariants = (list: readonly LookVariant[]): LookManifest => ({ ...LOOK_MANIFEST, variants: { ...LOOK_VARIANTS, list } });
 
 describe('готовые образы: таблица', () => {
-  it('полная сетка: все 16 сочетаний четырёх вещей, у каждого есть поза wave, поза open — у 8; плюс 4 образа с куртками (вторая партия)', () => {
-    expect(LOOK_VARIANTS.list).toHaveLength(20);
+  it('полная сетка: все 16 сочетаний четырёх вещей, у каждого есть поза wave, поза open — у 8; плюс 5 образов с куртками (вторая и третья партии)', () => {
+    expect(LOOK_VARIANTS.list).toHaveLength(21);
     expect(grid()).toHaveLength(16);
     const keys = grid().map((v) => v.items.join('+'));
     expect(new Set(keys).size).toBe(16);
@@ -214,9 +214,10 @@ describe('готовые образы: куртки (вторая партия, 
     [['jacket-denim', 'cap-red', 'glasses-round', 'backpack-travel'], 'variants/hoodie-denim-cap-glasses-pack_wave'],
     [['jacket-rain', 'backpack-travel'], 'variants/hoodie-rain-pack_wave'],
     [['jacket-rain', 'glasses-round', 'backpack-travel'], 'variants/hoodie-rain-glasses-pack_wave'],
+    [['jacket-rain', 'cap-red', 'glasses-round', 'backpack-travel'], 'variants/hoodie-rain-cap-glasses-pack_wave'],
   ];
 
-  it('четыре сочетания есть: куртка заменяет худи в данных, но худи остаётся «подкладкой» картинки', () => {
+  it('пять сочетаний есть: куртка заменяет худи в данных, но худи остаётся «подкладкой» картинки', () => {
     for (const [set, asset] of SETS) {
       const look = resolveLook(null, set);
       expect(look.mode, set.join('+')).toBe('variant');
@@ -239,6 +240,9 @@ describe('готовые образы: куртки (вторая партия, 
     const cap = resolveLook(null, ['jacket-denim', 'cap-red', 'backpack-travel']);
     expect(cap.layers.map((l) => l.asset)).toEqual(['variants/hoodie-denim-pack_wave']);
     expect(cap.items.find((o) => o.id === 'cap-red')).toMatchObject({ drawn: false, reason: 'no-variant' });
+    // дождевик + кепка + рюкзак (без очков): «кепка + рюкзак» по алфавиту раньше, но куртка важнее
+    const rainCap = resolveLook(null, ['jacket-rain', 'cap-red', 'backpack-travel']);
+    expect(rainCap.layers.map((l) => l.asset)).toEqual(['variants/hoodie-rain-pack_wave']);
     // шарф поверх дождевика с очками: образ «дождевик + очки + рюкзак», шарф не нарисован
     const scarf = resolveLook(null, ['jacket-rain', 'glasses-round', 'scarf-pl', 'backpack-travel']);
     expect(scarf.layers.map((l) => l.asset)).toEqual(['variants/hoodie-rain-glasses-pack_wave']);

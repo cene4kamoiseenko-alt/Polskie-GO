@@ -6,7 +6,7 @@
  * Що вміщує таблиця зараз:
  * - повна сітка з чотирьох речей-осей (кепка, круглі окуляри, польський шарф, рюкзак) у всіх 16 сполученнях; худі — на кожній
  *   картинці. Поза `wave` (махає, карта в руці) є в усіх 16, поза `open` (руки розведені) — у 8 з них;
- * - друга партія (куртки поверх худі): джинсова куртка й жовтий дощовик, лише 4 сполучення — часткова сітка. Для решти сполучень
+ * - куртки поверх худі (друга й третя партії): джинсова куртка й жовтий дощовик, лише 5 сполучень — часткова сітка. Для решти сполучень
  *   `resolveLook` малює найбільший образ, що вміщується, а вдягнене понад нього позначає `no-variant`.
  * Наступна частина образів = нові файли в assets/variants + рядки тут (нова вісь або нові сполучення).
  */
@@ -37,12 +37,13 @@ const HAS_OPEN: ReadonlySet<string> = new Set([
   'hoodie', 'hoodie-cap', 'hoodie-glasses', 'hoodie-scarf', 'hoodie-pack', 'hoodie-cap-glasses', 'hoodie-glasses-scarf', 'hoodie-cap-glasses-scarf-pack',
 ]);
 
-/** Друга партія: сполучення з куртками, які є в мастерах (docs/design/v18/bobek-part2). Поза лише `wave`. */
+/** Друга й третя партії: сполучення з куртками, які є в мастерах (docs/design/v18/bobek-part2, bobek-part3). Поза лише `wave`. */
 const JACKET_SETS: readonly (readonly string[])[] = [
   ['jacket-denim', 'backpack-travel'],
   ['jacket-denim', 'cap-red', 'glasses-round', 'backpack-travel'],
   ['jacket-rain', 'backpack-travel'],
   ['jacket-rain', 'glasses-round', 'backpack-travel'],
+  ['jacket-rain', 'cap-red', 'glasses-round', 'backpack-travel'],
 ];
 
 const nameOf = (items: readonly string[]) => ['hoodie', ...PRIORITY.filter((id) => items.includes(id)).map((id) => SHORT[id])].join('-');
