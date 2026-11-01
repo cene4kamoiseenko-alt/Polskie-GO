@@ -39,6 +39,32 @@ async function main() {
     const big = p.locator('[data-look-prototype] .beaver-look').first();
     await big.waitFor({ timeout: 20_000 });
     await p.waitForTimeout(800);
+    // Once artwork is visually rejected, do not exercise six broken wardrobe
+    // steps. Verify the safety policy and capture the real coherent fallback.
+    const qaLocked = await p.locator('[data-bobek-preview-toggle]').isDisabled();
+    if (qaLocked) {
+      check(await p.locator('[data-proto-art="v3"]').isDisabled(), 'V3.2 artwork cannot be enabled');
+      check(await p.locator('[data-proto-step="2"]').isDisabled(), 'broken garment selections unavailable');
+      check((await big.getAttribute('data-look-mode')) !== 'layered', 'QA shows original coherent whole-character artwork');
+      check(await p.locator('[data-bobek-coherent-preview] img').count() === 2, 'approved front/wave identity references loaded');
+      await big.screenshot({path:join(OUT,'approved-baseline.png')});
+      await p.evaluate(() => {
+        localStorage.setItem('pg_bobek_layers_preview','1');
+        localStorage.setItem('pg_look_prototype_v1',JSON.stringify({
+          art:'v3',state:'wave',equipment:['hoodie-red','backpack-travel'],
+        }));
+      });
+      await p.reload();
+      check(await p.locator('[data-proto-art="v3"]').isDisabled(), 'persisted V3.2 remains blocked');
+      check(await p.evaluate(() => localStorage.getItem('pg_bobek_layers_preview') === null),
+        'old dangerous QA switch removed on reentry');
+      check((await p.locator('[data-bobek-demo-card] .beaver-look').first().getAttribute('data-look-mode')) !== 'layered',
+        'persisted V3.2 replaced with approved whole-character view');
+      await context.close();
+      if (failures.length) throw Error('Bobek safety QA failed: '+failures.join('; '));
+      console.log('Bobek visual safety checks passed, preview remains disabled until approved art is ready.');
+      return;
+    }
     const items = () => big.getAttribute('data-look-items');
     const shots: Buffer[] = [];
     const shot = async () => shots.push(await big.screenshot());
