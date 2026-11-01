@@ -1,11 +1,11 @@
 /**
- * Bobek V3.1: painted 2.5D cutout QA — front idle + ONE hoodie wave.
- * Denim jacket has no painted raised sleeve yet: it safely stays idle.
+ * Bobek V3.2: painted 2.5D cutout QA — front idle + two provisional garment wave variants.
+ * Denim wave has a provisional recolored sleeve proof-of-fit, NOT approved final art.
  * This does not modify production LOOK_MANIFEST.
  */
 import { LOOK_CANVAS, LOOK_FRONT_ANCHORS, LOOK_MANIFEST, type LookItem, type LookLayer, type LookManifest, type LookPose } from '@polski-go/shared';
 
-const VERSION = 'bobek-v31-2.5d-draft@1';
+const VERSION = 'bobek-v32-2.5d-draft@1';
 const FULL = { x: 0, y: 0, w: 1024, h: 1024 };
 const compat = { baseVersion: VERSION, views: ['front'] as const };
 const layer = (
@@ -34,8 +34,14 @@ const hoodie: LookItem = {
 const jacket: LookItem = {
   id:'jacket-denim',catalogSlot:'JACKET',domain:'beaver',occupies:['top'],rarity:'common',
   status:'ready',fallback:'hide',compatibility:compat,
-  layers:[layer('v31:jacket:idle','torso','top','torso','idle/top-jacket-denim',['front-idle'],{z:8})],
-  note:'Denim wave sleeve is not painted yet: unsupported wave reverts to front-idle.',
+  layers:[
+    layer('v32:jacket:idle','torso','top','torso','idle/top-jacket-denim',['front-idle'],{z:8}),
+    layer('v32:jacket:wave','torso','top','torso','wave/top-jacket-denim',['front-wave'],{z:8}),
+    layer('v32:jacket:wave-arm','sleeve','top','arm-front','wave/arm-jacket-denim',['front-wave'],{
+      motion:'wave',motionOrigin:{x:704,y:537},z:1,
+    }),
+  ],
+  note:'V3.2 QA only: blue sleeve is color-adapted from red wave, not independent painterly art.',
 };
 const accessory = (
   id:'backpack-travel'|'cap-red'|'glasses-round',
@@ -70,13 +76,8 @@ export const LOOK_V3_DRAFT_MANIFEST: LookManifest = {
   signatureDefaults:{top:'hoodie-red',backpack:'backpack-travel'},
 };
 
-// No physically impossible denim wave: choose a static fallback manifest for
-// outfits with denim. The resolver then reports poseFallback=true honestly.
-const DENIM_STATIC_MANIFEST:LookManifest = {
-  ...LOOK_V3_DRAFT_MANIFEST,
-  base:{...LOOK_V3_DRAFT_MANIFEST.base,moods:{happy:'front-idle'}},
-};
-export function v3ManifestForEquipment(equipment:readonly string[]):LookManifest {
-  return equipment.some((id)=>id==='jacket-denim'||id==='i_jacket-denim')
-    ? DENIM_STATIC_MANIFEST : LOOK_V3_DRAFT_MANIFEST;
+// Both jacket variants have their own pose-specific overlays for QA.
+// Still not a final skeletal rig; production remains unchanged.
+export function v3ManifestForEquipment(_equipment:readonly string[]):LookManifest {
+  return LOOK_V3_DRAFT_MANIFEST;
 }
