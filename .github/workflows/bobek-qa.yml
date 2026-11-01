@@ -26,6 +26,8 @@ on:
       - 'scripts/check-bobek-coherent.mjs'
       - 'scripts/generate-bobek-v4-colorway.mjs'
       - 'scripts/check-bobek-v4-colorway.mjs'
+      - 'scripts/generate-bobek-v5.mjs'
+      - 'scripts/check-bobek-v5.mjs'
       - 'apps/web/src/dev/bobekArtGate.ts'
       - 'apps/web/src/dev/coherentAssets.ts'
       - 'docs/design/BOBEK_ART_APPROVAL.json'
@@ -74,6 +76,10 @@ jobs:
         run: npm run bobek:v4:colorway
       - name: Verify canonical Bobek silhouette and identity never move between colorways
         run: npm run bobek:v4:check
+      - name: Generate V5 registered nude body and individually drawn hoodie/denim layers
+        run: npm run bobek:v5:generate
+      - name: Test shared body geometry and art component alignment for two outfits
+        run: npm run bobek:v5:check
       - name: Build real web client (detect Vite bundling errors)
         run: npm run build:web
       - name: Install headless Chromium for actual UI safety check
