@@ -106,10 +106,43 @@ const removeRightArm = async (png, cutoff) => {
   }
   return sharp(rgba,{raw:{width:1024,height:1024,channels:meta.channels}}).png().toBuffer();
 };
+// Denim proof-of-fit: derive a TEMPORARY matching sleeve from the painterly
+// raised-arm source. Blue fabric is repainted via hue/luminance; the warm fur
+// remains untouched. This is not an independently illustrated final denim arm.
+const denimArm = async (png) => {
+  const { data: rgba, info } = await sharp(png).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  for(let i=0;i<rgba.length;i+=info.channels){
+    const r=rgba[i],g=rgba[i+1],b=rgba[i+2],a=rgba[i+3];
+    if(a<6)continue;
+    const min=Math.min(r,g,b);
+    const h=60*(g-b)/Math.max(1,r-min); // red centered on 0°, skin orange ~25°
+    const chroma=(r-min)/Math.max(1,r);
+    if(r>=g&&r>=b&&r>75&&h>-18&&h<14&&chroma>.25){
+      rgba[i]=Math.min(255,Math.round(.19*r+.20*g+5));
+      rgba[i+1]=Math.min(255,Math.round(.39*r+.38*g+8));
+      rgba[i+2]=Math.min(255,Math.round(.64*r+.43*g+11));
+    }
+  }
+  return sharp(rgba,{raw:{width:info.width,height:info.height,channels:info.channels}}).png().toBuffer();
+};
+const denimBase = await removeRightArm(generated['top-jacket-denim'],688);
+// Slightly shaded blue shoulder underlay prevents a gap at the moving sleeve.
+// It stays on the static jacket, so it never separates when the arm rotates.
+const shoulderPatch = Buffer.from(`<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="denim" cx=".55" cy=".5" r=".7">
+  <stop offset="0" stop-color="#4384c2" stop-opacity=".95"/>
+  <stop offset=".7" stop-color="#275c9a" stop-opacity=".92"/>
+  <stop offset="1" stop-color="#214b83" stop-opacity=".5"/></radialGradient></defs>
+  <ellipse cx="695" cy="558" rx="45" ry="40" fill="url(#denim)"/>
+  <path d="M669 533Q688 517 720 536" fill="none" stroke="#90b8dd" stroke-opacity=".35" stroke-width="3"/>
+</svg>`);
+const denimWaveTop = await sharp(denimBase).composite([{input:shoulderPatch}]).png().toBuffer();
 const wave = {
   'torso': await removeRightArm(generated.torso,700),
   'top-hoodie-red': await removeRightArm(generated['top-hoodie-red'],688),
   'arm-hoodie-red':layers['arm-wave'],
+  'top-jacket-denim':denimWaveTop,
+  'arm-jacket-denim':await denimArm(layers['arm-wave']),
 };
 for (const [pose, spriteMap] of [['idle',generated],['wave',wave]]) {
   const target = pose==='idle' ? destination : join(root,'apps/web/src/dev/bobek-v3/wave');
@@ -123,4 +156,4 @@ for (const [pose, spriteMap] of [['idle',generated],['wave',wave]]) {
     }
   }
 }
-console.log('Bobek V3.1: 7 idle / 3 wave sprites, 30 alpha WebP; only red-hoodie wave supported. QA draft.');
+console.log('Bobek V3.2: 7 idle / 5 wave sprites, 36 alpha WebP, red + provisional denim sleeves. QA draft.');
