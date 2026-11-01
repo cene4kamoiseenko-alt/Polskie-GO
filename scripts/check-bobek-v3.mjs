@@ -27,6 +27,29 @@ for(const [pose,names] of Object.entries(spriteSets)) for(const name of names) f
   checked++;
 }
 assert.equal(checked,36);
+// Guard a common recolor failure: jacket fabric must turn blue while the furry
+// raised hand remains exactly the same warm brown as on the red-sleeve source.
+const redRGBA=await sharp(join(folder,'wave/arm-hoodie-red.webp')).ensureAlpha().raw().toBuffer();
+const blueRGBA=await sharp(join(folder,'wave/arm-jacket-denim.webp')).ensureAlpha().raw().toBuffer();
+assert.equal(redRGBA.length,blueRGBA.length);
+const diffRegion=(x0,y0,x1,y1)=>{
+  let eligible=0,changed=0,redSum=0,blueSum=0;
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+    const i=(y*1024+x)*4;
+    if(redRGBA[i+3]<=220||blueRGBA[i+3]<=220)continue;
+    eligible++;
+    const delta=Math.abs(redRGBA[i]-blueRGBA[i])
+       +Math.abs(redRGBA[i+1]-blueRGBA[i+1])
+       +Math.abs(redRGBA[i+2]-blueRGBA[i+2]);
+    if(delta>20)changed++;
+    redSum+=blueRGBA[i];
+    blueSum+=blueRGBA[i+2];
+  }
+  return {eligible,ratio:changed/Math.max(1,eligible),r:redSum/Math.max(1,eligible),b:blueSum/Math.max(1,eligible)};
+};
+const sleeve=diffRegion(680,520,800,605),paw=diffRegion(809,424,870,505);
+assert(sleeve.eligible>1500&&sleeve.ratio>.85&&sleeve.b>sleeve.r,`Denim sleeve must be blue: ${JSON.stringify(sleeve)}`);
+assert(paw.eligible>1000&&paw.ratio<.05,`Brown paw must not be recolored: ${JSON.stringify(paw)}`);
 const alpha=async(pose,name)=>sharp(join(folder,pose,name+'.webp')).extractChannel(3).raw().toBuffer();
 assert.notDeepEqual(await alpha('idle','top-hoodie-red'),await alpha('idle','top-jacket-denim'),'Different tops require independent silhouettes');
 assert.notDeepEqual(await alpha('idle','torso'),await alpha('wave','torso'),'Remove old idle arm in wave');
