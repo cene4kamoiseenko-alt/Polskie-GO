@@ -12,9 +12,12 @@
  * Конвейер перерисовывает три зоны (оригиналы не меняются, всё воспроизводимо):
  *  1. логотип: небо под ним (и вокруг на 14 px) заполняется гладкой интерполяцией по окружению (push-pull);
  *  2. Бобек: вокруг силуэта настоящая сцена берётся из оригинального композита (у «чистого» фона там шов от нейро-заливки), а полоса
- *     «9 px снаружи … 14 px внутрь силуэта» (столько Бобек может сдвинуться при покачивании) заполняется продолжением цветов снаружи внутрь
- *     с тангенциальным сглаживанием — без шва и без бледного ореола, а покачивание не обнажает ни контур, ни лапы;
- *  3. карточка: полоса y 1226…1582 на всю ширину — интерполяция + настоящая брусчатка из чистой нижней полосы кадра, зеркально (чем ближе к
+ *     «2 px снаружи … 10 px внутрь силуэта» (кайма вырезки и то, что открывает покачивание) заполняется продолжением цветов снаружи внутрь
+ *     с тангенциальным сглаживанием — без шва, а покачивание не обнажает ни контур, ни лапы. Снаружи сцену не трогаем: 9 px заливки размазывали
+ *     фонарный столб у тела Бобека в бледную полосу, а у лап и хвоста оставляли мазки;
+ *  3. Бобек (сам слой): по краю лап у вырезки полупрозрачные серые полосы (след мягкой тени, принятый за фон) — через пальцы просвечивает брусчатка.
+ *     Внутри силуэта (замыкание маски на 10 px, без 3 px кромки) слой делается непрозрачным, цвет берётся из оригинального композита, где лапы целые;
+ *  4. карточка: полоса y 1226…1582 на всю ширину — интерполяция + настоящая брусчатка из чистой нижней полосы кадра, зеркально (чем ближе к
  *     низу, тем больше): сверху вплотную к лапам остаются тень и мягкий свет.
  * Результат: bg.webp (941 px, как исходник), bg@640.webp, bobek.webp, logo.webp (RGBA) в apps/web/src/assets/splash/royal/ и
  * apps/web/src/dev/splash-themes/<тема>/; положение слоёв (кадр 941×1672) — в apps/web/src/lib/splashArt.ts.
@@ -39,9 +42,13 @@ const THEMES = {
   royal: { bobek: [168, 640, 528, 560], logo: [133, 151, 696, 179] },
 };
 const R_LOGO = 14;
-/** Запас покачивания Бобека: на столько пикселей он выходит за свой силуэт (CSS: ≤ 8 px вверх + масштаб 1.012). */
-const R_OUT = 9;
-const R_IN = 14;
+/**
+ * Что перерисовывается вокруг силуэта Бобека. Снаружи сцена настоящая (оригинальный композит) — трогаем только кайму вырезки (2 px): первая версия
+ * заливала 9 px снаружи и размазывала всё, что стоит вплотную к Бобеку (фонарный столб превращался в бледную вертикальную полосу вдоль тела, у лап
+ * и хвоста — мазки). Внутрь на 10 px — то, что может открыться при покачивании (CSS: ≤ 5 px вверх, наклон ≤ 0,5°).
+ */
+const R_OUT = 2;
+const R_IN = 10;
 /** Область, где вместо «чистого» фона берётся оригинальный композит (там нет шва от заливки). */
 const R_REAL = 40;
 const CARD = { y0: 1226, y1: 1582 };
@@ -210,6 +217,93 @@ const reflect = (i, period) => {
 
 // ── Сборка темы ─────────────────────────────────────────────────────────────────────────────────────────────────
 
+/** Внутренность силуэта (замыкание маски на 10 px, минус кромка 3 px): здесь слой Бобека должен быть непрозрачным. */
+const R_CLOSE = 10;
+const R_EDGE = 3;
+/**
+ * Вырезка из архива обрезает лапы Бобека волнистой линией (след мягкой тени на земле): нижняя часть пальцев пропала, и под обрезом видна брусчатка.
+ * Слой достраивается вниз на столько пикселей; значение дублируется в apps/web/src/lib/splashArt.ts (SPRITE_PAD_BOTTOM).
+ */
+const PAD_BOTTOM = 46;
+/** Мех — насыщенный оранжевый (S ≈ 0,86), брусчатка и тень — ≤ 0,43 (замер по оригиналу royal); граница мягкая. */
+const FUR_S0 = 0.42, FUR_S1 = 0.62, FUR_BR = 0.62;
+const GROW_REACH = 48;
+
+const furScore = (r, g, b) => {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  if (!mx) return 0;
+  const sat = (mx - mn) / mx;
+  const a = Math.max(0, Math.min(1, (sat - FUR_S0) / (FUR_S1 - FUR_S0)));
+  const blue = Math.max(0, Math.min(1, (FUR_BR - b / Math.max(1, r)) / 0.2));
+  return Math.min(a, blue);
+};
+
+/**
+ * Слой Бобека с починенными лапами. Холст расширяется вниз на PAD_BOTTOM; затем
+ *  1. достраиваются обрезанные части лап: мех по цвету из оригинального композита, связанный с вырезкой и не дальше GROW_REACH px от неё;
+ *  2. внутри силуэта (замыкание маски, минус кромка) слой делается непрозрачным: просвечивающие места берут цвет оригинала.
+ * Возвращает RGBA (ширина × (высота + PAD_BOTTOM)), её рамку в кадре, маску в координатах кадра и счётчики.
+ */
+async function repairBobek(name, box, orig) {
+  const { data: src, info } = await sharp(readFileSync(new URL(`${name}_bobek.webp`, SRC))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const sw = info.width, sh = info.height + PAD_BOTTOM;
+  if (sw !== box[2] || info.height !== box[3]) throw new Error(`${name}: слой ${info.width}×${info.height}, в геометрии ${box[2]}×${box[3]}`);
+  const rgba = new Uint8Array(sw * sh * 4);
+  rgba.set(src, 0);
+  const at = (i, j) => (j * sw + i) * 4;
+  const art = (i, j) => ((box[1] + j) * W + box[0] + i) * 3;
+  const inFrame = (i, j) => i >= 0 && j >= 0 && i < sw && j < sh && box[0] + i < W && box[1] + j < H;
+
+  // 1. Достройка лап: волна от плотных пикселей вырезки по меху в нижней части слоя.
+  const dist = new Int16Array(sw * sh).fill(-1);
+  const q = [];
+  for (let j = sh - 140; j < sh; j++) for (let i = 0; i < sw; i++) if (j >= 0 && rgba[at(i, j) + 3] >= 128) { dist[j * sw + i] = 0; q.push(j * sw + i); }
+  let grown = 0;
+  for (let h = 0; h < q.length; h++) {
+    const k = q[h], i = k % sw, j = (k / sw) | 0, d = dist[k];
+    if (d >= GROW_REACH) continue;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const ni = i + dx, nj = j + dy;
+      if (!inFrame(ni, nj) || dist[nj * sw + ni] !== -1) continue;
+      const o = art(ni, nj);
+      const f = furScore(orig[o], orig[o + 1], orig[o + 2]);
+      if (f <= 0.5) continue;
+      dist[nj * sw + ni] = d + 1;
+      q.push(nj * sw + ni);
+    }
+  }
+  for (const k of q) {
+    const i = k % sw, j = (k / sw) | 0, p = at(i, j), o = art(i, j);
+    const f = furScore(orig[o], orig[o + 1], orig[o + 2]);
+    const a = Math.round(f * 255);
+    if (rgba[p + 3] < a) {
+      if (rgba[p + 3] < 255) grown++;
+      rgba[p] = Math.round(orig[o]); rgba[p + 1] = Math.round(orig[o + 1]); rgba[p + 2] = Math.round(orig[o + 2]); rgba[p + 3] = a;
+    }
+  }
+
+  // 2. Непрозрачность внутри силуэта.
+  const mask = new Uint8Array(W * H);
+  for (let j = 0; j < sh; j++) for (let i = 0; i < sw; i++) if (inFrame(i, j) && rgba[at(i, j) + 3] > 8) mask[(box[1] + j) * W + box[0] + i] = 1;
+  const inner = erode(erode(dilate(mask, R_CLOSE), R_CLOSE), R_EDGE);
+  let fixed = 0;
+  for (let j = 0; j < sh; j++) {
+    for (let i = 0; i < sw; i++) {
+      if (!inFrame(i, j)) continue;
+      const p = at(i, j);
+      if (inner[(box[1] + j) * W + box[0] + i] && rgba[p + 3] < 255) {
+        const o = art(i, j);
+        rgba[p] = Math.round(orig[o]); rgba[p + 1] = Math.round(orig[o + 1]); rgba[p + 2] = Math.round(orig[o + 2]); rgba[p + 3] = 255;
+        fixed++;
+      }
+    }
+  }
+  const outMask = new Uint8Array(W * H);
+  for (let j = 0; j < sh; j++) for (let i = 0; i < sw; i++) if (inFrame(i, j) && rgba[at(i, j) + 3] > 8) outMask[(box[1] + j) * W + box[0] + i] = 1;
+  const buf = await sharp(Buffer.from(rgba), { raw: { width: sw, height: sh, channels: 4 } }).webp({ quality: 92, alphaQuality: 100, effort: 6 }).toBuffer();
+  return { buf, mask: outMask, grown, fixed, box: [box[0], box[1], sw, sh] };
+}
+
 const ORIGINAL = { sunset: '01_sunset_original', adventure: '03_adventure_original', royal: '04_royal_original' };
 
 async function buildTheme(name) {
@@ -217,7 +311,9 @@ async function buildTheme(name) {
   const px = await loadRGB(new URL(`${name}_background_clean.jpg`, SRC));
   const orig = await loadRGB(new URL(`originals/${ORIGINAL[name]}.webp`, SRC));
   const logoMask = await alphaMask(new URL(`${name}_logo.webp`, SRC), g.logo);
-  const bobekMask = await alphaMask(new URL(`${name}_bobek.webp`, SRC), g.bobek);
+  // Слой Бобека: сначала чиним (лапы, непрозрачность), потому что маска для фона берётся из починенного слоя.
+  const repaired = await repairBobek(name, g.bobek, orig);
+  const bobekMask = repaired.mask;
 
   // 2. Бобек: вокруг силуэта настоящая сцена из оригинала; полоса покачивания — продолжением цветов снаружи.
   const real = dilate(bobekMask, R_REAL);
@@ -260,7 +356,7 @@ async function buildTheme(name) {
   const base = sharp(bu8, { raw: { width: W, height: H, channels: 3 } });
   const bg = await base.clone().webp({ quality: 82, effort: 6 }).toBuffer();
   const bg640 = await base.clone().resize(640, Math.round((640 * H) / W), { kernel: 'lanczos3' }).webp({ quality: 80, effort: 6 }).toBuffer();
-  const bobek = await sharp(readFileSync(new URL(`${name}_bobek.webp`, SRC))).webp({ quality: 92, alphaQuality: 100, effort: 6 }).toBuffer();
+  const bobek = repaired.buf;
   const logo = await sharp(readFileSync(new URL(`${name}_logo.webp`, SRC))).webp({ quality: 92, alphaQuality: 100, effort: 6 }).toBuffer();
   const files = { 'bg.webp': bg, 'bg@640.webp': bg640, 'bobek.webp': bobek, 'logo.webp': logo };
   const sizes = [];
@@ -268,7 +364,7 @@ async function buildTheme(name) {
     await sharp(buf).toFile(new URL(file, dir).pathname);
     sizes.push(`${file} ${Math.round(buf.length / 1024)} КБ`);
   }
-  console.log(`${name.padEnd(10)} логотип ${holeA.reduce((n, v) => n + v, 0)} px, полоса Бобека ${zoneB.reduce((n, v) => n + v, 0)} px · ${sizes.join(' · ')}`);
+  console.log(`${name.padEnd(10)} логотип ${holeA.reduce((n, v) => n + v, 0)} px, полоса Бобека ${zoneB.reduce((n, v) => n + v, 0)} px, слой Бобека: достроено ${repaired.grown} px лап, непрозрачными сделано ${repaired.fixed} px · ${sizes.join(' · ')}`);
   return { name, bg, g };
 }
 

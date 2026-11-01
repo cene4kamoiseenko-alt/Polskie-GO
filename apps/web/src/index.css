@@ -572,7 +572,8 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
   top: var(--bob-t);
   width: var(--bob-w);
   height: var(--bob-h);
-  transform-origin: 50% 91%;
+  /* Линия ног: 91 % высоты мастера Бобека = 84 % слоя с достроенными лапами (+46 px вниз). */
+  transform-origin: 50% 84%;
   animation: splash-breathe 3.4s ease-in-out infinite;
   pointer-events: none;
 }
@@ -582,9 +583,10 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
   height: 100%;
   object-fit: contain;
 }
+/* Дыхание: вверх и чуть шире от линии ног, наклон ≤ 0,5°. Больше нельзя: из-под Бобека открывается фон, на который в слоях нет заливки (см. scripts/build-splash-art.mjs). */
 @keyframes splash-breathe {
-  0%, 100% { transform: translateY(0) rotate(-1deg) scale(1); }
-  48% { transform: translateY(-6px) rotate(1.2deg) scale(1.01); }
+  0%, 100% { transform: translateY(0) rotate(-0.5deg) scale(1); }
+  48% { transform: translateY(-5px) rotate(0.5deg) scale(1.008); }
 }
 /* Мягкое затемнение: сверху под статус-бар, снизу под карточку (в приподнятой сцене низ уходит в фон без шва). */
 .splash-shade {

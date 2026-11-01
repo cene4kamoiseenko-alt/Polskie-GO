@@ -29,6 +29,12 @@ export type SplashArt = { theme: SplashTheme; bg: string; bg640: string; bobek: 
 
 export const ROYAL_ART: SplashArt = { theme: 'royal', bg: royalBg, bg640: royalBg640, bobek: royalBobek, logo: royalLogo };
 
+/**
+ * Слой Бобека выше мастера на 46 px вниз: вырезка архива обрезала лапы, и конвейер (scripts/build-splash-art.mjs, PAD_BOTTOM) достраивает их из оригинала.
+ * Верх и бока слоя прежние, поэтому положение остальных слоёв не меняется.
+ */
+const SPRITE_PAD_BOTTOM = 46;
+
 const pct = (v: number, total: number) => `${((v / total) * 100).toFixed(3)}%`;
 
 /** CSS-переменные положения слоёв: проценты кадра (слои лежат в сцене того же размера), нижний край логотипа — в пикселях кадра. */
@@ -42,7 +48,7 @@ export function splashGeometry(theme: SplashTheme): CSSProperties {
     '--bob-l': pct(g.bobek[0], SPLASH_W),
     '--bob-t': pct(g.bobek[1], SPLASH_H),
     '--bob-w': pct(g.bobek[2], SPLASH_W),
-    '--bob-h': pct(g.bobek[3], SPLASH_H),
+    '--bob-h': pct(g.bobek[3] + SPRITE_PAD_BOTTOM, SPLASH_H),
     // Низ логотипа: под ним слоган и шаги знакомства (проценты кадра) и верх логотипа в пикселях кадра (лифт знакомства не должен его обрезать).
     '--logo-b': pct(g.logo[1] + g.logo[3], SPLASH_H),
     '--logo-top-art': g.logo[1],

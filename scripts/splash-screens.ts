@@ -10,6 +10,8 @@
  * 4. Мгновенная заставка index.html (без JS) и заставка React: логотип на одном и том же месте с точностью до пикселя — без прыжка.
  * 5. Знакомство: сцена приподнята, логотип цел, слоган и шаги под ним, реплика и кнопки в кадре.
  * 6. Dev-темы ?splash=sunset | adventure (в сборку не попадают); тема soft не берётся.
+ * 0. Слой Бобека (файл): вырезка архива обрезала лапы и оставляла по их краю просвечивающие серые полосы (владелец увидел на телефоне 2026-11-01) —
+ *    внутри силуэта нет полупрозрачных пикселей, лапы достроены ниже обреза мастера.
  */
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -31,8 +33,38 @@ const check = (ok: unknown, what: string) => {
 };
 
 type Box = { x: number; y: number; w: number; h: number; r: number; b: number };
+/** Слой Бобека выше мастера на 46 px прозрачного запаса вниз (достроенные лапы): видимая часть — до 575 из 606 px слоя (низ лап ≈ 1215 из кадра 1672). */
+const VISIBLE = 575 / 606;
+
+/** Слой Бобека как файл: нет просвечивающих мест внутри силуэта, лапы достроены (см. scripts/build-splash-art.mjs, repairBobek). */
+async function checkBobekLayer(theme: string, expected: { w: number; h: number }, pawsRebuilt = true) {
+  const sharp = require('sharp');
+  const { data, info } = await sharp(resolve(root, `apps/web/src/${theme === 'royal' ? 'assets/splash' : 'dev/splash-themes'}/${theme}/bobek.webp`)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  check(w === expected.w && h === expected.h, `слой Бобека ${theme}: ${w}×${h} (мастер + 46 px запаса вниз = ${expected.w}×${expected.h})`);
+  const a = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : data[(y * w + x) * 4 + 3]);
+  let interior = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const v = a(x, y);
+      if (v <= 8 || v === 255) continue;
+      let edge = false;
+      for (let dy = -4; dy <= 4 && !edge; dy++) for (let dx = -4; dx <= 4; dx++) if (a(x + dx, y + dy) <= 8) { edge = true; break; }
+      if (!edge) interior++;
+    }
+  }
+  check(interior === 0, `слой Бобека ${theme}: внутри силуэта нет просвечивающих пикселей (${interior})`);
+  // У adventure вырезка лап не обрезала (они целиком в мастере): достраивать нечего, запас вниз пустой.
+  if (!pawsRebuilt) return;
+  let low = 0;
+  for (let y = h - 36; y < h; y++) for (let x = 0; x < w; x++) if (a(x, y) >= 200) low++;
+  check(low >= 300, `слой Бобека ${theme}: лапы достроены ниже обреза мастера (${low} плотных пикселей в нижних 36 строках)`);
+}
 
 async function main() {
+  await checkBobekLayer('royal', { w: 528, h: 606 });
+  await checkBobekLayer('sunset', { w: 509, h: 613 });
+  await checkBobekLayer('adventure', { w: 552, h: 649 }, false);
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
   const { base, login } = stand;
@@ -82,8 +114,9 @@ async function main() {
       check(beaver.x >= 0 && beaver.r <= w && beaver.b <= h, `${tag}: Бобек целиком в кадре`);
       const card = await box(u.page, '.splash-card');
       check(card.x >= 0 && card.r <= w && card.b <= h, `${tag}: карточка в кадре (${Math.round(card.x)}…${Math.round(card.r)} из ${w}, низ ${Math.round(card.b)} из ${h})`);
-      const overlap = beaver.b - card.y;
-      check(overlap <= beaver.h * 0.06, `${tag}: карточка почти не заходит на Бобека (перекрытие ${Math.round(overlap)} px из ${Math.round(beaver.h)})`);
+      const feet = beaver.y + beaver.h * VISIBLE;
+      const overlap = feet - card.y;
+      check(overlap <= beaver.h * VISIBLE * 0.06, `${tag}: карточка почти не заходит на Бобека (перекрытие ${Math.round(overlap)} px из ${Math.round(beaver.h * VISIBLE)})`);
       check(card.y >= logo.b, `${tag}: карточка ниже логотипа`);
       check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
       const imgs = await u.page.locator('.splash img.splash-bg, .splash img.splash-logo, .splash img.splash-beaver').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0));
@@ -247,9 +280,9 @@ async function main() {
       const buttons = u.page.locator('button.btn-red, button.btn-ghost');
       const lastBtn = await buttons.last().evaluate((el) => el.getBoundingClientRect().bottom);
       check(lastBtn <= h && bubble.x >= 0 && bubble.r <= w, `${w}px знакомство: реплика и кнопки в кадре`);
-      const cover = beaver.b - bubble.y;
+      const cover = beaver.y + beaver.h * VISIBLE - bubble.y;
       const limit = h >= 700 ? 0.4 : 0.55;
-      check(cover <= beaver.h * limit, `${w}px знакомство: реплика закрывает не больше ${limit * 100} % Бобека снизу — лицо и грудь видны (${Math.round(cover)} из ${Math.round(beaver.h)} px)`);
+      check(cover <= beaver.h * VISIBLE * limit, `${w}px знакомство: реплика закрывает не больше ${limit * 100} % Бобека снизу — лицо и грудь видны (${Math.round(cover)} из ${Math.round(beaver.h * VISIBLE)} px)`);
       await u.page.screenshot({ path: `${OUT}/hello-${w}.png` });
       await u.context.close();
     }
