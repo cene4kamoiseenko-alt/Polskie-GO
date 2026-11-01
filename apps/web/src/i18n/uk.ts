@@ -887,6 +887,7 @@ export const uk = {
   pass_tomorrow: 'завтра',
   pass_dates: '{from} — {to}',
   pass_free: 'Безкоштовно',
+  pass_locked_state: 'потрібен Premium',
   pass_progress: 'Пройдено {n} з {total}',
   pass_reward: 'Нагорода сезону: +{n} Złotki і значок',
   pass_reward_done: 'Нагороду сезону отримано!',

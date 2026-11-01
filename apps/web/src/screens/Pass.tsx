@@ -13,7 +13,8 @@ import { ErrorState, Progress, ScreenHeader, ScreenSkeleton, cx } from '../compo
 import { Icon } from '../components/Icon';
 import { Art } from '../components/GameArt';
 import { Badge } from '../components/Illustrations';
-import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
+import { missionHref, missionsQuery } from '../components/MissionCard';
+import { PassFeatured, PassMissionCard } from '../components/PassCards';
 import { SeasonCover } from '../components/MissionScene';
 
 const BADGE_FOR: Record<string, string> = { 'listopad-poznan': 'season-rogal', swieta: 'season-gift', energylandia: 'season-ticket' };
@@ -32,7 +33,7 @@ export default function PassScreen() {
   const premium = pass.premium || me.premium.active;
   const next = pass.upcoming[0];
   return (
-    <div className="space-y-5 pb-8">
+    <div className="pg-pass space-y-5 pb-8">
       <ScreenHeader title={t('pass_title')} subtitle={t('pass_subtitle')} />
 
       {pass.current ? (
@@ -46,21 +47,21 @@ export default function PassScreen() {
       )}
 
       {/* Как получить пропуск: правила доступа (их проверяет сервер) и переход в Premium — в обоих состояниях. */}
-      <section className="card mx-4 space-y-3 p-4" data-pass-how>
-        <h2 className="flex items-center gap-2 text-lg font-black"><Art name="crown" size={24} /> {t('pass_how_title')}</h2>
+      <section className="pg-panel pg-info mx-4 space-y-3" data-pass-how>
+        <h2 className="flex items-center gap-2 text-[17px] font-black"><Art name="crown" size={25} /> {t('pass_how_title')}</h2>
         <ol className="space-y-2">
           {(['pass_how_1', 'pass_how_2', 'pass_how_3'] as const).map((k, i) => (
-            <li key={k} className="flex items-start gap-2.5 text-sm font-semibold leading-snug">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-xp/25 text-xs font-black text-xp-dark">{i + 1}</span>
+            <li key={k} className="pg-info-item">
+              <span className="pg-num">{i + 1}</span>
               <span>{t(k)}</span>
             </li>
           ))}
         </ol>
         {premium ? (
-          <button onClick={() => { haptic.tap(); nav('/premium'); }} className="flex w-full items-center gap-2 rounded-2xl bg-brand/15 px-3 py-2.5 text-left text-sm font-black" data-pass-premium="active">
-            <Icon name="check" size={18} strokeWidth={3} className="shrink-0 text-brand" />
+          <button onClick={() => { haptic.tap(); nav('/premium'); }} className="pg-have" data-pass-premium="active">
+            <Icon name="check" size={18} strokeWidth={3} className="shrink-0 text-[#4be0a6]" />
             <span className="min-w-0 flex-1">{t('pass_have')}</span>
-            <span className="muted shrink-0 text-xs">{t('pass_my_premium')}</span>
+            <span className="shrink-0 text-xs opacity-80">{t('pass_my_premium')}</span>
             <Icon name="chevron-right" size={18} className="shrink-0 opacity-60" />
           </button>
         ) : (
@@ -96,6 +97,8 @@ export default function PassScreen() {
 function SeasonBlock({ season, premium, compact }: { season: PassSeason; premium: boolean; compact?: boolean }) {
   const { t, tr, lang } = useT();
   const nav = useNavigate();
+  const featured = !compact && season.state === 'active' ? season.missions.find((m) => m.open && m.inProgress !== null) : undefined;
+  const listed = featured ? season.missions.filter((m) => m !== featured) : season.missions;
   return (
     <div className="space-y-3 px-4" data-season={season.slug} data-season-state={season.state}>
       <div className="pass-card premium-season-banner relative overflow-hidden" style={{ ['--pass' as string]: season.color }}>
@@ -111,24 +114,24 @@ function SeasonBlock({ season, premium, compact }: { season: PassSeason; premium
         </div>
       </div>
 
-      <div className="card flex items-center gap-3 p-3">
+      <div className="pg-panel flex items-center gap-3 !p-3">
         <Badge icon={BADGE_FOR[season.slug] ?? 'paws'} unlocked={season.reward.done} size={52} tier="legendary" />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-black">{season.reward.done ? t('pass_reward_done') : t('pass_reward', { n: season.reward.zlotki })}</div>
           <div className="mt-1 flex items-center gap-2">
             <Progress value={season.done} max={season.total} height={8} color="linear-gradient(90deg,#FFC857,#FFE08A)" />
-            <span className="muted shrink-0 text-xs font-black">{t('pass_progress', { n: season.done, total: season.total })}</span>
+            <span className="shrink-0 text-xs font-black opacity-80">{t('pass_progress', { n: season.done, total: season.total })}</span>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-3">
-        {season.missions.map((m) => (
+      {/* «Продолжить» — только для настоящего незавершённого прохождения открытой миссии активного сезона; в списке ниже она не дублируется. */}
+      {featured && <PassFeatured m={featured} onOpen={() => nav(missionHref(featured))} />}
+
+      <div className="grid gap-3.5">
+        {listed.map((m, i) => (
           <div key={m.slug} className="relative" data-pass-mission={m.slug} data-open={m.open ? '1' : '0'}>
-            <MissionCard m={m} compact={compact} onOpen={() => nav(m.open ? missionHref(m) : '/premium')} />
-            {m.free && season.state === 'active' && !premium && (
-              <span className="absolute left-3 top-3 rounded-full bg-brand px-2.5 py-0.5 text-xs font-black text-night">{t('pass_free')}</span>
-            )}
+            <PassMissionCard m={m} compact={compact} lazy={!!compact || i > 0 || !!featured} free={m.free && season.state === 'active' && !premium} onOpen={() => nav(m.open ? missionHref(m) : '/premium')} />
           </div>
         ))}
       </div>
@@ -140,12 +143,12 @@ function SeasonBlock({ season, premium, compact }: { season: PassSeason; premium
 function UpcomingRow({ season }: { season: PassSeason }) {
   const { t, tr, date } = useT();
   return (
-    <div className="card flex items-center gap-3 overflow-hidden p-0" data-season={season.slug} data-season-state="upcoming">
+    <div className="pg-panel flex items-center gap-3 overflow-hidden !p-0" data-season={season.slug} data-season-state="upcoming">
       <SeasonCover season={season} className="h-[76px] w-[96px] shrink-0" dim />
       <div className="min-w-0 flex-1 py-2 pr-3">
         <div className="text-[15px] font-black leading-tight">{tr(season.title)}</div>
-        <div className="muted text-[12px] font-bold leading-snug">{tr(season.tagline)}</div>
-        <div className="mt-0.5 text-[12px] font-black text-sky">
+        <div className="text-[12px] font-bold leading-snug opacity-75">{tr(season.tagline)}</div>
+        <div className="mt-0.5 text-[12px] font-black text-[#45caff]">
           {t('pass_starts', { date: date(`${season.start}T12:00:00`) })}
           {season.startsIn !== null && season.startsIn <= 60 && ` · ${season.startsIn === 1 ? t('pass_tomorrow') : t('pass_in_days', { n: season.startsIn })}`}
         </div>

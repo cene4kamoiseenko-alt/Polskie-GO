@@ -40,7 +40,9 @@ const FRAMES = `(ms) => new Promise((res) => { const ts = []; const t0 = perform
  * Шум одного прогону headless Chromium на сервері — ±250 мс (замір 2026-10-31: та сама збірка 2429–2909 мс),
  * тому межі часу — над найгіршим із 7 прогонів; обсяги (JS, картинки) стабільні й ловлять справжнє зростання.
  */
-const BUDGET = { coldReadyMs: 3000, coldLcpMs: 2500, coldJsKb: 760, coldImagesKb: 800, warmReadyMs: 1500 };
+// warmReadyMs 1500 → 2200: заставка держится не меньше SPLASH_MIN_MS = 1700 мс от начала загрузки (решение владельца 2026-11-01: её не успевали увидеть),
+// поэтому повторное открытие не бывает быстрее ≈ 1,8 с. Холодный старт всё равно дольше минимума и не меняется.
+const BUDGET = { coldReadyMs: 3000, coldLcpMs: 2500, coldJsKb: 760, coldImagesKb: 800, warmReadyMs: 2200 };
 
 async function main() {
   if (!process.argv.includes('--no-build') && !process.env.PERF_DIST) {

@@ -62,6 +62,26 @@ export const itemIcon = (key: string) => pick('items', key);
 /** Образ «Мандрівник» — стартовий одяг; для нього є лише сцена картки. */
 export const travellerScene = () => pick('costumes', 'traveller-scene');
 
+/**
+ * Арты карточек пропуска месяца (src/assets/pass, пакет владельца 2026-11-01, docs/design/v19/pass): широкие кадры 3,7:1 / 4,4:1 для «11 ноября» и «Анджейки»
+ * (<файл>.webp 866 px и <файл>@640.webp) и вырезка рогаликов для карточки «Продолжить». Ключ — slug миссии; нет записи — карточка берёт сцену миссии.
+ * Арты ТОЛЬКО для карточек пропуска: фон самой миссии — из реестра сцен (SCENE_ART, кадры 2:1 без пустых полей).
+ */
+const PASS_ART: Record<string, string> = { 'listopad-swieto': 'stary-rynek', 'andrzejki-wosk': 'andrzejki' };
+const PASS_CUTOUT: Record<string, string> = { 'marcin-rogal': 'rogaliki' };
+
+/** Картинка карточки миссии в пропуске (src + srcset) или null. */
+export function passArt(slug: string): { src: string; srcSet: string | undefined } | null {
+  const name = PASS_ART[slug];
+  const src = name ? pick('pass', name) : null;
+  if (!name || !src) return null;
+  const small = pick('pass', `${name}@640`);
+  return { src, srcSet: small ? `${small} 640w, ${src} 866w` : undefined };
+}
+
+/** Вырезка героя карточки «Продолжить» (прозрачный PNG-подобный WebP) или null. */
+export const passCutout = (slug: string): string | null => (PASS_CUTOUT[slug] ? pick('pass', PASS_CUTOUT[slug]) : null);
+
 export const cityAsset = (slug: string) => pick('cities', slug);
 
 /**

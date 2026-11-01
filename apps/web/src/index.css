@@ -1815,3 +1815,289 @@ html.reduced-motion .map-here-ring { animation: none; }
   box-shadow: 0 5px 0 rgb(150 105 45 / 0.35), 0 10px 18px rgb(0 0 0 / 0.3);
   pointer-events: none;
 }
+
+/* ───────── Пропуск месяца: карточки по референсу владельца (docs/design/v19/pass) ─────────
+   Панели — тёмно-синие в обеих темах (как .on-dark: фото, стеклянные карточки), цвета заданы здесь, а не токенами темы.
+   Движение: только лёгкое нажатие кнопки; никаких бесконечных анимаций. */
+.pg-pass {
+  --pg-navy: #07192c;
+  --pg-panel: #142d4d;
+  --pg-line: #32628d;
+  --pg-text: #f6f9ff;
+  --pg-muted: #b8cce2;
+  --pg-cyan: #45caff;
+  --pg-red: #ed334c;
+  --pg-gold: #ffca66;
+}
+.pg-panel {
+  padding: 16px 16px 14px;
+  border: 1.5px solid #315c84;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #204365, #102641);
+  color: var(--pg-text);
+  box-shadow: 0 12px 21px rgb(0 0 0 / 0.2);
+}
+.pg-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #e4eefa;
+}
+.pg-num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #786b44;
+  color: #ffe0a4;
+  font-size: 13px;
+  font-weight: 800;
+}
+.pg-have {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgb(75 224 166 / 0.14);
+  color: var(--pg-text);
+  text-align: left;
+  font-size: 14px;
+  font-weight: 800;
+}
+/* «Продолжить»: незавершённая миссия, сверху. */
+.pg-feature {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 132px;
+  overflow: hidden;
+  padding: 17px 13px 16px 18px;
+  border: 1.5px solid #3b6e9b;
+  border-radius: 22px;
+  background: radial-gradient(circle at 80% 28%, #25567d 0, #152d4b 38%, #142b46 80%);
+  box-shadow: inset 0 1px 6px rgb(255 255 255 / 0.07), 0 12px 20px rgb(0 0 0 / 0.2);
+  color: var(--pg-text);
+  text-align: left;
+}
+.pg-feature-body {
+  position: relative;
+  z-index: 2;
+  display: block;
+  max-width: 70%;
+}
+.pg-feature-title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.16;
+}
+.pg-feature-goal {
+  display: block;
+  margin-bottom: 8px;
+  color: #cee0f0;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.pg-resume {
+  display: block;
+  color: #41cafa;
+  font-size: 13px;
+  font-weight: 750;
+}
+.pg-resume--inline {
+  margin-top: 4px;
+}
+.pg-feature-art {
+  position: absolute;
+  right: 30px;
+  bottom: 2px;
+  width: 40%;
+  max-height: 108px;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 8px rgb(0 0 0 / 0.33));
+  pointer-events: none;
+}
+.pg-feature-thumb {
+  position: absolute;
+  inset: 0 0 0 52%;
+  opacity: 0.8;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%);
+  mask-image: linear-gradient(90deg, transparent, #000 45%);
+  pointer-events: none;
+}
+.pg-feature .pg-play {
+  position: absolute;
+  right: 12px;
+  top: calc(50% - 23px);
+  z-index: 3;
+}
+.pg-play {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 47px;
+  height: 47px;
+  border: 1px solid rgb(255 255 255 / 0.19);
+  border-radius: 50%;
+  background: linear-gradient(150deg, #f44d63, #d51e37);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.27);
+  color: #fff;
+}
+.pg-play--blue {
+  background: linear-gradient(150deg, #36b7ff, #078cdb);
+}
+.pg-play--done {
+  background: linear-gradient(150deg, #34c98b, #159a63);
+}
+.pg-play--locked {
+  background: linear-gradient(150deg, #5d6f88, #3f4f67);
+  color: #ffe0a4;
+}
+/* Карточка миссии: арт со значками, ниже название и кнопка. */
+.pg-mission {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 1.5px solid #32628d;
+  border-radius: 22px;
+  background: linear-gradient(140deg, #183758, #132b48);
+  box-shadow: 0 12px 21px rgb(0 0 0 / 0.2);
+  color: var(--pg-text);
+  text-align: left;
+}
+.pg-art {
+  position: relative;
+  display: block;
+  height: 152px;
+  overflow: hidden;
+  background: #2b4c68;
+}
+.pg-mission--compact .pg-art {
+  height: 112px;
+}
+.pg-art-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+.pg-art-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 36%;
+  background: linear-gradient(0deg, rgb(5 24 44 / 0.5), transparent);
+  pointer-events: none;
+}
+.pg-mission--locked .pg-art-img {
+  filter: saturate(0.7) brightness(0.8);
+}
+.pg-badges {
+  position: absolute;
+  left: 13px;
+  bottom: 11px;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+}
+.pg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid rgb(120 188 224 / 0.33);
+  border-radius: 999px;
+  background: rgb(10 35 65 / 0.93);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.33);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.pg-badge--xp {
+  color: var(--pg-gold);
+}
+.pg-tag {
+  position: absolute;
+  top: 11px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.pg-tag--free {
+  left: 12px;
+  background: #2fcf91;
+  color: #06241a;
+}
+.pg-tag--resume {
+  right: 12px;
+  background: #0a7fc4;
+}
+.pg-tag--done {
+  right: 12px;
+  background: #159a63;
+}
+.pg-tag--gold {
+  right: 12px;
+  background: var(--pg-gold);
+  color: #3b2a05;
+}
+.pg-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 89px;
+  padding: 14px 12px 16px 17px;
+}
+.pg-details-text {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+.pg-title {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.pg-goal {
+  display: block;
+  max-width: 36ch;
+  color: var(--pg-muted);
+  font-size: 13.5px;
+  line-height: 1.36;
+}
+@media (max-width: 380px) {
+  .pg-feature-body { max-width: 64%; }
+  .pg-feature-art { right: 22px; width: 36%; }
+  .pg-resume { font-size: 12.5px; }
+}
+@media (max-width: 355px) {
+  .pg-feature { padding: 13px 10px 13px 14px; }
+  /* Узкий экран: текст уже, вырезка меньше и правее — подпись «шаг N из M» не заходит на рогалики. */
+  .pg-feature-body { max-width: 58%; }
+  .pg-feature-art { right: 14px; width: 34%; max-height: 76px; }
+  .pg-feature-goal { font-size: 13px; }
+  .pg-resume { font-size: 12px; }
+  .pg-feature-title { font-size: 16px; }
+  .pg-art { height: 132px; }
+  .pg-title { font-size: 16px; }
+  .pg-goal { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-pass * { transition: none !important; animation: none !important; }
+}

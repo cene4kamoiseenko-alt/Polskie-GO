@@ -853,6 +853,7 @@ export const en: Dict = {
   pass_tomorrow: 'tomorrow',
   pass_dates: '{from} – {to}',
   pass_free: 'Free',
+  pass_locked_state: 'Premium required',
   pass_progress: '{n} of {total} done',
   pass_reward: 'Season reward: +{n} Złotki and a badge',
   pass_reward_done: 'Season reward earned!',

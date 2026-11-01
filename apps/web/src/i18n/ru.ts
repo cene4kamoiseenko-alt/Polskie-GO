@@ -853,6 +853,7 @@ export const ru: Dict = {
   pass_tomorrow: 'завтра',
   pass_dates: '{from} — {to}',
   pass_free: 'Бесплатно',
+  pass_locked_state: 'нужен Premium',
   pass_progress: 'Пройдено {n} из {total}',
   pass_reward: 'Награда сезона: +{n} Złotki и значок',
   pass_reward_done: 'Награда сезона получена!',
