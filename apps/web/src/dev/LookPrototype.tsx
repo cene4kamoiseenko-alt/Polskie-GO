@@ -150,6 +150,7 @@ export default function LookPrototype() {
             </div>
           </div>
 
+          {LAYERED_APP_PREVIEW_APPROVED && (<>
           <h2 className="mt-4 text-sm font-black uppercase tracking-wide">Шаги</h2>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {STEPS.map((s) => (
@@ -204,6 +205,7 @@ export default function LookPrototype() {
           <button className="btn btn-ghost mt-4 min-h-11 w-full text-sm" onClick={() => setSaved(DEFAULT)}>
             Сбросить к стандартному худи
           </button>
+          </>)}
         </main>
       </MotionConfig>
     </LazyMotion>
