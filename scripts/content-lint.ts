@@ -158,6 +158,9 @@ const PLAIN_OK: Record<string, string[]> = {
   'Називний відмінок галузі чи години (пара, «jest dwunasta») і навмисний дистрактор «Zajmuję się logistyka»; орудний logistyką / dwunastą тут не потрібен': [
     'pzn-5-zajmuje-sie#0 logistyka', 'pzn-5-zajmuje-sie#4 logistyka', 'pzn-2-koziolki#6 dwunasta', 'pzn-boss#0 dwunasta',
   ],
+  'Ольштин: «poczta» — частина адреси e-mail у називному («ania małpa poczta kropka pl»), орудний pocztą тут не потрібен; «chce» — 3-тя особа («Ania chce jechać nad jezioro»)': [
+    'ols-3-telefon#0 poczta', 'ols-3-telefon#11 poczta', 'ols-8-streszczenie#6 chce',
+  ],
   'Вправа на розрізнення літер: варіант без діакритики — навмисний дистрактор (ż / z, rz / r)': [
     'lodz-1-alfabet#6 zaba', 'lodz-2-dwuznaki#2 reka', 'lodz-boss#1 reka',
   ],

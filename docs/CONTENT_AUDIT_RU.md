@@ -494,3 +494,17 @@ pełny etat, nadgodziny, doświadczenie, zamienić się, apteczka (A2 или B1)
 - Контент-линт: по Торуню замечаний нет.
 - Нужна проверка носителем.
 
+## Olsztyn — «Понимание речи», B1 (2026-11-01)
+- Файлы: `olsztyn.ts` (4 темы: 8 уроков и экзамен, по 12 заданий), `vocab-olsztyn.ts` (48 слов; powtórzyć, wolniej, peron, tor, opóźniony, uwaga, oddzwonić, jezioro, żaglówka, ratownik, zamek, wieża, przewodnik, ponieważ и др. уже были в словаре).
+  - L1 `ols-1-powtorz`: переспросить — **nie dosłyszałem / dosłyszałam**, **czy może pan powtórzyć?** (после **może** инфинитив), **proszę mówić wolniej / głośniej / wyraźniej** (**proszę** + инфинитив), **czy dobrze rozumiem, że…?**, **co to znaczy?**.
+  - L2 `ols-2-komunikat`: объявления — **opóźniony o** + винительный, **odjedzie z peronu** + родительный, **prosimy o** + винительный / **prosimy** + инфинитив, **kasa nieczynna**.
+  - L3 `ols-3-telefon`: инфолиния и адрес — **naciśnij**, **czekać na połączenie**, **proszę się nie rozłączać**, **oddzwonię do pana**, **małpa** (@) и **kropka**, **przeliterować** (K jak Karol…), **w sprawie** + родительный.
+  - L4 `ols-4-okolo`: приблизительные числа — **około** + родительный, **prawie**, **ponad**, **najwyżej** / **co najmniej**, **dwa procenty ↔ pięć procent**, **połowa**; слух: trzynaście ≠ trzydzieści, dwanaście ≠ dwadzieścia.
+  - L5 `ols-5-jezioro`: озеро — **nad jeziorem** (творительный) ≠ **na jeziorze**, **przy pomoście**, **wypożyczyć kajak na dwie godziny** (**na** + винительный), **popłynąć na drugi brzeg**, **zakaz kąpieli**.
+  - L6 `ols-6-ktory`: **który / która / które / którzy** (согласуется с существительным), **w którym**, **to, co…** и **tam, gdzie…**.
+  - L7 `ols-7-audioprzewodnik`: аудиогид — безличные формы на **-no** (**zbudowano**, **założono**), **w czternastym wieku**, **w 1353 roku**, **po prawej stronie widać…**, **słychać**, **bilety ulgowe**, **po polsku**.
+  - L8 `ols-8-streszczenie`: пересказ — **według** + родительный, **z rozmowy wynika, że…**, **dlatego** (следствие) ≠ **natomiast** (противопоставление), **jednak**, **poza tym**, **podsumuję**.
+  - Экзамен `ols-boss`: 12 заданий, ситуация — Рынок Старого города.
+- Факты проверить носителем и по городским источникам: замок построен в XIV веке для вармийской капитулы, Коперник жил в нём в начале XVI века, город основан в 1353 году, астрономическая таблица в замке. Объявления, регламент пляжа и разговор с инфолинией — учебные.
+- Контент-линт: четыре ложных срабатывания диакритики разобраны вручную и внесены в `PLAIN_OK` (**poczta** в адресе — именительный, **chce** — 3-е лицо).
+- Нужна проверка носителем.

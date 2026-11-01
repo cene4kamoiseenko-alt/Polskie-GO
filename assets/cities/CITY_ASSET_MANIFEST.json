@@ -374,10 +374,10 @@
       "name_pl": "Olsztyn",
       "name_ru": "Ольштын",
       "cefr": "B1",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/olsztyn.webp",
         "status": "final",
@@ -392,7 +392,7 @@
         "integrated": "2026-10-28"
       },
       "landmarks": "замок капитулы с одной квадратной башней над Лыной и Высокая брама — совпадают; прежний кадр с двумя башнями заменён (проверено 2026-10-28)",
-      "missing_content": "уроков 0; тема «Розуміння мовлення»",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-11-01, тема «Розуміння мовлення», B1)",
       "progress": "не проверено"
     },
     {
@@ -550,9 +550,10 @@
       "gdansk 8",
       "gdynia 8",
       "bydgoszcz 8",
-      "torun 8"
+      "torun 8",
+      "olsztyn 8"
     ],
-    "cities_without_lessons": 6,
+    "cities_without_lessons": 5,
     "exam_cities": [
       "warszawa",
       "lodz",
@@ -567,7 +568,8 @@
       "gdansk",
       "gdynia",
       "bydgoszcz",
-      "torun"
+      "torun",
+      "olsztyn"
     ],
     "final_cities": [
       "warszawa",

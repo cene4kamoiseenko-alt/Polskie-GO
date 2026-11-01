@@ -23,6 +23,8 @@ import { BYDGOSZCZ } from '../src/content/bydgoszcz';
 import { BYDGOSZCZ_VOCAB } from '../src/content/vocab-bydgoszcz';
 import { TORUN } from '../src/content/torun';
 import { TORUN_VOCAB } from '../src/content/vocab-torun';
+import { OLSZTYN } from '../src/content/olsztyn';
+import { OLSZTYN_VOCAB } from '../src/content/vocab-olsztyn';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -142,5 +144,15 @@ citySuite({
   routes: ['tor-plany', 'tor-marzenia', 'tor-warunki', 'tor-miasto', 'tor-egzamin'],
   lessons: ['tor-1-bede', 'tor-2-zrobie', 'tor-3-zamiary', 'tor-4-kariera', 'tor-5-wakacje', 'tor-6-jezeli', 'tor-7-obietnice', 'tor-8-kopernik'],
   boss: 'tor-boss',
+  levels: ['B1'],
+});
+
+citySuite({
+  label: 'Olsztyn',
+  content: OLSZTYN,
+  vocab: OLSZTYN_VOCAB,
+  routes: ['ols-slucham', 'ols-liczby', 'ols-jeziora', 'ols-zamek', 'ols-egzamin'],
+  lessons: ['ols-1-powtorz', 'ols-2-komunikat', 'ols-3-telefon', 'ols-4-okolo', 'ols-5-jezioro', 'ols-6-ktory', 'ols-7-audioprzewodnik', 'ols-8-streszczenie'],
+  boss: 'ols-boss',
   levels: ['B1'],
 });

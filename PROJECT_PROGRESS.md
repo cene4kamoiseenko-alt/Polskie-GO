@@ -834,6 +834,8 @@ Workers Builds не виден через доступные инструмен�
 
 Открыто: чистый фон карты без табличек и Бобека (промпт — `docs/MAP_V17.md`), тогда — настоящие таблички со статусом и Бобек в образе; озвучка новых реплик (каталог обновлён, генерирует владелец в админке); награда за 15-минутные миссии — решение владельца.
 
+- **Olsztyn (B1, «Понимание речи») — уроки (2026-11-01):** 4 темы, 8 уроков и экзамен `ols-boss` по 12 заданий, словарь 48 слов (`olsztyn.ts`, `vocab-olsztyn.ts`). Переспросить и попросить медленнее (nie dosłyszałem, czy może pan powtórzyć?), оголошення на вокзале и в магазине (opóźniony o…, odjedzie z peronu…, prosimy o…), инфолиния и адрес e-mail на слух (naciśnij, małpa, kropka, przeliterować), приблизительные числа и проценты (około, ponad, najwyżej, dwa procenty ↔ pięć procent), озёра Вармии (nad jeziorem, wypożyczyć kajak na godzinę, zakaz kąpieli), длинные описания с który / która / które и tam, gdzie, замок и аудиогид (безличные zbudowano / założono, w czternastym wieku), пересказ услышанного (według…, z rozmowy wynika, że…, dlatego ≠ natomiast). Подключено к seed, словарю, `city-standard.test.ts` и `new-cities.test.ts` (7 тестов: содержание и прохождение через API до экзамена). Каталог озвучки обновлён (`AUDIO_MANIFEST.json`): новые фразы озвучивает владелец в админке. Городов без уроков осталось 5: Białystok, Lublin, Rzeszów, Kielce, Zakopane. Тексты нужно проверить носителем (`docs/CONTENT_AUDIT_RU.md`, раздел Olsztyn).
+
 ## V16: ЕДИНЫЙ СТИЛЬ, PREMIUM-ПАТЧ, МАСТЕРА БОБЕКА (2026-10-31)
 
 Задание владельца — «завершить POLSKI GO v16» (пакет: визуальный пакет 16, патч Premium, HQ Бобек). Итог этой части:
