@@ -1,14 +1,14 @@
-/** Generate seven aligned 2.5D front-idle cutout layers from source-controlled art. QA only. */
+/** Generate seven aligned 2.5D front-idle and red-hoodie wave cutout layers from source-controlled art. QA only. */
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import sharp from 'sharp';
 
 const root = process.cwd();
-const inputFile = join(root, 'assets/bobek-v3-sources.json.gz.b64');
+const inputFile = join(root, 'assets/bobek-v31-sources.json.gz.b64');
 const destination = join(root, 'apps/web/src/dev/bobek-v3/idle');
 const raw = JSON.parse(gunzipSync(Buffer.from(readFileSync(inputFile, 'utf8').trim(), 'base64')).toString('utf8'));
-const parts = ['body', 'hoodie', 'jacket', 'pack', 'cap', 'glasses'];
+const parts = ['body', 'hoodie', 'jacket', 'pack', 'cap', 'glasses', 'arm-wave'];
 if (Object.keys(raw).sort().join('|') !== [...parts].sort().join('|')) throw Error('Unexpected Bobek V3 source keys');
 const placement = {
   body: [250, 76, 535, 810],
@@ -18,6 +18,8 @@ const placement = {
   cap: [351, 62, 315, 185],
   // V3 source is already full of optical highlights; glasses must cover eyes, not the muzzle.
   glasses: [416, 255, 326, 128],
+  // Distinct artist-supplied raised arm with RED sleeve. Jacket wave is unsupported.
+  'arm-wave': [674, 387, 225, 240],
 };
 const size = 1024;
 const layers = {};
@@ -84,13 +86,38 @@ const generated = {
   'top-hoodie-red':layers.hoodie, 'top-jacket-denim':layers.jacket,
   backpack:layers.pack, 'cap-red':layers.cap, 'glasses-round':layers.glasses,
 };
-mkdirSync(destination,{recursive:true});
-for (const [name,png] of Object.entries(generated)) {
-  for (const width of [1024,512,256]) {
-    const path=join(destination,name+(width===1024?'':'@'+width)+'.webp');
-    await sharp(png).resize(width,width).webp({quality:90,effort:3}).toFile(path);
-    const metadata=await sharp(path).metadata();
-    if (metadata.width!==width||metadata.height!==width||!metadata.hasAlpha) throw Error('Invalid WebP: '+path);
+// The idle arm is baked into the V3 body/hoodie source. Mask that arm only for
+// the single supported red-hoodie wave pose, then draw a separate raised paw.
+// This is a QA cutout, not a skeletal rig; seams still need manual retouch.
+const removeRightArm = async (png, cutoff) => {
+  const { data: rgba, info: meta } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject:true });
+  for (let y=550;y<785;y++) {
+    let edge = cutoff;
+    if (y<580) edge=780-(y-550)*(780-cutoff)/30;
+    if (y>710) edge=cutoff+(y-710)*1.05;
+    for (let x=Math.max(0,Math.floor(edge));x<1024;x++) {
+      const i=(y*1024+x)*meta.channels+3;
+      const keep=Math.max(0,Math.min(1,(edge+14-x)/14));
+      rgba[i]=Math.round(rgba[i]*keep);
+    }
+  }
+  return sharp(rgba,{raw:{width:1024,height:1024,channels:meta.channels}}).png().toBuffer();
+};
+const wave = {
+  'torso': await removeRightArm(generated.torso,700),
+  'top-hoodie-red': await removeRightArm(generated['top-hoodie-red'],688),
+  'arm-hoodie-red':layers['arm-wave'],
+};
+for (const [pose, spriteMap] of [['idle',generated],['wave',wave]]) {
+  const target = pose==='idle' ? destination : join(root,'apps/web/src/dev/bobek-v3/wave');
+  mkdirSync(target,{recursive:true});
+  for (const [name,png] of Object.entries(spriteMap)) {
+    for (const width of [1024,512,256]) {
+      const path=join(target,name+(width===1024?'':'@'+width)+'.webp');
+      await sharp(png).resize(width,width).webp({quality:90,effort:3}).toFile(path);
+      const metadata=await sharp(path).metadata();
+      if (metadata.width!==width||metadata.height!==width||!metadata.hasAlpha) throw Error('Invalid WebP: '+path);
+    }
   }
 }
-console.log('Bobek V3: 7 independent painted cutout layers / 21 transparent WebP. Front idle only, QA draft.');
+console.log('Bobek V3.1: 7 idle / 3 wave sprites, 30 alpha WebP; only red-hoodie wave supported. QA draft.');
