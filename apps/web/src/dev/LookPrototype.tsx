@@ -18,6 +18,7 @@ import { v3ManifestForEquipment } from './lookV3Manifest';
 import { hasBobekV3Art, bobekV3AssetUrl } from './lookV3Assets';
 import { V3_ART_APPROVED, LAYERED_APP_PREVIEW_APPROVED, V3_ART_BLOCK_REASON } from './bobekArtGate';
 import { coherentPreviewReady, coherentColorwayReady, coherentPreviewUrl } from './coherentAssets';
+import V5ArtPreview from './V5ArtPreview';
 import { getBobekPreviewSnapshot, notifyBobekPreviewChanged, setBobekPreviewEnabled } from '../lib/bobekPreview';
 
 const STORE = 'pg_look_prototype_v1';
@@ -142,6 +143,8 @@ export default function LookPrototype() {
               </div>
             ):<p className="mt-2 text-xs text-coral">Генерація оригінального еталона: npm run bobek:coherent:generate</p>}
           </section>
+
+          <V5ArtPreview />
 
           <section className="card mt-3 p-3" aria-label="Bobek V4 — геометрично стабільний колір худі" data-bobek-v4-colorway>
             <p className="text-sm font-bold">Bobek V4 · Перевірка посадки без зсуву</p>
