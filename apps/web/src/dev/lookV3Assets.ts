@@ -1,7 +1,7 @@
 /** Bobek V3.1 QA resolver. Generated WebP paths are isolated under dev/. */
 const assets = import.meta.glob('./bobek-v3/**/*.webp',{eager:true,import:'default'}) as Record<string,string>;
 const idle = ['torso','head','top-hoodie-red','top-jacket-denim','backpack','cap-red','glasses-round'];
-const wave = ['torso','top-hoodie-red','arm-hoodie-red'];
+const wave = ['torso','top-hoodie-red','arm-hoodie-red','top-jacket-denim','arm-jacket-denim'];
 const allowed = new Set([
   ...idle.map(name=>`idle/${name}`),
   ...wave.map(name=>`wave/${name}`),
