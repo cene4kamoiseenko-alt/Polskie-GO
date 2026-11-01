@@ -24,6 +24,8 @@ on:
       - 'scripts/bobek-v3-frame-qa.mjs'
       - 'scripts/generate-bobek-coherent.mjs'
       - 'scripts/check-bobek-coherent.mjs'
+      - 'scripts/generate-bobek-v4-colorway.mjs'
+      - 'scripts/check-bobek-v4-colorway.mjs'
       - 'apps/web/src/dev/bobekArtGate.ts'
       - 'apps/web/src/dev/coherentAssets.ts'
       - 'docs/design/BOBEK_ART_APPROVAL.json'
@@ -68,6 +70,10 @@ jobs:
         run: npm run bobek:coherent:generate
       - name: Verify face and alpha silhouettes stay identical across full outfits
         run: npm run bobek:coherent:check
+      - name: Generate blue pixel-registered hoodie without garment offsets
+        run: npm run bobek:v4:colorway
+      - name: Verify canonical Bobek silhouette and identity never move between colorways
+        run: npm run bobek:v4:check
       - name: Build real web client (detect Vite bundling errors)
         run: npm run build:web
       - name: Install headless Chromium for actual UI safety check
