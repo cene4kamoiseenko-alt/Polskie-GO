@@ -11,7 +11,7 @@ import { protoAssetUrl } from './protoAssets';
 import { hasBobekV2Art, bobekV2AssetUrl } from './lookV2Assets';
 import { LOOK_V2_DRAFT_MANIFEST } from './lookV2Manifest';
 import { hasBobekV3Art, bobekV3AssetUrl } from './lookV3Assets';
-import { LOOK_V3_DRAFT_MANIFEST } from './lookV3Manifest';
+import { v3ManifestForEquipment } from './lookV3Manifest';
 
 type Props = {
   equipment: readonly string[];
@@ -36,7 +36,7 @@ const PreviewBobek = memo(function PreviewBobek({
     if (art === 'v3' && hasBobekV3Art) selected = 'v3';
     else if (art === 'v2' && hasBobekV2Art) selected = 'v2';
   } catch { /* private storage unavailable: keep legacy preview */ }
-  const manifest = selected === 'v3' ? LOOK_V3_DRAFT_MANIFEST
+  const manifest = selected === 'v3' ? v3ManifestForEquipment(equipment)
     : selected === 'v2' ? LOOK_V2_DRAFT_MANIFEST : LOOK_PROTOTYPE_MANIFEST;
   const resolver = selected === 'v3' ? bobekV3AssetUrl
     : selected === 'v2' ? bobekV2AssetUrl : protoAssetUrl;
