@@ -79,6 +79,28 @@ async function main(){
       'red approved master restored without persisting an outfit');
     check((await display.getAttribute('src'))?.includes('front-approved'),
       'red master source is restored exactly');
+    // V5 is a separate, QA-only layered art-fitting room and never bypasses
+    // the product's disabled V2/V3 inventory/animation gate.
+    const v5=page.locator('[data-bobek-v5-preview]');
+    await v5.waitFor();
+    const v5image=page.locator('[data-bobek-v5-image]');
+    const nude=page.locator('[data-bobek-v5-choice="body"]');
+    const hoodie=page.locator('[data-bobek-v5-choice="composite-red"]');
+    const denim=page.locator('[data-bobek-v5-choice="composite-denim"]');
+    check(!(await nude.isDisabled())&&!(await hoodie.isDisabled())&&!(await denim.isDisabled()),
+      'V5 layered body and two separately drawn garments are available for QA');
+    for(const [button,expected] of [[nude,'body'],[hoodie,'composite-red'],[denim,'composite-denim']] as const){
+      await button.click();
+      check(await button.getAttribute('aria-pressed')==='true',
+        `V5 outfit selection works: ${expected}`);
+      check((await v5image.getAttribute('src'))?.includes(expected),
+        `V5 paints expected registered master ${expected}`);
+      check(await v5image.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth===1024),
+        `V5 ${expected} decoded at 1024 canvas size`);
+      await page.screenshot({path:join(out,`v5-${expected}-390.png`),fullPage:true});
+    }
+    check(await page.locator('[data-bobek-preview-toggle]').isDisabled(),
+      'V5 artwork has not bypassed the real user wardrobe safety gate');
     for(const width of [390,320]){
       await page.setViewportSize({width,height:844});
       await page.screenshot({path:join(out,`stable-${width}.png`),fullPage:true});
