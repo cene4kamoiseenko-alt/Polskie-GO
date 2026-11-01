@@ -1,6 +1,6 @@
 /**
- * V3.1 QA: actual single-arm gesture only for a red hoodie; no fake jacket waving.
- * Run after npm run bobek:v3:generate. Production user art remains unchanged.
+ * V3.2 QA: validates real alpha assets and two distinct cutout wave outfits.
+ * Denim sleeve is a recolored proof-of-fit, not final independent illustration.
  */
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
@@ -12,12 +12,13 @@ import {LOOK_V3_DRAFT_MANIFEST as M,v3ManifestForEquipment} from '../apps/web/sr
 const folder=join(process.cwd(),'apps/web/src/dev/bobek-v3');
 const spriteSets={
   idle:['torso','head','top-hoodie-red','top-jacket-denim','backpack','cap-red','glasses-round'],
-  wave:['torso','top-hoodie-red','arm-hoodie-red'],
+  wave:['torso','top-hoodie-red','arm-hoodie-red','top-jacket-denim','arm-jacket-denim'],
 };
+const widths=[1024,512,256];
 let checked=0;
-for(const [pose,names] of Object.entries(spriteSets)) for(const name of names) for(const width of [1024,512,256]){
+for(const [pose,names] of Object.entries(spriteSets)) for(const name of names) for(const width of widths){
   const path=join(folder,pose,`${name}${width===1024?'':'@'+width}.webp`);
-  assert(existsSync(path),`Missing V3.1 cutout: ${path}`);
+  assert(existsSync(path),`Missing V3.2 sprite: ${path}`);
   const meta=await sharp(path).metadata();
   assert.equal(meta.format,'webp',path);
   assert.equal(meta.width,width,path);
@@ -25,11 +26,14 @@ for(const [pose,names] of Object.entries(spriteSets)) for(const name of names) f
   assert(meta.hasAlpha,path);
   checked++;
 }
-assert.equal(checked,30);
+assert.equal(checked,36);
 const alpha=async(pose,name)=>sharp(join(folder,pose,name+'.webp')).extractChannel(3).raw().toBuffer();
-// Geometry guard: the neckline must sit on the shoulders, not under the neck,
-// and the hem must stay above the paws. It caught the V3.1 "fallen hoodie" bug.
-const bounds = async (pose,name) => {
+assert.notDeepEqual(await alpha('idle','top-hoodie-red'),await alpha('idle','top-jacket-denim'),'Different tops require independent silhouettes');
+assert.notDeepEqual(await alpha('idle','torso'),await alpha('wave','torso'),'Remove old idle arm in wave');
+for(const top of ['top-hoodie-red','top-jacket-denim'])
+  assert.notDeepEqual(await alpha('idle',top),await alpha('wave',top),`Static sleeve remains on wave: ${top}`);
+
+const bounds=async(pose,name)=>{
   const {data,info}=await sharp(join(folder,pose,name+'.webp')).ensureAlpha().raw().toBuffer({resolveWithObject:true});
   let left=info.width,top=info.height,right=-1,bottom=-1;
   for(let y=0;y<info.height;y++)for(let x=0;x<info.width;x++){
@@ -38,50 +42,32 @@ const bounds = async (pose,name) => {
   }
   return {left,top,right,bottom};
 };
-for(const top of ['top-hoodie-red','top-jacket-denim']){
-  const b=await bounds('idle',top);
-  assert(b.top>=450 && b.top<=510,`${top}: collar detached (top=${b.top})`);
-  assert(b.bottom<=820,`${top}: hem overlaps the paws (bottom=${b.bottom})`);
+for(const pose of ['idle','wave'])for(const top of ['top-hoodie-red','top-jacket-denim']){
+  const b=await bounds(pose,top);
+  assert(b.top>=450&&b.top<=510,`${pose}/${top}: collar detached at ${b.top}`);
+  assert(b.bottom<=820,`${pose}/${top}: garment hem covers paws at ${b.bottom}`);
 }
-const hoodieWave=await bounds('wave','top-hoodie-red');
-assert(hoodieWave.top>=450&&hoodieWave.top<=510,'Wave hoodie collar must align with idle hoodie');
-assert(hoodieWave.bottom<=820,'Wave hoodie hem must not cover feet');
-assert.notDeepEqual(await alpha('idle','top-hoodie-red'),await alpha('idle','top-jacket-denim'),'Independent clothing silhouettes required');
-assert.notDeepEqual(await alpha('idle','torso'),await alpha('wave','torso'),'Idle right arm must be removed for wave');
-assert.notDeepEqual(await alpha('idle','top-hoodie-red'),await alpha('wave','top-hoodie-red'),'Hoodie standing sleeve must be removed for wave');
 
-const start=['hoodie-red','backpack-travel'];
-const red=resolveLook(null,start,{manifest:v3ManifestForEquipment(start),mood:'wave'});
-assert.equal(red.mode,'layered');
-assert.equal(red.pose,'front-wave');
-assert.equal(red.poseFallback,false);
-assert(red.drawn.includes('hoodie-red') && red.drawn.includes('backpack-travel'));
-const packLayer=red.layers.find(l=>l.owner==='backpack-travel');
-const hoodieLayer=red.layers.find(l=>l.id==='v31:hoodie:wave');
-assert(packLayer && hoodieLayer && packLayer.z<hoodieLayer.z,'Whole backpack must stay behind the hoodie (not cover the PL logo)');
-assert(red.layers.some(l=>l.id==='v3-base:torso-wave'));
-assert(red.layers.some(l=>l.asset==='bobek-v3/wave/torso'));
-const arm=red.layers.find(l=>l.id==='v31:hoodie:wave-arm');
-assert(arm && arm.motion==='wave','Arm must wave separately, not replace the whole character');
-assert.equal(arm.asset,'bobek-v3/wave/arm-hoodie-red');
-assert(arm.z>red.layers.find(l=>l.id==='v3-base:head').z,'Wave hand painted in foreground');
-
-const jacket=equip(start,'jacket-denim',M);
-assert(jacket.equipment.includes('jacket-denim')&&!jacket.equipment.includes('hoodie-red'));
-const denimWave=resolveLook(null,jacket.equipment,{manifest:v3ManifestForEquipment(jacket.equipment),mood:'wave'});
-assert.equal(denimWave.mode,'layered');
-assert.equal(denimWave.pose,'front-idle');
-assert.equal(denimWave.poseFallback,true);
-assert(denimWave.drawn.includes('jacket-denim'));
-assert(!denimWave.layers.some(l=>l.motion==='wave'), 'Do not draw a RED arm over the BLUE jacket');
-const idle=resolveLook(null,start,{manifest:v3ManifestForEquipment(start),mood:'happy'});
-assert.equal(idle.pose,'front-idle');
-assert.equal(idle.poseFallback,false);
-assert(idle.layers.every(l=>l.asset.startsWith('bobek-v3/idle/')));
-const thought=resolveLook(null,start,{manifest:v3ManifestForEquipment(start),mood:'think'});
-assert.equal(thought.pose,'front-idle');
-assert.equal(thought.poseFallback,true);
-
-assert.equal(LOOK_MANIFEST.base.status,'pending');
+const redEquipment=['hoodie-red','backpack-travel'];
+const blueEquipment=equip(redEquipment,'jacket-denim',M).equipment;
+assert(blueEquipment.includes('jacket-denim')&&!blueEquipment.includes('hoodie-red'));
+for(const [equipment,item,armId] of [
+  [redEquipment,'hoodie-red','v31:hoodie:wave-arm'],
+  [blueEquipment,'jacket-denim','v32:jacket:wave-arm'],
+]){
+  const look=resolveLook(null,equipment,{manifest:v3ManifestForEquipment(equipment),mood:'wave'});
+  assert.equal(look.mode,'layered');
+  assert.equal(look.pose,'front-wave');
+  assert.equal(look.poseFallback,false);
+  assert(look.drawn.includes(item)&&look.drawn.includes('backpack-travel'));
+  const arm=look.layers.find(l=>l.id===armId);
+  assert(arm?.motion==='wave'&&arm.motionOrigin, `${item}: expected independent waving arm`);
+  assert.equal(arm.asset,`bobek-v3/wave/arm-${item}`);
+  assert(!look.layers.some(l=>l.asset===`bobek-v3/wave/arm-${item==='hoodie-red'?'jacket-denim':'hoodie-red'}`),'wrong garment sleeve displayed');
+  const pack=look.layers.find(l=>l.owner==='backpack-travel');
+  assert(pack&&pack.z<arm.z,'backpack must remain behind arm');
+}
+assert.equal(resolveLook(null,redEquipment,{manifest:M,mood:'think'}).pose,'front-idle');
+assert.equal(LOOK_MANIFEST.base.status,'pending','Never mark production artwork ready');
 assert.equal(M.base.poses.length,2);
-console.log(`Bobek V3.1 QA PASS: ${checked} alpha WebPs, separated waving arm with hoodie, denim idle fallback, production untouched`);
+console.log(`Bobek V3.2 QA PASS: ${checked} transparent WebP, 2 independent upper garment sprite sets, production unchanged`);
