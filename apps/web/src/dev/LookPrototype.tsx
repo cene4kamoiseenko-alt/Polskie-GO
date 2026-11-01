@@ -17,6 +17,7 @@ import { LOOK_V2_DRAFT_MANIFEST } from './lookV2Manifest';
 import { v3ManifestForEquipment } from './lookV3Manifest';
 import { hasBobekV3Art, bobekV3AssetUrl } from './lookV3Assets';
 import { V3_ART_APPROVED, LAYERED_APP_PREVIEW_APPROVED, V3_ART_BLOCK_REASON } from './bobekArtGate';
+import { coherentPreviewReady, coherentPreviewUrl } from './coherentAssets';
 import { getBobekPreviewSnapshot, notifyBobekPreviewChanged, setBobekPreviewEnabled } from '../lib/bobekPreview';
 
 const STORE = 'pg_look_prototype_v1';
@@ -121,6 +122,26 @@ export default function LookPrototype() {
             {!hasBobekV3Art && <p className="mt-2 text-xs text-coral">Для V3 виконайте npm run bobek:v3:generate перед build:web.</p>}
             {blockedV3 && <p className="mt-2 text-xs text-coral" role="alert">{V3_ART_BLOCK_REASON}</p>}
             {v3 && <p className="mt-2 text-xs font-medium text-coral">V3.2 — пробна анімація з червоним або синім рукавом. Стик плеча, складки тканини й лапа потребують ручного перемалювання; не фінальний риг.</p>}
+          </section>
+
+          <section className="card mt-3 p-3" aria-label="Однаковий силует Бобека без плаваючого одягу" data-bobek-coherent-preview>
+            <p className="text-sm font-bold">Новий контрольний еталон — один цілісний спрайт</p>
+            <p className="mt-1 text-xs">Ця основа не допускає зсувів плеча, коміра чи худі: одяг і тіло збережені разом для кожної пози. Синій варіант — тільки пробне перефарбування ХУДІ, не готова джинсова куртка і не система гардероба.</p>
+            {coherentPreviewReady ? (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {([
+                  ['front-red','Червоне худі · спереду'],
+                  ['front-blue-hoodie-proof','Синє худі · тест кольору'],
+                  ['wave-red','Червоне худі · привітання'],
+                  ['wave-blue-hoodie-proof','Синє худі · привітання'],
+                ] as const).map(([key,label])=>(
+                  <figure key={key} className="rounded-xl bg-white/80 p-2">
+                    <img className="w-full" src={coherentPreviewUrl(key)} alt={label} loading="lazy"/>
+                    <figcaption className="mt-1 text-center text-xs font-bold">{label}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            ):<p className="mt-2 text-xs text-coral">Згенеруйте контрольний арт: npm run bobek:coherent:generate</p>}
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
