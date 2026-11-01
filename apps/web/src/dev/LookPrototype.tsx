@@ -14,7 +14,7 @@ import { LOOK_PROTOTYPE_MANIFEST as M, PROTO_STATES } from './lookPrototypeManif
 import { protoAssetUrl } from './protoAssets';
 import { hasBobekV2Art, bobekV2AssetUrl } from './lookV2Assets';
 import { LOOK_V2_DRAFT_MANIFEST } from './lookV2Manifest';
-import { LOOK_V3_DRAFT_MANIFEST } from './lookV3Manifest';
+import { v3ManifestForEquipment } from './lookV3Manifest';
 import { hasBobekV3Art, bobekV3AssetUrl } from './lookV3Assets';
 import { getBobekPreviewSnapshot, notifyBobekPreviewChanged, setBobekPreviewEnabled } from '../lib/bobekPreview';
 
@@ -64,7 +64,7 @@ export default function LookPrototype() {
   const mood = PROTO_STATES.find((s) => s.id === saved.state)?.mood ?? 'happy';
   const v3 = saved.art === 'v3' && hasBobekV3Art;
   const v2 = !v3 && saved.art === 'v2' && hasBobekV2Art;
-  const activeManifest = v3 ? LOOK_V3_DRAFT_MANIFEST : v2 ? LOOK_V2_DRAFT_MANIFEST : M;
+  const activeManifest = v3 ? v3ManifestForEquipment(saved.equipment) : v2 ? LOOK_V2_DRAFT_MANIFEST : M;
   const resolveAsset = v3 ? bobekV3AssetUrl : v2 ? bobekV2AssetUrl : protoAssetUrl;
   const look = useMemo(() => resolveLook(null, saved.equipment, { manifest: activeManifest, mood }), [saved.equipment, activeManifest, mood]);
   const has = (id: string) => look.drawn.includes(id);
@@ -103,7 +103,7 @@ export default function LookPrototype() {
 
           <section className="card mt-3 p-3" aria-label="Джерело графіки Бобека">
             <p className="font-bold text-sm">Оберіть арт-модель для QA</p>
-            <p className="mt-1 text-xs">V2 — плоский авторський арт з 5 позами. V3 — об'ємний 2.5D cutout з незалежною одежою, але поки ТІЛЬКИ фронтальна спокійна поза. Інші емоції у V3 показують цю ж позу (fallback). Усі варіанти — лише QA.</p>
+            <p className="mt-1 text-xs">V2 — плоский авторський арт з 5 позами. V3.1 — 2.5D cutout: фронтальна поза й перший рухомий жест «wave» лише з червоним худі. Для синьої куртки й інших емоцій чесно показує idle. Усі варіанти — лише QA.</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={!v2 && !v3} data-proto-art="legacy" onClick={() => setSaved((cur) => ({ ...cur, art: 'legacy' }))}>Старі шари</button>
               <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v2} data-proto-art="v2" disabled={!hasBobekV2Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v2' }))}>Бобек V2</button>
@@ -111,7 +111,7 @@ export default function LookPrototype() {
             </div>
             {!hasBobekV2Art && <p className="mt-2 text-xs text-coral">Для V2 виконайте npm run bobek:v2:generate перед build:web.</p>}
             {!hasBobekV3Art && <p className="mt-2 text-xs text-coral">Для V3 виконайте npm run bobek:v3:generate перед build:web.</p>}
-            {v3 && <p className="mt-2 text-xs font-medium text-coral">V3 — не анімований риг: лише front-idle. Одяг / плечові стики в процесі ручного доопрацювання.</p>}
+            {v3 && <p className="mt-2 text-xs font-medium text-coral">V3.1 — пробна анімація однієї лапи в червоному худі. Стик плеча потребує художньої ретуші; у джинсовій куртці wave недоступний.</p>}
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
