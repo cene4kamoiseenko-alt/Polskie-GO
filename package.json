@@ -33,7 +33,8 @@
     "bobek:v2:check": "node --import tsx scripts/check-bobek-v2.mjs",
     "bobek:v2:generate": "node scripts/generate-bobek-v2.mjs",
     "bobek:v3:generate": "node scripts/generate-bobek-v3.mjs",
-    "bobek:v3:check": "node --import tsx scripts/check-bobek-v3.mjs"
+    "bobek:v3:check": "node --import tsx scripts/check-bobek-v3.mjs",
+    "bobek:v3:frames": "node --import tsx scripts/bobek-v3-frame-qa.mjs"
   },
   "engines": {
     "node": ">=20"
