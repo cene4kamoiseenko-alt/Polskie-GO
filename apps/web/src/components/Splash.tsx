@@ -1,30 +1,29 @@
 /**
- * Заставка POLSKI GO за новим дизайном: вертикальна Варшава (Замкова площа й колона Зиґмунта; смуга панорами з листа міст,
- * збільшена вчетверо Real-ESRGAN, два розміри через srcset — без розтягування на телефонах із DPR 3), логотип із листа бренду,
- * бобер-мандрівник (растр «привітання») і скляна картка з реальним прогресом запуску.
- * Анімації дешеві: лише transform і opacity; панорама робить один повільний наїзд, безкінечних рухів
- * два (бобер легко погойдується, по смузі пробігає відблиск), обидва вимикаються при reduced motion.
- * Без deviceorientation і без стеження за курсором.
- * Використовується під час завантаження і на першому кроці онбордингу.
+ * Заставка POLSKI GO по слоям владельца (2026-11-01, docs/design/v19/loading): фон «Замковая площадь, Варшава», логотип и Бобек — отдельные
+ * картинки на сцене 941×1672 (сцена накрывает экран как `cover`, слои лежат по процентам кадра, поэтому не расходятся на любых экранах),
+ * поверх — стеклянная карточка с РЕАЛЬНЫМ прогрессом запуска (lib/boot.ts: вход → профиль → первый экран). Карточка — живой HTML,
+ * не картинка: проценты, этап, ошибка и «повторить» всегда настоящие.
+ * Движение дешёвое (только transform/opacity): логотип появляется один раз (в index.html, до JS), Бобек покачивается, по полосе пробегает
+ * блик — это всё бесконечное; при «Меньше анимации» и prefers-reduced-motion не движется ничего.
+ * Используется при загрузке, при ошибке сети и на первом шаге знакомства.
  */
 import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useT, type TKey } from '../i18n';
-import { beaverAsset, brandAsset, iconAsset } from '../lib/assets';
-import pano900 from '../assets/splash/warszawa-portrait-900.webp';
-import pano1400 from '../assets/splash/warszawa-portrait-1400.webp';
+import { iconAsset } from '../lib/assets';
+import { ROYAL_ART, loadSplashArt, requestedSplashTheme, splashGeometry, type SplashArt } from '../lib/splashArt';
 import { Icon } from './Icon';
 import { bootState, useBootProgress, type BootStage } from '../lib/boot';
 
-/** Іконка з листа до кожної фрази завантаження (15 — фінальна «бобер уже чекає»). */
+/** Иконка с листа к каждой фразе загрузки (15 — финальная «бобёр уже ждёт»). */
 const MSG_ICONS = ['lessons', 'streak', 'shopping', 'zlotki', 'food', 'cafe', 'map', 'profile', 'dictionary', 'transport', 'pronunciation', 'map', 'dragon', 'passport', 'gift'];
 const ROTATING = 14;
 
-// Стан між перемонтуваннями (заставка показується і до, і після завантаження профілю).
+// Состояние между перемонтированиями (заставка показывается и до, и после загрузки профиля).
 let introPlayed = false;
 let msgIndex = Math.floor(Math.random() * ROTATING);
 
-/** Підпис реального етапу запуску (те, що зараз виконується). */
+/** Подпись реального этапа запуска (то, что сейчас выполняется). */
 const DOING_KEY: Record<Exclude<BootStage, 'start'>, TKey> = { auth: 'boot_doing_auth', profile: 'boot_doing_profile', screen: 'boot_doing_screen' };
 
 function useOnline() {
@@ -54,34 +53,39 @@ function LoadingUi({ onRetry }: { onRetry?: () => void }) {
     }, 1900);
     return () => clearInterval(id);
   }, []);
-  // Профіль завантажено — бобер уже чекає (фінальна фраза).
+  // Профиль загружен — бобёр уже ждёт (финальная фраза).
   const n = progress >= 0.82 ? ROTATING : msg;
   const pct = Math.round(progress * 100);
+  const trouble = boot.slow || !online;
   return (
     <div className="splash-card" role="status" aria-live="polite" aria-label={`${t('splash_loading')} ${pct}%`}>
-      <div className="flex min-h-[48px] items-center gap-3">
+      <div className="splash-row">
+        <span className="splash-icon" aria-hidden>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.img key={n} src={iconAsset(MSG_ICONS[n]) ?? undefined} alt="" width={40} height={40} decoding="async" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ duration: 0.18, ease: 'easeOut' }} />
+          </AnimatePresence>
+        </span>
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={n} className="flex min-w-0 flex-1 items-center gap-3" initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -8, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
-            <span className="splash-icon" aria-hidden>
-              <img src={iconAsset(MSG_ICONS[n]) ?? undefined} alt="" width={40} height={40} decoding="async" />
-            </span>
-            <span className="line-clamp-2 text-[15px] font-extrabold leading-tight">{t(`splash_msg_${n + 1}` as TKey)}</span>
-          </motion.div>
+          <motion.span key={n} className="splash-title line-clamp-2 min-w-0 flex-1" initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -6, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
+            {t(`splash_msg_${n + 1}` as TKey)}
+          </motion.span>
         </AnimatePresence>
         <span className="splash-pct" aria-hidden>{pct}%</span>
       </div>
       <div className="splash-bar mt-3" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={t('splash_loading')}>
         <div className="splash-bar-fill" style={{ transform: `translateX(${Math.max(6, pct) - 100}%)` }} />
       </div>
-      {/* Чесний етап: що саме зараз робиться; якщо затягнулося — так і кажемо й даємо повторити. */}
-      <div className="mt-2 flex min-h-[22px] items-center gap-2 text-[12px] font-bold">
-        <span className="splash-muted min-w-0 flex-1 truncate" data-boot={!online ? 'offline' : boot.slow ? 'slow' : boot.doing ?? 'done'}>
+      {/* Честный этап: что именно сейчас делается; если затянулось — так и говорим и даём повторить. */}
+      <div className={`splash-foot ${trouble ? 'is-trouble' : ''}`}>
+        <span className="splash-muted" data-boot={!online ? 'offline' : boot.slow ? 'slow' : boot.doing ?? 'done'}>
           {!online ? t('boot_offline') : boot.slow ? t('boot_slow') : `${t('boot_step', { n: boot.step, total: boot.total })} · ${t(DOING_KEY[boot.doing === 'start' || !boot.doing ? 'screen' : boot.doing])}`}
         </span>
-        {(boot.slow || !online) && onRetry && (
-          <button type="button" className="shrink-0 underline" onClick={onRetry}>
+        {trouble && onRetry ? (
+          <button type="button" className="splash-retry" onClick={onRetry}>
             {t('error_retry')}
           </button>
+        ) : (
+          <span className="splash-brand" aria-hidden>Polski GO</span>
         )}
       </div>
     </div>
@@ -108,53 +112,56 @@ function ErrorUi({ onRetry, offline }: { onRetry?: () => void; offline: boolean 
   );
 }
 
-export function SplashScene({ slogan, steps, loading, error, onRetry, heroBottom, children }: { slogan?: string; steps?: ReactNode; loading?: boolean; error?: boolean; onRetry?: () => void; heroBottom?: string; children?: ReactNode }) {
+/**
+ * @param lift сцена приподнята (знакомство): внизу место под реплику и кнопки; логотип остаётся целиком.
+ */
+export function SplashScene({ slogan, steps, loading, error, onRetry, lift, children }: { slogan?: string; steps?: ReactNode; loading?: boolean; error?: boolean; onRetry?: () => void; lift?: boolean; children?: ReactNode }) {
   const reduce = useReducedMotion();
   const online = useOnline();
   const [intro] = useState(() => !introPlayed && !reduce);
+  const [art, setArt] = useState<SplashArt>(ROYAL_ART);
   useEffect(() => {
     introPlayed = true;
+    // Другие темы (?splash=sunset|adventure) — только в разработке.
+    const theme = requestedSplashTheme();
+    if (theme !== 'royal') void loadSplashArt(theme).then(setArt);
   }, []);
   const hasUi = loading || error;
-  // Бобер стоїть на площі над карткою (помилка вища за прогрес) або над реплікою онбордингу.
-  const feet = heroBottom ?? (error ? 'calc(var(--safe-b) + 3.2vh + 206px)' : loading ? 'calc(var(--safe-b) + 3.2vh + 146px)' : 'calc(var(--safe-b) + 196px)');
 
   return (
-    <div className={`splash relative min-h-[100dvh] overflow-hidden ${intro ? 'is-intro' : ''}`}>
-      {/* Ширина кадру 9:16: на вузьких екранах cover бере висоту (56vh ≈ потрібна ширина), на широких — ширину екрана. */}
-      <img
-        className="splash-pano"
-        src={pano900}
-        srcSet={`${pano900} 900w, ${pano1400} 1400w`}
-        sizes="(max-aspect-ratio: 9/16) 56vh, 100vw"
-        alt=""
-        decoding="async"
-        draggable={false}
-      />
-      <div className="splash-shade" aria-hidden />
-      <header className="splash-head absolute inset-x-0 top-0 z-30 flex flex-col items-center px-6">
-        {/* Той самий логотип, що й у миттєвій заставці index.html, на тому ж місці: без стрибка. */}
-        <img className="splash-logo" src={brandAsset('logo') ?? undefined} alt="POLSKI GO" width={640} height={126} />
-        {slogan && <div className="splash-slogan">{slogan}</div>}
-        {steps}
-      </header>
-      <div className="absolute left-1/2 z-20 -translate-x-1/2" style={{ bottom: feet }} aria-hidden>
-        <div className="splash-hero">
-          <span className="splash-shadow" />
-          {/* Помилка — бобер-мандрівник із картою (як у концепті «Немає зв'язку»), без мережі — ще й значок wi-fi. */}
-          <img className="splash-beaver" src={beaverAsset(error ? 'travel' : 'wave') ?? brandAsset('avatar') ?? undefined} alt="" draggable={false} />
+    <div className={`splash relative min-h-[100dvh] overflow-hidden ${intro ? 'is-intro' : ''} ${lift ? 'is-lifted' : ''}`} style={splashGeometry(art.theme)} data-splash-theme={art.theme}>
+      <div className="splash-stage">
+        {/* Сцена 941×1672: `srcset` отдаёт узкий файл только малым экранам, а на телефонах с DPR 3 — полный кадр. */}
+        <img
+          className="splash-bg"
+          src={art.bg}
+          srcSet={`${art.bg640} 640w, ${art.bg} 941w`}
+          sizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw"
+          width={941}
+          height={1672}
+          alt=""
+          decoding="async"
+          draggable={false}
+        />
+        {/* Тот же логотип, что и в мгновенной заставке index.html, на том же месте: без прыжка. */}
+        <img className="splash-logo" src={art.logo} alt="POLSKI GO" width={696} height={179} draggable={false} />
+        <div className="splash-hero" aria-hidden>
+          <img className="splash-beaver" src={art.bobek} alt="" width={528} height={560} draggable={false} />
           {error && !online && (
             <span className="splash-badge">
-              <Icon name="wifi-off" size={28} strokeWidth={2.6} />
+              <Icon name="wifi-off" size={26} strokeWidth={2.6} />
             </span>
           )}
         </div>
+        {(slogan || steps) && (
+          <header className="splash-head">
+            {slogan && <div className="splash-slogan">{slogan}</div>}
+            {steps}
+          </header>
+        )}
       </div>
-      {hasUi && (
-        <div className="splash-ui absolute inset-x-0 bottom-0 z-30 px-5">
-          {error ? <ErrorUi onRetry={onRetry} offline={!online} /> : <LoadingUi onRetry={onRetry} />}
-        </div>
-      )}
+      <div className="splash-shade" aria-hidden />
+      {hasUi && <div className="splash-ui absolute inset-x-0 bottom-0 z-30">{error ? <ErrorUi onRetry={onRetry} offline={!online} /> : <LoadingUi onRetry={onRetry} />}</div>}
       {children}
     </div>
   );

@@ -507,64 +507,151 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
   scrollbar-width: none;
 }
 
-/* ───────── Заставка: панорама з листа, логотип, бобер, картка прогресу ─────────
-   Завжди темна (фірмовий екран), кольори — токени нижче. Рухи лише transform/opacity:
-   один наїзд панорами, поява бобра й картки; безкінечні — погойдування бобра і відблиск смуги. */
+/* ───────── Заставка: слои владельца (фон, логотип, Бобек) на сцене 941×1672, поверх — стеклянная карточка ─────────
+   Завжди темна (фірмовий екран), в обох темах однакова. Сцена накриває екран як `cover`: --u — пікселів екрана на піксель кадра,
+   шари лежать за відсотками кадра, тому не розходяться на жодному екрані. Рухи лише transform/opacity; нескінченних два:
+   бобер легко погойдується, по смузі пробігає відблиск. Логотип з'являється один раз — у миттєвій заставці index.html. */
 .splash {
+  --u: max(calc(100vw / 941), calc(100vh / 1672));
+  --lift: 0px;
   --splash-ink: #07182c;
-  --splash-glass: rgb(7 24 44 / 0.8);
-  --splash-line: rgb(255 255 255 / 0.14);
-  --splash-text: #f8faff;
-  --splash-muted: #c4d3e4;
-  --splash-track: rgb(255 255 255 / 0.12);
-  --splash-top: rgb(7 24 44 / 0.5);
-  --beaver: min(64vw, 36vh, 300px);
-  /* Панорама йде під статус-бар: корінь має відступ safe area, тут він компенсується, а шапка сама відступає вниз. */
+  --splash-text: #fbfdff;
+  --splash-muted: #cdd8e5;
+  --splash-line: rgb(238 246 255 / 0.24);
+  --splash-accent-1: #3cf0d1;
+  --splash-accent-2: #68e9ff;
+  /* Заставка йде під статус-бар: корінь має відступ safe area, тут він компенсується. */
   margin-top: calc(-1 * var(--safe-t));
   background: var(--splash-ink);
   color: var(--splash-text);
 }
-/* Світла тема: світла скляна картка і світлий низ, панорама без темного затемнення. */
-html.light .splash {
-  --splash-ink: #fff7ec;
-  --splash-glass: rgb(255 255 255 / 0.9);
-  --splash-line: rgb(7 24 44 / 0.1);
-  --splash-text: #0b2440;
-  --splash-muted: #3d5168;
-  --splash-track: rgb(7 24 44 / 0.1);
-  --splash-top: rgb(7 24 44 / 0.28);
+@supports (height: 100dvh) {
+  .splash {
+    --u: max(calc(100vw / 941), calc(100dvh / 1672));
+  }
 }
-.splash-pano {
+/* Знайомство: сцена вище на 5,5 % висоти — унизу місце під репліку й кнопки; верх логотипа не ближче 30 px до краю (корона над ним уходит). */
+.splash.is-lifted {
+  --lift: min(5.5vh, calc(var(--u) * var(--logo-top-art) - 30px));
+}
+@supports (height: 100dvh) {
+  .splash.is-lifted {
+    --lift: min(5.5dvh, calc(var(--u) * var(--logo-top-art) - 30px));
+  }
+}
+.splash-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--u) * 941);
+  height: calc(var(--u) * 1672);
+  transform: translate(-50%, calc(-50% - var(--lift)));
+  user-select: none;
+}
+.splash-bg {
   position: absolute;
   inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  /* Кадр уже вертикальний: колона Зиґмунта ліворуч, кам'яниці Старого міста за бобром. */
-  object-position: 50% 50%;
-  user-select: none;
   pointer-events: none;
 }
+.splash-logo {
+  position: absolute;
+  left: var(--logo-l);
+  top: var(--logo-t);
+  width: var(--logo-w);
+  height: var(--logo-h);
+  object-fit: contain;
+  filter: drop-shadow(0 5px 5px rgb(3 13 60 / 0.45));
+  pointer-events: none;
+}
+.splash-hero {
+  position: absolute;
+  left: var(--bob-l);
+  top: var(--bob-t);
+  width: var(--bob-w);
+  height: var(--bob-h);
+  transform-origin: 50% 91%;
+  animation: splash-breathe 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.splash-beaver {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+@keyframes splash-breathe {
+  0%, 100% { transform: translateY(0) rotate(-1deg) scale(1); }
+  48% { transform: translateY(-6px) rotate(1.2deg) scale(1.01); }
+}
+/* Мягкое затемнение: сверху под статус-бар, снизу под карточку (в приподнятой сцене низ уходит в фон без шва). */
 .splash-shade {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* Запасний варіант для WebView без color-mix (iOS < 16.2): темний низ в обох темах. */
   background:
-    linear-gradient(180deg, var(--splash-top) 0%, rgb(7 24 44 / 0) 24%),
-    linear-gradient(180deg, rgb(7 24 44 / 0) 56%, rgb(7 24 44 / 0.6) 76%, var(--splash-ink) 100%);
-  background:
-    linear-gradient(180deg, var(--splash-top) 0%, rgb(7 24 44 / 0) 24%),
-    linear-gradient(180deg, transparent 56%, color-mix(in srgb, var(--splash-ink) 60%, transparent) 76%, var(--splash-ink) 100%);
+    linear-gradient(180deg, rgb(2 14 52 / 0.16) 0%, rgb(2 14 52 / 0) 22%),
+    linear-gradient(180deg, rgb(8 22 46 / 0) 56%, rgb(8 22 46 / 0.3) 74%, rgb(4 17 39 / 0.62) 100%);
 }
+.splash.is-lifted .splash-shade {
+  background:
+    linear-gradient(180deg, rgb(2 14 52 / 0.16) 0%, rgb(2 14 52 / 0) 22%),
+    linear-gradient(180deg, rgb(8 22 46 / 0) 52%, rgb(8 22 46 / 0.4) 72%, rgb(7 24 44 / 0.9) 90%, var(--splash-ink) 100%);
+}
+/* Слоган и шаги знакомства — под логотипом, на сцене (едут вместе с ней). */
 .splash-head {
-  padding-top: calc(var(--safe-t) + 5vh);
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--logo-b) + 8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-/* Значок «немає мережі» біля голови бобра. */
+.splash-slogan {
+  max-width: min(92vw, 420px);
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgb(7 24 44 / 0.62);
+  border: 1px solid var(--splash-line);
+  color: var(--splash-text);
+  font-size: clamp(11px, 3.4vw, 13px);
+  font-weight: 900;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.splash-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgb(7 24 44 / 0.62);
+  border: 1px solid var(--splash-line);
+  font-size: 12px;
+  font-weight: 900;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.splash-steps i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.28);
+}
+.splash-steps i.on {
+  width: 18px;
+  background: var(--color-pl-red);
+}
+/* Значок «нет сети» у головы бобра. */
 .splash-badge {
   position: absolute;
   right: 4%;
-  top: 4%;
+  top: 2%;
   display: grid;
   place-items: center;
   width: 54px;
@@ -575,86 +662,35 @@ html.light .splash {
   border: 3px solid #fff;
   box-shadow: 0 8px 18px -8px rgb(0 0 0 / 0.6);
 }
-/* Кроки знайомства під слоганом. */
-.splash-steps {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: var(--splash-glass);
-  border: 1px solid var(--splash-line);
-  font-size: 12px;
-  font-weight: 900;
-}
-.splash-steps i {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--splash-track);
-}
-.splash-steps i.on {
-  width: 18px;
-  background: var(--color-pl-red);
-}
-.splash-logo {
-  width: min(84vw, 340px);
-  height: auto;
-  filter: drop-shadow(0 10px 16px rgb(7 24 44 / 0.45));
-}
-.splash-slogan {
-  margin-top: 10px;
-  padding: 5px 14px;
-  border-radius: 999px;
-  background: var(--splash-glass);
-  border: 1px solid var(--splash-line);
-  color: var(--splash-text);
-  font-size: 13px;
-  font-weight: 900;
-}
-.splash-hero {
-  position: relative;
-  width: var(--beaver);
-  height: var(--beaver);
-}
-.splash-shadow {
-  position: absolute;
-  left: 16%;
-  right: 16%;
-  bottom: -3%;
-  height: 10%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(7 24 44 / 0.5), rgb(7 24 44 / 0));
-}
-.splash-beaver {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transform-origin: 50% 98%;
-  animation: splash-sway 3.4s ease-in-out infinite;
-  user-select: none;
-}
-@keyframes splash-sway {
-  0%, 100% { transform: rotate(-1.5deg); }
-  50% { transform: rotate(1.5deg); }
-}
 .splash-ui {
-  padding-bottom: calc(var(--safe-b) + 3.2vh);
+  padding: 0 5% max(calc(var(--safe-b) + 20px), 6vh);
 }
+@supports (height: 100dvh) {
+  .splash-ui {
+    padding-bottom: max(calc(var(--safe-b) + 20px), 6dvh);
+  }
+}
+/* Стеклянная карточка прогресса (концепт владельца): живой HTML — проценты, этап и «повторить» настоящие. */
 .splash-card {
-  padding: 12px 14px 14px;
-  border-radius: 24px;
-  background: var(--splash-glass);
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 16px 18px 13px;
+  border-radius: 28px;
+  background: linear-gradient(130deg, rgb(19 38 64 / 0.86), rgb(18 40 69 / 0.84) 55%, rgb(21 30 54 / 0.8));
   border: 1px solid var(--splash-line);
-  box-shadow: 0 16px 32px -16px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 15px 46px rgb(3 12 30 / 0.3), 0 0 33px rgb(255 178 112 / 0.12);
   color: var(--splash-text);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
 }
 .splash-muted {
   color: var(--splash-muted);
+}
+.splash-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
 }
 .splash-icon {
   flex: none;
@@ -662,41 +698,55 @@ html.light .splash {
   place-items: center;
   width: 48px;
   height: 48px;
-  border-radius: 16px;
-  background: rgb(255 255 255 / 0.08);
-  background: color-mix(in srgb, var(--splash-text) 8%, transparent);
-  border: 1px solid var(--splash-line);
+  border-radius: 15px;
+  background: rgb(70 122 143 / 0.26);
+  border: 1px solid rgb(245 251 255 / 0.28);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24);
 }
 .splash-icon img {
   width: 40px;
   height: 40px;
   object-fit: contain;
 }
+.splash-title {
+  font-size: clamp(15px, 4vw, 18px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 5px rgb(0 0 0 / 0.25);
+}
 .splash-pct {
   flex: none;
-  min-width: 4ch;
-  text-align: right;
-  font-size: 15px;
+  min-width: 4.4ch;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  text-align: center;
+  font-size: clamp(16px, 4.4vw, 19px);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
-  color: var(--splash-muted);
+  letter-spacing: -0.02em;
 }
 .splash-bar {
   position: relative;
-  height: 12px;
+  height: 14px;
   border-radius: 999px;
   overflow: hidden;
-  background: var(--splash-track);
+  background: rgb(196 209 240 / 0.21);
+  border: 1px solid rgb(241 255 255 / 0.18);
+  box-shadow: inset 0 2px 5px rgb(5 12 33 / 0.35);
 }
 .splash-bar-fill {
   position: absolute;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-sky), var(--color-brand));
+  background: linear-gradient(90deg, var(--splash-accent-1), var(--splash-accent-2));
+  box-shadow: 0 0 10px rgb(56 244 211 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.4);
   transition: transform 0.6s ease-out;
   will-change: transform;
-  /* Плавний старт від нуля: смуга не стрибає одразу на перший етап. */
+  /* Плавный старт от нуля: полоса не прыгает сразу на первый этап. */
   animation: splash-fill-in 0.3s ease-out;
 }
 @keyframes splash-fill-in {
@@ -707,26 +757,80 @@ html.light .splash {
   position: absolute;
   inset: 0;
   width: 40%;
-  background: linear-gradient(90deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.5), rgb(255 255 255 / 0));
-  transform: translateX(-100%);
-  animation: splash-shine 1.8s ease-in-out infinite;
+  background: linear-gradient(100deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.62), rgb(255 255 255 / 0));
+  transform: translateX(-100%) skewX(-24deg);
+  animation: splash-shine 2.35s linear infinite;
 }
 @keyframes splash-shine {
-  to { transform: translateX(260%); }
+  0% { transform: translateX(-100%) skewX(-24deg); }
+  55%, 100% { transform: translateX(300%) skewX(-24deg); }
 }
-/* Перший показ: панорама проявляється з легким наїздом, бобер і картка з'являються слідом. */
-.is-intro .splash-pano {
-  animation: splash-pano 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+/* Подпись реального этапа: в одну строку; если связь плохая или сети нет — переносится целиком, кнопка «Повторить» рядом или ниже. */
+.splash-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 22px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
 }
+.splash-foot > .splash-muted {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.splash-foot.is-trouble > .splash-muted {
+  flex: 1 1 16ch;
+  overflow: visible;
+  white-space: normal;
+}
+.splash-brand,
+.splash-retry {
+  flex: none;
+}
+.splash-brand {
+  font-weight: 700;
+  color: var(--splash-muted);
+  opacity: 0.8;
+}
+.splash-brand::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #6fffe0;
+  vertical-align: 1px;
+}
+.splash-retry {
+  font-weight: 900;
+  text-decoration: underline;
+  color: var(--splash-text);
+}
+/* Узкие экраны (320 px): карточка плотнее, фраза в две строки целиком, подпись этапа без «Polski GO». */
+@media (max-width: 359px) {
+  .splash-card { padding: 12px 12px 10px; border-radius: 22px; }
+  .splash-row { gap: 8px; min-height: 40px; }
+  .splash-icon { width: 40px; height: 40px; border-radius: 13px; }
+  .splash-icon img { width: 32px; height: 32px; }
+  .splash-title { font-size: 13px; }
+  .splash-pct { min-width: 3.8ch; padding: 2px 8px; font-size: 14px; }
+  .splash-brand { display: none; }
+}
+/* Первый показ: бобёр и карточка появляются следом за уже стоящей сценой (фон и логотип — в index.html). */
 .is-intro .splash-hero {
-  animation: splash-rise 0.6s cubic-bezier(0.34, 1.4, 0.64, 1) 0.2s both;
+  animation: splash-rise 0.6s cubic-bezier(0.34, 1.4, 0.64, 1) 0.15s both, splash-breathe 3.4s ease-in-out 0.8s infinite;
 }
 .is-intro .splash-ui {
   animation: splash-up 0.4s ease-out 0.35s both;
 }
-@keyframes splash-pano {
-  from { opacity: 0; transform: scale(1.08); }
-  to { opacity: 1; transform: none; }
+.is-lifted .splash-stage {
+  animation: splash-lift 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 @keyframes splash-rise {
   from { opacity: 0; transform: translateY(40px) scale(0.86); }
@@ -735,6 +839,9 @@ html.light .splash {
 @keyframes splash-up {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: none; }
+}
+@keyframes splash-lift {
+  from { transform: translate(-50%, -50%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .splash *,
@@ -747,6 +854,14 @@ html.reduced-motion .splash *,
 html.reduced-motion .splash *::after {
   animation: none !important;
   transition: none !important;
+}
+
+/* Реплика бобра на знайомстві: на малих екранах компактніша, щоб не закривати Бобека. */
+@media (max-width: 359px), (max-height: 640px) {
+  .ob-bubble { padding: 8px 14px 9px; }
+  .ob-bubble-hi { font-size: 21px; }
+  .ob-bubble-pl { font-size: 14px; }
+  .ob-bubble-hint { font-size: 12px; margin-top: 0; }
 }
 
 /* ───────── Ігрові картки головної (референс GLOBAL REDESIGN) ───────── */

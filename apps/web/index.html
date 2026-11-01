@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#07182C" />
     <title>POLSKI GO</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <!-- Панорама заставки вантажиться паралельно з JS (вона ж потрібна головній у Варшаві). -->
-    <link rel="preload" as="image" href="/src/assets/splash/warszawa-portrait-900.webp" imagesrcset="/src/assets/splash/warszawa-portrait-900.webp 900w, /src/assets/splash/warszawa-portrait-1400.webp 1400w" imagesizes="(max-aspect-ratio: 9/16) 56vh, 100vw" />
+    <!-- Фон заставки (Варшава, шари владельца) вантажиться паралельно з JS; той самий srcset і sizes, що в <img> нижче й у Splash.tsx. -->
+    <link rel="preload" as="image" href="/src/assets/splash/royal/bg.webp" imagesrcset="/src/assets/splash/royal/bg@640.webp 640w, /src/assets/splash/royal/bg.webp 941w" imagesizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw" />
     <script>
       // Профіль запитуємо одразу, паралельно із завантаженням JS: збереженим токеном і лише для того ж
       // власника, що й api.ts (authOwner). Без токена чи для іншого користувача — нічого не робимо.
@@ -29,15 +29,29 @@
       })();
     </script>
     <style>
-      /* Миттєва заставка до завантаження JS: той самий фон і логотип на тому ж місці, що в Splash.tsx. */
+      /* Миттєва заставка до завантаження JS: той самий фон і логотип на тому ж місці й у тих же межах кадра 941×1672, що в Splash.tsx
+         (сцена накриває екран як cover: --u — пікселів екрана на піксель кадра). Логотип з'являється тут один раз; далі його лише підхоплює React. */
       html, body { margin: 0; background: #07182c; }
-      .pre-splash { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center;
-        padding: calc(env(safe-area-inset-top, 0px) + 5vh) 24px 0; background: #07182c; }
-      .pre-splash img { width: min(84vw, 340px); height: auto; filter: drop-shadow(0 10px 16px rgb(7 24 44 / 0.45)); }
+      .pre-splash { --u: max(calc(100vw / 941), calc(100vh / 1672)); position: fixed; inset: 0; overflow: hidden; background: #07182c; }
+      @supports (height: 100dvh) { .pre-splash { --u: max(calc(100vw / 941), calc(100dvh / 1672)); } }
+      .pre-stage { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 941); height: calc(var(--u) * 1672); transform: translate(-50%, -50%); }
+      .pre-bg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s ease-out; }
+      .pre-bg.on { opacity: 1; }
+      .pre-logo { position: absolute; left: 14.134%; top: 9.031%; width: 73.965%; height: 10.705%; object-fit: contain;
+        filter: drop-shadow(0 5px 5px rgb(3 13 60 / 0.45)); animation: pre-logo-arrive 0.85s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+      @keyframes pre-logo-arrive { from { transform: translateY(-15px) scale(0.94); opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) { .pre-logo { animation: none; } .pre-bg { transition: none; } }
     </style>
   </head>
   <body>
-    <div id="root"><div class="pre-splash" aria-hidden="true"><img src="/src/assets/brand/logo.webp" alt="" width="640" height="126" /></div></div>
+    <div id="root"><div class="pre-splash" aria-hidden="true"><div class="pre-stage">
+      <img class="pre-bg" src="/src/assets/splash/royal/bg.webp" srcset="/src/assets/splash/royal/bg@640.webp 640w, /src/assets/splash/royal/bg.webp 941w" sizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw" width="941" height="1672" alt="" fetchpriority="high" onload="this.classList.add('on')" />
+      <img class="pre-logo" src="/src/assets/splash/royal/logo.webp" width="696" height="179" alt="" />
+    </div></div></div>
+    <script>
+      // Фон мог встигнути завантажитись до того, як розбір сторінки повісив onload: тоді проявляємо його одразу.
+      (function () { var i = document.querySelector('.pre-bg'); if (i && i.complete) i.classList.add('on'); })();
+    </script>
     <!-- Офіційний SDK Telegram Mini Apps (після розмітки: заставку видно одразу) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script type="module" src="/src/main.tsx"></script>

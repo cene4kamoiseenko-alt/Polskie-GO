@@ -7,8 +7,23 @@ function apiBaseInHtml(base: string): Plugin {
   return { name: 'pg-api-base', transformIndexHtml: (html) => html.replace('__PG_API_BASE__', JSON.stringify(base.replace(/\/$/, ''))) };
 }
 
+/**
+ * Dev-темы заставки (`?splash=sunset|adventure`, src/dev/splashThemes.ts) в сборку не входят: без этой подмены Rollup всё равно загружает модуль
+ * за `import.meta.env.DEV`, и картинки тем (~0,8 МБ) попадают в dist, хотя ни одна страница на них не ссылается.
+ */
+function devSplashThemesOutOfBuild(): Plugin {
+  const empty = '\0pg-dev-splash-themes-empty';
+  return {
+    name: 'pg-dev-splash-themes-out-of-build',
+    apply: 'build',
+    enforce: 'pre', // раньше встроенного разрешения путей: иначе реальный модуль найдётся первым
+    resolveId: (id) => (/(^|\/)dev\/splashThemes$/.test(id) ? empty : undefined),
+    load: (id) => (id === empty ? 'export const devSplashArt = () => { throw new Error("dev-темы заставки доступны только в разработке"); };' : undefined),
+  };
+}
+
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss(), apiBaseInHtml(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '')],
+  plugins: [react(), tailwindcss(), devSplashThemesOutOfBuild(), apiBaseInHtml(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '')],
   server: {
     port: 5173,
     host: true,

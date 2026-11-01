@@ -91,8 +91,8 @@ export default function Onboarding() {
     return (
       <SplashScene
         slogan={t('slogan')}
-        // Бобер стоїть над реплікою: репліка (≈150 px) над двома кнопками.
-        heroBottom="calc(var(--safe-b) + 286px)"
+        // Сцена трохи вище: внизу місце під репліку (≈150 px) над двома кнопками, логотип лишається цілим.
+        lift
         steps={
           <div className="splash-steps" aria-label={t('boot_step', { n: 1, total: steps.length })}>
             {steps.map((x, i) => <i key={x} className={i === 0 ? 'on' : undefined} />)}
@@ -100,13 +100,13 @@ export default function Onboarding() {
           </div>
         }
       >
-        <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45, type: 'spring' }} className="absolute inset-x-5 z-30 rounded-3xl border-2 border-sky/60 bg-white px-5 py-3.5 text-left text-ink shadow-[0_8px_0_rgb(7_24_44/0.35)]" style={{ bottom: 'calc(var(--safe-b) + 150px)' }}>
+        <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45, type: 'spring' }} className="ob-bubble absolute inset-x-5 z-30 rounded-3xl border-2 border-sky/60 bg-white px-5 py-3.5 text-left text-ink shadow-[0_8px_0_rgb(7_24_44/0.35)]" style={{ bottom: 'calc(var(--safe-b) + 150px)' }}>
           <div className="absolute -top-2.5 left-1/2 h-5 w-5 -translate-x-1/2 rotate-45 border-l-2 border-t-2 border-sky/60 bg-white" />
           {/* Репліка завжди на білому тлі — фіксований темно-синій, а не токен теми (у темній темі він світлий). */}
           <div className="mb-0.5 text-[12px] font-black uppercase tracking-wide text-[#0b6aa0]">Bobek</div>
-          <div lang="pl" className="text-[26px] font-black leading-tight">Cześć!</div>
-          <div lang="pl" className="text-[16px] font-extrabold leading-snug">{HELLO_PL}</div>
-          {t('ob_bubble') && <div className="mt-0.5 text-[14px] font-bold leading-snug text-[#3d5168]">{t('ob_bubble')}</div>}
+          <div lang="pl" className="ob-bubble-hi text-[26px] font-black leading-tight">Cześć!</div>
+          <div lang="pl" className="ob-bubble-pl text-[16px] font-extrabold leading-snug">{HELLO_PL}</div>
+          {t('ob_bubble') && <div className="ob-bubble-hint mt-0.5 text-[14px] font-bold leading-snug text-[#3d5168]">{t('ob_bubble')}</div>}
         </motion.div>
         <div className="safe-bottom absolute inset-x-5 bottom-4 z-20 space-y-2">
           <motion.button initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="btn btn-red w-full text-lg" onClick={() => { haptic.tap(); stopSpeech(); nextStep(); }}>
