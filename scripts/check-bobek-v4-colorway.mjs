@@ -31,6 +31,9 @@ let changed=0,incorrect=0,mismatchAlpha=0,mask=0;
 for(let y=0;y<512;y++)for(let x=0;x<512;x++){
   const i=(y*512+x)*4;
   if(red.data[i+3]!==blue.data[i+3])mismatchAlpha++;
+  // Lossless WebP may normalize RGB in fully-transparent pixels, which have
+  // zero visual contribution. Only compare visible character pixels.
+  if(red.data[i+3]===0&&blue.data[i+3]===0)continue;
   const diff=red.data[i]!==blue.data[i]||
     red.data[i+1]!==blue.data[i+1]||red.data[i+2]!==blue.data[i+2];
   if(diff) {
