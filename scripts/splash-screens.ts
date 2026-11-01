@@ -88,12 +88,15 @@ async function main() {
       check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
       const imgs = await u.page.locator('.splash img.splash-bg, .splash img.splash-logo, .splash img.splash-beaver').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0));
       check(imgs.length === 3 && imgs.every(Boolean), `${tag}: фон, логотип и Бобек загружены`);
-      const doing = await u.page.locator('[data-boot]').first().getAttribute('data-boot');
-      const pct = Number((await u.page.locator('.splash-pct').first().textContent())?.replace('%', ''));
+      // Процент и полоса читаются одним запросом: прогресс обновляется ~15 раз в секунду, два запроса подряд могли бы попасть на разные кадры.
+      const { doing, pct, bar } = await u.page.evaluate(() => ({
+        doing: document.querySelector('[data-boot]')?.getAttribute('data-boot') ?? null,
+        pct: Number(document.querySelector('.splash-pct')?.textContent?.replace('%', '')),
+        bar: Number(document.querySelector('.splash-bar')?.getAttribute('aria-valuenow')),
+      }));
       check(doing === 'profile' && pct > 10 && pct < 82, `${tag}: этап настоящий — профиль ещё грузится, ${pct}% (между входом 45 % и профилем 82 %)`);
       const cut = await u.page.locator('[data-boot]').first().evaluate((el) => el.scrollWidth > el.clientWidth + 1);
       check(!cut, `${tag}: подпись этапа не обрезана`);
-      const bar = Number(await u.page.locator('.splash-bar').getAttribute('aria-valuenow'));
       check(bar === pct, `${tag}: полоса и процент совпадают (${bar} / ${pct})`);
       await u.page.screenshot({ path: `${OUT}/loading-${w}.png` });
       await u.context.close();
