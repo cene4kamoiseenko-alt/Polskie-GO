@@ -50,7 +50,7 @@ assert(garmentPixels>50000,`Insufficient outfit coverage: ${garmentPixels}`);
 const redFront=readFileSync(join(folder,'red-front.svg'),'utf8');
 const denimFront=readFileSync(join(folder,'denim-front.svg'),'utf8');
 assert(redFront.includes('>PL</text>'),'Red hoodie must contain the signature PL text');
-assert(!denimFront.includes('>PL</text>')&&denimFront.includes('L575'),'Denim jacket must have different drawn garment details');
+assert(!denimFront.includes('>PL</text>')&&denimFront.includes('L571 838'),'Denim jacket must have different drawn garment details');
 assert.notDeepEqual(raw['red-front'],raw['denim-front'],'Distinct outfits required, not simple recolor');
 const m=JSON.parse(readFileSync(join(folder,'manifest.json'),'utf8'));
 assert.equal(m.productionReady,false,'QA-only art must not be production ready');
