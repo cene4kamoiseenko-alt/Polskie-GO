@@ -137,9 +137,21 @@ const shoulderPatch = Buffer.from(`<svg width="1024" height="1024" xmlns="http:/
   <path d="M669 533Q688 517 720 536" fill="none" stroke="#90b8dd" stroke-opacity=".35" stroke-width="3"/>
 </svg>`);
 const denimWaveTop = await sharp(denimBase).composite([{input:shoulderPatch}]).png().toBuffer();
+// A small red fabric socket sits behind the rotating hoodie sleeve, matching
+// the denim socket. Without it the lower shoulder can become an empty cutout.
+const redBase = await removeRightArm(generated['top-hoodie-red'],688);
+const redPatch = Buffer.from(`<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+ <defs><radialGradient id="fabric" cx=".55" cy=".48" r=".7">
+   <stop offset="0" stop-color="#e73847" stop-opacity=".95"/>
+   <stop offset=".7" stop-color="#c91b2b" stop-opacity=".92"/>
+   <stop offset="1" stop-color="#a91526" stop-opacity=".5"/></radialGradient></defs>
+ <ellipse cx="695" cy="558" rx="43" ry="39" fill="url(#fabric)"/>
+ <path d="M669 535Q689 523 721 537" fill="none" stroke="#ff9b9a" stroke-opacity=".32" stroke-width="3"/>
+ </svg>`);
+const redWaveTop=await sharp(redBase).composite([{input:redPatch}]).png().toBuffer();
 const wave = {
   'torso': await removeRightArm(generated.torso,700),
-  'top-hoodie-red': await removeRightArm(generated['top-hoodie-red'],688),
+  'top-hoodie-red': redWaveTop,
   'arm-hoodie-red':layers['arm-wave'],
   'top-jacket-denim':denimWaveTop,
   'arm-jacket-denim':await denimArm(layers['arm-wave']),
