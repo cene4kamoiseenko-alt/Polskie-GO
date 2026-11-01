@@ -17,7 +17,7 @@ import { LOOK_V2_DRAFT_MANIFEST } from './lookV2Manifest';
 import { v3ManifestForEquipment } from './lookV3Manifest';
 import { hasBobekV3Art, bobekV3AssetUrl } from './lookV3Assets';
 import { V3_ART_APPROVED, LAYERED_APP_PREVIEW_APPROVED, V3_ART_BLOCK_REASON } from './bobekArtGate';
-import { coherentPreviewReady, coherentPreviewUrl } from './coherentAssets';
+import { coherentPreviewReady, coherentColorwayReady, coherentPreviewUrl } from './coherentAssets';
 import { getBobekPreviewSnapshot, notifyBobekPreviewChanged, setBobekPreviewEnabled } from '../lib/bobekPreview';
 
 const STORE = 'pg_look_prototype_v1';
@@ -45,6 +45,7 @@ const STEPS = [
 
 export default function LookPrototype() {
   const [saved, setSaved] = useState<Saved>(load);
+  const [safeColorway, setSafeColorway] = useState<'red' | 'blue'>('red');
   const [appPreview, setAppPreview] = useState(() => LAYERED_APP_PREVIEW_APPROVED && getBobekPreviewSnapshot().startsWith('1\n'));
   // Old QA sessions may have persisted a visually broken cutout. Disable them.
   useEffect(() => {
@@ -140,6 +141,47 @@ export default function LookPrototype() {
                 ))}
               </div>
             ):<p className="mt-2 text-xs text-coral">Генерація оригінального еталона: npm run bobek:coherent:generate</p>}
+          </section>
+
+          <section className="card mt-3 p-3" aria-label="Bobek V4 — геометрично стабільний колір худі" data-bobek-v4-colorway>
+            <p className="text-sm font-bold">Bobek V4 · Перевірка посадки без зсуву</p>
+            <p className="mt-1 text-xs">
+              Обидва кольори зібрані з одного незмінного малюнка: голова, лапи,
+              хвіст, тіні й контур збігаються піксель у піксель. Синє — це
+              **перефарбоване худі**, а не нова джинсова куртка чи скелетний риг.
+              Рух рукою для синього кольору не створено.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                className="btn btn-ghost min-h-11 text-xs"
+                data-bobek-v4-colorway="red"
+                aria-pressed={safeColorway === 'red'}
+                onClick={() => setSafeColorway('red')}
+              >Червоне худі · еталон</button>
+              <button
+                className="btn btn-ghost min-h-11 text-xs"
+                data-bobek-v4-colorway="blue"
+                aria-pressed={safeColorway === 'blue'}
+                disabled={!coherentColorwayReady}
+                onClick={() => setSafeColorway('blue')}
+              >Синє худі · тест кольору</button>
+            </div>
+            {coherentColorwayReady ? (
+              <figure className="mt-3 flex flex-col items-center rounded-xl bg-white/80 p-2">
+                <img
+                  className="w-full max-w-[280px]"
+                  src={coherentPreviewUrl(safeColorway === 'red' ? 'front-approved' : 'front-blue-colorway')}
+                  alt={safeColorway === 'red' ? 'Оригінальний Бобек у червоному худі' : 'Той самий Бобек із синім худі'}
+                  loading="lazy"
+                  data-bobek-v4-display
+                />
+                <figcaption className="mt-1 text-center text-xs">
+                  {safeColorway === 'red' ? 'Еталон · без змін' : 'Синя версія · одна геометрія, без рухомих шарів'}
+                </figcaption>
+              </figure>
+            ) : (
+              <p className="mt-2 text-xs text-coral">Для синього кольору виконайте npm run bobek:v4:colorway перед build:web.</p>
+            )}
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
