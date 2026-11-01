@@ -22,6 +22,10 @@ on:
       - 'scripts/generate-bobek-v3.mjs'
       - 'scripts/check-bobek-v3.mjs'
       - 'scripts/bobek-v3-frame-qa.mjs'
+      - 'scripts/generate-bobek-coherent.mjs'
+      - 'scripts/check-bobek-coherent.mjs'
+      - 'apps/web/src/dev/bobekArtGate.ts'
+      - 'apps/web/src/dev/coherentAssets.ts'
       - 'docs/design/BOBEK_ART_APPROVAL.json'
       - 'package.json'
       - '.github/workflows/bobek-qa.yml'
@@ -60,6 +64,10 @@ jobs:
           path: docs/qa/bobek-v3-frames
           if-no-files-found: warn
           retention-days: 30
+      - name: Generate coherent Bobek master references with zero moving clothing
+        run: npm run bobek:coherent:generate
+      - name: Verify face and alpha silhouettes stay identical across full outfits
+        run: npm run bobek:coherent:check
       - name: Build real web client (detect Vite bundling errors)
         run: npm run build:web
       - name: Sprite dimensions and alpha
