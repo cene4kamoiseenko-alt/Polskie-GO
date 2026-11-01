@@ -1,14 +1,19 @@
-/** QA-only sprite URL resolver; no production garments are replaced by this experiment. */
-const assets = import.meta.glob('./bobek-v3/idle/*.webp', { eager: true, import: 'default' }) as Record<string,string>;
-const required = ['torso','head','top-hoodie-red','top-jacket-denim','backpack','cap-red','glasses-round'];
-export const hasBobekV3Art = required.every((name) => !!assets[`./bobek-v3/idle/${name}.webp`]);
+/** Bobek V3.1 QA resolver. Generated WebP paths are isolated under dev/. */
+const assets = import.meta.glob('./bobek-v3/**/*.webp',{eager:true,import:'default'}) as Record<string,string>;
+const idle = ['torso','head','top-hoodie-red','top-jacket-denim','backpack','cap-red','glasses-round'];
+const wave = ['torso','top-hoodie-red','arm-hoodie-red'];
+const allowed = new Set([
+  ...idle.map(name=>`idle/${name}`),
+  ...wave.map(name=>`wave/${name}`),
+]);
+export const hasBobekV3Art = [...allowed].every(key=>!!assets[`./bobek-v3/${key}.webp`]);
 
 export function bobekV3AssetUrl(key:string,width:number):string|null {
-  if (!key.startsWith('bobek-v3/idle/') || key.includes('..')) return null;
-  const basename = key.slice('bobek-v3/idle/'.length);
-  if (!required.includes(basename)) return null;
-  const pathname = `./bobek-v3/idle/${basename}`;
-  if (width<=256 && assets[`${pathname}@256.webp`]) return assets[`${pathname}@256.webp`];
-  if (width<=512 && assets[`${pathname}@512.webp`]) return assets[`${pathname}@512.webp`];
-  return assets[`${pathname}.webp`] ?? null;
+  if (!key.startsWith('bobek-v3/')) return null;
+  const name = key.slice('bobek-v3/'.length);
+  if (!allowed.has(name)) return null;
+  const path = `./bobek-v3/${name}`;
+  if(width<=256&&assets[`${path}@256.webp`])return assets[`${path}@256.webp`];
+  if(width<=512&&assets[`${path}@512.webp`])return assets[`${path}@512.webp`];
+  return assets[`${path}.webp`]??null;
 }
