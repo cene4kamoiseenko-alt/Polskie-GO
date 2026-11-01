@@ -7,6 +7,7 @@
  *    «шаг 1 из 6», ниже две карточки с артами «Старый рынок» и «Андрейки», значки времени и XP, красные кнопки; блок «Как работает пропуск»; нет горизонтальной
  *    прокрутки, всё в кадре, кнопки ≥ 44 px, подписи не вылезают из карточек, картинки загружены (нижние — лениво).
  * 2. Нажатия ведут туда, куда вели раньше: «Продолжить» и «Рогалики» — /life/marcin-rogal, «11 ноября» — /life/listopad-swieto.
+ * 2а. Начата «11 ноября» (listopad-swieto): в «Продолжить» вырезка Бобека-бариста (мастер владельца), целая и в кадре; обложка сезона — кадр Stary Rynek 16:9, загружен.
  * 3. Без Premium и без прогресса: «Бесплатно» только у первой, у остальных замок и «Premium», нажатие ведёт на /premium; карточки «Продолжить» нет.
  * 4. Светлая тема и «Меньше анимации» (prefers-reduced-motion): панели остаются тёмными и читаемыми, анимаций нет.
  */
@@ -36,13 +37,13 @@ async function main() {
   const pageErrors: string[] = [];
   let devUser = 996100;
 
-  async function userPage(size: [number, number], opts: { premium?: boolean; started?: boolean; theme?: 'light' | 'dark'; reduced?: boolean } = {}) {
+  async function userPage(size: [number, number], opts: { premium?: boolean; started?: boolean | string; theme?: 'light' | 'dark'; reduced?: boolean } = {}) {
     const u = await stand.login();
     await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
     await u.call('PATCH', '/api/me/settings', { theme: opts.theme ?? 'dark', reducedMotion: !!opts.reduced });
     if (opts.premium) await db.insert(subscriptions).values({ userId: u.user.id, planCode: 'MONTH_1', status: 'ACTIVE', startsAt: new Date(), expiresAt: new Date(Date.now() + 86_400_000), grantedByAdminId: 'qa-pass-screens' });
     if (opts.started) {
-      const r = await u.call('POST', '/api/missions/marcin-rogal/start', {});
+      const r = await u.call('POST', `/api/missions/${typeof opts.started === 'string' ? opts.started : 'marcin-rogal'}/start`, {});
       if (r.status !== 200) throw new Error(`не удалось начать миссию: ${r.status}`);
     }
     const id = String(++devUser);
@@ -72,7 +73,7 @@ async function main() {
       const tag = `${w}px`;
       check((await u.page.locator('[data-pass-featured="marcin-rogal"]').count()) === 1, `${tag}: сверху карточка «Продолжить» для начатой миссии`);
       const resume = (await u.page.locator('[data-pass-featured] .pg-resume').textContent()) ?? '';
-      check(/Продолжить.*шаг 1 из 6/.test(resume), `${tag}: «${resume.trim()}» — шаг из реального прогона`);
+      check(/Продолжить.*шаг\s1\sиз\s6/.test(resume), `${tag}: «${resume.trim()}» — шаг из реального прогона`);
       const listed = await u.page.locator('[data-pass-mission]').evaluateAll((els) => els.map((e) => e.getAttribute('data-pass-mission')));
       check(listed.join() === 'listopad-swieto,andrzejki-wosk', `${tag}: ниже две остальные миссии, «Рогалики» не дублируются (${listed.join(', ')})`);
       check((await u.page.locator('[data-pass-mission="marcin-rogal"]').count()) === 0, `${tag}: начатая миссия только в «Продолжить»`);
@@ -88,6 +89,8 @@ async function main() {
       }
       const cutout = await u.page.locator('.pg-feature-art').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
       check(cutout, `${tag}: вырезка рогаликов загружена`);
+      const cover = await u.page.locator('img[data-season-cover="listopad-poznan"]').first().evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, src: el.currentSrc.split('/').pop(), r: el.getBoundingClientRect().right, x: el.getBoundingClientRect().x }));
+      check(cover.ok && cover.x >= 0 && cover.r <= w, `${tag}: обложка сезона — кадр Stary Rynek загружен и в кадре (${cover.src})`);
       await u.page.evaluate(() => window.scrollTo(0, 0));
 
       // раскладка
@@ -139,6 +142,45 @@ async function main() {
         await u.page.waitForURL(/\/life\/listopad-swieto$/, { timeout: 15_000 });
         check(true, '390px: «11 ноября» с Premium открывает миссию');
       }
+      await u.context.close();
+    }
+
+    // ── 2а. Начата «11 ноября»: в «Продолжить» Бобек-бариста ──
+    for (const [w, h] of [[320, 640], [390, 844]] as [number, number][]) {
+      const u = await userPage([w, h], { premium: true, started: 'listopad-swieto' });
+      await u.open();
+      const tag = `${w}px`;
+      check((await u.page.locator('[data-pass-featured="listopad-swieto"]').count()) === 1, `${tag}: «11 ноября» начата — карточка «Продолжить»`);
+      const listed = await u.page.locator('[data-pass-mission]').evaluateAll((els) => els.map((e) => e.getAttribute('data-pass-mission')));
+      check(listed.join() === 'marcin-rogal,andrzejki-wosk', `${tag}: ниже остальные миссии (${listed.join(', ')})`);
+      const cut = await u.page.locator('.pg-feature-art').evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, nw: el.naturalWidth, nh: el.naturalHeight, src: el.currentSrc.split('/').pop() }));
+      check(cut.ok && /barista/.test(cut.src ?? '') && cut.nw === 275 && cut.nh === 340, `${tag}: вырезка Бобека-бариста загружена (${cut.src}, ${cut.nw}×${cut.nh})`);
+      const feat = await box(u.page, '.pg-feature');
+      const cutBox = await box(u.page, '.pg-feature-art');
+      const play = await box(u.page, '.pg-feature .pg-play');
+      check(cutBox.y >= feat.y - 1 && cutBox.b <= feat.b + 1 && cutBox.x >= feat.x && cutBox.r <= feat.r, `${tag}: Бобек-бариста целиком внутри карточки (${Math.round(cutBox.w)}×${Math.round(cutBox.h)})`);
+      check(cutBox.r <= play.x + 6, `${tag}: Бобек не заходит на кнопку (${Math.round(cutBox.r)} ≤ ${Math.round(play.x)})`);
+      const resumeTextR = await u.page.locator('[data-pass-featured] .pg-resume').evaluate((el) => {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        return r.getBoundingClientRect().right;
+      });
+      const titleR = await u.page.locator('[data-pass-featured] .pg-feature-title').evaluate((el) => {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        return r.getBoundingClientRect().right;
+      });
+      check(resumeTextR <= cutBox.x + 4, `${tag}: подпись «шаг N из M» не заходит на Бобека (${Math.round(resumeTextR)} ≤ ${Math.round(cutBox.x)})`);
+      check(titleR <= cutBox.x + 4 || (await box(u.page, '.pg-feature-title')).b <= cutBox.y + 2, `${tag}: название не заходит на Бобека (${Math.round(titleR)} ≤ ${Math.round(cutBox.x)})`);
+      const goalR = await u.page.locator('[data-pass-featured] .pg-feature-goal').evaluate((el) => {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        return r.getBoundingClientRect().right;
+      });
+      check(goalR <= cutBox.x, `${tag}: описание миссии не заходит на Бобека (${Math.round(goalR)} ≤ ${Math.round(cutBox.x)})`);
+      const featClip = await u.page.locator('.pg-feature-goal').evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+      check(!featClip, `${tag}: описание в «Продолжить» не обрезано`);
+      await u.page.screenshot({ path: `${OUT}/pass-barista-${w}.png`, fullPage: true });
       await u.context.close();
     }
 

@@ -63,24 +63,47 @@ export const itemIcon = (key: string) => pick('items', key);
 export const travellerScene = () => pick('costumes', 'traveller-scene');
 
 /**
- * Арты карточек пропуска месяца (src/assets/pass, пакет владельца 2026-11-01, docs/design/v19/pass): широкие кадры 3,7:1 / 4,4:1 для «11 ноября» и «Анджейки»
- * (<файл>.webp 866 px и <файл>@640.webp) и вырезка рогаликов для карточки «Продолжить». Ключ — slug миссии; нет записи — карточка берёт сцену миссии.
- * Арты ТОЛЬКО для карточек пропуска: фон самой миссии — из реестра сцен (SCENE_ART, кадры 2:1 без пустых полей).
+ * Арты пропуска месяца (src/assets/pass, мастера владельца 2026-11-01, docs/design/v19/pass; сборка — scripts/build-pass-art.mjs):
+ *  · карточки миссий: «11 ноября» — Stary Rynek 2:1 (1400 px и @640), «Анджейки» — вырезка референса 866 px (кадра пока нет);
+ *  · вырезка героя карточки «Продолжить»: рогалики (приближённая маска референса) и Бобек-бариста;
+ *  · обложка сезона «Ноябрь в Познани» (16:9, 1200 px и @640).
+ * Ключ — slug миссии (обложка — slug сезона); нет записи — карточка берёт сцену миссии, обложка — сцену первой миссии сезона.
+ * Арты ТОЛЬКО для пропуска: фон самой миссии — из реестра сцен (SCENE_ART, кадры 2:1 без пустых полей).
  */
-const PASS_ART: Record<string, string> = { 'listopad-swieto': 'stary-rynek', 'andrzejki-wosk': 'andrzejki' };
-const PASS_CUTOUT: Record<string, string> = { 'marcin-rogal': 'rogaliki' };
+const PASS_ART: Record<string, { file: string; width: number }> = {
+  'listopad-swieto': { file: 'stary-rynek', width: 1400 },
+  'andrzejki-wosk': { file: 'andrzejki', width: 866 },
+};
+/** Размеры вырезок — файла, не экрана (атрибуты width/height держат место, пока картинка грузится). */
+const PASS_CUTOUT: Record<string, { file: string; w: number; h: number }> = {
+  'marcin-rogal': { file: 'rogaliki', w: 245, h: 147 },
+  'listopad-swieto': { file: 'barista', w: 275, h: 340 },
+};
+const PASS_SEASON_COVER: Record<string, { file: string; width: number }> = { 'listopad-poznan': { file: 'season-listopad', width: 1200 } };
 
 /** Картинка карточки миссии в пропуске (src + srcset) или null. */
 export function passArt(slug: string): { src: string; srcSet: string | undefined } | null {
-  const name = PASS_ART[slug];
-  const src = name ? pick('pass', name) : null;
-  if (!name || !src) return null;
-  const small = pick('pass', `${name}@640`);
-  return { src, srcSet: small ? `${small} 640w, ${src} 866w` : undefined };
+  return passImage(PASS_ART[slug]);
 }
 
-/** Вырезка героя карточки «Продолжить» (прозрачный PNG-подобный WebP) или null. */
-export const passCutout = (slug: string): string | null => (PASS_CUTOUT[slug] ? pick('pass', PASS_CUTOUT[slug]) : null);
+/** Обложка сезона пропуска (по slug сезона) или null — тогда сцена первой миссии сезона, как раньше. */
+export function passSeasonCover(seasonSlug: string): { src: string; srcSet: string | undefined } | null {
+  return passImage(PASS_SEASON_COVER[seasonSlug]);
+}
+
+function passImage(entry: { file: string; width: number } | undefined): { src: string; srcSet: string | undefined } | null {
+  const src = entry ? pick('pass', entry.file) : null;
+  if (!entry || !src) return null;
+  const small = pick('pass', `${entry.file}@640`);
+  return { src, srcSet: small ? `${small} 640w, ${src} ${entry.width}w` : undefined };
+}
+
+/** Вырезка героя карточки «Продолжить» (прозрачный WebP) с размерами файла или null. */
+export function passCutout(slug: string): { src: string; w: number; h: number } | null {
+  const c = PASS_CUTOUT[slug];
+  const src = c ? pick('pass', c.file) : null;
+  return c && src ? { src, w: c.w, h: c.h } : null;
+}
 
 export const cityAsset = (slug: string) => pick('cities', slug);
 

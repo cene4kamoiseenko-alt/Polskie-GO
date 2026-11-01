@@ -10,12 +10,12 @@
  * 4. Мгновенная заставка index.html (без JS) и заставка React: логотип на одном и том же месте с точностью до пикселя — без прыжка.
  * 5. Знакомство: сцена приподнята, логотип цел, слоган и шаги под ним, реплика и кнопки в кадре.
  * 6. Логотип с украшением — группа шириной не больше 80 % экрана по центру, ниже шапки Telegram (safe area + 12 px, не выше 44 px), украшение внутри группы.
- * 7. Минимальное время показа заставки (SPLASH_MIN_MS = 1700 мс): быстрый повторный запуск держит её не меньше, смена идёт до 100 %.
- * 0. Слой Бобека (файл): вырезка архива обрезала лапы и оставляла по их краю просвечивающие серые полосы (владелец увидел на телефоне 2026-11-01) —
- *    внутри силуэта нет полупрозрачных пикселей, лапы достроены ниже обреза мастера.
+ * 7. Минимальное время показа заставки (SPLASH_MIN_MS из lib/boot.ts): быстрый повторный запуск держит её не меньше, смена идёт до 100 %.
+ * 0. Слой Бобека (файл): вырезка из архива обрезала лапы и оставляла по их краю просвечивающие серые полосы (владелец увидел на телефоне 2026-11-01); теперь слой — чистая
+ *    вырезка владельца: внутри силуэта нет полупрозрачных пикселей (в мастере «непрозрачное» — 253 из 255, конвейер доводит до 255), лапы целые.
  */
 import { createRequire } from 'node:module';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromiumPath, startStand } from './lib/stand';
 import { en } from '../apps/web/src/i18n/en';
@@ -34,34 +34,35 @@ const check = (ok: unknown, what: string) => {
 };
 
 type Box = { x: number; y: number; w: number; h: number; r: number; b: number };
-/** Слой Бобека выше мастера на 46 px прозрачного запаса вниз (достроенные лапы): видимая часть — до 575 из 606 px слоя (низ лап ≈ 1215 из кадра 1672). */
-const VISIBLE = 575 / 606;
+/** Слой Бобека обрезан по содержимому: ноги — его низ (линия y = 1216 кадра 1672), поэтому видимая часть — вся высота слоя. */
+const VISIBLE = 1;
 
-/** Слой Бобека как файл: нет просвечивающих мест внутри силуэта, лапы достроены (см. scripts/build-splash-art.mjs, repairBobek). */
+/** Слой Бобека как файл: чистая вырезка владельца, нет просвечивающих мест внутри силуэта, лапы целые (scripts/build-splash-art.mjs нормализует альфу: в мастере «непрозрачное» — 253 из 255). */
 async function checkBobekLayer(theme: string, expected: { w: number; h: number }) {
   const sharp = require('sharp');
   const { data, info } = await sharp(resolve(root, `apps/web/src/assets/splash/${theme}/bobek.webp`)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: w, height: h } = info;
-  check(w === expected.w && h === expected.h, `слой Бобека ${theme}: ${w}×${h} (мастер + 46 px запаса вниз = ${expected.w}×${expected.h})`);
+  check(w === expected.w && h === expected.h, `слой Бобека ${theme}: ${w}×${h} (ожидается ${expected.w}×${expected.h})`);
   const a = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : data[(y * w + x) * 4 + 3]);
   let interior = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const v = a(x, y);
-      if (v <= 8 || v === 255) continue;
+      // 240…254 — не дырки, а сглаживание краёв при уменьшении (Lanczos даёт 253–254 у щелей между прядями): глазом не отличить от 255.
+      if (v <= 8 || v >= 240) continue;
       let edge = false;
       for (let dy = -4; dy <= 4 && !edge; dy++) for (let dx = -4; dx <= 4; dx++) if (a(x + dx, y + dy) <= 8) { edge = true; break; }
       if (!edge) interior++;
     }
   }
-  check(interior === 0, `слой Бобека ${theme}: внутри силуэта нет просвечивающих пикселей (${interior})`);
+  check(interior === 0, `слой Бобека ${theme}: внутри силуэта нет просвечивающих пикселей (< 94 % непрозрачности: ${interior})`);
   let low = 0;
   for (let y = h - 36; y < h; y++) for (let x = 0; x < w; x++) if (a(x, y) >= 200) low++;
-  check(low >= 300, `слой Бобека ${theme}: лапы достроены ниже обреза мастера (${low} плотных пикселей в нижних 36 строках)`);
+  check(low >= 300, `слой Бобека ${theme}: лапы целые, до самого низа слоя (${low} плотных пикселей в нижних 36 строках)`);
 }
 
 async function main() {
-  await checkBobekLayer('royal', { w: 528, h: 606 });
+  await checkBobekLayer('royal', { w: 728, h: 869 });
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
   const { base, login } = stand;
@@ -309,7 +310,9 @@ async function main() {
 
     // ── 7. Минимальное время показа: быстрый повторный запуск держит заставку, смена идёт до 100 % ──
     {
-      const SPLASH_MIN_MS = 1700;
+      // Значение — из исходника (одна константа), чтобы тест не расходился с приложением.
+      const SPLASH_MIN_MS = Number(/SPLASH_MIN_MS\s*=\s*(\d+)/.exec(readFileSync(resolve(root, 'apps/web/src/lib/boot.ts'), 'utf8'))?.[1]);
+      check(SPLASH_MIN_MS >= 2000, `минимум показа заставки задан в lib/boot.ts (${SPLASH_MIN_MS} мс)`);
       const u = await userPage(String(++n), [390, 844]);
       await u.page.goto(u.url('/'));
       await u.page.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 30_000 });
@@ -317,7 +320,7 @@ async function main() {
       const t0 = Date.now();
       await u.page.reload();
       let maxPct = 0, goneAt = -1, sawDone = false;
-      while (Date.now() - t0 < 9000) {
+      while (Date.now() - t0 < 12_000) {
         const st = await u.page.evaluate(() => {
           const pct = document.querySelector('.splash-pct');
           return { splash: !!document.querySelector('.splash'), pct: pct ? Number(pct.textContent?.replace('%', '')) : null };
@@ -328,7 +331,7 @@ async function main() {
         await u.page.waitForTimeout(40);
       }
       check(goneAt >= SPLASH_MIN_MS - 250, `повторный запуск: заставка держится не меньше ${SPLASH_MIN_MS} мс (исчезла на ${goneAt} мс)`);
-      check(goneAt > 0 && goneAt < 6000, `повторный запуск: после минимума заставка уходит сама (${goneAt} мс)`);
+      check(goneAt > 0 && goneAt < SPLASH_MIN_MS + 4000, `повторный запуск: после минимума заставка уходит сама (${goneAt} мс)`);
       check(sawDone || maxPct >= 97, `повторный запуск: перед уходом полоса доходит до 100 % (максимум ${maxPct} %)`);
       await u.context.close();
     }

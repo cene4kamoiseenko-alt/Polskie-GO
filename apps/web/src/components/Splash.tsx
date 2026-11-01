@@ -141,7 +141,7 @@ export function SplashScene({ slogan, steps, loading, error, onRetry, lift, chil
           draggable={false}
         />
         <div className="splash-hero" aria-hidden>
-          <img className="splash-beaver" src={art.bobek} alt="" width={528} height={606} draggable={false} />
+          <img className="splash-beaver" src={art.bobek} alt="" width={728} height={869} draggable={false} />
           {error && !online && (
             <span className="splash-badge">
               <Icon name="wifi-off" size={26} strokeWidth={2.6} />
@@ -154,7 +154,7 @@ export function SplashScene({ slogan, steps, loading, error, onRetry, lift, chil
       <div className="splash-brandbar">
         <div className="splash-lockup">
           <img className="splash-orn" src={art.orn} alt="" width={424} height={134} draggable={false} />
-          <img className="splash-logo" src={art.logo} alt="POLSKI GO" width={696} height={179} draggable={false} />
+          <img className="splash-logo" src={art.logo} alt="POLSKI GO" width={973} height={188} draggable={false} />
         </div>
         {(slogan || steps) && (
           <header className="splash-head">

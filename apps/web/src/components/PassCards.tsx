@@ -19,7 +19,7 @@ function PassArt({ m, lazy }: { m: PassMission; lazy: boolean }) {
     <img
       src={art.src}
       srcSet={art.srcSet}
-      // Экран не шире max-w-xl (576 px); арт 866 px, на узких экранах хватает 640.
+      // Экран не шире max-w-xl (576 px): на узких экранах хватает 640.
       sizes="(min-width: 576px) 540px, 92vw"
       alt=""
       className="pg-art-img"
@@ -35,13 +35,14 @@ function PassArt({ m, lazy }: { m: PassMission; lazy: boolean }) {
 export function PassFeatured({ m, onOpen }: { m: PassMission; onOpen: () => void }) {
   const { t, tr } = useT();
   const cutout = passCutout(m.slug);
-  const resume = t('life_continue', { n: (m.inProgress ?? 0) + 1, total: m.steps });
+  // Неразрывные пробелы перед цифрами: на узком экране «шаг 1 из 5» не оставляет «5» одну на второй строке.
+  const resume = t('life_continue', { n: (m.inProgress ?? 0) + 1, total: m.steps }).replace(/ (?=\d)/g, '\u00a0');
   return (
     <motion.button
       type="button"
       whileTap={{ scale: 0.985 }}
       onClick={() => { haptic.tap(); onOpen(); }}
-      className="pg-feature"
+      className={`pg-feature${cutout && cutout.h > cutout.w ? ' pg-feature--portrait' : ''}`}
       data-pass-featured={m.slug}
       aria-label={`${resume}: ${tr(m.title)}`}
     >
@@ -51,7 +52,7 @@ export function PassFeatured({ m, onOpen }: { m: PassMission; onOpen: () => void
         <span className="pg-resume">{resume}</span>
       </span>
       {cutout ? (
-        <img className="pg-feature-art" src={cutout} alt="" width={245} height={147} loading="eager" decoding="async" draggable={false} />
+        <img className="pg-feature-art" src={cutout.src} alt="" width={cutout.w} height={cutout.h} loading="eager" decoding="async" draggable={false} />
       ) : (
         <span className="pg-feature-thumb" aria-hidden>
           <MissionScene slug={m.slug} scene={m.scene} className="pg-art-img" lazy={false} />

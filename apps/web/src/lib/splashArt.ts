@@ -1,9 +1,9 @@
 /**
- * Слои экрана загрузки (мастера владельца 2026-11-01, docs/design/v19/loading; сборка — scripts/build-splash-art.mjs).
+ * Слои экрана загрузки (чистые мастера владельца 2026-11-01, docs/design/v19/loading/clean; сборка — scripts/build-splash-art.mjs).
  * Сцена 941×1672: фон и Бобек лежат в ней по процентам кадра (сцена накрывает экран как `cover`), а логотип с украшением над ним — отдельная группа,
  * которая масштабируется по ширине экрана и стоит под шапкой Telegram (на высоких телефонах сцена шире экрана, и логотип в ней был крупнее экрана).
  *
- * Тема одна — royal (синее небо, Варшава). sunset, adventure и soft не берутся: soft — Бобек размыт (по решению владельца), остальные — вне задания;
+ * Тема одна — «Замковая площадь» (Варшава, закат). sunset, adventure и soft не берутся: soft — Бобек размыт (по решению владельца), остальные — вне задания;
  * их мастера лежат в docs/design/v19/loading.
  */
 import royalBg640 from '../assets/splash/royal/bg@640.webp';
@@ -18,16 +18,13 @@ export const SPLASH_W = 941;
 export const SPLASH_H = 1672;
 
 type Box = readonly [x: number, y: number, w: number, h: number];
-/** Положение слоёв в кадре (loading.js архива; украшение — рамка, найденная конвейером: `scripts/build-splash-art.mjs` печатает её при сборке). */
-const BOBEK: Box = [168, 640, 528, 560];
-const LOGO: Box = [133, 151, 696, 179];
-const ORN: Box = [268, 20, 424, 134];
-
 /**
- * Слой Бобека выше мастера на 46 px вниз: вырезка архива обрезала лапы, и конвейер (scripts/build-splash-art.mjs, PAD_BOTTOM) достраивает их из оригинала.
- * Верх и бока слоя прежние, поэтому положение остальных слоёв не меняется.
+ * Положение слоёв в кадре: рамки обрезанных по содержимому слоёв (числа печатает `scripts/build-splash-art.mjs`; Бобек стоит на линии y = 1216,
+ * украшение — рамка, найденная конвейером в концепте владельца).
  */
-const SPRITE_PAD_BOTTOM = 46;
+const BOBEK: Box = [170.6, 595.5, 520.3, 621];
+const LOGO: Box = [133.6, 171.6, 694.7, 134.5];
+const ORN: Box = [268, 20, 424, 134];
 
 /** Группа «логотип + украшение»: объединение их рамок в пикселях кадра. */
 const BRAND = (() => {
@@ -50,7 +47,7 @@ export function splashGeometry(): CSSProperties {
     '--bob-l': pct(BOBEK[0], SPLASH_W),
     '--bob-t': pct(BOBEK[1], SPLASH_H),
     '--bob-w': pct(BOBEK[2], SPLASH_W),
-    '--bob-h': pct(BOBEK[3] + SPRITE_PAD_BOTTOM, SPLASH_H),
+    '--bob-h': pct(BOBEK[3], SPLASH_H),
     '--brand-w': BRAND.w,
     '--brand-h': BRAND.h,
     '--orn-l': pct(ORN[0] - BRAND.x, BRAND.w),

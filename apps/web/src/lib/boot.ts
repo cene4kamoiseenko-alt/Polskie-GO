@@ -15,8 +15,8 @@ export type BootStage = 'start' | 'auth' | 'profile' | 'screen';
 const TARGET: Record<BootStage, number> = { start: 0.12, auth: 0.45, profile: 0.82, screen: 1 };
 const ORDER: BootStage[] = ['start', 'auth', 'profile', 'screen'];
 
-/** Мінімум показу заставки від початку завантаження сторінки, мс (знімається однією константою). */
-export const SPLASH_MIN_MS = 1700;
+/** Мінімум показу заставки від початку завантаження сторінки, мс (знімається однією константою). 1700 → 2400: власник попросив ще трохи довше (2026-11-01). */
+export const SPLASH_MIN_MS = 2400;
 
 let stage: BootStage = 'start';
 let stageAt = performance.now();

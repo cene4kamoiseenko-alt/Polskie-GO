@@ -1,317 +1,202 @@
 /**
- * Слои экрана загрузки (мастера владельца 2026-11-01: docs/design/v19/loading/) → ассеты приложения.
+ * Слои экрана загрузки (чистые мастера владельца 2026-11-01, docs/design/v19/loading/clean) → ассеты приложения.
  *
- *   node scripts/build-splash-art.mjs                 — собрать тему royal
- *   node scripts/build-splash-art.mjs --only royal    — одну тему
- *   node scripts/build-splash-art.mjs --sheet out.png — + контрольный лист (покой / Бобек сдвинут / логотип в начале появления)
+ *   node scripts/build-splash-art.mjs                 — собрать слои
+ *   node scripts/build-splash-art.mjs --sheet out.png — + контрольный лист (сцена в сборе)
  *
- * Тема «soft» («Мягкий», Бобек заметно размытее остальных) по решению владельца не берётся: ни мастеров, ни сборки.
- * Мастера «чистые фоны» из архива не чистые (владелец это знает, README архива: «фон восстановлен ориентировочно»): на месте логотипа, Бобека
- * и карточки прогресса остались призраки — полупрозрачный силуэт логотипа, размытые «следы» Бобека (контур, лапы), смазанная плита карточки с
- * контуром стекла. Пока слои стоят на месте, их не видно, но у Бобека есть покачивание, а у логотипа появление — призраки вылезают из-под слоёв.
- * Конвейер перерисовывает три зоны (оригиналы не меняются, всё воспроизводимо):
- *  1. логотип: небо под ним (и вокруг на 14 px) заполняется гладкой интерполяцией по окружению (push-pull);
- *  2. Бобек: вокруг силуэта настоящая сцена берётся из оригинального композита (у «чистого» фона там шов от нейро-заливки), а полоса
- *     «2 px снаружи … 10 px внутрь силуэта» (кайма вырезки и то, что открывает покачивание) заполняется продолжением цветов снаружи внутрь
- *     с тангенциальным сглаживанием — без шва, а покачивание не обнажает ни контур, ни лапы. Снаружи сцену не трогаем: 9 px заливки размазывали
- *     фонарный столб у тела Бобека в бледную полосу, а у лап и хвоста оставляли мазки;
- *  3. Бобек (сам слой): по краю лап у вырезки полупрозрачные серые полосы (след мягкой тени, принятый за фон) — через пальцы просвечивает брусчатка.
- *     Внутри силуэта (замыкание маски на 10 px, без 3 px кромки) слой делается непрозрачным, цвет берётся из оригинального композита, где лапы целые;
- *  4. украшение над логотипом (замок, лавр, дуги — в «чистом» фоне они запечены и частично стёрты заливкой под логотипом: нижняя дуга обрезана с обоих концов)
- *     вынимается отдельным слоем `orn.webp` из оригинального композита по белизне (min(R,G,B) на синем небе); в фоне это место заливается небом.
- *     Логотип и украшение приложение собирает в одну группу, которую можно уменьшить и опустить под шапку Telegram, ничего не рассоединяя;
- *  5. карточка: полоса y 1226…1582 на всю ширину — интерполяция + настоящая брусчатка из чистой нижней полосы кадра, зеркально (чем ближе к
- *     низу, тем больше): сверху вплотную к лапам остаются тень и мягкий свет.
- * Результат: bg.webp (941 px, как исходник), bg@640.webp, bobek.webp, logo.webp (RGBA) в apps/web/src/assets/splash/royal/ и
- * apps/web/src/dev/splash-themes/<тема>/; положение слоёв (кадр 941×1672) — в apps/web/src/lib/splashArt.ts.
+ * Мастера (всё прислал владелец, чистое, без призраков):
+ *   clean/royal_scene.webp   — «Замковая площадь», Варшава, закат, 1536×1024 без логотипа, Бобека и карточки;
+ *   clean/royal_bobek.webp   — Бобек в красном худи PL с рюкзаком, 1122×1402, RGBA без потерь;
+ *   clean/royal_logo.webp    — логотип POLSKI GO с синей обводкой, 2172×724, RGBA без потерь.
+ * Первая версия заставки собиралась из архива с «чистыми» фонами, на которых оставались призраки логотипа, Бобека и карточки; конвейер их перерисовывал
+ * (обрезанные лапы, мазки у тела, смазанная плита карточки). С чистыми мастерами всё это не нужно: удалено.
+ *
+ * Что делает конвейер:
+ *  1. Фон. Кадр приложения портретный 941×1672, мастер — альбомный 3:2. Сцена масштабируется (SCENE_SCALE: столько же, сколько в концепте — колонна, дома и
+ *     Бобек в тех же пропорциях), ставится так, чтобы колонна Сигизмунда стояла слева за Бобеком, и достраивается:
+ *       · небо сверху (под логотипом) — цвет верхних строк мастера с лёгким сгущением к зениту и облаками, отражёнными от верхнего края (колонну не отражаем);
+ *       · брусчатка снизу (под карточкой) — зеркальное продолжение чистой полосы площади, ниже она темнее и мягче.
+ *     Размер файла — KBG от кадра, чтобы на телефонах с DPR 3 фон не растягивался.
+ *  2. Бобек. Альфа вырезки нормализуется (в мастере «непрозрачное» — 253 из 255: слой 1 % прозрачный), крошки с альфой < 8 убираются, цвет кромки
+ *     (прозрачность < 250) берётся у ближайшего плотного пикселя (в мастере кромка по контуру подкрашена красным), слой обрезается по содержимому и
+ *     масштабируется так, чтобы видимая высота Бобека была BOBEK_VISIBLE_H, а ноги стояли на линии BOBEK_FEET.
+ *  3. Логотип. Крошки убираются, слой обрезается по содержимому; видимая ширина — LOGO_VISIBLE_W, верх букв — на LOGO_LETTERS_TOP.
+ *  4. Украшение над логотипом (замок, лавр, дуги) — отдельным слоем `orn.webp`, вынутым из цельного концепта (originals/04_royal_original.webp) по белизне
+ *     (min(R,G,B) на синем небе; блики жёлтой листвы исключены). Логотип из мастера — без этих деталей, поэтому они остаются отдельным слоем; приложение собирает
+ *     логотип и украшение в одну группу, которая стоит под шапкой Telegram.
+ * Результат: apps/web/src/assets/splash/royal/{bg,bg@640,bobek,logo,orn}.webp. Положение слоёв в кадре 941×1672 (`BOBEK`, `LOGO`, `ORN` в apps/web/src/lib/splashArt.ts)
+ * скрипт печатает в конце — оттуда же числа для мгновенной заставки в apps/web/index.html.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const sharp = require('sharp');
+import { bounds, cleanSprite, crop, dilate, readRGBA, sharp, webp } from './lib/sprite.mjs';
 
 const SRC = new URL('../docs/design/v19/loading/', import.meta.url);
-const OUT_APP = new URL('../apps/web/src/assets/splash/', import.meta.url);
+const CLEAN = new URL('clean/', SRC);
+const OUT = new URL('../apps/web/src/assets/splash/royal/', import.meta.url);
+/** Кадр приложения, px. */
 const W = 941;
 const H = 1672;
 
-/** Положение слоёв в кадре 941×1672: [x, y, ширина, высота] — из loading.js архива. Тема одна (royal): sunset и adventure не берутся (мастера лежат в docs/design/v19/loading). */
-const THEMES = {
-  royal: { bobek: [168, 640, 528, 560], logo: [133, 151, 696, 179] },
-};
-const R_LOGO = 14;
-/**
- * Что перерисовывается вокруг силуэта Бобека. Снаружи сцена настоящая (оригинальный композит) — трогаем только кайму вырезки (2 px): первая версия
- * заливала 9 px снаружи и размазывала всё, что стоит вплотную к Бобеку (фонарный столб превращался в бледную вертикальную полосу вдоль тела, у лап
- * и хвоста — мазки). Внутрь на 10 px — то, что может открыться при покачивании (CSS: ≤ 5 px вверх, наклон ≤ 0,5°).
- */
-const R_OUT = 2;
-const R_IN = 10;
-/** Область, где вместо «чистого» фона берётся оригинальный композит (там нет шва от заливки). */
-const R_REAL = 40;
-const CARD = { y0: 1226, y1: 1582 };
+// ── Настройки сборки (кадр 941×1672) ─────────────────────────────────────────────────────────────────────────────
+
+/** Мастер сцены: размер и сколько пикселей кадра приходится на пиксель мастера (в концепте дома и колонна стояли в таких же пропорциях). */
+const SCENE = { w: 1536, h: 1024, scale: 0.84, x: -170, y: 390 };
+/** Колонна Сигизмунда в мастере (x от … до): небо над ней не отражаем — перевёрнутая статуя. Мостовая начинается ниже ступеней и оснований домов (y). */
+const STATUE_X = [300, 520];
+const PAVEMENT_FROM = 892;
+/** Файл фона в долях кадра (на телефонах с DPR 3 экран шире кадра в 1,2–1,5 раза: больше пикселей — резче). */
+const KBG = 1.2;
+/** Слои Бобека и логотипа — в долях кадра: Бобек на экране крупный, на DPR 3 нужно ≈ 1,4 пикселя на пиксель кадра. */
+const KSP = 1.4;
+
+/** Бобек: видимая высота (по альфе > 128), линия ног и центр по горизонтали в кадре. Как в концепте владельца. */
+const BOBEK_VISIBLE_H = 620;
+const BOBEK_FEET = 1216;
+const BOBEK_CENTER_X = 431;
+/** Логотип: видимая ширина (по альфе > 128), верх букв и центр по горизонтали. */
+const LOGO_VISIBLE_W = 694;
+const LOGO_LETTERS_TOP = 172;
+const LOGO_CENTER_X = 481;
+/** Сила контактной тени под Бобеком (0…1). */
+const SHADOW = 0.5;
 
 const args = process.argv.slice(2);
-const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const sheetPath = args.includes('--sheet') ? args[args.indexOf('--sheet') + 1] : null;
 
-// ── Пиксели ──────────────────────────────────────────────────────────────────────────────────────────────────────
+// ── Фон ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-async function loadRGB(file) {
+/** Скользящее среднее по строке (три прохода ≈ гаусс). */
+function smooth1d(src, radius) {
+  let a = Float32Array.from(src);
+  for (let pass = 0; pass < 3; pass++) {
+    const b = new Float32Array(a.length), cs = new Float64Array(a.length + 1);
+    for (let i = 0; i < a.length; i++) cs[i + 1] = cs[i] + a[i];
+    for (let i = 0; i < a.length; i++) { const lo = Math.max(0, i - radius), hi = Math.min(a.length, i + radius + 1); b[i] = (cs[hi] - cs[lo]) / (hi - lo); }
+    a = b;
+  }
+  return a;
+}
+
+/** Фон кадра: сцена мастера + достроенные небо сверху и брусчатка снизу (размер файла KBG × кадр). */
+async function buildBackground() {
+  const K = KBG, s = SCENE.scale * K;
+  const Wc = Math.round(W * K), Hc = Math.round(H * K);
+  const sw = Math.round(SCENE.w * s), sh = Math.round(SCENE.h * s);
+  const xo = Math.round(SCENE.x * K), yo = Math.round(SCENE.y * K);
+  const { data: scene } = await sharp(readFileSync(new URL('royal_scene.webp', CLEAN)))
+    .removeAlpha().resize(sw, sh, { kernel: 'lanczos3' }).raw().toBuffer({ resolveWithObject: true });
+  const px = new Float32Array(Wc * Hc * 3);
+  const sceneAt = (x, y, k) => scene[(y * sw + (x - xo)) * 3 + k];
+  const inScene = (x) => x - xo >= 0 && x - xo < sw;
+  if (!inScene(0) || !inScene(Wc - 1)) throw new Error('сцена не закрывает кадр по ширине: поправь SCENE.x / SCENE.scale');
+  for (let y = 0; y < sh && yo + y < Hc; y++) for (let x = 0; x < Wc; x++) for (let k = 0; k < 3; k++) px[((yo + y) * Wc + x) * 3 + k] = sceneAt(x, y, k);
+
+  // Небо над сценой: цвет верхних строк (среднее по полосе, сглаженное по горизонтали), к зениту чуть гуще; облака — отражение верха мастера.
+  const bandRows = Math.max(8, Math.round(24 * K));
+  const skyColor = [0, 1, 2].map((k) => {
+    const row = new Float32Array(sw);
+    for (let x = 0; x < sw; x++) { let sum = 0; for (let y = 0; y < bandRows; y++) sum += scene[(y * sw + x) * 3 + k]; row[x] = sum / bandRows; }
+    return smooth1d(row, Math.round(40 * K));
+  });
+  const reflRows = Math.min(yo, Math.round(160 * K));
+  const [sx0, sx1] = STATUE_X.map((v) => v * s + xo);
+  for (let y = 0; y < yo; y++) {
+    const t = (yo - y) / yo, deepen = 1 - 0.1 * t;
+    const i = yo - 1 - y; // строка мастера, от которой отражаем
+    let f = i < reflRows ? 1 - i / reflRows : 0;
+    f = f * f * (3 - 2 * f);
+    for (let x = 0; x < Wc; x++) {
+      const sx = x - xo;
+      const col = [skyColor[0][sx] * deepen * 0.98, skyColor[1][sx] * deepen * 0.99, skyColor[2][sx] * Math.min(1, deepen + 0.03)];
+      const keep = Math.max(0, Math.min(1, Math.min((x - sx0) / (30 * K), (sx1 - x) / (30 * K))));
+      const a = f * (1 - keep);
+      for (let k = 0; k < 3; k++) px[(y * Wc + x) * 3 + k] = a > 0 ? col[k] * (1 - a) + scene[(i * sw + sx) * 3 + k] * a : col[k];
+    }
+  }
+
+  // Брусчатка под сценой: чистая полоса мастера (без ступеней и оснований домов), зеркально; чем дальше, тем темнее.
+  const yb = yo + sh, p0 = Math.round(PAVEMENT_FROM * s), ph = sh - p0;
+  for (let y = yb; y < Hc; y++) {
+    const d = y - yb, m = d % (2 * ph), r = m < ph ? m : 2 * ph - 1 - m, sy = sh - 1 - r;
+    const dark = 1 - 0.18 * Math.min(1, d / (450 * K));
+    for (let x = 0; x < Wc; x++) for (let k = 0; k < 3; k++) px[(y * Wc + x) * 3 + k] = sceneAt(x, sy, k) * dark;
+  }
+  // Контактная тень под ногами Бобека (в мастере он стоит без тени: слой студийный): мягкий эллипс, затемняет и чуть холодит брусчатку.
+  const [cx, cy, rx, ry] = [BOBEK_CENTER_X * K, (BOBEK_FEET - 6) * K, 215 * K, 26 * K];
+  for (let y = Math.max(0, Math.floor(cy - ry * 3)); y < Math.min(Hc, Math.ceil(cy + ry * 3)); y++) {
+    for (let x = Math.max(0, Math.floor(cx - rx * 3)); x < Math.min(Wc, Math.ceil(cx + rx * 3)); x++) {
+      const d2 = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2, a = SHADOW * Math.exp(-d2 * 1.6);
+      if (a < 0.004) continue;
+      const i = (y * Wc + x) * 3;
+      px[i] *= 1 - a * 0.95; px[i + 1] *= 1 - a * 0.95; px[i + 2] *= 1 - a * 0.8;
+    }
+  }
+  const u8 = new Uint8Array(Wc * Hc * 3);
+  for (let i = 0; i < u8.length; i++) u8[i] = Math.max(0, Math.min(255, Math.round(px[i])));
+  // Достроенная брусчатка мягче: размытие только ниже шва (зеркальные края на шве не видны).
+  const ctx = 8, tail = Hc - (yb - ctx);
+  const blurred = await sharp(u8.subarray((yb - ctx) * Wc * 3), { raw: { width: Wc, height: tail, channels: 3 } }).blur(2.5 * K).raw().toBuffer();
+  u8.set(blurred.subarray(ctx * Wc * 3), yb * Wc * 3);
+  const base = sharp(u8, { raw: { width: Wc, height: Hc, channels: 3 } });
+  return {
+    bg: await base.clone().webp({ quality: 82, effort: 6 }).toBuffer(),
+    bg640: await base.clone().resize(640, Math.round((640 * H) / W), { kernel: 'lanczos3' }).webp({ quality: 80, effort: 6 }).toBuffer(),
+    size: [Wc, Hc],
+    sky: yo, ground: yb,
+  };
+}
+
+// ── Бобек и логотип ──────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Бобек: чистка, обрезка по содержимому, масштаб по видимой высоте, ноги на линии BOBEK_FEET. Возвращает файл и рамку слоя в кадре (дробные px). */
+async function buildBobek() {
+  const img = await readRGBA(new URL('royal_bobek.webp', CLEAN));
+  const stats = cleanSprite(img, { minArea: 400, defringe: true });
+  const vis = bounds(img, 128), all = bounds(img, 0);
+  const sc = BOBEK_VISIBLE_H / (vis[3] - vis[1] + 1);
+  const cropped = crop(img, all);
+  const w = cropped.w * sc, h = cropped.h * sc;
+  const left = BOBEK_CENTER_X - ((vis[0] + vis[2] + 1) / 2 - all[0]) * sc;
+  const top = BOBEK_FEET - (vis[3] + 1 - all[1]) * sc;
+  const buf = await webp(cropped, Math.round(w * KSP), Math.round(h * KSP), { quality: 90 });
+  const feet = ((vis[3] + 1 - all[1]) * sc) / h; // линия ног в долях высоты слоя: точка вращения покачивания
+  return { buf, box: [left, top, w, h], feet, stats, visible: [vis[2] - vis[0] + 1, vis[3] - vis[1] + 1] };
+}
+
+async function buildLogo() {
+  const img = await readRGBA(new URL('royal_logo.webp', CLEAN));
+  const stats = cleanSprite(img, { minArea: 400, defringe: false });
+  const vis = bounds(img, 128), all = bounds(img, 0);
+  const sc = LOGO_VISIBLE_W / (vis[2] - vis[0] + 1);
+  const cropped = crop(img, all);
+  const w = cropped.w * sc, h = cropped.h * sc;
+  const left = LOGO_CENTER_X - ((vis[0] + vis[2] + 1) / 2 - all[0]) * sc;
+  const top = LOGO_LETTERS_TOP - (vis[1] - all[1]) * sc;
+  const buf = await webp(cropped, Math.round(w * KSP), Math.round(h * KSP), { quality: 92 });
+  return { buf, box: [left, top, w, h], stats };
+}
+
+// ── Украшение над логотипом ──────────────────────────────────────────────────────────────────────────────────────
+
+/** Область поиска украшения (кадр 941×1672) и порог белизны: небо у́же 90 по min(R,G,B), белое украшение — выше 230. */
+const ORN = { x0: 262, y0: 20, x1: 850, y1: 215, lo: 90, hi: 230 };
+/** Логотип концепта (старый мастер архива): его пиксели из украшения исключаются. */
+const OLD_LOGO_BOX = [133, 151, 696, 179];
+
+async function readFrameRGB(file) {
   const { data, info } = await sharp(readFileSync(file)).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   if (info.width !== W || info.height !== H) throw new Error(`${file}: ожидаю ${W}×${H}, получил ${info.width}×${info.height}`);
-  const px = new Float32Array(W * H * 3);
-  for (let i = 0; i < px.length; i++) px[i] = data[i];
-  return px;
+  return data;
 }
 
-/** Маска «спрайт занимает пиксель кадра»: альфа > 8 слоя, положенного в точку (x, y). */
-async function alphaMask(file, [x, y, w, h]) {
-  const { data, info } = await sharp(readFileSync(file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  if (info.width !== w || info.height !== h) throw new Error(`${file}: ${info.width}×${info.height}, в геометрии ${w}×${h}`);
-  const m = new Uint8Array(W * H);
-  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (data[(j * w + i) * 4 + 3] > 8 && y + j >= 0 && y + j < H && x + i >= 0 && x + i < W) m[(y + j) * W + x + i] = 1;
-  return m;
-}
-
-/** Расширение маски на r пикселей (квадратное окно), через префиксные суммы. */
-function dilate(mask, r) {
-  const tmp = new Uint8Array(W * H);
-  const out = new Uint8Array(W * H);
-  const cs = new Int32Array(Math.max(W, H) + 1);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) cs[x + 1] = cs[x] + mask[y * W + x];
-    for (let x = 0; x < W; x++) tmp[y * W + x] = cs[Math.min(W, x + r + 1)] - cs[Math.max(0, x - r)] > 0 ? 1 : 0;
-  }
-  for (let x = 0; x < W; x++) {
-    for (let y = 0; y < H; y++) cs[y + 1] = cs[y] + tmp[y * W + x];
-    for (let y = 0; y < H; y++) out[y * W + x] = cs[Math.min(H, y + r + 1)] - cs[Math.max(0, y - r)] > 0 ? 1 : 0;
-  }
-  return out;
-}
-
-const erode = (mask, r) => {
-  const inv = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) inv[i] = mask[i] ? 0 : 1;
-  const d = dilate(inv, r);
-  for (let i = 0; i < W * H; i++) inv[i] = d[i] ? 0 : 1;
-  return inv;
-};
-
-/**
- * Заполнение полосы продолжением цветов снаружи: сначала цвет ближайшего известного пикселя (волна от границы), затем сглаживание
- * (Якоби по восьми соседям) только внутри полосы: граница с известным не двигается, поэтому шва нет, а вдоль границы цвета перемешиваются.
- * Пиксели вне полосы и вне известных (глубоко под спрайтом) в расчёте не участвуют.
- */
-function bandFill(px, known, zone, iterations = 40) {
-  const q = new Int32Array(W * H);
-  let head = 0, tail = 0;
-  const done = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) if (known[i]) done[i] = 1;
-  // Начальная волна: известные пиксели, соседствующие с полосой.
-  const near = (i, f) => {
-    const x = i % W, y = (i / W) | 0;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      const nx = x + dx, ny = y + dy;
-      if ((dx || dy) && nx >= 0 && nx < W && ny >= 0 && ny < H) f(ny * W + nx);
-    }
-  };
-  for (let i = 0; i < W * H; i++) if (zone[i] && !known[i]) near(i, (j) => { if (known[j] && done[j] === 1) { done[j] = 2; q[tail++] = j; } });
-  while (head < tail) {
-    const j = q[head++];
-    near(j, (n) => {
-      if (zone[n] && !known[n] && done[n] === 0) {
-        done[n] = 1;
-        for (let k = 0; k < 3; k++) px[n * 3 + k] = px[j * 3 + k];
-        q[tail++] = n;
-      }
-    });
-  }
-  const idx = [];
-  for (let i = 0; i < W * H; i++) if (zone[i] && !known[i]) idx.push(i);
-  const next = new Float32Array(idx.length * 3);
-  for (let it = 0; it < iterations; it++) {
-    for (let n = 0; n < idx.length; n++) {
-      const i = idx[n], x = i % W, y = (i / W) | 0;
-      let s0 = 0, s1 = 0, s2 = 0, c = 0;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const nx = x + dx, ny = y + dy;
-        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-        const j = ny * W + nx;
-        if (!known[j] && !zone[j]) continue;
-        s0 += px[j * 3]; s1 += px[j * 3 + 1]; s2 += px[j * 3 + 2]; c++;
-      }
-      next[n * 3] = s0 / c; next[n * 3 + 1] = s1 / c; next[n * 3 + 2] = s2 / c;
-    }
-    for (let n = 0; n < idx.length; n++) { px[idx[n] * 3] = next[n * 3]; px[idx[n] * 3 + 1] = next[n * 3 + 1]; px[idx[n] * 3 + 2] = next[n * 3 + 2]; }
-  }
-}
-
-/** Push-pull: гладко заполняет неизвестные пиксели по известным (пирамида из усреднений, затем подъём с билинейной подмешкой). */
-function pushPull(px, known) {
-  const levels = [{ w: W, h: H, c: new Float32Array(W * H * 3), a: Float32Array.from(known) }];
-  for (let i = 0; i < W * H; i++) if (known[i]) for (let k = 0; k < 3; k++) levels[0].c[i * 3 + k] = px[i * 3 + k];
-  while (levels[levels.length - 1].w > 1 || levels[levels.length - 1].h > 1) {
-    const p = levels[levels.length - 1];
-    const nw = (p.w + 1) >> 1, nh = (p.h + 1) >> 1;
-    const c = new Float32Array(nw * nh * 3), a = new Float32Array(nw * nh);
-    for (let y = 0; y < nh; y++) {
-      for (let x = 0; x < nw; x++) {
-        let sa = 0, s0 = 0, s1 = 0, s2 = 0;
-        for (let dy = 0; dy < 2; dy++) {
-          for (let dx = 0; dx < 2; dx++) {
-            const sx = Math.min(p.w - 1, 2 * x + dx), sy = Math.min(p.h - 1, 2 * y + dy);
-            const j = sy * p.w + sx;
-            sa += p.a[j]; s0 += p.c[j * 3]; s1 += p.c[j * 3 + 1]; s2 += p.c[j * 3 + 2];
-          }
-        }
-        const o = y * nw + x;
-        a[o] = sa / 4; c[o * 3] = s0 / 4; c[o * 3 + 1] = s1 / 4; c[o * 3 + 2] = s2 / 4;
-      }
-    }
-    levels.push({ w: nw, h: nh, c, a });
-  }
-  const top = levels[levels.length - 1];
-  if (!(top.a[0] > 0)) throw new Error('push-pull: нет известных пикселей');
-  let est = new Float32Array(3);
-  for (let k = 0; k < 3; k++) est[k] = top.c[k] / top.a[0];
-  let ew = 1, eh = 1;
-  for (let l = levels.length - 2; l >= 0; l--) {
-    const lev = levels[l];
-    const out = new Float32Array(lev.w * lev.h * 3);
-    for (let y = 0; y < lev.h; y++) {
-      const fy = Math.min(eh - 1, Math.max(0, (y + 0.5) / 2 - 0.5));
-      const y0 = Math.floor(fy), y1 = Math.min(eh - 1, y0 + 1), ty = fy - y0;
-      for (let x = 0; x < lev.w; x++) {
-        const fx = Math.min(ew - 1, Math.max(0, (x + 0.5) / 2 - 0.5));
-        const x0 = Math.floor(fx), x1 = Math.min(ew - 1, x0 + 1), tx = fx - x0;
-        const o = y * lev.w + x;
-        const wgt = Math.min(1, lev.a[o]);
-        for (let k = 0; k < 3; k++) {
-          const up =
-            (est[(y0 * ew + x0) * 3 + k] * (1 - tx) + est[(y0 * ew + x1) * 3 + k] * tx) * (1 - ty) +
-            (est[(y1 * ew + x0) * 3 + k] * (1 - tx) + est[(y1 * ew + x1) * 3 + k] * tx) * ty;
-          const own = lev.a[o] > 0 ? lev.c[o * 3 + k] / lev.a[o] : up;
-          out[o * 3 + k] = wgt * own + (1 - wgt) * up;
-        }
-      }
-    }
-    est = out; ew = lev.w; eh = lev.h;
-  }
-  return est;
-}
-
-/** Размытие RGB (для выделения мелкой фактуры): через sharp, 8 бит достаточно. */
-async function blurRGB(px, sigma) {
-  const u8 = Uint8Array.from(px, (v) => Math.max(0, Math.min(255, Math.round(v))));
-  const { data } = await sharp(u8, { raw: { width: W, height: H, channels: 3 } }).blur(sigma).raw().toBuffer({ resolveWithObject: true });
-  return Float32Array.from(data);
-}
-
-const reflect = (i, period) => {
-  const m = ((i % (2 * period)) + 2 * period) % (2 * period);
-  return m < period ? m : 2 * period - 1 - m;
-};
-
-// ── Сборка темы ─────────────────────────────────────────────────────────────────────────────────────────────────
-
-/** Внутренность силуэта (замыкание маски на 10 px, минус кромка 3 px): здесь слой Бобека должен быть непрозрачным. */
-const R_CLOSE = 10;
-const R_EDGE = 3;
-/**
- * Вырезка из архива обрезает лапы Бобека волнистой линией (след мягкой тени на земле): нижняя часть пальцев пропала, и под обрезом видна брусчатка.
- * Слой достраивается вниз на столько пикселей; значение дублируется в apps/web/src/lib/splashArt.ts (SPRITE_PAD_BOTTOM).
- */
-const PAD_BOTTOM = 46;
-/** Мех — насыщенный оранжевый (S ≈ 0,86), брусчатка и тень — ≤ 0,43 (замер по оригиналу royal); граница мягкая. */
-const FUR_S0 = 0.42, FUR_S1 = 0.62, FUR_BR = 0.62;
-const GROW_REACH = 48;
-
-const furScore = (r, g, b) => {
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-  if (!mx) return 0;
-  const sat = (mx - mn) / mx;
-  const a = Math.max(0, Math.min(1, (sat - FUR_S0) / (FUR_S1 - FUR_S0)));
-  const blue = Math.max(0, Math.min(1, (FUR_BR - b / Math.max(1, r)) / 0.2));
-  return Math.min(a, blue);
-};
-
-/**
- * Слой Бобека с починенными лапами. Холст расширяется вниз на PAD_BOTTOM; затем
- *  1. достраиваются обрезанные части лап: мех по цвету из оригинального композита, связанный с вырезкой и не дальше GROW_REACH px от неё;
- *  2. внутри силуэта (замыкание маски, минус кромка) слой делается непрозрачным: просвечивающие места берут цвет оригинала.
- * Возвращает RGBA (ширина × (высота + PAD_BOTTOM)), её рамку в кадре, маску в координатах кадра и счётчики.
- */
-async function repairBobek(name, box, orig) {
-  const { data: src, info } = await sharp(readFileSync(new URL(`${name}_bobek.webp`, SRC))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const sw = info.width, sh = info.height + PAD_BOTTOM;
-  if (sw !== box[2] || info.height !== box[3]) throw new Error(`${name}: слой ${info.width}×${info.height}, в геометрии ${box[2]}×${box[3]}`);
-  const rgba = new Uint8Array(sw * sh * 4);
-  rgba.set(src, 0);
-  const at = (i, j) => (j * sw + i) * 4;
-  const art = (i, j) => ((box[1] + j) * W + box[0] + i) * 3;
-  const inFrame = (i, j) => i >= 0 && j >= 0 && i < sw && j < sh && box[0] + i < W && box[1] + j < H;
-
-  // 1. Достройка лап: волна от плотных пикселей вырезки по меху в нижней части слоя.
-  const dist = new Int16Array(sw * sh).fill(-1);
-  const q = [];
-  for (let j = sh - 140; j < sh; j++) for (let i = 0; i < sw; i++) if (j >= 0 && rgba[at(i, j) + 3] >= 128) { dist[j * sw + i] = 0; q.push(j * sw + i); }
-  let grown = 0;
-  for (let h = 0; h < q.length; h++) {
-    const k = q[h], i = k % sw, j = (k / sw) | 0, d = dist[k];
-    if (d >= GROW_REACH) continue;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      const ni = i + dx, nj = j + dy;
-      if (!inFrame(ni, nj) || dist[nj * sw + ni] !== -1) continue;
-      const o = art(ni, nj);
-      const f = furScore(orig[o], orig[o + 1], orig[o + 2]);
-      if (f <= 0.5) continue;
-      dist[nj * sw + ni] = d + 1;
-      q.push(nj * sw + ni);
-    }
-  }
-  for (const k of q) {
-    const i = k % sw, j = (k / sw) | 0, p = at(i, j), o = art(i, j);
-    const f = furScore(orig[o], orig[o + 1], orig[o + 2]);
-    const a = Math.round(f * 255);
-    if (rgba[p + 3] < a) {
-      if (rgba[p + 3] < 255) grown++;
-      rgba[p] = Math.round(orig[o]); rgba[p + 1] = Math.round(orig[o + 1]); rgba[p + 2] = Math.round(orig[o + 2]); rgba[p + 3] = a;
-    }
-  }
-
-  // 2. Непрозрачность внутри силуэта.
-  const mask = new Uint8Array(W * H);
-  for (let j = 0; j < sh; j++) for (let i = 0; i < sw; i++) if (inFrame(i, j) && rgba[at(i, j) + 3] > 8) mask[(box[1] + j) * W + box[0] + i] = 1;
-  const inner = erode(erode(dilate(mask, R_CLOSE), R_CLOSE), R_EDGE);
-  let fixed = 0;
-  for (let j = 0; j < sh; j++) {
-    for (let i = 0; i < sw; i++) {
-      if (!inFrame(i, j)) continue;
-      const p = at(i, j);
-      if (inner[(box[1] + j) * W + box[0] + i] && rgba[p + 3] < 255) {
-        const o = art(i, j);
-        rgba[p] = Math.round(orig[o]); rgba[p + 1] = Math.round(orig[o + 1]); rgba[p + 2] = Math.round(orig[o + 2]); rgba[p + 3] = 255;
-        fixed++;
-      }
-    }
-  }
-  const outMask = new Uint8Array(W * H);
-  for (let j = 0; j < sh; j++) for (let i = 0; i < sw; i++) if (inFrame(i, j) && rgba[at(i, j) + 3] > 8) outMask[(box[1] + j) * W + box[0] + i] = 1;
-  const buf = await sharp(Buffer.from(rgba), { raw: { width: sw, height: sh, channels: 4 } }).webp({ quality: 92, alphaQuality: 100, effort: 6 }).toBuffer();
-  return { buf, mask: outMask, grown, fixed, box: [box[0], box[1], sw, sh] };
-}
-
-/** Область поиска украшения над логотипом (кадр 941×1672) и его порог белизны: небо у́же 90 по min(R,G,B), белое украшение — выше 230. */
-const ORN = { x0: 262, y0: 20, x1: 850, y1: 215, lo: 90, hi: 230 };
-
-/**
- * Украшение над логотипом отдельным слоем. Белое на синем небе: прозрачность — по белизне min(R,G,B) (жёлтая листва даёт малое B, небо — малое R),
- * цвет — белый. Пиксели самого логотипа (его альфа) не берём. Возвращает RGBA рамки украшения, саму рамку и маску (с запасом 3 px) для заливки неба.
- */
-async function extractOrnament(orig, logoMask) {
-  const logoDil = dilate(logoMask, 2);
+async function buildOrnament() {
+  const orig = await readFrameRGB(new URL('originals/04_royal_original.webp', SRC));
+  const oldLogo = await readRGBA(new URL('royal_logo.webp', SRC));
+  const [lx, ly, lw, lh] = OLD_LOGO_BOX;
+  if (oldLogo.w !== lw || oldLogo.h !== lh) throw new Error('мастер логотипа архива не 696×179');
+  const logoMask = new Uint8Array(W * H);
+  for (let j = 0; j < lh; j++) for (let i = 0; i < lw; i++) if (oldLogo.data[(j * lw + i) * 4 + 3] > 8) logoMask[(ly + j) * W + lx + i] = 1;
+  const logoDil = dilate(logoMask, W, H, 2);
   const alpha = new Float32Array(W * H);
   let x0 = W, y0 = H, x1 = -1, y1 = -1;
   for (let y = ORN.y0; y < ORN.y1; y++) {
@@ -319,114 +204,64 @@ async function extractOrnament(orig, logoMask) {
       const i = y * W + x;
       if (logoDil[i]) continue;
       if (x < 330 && y < 110) continue; // блики листвы левой ветки: украшения там нет
-      const w = Math.min(orig[i * 3], orig[i * 3 + 1], orig[i * 3 + 2]);
-      let a = Math.max(0, Math.min(1, (w - ORN.lo) / (ORN.hi - ORN.lo)));
+      const white = Math.min(orig[i * 3], orig[i * 3 + 1], orig[i * 3 + 2]);
+      let a = Math.max(0, Math.min(1, (white - ORN.lo) / (ORN.hi - ORN.lo)));
       if (a < 0.06) a = 0;
       alpha[i] = a;
       if (a > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     }
   }
-  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-  const rgba = new Uint8Array(bw * bh * 4);
-  const mask = new Uint8Array(W * H);
-  for (let y = 0; y < bh; y++) {
-    for (let x = 0; x < bw; x++) {
-      const a = alpha[(y0 + y) * W + x0 + x], p = (y * bw + x) * 4;
-      rgba[p] = rgba[p + 1] = rgba[p + 2] = 255;
-      rgba[p + 3] = Math.round(a * 255);
-      if (a > 0.03) mask[(y0 + y) * W + x0 + x] = 1;
-    }
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1, rgba = new Uint8Array(bw * bh * 4);
+  for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+    const p = (y * bw + x) * 4;
+    rgba[p] = rgba[p + 1] = rgba[p + 2] = 255;
+    rgba[p + 3] = Math.round(alpha[(y0 + y) * W + x0 + x] * 255);
   }
   const buf = await sharp(Buffer.from(rgba), { raw: { width: bw, height: bh, channels: 4 } }).webp({ quality: 95, alphaQuality: 100, effort: 6 }).toBuffer();
-  return { buf, box: [x0, y0, bw, bh], mask: dilate(mask, 3) };
+  return { buf, box: [x0, y0, bw, bh] };
 }
 
-const ORIGINAL = { royal: '04_royal_original' };
+// ── Сборка ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-async function buildTheme(name) {
-  const g = THEMES[name];
-  const px = await loadRGB(new URL(`${name}_background_clean.jpg`, SRC));
-  const orig = await loadRGB(new URL(`originals/${ORIGINAL[name]}.webp`, SRC));
-  const logoMask = await alphaMask(new URL(`${name}_logo.webp`, SRC), g.logo);
-  // Слой Бобека: сначала чиним (лапы, непрозрачность), потому что маска для фона берётся из починенного слоя.
-  const repaired = await repairBobek(name, g.bobek, orig);
-  const bobekMask = repaired.mask;
+mkdirSync(OUT, { recursive: true });
+const bg = await buildBackground();
+const bobek = await buildBobek();
+const logo = await buildLogo();
+const orn = await buildOrnament();
 
-  // 2. Бобек: вокруг силуэта настоящая сцена из оригинала; полоса покачивания — продолжением цветов снаружи.
-  const real = dilate(bobekMask, R_REAL);
-  for (let i = 0; i < W * H; i++) if (real[i]) for (let k = 0; k < 3; k++) px[i * 3 + k] = orig[i * 3 + k];
-  const outer = dilate(bobekMask, R_OUT);
-  const inner = erode(bobekMask, R_IN);
-  const zoneB = new Uint8Array(W * H), knownB = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) {
-    if (outer[i] && !inner[i]) zoneB[i] = 1;
-    else if (!outer[i]) knownB[i] = 1;
-  }
-  bandFill(px, knownB, zoneB);
-
-  // 1. Логотип и украшение над ним: небо вокруг и под ним — интерполяция по окружению.
-  const orn = await extractOrnament(orig, logoMask);
-  const holeA = dilate(logoMask, R_LOGO);
-  for (let i = 0; i < W * H; i++) if (orn.mask[i]) holeA[i] = 1;
-  const knownA = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) knownA[i] = holeA[i] ? 0 : 1;
-  const fillA = pushPull(px, knownA);
-  for (let i = 0; i < W * H; i++) if (holeA[i]) for (let k = 0; k < 3; k++) px[i * 3 + k] = fillA[i * 3 + k];
-
-  // 3. Карточка: интерполяция плюс настоящая брусчатка из чистой нижней полосы (зеркально, влево-вправо тоже: цветы справа внизу не берём).
-  const knownC = new Uint8Array(W * H);
-  for (let y = 0; y < H; y++) if (y < CARD.y0 || y >= CARD.y1) for (let x = 0; x < W; x++) knownC[y * W + x] = 1;
-  const fillC = pushPull(px, knownC);
-  const strip0 = CARD.y1 + 2, S = H - strip0, SX = 560;
-  for (let y = CARD.y0; y < CARD.y1; y++) {
-    const sy = strip0 + reflect(CARD.y1 - 1 - y, S);
-    const t = (y - CARD.y0) / (CARD.y1 - CARD.y0);
-    const m = 0.2 + 0.8 * t;
-    for (let x = 0; x < W; x++) {
-      const sx = reflect(x, SX);
-      for (let k = 0; k < 3; k++) px[(y * W + x) * 3 + k] = fillC[(y * W + x) * 3 + k] * (1 - m) + px[(sy * W + sx) * 3 + k] * m;
-    }
-  }
-
-  const bu8 = new Uint8Array(W * H * 3);
-  for (let i = 0; i < W * H * 3; i++) bu8[i] = Math.max(0, Math.min(255, Math.round(px[i])));
-  const dir = new URL(`${name}/`, OUT_APP);
-  mkdirSync(dir, { recursive: true });
-  const base = sharp(bu8, { raw: { width: W, height: H, channels: 3 } });
-  const bg = await base.clone().webp({ quality: 82, effort: 6 }).toBuffer();
-  const bg640 = await base.clone().resize(640, Math.round((640 * H) / W), { kernel: 'lanczos3' }).webp({ quality: 80, effort: 6 }).toBuffer();
-  const bobek = repaired.buf;
-  const logo = await sharp(readFileSync(new URL(`${name}_logo.webp`, SRC))).webp({ quality: 92, alphaQuality: 100, effort: 6 }).toBuffer();
-  const files = { 'bg.webp': bg, 'bg@640.webp': bg640, 'bobek.webp': bobek, 'logo.webp': logo, 'orn.webp': orn.buf };
-  const sizes = [];
-  for (const [file, buf] of Object.entries(files)) {
-    await sharp(buf).toFile(new URL(file, dir).pathname);
-    sizes.push(`${file} ${Math.round(buf.length / 1024)} КБ`);
-  }
-  console.log(`${name.padEnd(10)} логотип ${holeA.reduce((n, v) => n + v, 0)} px, полоса Бобека ${zoneB.reduce((n, v) => n + v, 0)} px, слой Бобека: достроено ${repaired.grown} px лап, непрозрачными сделано ${repaired.fixed} px · ${sizes.join(' · ')}`);
-  console.log(`${name.padEnd(10)} украшение: рамка ${orn.box.join(' ')} (x y w h); логотип ${g.logo.join(' ')}`);
-  return { name, bg, g, orn };
+const files = { 'bg.webp': bg.bg, 'bg@640.webp': bg.bg640, 'bobek.webp': bobek.buf, 'logo.webp': logo.buf, 'orn.webp': orn.buf };
+const sizes = [];
+for (const [file, buf] of Object.entries(files)) {
+  await sharp(buf).toFile(new URL(file, OUT).pathname);
+  sizes.push(`${file} ${Math.round(buf.length / 1024)} КБ`);
 }
+const r1 = (v) => Math.round(v * 10) / 10;
+const box = (b) => `[${b.map(r1).join(', ')}]`;
+console.log(`фон ${bg.size.join('×')}: небо достроено на ${Math.round(bg.sky / KBG)} px кадра, брусчатка с y ${Math.round(bg.ground / KBG)} · ${sizes.join(' · ')}`);
+console.log(`Бобек: плотных ${bobek.stats.solid} px, крошек убрано ${bobek.stats.removed}, цвет кромки заменён у ${bobek.stats.fringe} px, дырочек внутри закрыто ${bobek.stats.holes}; видимый размер в мастере ${bobek.visible.join('×')}`);
+console.log(`логотип: плотных ${logo.stats.solid} px, крошек убрано ${logo.stats.removed}`);
 
-const names = Object.keys(THEMES).filter((n) => !only || n === only);
-const built = [];
-for (const n of names) built.push(await buildTheme(n));
-console.log(`Тем: ${built.length}. Геометрия слоёв (проценты кадра ${W}×${H}) живёт в apps/web/src/lib/splashArt.ts`);
+// Группа «логотип + украшение»: объединение рамок; числа для apps/web/index.html (мгновенная заставка) считаются здесь же.
+const L = logo.box, O = orn.box;
+const bx = Math.min(L[0], O[0]), by = Math.min(L[1], O[1]);
+const brand = { x: bx, y: by, w: Math.max(L[0] + L[2], O[0] + O[2]) - bx, h: Math.max(L[1] + L[3], O[1] + O[3]) - by };
+const p = (v, total) => `${((v / total) * 100).toFixed(3)}%`;
+console.log('\n── apps/web/src/lib/splashArt.ts ──');
+console.log(`const BOBEK: Box = ${box(bobek.box)};   // слой в кадре; ноги на y=${BOBEK_FEET}, точка вращения ${(bobek.feet * 100).toFixed(1)} % высоты слоя`);
+console.log(`const LOGO: Box = ${box(logo.box)};`);
+console.log(`const ORN: Box = ${box(O)};`);
+console.log('\n── apps/web/index.html (.pre-lockup / .pre-orn / .pre-logo) и Splash.tsx (width/height слоёв) ──');
+console.log(`.pre-lockup: width calc(var(--ug) * ${Math.round(brand.w)}); height calc(var(--ug) * ${Math.round(brand.h)})   (группа ${box([brand.x, brand.y, brand.w, brand.h])})`);
+console.log(`.pre-orn:  left ${p(O[0] - brand.x, brand.w)}; top ${p(O[1] - brand.y, brand.h)}; width ${p(O[2], brand.w)}; height ${p(O[3], brand.h)}`);
+console.log(`.pre-logo: left ${p(L[0] - brand.x, brand.w)}; top ${p(L[1] - brand.y, brand.h)}; width ${p(L[2], brand.w)}; height ${p(L[3], brand.h)}`);
+console.log(`<img width/height>: logo ${Math.round(L[2] * KSP)}×${Math.round(L[3] * KSP)}, bobek ${Math.round(bobek.box[2] * KSP)}×${Math.round(bobek.box[3] * KSP)}, orn ${O[2]}×${O[3]}`);
 
 if (sheetPath) {
-  // Контрольный лист: сцена в сборе (фон, украшение, логотип, Бобек в покое), кадры по 470 px шириной.
+  // Контрольный лист: сцена в сборе (фон, украшение, логотип, Бобек в покое), кадр 470 px шириной.
   const cell = 470, ch = Math.round((cell * H) / W), scale = cell / W;
-  const tiles = [];
-  for (const [i, { name, bg, g, orn }] of built.entries()) {
-    const layer = async (input, box) => ({ input: await sharp(input).resize(Math.round(box[2] * scale), Math.round(box[3] * scale)).png().toBuffer(), left: Math.round(box[0] * scale), top: Math.round(box[1] * scale) });
-    const base = await sharp(bg).resize(cell, ch).png().toBuffer();
-    const bobekFile = new URL(`${name}/bobek.webp`, OUT_APP).pathname;
-    const bobekBox = [g.bobek[0], g.bobek[1], g.bobek[2], g.bobek[3] + PAD_BOTTOM];
-    const img = await sharp(base)
-      .composite([await layer(orn.buf, orn.box), await layer(readFileSync(new URL(`${name}_logo.webp`, SRC)), g.logo), await layer(readFileSync(bobekFile), bobekBox)])
-      .png().toBuffer();
-    tiles.push({ input: img, left: i * cell, top: 0 });
-  }
-  await sharp({ create: { width: cell * built.length, height: ch, channels: 3, background: { r: 20, g: 24, b: 40 } } }).composite(tiles).png().toFile(sheetPath);
+  const layer = async (input, b) => ({ input: await sharp(input).resize(Math.round(b[2] * scale), Math.round(b[3] * scale)).png().toBuffer(), left: Math.round(b[0] * scale), top: Math.round(b[1] * scale) });
+  const base = await sharp(bg.bg).resize(cell, ch).png().toBuffer();
+  const img = await sharp(base).composite([await layer(orn.buf, O), await layer(logo.buf, L), await layer(bobek.buf, bobek.box)]).png().toBuffer();
+  await sharp(img).toFile(sheetPath);
   console.log(`Лист: ${sheetPath}`);
 }

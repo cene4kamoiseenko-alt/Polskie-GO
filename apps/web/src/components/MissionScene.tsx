@@ -3,7 +3,7 @@
  * Тимчасові кадри мають Бобека в самій картинці — екрани, що малюють власного Бобека поверх сцени, питають `hasBakedBobek`.
  */
 import { memo } from 'react';
-import { missionSceneArt } from '../lib/assets';
+import { missionSceneArt, passSeasonCover } from '../lib/assets';
 import { Scene } from './Illustrations';
 
 export const hasBakedBobek = (missionSlug: string) => !!missionSceneArt(missionSlug)?.art.bakedBobek;
@@ -32,10 +32,27 @@ export const MissionScene = memo(function MissionScene({ slug, scene, className,
 });
 
 /**
- * Обкладинка сезону пропуску: картинка першої місії сезону, коли вона намальована (листопад — кондитерська в Познані),
- * інакше SVG-сцена сезону. Однакова на головній, у «Польська в житті» і на /pass.
+ * Обкладинка сезону пропуску: власний кадр сезону (листопад — Stary Rynek у Познані, мастер власника 2026-11-01), інакше картинка першої місії сезону,
+ * коли вона намальована, інакше SVG-сцена сезону. Однакова на головній, у «Польська в житті» і на /pass.
  */
 export function SeasonCover({ season, className, dim }: { season: { slug: string; scene: string; missions: { slug: string }[] }; className?: string; dim?: boolean }) {
+  const cover = passSeasonCover(season.slug);
+  if (cover) {
+    return (
+      <img
+        src={cover.src}
+        srcSet={cover.srcSet}
+        sizes="(min-width: 576px) 576px, 100vw"
+        alt=""
+        className={`${className ?? ''} object-cover${dim ? ' opacity-60' : ''}`}
+        style={{ objectPosition: '50% 38%' }}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+        data-season-cover={season.slug}
+      />
+    );
+  }
   const first = season.missions[0]?.slug ?? '';
   if (!missionSceneArt(first)) return <Scene name={season.scene} className={className} evening={season.slug === 'swieta'} dim={dim} />;
   return <MissionScene slug={first} scene={season.scene} className={`${className ?? ''}${dim ? ' opacity-60' : ''}`} />;
