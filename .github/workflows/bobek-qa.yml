@@ -46,17 +46,17 @@ jobs:
         run: npm run typecheck
       - name: Generate independent V2 QA art (35 source SVG / 105 WebP)
         run: npm run bobek:v2:generate
-      - name: Generate V3.1 cutout & wave sprites (7 idle + 3 wave, 30 WebP)
+      - name: Generate V3.2 cutout and both arms (7 idle + 5 wave, 36 WebP)
         run: npm run bobek:v3:generate
-      - name: V3.1 alpha, separated arm and denim-safe pose
+      - name: V3.2 alpha, aligned sleeves, and garment poses
         run: npm run bobek:v3:check
-      - name: Render real V3.1 animation frames and check shoulder connection
+      - name: Render both V3.2 cutout waves and measure shoulder contact
         run: npm run bobek:v3:frames
-      - name: Upload composited V3.1 art frames for human review
+      - name: Upload 8 red + blue keyframes for human review
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bobek-v31-visual-qa
+          name: bobek-v32-visual-qa
           path: docs/qa/bobek-v3-frames
           if-no-files-found: warn
           retention-days: 30
