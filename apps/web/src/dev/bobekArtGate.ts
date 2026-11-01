@@ -12,5 +12,7 @@
  *  - a dedicated review PR switching this flag after art approval.
  */
 export const V3_ART_APPROVED = false as boolean;
+/** Never mount ANY experimental layered art onto normal app screens until visual QA. */
+export const LAYERED_APP_PREVIEW_APPROVED = false as boolean;
 export const V3_ART_BLOCK_REASON =
   'Bobek V3.2 вимкнено: худі й куртка зміщуються відносно тіла. Нова база та рукави потребують художньої перебудови.';
