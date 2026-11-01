@@ -24,10 +24,12 @@ export const LOOK_WEAR_SLOTS: readonly LookWearSlot[] = LOOK_SLOTS.filter((s): s
 /**
  * Візуальний стан предмета:
  * - `ready` — є живописні шари на спільному полотні базової моделі;
+ * - `prerendered` — для предмета є готові картинки Бобека в ньому (`LookVariants`, рішення власника 2026-11-01):
+ *   образ — це картинка саме такого набору речей, а не шари;
  * - `legacy-whole-look` — є лише цілісна живописна картинка (Бобек уже вдягнений), шари на неї не накладаються;
  * - `pending` — живописного зображення немає: предмет не малюється, володіння зберігається, у гардеробі «скоро».
  */
-export const LOOK_VISUAL_STATUSES = ['ready', 'legacy-whole-look', 'pending'] as const;
+export const LOOK_VISUAL_STATUSES = ['ready', 'prerendered', 'legacy-whole-look', 'pending'] as const;
 export type VisualStatus = (typeof LOOK_VISUAL_STATUSES)[number];
 
 export const LOOK_VIEWS = ['front', 'three-quarter', 'side', 'back'] as const;
@@ -204,6 +206,33 @@ export type LookLegacyBase = {
   fallbackPose: string;
 };
 
+/** Пози готових образів: серія «wave» (махає, карта в руці) і «open» (руки розведені). */
+export const LOOK_VARIANT_POSES = ['wave', 'open'] as const;
+export type LookVariantPose = (typeof LOOK_VARIANT_POSES)[number];
+
+/** Готовий образ: цілісна картинка Бобека у худі й точно цих речах. Поза → ключ ассета (`variants/<речі>_<поза>`). */
+export type LookVariant = {
+  id: string;
+  /** Предмети набору, відсортовані за id (худі в наборі немає — воно є на кожній картинці, див. `includes`). */
+  items: readonly string[];
+  images: Partial<Record<LookVariantPose, string>>;
+};
+
+/**
+ * Готові образи замість шарів (рішення власника 2026-11-01). Усі картинки — на спільному квадратному полотні з тим самим
+ * масштабом і лінією ніг, що в позі `beaver/wave`. Стартовий набір (худі + рюкзак) лишається цілісним базовим образом з 14 позами.
+ */
+export type LookVariants = {
+  id: 'variants';
+  /** Предмети, намальовані на кожній картинці (худі): у наборі не беруть участі. */
+  includes: Partial<Record<LookWearSlot, string>>;
+  /** Поза, яка є в кожного образу. */
+  defaultPose: LookVariantPose;
+  /** Стан → поза. Стан без запису показує `defaultPose` із позначкою `poseFallback`. */
+  moods: Partial<Record<LookMood, LookVariantPose>>;
+  list: readonly LookVariant[];
+};
+
 export type LookCanvas = {
   /** Логічне полотно доставки. Майстер-файли малюються в `masterScale` рази більшими. */
   width: number;
@@ -221,6 +250,8 @@ export type LookManifest = {
   base: LookBase;
   legacyBase: LookLegacyBase;
   items: readonly LookItem[];
+  /** Готові образи (див. LookVariants). Немає — лише legacy-base і костюми. */
+  variants?: LookVariants;
   /**
    * Фірмовий образ: якщо слот вільний і предмет у власності, він показується (позначка `default`).
    * Зберігає теперішню поведінку: стартове худі в БД не вдягнене, але Бобек у ньому.
@@ -235,7 +266,7 @@ export type LookLegacyWear = Readonly<Partial<Record<string, string | null | und
 /** Предмети у власності. `null` — невідомо (чужий профіль): перевірка володіння пропускається. */
 export type LookInventory = readonly string[] | null;
 
-export type LookMode = 'layered' | 'legacy-base' | 'legacy-costume' | 'empty';
+export type LookMode = 'layered' | 'variant' | 'legacy-base' | 'legacy-costume' | 'empty';
 
 /** Готовий до малювання шар (упорядковано від заднього до переднього). */
 export type LookRenderLayer = {
@@ -263,7 +294,9 @@ export type LookItemReason =
   | 'covered-by-whole-look'
   | 'slot-conflict'
   | 'not-owned'
-  | 'view-unsupported';
+  | 'view-unsupported'
+  /** Предмет має готові образи, але саме для цього набору речей картинки немає. */
+  | 'no-variant';
 
 export type LookItemOutcome = {
   id: string;

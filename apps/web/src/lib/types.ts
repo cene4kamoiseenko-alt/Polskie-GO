@@ -179,7 +179,7 @@ export type ShopItem = {
    */
   visualStatus?: ShopVisualStatus;
 };
-export type ShopVisualStatus = 'ready' | 'legacy-whole-look' | 'not-wearable' | 'pending' | 'unknown';
+export type ShopVisualStatus = 'ready' | 'prerendered' | 'legacy-whole-look' | 'not-wearable' | 'pending' | 'unknown';
 
 export type VocabEntry = {
   id: string;

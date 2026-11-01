@@ -1,6 +1,7 @@
 /** Ядро образу Бобека (ADR-005): типи, маніфест, правила, резолвер, політика, DOM-контракт, перевірки. */
 export * from './types';
 export * from './spec';
+export * from './variants';
 export * from './manifest';
 export * from './rules';
 export * from './resolve';

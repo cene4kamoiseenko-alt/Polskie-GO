@@ -14,10 +14,10 @@ const EXCLUSIVE = new Set(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHO
 
 /**
  * Живописний стан предмета для магазину (ADR-005 §8, §12). Купити за Złotki можна лише
- * `ready`, `legacy-whole-look` і `not-wearable` (домик); `pending` і `unknown` — «скоро».
+ * `ready`, `prerendered`, `legacy-whole-look` і `not-wearable` (домик); `pending` і `unknown` — «скоро».
  * `unknown` — одяг, якого немає в маніфесті образу або з іншим слотом: показати його нічим.
  */
-export type ShopVisualStatus = 'ready' | 'legacy-whole-look' | 'not-wearable' | 'pending' | 'unknown';
+export type ShopVisualStatus = 'ready' | 'prerendered' | 'legacy-whole-look' | 'not-wearable' | 'pending' | 'unknown';
 
 /**
  * Вердикт ядра образу. Ідентичність предмета для образу — `asset_key`: саме його клієнт отримує

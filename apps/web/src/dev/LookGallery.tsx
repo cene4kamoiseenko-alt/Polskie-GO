@@ -6,7 +6,7 @@
  * ?box — контур блока й полотна (перевірка обрізання), ?dark — темне тло замість шахівниці (перевірка прозорості).
  */
 import type { ReactNode } from 'react';
-import { LOOK_MANIFEST, LOOK_MOODS, LOOK_VIEWS, resolveLook, tryOn, type LookLegacyWear, type ResolvedLook } from '@polski-go/shared';
+import { LOOK_MANIFEST, LOOK_MOODS, LOOK_VARIANTS, LOOK_VIEWS, resolveLook, tryOn, type LookLegacyWear, type ResolvedLook } from '@polski-go/shared';
 import { BeaverLook } from '../components/Beaver';
 
 const STARTER: LookLegacyWear = { BACKPACK: 'backpack-travel' };
@@ -76,12 +76,28 @@ export function LookGallery() {
     <div data-gallery="look">
       <h1 className="text-2xl font-black">Образ Бобека — QA</h1>
       <p className="muted text-[12px] font-bold">
-        База {m.base.version}: {m.base.status}. Предмети: ready {count('ready')}, legacy-whole-look {count('legacy-whole-look')}, pending {count('pending')}.
-        Режим «layered» вмикається сам, коли база й шари стануть ready (етап M4).
+        База {m.base.version}: {m.base.status}. Предмети: prerendered {count('prerendered')}, ready {count('ready')}, legacy-whole-look {count('legacy-whole-look')}, pending {count('pending')}.
+        Образ — готова картинка набору речей (ADR-008); режим «layered» вмикається лише для шарової бази, якої не планується.
       </p>
 
       <Section title="Стани (стартовий образ)" hint="Поза — з маніфесту (legacyBase.moods). Стан без пози — запасна поза, підписано.">
         {LOOK_MOODS.map((mood) => <Tile key={mood} title={mood} l={look(STARTER, mood)} />)}
+      </Section>
+
+      <Section
+        title="Готові образи (ADR-008)"
+        hint="Усі 16 сполучень худі + кепка / окуляри / шарф / рюкзак. Стартовий набір (лише рюкзак) лишається цілісним образом з 14 позами. Підпис — mode і поза."
+        cols="grid-cols-4"
+      >
+        {LOOK_VARIANTS.list.map((v) => (
+          <Tile key={v.id} title={v.id} l={look(v.items)} size={84} />
+        ))}
+      </Section>
+
+      <Section title="Готові образи: настрої" hint="«Худі + кепка»: wave за замовчуванням, open — cheer / celebrate / gift / sad; без своєї пози — wave з позначкою «запасна»." cols="grid-cols-4">
+        {(['happy', 'cheer', 'celebrate', 'sad', 'gift', 'think', 'read', 'sleep'] as const).map((mood) => (
+          <Tile key={mood} title={mood} l={look(['cap-red'], mood)} size={84} />
+        ))}
       </Section>
 
       <Section title="Ракурси" cols="grid-cols-4">

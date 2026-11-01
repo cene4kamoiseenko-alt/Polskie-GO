@@ -12,10 +12,10 @@ export function visualStatusOf(ref: string, manifest: LookManifest = LOOK_MANIFE
   return findLookItem(ref, manifest)?.status ?? 'unknown';
 }
 
-/** Чи можна показати річ живописно (шарами або цілісною картинкою). */
+/** Чи можна показати річ живописно (шарами, готовим образом або цілісною картинкою). */
 export function canShowItem(ref: string, manifest: LookManifest = LOOK_MANIFEST): boolean {
   const s = visualStatusOf(ref, manifest);
-  return s === 'ready' || s === 'legacy-whole-look';
+  return s === 'ready' || s === 'prerendered' || s === 'legacy-whole-look';
 }
 
 export type LookPurchaseVerdict =

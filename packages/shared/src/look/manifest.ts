@@ -1,17 +1,20 @@
 /**
- * Маніфест образу на поточний стан репозиторію (ADR-005).
+ * Маніфест образу на поточний стан репозиторію (ADR-005, ADR-008).
  *
  * Що є насправді:
- * - Шарової живописної бази ще немає (`base.status = 'pending'`): поки малюється цілісний
- *   базовий образ `legacyBase` — 14 поз `apps/web/src/assets/beaver/*.webp`, у кожну впечатані
- *   червоне худі PL і зелений рюкзак. Полотна різні (512, 768 і 1024 — wave, read, celebrate: майстри власника 2026-10-31), масштаб і положення голови
+ * - Шарової живописної бази немає й не буде (рішення власника 2026-11-01): образ — це готова картинка набору речей.
+ *   Худі, кепка, круглі окуляри, польський шарф і рюкзак мають готові образи в усіх 16 сполученнях (`variants.ts`,
+ *   статус `prerendered`).
+ * - Стартовий набір (худі + рюкзак) лишається цілісним базовим образом `legacyBase` — 14 поз
+ *   `apps/web/src/assets/beaver/*.webp`, у кожну впечатані червоне худі PL і зелений рюкзак. Полотна різні (512, 768 і 1024 — wave, read, celebrate: майстри власника 2026-10-31), масштаб і положення голови
  *   між позами відрізняються — шари на них не накладаються.
  * - 7 цілісних костюмів `apps/web/src/assets/costumes/*.webp` (512×512, альфа) — `legacy-whole-look`.
- * - Решта одягу каталогу живописних шарів не має — `pending`: не малюється, у гардеробі «скоро».
+ * - Решта одягу каталогу образів не має — `pending`: не малюється, у гардеробі «скоро» (з'являється з наступною частиною).
  *
  * Ключі ассетів логічні ('beaver/wave', 'costumes/chef'); URL визначає застосунок.
  */
 import { LOOK_FROM_CATALOG, LOOK_FRONT_ANCHORS, LOOK_CANVAS } from './spec';
+import { LOOK_VARIANTS } from './variants';
 import type { LookCatalogWearSlot, LookLegacyCostumeArt, LookItem, LookManifest, LookPose, LookRarity, LookWearSlot } from './types';
 
 export const LOOK_BASE_VERSION = 'bobek-base@1';
@@ -37,11 +40,11 @@ function pending(id: string, catalogSlot: Exclude<LookCatalogWearSlot, 'FRAME'>,
   return { id, catalogSlot, domain: 'beaver', occupies, rarity, status: 'pending', fallback: 'hide', compatibility: null, layers: [], ...extra };
 }
 
-/** Предмет, що існує лише впечатаним у цілісний базовий образ. */
-function inLegacyBase(id: string, catalogSlot: 'JACKET' | 'BACKPACK', note: string): LookItem {
+/** Предмет із готовими образами (`variants.ts`): Бобек у ньому — окрема картинка набору речей, шарів немає. */
+function prerendered(id: string, catalogSlot: 'HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK', rarity: LookRarity = 'common', note?: string): LookItem {
   return {
-    id, catalogSlot, domain: 'beaver', occupies: [LOOK_FROM_CATALOG[catalogSlot]], rarity: 'common',
-    status: 'legacy-whole-look', fallback: 'legacy-base', compatibility: null, layers: [], note,
+    id, catalogSlot, domain: 'beaver', occupies: [LOOK_FROM_CATALOG[catalogSlot]], rarity,
+    status: 'prerendered', fallback: 'hide', compatibility: null, layers: [], ...(note ? { note } : {}),
   };
 }
 
@@ -71,22 +74,22 @@ function frame(id: string, rarity: LookRarity): LookItem {
 }
 
 export const LOOK_ITEMS: readonly LookItem[] = [
-  // Стартові: існують лише всередині цілісного базового образу.
-  inLegacyBase('hoodie-red', 'JACKET', 'Впечатане в усі 14 поз legacy-base. Шар — у еталоні etalon-1.'),
-  inLegacyBase('backpack-travel', 'BACKPACK', 'Впечатаний в усі 14 поз legacy-base. Шар — у еталоні etalon-1.'),
+  // Стартові: худі намальоване на кожному образі, рюкзак — частина стартового набору (legacy-base) і осі образів.
+  prerendered('hoodie-red', 'JACKET', 'common', 'Намальоване на кожному готовому образі і в усіх 14 позах legacy-base.'),
+  prerendered('backpack-travel', 'BACKPACK', 'common', 'Стартовий набір: худі + рюкзак — 14 поз legacy-base; без рюкзака — готовий образ у худі.'),
   // Головні убори
   pending('cap-green', 'HAT'),
-  pending('cap-red', 'HAT'),
+  prerendered('cap-red', 'HAT'),
   pending('beanie-blue', 'HAT', 'common', { hides: ['tuft'] }),
   pending('hat-chef', 'HAT', 'rare'),
   pending('hat-krasnal', 'HAT', 'epic', { hides: ['tuft'] }),
   pending('crown-gold', 'HAT', 'legendary'),
   // Окуляри
-  pending('glasses-round', 'GLASSES'),
+  prerendered('glasses-round', 'GLASSES'),
   pending('glasses-sun', 'GLASSES', 'rare'),
   pending('glasses-star', 'GLASSES', 'epic'),
   // Шарфи
-  pending('scarf-pl', 'SCARF', 'rare'),
+  prerendered('scarf-pl', 'SCARF', 'rare'),
   pending('scarf-ua', 'SCARF', 'rare'),
   pending('scarf-green', 'SCARF'),
   // Верх
@@ -177,6 +180,7 @@ export const LOOK_MANIFEST: LookManifest = {
     fallbackPose: 'greet',
   },
   items: LOOK_ITEMS,
+  variants: LOOK_VARIANTS,
   signatureDefaults: { top: 'hoodie-red' },
 };
 

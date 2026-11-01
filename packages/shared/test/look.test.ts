@@ -32,15 +32,14 @@ describe('образ: маніфест поточного стану', () => {
     expect(LOOK_MANIFEST.items.filter((i) => i.status === 'ready' && i.domain === 'beaver')).toEqual([]);
   });
 
-  it('стартові худі й рюкзак — частина legacy-base, 7 костюмів — legacy-whole-look, русалка — pending', () => {
+  it('худі, рюкзак, кепка, окуляри й шарф — готові образи; 7 костюмів — legacy-whole-look; русалка й решта — pending', () => {
     const by = (id: string) => LOOK_MANIFEST.items.find((i) => i.id === id)!;
-    expect(by('hoodie-red')).toMatchObject({ status: 'legacy-whole-look', fallback: 'legacy-base' });
-    expect(by('backpack-travel')).toMatchObject({ status: 'legacy-whole-look', fallback: 'legacy-base' });
+    for (const id of ['hoodie-red', 'backpack-travel', 'cap-red', 'glasses-round', 'scarf-pl']) expect(by(id).status, id).toBe('prerendered');
     expect(LOOK_MANIFEST.legacyBase.includes).toEqual({ top: 'hoodie-red', backpack: 'backpack-travel' });
     const legacyCostumes = LOOK_MANIFEST.items.filter((i) => i.legacy).map((i) => i.id).sort();
     expect(legacyCostumes).toEqual(['costume-artist', 'costume-barista', 'costume-chef', 'costume-conductor', 'costume-dragon', 'costume-krasnal', 'costume-winter']);
     expect(by('costume-syrenka').status).toBe('pending');
-    expect(by('cap-red').status).toBe('pending');
+    for (const id of ['cap-green', 'glasses-sun', 'scarf-ua', 'jacket-denim', 'sneakers-white']) expect(by(id).status, id).toBe('pending');
   });
 
   it('костюм не займає слот рюкзака', () => {
@@ -141,13 +140,13 @@ describe('образ: resolveLook на поточних ассетах', () => {
   });
 
   it('річ без живописного шару — pending: не малюється, слот позначено', () => {
-    const look = resolveLook([...STARTER, 'cap-red'], ['backpack-travel', 'cap-red']);
-    expect(look.pending).toEqual(['cap-red']);
-    expect(look.drawn).not.toContain('cap-red');
-    expect(look.slots.headwear).toEqual({ wanted: 'cap-red', shown: null, outcome: 'pending' });
-    expect(look.layers.some((l) => l.owner === 'cap-red')).toBe(false);
-    expect(look.key).not.toContain('cap-red');
-    expect(look.items.find((o) => o.id === 'cap-red')).toEqual({ id: 'cap-red', status: 'pending', drawn: false, reason: 'visual-pending' });
+    const look = resolveLook([...STARTER, 'cap-green'], ['backpack-travel', 'cap-green']);
+    expect(look.pending).toEqual(['cap-green']);
+    expect(look.drawn).not.toContain('cap-green');
+    expect(look.slots.headwear).toEqual({ wanted: 'cap-green', shown: null, outcome: 'pending' });
+    expect(look.layers.some((l) => l.owner === 'cap-green')).toBe(false);
+    expect(look.key).not.toContain('cap-green');
+    expect(look.items.find((o) => o.id === 'cap-green')).toEqual({ id: 'cap-green', status: 'pending', drawn: false, reason: 'visual-pending' });
   });
 
   it('pending-куртка: худі з картинки — не підміна, а явна позначка extraneous', () => {
@@ -158,14 +157,14 @@ describe('образ: resolveLook на поточних ассетах', () => {
   });
 
   it('legacy-костюм позначений і закриває решту; річ з картинки рахується видимою', () => {
-    const look = resolveLook(null, { COSTUME: 'costume-chef', HAT: 'hat-chef', GLASSES: 'glasses-round', BACKPACK: 'backpack-travel' });
+    const look = resolveLook(null, { COSTUME: 'costume-chef', HAT: 'hat-chef', GLASSES: 'glasses-sun', BACKPACK: 'backpack-travel' });
     expect(look.mode).toBe('legacy-costume');
     expect(look.baseRef).toBe('legacy:costume-chef');
     expect(look.layers).toEqual([{ id: 'legacy:costume-chef', asset: 'costumes/chef', owner: 'costume-chef', slot: 'base', z: 0, fit: 'contain', rect: null }]);
     expect(look.legacy).toBe(true);
     expect(look.drawn).toEqual(['costume-chef', 'hat-chef']);
-    expect(look.pending).toEqual(['glasses-round']);
-    expect(look.hidden).toEqual([{ id: 'backpack-travel', status: 'legacy-whole-look', drawn: false, reason: 'covered-by-whole-look', by: 'costume-chef' }]);
+    expect(look.pending).toEqual(['glasses-sun']);
+    expect(look.hidden).toEqual([{ id: 'backpack-travel', status: 'prerendered', drawn: false, reason: 'covered-by-whole-look', by: 'costume-chef' }]);
     const noHat = resolveLook(null, ['costume-chef']);
     expect(noHat.extraneous).toEqual([{ slot: 'headwear', id: 'hat-chef' }]);
     expect(noHat.slots.headwear.outcome).toBe('extraneous');
@@ -269,7 +268,8 @@ describe('образ: tryOn', () => {
 
 describe('образ: політика покупки й показу', () => {
   it('не продаємо те, що не можна показати', () => {
-    expect(canPurchase({ id: 'i_cap-red', slot: 'HAT' })).toEqual({ ok: false, reason: 'visual-pending', status: 'pending' });
+    expect(canPurchase({ id: 'i_cap-green', slot: 'HAT' })).toEqual({ ok: false, reason: 'visual-pending', status: 'pending' });
+    expect(canPurchase({ id: 'i_cap-red', slot: 'HAT' })).toEqual({ ok: true, status: 'prerendered' });
     expect(canPurchase({ id: 'i_costume-artist', slot: 'COSTUME' })).toEqual({ ok: true, status: 'legacy-whole-look' });
     expect(canPurchase({ id: 'i_frame-gold', slot: 'FRAME' })).toEqual({ ok: true, status: 'ready' });
   });
@@ -285,6 +285,7 @@ describe('образ: політика покупки й показу', () => {
   it('canShowItem', () => {
     expect(canShowItem('costume-chef')).toBe(true);
     expect(canShowItem('hoodie-red')).toBe(true);
+    expect(canShowItem('cap-red')).toBe(true);
     expect(canShowItem('glasses-sun')).toBe(false);
     expect(canShowItem('nope')).toBe(false);
   });
@@ -292,16 +293,16 @@ describe('образ: політика покупки й показу', () => {
 
 describe('образ: DOM-контракт data-look', () => {
   it('атрибути кореня й шару', () => {
-    const look = resolveLook([...STARTER, 'cap-red'], ['backpack-travel', 'cap-red'], { mood: 'wave' });
+    const look = resolveLook([...STARTER, 'cap-green'], ['backpack-travel', 'cap-green'], { mood: 'wave' });
     expect(lookDataAttributes(look)).toEqual({
       'data-look': 'look1|legacy-base|legacy-base|front|wave|backpack-travel+hoodie-red',
       'data-look-mode': 'legacy-base',
       'data-look-base': 'legacy-base',
       'data-look-view': 'front',
       'data-look-pose': 'wave',
-      'data-look-equipped': 'backpack-travel cap-red',
+      'data-look-equipped': 'backpack-travel cap-green',
       'data-look-items': 'backpack-travel hoodie-red',
-      'data-look-pending': 'cap-red',
+      'data-look-pending': 'cap-green',
       'data-look-hidden': '',
       'data-look-legacy': 'true',
       'data-look-preview': 'false',
@@ -348,10 +349,15 @@ const READY: Record<string, Partial<LookItem>> = {
   },
 };
 function layeredManifest(ready = READY): LookManifest {
+  // Шарова модель вже не плануємо (ADR-008), але резолвер її підтримує: перевіряємо на синтетичному маніфесті без готових образів.
+  // Рюкзак тут — предмет, що існує лише впечатаним у цілісну картинку (legacy-only), як було до готових образів.
+  const withoutVariants = (it: LookItem): LookItem =>
+    it.id === 'backpack-travel' ? { ...it, status: 'legacy-whole-look', fallback: 'legacy-base' } : it.status === 'prerendered' ? { ...it, status: 'pending' } : it;
   return {
     ...LOOK_MANIFEST,
+    variants: undefined,
     base: { ...LOOK_MANIFEST.base, status: 'ready', layers: BASE_LAYERS },
-    items: LOOK_MANIFEST.items.map((it) => (ready[it.id] ? ({ ...it, ...ready[it.id] } as LookItem) : it)),
+    items: LOOK_MANIFEST.items.map((it) => (ready[it.id] ? ({ ...it, ...ready[it.id] } as LookItem) : withoutVariants(it))),
   };
 }
 

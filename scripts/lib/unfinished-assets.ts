@@ -103,7 +103,7 @@ export function buildUnfinishedAssets(root: string): string {
 
   lines.push('## 4. Слои Бобека (единый рендерер, ADR-005)');
   lines.push('');
-  lines.push('Список строит `missingForMilestone` из манифеста образа. Слои — живописные PNG/WebP на общем холсте 1024 с якорями; делает владелец или Opus по листам эталона. Пока слоёв нет, вещи не рисуются и не продаются (`visual_pending`).');
+  lines.push('Список строит `missingForMilestone` из манифеста образа. **Шаговая слоистая модель отменена владельцем 2026-11-01 (ADR-013):** образ — готовая картинка набора вещей (`docs/BOBEK_VARIANTS.md`), кепка, круглые очки, шарф, рюкзак и худи уже на ней. Список ниже сохранён как справка о слоях и не ведёт работу. Вещи без готового образа не рисуются и не продаются (`visual_pending`).');
   lines.push('');
   for (const l of layers) {
     lines.push(`### ${l.id}: ${l.missing.length} частей`);

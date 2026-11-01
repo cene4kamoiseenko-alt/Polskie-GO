@@ -16,6 +16,8 @@ import type {
   LookManifest,
   LookMode,
   LookPose,
+  LookVariant,
+  LookVariantPose,
   LookView,
   LookRenderLayer,
   ResolvedLook,
@@ -44,6 +46,29 @@ const own = <T>(rec: Partial<Record<string, T>>, key: string): T | undefined => 
 
 function isLegacyOnly(it: LookItem) {
   return it.status === 'legacy-whole-look' && !it.legacy;
+}
+
+const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+/**
+ * Який готовий образ малювати для надітого. Набір — предмети з осей образів, які опинилися в пулі (надіті й фірмові), без
+ * худі (воно на кожній картинці). Точний збіг — його картинка; немає точного — найбільший образ, що вміщується в набір
+ * (решта предметів позначається `no-variant`). Стартовий набір (худі + рюкзак) лишається цілісним базовим образом з 14 позами,
+ * тому тут `null`.
+ */
+function pickVariant(m: LookManifest, pool: readonly LookItem[]): LookVariant | null {
+  const vs = m.variants;
+  if (!vs || !vs.list.length) return null;
+  const axis = new Set(vs.list.flatMap((v) => v.items));
+  const set = sortedUniqueIds(pool.filter((it) => it.status === 'prerendered' && axis.has(it.id)).map((it) => it.id));
+  const included = new Set(Object.values(vs.includes));
+  const starter = sortedUniqueIds(Object.values(m.legacyBase.includes).filter((id): id is string => !!id && !included.has(id)));
+  if (sameIds(set, starter)) return null;
+  const exact = vs.list.find((v) => sameIds(v.items, set));
+  if (exact) return exact;
+  let best: LookVariant | null = null;
+  for (const v of vs.list) if (v.items.every((id) => set.includes(id)) && (!best || v.items.length > best.items.length)) best = v;
+  return best;
 }
 
 /** Розмістити шар: `registered` — як намальовано; `anchored` — точкою pivot на якір пози. */
@@ -140,9 +165,12 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
   const baseReady = m.base.status === 'ready' && m.base.views.includes(view);
   const lb = m.legacyBase;
   const legacyPoseKey = view === 'front' ? (own(lb.moods, mood) ?? lb.fallbackPose) : own(lb.views, view);
+  // Готові образи — лише для фронтального виду (інших ракурсів у них немає: там стартова картинка, як раніше).
+  const variant = !costume && view === 'front' ? pickVariant(m, pool) : null;
   let mode: LookMode;
   if (costume) mode = 'legacy-costume';
   else if (baseReady && !pool.some(isLegacyOnly)) mode = 'layered';
+  else if (variant) mode = 'variant';
   else if (legacyPoseKey && own(lb.poses, legacyPoseKey)) mode = 'legacy-base';
   else mode = 'empty';
 
@@ -163,6 +191,23 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
     layers.push({ id: `legacy:${costume.id}`, asset: art.asset, owner: costume.id, slot: 'base', z: 0, fit: 'contain', rect: null });
     for (const s of effectiveSlots(costume)) shown[s] = costume.id;
     for (const [s, id] of Object.entries(art.shows) as [LookWearSlot, string][]) if (!shown[s]) shown[s] = id;
+  } else if (mode === 'variant' && variant && m.variants) {
+    const vs = m.variants;
+    const wantedPose: LookVariantPose = own(vs.moods, mood) ?? vs.defaultPose;
+    const poseKey: LookVariantPose | undefined = variant.images[wantedPose] ? wantedPose : variant.images[vs.defaultPose] ? vs.defaultPose : (Object.keys(variant.images)[0] as LookVariantPose | undefined);
+    const asset = poseKey ? variant.images[poseKey] : undefined;
+    if (asset && poseKey) {
+      baseRef = vs.id;
+      pose = poseKey;
+      // «Своя» поза — тільки якщо стан має запис у таблиці й для цього набору є саме ця картинка.
+      poseFallback = !(own(vs.moods, mood) && poseKey === wantedPose);
+      layers.push({ id: `variant:${variant.id}:${poseKey}`, asset, owner: vs.id, slot: 'base', z: 0, fit: 'contain', rect: null });
+      for (const [s, id] of Object.entries(vs.includes) as [LookWearSlot, string][]) shown[s] = id;
+      for (const id of variant.items) {
+        const it = findLookItem(id, m);
+        if (it) for (const s of effectiveSlots(it)) shown[s] = it.id;
+      }
+    }
   } else if (mode === 'legacy-base' && legacyPoseKey) {
     const img = lb.poses[legacyPoseKey];
     baseRef = lb.id;
@@ -206,6 +251,7 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
   for (const it of accepted) {
     if (isShown(it)) note(it, true, 'drawn');
     else if (it.status === 'pending') note(it, false, 'visual-pending');
+    else if (it.status === 'prerendered' && (mode === 'variant' || mode === 'legacy-base')) note(it, false, mode === 'variant' ? 'no-variant' : 'view-unsupported');
     else if (mode === 'layered' || mode === 'empty' || (it.legacy && it.legacy.view !== view)) note(it, false, 'view-unsupported');
     else note(it, false, 'covered-by-whole-look', cover ?? undefined);
   }

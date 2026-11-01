@@ -67,7 +67,10 @@ describe('Каталог магазину: visualStatus', () => {
     expect(by.get('crown-gold')!.visualStatus).toBe('pending');
     expect(by.get('costume-syrenka')!.visualStatus).toBe('pending');
     expect(by.get('costume-artist')!.visualStatus).toBe('legacy-whole-look');
-    expect(by.get('hoodie-red')!.visualStatus).toBe('legacy-whole-look');
+    expect(by.get('hoodie-red')!.visualStatus).toBe('prerendered');
+    expect(by.get('backpack-travel')!.visualStatus).toBe('prerendered');
+    for (const slug of ['cap-red', 'glasses-round', 'scarf-pl']) expect(by.get(slug)!.visualStatus, slug).toBe('prerendered');
+    for (const slug of ['scarf-ua', 'glasses-sun', 'jacket-denim']) expect(by.get(slug)!.visualStatus, slug).toBe('pending');
     expect(by.get('frame-green')!.visualStatus).toBe('ready');
     expect(by.get('plant')!.visualStatus).toBe('not-wearable');
 
@@ -76,7 +79,7 @@ describe('Каталог магазину: visualStatus', () => {
       .filter((i) => !i.rewardOnly && (i.price as number) > 0 && i.visualStatus !== 'not-wearable' && i.visualStatus !== 'pending' && i.visualStatus !== 'unknown')
       .map((i) => i.slug)
       .sort();
-    expect(sellable).toEqual(['costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green']);
+    expect(sellable).toEqual(['cap-red', 'costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'scarf-pl']);
   });
 });
 

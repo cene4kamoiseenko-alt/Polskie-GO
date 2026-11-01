@@ -19,10 +19,12 @@
 ## Контракт данных
 
 - `GET /api/shop` → `{ balance, premium, items: ShopItem[] }`. Поля вещи: `id`, `slug`, `slot`, `name`, `assetKey`, `price`, `rarity`, `isPremium`, `rewardOnly`, `city`, `unlock`, `owned`, `equipped`, `visualStatus`.
-- `visualStatus`: `ready` (есть слои), `legacy-whole-look` (цельный костюм), `not-wearable` (домик), `pending` и `unknown` (слоя нет: за Złotki не продаётся, во владении надевается, Бобек его не рисует).
+- `visualStatus`: `prerendered` (есть готовые образы Бобека с этой вещью, ADR-013; продаётся и надевается), `ready` (есть слои; сейчас таких вещей нет), `legacy-whole-look` (цельный костюм), `not-wearable` (домик), `pending` и `unknown` (картинки нет: за Złotki не продаётся, во владении надевается, Бобек её не рисует).
 - Идентичность вещи для образа — `assetKey` (`toLookItemId(assetKey)` — id в ядре). «item_ids» рендерера — это `equipmentFromWear(outfit.wear)`.
 - Сохранение: `POST /api/inventory/equip { itemId, equipped }`. Покупка: `POST /api/shop/buy { itemId }`, ошибки: `reward_only`, `already_owned`, `visual_pending` (409), `premium_required`, нехватка Złotki.
 - Примерка: `tryOn(wear, assetKey)` → `{ after, removed, candidateVisible, candidateReason }`; «Снимет: …» на панели — те же `removed`, что вычислит сервер.
+
+> **Обновление 2026-11-01 (ADR-013).** Рендерера слоёв не будет: примерочная рисует готовый образ набора вещей (`resolveLook`, режим `variant`), экран не менялся — `BeaverLook` рисует то, что вернул резолвер. Пять вещей (худи, рюкзак, кепка, круглые очки, шарф) — `prerendered`, остальная одежда по-прежнему «Визуал готовится». Раздел ниже — история про слои.
 
 ## Что заменить, когда появится рендерер слоёв (точки замены, больше ничего менять не нужно)
 

@@ -786,6 +786,8 @@ async function main() {
     }
     await soft('L1 костюм', () => lookScreens('880010', ['costume-chef', 'hat-chef', 'glasses-round'], 'look', [360, 390, 430]));
     await soft('L1 стартовый образ', () => lookScreens('880011', [], 'look-default', [390]));
+    // Готовый образ (ADR-013): кепка + очки + шарф + рюкзак — одна картинка, один и тот же набор на главной, в профиле, гардеробе, уроке.
+    await soft('L1 готовый образ', () => lookScreens('880014', ['cap-red', 'glasses-round', 'scarf-pl'], 'look-variant', [390]));
 
     await soft('L2 гардероб: вещь без визуала', async () => {
       type ShopRow = { id: string; slot: string; assetKey: string; name: { ru: string }; price: number; rewardOnly: boolean; owned: boolean; isPremium: boolean; visualStatus?: string };

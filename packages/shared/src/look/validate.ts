@@ -6,7 +6,7 @@ import { LOOK_MANIFEST, LOOK_MILESTONES } from './manifest';
 import { effectiveSlots } from './rules';
 import { LOOK_ALLOWED_BANDS, LOOK_BASE_TEMPLATE, LOOK_FROM_CATALOG, LOOK_SLOT_TEMPLATES, type LookPartTemplate } from './spec';
 import type { LookAnchorId, LookItem, LookLayer, LookManifest, LookSlot, LookView, LookZBand } from './types';
-import { LOOK_BASE_PARTS, LOOK_WEAR_SLOTS } from './types';
+import { LOOK_BASE_PARTS, LOOK_VARIANT_POSES, LOOK_WEAR_SLOTS } from './types';
 
 export type LookIssue = { level: 'error' | 'warning'; code: string; ref: string; message: string };
 
@@ -64,6 +64,37 @@ export function validateManifest(m: LookManifest = LOOK_MANIFEST): LookIssue[] {
   for (const [mood, key] of Object.entries(lb.moods)) if (key && !lb.poses[key]) err('legacy-pose', mood, `Немає пози ${key}.`);
   for (const [view, key] of Object.entries(lb.views)) if (key && !lb.poses[key]) err('legacy-pose', view, `Немає пози ${key}.`);
 
+  // Готові образи: набори речей, картинки, пози й стани.
+  const vs = m.variants;
+  const variantItems = new Set<string>();
+  if (vs) {
+    const known = new Map(m.items.map((x) => [x.id, x]));
+    const seenSets = new Set<string>();
+    for (const [slot, id] of Object.entries(vs.includes)) {
+      const it = known.get(id as string);
+      if (!it || it.status !== 'prerendered' || !it.occupies.includes(slot as never)) err('variant-includes', String(id), `Предмет у includes має бути prerendered і займати слот ${slot}.`);
+    }
+    for (const v of vs.list) {
+      const key = v.items.join('+');
+      if (seenSets.has(key)) err('variant-duplicate', v.id, `Другий образ з тим самим набором речей (${key || 'порожній'}).`);
+      seenSets.add(key);
+      if ([...v.items].sort().join('+') !== key || new Set(v.items).size !== v.items.length) err('variant-order', v.id, 'Речі набору мають бути відсортовані й різні.');
+      for (const id of v.items) {
+        variantItems.add(id);
+        const it = known.get(id);
+        if (!it) err('variant-item', v.id, `Невідомий предмет ${id}.`);
+        else if (it.status !== 'prerendered') err('variant-item', v.id, `Предмет ${id} має статус ${it.status}, а образ його малює: потрібен prerendered.`);
+      }
+      if (!v.images[vs.defaultPose]) err('variant-default-pose', v.id, `Немає картинки пози за замовчуванням ${vs.defaultPose}.`);
+      for (const [pose, asset] of Object.entries(v.images)) {
+        if (!(LOOK_VARIANT_POSES as readonly string[]).includes(pose)) err('variant-pose', v.id, `Невідома поза ${pose}.`);
+        if (!asset || !asset.startsWith('variants/')) err('variant-asset', v.id, `Ключ ассета «${asset}» має починатися з variants/.`);
+      }
+    }
+    for (const [mood, pose] of Object.entries(vs.moods)) if (pose && !(LOOK_VARIANT_POSES as readonly string[]).includes(pose)) err('variant-mood', mood, `Невідома поза ${pose}.`);
+    if (!vs.list.some((v) => v.items.length === 0)) warn('variant-bare', vs.id, 'Немає образу без речей: зняття всіх речей не матиме картинки.');
+  }
+
   // Предмети
   for (const it of m.items) {
     if (itemIds.has(it.id)) err('duplicate-id', it.id, 'Повторний id предмета.');
@@ -98,6 +129,8 @@ export function validateManifest(m: LookManifest = LOOK_MANIFEST): LookIssue[] {
               if (!hasPart(it.layers, t.part, view, pose)) err('missing-part', `${it.id}:${t.part}`, `Немає частини ${t.part} (${view}, ${pose}).`);
           }
       }
+    } else if (it.status === 'prerendered') {
+      if (!variantItems.has(it.id) && !Object.values(m.variants?.includes ?? {}).includes(it.id)) err('variant-missing', it.id, 'Предмет prerendered, а готового образа с ним в таблице variants нет.');
     } else if (it.status === 'legacy-whole-look') {
       if (it.legacy) {
         for (const [slot, shown] of Object.entries(it.legacy.shows) as [LookSlot, string][]) {
