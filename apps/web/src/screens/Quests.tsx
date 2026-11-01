@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
+import { questHero, questLifeThumb, questStoryArt } from '../lib/assets';
 import { useQuests, useRefreshAll } from '../lib/queries';
 import type { Quest } from '../lib/types';
 import { sfx } from '../lib/audio';
@@ -125,14 +126,23 @@ export default function QuestsScreen() {
   const claimable = (list: Quest[]) => list.filter((x) => x.status === 'COMPLETED').length;
   const list = lists[tab];
   const finished = list.filter((x) => x.status === 'COMPLETED' || x.status === 'CLAIMED').length;
+  const hero = questHero();
+  const lifeThumb = questLifeThumb();
 
   return (
     <div ref={swipe.ref} className="space-y-4 pb-4" data-tab-swipe="quests">
       <TopStats compact />
 
-      {/* Герой-сцена */}
+      {/* Герой-сцена: кадр владельца (Бобек-бариста на площади в Кракове), без файла — прежняя SVG-сцена */}
       <div className="relative mx-4 h-40 overflow-hidden rounded-[28px] shadow-[var(--shadow-card)]" style={{ background: `linear-gradient(180deg, #8ED3F7 0%, #DDF2FF 60%, ${active.color}66 100%)` }}>
-        <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-70" height={110} sky={false} />
+        {hero ? (
+          <>
+            <img src={hero.src} srcSet={hero.srcSet} sizes="(min-width: 576px) 540px, 92vw" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: '50% 40%' }} decoding="async" draggable={false} data-quest-art="hero" />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/45 via-white/10 to-transparent" aria-hidden />
+          </>
+        ) : (
+          <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-70" height={110} sky={false} />
+        )}
         <div className="absolute left-4 top-4 max-w-[58%]">
           <h1 className="text-3xl font-black text-ink drop-shadow-[0_2px_0_rgba(255,255,255,0.8)]">{t('quests_title')}</h1>
           <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-black text-ink">
@@ -140,14 +150,20 @@ export default function QuestsScreen() {
           </div>
           <div className="mt-1.5 inline-block rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-black text-ink">{t('quests_done_of', { n: finished, total: list.length })}</div>
         </div>
-        <div className="absolute -bottom-2 right-1">
-          <Beaver mood="gift" size={140} />
-        </div>
+        {!hero && (
+          <div className="absolute -bottom-2 right-1">
+            <Beaver mood="gift" size={140} />
+          </div>
+        )}
       </div>
 
       {/* Вхід до місій «Польська в житті» */}
       <button onClick={() => { haptic.tap(); nav('/life'); }} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden p-0 text-left active:scale-[0.98]">
-        <Scene name="shop-corner" className="h-20 w-28 shrink-0" />
+        {lifeThumb ? (
+          <img src={lifeThumb} alt="" className="h-20 w-28 shrink-0 object-cover" style={{ objectPosition: '14% 50%' }} loading="lazy" decoding="async" draggable={false} data-quest-art="life" />
+        ) : (
+          <Scene name="shop-corner" className="h-20 w-28 shrink-0" />
+        )}
         <div className="min-w-0 flex-1 py-2">
           <div className="font-black leading-tight">{t('life_title')}</div>
           <div className="muted line-clamp-2 text-xs font-semibold">{t('life_subtitle')}</div>
@@ -191,21 +207,31 @@ export default function QuestsScreen() {
         </div>
       ) : (
         <div className="space-y-4 px-4">
-          {list.map((s) => (
+          {list.map((s) => {
+            const art = questStoryArt(s.slug);
+            return (
             <div key={s.slug} className={cx('card overflow-hidden', !s.available && 'opacity-70')}>
               <div className="relative h-36 overflow-hidden" style={{ background: `linear-gradient(180deg, #BFE8F8 0%, #E9DDFF 55%, ${active.color}55 100%)` }}>
-                <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-60" height={100} sky={false} />
+                {art ? (
+                  <img src={art.src} srcSet={art.srcSet} sizes="(min-width: 576px) 540px, 92vw" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: art.pos }} loading="lazy" decoding="async" draggable={false} data-quest-art={s.slug} />
+                ) : (
+                  <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-60" height={100} sky={false} />
+                )}
                 <div className="absolute left-3 top-2 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black" style={{ background: active.color, color: inkOn(active.color) }}>
                   {t('quests_special')}
                 </div>
-                <div className="absolute bottom-0 left-2">
-                  <Beaver size={110} mood={s.status === 'CLAIMED' ? 'celebrate' : 'travel'} animate={false} />
-                </div>
-                <div className="absolute bottom-3 right-3">
-                  <GameIcon name="story" size={56} />
-                </div>
+                {!art && (
+                  <>
+                    <div className="absolute bottom-0 left-2">
+                      <Beaver size={110} mood={s.status === 'CLAIMED' ? 'celebrate' : 'travel'} animate={false} />
+                    </div>
+                    <div className="absolute bottom-3 right-3">
+                      <GameIcon name="story" size={56} />
+                    </div>
+                  </>
+                )}
                 {!s.available && (
-                  <div className="absolute inset-0 grid place-items-center bg-ink/35">
+                  <div className={cx('absolute inset-0 grid bg-ink/35', art ? 'place-items-end p-3' : 'place-items-center')}>
                     <GameIcon name="lock" size={56} />
                   </div>
                 )}
@@ -241,7 +267,8 @@ export default function QuestsScreen() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       </div>
