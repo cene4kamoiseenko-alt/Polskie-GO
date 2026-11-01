@@ -1,3 +1,7 @@
+# STOP-SHIP — 1 November 2026
+
+These alpha overlap tests did **not** detect visible garment/body misregistration. The cutout preview has been disabled, and the project displays original whole-look art instead. See `BOBEK_ART_REBUILD_PLAN.md` for the actual art rebuild requirements.
+
 # Bobek V3.1: composite-frame visual acceptance gate
 
 ## Current verification
