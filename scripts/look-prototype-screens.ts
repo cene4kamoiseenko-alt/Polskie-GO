@@ -108,19 +108,25 @@ async function main() {
     await p.waitForTimeout(400);
     check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '320 px: нет горизонтальной прокрутки');
 
-    // QA-режим для всього застосунку: тільки явний opt-in, зберігається між перезапусками,
-    // вимикається одним натисканням; не змінює ігровий інвентар.
+    // Release safety: both hoodie and denim V3.2 were reported floating off body.
+    // There must be NO path to enable old QA layers on real app screens.
     const previewToggle = p.locator('[data-bobek-preview-toggle]');
-    check(await previewToggle.getAttribute('aria-pressed') === 'false', 'QA-образ вимкнений за замовчуванням');
-    await previewToggle.click();
-    check(await previewToggle.getAttribute('aria-pressed') === 'true', 'можна ввімкнути QA-образ');
-    check(await p.evaluate(() => localStorage.getItem('pg_bobek_layers_preview') === '1'), 'QA-образ зберігся в localStorage');
+    check(await previewToggle.isDisabled(), 'QA-образ у застосунку вимкнено до художнього приймання');
+    check(await previewToggle.getAttribute('aria-pressed') === 'false', 'не можна повідомляти про активне QA, коли воно заблоковане');
+    check(await p.locator('[data-proto-art="v3"]').isDisabled(), 'вибір V3.2 недоступний');
+    await p.evaluate(() => {
+      localStorage.setItem('pg_look_prototype_v1',
+        JSON.stringify({art:'v3',state:'wave',equipment:['hoodie-red','backpack-travel']}));
+      localStorage.setItem('pg_bobek_layers_preview','1'); // simulate a pre-existing broken QA session
+    });
     await p.reload();
     await previewToggle.waitFor();
-    check(await previewToggle.getAttribute('aria-pressed') === 'true', 'QA-образ відновився після перезавантаження');
-    await previewToggle.click();
-    check(await previewToggle.getAttribute('aria-pressed') === 'false', 'QA-образ можна вимкнути');
-    check(await p.evaluate(() => localStorage.getItem('pg_bobek_layers_preview') === null), 'production-образ знову активний');
+    check(await previewToggle.isDisabled(), 'збережений V3.2 не розблоковує QA після перезапуску');
+    check(await p.locator('[data-proto-art="v3"]').isDisabled(), 'збережений V3.2 залишається відключеним');
+    check(await p.evaluate(() => localStorage.getItem('pg_bobek_layers_preview') === null),
+      'після відкриття QA-сторінки старий небезпечний прапор очищено');
+    check(await p.locator('[data-bobek-coherent-preview]').count() === 1,
+      'показано незмінний еталон персонажа, без плаваючих шарів');
 
     // Лист шагов.
     const W = 300;
