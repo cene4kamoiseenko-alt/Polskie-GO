@@ -3,11 +3,13 @@
  *
  *   node scripts/build-bobek-variants.mjs                 — собрать все образы в apps/web/src/assets/variants/
  *   node scripts/build-bobek-variants.mjs --sheet out.png  — + контрольный лист (24 образа на тёмном фоне, не в репозиторий)
- *   node scripts/build-bobek-variants.mjs --only open      — только одна серия (wave | open), для отладки очистки
+ *   node scripts/build-bobek-variants.mjs --only jackets   — только одна серия (wave | open | jackets), для отладки очистки
  *
- * Две серии мастеров, у каждой своя поза:
+ * Три серии мастеров:
  *   01–16 — «wave»: 512×512 с прозрачностью, машет рукой с картой, все 16 сочетаний (худи + кепка/очки/шарф/рюкзак);
- *   24–31 — «open»: 1254×1254 на ровном бежевом фоне, руки разведены, 8 сочетаний.
+ *   24–31 — «open»: 1254×1254 на ровном бежевом фоне, руки разведены, 8 сочетаний;
+ *   41–44 — «wave», вторая партия: 1254×1254 с прозрачностью, куртки поверх худи (джинсовая, дождевик), рюкзак на каждой картинке.
+ * Мастера второй партии лежат в docs/design/v18/bobek-part2/, образы с вещами, которых нет в каталоге, — в её held/ (не подключены).
  *
  * Что делает конвейер (оригиналы не меняются, всё воспроизводимо):
  *  1. Серия 24–31: вырезает фон заливкой от края кадра (белое внутри фигуры — шарф, зубы, буквы PL — остаётся) и убирает
@@ -27,19 +29,28 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
 
-const MASTERS = new URL('../docs/design/v18/bobek31/', import.meta.url);
+const MASTER_DIRS = [new URL('../docs/design/v18/bobek31/', import.meta.url), new URL('../docs/design/v18/bobek-part2/', import.meta.url)];
 const WAVE = new URL('../apps/web/src/assets/beaver/wave.webp', import.meta.url);
 const OUT = new URL('../apps/web/src/assets/variants/', import.meta.url);
 
 /** Вещи в именах мастеров → id предметов каталога. Рюкзак «зелёный» — это backpack-travel. */
-const ITEM_OF = { 'hoodie-red': 'hoodie-red', 'cap-red': 'cap-red', 'glasses-round': 'glasses-round', 'scarf-pl': 'scarf-pl', 'backpack-green': 'backpack-travel' };
-const SHORT = { 'hoodie-red': 'hoodie', 'cap-red': 'cap', 'glasses-round': 'glasses', 'scarf-pl': 'scarf', 'backpack-travel': 'pack' };
-const ORDER = ['hoodie-red', 'cap-red', 'glasses-round', 'scarf-pl', 'backpack-travel'];
+const ITEM_OF = {
+  'hoodie-red': 'hoodie-red', 'jacket-denim': 'jacket-denim', 'jacket-rain': 'jacket-rain',
+  'cap-red': 'cap-red', 'glasses-round': 'glasses-round', 'scarf-pl': 'scarf-pl', 'backpack-green': 'backpack-travel',
+};
+const SHORT = { 'hoodie-red': 'hoodie', 'jacket-denim': 'denim', 'jacket-rain': 'rain', 'cap-red': 'cap', 'glasses-round': 'glasses', 'scarf-pl': 'scarf', 'backpack-travel': 'pack' };
+/** Порядок вещей в имени файла; совпадает с variants.ts (куртки поверх худи, затем голова, шея, рюкзак). */
+const ORDER = ['hoodie-red', 'jacket-denim', 'jacket-rain', 'cap-red', 'glasses-round', 'scarf-pl', 'backpack-travel'];
 
-/** Серия по номеру мастера: поза, опорный кадр, размеры доставки. Главный файл — первый размер. */
+/**
+ * Серия по номеру мастера: поза, опорный кадр, размеры доставки. Главный файл — первый размер.
+ * `ref` — кадр, который встаёт на рамку wave. Для серии 41–44 (куртки, 1254 px, альфа) опорный — 41: только куртка и рюкзак, без головного
+ * убора, поэтому верх рамки — чубчик, как у 05 и 28. `ghostR` — на сколько пикселей от силуэта разводы ещё считаются кромкой.
+ */
 const SERIES = [
-  { pose: 'wave', from: 1, to: 16, ref: 5, sizes: [512, 256], clean: 'ghosts' },
-  { pose: 'open', from: 24, to: 31, ref: 28, sizes: [1024, 512, 256], clean: 'matte' },
+  { id: 'wave', pose: 'wave', from: 1, to: 16, ref: 5, sizes: [512, 256], clean: 'ghosts', ghostR: 4 },
+  { id: 'open', pose: 'open', from: 24, to: 31, ref: 28, sizes: [1024, 512, 256], clean: 'matte' },
+  { id: 'jackets', pose: 'wave', from: 41, to: 44, ref: 41, sizes: [1024, 512, 256], clean: 'ghosts', ghostR: 8 },
 ];
 
 const args = process.argv.slice(2);
@@ -84,7 +95,7 @@ function dilate(mask, w, h, r) {
   return out;
 }
 
-/** Серия 01–16: стереть полупрозрачные пятна дальше `r` px от плотного силуэта. Возвращает число стёртых пикселей. */
+/** Серии 01–16 и 41–44: стереть полупрозрачные пятна дальше `r` px от плотного силуэта. Возвращает число стёртых пикселей. */
 function dropGhosts(img, r = 4) {
   const { px, w, h } = img;
   const core = new Uint8Array(w * h);
@@ -163,8 +174,8 @@ function matte(img) {
 
 // ── Мастера ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
-/** `05_hoodie-red_backpack-green.webp` → { n: 5, items: ['backpack-travel', 'hoodie-red'], name: 'hoodie-pack' }. */
-function parse(file) {
+/** `05_hoodie-red_backpack-green.webp` → { n: 5, items: ['backpack-travel', 'hoodie-red'], name: 'hoodie-pack' }. Прочие файлы (в `held/`, не по формату) пропускаются. */
+function parse(file, dir) {
   const m = /^(\d\d)_(.+)\.webp$/.exec(file);
   if (!m) return null;
   const n = Number(m[1]);
@@ -176,18 +187,20 @@ function parse(file) {
   });
   const ordered = ORDER.filter((id) => items.includes(id));
   if (ordered.length !== items.length || !ordered.includes('hoodie-red')) throw new Error(`${file}: ожидаю худи и неповторяющиеся вещи`);
-  return { file, n, series, items: [...ordered].sort(), name: ordered.map((id) => SHORT[id]).join('-') };
+  return { file, dir, n, series, items: [...ordered].sort(), name: ordered.map((id) => SHORT[id]).join('-') };
 }
 
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
-const masters = readdirSync(MASTERS).map(parse).filter((m) => m && (!only || m.series.pose === only)).sort((a, b) => a.n - b.n);
+const masters = MASTER_DIRS.flatMap((dir) => readdirSync(dir).map((file) => parse(file, dir)))
+  .filter((m) => m && (!only || m.series.id === only))
+  .sort((a, b) => a.n - b.n);
 const waveRef = await load(WAVE);
 const waveBox = bbox(waveRef);
 const target = { h: waveBox.y1 - waveBox.y0, bottom: waveBox.y1, cx: (waveBox.x0 + waveBox.x1) / 2, canvas: waveRef.w };
 
 for (const m of masters) {
-  m.img = await load(new URL(m.file, MASTERS));
-  m.cleaned = m.series.clean === 'matte' ? matte(m.img) : dropGhosts(m.img);
+  m.img = await load(new URL(m.file, m.dir));
+  m.cleaned = m.series.clean === 'matte' ? matte(m.img) : dropGhosts(m.img, m.series.ghostR);
   m.box = bbox(m.img);
 }
 

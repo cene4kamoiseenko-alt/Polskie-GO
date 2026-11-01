@@ -69,8 +69,8 @@ describe('Каталог магазину: visualStatus', () => {
     expect(by.get('costume-artist')!.visualStatus).toBe('legacy-whole-look');
     expect(by.get('hoodie-red')!.visualStatus).toBe('prerendered');
     expect(by.get('backpack-travel')!.visualStatus).toBe('prerendered');
-    for (const slug of ['cap-red', 'glasses-round', 'scarf-pl']) expect(by.get(slug)!.visualStatus, slug).toBe('prerendered');
-    for (const slug of ['scarf-ua', 'glasses-sun', 'jacket-denim']) expect(by.get(slug)!.visualStatus, slug).toBe('pending');
+    for (const slug of ['cap-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) expect(by.get(slug)!.visualStatus, slug).toBe('prerendered');
+    for (const slug of ['scarf-ua', 'glasses-sun', 'vest-krakowiak']) expect(by.get(slug)!.visualStatus, slug).toBe('pending');
     expect(by.get('frame-green')!.visualStatus).toBe('ready');
     expect(by.get('plant')!.visualStatus).toBe('not-wearable');
 
@@ -79,7 +79,7 @@ describe('Каталог магазину: visualStatus', () => {
       .filter((i) => !i.rewardOnly && (i.price as number) > 0 && i.visualStatus !== 'not-wearable' && i.visualStatus !== 'pending' && i.visualStatus !== 'unknown')
       .map((i) => i.slug)
       .sort();
-    expect(sellable).toEqual(['cap-red', 'costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'scarf-pl']);
+    expect(sellable).toEqual(['cap-red', 'costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl']);
   });
 });
 
@@ -91,7 +91,7 @@ describe('Покупка за ядром образу', () => {
     const tx0 = await txCount(user.id);
     const ach0 = await achCount(user.id);
     // crown-gold — Premium і pending: відмова visual_pending, а не premium_required (не ведемо купувати Premium заради неї).
-    for (const slug of ['cap-green', 'jacket-denim', 'sneakers-white', 'backpack-map', 'crown-gold', 'glasses-star']) {
+    for (const slug of ['cap-green', 'scarf-ua', 'sneakers-white', 'backpack-map', 'crown-gold', 'glasses-star']) {
       const r = await call('POST', '/api/shop/buy', { itemId: itemId(slug) });
       expect(r.status, slug).toBe(409);
       expect(r.body.error, slug).toBe('visual_pending');

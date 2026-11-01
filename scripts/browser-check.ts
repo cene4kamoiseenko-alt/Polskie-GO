@@ -795,10 +795,11 @@ async function main() {
       const page = u.page;
       const shopBody = (await u.call('GET', '/api/shop')).body as { balance: number; items: ShopRow[] };
       check(shopBody.items.every((i) => typeof i.visualStatus === 'string'), 'L2 /shop отдаёт visualStatus у каждой вещи');
-      const target = shopBody.items.find((i) => i.slot === 'JACKET' && i.visualStatus === 'pending' && !i.rewardOnly && !i.owned);
-      check(target, `L2 есть куртка без живописного слоя в продаже (${target?.id})`);
+      const target = shopBody.items.find((i) => i.slot === 'HAT' && i.visualStatus === 'pending' && !i.rewardOnly && !i.owned);
+      check(target, `L2 есть шапка без живописного слоя в продаже (${target?.id})`);
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(u.url('/shop') + '&tab=shop', { waitUntil: 'networkidle' });
+      await page.locator('.chip-tab', { hasText: 'Шапки' }).first().click();
       const card = page.locator('button.item-card', { hasText: target.name.ru });
       await card.waitFor({ timeout: 20_000 });
       check(await card.locator('[data-visual-status="pending"]').count() === 1 && await card.locator('.item-price').count() === 0, `L2 карточка «${target.name.ru}»: метка «Визуал готовится» вместо цены`);

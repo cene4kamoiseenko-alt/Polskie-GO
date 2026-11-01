@@ -184,7 +184,9 @@ export default function ShopScreen() {
     .filter((n): n is string => !!n);
   // Чому обраної речі не видно на Бобеку: «візуал готується» або «під костюмом не видно».
   const hiddenReason = preview && !preview.candidateVisible
-    ? preview.candidateReason === 'covered-by-whole-look' ? t('look_hidden_by_costume') : t('look_visual_pending')
+    ? preview.candidateReason === 'covered-by-whole-look' ? t('look_hidden_by_costume')
+      : preview.candidateReason === 'no-variant' ? t('look_no_variant')
+      : t('look_visual_pending')
     : null;
 
   const pick = (i: ShopItem | null) => {

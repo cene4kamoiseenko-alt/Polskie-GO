@@ -52,8 +52,8 @@ const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.l
 
 /**
  * Який готовий образ малювати для надітого. Набір — предмети з осей образів, які опинилися в пулі (надіті й фірмові), без
- * худі (воно на кожній картинці). Точний збіг — його картинка; немає точного — найбільший образ, що вміщується в набір
- * (решта предметів позначається `no-variant`). Стартовий набір (худі + рюкзак) лишається цілісним базовим образом з 14 позами,
+ * худі (воно на кожній картинці). Точний збіг — його картинка; немає точного — найбільший образ, що вміщується в набір, а серед
+ * однаково великих — з важливішими речами за `variants.priority` (решта предметів позначається `no-variant`). Стартовий набір (худі + рюкзак) лишається цілісним базовим образом з 14 позами,
  * тому тут `null`.
  */
 function pickVariant(m: LookManifest, pool: readonly LookItem[]): LookVariant | null {
@@ -66,8 +66,17 @@ function pickVariant(m: LookManifest, pool: readonly LookItem[]): LookVariant | 
   if (sameIds(set, starter)) return null;
   const exact = vs.list.find((v) => sameIds(v.items, set));
   if (exact) return exact;
+  // Немає точного: найбільший образ, що вміщується в набір; серед однаково великих — з важливішими речами (куртка, потім голова…).
+  const rank = (id: string) => {
+    const i = vs.priority ? vs.priority.indexOf(id) : -1;
+    return i < 0 ? 0 : vs.priority!.length - i;
+  };
+  const score = (v: LookVariant) => v.items.reduce((sum, id) => sum + rank(id), 0);
   let best: LookVariant | null = null;
-  for (const v of vs.list) if (v.items.every((id) => set.includes(id)) && (!best || v.items.length > best.items.length)) best = v;
+  for (const v of vs.list) {
+    if (!v.items.every((id) => set.includes(id))) continue;
+    if (!best || v.items.length > best.items.length || (v.items.length === best.items.length && score(v) > score(best))) best = v;
+  }
   return best;
 }
 

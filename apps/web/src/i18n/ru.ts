@@ -813,6 +813,7 @@ export const ru: Dict = {
   err_visual_pending: "Эту вещь ещё рисуют — купить можно будет, как только она появится. Złotki не списаны.",
   wardrobe_will_remove: "Снимет: {items}",
   look_hidden_by_costume: "Под костюмом не видно",
+  look_no_variant: "Для этого сочетания нет картинки",
   wardrobe_try_hint: "Примерка ничего не меняет, пока не нажмёшь «Надеть»",
   unlock_mission: "Пройди миссию «{title}»",
   unlock_city: "Сдай экзамен города {title}",

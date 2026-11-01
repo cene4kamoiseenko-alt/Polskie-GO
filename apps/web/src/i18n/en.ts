@@ -813,6 +813,7 @@ export const en: Dict = {
   err_visual_pending: "This item is still being drawn — you can buy it as soon as it’s ready. No Złotki were charged.",
   wardrobe_will_remove: "Takes off: {items}",
   look_hidden_by_costume: "Hidden under the costume",
+  look_no_variant: "No picture for this combination",
   wardrobe_try_hint: "Trying on changes nothing until you tap “Wear”",
   unlock_mission: "Complete the mission “{title}”",
   unlock_city: "Pass the {title} city exam",

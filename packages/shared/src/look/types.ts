@@ -228,6 +228,11 @@ export type LookVariants = {
   includes: Partial<Record<LookWearSlot, string>>;
   /** Поза, яка є в кожного образу. */
   defaultPose: LookVariantPose;
+  /**
+   * Від найважливішої речі до найменш важливої. Коли точного образу для набору немає, малюється найбільший образ, що вміщується
+   * в набір; серед однаково великих — той, де більше важливих речей (куртка видніша за рюкзак).
+   */
+  priority?: readonly string[];
   /** Стан → поза. Стан без запису показує `defaultPose` із позначкою `poseFallback`. */
   moods: Partial<Record<LookMood, LookVariantPose>>;
   list: readonly LookVariant[];

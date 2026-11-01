@@ -45,7 +45,8 @@ async function main() {
       await env.DB.prepare('UPDATE game_wallets SET balance = 500 WHERE user_id = ?').bind(u.user.id).run();
       const shop0 = (await u.call('GET', '/api/shop')).body as { items: ShopRow[] };
       const jacket = shop0.items.find((i) => i.assetKey === 'jacket-denim')!;
-      const pending = shop0.items.find((i) => i.slot === 'JACKET' && i.visualStatus === 'pending' && !i.rewardOnly && !i.owned);
+      // Вещь без образа в продаже: куртки теперь готовые образы (ADR-013), «скоро» осталось у головных уборов, шарфов и прочего.
+      const pending = shop0.items.find((i) => i.slot === 'HAT' && i.visualStatus === 'pending' && !i.rewardOnly && !i.owned);
       const rewardNotOwned = shop0.items.find((i) => i.slot === 'COSTUME' && i.rewardOnly && !i.owned);
 
       const context = await browser.newContext({ viewport: { width, height: HEIGHT[width] }, deviceScaleFactor: 2, locale: 'ru-RU' });
@@ -142,6 +143,7 @@ async function main() {
 
       // ── Закрытые вещи: без цены и без покупки ──
       if (pending) {
+        await p.locator('.chip-tab', { hasText: 'Шапки' }).first().click();
         const pcard = p.locator('button.item-card', { hasText: pending.name.ru });
         await pcard.waitFor({ timeout: 10_000 });
         check((await pcard.locator('[data-visual-status="pending"]').count()) === 1 && (await pcard.locator('.item-price').count()) === 0, `${width}px «${pending.name.ru}»: «визуал готовится», без цены`);

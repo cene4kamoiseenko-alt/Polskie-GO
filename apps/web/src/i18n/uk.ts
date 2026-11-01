@@ -847,6 +847,7 @@ export const uk = {
   err_visual_pending: "Цю річ ще малюють — купити можна буде, щойно вона з’явиться. Złotki не списано.",
   wardrobe_will_remove: "Зніме: {items}",
   look_hidden_by_costume: "Під костюмом не видно",
+  look_no_variant: "Для цього поєднання немає картинки",
   wardrobe_try_hint: "Примірка нічого не змінює, поки не натиснеш «Вдягнути»",
   unlock_mission: "Пройди місію «{title}»",
   unlock_city: "Склади іспит міста {title}",

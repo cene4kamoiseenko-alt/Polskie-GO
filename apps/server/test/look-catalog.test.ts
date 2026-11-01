@@ -30,10 +30,10 @@ describe('образ ↔ каталог', () => {
   it('що з одягу зараз можна купити за Złotki, а що чекає живописного шару', () => {
     const forSale = wearables.filter((i) => i.price > 0 && !i.rewardOnly && !i.starter);
     const verdicts = Object.fromEntries(forSale.map((i) => [i.slug, canPurchase({ id: `i_${i.slug}`, slot: i.slot }).ok]));
-    // Купити можна лише те, що має живописне зображення: готовий образ (кепка, круглі окуляри, польський шарф),
+    // Купити можна лише те, що має живописне зображення: готовий образ (кепка, круглі окуляри, польський шарф, джинсова куртка, дощовик),
     // цілісний костюм або рамку. Решта чекає наступної частини образів (ADR-008).
     expect(Object.entries(verdicts).filter(([, ok]) => ok).map(([s]) => s).sort()).toEqual([
-      'cap-red', 'costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'scarf-pl',
+      'cap-red', 'costume-artist', 'costume-dragon', 'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
     ]);
   });
 });

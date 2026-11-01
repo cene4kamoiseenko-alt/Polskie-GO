@@ -39,7 +39,8 @@ describe('образ: маніфест поточного стану', () => {
     const legacyCostumes = LOOK_MANIFEST.items.filter((i) => i.legacy).map((i) => i.id).sort();
     expect(legacyCostumes).toEqual(['costume-artist', 'costume-barista', 'costume-chef', 'costume-conductor', 'costume-dragon', 'costume-krasnal', 'costume-winter']);
     expect(by('costume-syrenka').status).toBe('pending');
-    for (const id of ['cap-green', 'glasses-sun', 'scarf-ua', 'jacket-denim', 'sneakers-white']) expect(by(id).status, id).toBe('pending');
+    for (const id of ['cap-green', 'glasses-sun', 'scarf-ua', 'vest-krakowiak', 'sneakers-white']) expect(by(id).status, id).toBe('pending');
+    for (const id of ['jacket-denim', 'jacket-rain']) expect(by(id).status, id).toBe('prerendered');
   });
 
   it('костюм не займає слот рюкзака', () => {
@@ -150,8 +151,8 @@ describe('образ: resolveLook на поточних ассетах', () => {
   });
 
   it('pending-куртка: худі з картинки — не підміна, а явна позначка extraneous', () => {
-    const look = resolveLook(null, ['jacket-denim', 'backpack-travel']);
-    expect(look.slots.top).toEqual({ wanted: 'jacket-denim', shown: 'hoodie-red', outcome: 'pending' });
+    const look = resolveLook(null, ['vest-krakowiak', 'backpack-travel']);
+    expect(look.slots.top).toEqual({ wanted: 'vest-krakowiak', shown: 'hoodie-red', outcome: 'pending' });
     expect(look.extraneous).toEqual([{ slot: 'top', id: 'hoodie-red' }]);
     expect(look.drawn).toEqual(['backpack-travel']);
   });
@@ -245,11 +246,11 @@ describe('образ: tryOn', () => {
   });
 
   it('річ без шару: примірка чесно каже «не видно», а не малює іншу', () => {
-    const p = tryOn(['backpack-travel'], 'jacket-denim', { inventory: STARTER });
+    const p = tryOn(['backpack-travel'], 'vest-krakowiak', { inventory: [...STARTER, 'vest-krakowiak'] });
     expect(p.candidateVisible).toBe(false);
     expect(p.candidateReason).toBe('visual-pending');
-    expect(p.after.drawn).not.toContain('jacket-denim');
-    expect(p.after.slots.top).toEqual({ wanted: 'jacket-denim', shown: 'hoodie-red', outcome: 'pending' });
+    expect(p.after.drawn).not.toContain('vest-krakowiak');
+    expect(p.after.slots.top).toEqual({ wanted: 'vest-krakowiak', shown: 'hoodie-red', outcome: 'pending' });
   });
 
   it('примірка показує, що зніметься', () => {

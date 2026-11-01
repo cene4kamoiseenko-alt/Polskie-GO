@@ -3,7 +3,7 @@
  *
  *   node --import tsx scripts/variants-screens.ts   → test-results/variants-screens/*.png
  *
- * 1. QA-галерея /__gallery?look: 16 образов, у каждого картинка декодируется, режим variant (стартовый набор — legacy-base),
+ * 1. QA-галерея /__gallery?look: 20 образов (16 сетки и 4 с куртками), у каждого картинка декодируется, режим variant (стартовый набор — legacy-base),
  *    нет горизонтальной прокрутки; снимок на тёмном фоне (видна прозрачность вырезки).
  * 2. Магазин на 320 / 390 / 430: примерка кепки показывает образ «худи + кепка + рюкзак» (data-look-mode=variant, картинка
  *    загружена), «Надеть» сохраняется на сервере и переживает перезагрузку, полный набор (кепка + очки + шарф + рюкзак) рисуется
@@ -50,11 +50,11 @@ async function main() {
           loaded: Array.from(el.querySelectorAll('img')).length > 0 && Array.from(el.querySelectorAll('img')).every((i) => i.naturalWidth > 0),
         })),
       );
-      check(tiles.length === 16, `галерея: 16 готовых образов (${tiles.length})`);
+      check(tiles.length === 20, `галерея: 20 готовых образов — 16 сетки и 4 с куртками (${tiles.length})`);
       const broken = tiles.filter((t) => !t.loaded).map((t) => t.id);
       check(broken.length === 0, `галерея: у каждого образа картинка загружена${broken.length ? ` (нет: ${broken.join(', ')})` : ''}`);
       const wrongMode = tiles.filter((t) => t.mode !== (t.id === 'hoodie-pack' ? 'legacy-base' : 'variant')).map((t) => `${t.id}:${t.mode}`);
-      check(wrongMode.length === 0, `галерея: режим variant у 15 образов, стартовый набор — legacy-base${wrongMode.length ? ` (${wrongMode.join(', ')})` : ''}`);
+      check(wrongMode.length === 0, `галерея: режим variant у 19 образов, стартовый набор — legacy-base${wrongMode.length ? ` (${wrongMode.join(', ')})` : ''}`);
       check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'галерея: нет горизонтальной прокрутки');
       await p.screenshot({ path: `${OUT}/gallery-dark.png`, fullPage: true });
       await ctx.close();
@@ -66,7 +66,7 @@ async function main() {
       const u = await login();
       await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
       const id = String(++devUser);
-      for (const slug of ['cap-red', 'glasses-round', 'scarf-pl']) {
+      for (const slug of ['cap-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) {
         await env.DB.prepare("INSERT INTO user_inventory (user_id, item_id, equipped, source) SELECT ?, id, 0, 'variants-check' FROM cosmetic_items WHERE slug = ?").bind(u.user.id, slug).run();
       }
       const shop = (await u.call('GET', '/api/shop')).body as { items: ShopRow[] };
@@ -148,6 +148,30 @@ async function main() {
       const noPack = await p.locator('[data-look]:not([data-look-preview="true"])').first().getAttribute('data-look-items');
       check(noPack?.split(' ').sort().join(' ') === 'cap-red glasses-round hoodie-red scarf-pl', `${width}px без рюкзака: рюкзака на образе нет (${noPack})`);
       check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${width}px главная: нет горизонтальной прокрутки`);
+
+      // Куртка (вторая партия, частичная сетка): джинсовая + кепка + очки + рюкзак — готовый образ; шарфа в нём нет (такого образа не нарисовано).
+      await u.call('POST', '/api/inventory/equip', { itemId: itemId('backpack-travel'), equipped: true });
+      await u.call('POST', '/api/inventory/equip', { itemId: itemId('jacket-denim'), equipped: true });
+      await u.call('POST', '/api/inventory/equip', { itemId: itemId('scarf-pl'), equipped: false });
+      await p.goto(`${base}/shop?tab=shop&devUser=${id}`);
+      await p.locator('[role="tablist"]').waitFor({ timeout: 20_000 });
+      await settle();
+      check((await stage().getAttribute('data-look-mode')) === 'variant', `${width}px куртка: режим variant`);
+      check(((await stage().getAttribute('data-look-items')) ?? '').split(' ').sort().join(' ') === 'backpack-travel cap-red glasses-round jacket-denim', `${width}px куртка: нарисованы куртка, кепка, очки, рюкзак; худи — подкладка картинки, в списке вещей его нет (${await stage().getAttribute('data-look-items')})`);
+      await layerOk('куртка', /hoodie-denim-cap-glasses-pack_wave/);
+      await p.screenshot({ path: `${OUT}/denim-${width}.png` });
+      // Примерка шарфа: образа «куртка + кепка + очки + шарф + рюкзак» нет — честная пометка, а не чужая картинка.
+      const scarf = shop.items.find((i) => i.assetKey === 'scarf-pl')!;
+      await p.locator('.chip-tab', { hasText: 'Шарфы' }).first().click();
+      const scarfCard = p.locator('button.item-card', { hasText: scarf.name.ru });
+      await scarfCard.waitFor({ timeout: 10_000 });
+      await scarfCard.click();
+      await p.locator('.action-sheet').waitFor({ timeout: 5_000 });
+      await p.waitForTimeout(600);
+      const note = p.locator('[data-try-note="hidden"]');
+      check((await note.count()) === 1 && /нет картинки/.test((await note.textContent()) ?? ''), `${width}px примерка шарфа поверх куртки: «Для этого сочетания нет картинки» (${(await note.textContent().catch(() => '')) ?? ''})`);
+      check(!((await stage().getAttribute('data-look-items')) ?? '').split(' ').includes('scarf-pl'), `${width}px примерка шарфа: шарфа на Бобеке нет`);
+      await p.screenshot({ path: `${OUT}/denim-try-scarf-${width}.png` });
       await ctx.close();
     }
   } finally {
