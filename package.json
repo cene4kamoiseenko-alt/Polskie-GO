@@ -38,7 +38,9 @@
     "bobek:coherent:generate": "node scripts/generate-bobek-coherent.mjs",
     "bobek:coherent:check": "node --import tsx scripts/check-bobek-coherent.mjs",
     "bobek:v4:colorway": "node scripts/generate-bobek-v4-colorway.mjs",
-    "bobek:v4:check": "node scripts/check-bobek-v4-colorway.mjs"
+    "bobek:v4:check": "node scripts/check-bobek-v4-colorway.mjs",
+    "bobek:v5:generate": "node scripts/generate-bobek-v5.mjs",
+    "bobek:v5:check": "node scripts/check-bobek-v5.mjs"
   },
   "engines": {
     "node": ">=20"
