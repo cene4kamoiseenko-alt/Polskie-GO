@@ -103,15 +103,15 @@ export default function LookPrototype() {
 
           <section className="card mt-3 p-3" aria-label="Джерело графіки Бобека">
             <p className="font-bold text-sm">Оберіть арт-модель для QA</p>
-            <p className="mt-1 text-xs">V2 — плоский авторський арт з 5 позами. V3.1 — 2.5D cutout: фронтальна поза й перший рухомий жест «wave» лише з червоним худі. Для синьої куртки й інших емоцій чесно показує idle. Усі варіанти — лише QA.</p>
+            <p className="mt-1 text-xs">V2 — плоский авторський арт з 5 позами. V3.2 — 2.5D cutout: перший рухомий жест wave для обох верхів, але синій рукав тимчасово перефарбовано для перевірки посадки. Інші емоції показують idle. Усі варіанти — лише QA.</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={!v2 && !v3} data-proto-art="legacy" onClick={() => setSaved((cur) => ({ ...cur, art: 'legacy' }))}>Старі шари</button>
               <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v2} data-proto-art="v2" disabled={!hasBobekV2Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v2' }))}>Бобек V2</button>
-              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v3} data-proto-art="v3" disabled={!hasBobekV3Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v3' }))}>2.5D V3</button>
+              <button className="btn btn-ghost min-h-11 text-xs" aria-pressed={v3} data-proto-art="v3" disabled={!hasBobekV3Art} onClick={() => setSaved((cur) => ({ ...cur, art: 'v3' }))}>2.5D V3.2</button>
             </div>
             {!hasBobekV2Art && <p className="mt-2 text-xs text-coral">Для V2 виконайте npm run bobek:v2:generate перед build:web.</p>}
             {!hasBobekV3Art && <p className="mt-2 text-xs text-coral">Для V3 виконайте npm run bobek:v3:generate перед build:web.</p>}
-            {v3 && <p className="mt-2 text-xs font-medium text-coral">V3.1 — пробна анімація однієї лапи в червоному худі. Стик плеча потребує художньої ретуші; у джинсовій куртці wave недоступний.</p>}
+            {v3 && <p className="mt-2 text-xs font-medium text-coral">V3.2 — пробна анімація з червоним або синім рукавом. Стик плеча, складки тканини й лапа потребують ручного перемалювання; не фінальний риг.</p>}
           </section>
 
           <div className="card mt-3 flex flex-col items-center p-3" data-bobek-demo-card style={{ background: 'linear-gradient(#e9f1fb, #f8f4ec)' }}>
