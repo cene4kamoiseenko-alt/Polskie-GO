@@ -12,8 +12,11 @@ const parts = ['body', 'hoodie', 'jacket', 'pack', 'cap', 'glasses', 'arm-wave']
 if (Object.keys(raw).sort().join('|') !== [...parts].sort().join('|')) throw Error('Unexpected Bobek V3 source keys');
 const placement = {
   body: [250, 76, 535, 810],
-  hoodie: [265, 540, 505, 315],
-  jacket: [269, 532, 510, 319],
+  // Both pieces are painted on their own full canvas. Their collars must
+  // overlap the lower head/upper torso; the old y=540/532 made the garment
+  // appear detached and covered the feet during wave.
+  hoodie: [265, 480, 505, 315],
+  jacket: [269, 472, 510, 319],
   pack: [229, 511, 220, 326],
   cap: [351, 62, 315, 185],
   // V3 source is already full of optical highlights; glasses must cover eyes, not the muzzle.
