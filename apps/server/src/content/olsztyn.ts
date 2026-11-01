@@ -48,6 +48,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Przepraszam, nie dosłyszałam. Czy może pani powtórzyć?', t('Вибачте, я не розчула. Чи не могли б ви повторити?', 'Извините, я не расслышала. Не могли бы вы повторить?', 'Sorry, I didn’t catch that. Could you repeat it?')],
                   ['Przepraszam, nie dosłyszałam. Czy może pani powtórzę?', t('(після **może** — інфінітив: **powtórzyć**)', '(после **może** — инфинитив: **powtórzyć**)', '(after **może** — infinitive: **powtórzyć**)')],
+                  ['Przepraszam, nie rozumiem. Czy pani mówi po polsku?', t('(граматика правильна, але звучить як докір: краще попросити повторити)', '(грамматика верна, но звучит как упрёк: лучше попросить повторить)', '(grammatical, but it sounds like a reproach: ask for repetition instead)')],
                 ],
                 feedback: t('**Czy może pani** + інфінітив.', '**Czy może pani** + инфинитив.', '**Czy może pani** + infinitive.'),
               },
@@ -57,6 +58,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Dziękuję. Proszę mówić trochę wolniej.', t('Дякую. Говоріть, будь ласка, трохи повільніше.', 'Спасибо. Говорите, пожалуйста, чуть медленнее.', 'Thank you. Please speak a little slower.')],
                   ['Dziękuję. Proszę mówię trochę wolniej.', t('(після **proszę** — інфінітив: **mówić**)', '(после **proszę** — инфинитив: **mówić**)', '(after **proszę** — infinitive: **mówić**)')],
+                  ['Dziękuję. Proszę mówić trochę wolny.', t('(після **mówić** — прислівник **wolniej**, а не прикметник **wolny**)', '(после **mówić** — наречие **wolniej**, а не прилагательное **wolny**)', '(after **mówić** — the adverb **wolniej**, not the adjective **wolny**)')],
                 ],
                 feedback: t('**Proszę mówić** + прислівник.', '**Proszę mówić** + наречие.', '**Proszę mówić** + adverb.'),
               },
@@ -73,7 +75,7 @@ export const OLSZTYN: CityContent = {
             grammar('grammar.repeat', 'Przepraszam, nie ___, co pani powiedziała.', 'dosłyszeć', ['dosłyszałem', 'dosłyszałam'], t('Вибачте, я не розчув, що ви сказали.', 'Извините, я не расслышал, что вы сказали.', 'Sorry, I didn’t catch what you said.'),
               t('Минулий час: **dosłyszałem** (чоловік) / **dosłyszałam** (жінка).', 'Прошедшее время: **dosłyszałem** (мужчина) / **dosłyszałam** (женщина).', 'Past tense: **dosłyszałem** (man) / **dosłyszałam** (woman).')),
             listen('listening.repeat', 'Przepraszam, czy może pan mówić trochę wolniej?', ['Przepraszam, czy może pan mówić trochę wolniej?', 'Przepraszam, czy może pan mówić trochę głośniej?', 'Przepraszam, czy może pan powtórzyć trochę wolniej?']),
-            reading('reading.repeat', 'Na dworcu w Olsztynie Marek pyta pracownicę: „Przepraszam, nie dosłyszałem komunikatu. Czy może pani powtórzyć?” Pani odpowiada: „Oczywiście. Pociąg do Warszawy odjedzie z peronu drugiego.” Marek dziękuje i idzie na peron.',
+            reading('reading.repeat', 'Na dworcu w Olsztynie Marek pyta pracownicę: „Przepraszam, nie dosłyszałem komunikatu. Czy może pani powtórzyć?” Pani odpowiada: „Oczywiście. Pociąg do Warszawy miał odjechać z peronu pierwszego, ale z powodu remontu odjedzie z peronu drugiego.” Marek dziękuje i idzie na peron.',
               t('Звідки від’їде потяг до Варшави?', 'Откуда отправится поезд до Варшавы?', 'Where will the train to Warsaw leave from?'),
               [t('з другої платформи', 'со второй платформы', 'from platform two'), t('з першої платформи', 'с первой платформы', 'from platform one'), t('з третьої платформи', 'с третьей платформы', 'from platform three')]),
             findError('grammar.repeat', ['Proszę', 'mówię', 'głośniej', 'i', 'wyraźnie'], 1, t('Говоріть, будь ласка, голосніше й чітко.', 'Говорите, пожалуйста, громче и чётко.', 'Please speak louder and clearly.'),
@@ -81,9 +83,9 @@ export const OLSZTYN: CityContent = {
             reverseChoice('vocab.repeat', t('Чи правильно я розумію, що зустріч у п’ятницю?', 'Правильно ли я понимаю, что встреча в пятницу?', 'Do I understand correctly that the meeting is on Friday?'),
               ['Czy dobrze rozumiem, że spotkanie jest w piątek?', 'Czy dobrze rozumiem, że spotkanie jest w piątku?', 'Czy dobry rozumiem, że spotkanie jest w piątek?'],
               t('**Czy dobrze rozumiem, że…** + звичайне речення; **dobrze** — прислівник.', '**Czy dobrze rozumiem, że…** + обычное предложение; **dobrze** — наречие.', '**Czy dobrze rozumiem, że…** + a normal sentence; **dobrze** is an adverb.')),
-            oddOne('grammar.repeat', ['Proszę powtórzyć.', 'Proszę mówić wolniej.', 'Proszę mówić głośniej.', 'Proszę, mam bilet.'], 3,
-              t('**Proszę, mam bilet** — ти подаєш квиток; решта — прохання повторити чи змінити темп.', '**Proszę, mam bilet** — ты подаёшь билет; остальное — просьбы повторить или изменить темп.', '**Proszę, mam bilet** — you hand over a ticket; the rest ask someone to repeat or change pace.'),
-              t('Яка фраза НЕ допомагає зрозуміти співрозмовника?', 'Какая фраза НЕ помогает понять собеседника?', 'Which phrase does NOT help you understand the speaker?')),
+            oddOne('grammar.repeat', ['Proszę mówić wolniej.', 'Proszę mówić głośniej.', 'Proszę mówić wyraźniej.', 'Proszę powtórzyć.'], 3,
+              t('**Proszę powtórzyć** — прошу повторити; решта три просять говорити інакше: повільніше, голосніше, чіткіше.', '**Proszę powtórzyć** — прошу повторить; остальные три просят говорить иначе: медленнее, громче, чётче.', '**Proszę powtórzyć** asks for repetition; the other three ask to speak differently: slower, louder, more clearly.'),
+              t('Яка фраза просить не «говорити інакше»?', 'Какая фраза просит не «говорить иначе»?', 'Which phrase does NOT ask the speaker to speak differently?')),
             translate('writing.repeat', t('Вибачте, я не розчув. Чи не могли б ви повторити?', 'Извините, я не расслышал. Не могли бы вы повторить?', 'Sorry, I didn’t catch that. Could you repeat it?'),
               ['Przepraszam, nie dosłyszałem. Czy może pan powtórzyć', 'Przepraszam, nie dosłyszałam. Czy może pani powtórzyć', 'Przepraszam, nie dosłyszałem. Czy może pani powtórzyć', 'Przepraszam, nie dosłyszałam. Czy może pan powtórzyć', 'Przepraszam, nie dosłyszałem. Czy mógłby pan powtórzyć', 'Przepraszam, nie dosłyszałam. Czy mogłaby pani powtórzyć']),
             speak('speaking.repeat', 'Przepraszam, nie dosłyszałem. Czy może pan mówić wolniej i wyraźniej?', t('Вибачте, я не розчув. Чи не могли б ви говорити повільніше й чіткіше?', 'Извините, я не расслышал. Не могли бы вы говорить медленнее и чётче?', 'Sorry, I didn’t catch that. Could you speak slower and more clearly?')),
@@ -113,6 +115,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Dzień dobry. O której odjedzie pociąg do Gdańska?', t('Добрий день. О котрій від’їде потяг до Гданська?', 'Добрый день. Во сколько отправится поезд до Гданьска?', 'Hello. What time will the train to Gdańsk leave?')],
                   ['Dzień dobry. O której odjadę pociąg do Gdańska?', t('(потяг — він: **odjedzie**)', '(поезд — он: **odjedzie**)', '(the train — it: **odjedzie**)')],
+                  ['Dzień dobry. O której odjedzie pociąg do Gdańsku?', t('(куди? — **do** + родовий: **do Gdańska**)', '(куда? — **do** + родительный: **do Gdańska**)', '(to where? — **do** + genitive: **do Gdańska**)')],
                 ],
                 feedback: t('Потяг — **odjedzie** (3-я особа).', 'Поезд — **odjedzie** (3-е лицо).', 'The train — **odjedzie** (3rd person).'),
               },
@@ -122,6 +125,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Dziękuję. Poczekam na peronie.', t('Дякую. Зачекаю на платформі.', 'Спасибо. Подожду на платформе.', 'Thank you. I’ll wait on the platform.')],
                   ['Dziękuję. Poczekam na peron.', t('(де? — місцевий: **na peronie**)', '(где? — предложный: **na peronie**)', '(where? — locative: **na peronie**)')],
+                  ['Dziękuję. Poczekam w peronie.', t('(для платформи — **na peronie**, не **w**)', '(для платформы — **na peronie**, не **w**)', '(for a platform — **na peronie**, not **w**)')],
                 ],
                 feedback: t('Де? — **na peronie** (місцевий).', 'Где? — **na peronie** (предложный).', 'Where? — **na peronie** (locative).'),
               },
@@ -138,16 +142,16 @@ export const OLSZTYN: CityContent = {
             grammar('grammar.announce', 'Pociąg odjedzie z ___ drugiego.', 'peron', ['peronu'], t('Потяг від’їде з другої платформи.', 'Поезд отправится со второй платформы.', 'The train will leave from platform two.'),
               t('Після **z** (звідки?) — родовий: **z peronu**.', 'После **z** (откуда?) — родительный: **z peronu**.', 'After **z** (from where?) — genitive: **z peronu**.')),
             listen('listening.announce', 'Uwaga! Pociąg do Warszawy odjedzie z peronu trzeciego.', ['Uwaga! Pociąg do Warszawy odjedzie z peronu trzeciego.', 'Uwaga! Pociąg do Warszawy przyjedzie na peron trzeci.', 'Uwaga! Pociąg do Wrocławia odjedzie z peronu trzeciego.']),
-            reading('reading.announce', 'Szanowni Państwo! Z powodu remontu kasa numer dwa jest dziś nieczynna. Prosimy o skorzystanie z kasy numer jeden lub z kasy samoobsługowej. Przepraszamy za utrudnienia.',
-              t('Що мають зробити клієнти?', 'Что должны сделать клиенты?', 'What should customers do?'),
-              [t('скористатися першою касою або самообслуговуванням', 'воспользоваться первой кассой или самообслуживанием', 'use till one or the self-service till'), t('зачекати біля каси номер два', 'подождать у кассы номер два', 'wait at till two'), t('прийти завтра', 'прийти завтра', 'come back tomorrow')]),
+            reading('reading.announce', 'Szanowni Państwo! Z powodu remontu kasa numer dwa jest dziś nieczynna. Kasa numer jeden jest czynna do dwudziestej. Po dwudziestej bilety można kupić tylko w kasie samoobsługowej. Przepraszamy za utrudnienia.',
+              t('Де можна купити квиток о двадцять першій?', 'Где можно купить билет в двадцать один час?', 'Where can you buy a ticket at 9 pm?'),
+              [t('у касі самообслуговування', 'в кассе самообслуживания', 'at the self-service till'), t('у касі номер один', 'в кассе номер один', 'at till one'), t('у касі номер два', 'в кассе номер два', 'at till two')]),
             findError('grammar.announce', ['Pociąg', 'jest', 'opóźniony', 'na', 'dwadzieścia', 'minut'], 3, t('Потяг запізнюється на двадцять хвилин.', 'Поезд опаздывает на двадцать минут.', 'The train is twenty minutes late.'),
               t('**Opóźniony o** + знахідний: **o dwadzieścia minut**.', '**Opóźniony o** + винительный: **o dwadzieścia minut**.', '**Opóźniony o** + accusative: **o dwadzieścia minut**.')),
             reverseChoice('vocab.announce', t('Просимо зберігати спокій.', 'Просим сохранять спокойствие.', 'Please remain calm.'), ['Prosimy zachować spokój.', 'Prosimy zachowuję spokój.', 'Prosimy zachowany spokój.'],
               t('**Prosimy** + інфінітив: **zachować**.', '**Prosimy** + инфинитив: **zachować**.', '**Prosimy** + infinitive: **zachować**.')),
-            oddOne('grammar.announce', ['Prosimy o zachowanie spokoju.', 'Uwaga! Pociąg jest opóźniony.', 'Kasa jest nieczynna.', 'Poproszę dwa bilety do Gdańska.'], 3,
-              t('**Poproszę dwa bilety** — ти щось замовляєш; решта — оголошення.', '**Poproszę dwa bilety** — ты что-то заказываешь; остальное — объявления.', '**Poproszę dwa bilety** — you are ordering; the rest are announcements.'),
-              t('Що НЕ схоже на оголошення?', 'Что НЕ похоже на объявление?', 'Which one does NOT sound like an announcement?')),
+            oddOne('grammar.announce', ['prosimy o zachowanie spokoju', 'prosimy o zajęcie miejsc', 'prosimy zachować ostrożność', 'prosimy o skorzystanie z kasy'], 2,
+              t('Три мають **prosimy o** + іменник (zachowanie, zajęcie, skorzystanie); **prosimy zachować** — **prosimy** + інфінітив.', 'Три имеют **prosimy o** + существительное (zachowanie, zajęcie, skorzystanie); **prosimy zachować** — **prosimy** + инфинитив.', 'Three use **prosimy o** + noun (zachowanie, zajęcie, skorzystanie); **prosimy zachować** is **prosimy** + infinitive.'),
+              t('Яка конструкція відрізняється від інших?', 'Какая конструкция отличается от остальных?', 'Which construction differs from the others?')),
             translate('writing.announce', t('Потяг до Гданська запізнюється на двадцять хвилин.', 'Поезд до Гданьска опаздывает на двадцать минут.', 'The train to Gdańsk is twenty minutes late.'),
               ['Pociąg do Gdańska jest opóźniony o dwadzieścia minut', 'Pociąg do Gdańska spóźnia się o dwadzieścia minut', 'Pociąg do Gdańska ma dwadzieścia minut opóźnienia']),
             speak('speaking.announce', 'Uwaga! Pociąg do Gdańska jest opóźniony o dwadzieścia minut.', t('Увага! Потяг до Гданська запізнюється на двадцять хвилин.', 'Внимание! Поезд до Гданьска опаздывает на двадцать минут.', 'Attention! The train to Gdańsk is twenty minutes late.')),
@@ -185,6 +189,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Dzień dobry, dzwonię w sprawie biletu miesięcznego.', t('Добрий день, дзвоню у справі місячного квитка.', 'Добрый день, звоню по поводу месячного билета.', 'Hello, I’m calling about a monthly ticket.')],
                   ['Dzień dobry, dzwonię w sprawie bilet miesięczny.', t('(**w sprawie** + родовий: **biletu**)', '(**w sprawie** + родительный: **biletu**)', '(**w sprawie** + genitive: **biletu**)')],
+                  ['Dzień dobry, dzwonię o sprawie biletu miesięcznego.', t('(кажуть **w sprawie**, не **o sprawie**)', '(говорят **w sprawie**, не **o sprawie**)', '(it is **w sprawie**, not **o sprawie**)')],
                 ],
                 feedback: t('**w sprawie** + родовий.', '**w sprawie** + родительный.', '**w sprawie** + genitive.'),
               },
@@ -194,6 +199,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['ania małpa poczta kropka pl', t('ania@poczta.pl', 'ania@poczta.pl', 'ania@poczta.pl')],
                   ['ania kropka poczta małpa pl', t('(@ — **małpa** — стоїть перед доменом)', '(@ — **małpa** — стоит перед доменом)', '(@ — **małpa** — comes before the domain)')],
+                  ['ania małpa poczta pl', t('(перед **pl** треба сказати **kropka**)', '(перед **pl** нужно сказать **kropka**)', '(you need to say **kropka** before **pl**)')],
                 ],
                 feedback: t('Спершу ім’я, потім **małpa**, потім домен і **kropka**.', 'Сначала имя, потом **małpa**, потом домен и **kropka**.', 'Name first, then **małpa**, then the domain and **kropka**.'),
               },
@@ -249,6 +255,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Około pięciu kilometrów.', t('Близько п’яти кілометрів.', 'Около пяти километров.', 'About five kilometres.')],
                   ['Około pięć kilometrów.', t('(**około** + родовий: **pięciu**)', '(**około** + родительный: **pięciu**)', '(**około** + genitive: **pięciu**)')],
+                  ['Około pięciu kilometr.', t('(від пʼяти — родовий множини: **kilometrów**)', '(от пяти — родительный множественного: **kilometrów**)', '(five and up — genitive plural: **kilometrów**)')],
                 ],
                 feedback: t('**około** + родовий.', '**około** + родительный.', '**około** + genitive.'),
               },
@@ -258,6 +265,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Najwyżej piętnaście minut.', t('Щонайбільше п’ятнадцять хвилин.', 'Максимум пятнадцать минут.', 'Fifteen minutes at most.')],
                   ['Najwyżej piętnaście minuty.', t('(від п’яти — родовий множини: **minut**)', '(от пяти — родительный множественного: **minut**)', '(five and up — genitive plural: **minut**)')],
+                  ['Najwyżej piętnastu minut.', t('(тут числівник у називному: **piętnaście minut**)', '(здесь числительное в именительном: **piętnaście minut**)', '(the numeral is nominative here: **piętnaście minut**)')],
                 ],
                 feedback: t('**piętnaście** → **minut**.', '**piętnaście** → **minut**.', '**piętnaście** → **minut**.'),
               },
@@ -281,9 +289,9 @@ export const OLSZTYN: CityContent = {
               t('Від п’яти — **procent**: **dziesięć procent**.', 'От пяти — **procent**: **dziesięć procent**.', 'From five on — **procent**: **dziesięć procent**.')),
             reverseChoice('vocab.approx', t('Це займе щонайбільше годину.', 'Это займёт максимум час.', 'It will take an hour at most.'), ['To zajmie najwyżej godzinę.', 'To zajmie co najmniej godzinę.', 'To zajmie prawie godzinę.'],
               t('**Najwyżej** — максимум; **co najmniej** — мінімум; **prawie** — майже.', '**Najwyżej** — максимум; **co najmniej** — минимум; **prawie** — почти.', '**Najwyżej** — at most; **co najmniej** — at least; **prawie** — almost.')),
-            oddOne('vocab.approx', ['około', 'prawie', 'mniej więcej', 'dokładnie'], 3,
-              t('**Dokładnie** — точно; решта — приблизно.', '**Dokładnie** — точно; остальное — приблизительно.', '**Dokładnie** — exactly; the rest mean approximately.'),
-              t('Яке слово НЕ означає «приблизно»?', 'Какое слово НЕ означает «приблизительно»?', 'Which word does NOT mean “approximately”?')),
+            oddOne('grammar.approx', ['około pięciu kilometrów', 'prawie pięć kilometrów', 'ponad pięć kilometrów', 'około pięć kilometrów'], 3,
+              t('Після **około** — родовий: **około pięciu**; після **prawie** і **ponad** числівник не змінюється.', 'После **około** — родительный: **około pięciu**; после **prawie** и **ponad** числительное не меняется.', 'After **około** the genitive: **około pięciu**; after **prawie** and **ponad** the numeral stays as it is.'),
+              t('Який вираз містить помилку?', 'Какое выражение содержит ошибку?', 'Which expression contains a mistake?')),
             translate('writing.approx', t('До озера близько п’яти кілометрів.', 'До озера около пяти километров.', 'It’s about five kilometres to the lake.'),
               ['Do jeziora jest około pięciu kilometrów', 'Do jeziora jest mniej więcej pięć kilometrów', 'Jezioro jest około pięciu kilometrów stąd']),
             speak('speaking.approx', 'Do jeziora jest około pięciu kilometrów, a spacer zajmie najwyżej godzinę.', t('До озера близько п’яти кілометрів, а прогулянка займе щонайбільше годину.', 'До озера около пяти километров, а прогулка займёт максимум час.', 'It’s about five kilometres to the lake, and the walk will take an hour at most.')),
@@ -321,6 +329,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Tak, poproszę kajak na dwie godziny.', t('Так, будь ласка, каяк на дві години.', 'Да, пожалуйста, каяк на два часа.', 'Yes, a kayak for two hours, please.')],
                   ['Tak, poproszę kajak dwie godziny.', t('(на скільки? — **na** + знахідний: **na dwie godziny**)', '(на сколько? — **na** + винительный: **na dwie godziny**)', '(for how long? — **na** + accusative: **na dwie godziny**)')],
+                  ['Tak, poproszę kajak na dwóch godzinach.', t('(на скільки? — **na** + знахідний: **na dwie godziny**)', '(на сколько? — **na** + винительный: **na dwie godziny**)', '(for how long? — **na** + accusative: **na dwie godziny**)')],
                 ],
                 feedback: t('**na** + знахідний: на скільки?', '**na** + винительный: на сколько?', '**na** + accusative: for how long?'),
               },
@@ -330,6 +339,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Chcemy popłynąć na drugi brzeg.', t('Ми хочемо попливти на той берег.', 'Мы хотим поплыть на тот берег.', 'We want to paddle to the other shore.')],
                   ['Chcemy popłynąć na drugim brzegu.', t('(куди? — знахідний: **na drugi brzeg**)', '(куда? — винительный: **na drugi brzeg**)', '(to where? — accusative: **na drugi brzeg**)')],
+                  ['Chcemy popłynąć do drugi brzeg.', t('(**do** вимагає родового; «на той берег» — **na drugi brzeg**)', '(**do** требует родительного; «на тот берег» — **na drugi brzeg**)', '(**do** takes the genitive; “to the other shore” is **na drugi brzeg**)')],
                 ],
                 feedback: t('Куди? — **na** + знахідний.', 'Куда? — **na** + винительный.', 'To where? — **na** + accusative.'),
               },
@@ -384,6 +394,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['To miasto, które leży nad jeziorem.', t('Це місто, що лежить над озером.', 'Это город, который лежит у озера.', 'It’s a city that lies by a lake.')],
                   ['To miasto, który leży nad jeziorem.', t('(**miasto** — середній рід: **które**)', '(**miasto** — средний род: **które**)', '(**miasto** is neuter: **które**)')],
+                  ['To miasto, w którym leży nad jeziorem.', t('(тут **które** — підмет: «місто, що лежить»; **w którym** потрібне, коли є місце: «місто, у якому я живу»)', '(здесь **które** — подлежащее: «город, который лежит»; **w którym** нужно, когда есть место: «город, в котором я живу»)', '(here **które** is the subject: “a city that lies”; **w którym** is for place: “the city where I live”)')],
                 ],
                 feedback: t('**który** узгоджується з іменником: **miasto, które**.', '**który** согласуется с существительным: **miasto, które**.', '**który** agrees with the noun: **miasto, które**.'),
               },
@@ -393,6 +404,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Tam, gdzie jest cicho i zielono.', t('Там, де тихо й зелено.', 'Там, где тихо и зелено.', 'Where it’s quiet and green.')],
                   ['Tam, co jest cicho i zielono.', t('(місце → **tam, gdzie**; річ → **to, co**)', '(место → **tam, gdzie**; вещь → **to, co**)', '(a place → **tam, gdzie**; a thing → **to, co**)')],
+                  ['Tam, gdzie jest cicho i zielone.', t('(безособове «тихо й зелено» — прислівники: **cicho i zielono**)', '(безличное «тихо и зелено» — наречия: **cicho i zielono**)', '(impersonal “quiet and green” takes adverbs: **cicho i zielono**)')],
                 ],
                 feedback: t('Місце — **tam, gdzie**; річ — **to, co**.', 'Место — **tam, gdzie**; вещь — **to, co**.', 'A place — **tam, gdzie**; a thing — **to, co**.'),
               },
@@ -456,6 +468,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Dwa bilety ulgowe i jeden audioprzewodnik, poproszę.', t('Два пільгові квитки й один аудіогід, будь ласка.', 'Два льготных билета и один аудиогид, пожалуйста.', 'Two reduced tickets and one audio guide, please.')],
                   ['Dwa bilety ulgowy i jeden audioprzewodnik, poproszę.', t('(**bilety** — множина: **ulgowe**)', '(**bilety** — множественное: **ulgowe**)', '(**bilety** is plural: **ulgowe**)')],
+                  ['Dwa bilety ulgowe i jedna audioprzewodnik, poproszę.', t('(**audioprzewodnik** — чоловічий рід: **jeden**)', '(**audioprzewodnik** — мужской род: **jeden**)', '(**audioprzewodnik** is masculine: **jeden**)')],
                 ],
                 feedback: t('**dwa bilety ulgowe** — прикметник теж у множині.', '**dwa bilety ulgowe** — прилагательное тоже во множественном.', '**dwa bilety ulgowe** — the adjective is plural too.'),
               },
@@ -465,6 +478,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Poproszę po polsku. Trochę rozumiem.', t('Будь ласка, польською. Я трохи розумію.', 'Пожалуйста, на польском. Я немного понимаю.', 'Polish, please. I understand a little.')],
                   ['Poproszę po polskim. Trochę rozumiem.', t('(мова — **po polsku**, без відмінка)', '(язык — **po polsku**, без падежа)', '(language — **po polsku**, no case ending)')],
+                  ['Poproszę w polsku. Trochę rozumiem.', t('(мова — **po polsku**; **w polsku** так не кажуть)', '(язык — **po polsku**; **w polsku** так не говорят)', '(the language is **po polsku**; **w polsku** is not said)')],
                 ],
                 feedback: t('**po polsku**, **po angielsku** — прислівники мови.', '**po polsku**, **po angielsku** — наречия языка.', '**po polsku**, **po angielsku** — language adverbs.'),
               },
@@ -520,6 +534,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Tak. Według komunikatu pociąg jest opóźniony.', t('Так. За оголошенням потяг запізнюється.', 'Да. Согласно объявлению поезд опаздывает.', 'Yes. According to the announcement the train is delayed.')],
                   ['Tak. Według komunikat pociąg jest opóźniony.', t('(**według** + родовий: **komunikatu**)', '(**według** + родительный: **komunikatu**)', '(**według** + genitive: **komunikatu**)')],
+                  ['Tak. Według komunikatem pociąg jest opóźniony.', t('(**według** + родовий, не орудний)', '(**według** + родительный, не творительный)', '(**według** takes the genitive, not the instrumental)')],
                 ],
                 feedback: t('**według** + родовий.', '**według** + родительный.', '**według** + genitive.'),
               },
@@ -529,6 +544,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['W sobotę będzie padać, dlatego zostaniemy w domu.', t('У суботу буде дощ, тому ми залишимося вдома.', 'В субботу будет дождь, поэтому мы останемся дома.', 'It will rain on Saturday, so we’ll stay at home.')],
                   ['W sobotę będzie padać, natomiast zostaniemy w domu.', t('(**dlatego** — наслідок; **natomiast** — протиставлення)', '(**dlatego** — следствие; **natomiast** — противопоставление)', '(**dlatego** — result; **natomiast** — contrast)')],
+                  ['W sobotę będzie padać, ponieważ zostaniemy w domu.', t('(**ponieważ** вводить причину: «залишимося вдома, бо буде дощ» — частини переплутано)', '(**ponieważ** вводит причину: «останемся дома, потому что будет дождь» — части перепутаны)', '(**ponieważ** introduces the cause: “we’ll stay home because it will rain” — the clauses are swapped)')],
                 ],
                 feedback: t('Наслідок — **dlatego**.', 'Следствие — **dlatego**.', 'A result — **dlatego**.'),
               },
@@ -590,6 +606,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Przepraszam, nie dosłyszałem. Czy może pani powtórzyć?', t('Вибачте, я не розчув. Чи не могли б ви повторити?', 'Извините, я не расслышал. Не могли бы вы повторить?', 'Sorry, I didn’t catch that. Could you repeat it?')],
                   ['Przepraszam, nie dosłyszałem. Czy może pani powtórzę?', t('(після **może** — інфінітив: **powtórzyć**)', '(после **może** — инфинитив: **powtórzyć**)', '(after **może** — infinitive: **powtórzyć**)')],
+                  ['Przepraszam, nie słucham. Proszę powtórzyć.', t('(**nie słucham** = «я не слухаю»; не розчув — **nie dosłyszałem**)', '(**nie słucham** = «я не слушаю»; не расслышал — **nie dosłyszałem**)', '(**nie słucham** = “I’m not listening”; “I didn’t catch it” is **nie dosłyszałem**)')],
                 ],
                 feedback: t('**Czy może pani** + інфінітив.', '**Czy może pani** + инфинитив.', '**Czy może pani** + infinitive.'),
               },
@@ -599,6 +616,7 @@ export const OLSZTYN: CityContent = {
                 choose: [
                   ['Rozumiem, to najwyżej pół godziny pieszo.', t('Розумію, це щонайбільше пів години пішки.', 'Понимаю, это максимум полчаса пешком.', 'I see, that’s half an hour on foot at most.')],
                   ['Rozumiem, to najwyżej pół godzina pieszo.', t('(**pół** + родовий: **pół godziny**)', '(**pół** + родительный: **pół godziny**)', '(**pół** + genitive: **pół godziny**)')],
+                  ['Rozumiem, to najwyżej półtorej godziny pieszo.', t('(2 км пішки — близько пів години, а не півтори)', '(2 км пешком — около получаса, а не полтора)', '(2 km on foot is about half an hour, not an hour and a half)')],
                 ],
                 feedback: t('**pół** + родовий: **pół godziny**.', '**pół** + родительный: **pół godziny**.', '**pół** + genitive: **pół godziny**.'),
               },

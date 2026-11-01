@@ -400,10 +400,10 @@
       "name_pl": "Białystok",
       "name_ru": "Белосток",
       "cefr": "B1",
-      "routes": 0,
-      "lessons": 0,
-      "exam": false,
-      "tasks_per_lesson": null,
+      "routes": 4,
+      "lessons": 8,
+      "exam": true,
+      "tasks_per_lesson": 12,
       "image": {
         "repo": "apps/web/src/assets/cities/bialystok.webp",
         "status": "final",
@@ -418,7 +418,7 @@
         "integrated": "2026-10-27"
       },
       "landmarks": "Совпадает с описанием дворца Браницких в промпте docs/CITY_ART_INVENTORY.md; фасад жёлто-кремовый, а не белый — отметка для владельца",
-      "missing_content": "уроков 0; тема «Повсякденні ситуації»",
+      "missing_content": "уроков 8 из 8 + экзамен (2026-11-01, тема «Повсякденні ситуації», B1)",
       "progress": "не проверено"
     },
     {
@@ -551,9 +551,10 @@
       "gdynia 8",
       "bydgoszcz 8",
       "torun 8",
-      "olsztyn 8"
+      "olsztyn 8",
+      "bialystok 8"
     ],
-    "cities_without_lessons": 5,
+    "cities_without_lessons": 4,
     "exam_cities": [
       "warszawa",
       "lodz",
@@ -569,7 +570,8 @@
       "gdynia",
       "bydgoszcz",
       "torun",
-      "olsztyn"
+      "olsztyn",
+      "bialystok"
     ],
     "final_cities": [
       "warszawa",

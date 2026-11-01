@@ -25,7 +25,7 @@ const require = createRequire(root + '/package.json');
 const OUT = resolve(root, 'test-results/lesson-render');
 
 // old — уроки, которые проходятся без снимков (пусто: проверяются все).
-const CITIES = ['warszawa', 'lodz', 'krakow', 'katowice', 'opole', 'wroclaw', 'poznan', 'zielona-gora', 'gorzow', 'szczecin', 'gdansk', 'gdynia', 'bydgoszcz', 'torun', 'olsztyn']
+const CITIES = ['warszawa', 'lodz', 'krakow', 'katowice', 'opole', 'wroclaw', 'poznan', 'zielona-gora', 'gorzow', 'szczecin', 'gdansk', 'gdynia', 'bydgoszcz', 'torun', 'olsztyn', 'bialystok']
   .map((city) => ({ city, old: [] as string[] }))
   .filter((c) => process.argv.length <= 2 || process.argv.slice(2).includes(c.city));
 

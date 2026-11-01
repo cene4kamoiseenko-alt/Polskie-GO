@@ -25,6 +25,8 @@ import { TORUN } from '../src/content/torun';
 import { TORUN_VOCAB } from '../src/content/vocab-torun';
 import { OLSZTYN } from '../src/content/olsztyn';
 import { OLSZTYN_VOCAB } from '../src/content/vocab-olsztyn';
+import { BIALYSTOK } from '../src/content/bialystok';
+import { BIALYSTOK_VOCAB } from '../src/content/vocab-bialystok';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -155,4 +157,16 @@ citySuite({
   lessons: ['ols-1-powtorz', 'ols-2-komunikat', 'ols-3-telefon', 'ols-4-okolo', 'ols-5-jezioro', 'ols-6-ktory', 'ols-7-audioprzewodnik', 'ols-8-streszczenie'],
   boss: 'ols-boss',
   levels: ['B1'],
+  richDialogues: true,
+});
+
+citySuite({
+  label: 'Białystok',
+  content: BIALYSTOK,
+  vocab: BIALYSTOK_VOCAB,
+  routes: ['bia-dzien', 'bia-zdrowie', 'bia-uslugi', 'bia-podlasie', 'bia-egzamin'],
+  lessons: ['bia-1-spiesze-sie', 'bia-2-cieszy-sie', 'bia-3-boli', 'bia-4-apteka', 'bia-5-fryzjer', 'bia-6-serwis', 'bia-7-puszcza', 'bia-8-zamenhof'],
+  boss: 'bia-boss',
+  levels: ['B1'],
+  richDialogues: true,
 });

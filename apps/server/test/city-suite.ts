@@ -23,6 +23,8 @@ export type CityConfig = {
   lessons: string[];
   boss: string;
   levels: string[];
+  /** Новые города: в шагах диалога не меньше трёх вариантов (content-rules.ts). */
+  richDialogues?: boolean;
 };
 
 /**
@@ -61,7 +63,7 @@ export function citySuite(cfg: CityConfig) {
       }
     });
 
-    expansionRules(cfg.label, all, cfg.levels);
+    expansionRules(cfg.label, all, cfg.levels, { richDialogues: cfg.richDialogues });
   });
 
   describe(`${cfg.label}: прохождение через API`, () => {

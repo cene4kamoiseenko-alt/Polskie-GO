@@ -53,7 +53,37 @@ const runs = (types: string[]) => {
   return max;
 };
 
-export function expansionRules(label: string, lessons: LessonSeed[], levels: string[] = ['A1', 'A2', 'B1']) {
+/**
+ * `richDialogues` — правило качества для новых городов (docs/EXERCISE_QUALITY.md): в каждом шаге диалога не меньше трёх вариантов
+ * (с двумя ответ угадывается в половине случаев), у неверного варианта есть объяснение, а верный не всегда самый длинный.
+ * Старые города (до Olsztyn) этому правилу пока не соответствуют: список работ — `node --import tsx scripts/exercise-quality.ts`.
+ */
+export function expansionRules(label: string, lessons: LessonSeed[], levels: string[] = ['A1', 'A2', 'B1'], opts: { richDialogues?: boolean } = {}) {
+  if (opts.richDialogues) {
+    it(`${label}: в шагах диалога не меньше трёх вариантов; верный не всегда самый длинный`, () => {
+      let steps = 0;
+      let longest = 0;
+      for (const l of lessons) {
+        l.exercises.forEach((ex, i) => {
+          if (ex.type !== 'DIALOGUE' && ex.type !== 'SITUATION') return;
+          const data = ex.data as { steps: { options?: { id: string; text: string; tr?: unknown }[]; answer?: string }[] };
+          for (const st of data.steps) {
+            if (!st.options) continue;
+            steps++;
+            expect(st.options.length, `${l.slug}#${i}: в шаге диалога меньше трёх вариантов`).toBeGreaterThanOrEqual(3);
+            const right = st.options.find((o) => o.id === st.answer)!;
+            const others = st.options.filter((o) => o !== right);
+            for (const o of others) expect(o.tr, `${l.slug}#${i}: у неверного варианта нет объяснения`).toBeTruthy();
+            if (others.every((o) => right.text.length > o.text.length)) longest++;
+          }
+        });
+      }
+      expect(steps).toBeGreaterThan(0);
+      // Если верный ответ почти всегда самый длинный, его находят по длине, не читая.
+      expect(longest / steps, `верный вариант самый длинный в ${longest} из ${steps} шагов`).toBeLessThanOrEqual(0.6);
+    });
+  }
+
   it(`${label}: CEFR, сложность, пояснение и примеры, слова из словаря`, () => {
     for (const l of lessons) {
       expect(levels, l.slug).toContain(l.cefr);

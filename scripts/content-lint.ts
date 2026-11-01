@@ -161,6 +161,11 @@ const PLAIN_OK: Record<string, string[]> = {
   'Ольштин: «poczta» — частина адреси e-mail у називному («ania małpa poczta kropka pl»), орудний pocztą тут не потрібен; «chce» — 3-тя особа («Ania chce jechać nad jezioro»)': [
     'ols-3-telefon#0 poczta', 'ols-3-telefon#11 poczta', 'ols-8-streszczenie#6 chce',
   ],
+  'Білосток і Ольштин: називний жіночого роду (jedna z najdłuższych rzek, pierwsza gwiazdka, tabletka, niedziele — множина), 3-тя особа однини (wstaje, myje, czuje, interesuje: «Marek wstaje», «Od kiedy się pani czuje?») і навмисні дистрактори «po jedna tabletka», «jedna z najstarszych lasów», «jedna audioprzewodnik» (правильні форми в тому ж завданні)': [
+    'zg-3-wigilia#6 pierwsza', 'ols-7-audioprzewodnik#0 jedna', 'bia-1-spiesze-sie#6 wstaje', 'bia-1-spiesze-sie#6 myje', 'bia-2-cieszy-sie#6 interesuje',
+    'bia-3-boli#0 czuje', 'bia-4-apteka#0 jedna', 'bia-4-apteka#0 tabletka', 'bia-5-fryzjer#6 niedziele', 'bia-7-puszcza#0 jedna',
+    'bia-7-puszcza#9 jedna', 'bia-boss#5 czuje', 'bia-boss#5 jedna', 'bia-boss#5 tabletka', 'bia-boss#9 jedna',
+  ],
   'Вправа на розрізнення літер: варіант без діакритики — навмисний дистрактор (ż / z, rz / r)': [
     'lodz-1-alfabet#6 zaba', 'lodz-2-dwuznaki#2 reka', 'lodz-boss#1 reka',
   ],
