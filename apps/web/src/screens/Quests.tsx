@@ -118,9 +118,9 @@ export default function QuestsScreen() {
 
   const lists: Record<Tab, Quest[]> = { daily: q.daily, weekly: q.weekly, special: q.story };
   const tabs: { key: Tab; label: string; icon: IconName; color: string }[] = [
-    { key: 'daily', label: t('quests_daily'), icon: 'timer', color: '#FFBD42' },
-    { key: 'weekly', label: t('quests_short_weekly'), icon: 'leaderboard', color: '#55BDF4' },
-    { key: 'special', label: t('quests_special'), icon: 'story', color: '#9568F5' },
+    { key: 'daily', label: t('quests_daily'), icon: 'quests', color: '#FFBD42' },
+    { key: 'weekly', label: t('quests_short_weekly'), icon: 'star', color: '#55BDF4' },
+    { key: 'special', label: t('quests_special'), icon: 'map', color: '#9568F5' },
   ];
   const active = tabs.find((x) => x.key === tab)!;
   const claimable = (list: Quest[]) => list.filter((x) => x.status === 'COMPLETED').length;
@@ -183,10 +183,11 @@ export default function QuestsScreen() {
               aria-selected={on}
               whileTap={{ scale: 0.95 }}
               onClick={() => { haptic.select(); setTab(x.key); }}
-              className="relative flex items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2 text-sm font-black"
+              className="relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1.5 text-[12.5px] font-black"
               style={on ? { background: x.color, color: inkOn(x.color), boxShadow: `0 4px 0 color-mix(in srgb, ${x.color} 70%, black)` } : { background: 'var(--bg-elev)', boxShadow: 'var(--shadow-card)' }}
             >
-              <GameIcon name={x.icon} size={24} inactive={!on} />
+              {/* Значки владельца (плитка с рисунком, 2026-11-02): неактивная вкладка — тот же значок приглушён. */}
+              <GameIcon name={x.icon} size={30} className={on ? undefined : 'opacity-65 saturate-50'} />
               <span className="leading-tight">{x.label}</span>
               {badge > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] text-white">{badge}</span>}
             </motion.button>

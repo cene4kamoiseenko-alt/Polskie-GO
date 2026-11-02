@@ -14,7 +14,7 @@ export type IconName =
 
 /** Розділи без однойменного файлу → найближча іконка з листа «Іконки без емодзі». */
 const ICON_RASTER: Partial<Record<IconName, string>> = {
-  grammar: 'writing', ai: 'pronunciation', story: 'dialog', city: 'shopping', exam: 'achievements', wardrobe: 'profile',
+  grammar: 'writing', ai: 'pronunciation', story: 'dialog', city: 'shopping', exam: 'achievements', wardrobe: 'suitcase',
   mic: 'pronunciation', fire: 'streak', coin: 'zlotki', diary: 'writing', rewards: 'gift',
 };
 
@@ -266,7 +266,7 @@ type Props = { name: IconName; size?: number; color?: string; inactive?: boolean
 /** Ігрова іконка-плитка. `inactive` — сірий стан (закрито / неактивна вкладка). */
 export const GameIcon = memo(function GameIcon({ name, size = 48, color, inactive, className }: Props) {
   const uid = useId().replace(/:/g, '');
-  const raster = iconAsset(ICON_RASTER[name] ?? name);
+  const raster = iconAsset(ICON_RASTER[name] ?? name, size);
   const base = inactive ? '#B9C4CE' : color ?? ICON_COLORS[name];
   if (raster && !inactive) return <img src={raster} alt="" width={size} height={size} className={className} draggable={false} />;
   return (

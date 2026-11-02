@@ -8,6 +8,9 @@
  * 2. Вкладка «Особые»: три сюжетных квеста с картинками (Варшава, квартира, Вроцлав), картинки загружены (ленивые — прокручиваем к ним), закрытый квест затемнён с замком,
  *    тег «Особые» и текст не вылезают из карточки.
  * 3. Обложки сезонов «Рождество» и «Energylandia» на /pass (календарь сезонов) — кадры владельца, загружены.
+ * 4. Картинка внутри диалога сюжетного квеста (/story/<slug>, 2026-11-02): Dworzec и Mieszkanie — кадры 2 : 1 владельца с Бобеком на кадре (второй Бобек не рисуется), Вроцлав — кадр карточки.
+ * 5. Вступление миссии «11 ноября» (/life/listopad-swieto): Stary Rynek вместо SVG-сцены, второго Бобека поверх нет.
+ * 6. Главная: строки «Сегодня» — значки владельца (книга, звезда, мишень) без серой плашки, остальные на плашке того же цвета; все картинки загружены.
  */
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -27,16 +30,25 @@ const check = (ok: unknown, what: string) => {
 
 async function main() {
   const { chromium } = require('playwright') as typeof import('playwright');
+  const { db } = await import(root + '/apps/server/src/db/index.ts');
+  const { cities, subscriptions, userCities } = await import(root + '/apps/server/src/db/schema.ts');
+  const { eq, inArray } = await import('drizzle-orm');
   const stand = await startStand({ ui: 'dev' });
   mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch({ headless: true, executablePath: chromiumPath(chromium), args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const pageErrors: string[] = [];
   let devUser = 997100;
 
-  async function userPage(size: [number, number], path: string, ready: string) {
+  /** `premium` — подписка (миссии пропуска ноября открыты); `cityStories` — Краков и Вроцлав посещены (иначе их сюжетные квесты закрыты: city_locked). */
+  async function userPage(size: [number, number], path: string, ready: string, opts: { premium?: boolean; cityStories?: boolean } = {}) {
     const u = await stand.login();
     await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
     await u.call('PATCH', '/api/me/settings', { theme: 'dark', reducedMotion: false });
+    if (opts.premium) await db.insert(subscriptions).values({ userId: u.user.id, planCode: 'MONTH_1', status: 'ACTIVE', startsAt: new Date(), expiresAt: new Date(Date.now() + 86_400_000), grantedByAdminId: 'qa-quests-screens' });
+    if (opts.cityStories) {
+      const rows = await db.select({ id: cities.id }).from(cities).where(inArray(cities.slug, ['krakow', 'wroclaw']));
+      for (const r of rows) await db.insert(userCities).values({ userId: u.user.id, cityId: r.id, source: 'journey' }).onConflictDoNothing();
+    }
     const id = String(++devUser);
     const context = await browser.newContext({ viewport: { width: size[0], height: size[1] }, deviceScaleFactor: 2, locale: 'ru-RU' });
     const page = await context.newPage();
@@ -83,6 +95,11 @@ async function main() {
       await u.page.waitForTimeout(500);
       const life = await loaded(u.page, '[data-quest-art="life"]');
       check(life.ok, `${tag}: миниатюра «Польский в жизни» — Sklep 24h загружена (${life.src})`);
+      // Вкладки «Ежедневные / Недельные / Особые»: значки владельца (мишень, звезда, карта) 30 px над подписью, загружены, подписи целиком в своей вкладке.
+      const tabImgs = await u.page.locator('[role=tab] img').evaluateAll((els) => els.map((e) => ({ ok: (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0, w: Math.round(e.getBoundingClientRect().width), src: (e as HTMLImageElement).currentSrc.split('/').pop() })));
+      check(tabImgs.length === 3 && tabImgs.every((i) => i.ok && i.w === 30), `${tag}: значки вкладок — плитки владельца 30 px (${tabImgs.map((i) => i.src).join(', ')})`);
+      const tabFit = await u.page.locator('[role=tab]').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); const t = e.querySelector('span:not([class*="absolute"])'); const tr = t ? t.getBoundingClientRect() : null; return !!tr && tr.x >= r.x - 0.5 && tr.right <= r.right + 0.5 && (t as HTMLElement).scrollWidth <= (t as HTMLElement).clientWidth + 1; }));
+      check(tabFit.length === 3 && tabFit.every(Boolean), `${tag}: подписи вкладок целиком внутри своей вкладки (${tabFit.join(', ')})`);
       await u.page.screenshot({ path: `${OUT}/quests-${w}.png` });
 
       // ── 2. Вкладка «Особые» ──
@@ -131,6 +148,60 @@ async function main() {
         check(im.ok, `/pass: обложка сезона «${slug}» — кадр владельца загружен (${im.src}, ${im.w} px)`);
       }
       await u.page.screenshot({ path: `${OUT}/pass-seasons-390.png`, fullPage: true });
+      await u.context.close();
+    }
+    // ── 4. Картинка в диалоге сюжетного квеста ──
+    for (const [w, h] of SIZES) {
+      for (const [slug, baked] of [['s-warszawa-dworzec', true], ['s-krakow-mieszkanie', true], ['s-wroclaw-zgubiony', false]] as const) {
+        const tag = `${w}px /story/${slug}`;
+        let u;
+        try {
+          u = await userPage([w, h], `/story/${slug}`, '[data-story-scene]', { cityStories: true });
+        } catch (e) {
+          check(false, `${tag}: экран открылся (${(e as Error).message.split('\n')[0]})`);
+          continue;
+        }
+        const im = await loaded(u.page, '[data-story-scene] img');
+        check(im.ok, `${tag}: картинка диалога загружена (${im.src}, ${im.w} px)`);
+        const b = await box(u.page, '[data-story-scene] img');
+        const p = await box(u.page, '[data-story-scene]');
+        check(Math.abs(b.w - p.w) < 1.5 && Math.abs(b.h - p.h) < 1.5, `${tag}: картинка закрывает окно целиком (${Math.round(b.w)}×${Math.round(b.h)} из ${Math.round(p.w)}×${Math.round(p.h)})`);
+        const pics = await u.page.locator('[data-story-scene] img').count();
+        const hasSvg = await u.page.locator('[data-story-scene] svg').count();
+        check(baked ? pics === 1 && hasSvg === 0 : pics >= 2, `${tag}: ${baked ? 'второго Бобека поверх кадра нет' : 'Бобек поверх кадра карточки на месте'} (картинок ${pics})`);
+        const act = await u.page.locator('.btn-primary, .option').first().evaluate((el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, vh: window.innerHeight }; });
+        // На 320×640 первый вариант ответа может уходить за нижний край (экран прокручивается, как и до замены картинки): важно, что его верх виден.
+        check(act.top > 0 && act.top < act.vh - 24, `${tag}: кнопка «Далее» / варианты ответа начинаются в видимой части экрана (верх ${Math.round(act.top)} из ${act.vh})`);
+        check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
+        await u.page.screenshot({ path: `${OUT}/story-${slug}-${w}.png` });
+        await u.context.close();
+      }
+    }
+
+    // ── 5. Вступление миссии «11 ноября» ──
+    {
+      const u = await userPage([390, 844], '/life/listopad-swieto', 'img[data-scene-art="pass-listopad-swieto"]', { premium: true });
+      const im = await loaded(u.page, 'img[data-scene-art="pass-listopad-swieto"]');
+      check(im.ok, `/life/listopad-swieto: кадр Stary Rynek загружен (${im.src}, ${im.w} px)`);
+      const b = await box(u.page, 'img[data-scene-art="pass-listopad-swieto"]');
+      check(Math.abs(b.w - 390) < 1.5 && b.h > 190, `/life/listopad-swieto: кадр на всю ширину экрана (${Math.round(b.w)}×${Math.round(b.h)})`);
+      const over = await u.page.locator('img[data-scene-art="pass-listopad-swieto"]').evaluate((el) => !!(el.parentElement as HTMLElement).querySelector('.-bottom-6'));
+      check(!over, '/life/listopad-swieto: второго Бобека поверх кадра нет (он нарисован на кадре)');
+      await u.page.screenshot({ path: `${OUT}/mission-listopad-390.png` });
+      await u.context.close();
+    }
+
+    // ── 6. Строки «Сегодня» на главной ──
+    for (const [w, h] of SIZES) {
+      const u = await userPage([w, h], '/', '[data-today]');
+      await u.page.locator('[data-today]').scrollIntoViewIfNeeded();
+      await u.page.waitForTimeout(600);
+      const imgs = await u.page.locator('[data-today] img').evaluateAll((els) => els.map((e) => ({ ok: (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0, w: (e as HTMLImageElement).naturalWidth, src: (e as HTMLImageElement).currentSrc.split('/').pop() })));
+      check(imgs.length >= 3 && imgs.every((i) => i.ok), `${w}px: строки «Сегодня» — все значки загружены (${imgs.map((i) => i.src).join(', ')})`);
+      const tiles = await u.page.locator('[data-today] .task-card').evaluateAll((els) => els.map((e) => ({ plate: !!e.querySelector('.icon-plate'), tile: !!e.querySelector('img') && !e.querySelector('.icon-plate') })));
+      check(tiles.every((t) => t.plate !== t.tile), `${w}px: у каждой строки либо значок-плитка, либо плашка (${tiles.map((t) => (t.plate ? 'плашка' : 'плитка')).join(', ')})`);
+      check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${w}px: главная без горизонтальной прокрутки`);
+      await u.page.screenshot({ path: `${OUT}/home-today-${w}.png` });
       await u.context.close();
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);

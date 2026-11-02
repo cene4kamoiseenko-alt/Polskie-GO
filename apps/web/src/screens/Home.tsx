@@ -83,6 +83,9 @@ const TASK_ART: Record<string, ArtName> = {
   'd-reviews-15': 'books', 'd-dialogue-1': 'chat', 'd-listening-5': 'headphones',
 };
 
+/** Рисунки со своей плиткой (значки владельца, 2026-11-02): им плашка не нужна. Остальные ложатся на плашку того же цвета (.icon-plate). */
+const TILE_TASK_ART = new Set<ArtName>(['book', 'star', 'target']);
+
 /** Дерев'яний покажчик з назвою поточного міста (як на макеті головної). */
 function CitySign({ name }: { name: string }) {
   return (
@@ -367,7 +370,11 @@ function TodayTasks({ lessonId }: { lessonId?: string }) {
                 onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
                 className={cx('task-card flex w-full items-center gap-3 px-3 py-2.5 text-left', done && 'is-done')}
               >
-                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-black/15"><Art name={TASK_ART[q.slug] ?? 'star'} size={38} /></span>
+                {TILE_TASK_ART.has(TASK_ART[q.slug] ?? 'star') ? (
+                  <Art name={TASK_ART[q.slug] ?? 'star'} size={52} className="shrink-0" />
+                ) : (
+                  <span className="icon-plate grid h-[52px] w-[52px] shrink-0 place-items-center"><Art name={TASK_ART[q.slug] ?? 'star'} size={38} /></span>
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-black leading-tight">{tr(q.title)}</span>
                   <span className="muted mt-0.5 line-clamp-2 block text-[12px] font-bold leading-snug">{tr(q.description)}</span>

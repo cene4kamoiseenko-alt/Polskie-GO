@@ -477,6 +477,12 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
     height: 48px;
     box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.12), inset 0 2px 0 rgb(255 255 255 / 0.35);
   }
+  /* Плашка под рисунок без своей плитки: цвет и скругление как у значков владельца (лист 2026-11-02), чтобы строки списка не расходились. */
+  .icon-plate {
+    border-radius: 23%;
+    background: linear-gradient(180deg, #fff7ec, #fbebd9);
+    box-shadow: inset 0 0 0 1px rgb(214 176 148 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.9);
+  }
   .skeleton {
     background: linear-gradient(90deg, var(--bg-muted) 25%, var(--border) 37%, var(--bg-muted) 63%);
     background-size: 400% 100%;

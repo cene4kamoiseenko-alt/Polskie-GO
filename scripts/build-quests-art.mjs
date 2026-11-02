@@ -9,6 +9,8 @@
  *  story_warszawa_dworzec_16x9.webp  (1672×941)  → story-warszawa.webp{,@640}      — квест s-warszawa-dworzec «Бобр прибывает в Варшаву»
  *  story_krakow_mieszkanie_16x9.webp (1672×941)  → story-krakow.webp{,@640}        — квест s-krakow-mieszkanie «Бобр ищет квартиру»
  *  story_wroclaw_zgubiony_16x9.webp  (1672×941)  → story-wroclaw.webp{,@640}       — квест s-wroclaw-zgubiony «Бобр потерялся во Вроцлаве»
+ *  scene_dworzec_2x1.webp            (1774×887)  → scene-warszawa.webp{,@640}      — картинка В ДИАЛОГЕ квеста s-warszawa-dworzec (окно 2 : 1; Бобек уже на кадре)
+ *  scene_mieszkanie_2x1.webp         (1774×887)  → scene-krakow.webp{,@640}        — то же для s-krakow-mieszkanie (2026-11-02; во Вроцлаве кадра 2 : 1 нет — берётся story-wroclaw)
  * Соответствие квест → файл — `QUEST_STORY_ART` в apps/web/src/lib/screenArt.ts. Обложки сезонов «Рождество» и «Energylandia» собирает scripts/build-pass-art.mjs.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -37,4 +39,6 @@ await frame('life_sklep24_16x9.webp', 'life', 640, { small: false });
 await frame('story_warszawa_dworzec_16x9.webp', 'story-warszawa', 1200);
 await frame('story_krakow_mieszkanie_16x9.webp', 'story-krakow', 1200);
 await frame('story_wroclaw_zgubiony_16x9.webp', 'story-wroclaw', 1200);
+await frame('scene_dworzec_2x1.webp', 'scene-warszawa', 1200);
+await frame('scene_mieszkanie_2x1.webp', 'scene-krakow', 1200);
 console.log(sizes.join(' · '));

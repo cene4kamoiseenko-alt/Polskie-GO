@@ -117,5 +117,12 @@ export function missionSceneArt(missionSlug: string): { art: SceneArt; src: stri
   if (!src) return null;
   return { art, src, srcSet: small ? `${small} ${SCENE_ART_SMALL}w, ${src} ${art.width}w` : src };
 }
-export const iconAsset = (name: string) => pick('icons', name);
+/**
+ * Значки владельца (лист 2026-11-02, scripts/build-icons-art.mjs): рисунок вместе с плиткой, 256×256. Плитка нужна от ~28 px: на 18 px рисунок на ней не читается,
+ * поэтому для меньшего размера возвращаем null — вызывающий рисует прежнюю векторную плитку.
+ */
+const TILE_ICONS = new Set(['lessons', 'star', 'quests', 'gift', 'xp', 'map', 'premium', 'profile']);
+export const TILE_ICON_MIN_PX = 28;
+export const isTileIcon = (name: string) => TILE_ICONS.has(name);
+export const iconAsset = (name: string, size = TILE_ICON_MIN_PX) => (TILE_ICONS.has(name) && size < TILE_ICON_MIN_PX ? null : pick('icons', name));
 export const brandAsset = (name: string) => pick('brand', name);

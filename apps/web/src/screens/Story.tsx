@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from '../lib/motion';
 import { Scene, type SceneName } from '../components/Illustrations';
 import { SceneAvatar, type SceneKey } from '../components/SceneAvatar';
 import { Icon } from '../components/Icon';
+import { GameIcon } from '../components/GameIcon';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { I18n } from '@polski-go/shared';
@@ -11,6 +12,7 @@ import { useRefreshAll } from '../lib/queries';
 import { sfx, speak } from '../lib/audio';
 import { haptic } from '../lib/telegram';
 import { Beaver } from '../components/Beaver';
+import { questStoryScene } from '../lib/screenArt';
 import { Confetti, ErrorState, Progress, RichText, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
 
 type Node = { speaker: 'npc' | 'beaver' | 'narrator'; name?: string; emoji?: string; pl: string; tr: I18n; choices?: { pl: string; tr: I18n }[]; end: boolean };
@@ -74,6 +76,7 @@ export default function StoryScreen() {
   if (!st) return <ScreenSkeleton />;
   const node = st.node;
   const done = st.status === 'COMPLETED' || st.status === 'CLAIMED';
+  const art = questStoryScene(st.slug);
 
   return (
     <div className="min-h-app flex flex-col">
@@ -83,11 +86,28 @@ export default function StoryScreen() {
       </div>
       <div className="flex flex-1 flex-col gap-4 px-4 pb-6 pt-4">
         {!done && (
-          <div className="relative h-44 overflow-hidden rounded-[28px] shadow-[var(--shadow-card)]">
-            <Scene name={STORY_SCENE[st.slug] ?? 'tram-stop'} className="absolute inset-0 h-full w-full" />
-            <div className="absolute bottom-0 right-4">
-              <Beaver size={110} mood={st.result && !st.result.ok ? 'sad' : 'travel'} />
-            </div>
+          <div className="relative h-44 overflow-hidden rounded-[28px] shadow-[var(--shadow-card)]" data-story-scene={art ? st.slug : undefined}>
+            {art ? (
+              <img
+                src={art.src}
+                srcSet={art.srcSet}
+                // Окно не шире max-w-xl (576 px) минус поля: основной файл 1200 нужен только плотным экранам.
+                sizes="(min-width: 576px) 544px, calc(100vw - 32px)"
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ objectPosition: art.pos }}
+                decoding="async"
+                draggable={false}
+              />
+            ) : (
+              <Scene name={STORY_SCENE[st.slug] ?? 'tram-stop'} className="absolute inset-0 h-full w-full" />
+            )}
+            {/* На кадре владельца Бобек уже нарисован (в нужной одежде и с нужным предметом) — второго поверх не ставим. */}
+            {!art?.baked && (
+              <div className="absolute bottom-0 right-4">
+                <Beaver size={110} mood={st.result && !st.result.ok ? 'sad' : 'travel'} />
+              </div>
+            )}
           </div>
         )}
         <Confetti run={done} />
@@ -109,7 +129,7 @@ export default function StoryScreen() {
                 ) : node.speaker === 'npc' ? (
                   <SceneAvatar scene={STORY_NPC[st.slug] ?? 'meeting'} size={76} />
                 ) : (
-                  <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-sky/20 text-sky-dark"><Icon name="book" size={30} /></span>
+                  <GameIcon name="lessons" size={64} className="shrink-0" />
                 )}
                 <button onClick={() => speak(node.pl)} className={cx('card flex-1 p-4 text-left', node.speaker === 'narrator' && 'italic')}>
                   {node.name && <div className="text-xs font-black uppercase text-pl-red">{node.name}</div>}

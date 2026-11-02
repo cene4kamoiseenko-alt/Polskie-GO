@@ -21,11 +21,14 @@ const PASS_CUTOUT: Record<string, { file: string; w: number; h: number }> = {
   'marcin-rogal': { file: 'rogaliki', w: 245, h: 147 },
   'listopad-swieto': { file: 'barista', w: 275, h: 340 },
 };
-const QUEST_STORY_ART: Record<string, { file: string; pos: string }> = {
-  's-warszawa-dworzec': { file: 'story-warszawa', pos: '50% 22%' },
-  's-krakow-mieszkanie': { file: 'story-krakow', pos: '50% 30%' },
+/** `scene` — кадр 2 : 1 для картинки внутри диалога квеста (Бобек уже на кадре); без него в диалоге берётся кадр карточки. */
+const QUEST_STORY_ART: Record<string, { file: string; pos: string; scene?: string; scenePos?: string }> = {
+  's-warszawa-dworzec': { file: 'story-warszawa', pos: '50% 22%', scene: 'scene-warszawa', scenePos: '50% 50%' },
+  's-krakow-mieszkanie': { file: 'story-krakow', pos: '50% 30%', scene: 'scene-krakow', scenePos: '50% 50%' },
   's-wroclaw-zgubiony': { file: 'story-wroclaw', pos: '50% 26%' },
 };
+/** Миссии пропуска, чей кадр 2 : 1 из `PASS_ART` годится и как фон самой миссии: Бобек на нём уже нарисован, второй поверх не нужен. «Анджейки» не входят: кадр — узкая вырезка с вывеской MIESZKANIE. */
+const PASS_MISSION_SCENE = new Set(['listopad-swieto']);
 
 /** Картинка карточки миссии в пропуске (src + srcset) или null. */
 export const passArt = (slug: string) => artImage('pass', PASS_ART[slug]);
@@ -44,3 +47,16 @@ export function questStoryArt(slug: string): { src: string; srcSet: string | und
   const img = e ? artImage('quests', { file: e.file, width: 1200 }) : null;
   return e && img ? { ...img, pos: e.pos } : null;
 }
+
+/** Картинка внутри диалога сюжетного квеста: кадр 2 : 1 с Бобеком (`baked`), иначе кадр карточки — тогда Бобека поверх рисует экран. */
+export function questStoryScene(slug: string): { src: string; srcSet: string | undefined; pos: string; baked: boolean } | null {
+  const e = QUEST_STORY_ART[slug];
+  if (!e) return null;
+  const own = e.scene ? artImage('quests', { file: e.scene, width: 1200 }) : null;
+  if (own) return { ...own, pos: e.scenePos ?? '50% 50%', baked: true };
+  const card = artImage('quests', { file: e.file, width: 1200 });
+  return card ? { ...card, pos: e.pos, baked: false } : null;
+}
+
+/** Фон вступления миссии пропуска из кадра пропуска (src + srcset, Бобек на кадре) или null. */
+export const passMissionScene = (slug: string) => (PASS_MISSION_SCENE.has(slug) ? passArt(slug) : null);

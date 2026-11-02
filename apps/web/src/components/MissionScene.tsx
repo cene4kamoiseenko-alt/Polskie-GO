@@ -4,15 +4,34 @@
  */
 import { memo } from 'react';
 import { missionSceneArt, passSeasonCover } from '../lib/assets';
+import { passMissionScene } from '../lib/screenArt';
 import { Scene } from './Illustrations';
 
-export const hasBakedBobek = (missionSlug: string) => !!missionSceneArt(missionSlug)?.art.bakedBobek;
+export const hasBakedBobek = (missionSlug: string) => !!missionSceneArt(missionSlug)?.art.bakedBobek || !!passMissionScene(missionSlug);
 
 type Props = { slug: string; scene: string; className?: string; /** Картка під екраном: ліниве завантаження. Герой місії вантажиться одразу. */ lazy?: boolean };
 
 export const MissionScene = memo(function MissionScene({ slug, scene, className, lazy = true }: Props) {
   const img = missionSceneArt(slug);
-  if (!img) return <Scene name={scene} className={className} />;
+  if (!img) {
+    // Миссия пропуска со своим кадром владельца (Stary Rynek для «11 ноября»): тот же файл, что на карточке пропуска.
+    const own = passMissionScene(slug);
+    if (!own) return <Scene name={scene} className={className} />;
+    return (
+      <img
+        src={own.src}
+        srcSet={own.srcSet}
+        sizes="(min-width: 576px) 576px, 100vw"
+        alt=""
+        className={`${className ?? ''} object-cover`}
+        style={{ objectPosition: '50% 40%' }}
+        loading={lazy ? 'lazy' : 'eager'}
+        decoding="async"
+        draggable={false}
+        data-scene-art={`pass-${slug}`}
+      />
+    );
+  }
   return (
     <img
       src={img.src}
