@@ -9,6 +9,7 @@ import { useMe } from '../lib/queries';
 import { Beaver } from '../components/Beaver';
 import { Card, Confetti, ScreenHeader, ScreenSkeleton, cx, useToast } from '../components/ui';
 import { Art } from '../components/GameArt';
+import { artImage } from '../lib/assets';
 import { missionsQuery } from '../components/MissionCard';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,6 +36,21 @@ const FEATURES: [LineIconName, TKey, TKey][] = [
   ['gift', 'prem_gift', 'prem_gift_d'],
   ['crown', 'prem_items', 'prem_items_d'],
 ];
+
+/** Баннери власника (2026-11-02, scripts/build-premium-art.mjs): змінюються раз на день за місцевою датою. Немає файлу — намальована шапка, як раніше. */
+const BANNERS = [
+  { file: 'premium-oldtown', width: 1200 },
+  { file: 'premium-mountains', width: 756 },
+];
+export function todayBanner(now = new Date()): { file: string; src: string; srcSet: string | undefined } | null {
+  const list = BANNERS.flatMap((b) => {
+    const art = artImage('premium', b);
+    return art ? [{ file: b.file, ...art }] : [];
+  });
+  if (!list.length) return null;
+  const day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000);
+  return list[day % list.length];
+}
 
 /** Перший день наступного місяця (місяць подарунка — «YYYY-MM»). */
 const nextMonthStart = (month: string) => {
@@ -121,6 +137,7 @@ export default function PremiumScreen() {
   const shield = me.premium.shield;
   const monthly = (p: Plan) => Math.round(p.priceStars / p.months);
   const base = data.plans.find((p) => p.months === 1);
+  const banner = todayBanner();
   const features: [LineIconName, string, string][] = [
     ...FEATURES.map(([icon, title, desc]) => [icon, t(title), t(desc, { n: gift.zlotki })] as [LineIconName, string, string]),
     ...(me.ai.configured ? [['chat', t('prem_ai'), t('prem_ai_d', { n: 150 })] as [LineIconName, string, string]] : []),
@@ -130,12 +147,20 @@ export default function PremiumScreen() {
     <div className="space-y-5 pb-8">
       <Confetti run={status === 'paid' || !!gotGift} />
       <ScreenHeader title={t('prem_title')} subtitle={t('prem_subtitle')} />
-      <div className="premium-hero mx-4 rounded-[28px] p-5 text-center">
-        <div className="premium-hero-crown flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-[0.15em]"><Icon name="crown" size={18} filled /> POLSKI GO</div>
-        <Beaver size={150} mood="pay" />
-        <div className="premium-hero-title text-[28px] font-black leading-tight">PREMIUM</div>
-        <div className="premium-hero-subtitle mt-1 text-[13px] font-bold">{t('prem_hero_d')}</div>
-      </div>
+      {banner ? (
+        // Баннер владельца (2026-11-02) вместо нарисованной шапки; надписи на кадре — по-русски. Для чтения с экрана — заголовок текстом.
+        <div className="mx-4 overflow-hidden rounded-[28px] border-2 border-[#F5C451]/60 shadow-[var(--shadow-card)]" data-premium-banner={banner.file}>
+          <h2 className="sr-only">POLSKI GO Premium — {t('prem_hero_d')}</h2>
+          <img src={banner.src} srcSet={banner.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="block aspect-[3/2] w-full object-cover" decoding="async" draggable={false} />
+        </div>
+      ) : (
+        <div className="premium-hero mx-4 rounded-[28px] p-5 text-center">
+          <div className="premium-hero-crown flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-[0.15em]"><Icon name="crown" size={18} filled /> POLSKI GO</div>
+          <Beaver size={150} mood="pay" />
+          <div className="premium-hero-title text-[28px] font-black leading-tight">PREMIUM</div>
+          <div className="premium-hero-subtitle mt-1 text-[13px] font-bold">{t('prem_hero_d')}</div>
+        </div>
+      )}
 
       {status === 'waiting' && <div className="mx-4 rounded-2xl bg-sky/20 p-3 text-center font-black"><span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-sky-dark/30 border-t-sky-dark align-middle" />{t('prem_waiting')}</div>}
       {status === 'paid' && <div className="mx-4 rounded-2xl bg-brand/20 p-3 text-center font-black">{t('prem_paid')}</div>}

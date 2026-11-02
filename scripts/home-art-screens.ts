@@ -7,6 +7,7 @@
  * 2. Пробный экзамен и входной тест: сцена над заданием — фото (а не SVG MIESZKANIE), второго Бобра поверх нет, подсказка Бобра видна.
  * 3. Вступление к уроку маршрута «квартира» (Варшава, «Powitania»): фото вместо SVG, Бобра поверх нет.
  * 4. Список уроков Варшавы: миниатюра маршрута «квартира» — фото с ключами.
+ * 5. Premium: шапка — баннер владельца (загружен, кадр 3 : 2, в кадре), сегодня — тот, что по дате; завтра — другой; заголовок для чтения с экрана есть.
  */
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -35,7 +36,7 @@ async function main() {
   const pageErrors: string[] = [];
   let devUser = 997800;
 
-  async function userPage(size: [number, number]) {
+  async function userPage(size: [number, number], shiftDays = 0) {
     const u = await stand.login();
     await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
     await u.call('PATCH', '/api/me/settings', { theme: 'dark', reducedMotion: true });
@@ -43,7 +44,12 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: size[0], height: size[1] }, deviceScaleFactor: 2, locale: 'ru-RU' });
     const page = await context.newPage();
     page.on('pageerror', (e) => pageErrors.push(e.message));
-    await page.addInitScript(({ token, id }) => localStorage.setItem('pg_auth', JSON.stringify({ token, owner: `dev:${id}`, exp: Date.now() + 86_400_000 })), { token: u.token, id });
+    // Часы страницы на N дней вперёд (смена баннера Premium по дням). Строкой: tsx не должен подмешивать в страницу свои вспомогательные функции.
+    if (shiftDays)
+      await page.addInitScript({
+        content: `(() => { const Real = Date; const shift = ${shiftDays * 86_400_000}; const S = function (...a) { return a.length ? new Real(...a) : new Real(Real.now() + shift); }; S.prototype = Real.prototype; S.now = () => Real.now() + shift; S.UTC = Real.UTC; S.parse = Real.parse; window.Date = S; })();`,
+      });
+    await page.addInitScript(({ token, id }) => localStorage.setItem('pg_auth', JSON.stringify({ token, owner: `dev:${id}`, exp: Date.now() + 30 * 86_400_000 })), { token: u.token, id });
     const go = async (path: string, sel: string) => {
       await page.goto(`${stand.base}${path}${path.includes('?') ? '&' : '?'}devUser=${id}`);
       await page.locator(sel).first().waitFor({ timeout: 30_000 });
@@ -104,6 +110,30 @@ async function main() {
         check(thumbs.length >= 1 && thumbs.every(Boolean), `${tag} /learn: миниатюра маршрута «квартира» — фото с ключами (${thumbs.length})`);
         if (w === 390) await u.page.screenshot({ path: `${OUT}/learn-${w}.png` });
       }
+      await u.context.close();
+    }
+    // ── 5. Premium ──
+    const files = ['premium-oldtown', 'premium-mountains'];
+    const d = new Date();
+    const today = files[Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000) % files.length];
+    for (const [w, h] of SIZES) {
+      const u = await userPage([w, h]);
+      await u.go('/premium', '[data-premium-banner] img');
+      const file = await u.page.locator('[data-premium-banner]').getAttribute('data-premium-banner');
+      const b = await u.page.locator('[data-premium-banner] img').evaluate((el: HTMLImageElement) => { const r = el.getBoundingClientRect(); return { ok: el.complete && el.naturalWidth > 0, src: el.currentSrc.split('/').pop() || '', ratio: r.width / r.height, x: r.x, r: r.right }; });
+      check(b.ok && file === today && b.src.startsWith(today), `${w}px /premium: сегодняшний баннер ${today} загружен (${b.src})`);
+      check(Math.abs(b.ratio - 1.5) < 0.03 && b.x >= 0 && b.r <= w, `${w}px /premium: баннер 3 : 2 и в кадре (${b.ratio.toFixed(2)})`);
+      check((await u.page.locator('[data-premium-banner] h2.sr-only').count()) === 1, `${w}px /premium: заголовок для чтения с экрана`);
+      check(await noScroll(u.page), `${w}px /premium: нет горизонтальной прокрутки`);
+      if (w === 390) await u.page.screenshot({ path: `${OUT}/premium-${w}.png` });
+      await u.context.close();
+    }
+    {
+      const u = await userPage([390, 844], 1);
+      await u.go('/premium', '[data-premium-banner] img');
+      const file = await u.page.locator('[data-premium-banner]').getAttribute('data-premium-banner');
+      check(file && file !== today, `390px /premium: на следующий день другой баннер (${today} → ${file})`);
+      await u.page.screenshot({ path: `${OUT}/premium-next-390.png` });
       await u.context.close();
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);
