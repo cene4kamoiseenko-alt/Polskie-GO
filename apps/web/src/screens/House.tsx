@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { ApiError, api } from '../lib/api';
 import { artImage } from '../lib/assets';
@@ -17,8 +16,11 @@ import { ScreenHeader, ScreenSkeleton, Sheet, cx, useToast } from '../components
  * Выбор и покупку проверяет сервер (`/shop/buy`, `/inventory/equip`, слот HOUSING); экран показывает его состояние и переживает перезагрузку.
  * В каждой квартире несколько сцен (читает / спит / работает / чай): это готовые картинки с Бобром внутри, поэтому поверх Бобёр не рисуется. Какие сцены есть,
  * определяют файлы `assets/housing/housing-<город>-<сцена>.webp` (scripts/build-housing-art.mjs); выбор сцены — личная настройка устройства (localStorage), не серверная.
- * Вещи из магазина (мебель, декор, сувениры) — полосой под комнатой: комнаты уже обставлены, стикеры мебели поверх не нужны.
+ * Интерьер (владелец 2026-11-02: «в домике нет функции купить интерьер») покупается прямо здесь: мебель и декор — «Купить» (подтверждение) → сразу в комнате,
+ * «Убрать» / «Поставить» — без повторной покупки; сувениры — награды городов (условие вместо цены). Поставленные вещи — полосой «В комнате» под сценой:
+ * сцены — готовые фото, мебель поверх них не рисуется.
  */
+const INTERIOR_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR'];
 const HOMES: Record<string, { pl: string; desc: TKey }> = {
   'housing-opole': { pl: 'Pokój w Opolu', desc: 'housing_opole_d' },
   'housing-lodz': { pl: 'Kawalerka w Łodzi', desc: 'housing_lodz_d' },
@@ -85,7 +87,6 @@ const num = (n: number) => n.toLocaleString('en-US').replace(/,/g, ' ');
 
 export default function HouseScreen() {
   const { t, tr } = useT();
-  const nav = useNavigate();
   const toast = useToast();
   const refresh = useRefreshAll();
   const me = useMe().data;
@@ -98,6 +99,7 @@ export default function HouseScreen() {
 
   const balance = shop.data?.balance ?? 0;
   const homes = (shop.data?.items ?? []).filter((i) => i.slot === 'HOUSING');
+  const interior = (shop.data?.items ?? []).filter((i) => INTERIOR_SLOTS.includes(i.slot));
   const current = homes.find((h) => h.equipped) ?? homes.find((h) => h.slug === me.outfit.home) ?? homes[0];
   const currentHome = current ? HOMES[current.slug] : undefined;
   const placed = me.outfit.house;
@@ -135,19 +137,21 @@ export default function HouseScreen() {
     }
   };
   const choose = (h: ShopItem) => act(() => api('/inventory/equip', { body: { itemId: h.id, equipped: true } }), t('housing_moved'));
+  /** Поставить вещь в комнату или убрать её (покупка остаётся). */
+  const place = (i: ShopItem, on: boolean) => act(() => api('/inventory/equip', { body: { itemId: i.id, equipped: on } }), on ? t('house_placed') : t('house_removed'));
   /** Покупка и сразу переезд: два запроса подряд, второй — обычный выбор купленного. */
   const buy = (h: ShopItem) =>
     act(async () => {
       await api('/shop/buy', { body: { itemId: h.id } });
       await api('/inventory/equip', { body: { itemId: h.id, equipped: true } });
-    }, t('housing_moved'));
+    }, h.slot === 'HOUSING' ? t('housing_moved') : t('house_placed'));
 
   const hero = current && scene ? room(current.slug, scene) : null;
   const sceneLabel = scene ? t(SCENES.find((x) => x.key === scene)!.label) : '';
 
   return (
     <div className="pb-6">
-      <ScreenHeader title={t('house_title')} subtitle={me.profile.beaverName} right={<button className="chip" onClick={() => nav('/shop?house=1')}>{t('house_edit')}</button>} />
+      <ScreenHeader title={t('house_title')} subtitle={me.profile.beaverName} right={<button className="chip" onClick={() => document.getElementById('house-interior')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{t('house_edit')}</button>} />
 
       <div className="relative mx-4 aspect-[3/2] overflow-hidden rounded-[28px] border-4 border-xp-dark bg-muted shadow-[var(--shadow-card)]" data-house-room={current?.slug} data-house-scene={scene ?? undefined}>
         {hero && <SceneImage art={hero} alt={currentHome ? `${currentHome.pl} — ${sceneLabel}` : sceneLabel} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" />}
@@ -224,10 +228,43 @@ export default function HouseScreen() {
         {placed.length <= 1 && <p className={cx('muted font-bold leading-snug', placed.length > 0 && 'mt-2')}>{t('house_empty')}</p>}
       </div>
 
+      <div className="mt-6 scroll-mt-4 px-4" id="house-interior" data-house-interior>
+        <h3 className="text-[19px] font-black leading-tight">{t('house_interior_t')}</h3>
+        <p className="muted mb-3 text-sm font-semibold">{t('house_interior_d')}</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          {interior.map((i) => {
+            const enough = balance >= i.price;
+            const state = i.equipped ? 'placed' : i.owned ? 'owned' : i.rewardOnly ? 'reward' : enough ? 'buyable' : 'locked';
+            return (
+              <div key={i.id} className={cx('card flex min-w-0 flex-col items-center gap-1.5 p-2.5 text-center', i.equipped && 'ring-2 ring-brand')} data-interior={i.slug} data-state={state}>
+                <span className="grid h-16 w-16 place-items-center"><PictoTile spec={ITEM_PICTO[i.assetKey] ?? null} size={56} /></span>
+                <span className="line-clamp-2 min-h-[36px] text-[13.5px] font-black leading-tight">{tr(i.name)}</span>
+                {state === 'placed' ? (
+                  <button className="btn btn-ghost min-h-[40px] w-full px-2 text-[13px]" disabled={busy} onClick={() => place(i, false)}>
+                    <Icon name="check" size={14} strokeWidth={3} /> {t('house_remove')}
+                  </button>
+                ) : state === 'owned' ? (
+                  <button className="btn btn-green min-h-[40px] w-full px-2 text-[13px]" disabled={busy} onClick={() => place(i, true)}>{t('house_place')}</button>
+                ) : state === 'reward' ? (
+                  <span className="line-clamp-2 min-h-[40px] px-1 text-[11.5px] font-black leading-tight text-grape">{i.unlock?.kind === 'city' ? t('unlock_city', { title: tr(i.unlock.title) }) : t('shop_reward_only')}</span>
+                ) : state === 'buyable' ? (
+                  <button className="btn btn-primary min-h-[40px] w-full px-2 text-[13px]" disabled={busy} onClick={() => setConfirm(i)}><Art name="coin" size={16} /> {num(i.price)}</button>
+                ) : (
+                  <span className="flex min-h-[40px] flex-col items-center justify-center text-[12px] font-black leading-tight muted">
+                    <span className="flex items-center gap-1"><Art name="coin" size={14} /> {num(i.price)}</span>
+                    {t('housing_need', { n: num(i.price - balance) })}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <Sheet
         open={!!confirm}
         onClose={() => setConfirm(null)}
-        label={t('housing_confirm_t')}
+        label={confirm?.slot === 'HOUSING' || !confirm ? t('housing_confirm_t') : t('house_buy_t')}
         footer={
           <div className="grid grid-cols-2 gap-2">
             <button className="btn btn-ghost min-h-[48px]" disabled={busy} onClick={() => setConfirm(null)}>{t('cancel')}</button>
@@ -237,7 +274,7 @@ export default function HouseScreen() {
       >
         {confirm && (
           <div className="px-4 pb-2 text-center">
-            <h3 className="text-xl font-black">{t('housing_confirm_t')}</h3>
+            <h3 className="text-xl font-black">{confirm.slot === 'HOUSING' ? t('housing_confirm_t') : t('house_buy_t')}</h3>
             <p className="muted mt-2 font-bold leading-snug">
               {t('housing_confirm_d', { name: HOMES[confirm.slug]?.pl ?? tr(confirm.name), price: num(confirm.price), left: num(balance - confirm.price) })}
             </p>

@@ -8,6 +8,8 @@
  * 2. Игрок с деньгами: «Купить» открывает подтверждение с ценой и остатком, «Отмена» ничего не меняет, подтверждение списывает ровно цену и переселяет Бобра
  *    (фон меняется, карточка «Выбрано»), после перезагрузки выбор сохраняется; вернуться в бесплатную комнату и обратно можно без повторной покупки.
  * 3. Вещи из магазина (мебель, сувениры) показываются полосой под комнатой, а не стикерами поверх фона; пустой список — подсказка.
+ * 5. Интерьер прямо в домике: мебель и декор с ценами, «Купить» → подтверждение → вещь в комнате (полоса «В комнате»), «Убрать» и «Поставить» без повторной покупки,
+ *    без денег — «Не хватает N», сувениры — условие награды вместо цены; кнопка «Обустроить» ведёт к разделу, а не в магазин.
  * 4. Сцены (читает / спит / работает / чай): у Ополя три (сцены «работает» нет), у остальных четыре; нажатие меняет картинку, выбор переживает перезагрузку
  *    и переносится в другую квартиру (если там есть такая сцена; иначе — сцена по времени суток); все 15 картинок открываются.
  */
@@ -215,6 +217,46 @@ async function main() {
         check((await sceneOf(u.page)) === fallback && (await u.page.locator('[data-house-scenes] [data-scene="work"]').count()) === 0, `${tag}: в Ополе без сцены «работает» показана «${fallback}»`);
         await u.context.close();
       }
+    }
+
+    // ── 5. Интерьер в домике ──
+    for (const [w, h] of SIZES) {
+      const tag = `${w}px интерьер`;
+      const u = await userPage([w, h], { balance: 150 });
+      await u.page.getByRole('button', { name: 'Обустроить' }).click();
+      await u.page.waitForTimeout(900);
+      const top = await u.page.locator('[data-house-interior]').evaluate((e) => e.getBoundingClientRect().top);
+      check(top >= -2 && top < h * 0.5 && u.page.url().includes('/house'), `${tag}: «Обустроить» прокручивает к интерьеру на том же экране (${Math.round(top)} px)`);
+      const states = await u.page.locator('[data-interior]').evaluateAll((els) => Object.fromEntries(els.map((e) => [e.getAttribute('data-interior'), e.getAttribute('data-state')])));
+      check(states['bed-basic'] === 'placed' && states['desk'] === 'buyable' && states['sofa'] === 'buyable' && states['bed-cozy'] === 'buyable', `${tag}: стартовая кровать в комнате, стол и диван можно купить (${states['bed-basic']}, ${states['desk']}, ${states['sofa']})`);
+      check(['souvenir-syrenka', 'souvenir-dragon', 'souvenir-krasnal'].every((k) => states[k] === 'reward'), `${tag}: сувениры — награды (условие вместо цены)`);
+      const rewardText = await u.page.locator('[data-interior="souvenir-syrenka"]').innerText();
+      check(/экзамен/i.test(rewardText), `${tag}: у сувенира условие «Сдай экзамен города…» (${rewardText.replace(/\s+/g, ' ').slice(0, 50)})`);
+      const desk = u.page.locator('[data-interior="desk"]');
+      await desk.scrollIntoViewIfNeeded();
+      await desk.getByRole('button').click();
+      const sheet = u.page.locator('[data-sheet]');
+      await sheet.waitFor({ timeout: 10_000 });
+      check(/Купить в домик/.test(await sheet.innerText()), `${tag}: подтверждение покупки для домика`);
+      await u.page.locator('[data-housing-confirm]').click();
+      await u.page.waitForFunction(() => document.querySelector('[data-interior="desk"]')?.getAttribute('data-state') === 'placed', null, { timeout: 15_000 });
+      const left = (await db.select().from(gameWallets).where(eq(gameWallets.userId, u.user.id)))[0].balance;
+      check(left >= 50 && left <= 110, `${tag}: стол куплен за 100 и сразу в комнате (осталось ${left}; до +50 за достижение)`);
+      check((await u.page.locator('[data-house-things] .card').count()) === 2, `${tag}: в полосе «В комнате» кровать и стол`);
+      // без денег теперь диван (150) — «Не хватает»
+      const sofaState = await u.page.locator('[data-interior="sofa"]').getAttribute('data-state');
+      check(sofaState === 'locked' && /Не хватает/.test(await u.page.locator('[data-interior="sofa"]').innerText()), `${tag}: на диван не хватает — подпись «Не хватает» (${sofaState})`);
+      // убрать и поставить — без повторной покупки
+      await desk.getByRole('button', { name: 'Убрать' }).click();
+      await u.page.waitForFunction(() => document.querySelector('[data-interior="desk"]')?.getAttribute('data-state') === 'owned', null, { timeout: 15_000 });
+      check((await u.page.locator('[data-house-things] .card').count()) === 1, `${tag}: «Убрать» — стол ушёл из комнаты, покупка осталась`);
+      await desk.getByRole('button', { name: 'Поставить' }).click();
+      await u.page.waitForFunction(() => document.querySelector('[data-interior="desk"]')?.getAttribute('data-state') === 'placed', null, { timeout: 15_000 });
+      const left2 = (await db.select().from(gameWallets).where(eq(gameWallets.userId, u.user.id)))[0].balance;
+      check(left2 === left, `${tag}: «Поставить» денег не тратит (${left} → ${left2})`);
+      check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
+      if (w === 390) await u.page.screenshot({ path: `${OUT}/interior-${w}.png`, fullPage: true });
+      await u.context.close();
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);
   } finally {
