@@ -174,7 +174,9 @@ type Props = {
 export const LessonStage = memo(function LessonStage({ item, index, routeSlug, citySlug, color = '#36B9FF', evening, mood, place }: Props) {
   const { t } = useT();
   const reduce = useReducedMotion();
-  const scene = sceneForRoute(routeSlug);
+  // Маршрут «квартира» у місті: замість векторної MIESZKANIE — панорама міста (Бобек гравця поверх, у його образі).
+  const routeScene = sceneForRoute(routeSlug);
+  const scene = routeScene === 'flat' && citySlug ? null : routeScene;
   const pool = scene ? (POOLS[scene] ?? SCENE_ITEM_POOLS[scene]) : [];
   // Кожне завдання зсуває вітрину на один предмет: сусідні завдання виглядають по-різному.
   const items = pool.length ? [0, 1, 2].map((k) => pool[(index + k) % pool.length]) : undefined;
@@ -182,9 +184,9 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
   const reverse = item.type === 'WORD_TRANSLATION' && !(item.data as { pl?: string }).pl;
   const cue = reverse ? REVERSE_CUE : (PL_CUE[item.type] ?? PL_CUE.WORD_TRANSLATION);
   const npc = (item.type === 'DIALOGUE' || item.type === 'SITUATION') ? (item.data as unknown as { npc?: { emoji: string; name: string } }).npc : undefined;
-  // Без своей локации (экзамен, входной тест, тренировка) и на маршрутах «квартира» — фото «Бобек дома» вместо векторной MIESZKANIE (владелец 2026-11-02).
-  // Бобёр нарисован в кадре: второго поверх нет, реакция на ответ — движение всего кадра.
-  const photo = (!scene && !citySlug) || scene === 'flat' ? homeShotFor(item.type) : null;
+  // Без своей локации (экзамен, входной тест, тренировка) — фото «Бобек дома» вместо векторной MIESZKANIE (владелец 2026-11-02).
+  // Бобёр нарисован в кадре: второго поверх нет, реакция на ответ — движение всего кадра. В уроках города остаётся Бобек игрока (его образ).
+  const photo = !scene && !citySlug ? homeShotFor(item.type) : null;
   useEffect(() => {
     if (photo) warmHomeShots(STAGE_SIZES);
   }, [photo]);

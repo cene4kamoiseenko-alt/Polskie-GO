@@ -33,7 +33,7 @@
  *    (сервер проверяет подпись), новичок сначала проходит знакомство и затем попадает на экран из start_param; повторный запуск — сразу на экран.
  *  - G «Назад» и свайпы (сенсорные события через CDP, 390×844): «Назад» на экране, открытом кнопкой бота, ведёт на главную;
  *    свайп от левого края закрывает шторку и возвращает назад, вертикальный и короткий жест — нет; вкладки заданий и гардероба
- *    листаются свайпом, ряд категорий — нет; примерочная листает вещи; тост смахивается вверх.
+ *    листаются свайпом; примерочная листает вещи и образы; тост смахивается вверх.
  *
  * Запуск: npm run e2e   (знімки — test-results/screens, підсумок — test-results/browser-results.json)
  */
@@ -456,11 +456,9 @@ async function main() {
       await gp.waitForTimeout(300);
       await swipe(330, 420, 100, 426);
       const shopTab = await tab();
-      const chip = gp.locator('.chip-tab').first();
-      await chip.waitFor({ timeout: 5_000 });
-      const cb = (await chip.boundingBox())!;
-      await swipe(320, cb.y + cb.height / 2, 80, cb.y + cb.height / 2);
-      check(shopTab === 1 && (await tab()) === 1 && /tab=shop/.test(gp.url()), `G4 гардероб: свайп по экрану → «Магазин», ряд категорий листается сам (${shopTab}, ${await tab()})`);
+      // С 2026-11-02 во вкладке «Магазин» готовые образы по уровням, ряда категорий больше нет (docs/OUTFITS.md).
+      await gp.locator('[data-looks] [data-outfit]').first().waitFor({ timeout: 5_000 });
+      check(shopTab === 1 && (await tab()) === 1 && /tab=shop/.test(gp.url()), `G4 гардероб: свайп по экрану → «Магазин» с образами (${shopTab}, ${await tab()})`);
       await g.context.close();
     });
 

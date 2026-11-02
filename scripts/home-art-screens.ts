@@ -5,7 +5,7 @@
  *
  * 1. «Egzaminy»: шапка карточки уровня — крупное фото Бобра за учёбой (загружено, не ниже 150 px на 390), уровень виден; нет горизонтальной прокрутки; 320 / 390 / 430.
  * 2. Пробный экзамен и входной тест: сцена над заданием — фото (а не SVG MIESZKANIE), второго Бобра поверх нет, подсказка Бобра видна.
- * 3. Вступление к уроку маршрута «квартира» (Варшава, «Powitania»): фото вместо SVG, Бобра поверх нет.
+ * 3. Вступление к уроку маршрута «квартира» (Варшава, «Powitania»): панорама города и Бобек игрока в его образе вместо SVG MIESZKANIE.
  * 4. Список уроков Варшавы: миниатюра маршрута «квартира» — фото с ключами.
  * 5. Premium: шапка — баннер владельца (загружен, кадр 3 : 2, в кадре), сегодня — тот, что по дате; завтра — другой; заголовок для чтения с экрана есть.
  */
@@ -100,10 +100,13 @@ async function main() {
       const route = waw?.routes.find((r) => r.slug === 'waw-powitania');
       if (!route) check(false, `${tag}: маршрут waw-powitania найден`);
       else {
-        await u.go(`/lesson/${route.lessons[0].id}`, '[data-intro-photo]');
-        const intro = await imgOk(u.page, '[data-intro-photo]');
-        check(intro.ok && /home-study/.test(intro.src), `${tag} вступление: фото вместо SVG MIESZKANIE (${intro.src})`);
-        check((await u.page.locator('.lesson-stage [data-look-pose]').count()) === 0, `${tag} вступление: второго Бобра поверх фото нет`);
+        await u.go(`/lesson/${route.lessons[0].id}`, '[data-action="start"]');
+        // Урок города: панорама города и Бобек игрока поверх (его образ виден в уроке), векторной MIESZKANIE нет.
+        const introStage = u.page.locator('.lesson-stage').first();
+        check((await introStage.locator('svg[viewBox="0 0 360 170"]').count()) === 0, `${tag} вступление урока в городе: векторной MIESZKANIE нет`);
+        check((await introStage.locator('[data-look]').count()) === 1, `${tag} вступление урока в городе: Бобек игрока в его образе`);
+        const pano = await introStage.locator('img').first().evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, src: el.currentSrc.split('/').pop() || '' })).catch(() => ({ ok: false, src: '' }));
+        check(pano.ok && /warszawa/.test(pano.src), `${tag} вступление: панорама Варшавы (${pano.src})`);
         if (w === 390) await u.page.screenshot({ path: `${OUT}/intro-${w}.png` });
         await u.go(`/learn?city=${encodeURIComponent((journey.cities.find((c) => c.slug === 'warszawa') as unknown as { id: string }).id)}`, '.location-card');
         const thumbs = await u.page.locator('.location-card img[src*="home-keys"]').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0));

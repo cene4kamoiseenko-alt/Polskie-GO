@@ -6,6 +6,7 @@ import { useGoBack } from '../lib/back';
 import { useT, type TKey } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { homeShot } from '../lib/homeArt';
+import { CityBanner } from '../components/Scenery';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
 import { prefetchSpeech, sfx, stopSpeech } from '../lib/audio';
@@ -215,9 +216,12 @@ export default function LessonScreen() {
 
   if (phase === 'intro' && session.lesson) {
     const l = session.lesson;
-    // Своей сцены у маршрута нет (или это «квартира») — фото «Бобек дома» за учёбой вместо векторной MIESZKANIE; Бобёр уже в кадре.
-    const introScene = sceneForRoute(session.place?.routeSlug);
-    const introPhoto = !introScene || introScene === 'flat' ? homeShot('study') : null;
+    // Своей сцены у маршрута нет (или это «квартира»): в городе — панорама города и Бобек игрока поверх (его образ виден и в уроке);
+    // без города — фото «Бобек дома» за учёбой. Векторная MIESZKANIE больше не показывается (владелец 2026-11-02).
+    const routeScene = sceneForRoute(session.place?.routeSlug);
+    const introScene = routeScene && routeScene !== 'flat' ? routeScene : null;
+    const introCity = !introScene ? session.place?.citySlug ?? null : null;
+    const introPhoto = !introScene && !introCity ? homeShot('study') : null;
     return (
       <div className="min-h-app flex flex-col px-4 pb-6 pt-3">
         <TopClose onClose={onQuit} />
@@ -225,8 +229,10 @@ export default function LessonScreen() {
           <div className="lesson-stage relative h-[180px] overflow-hidden rounded-[26px]">
             {introPhoto ? (
               <img src={introPhoto.src} srcSet={introPhoto.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: introPhoto.pos }} decoding="async" draggable={false} data-intro-photo />
+            ) : introCity ? (
+              <CityBanner slug={introCity} color={session.place?.color ?? '#36B9FF'} height={180} className="absolute inset-0" shade={false} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" />
             ) : (
-              <Scene name={introScene!} evening={l.kind === 'BOSS' || isMissionSlug(l.slug)} className="absolute inset-0 h-full w-full" />
+              <Scene name={introScene ?? 'flat'} evening={l.kind === 'BOSS' || isMissionSlug(l.slug)} className="absolute inset-0 h-full w-full" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-night/80 via-transparent to-transparent" />
             {session.place && (
