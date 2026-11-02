@@ -25,8 +25,8 @@
  *    має ті самі data-look-equipped і data-look-items, що й resolveLook ядра для його me.outfit.wear; Бобек ненульового розміру,
  *    кожен шар (<img> або SVG-<image>) справді декодується. Те саме — для стартового образу (390).
  *    Знімки — test-results/screens/look-{екран}-390.png і look-default-{екран}-390.png.
- *  - L2 гардероб, річ без живописного шару (visualStatus pending): на картці мітка «Визуал готовится» замість ціни, у панелі
- *    дії немає кнопок покупки й Premium; POST /shop/buy → 409 visual_pending, баланс не змінився. Знімок — look-wardrobe-pending-390.png.
+ *  - L2 гардероб, річ без живописного шару (visualStatus pending): у магазині готових образів (2026-11-02) її немає взагалі;
+ *    POST /shop/buy → 409 visual_pending, баланс не змінився. Знімок — look-wardrobe-pending-390.png.
  *  - B1 переходы из Telegram-бота: ?bot_screen=<экран> (девять экранов) открывает свой маршрут на iPhone 390×844 и Android 360×800 (эмуляция
  *    Chromium, не реальные устройства), параметр убирается из адреса; неизвестное значение и адрес-обманка остаются на главной;
  *    startapp=screen_<экран>, ref_ и premium не конфликтуют. Telegram подменён: window.Telegram.WebApp с подписанными initData
@@ -798,21 +798,13 @@ async function main() {
       const shopBody = (await u.call('GET', '/api/shop')).body as { balance: number; items: ShopRow[] };
       check(shopBody.items.every((i) => typeof i.visualStatus === 'string'), 'L2 /shop отдаёт visualStatus у каждой вещи');
       const target = shopBody.items.find((i) => i.slot === 'HAT' && i.visualStatus === 'pending' && !i.rewardOnly && !i.owned);
-      check(target, `L2 есть шапка без живописного слоя в продаже (${target?.id})`);
+      check(target, `L2 есть шапка без живописного слоя в каталоге (${target?.id})`);
+      // Гардероб продаёт готовые образы (2026-11-02, docs/OUTFITS.md): вещи без визуала там не показываются вовсе.
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(u.url('/shop') + '&tab=shop', { waitUntil: 'networkidle' });
-      await page.locator('.chip-tab', { hasText: 'Шапки' }).first().click();
-      const card = page.locator('button.item-card', { hasText: target.name.ru });
-      await card.waitFor({ timeout: 20_000 });
-      check(await card.locator('[data-visual-status="pending"]').count() === 1 && await card.locator('.item-price').count() === 0, `L2 карточка «${target.name.ru}»: метка «Визуал готовится» вместо цены`);
-      await card.click();
-      const sheet = page.locator('.action-sheet');
-      await sheet.waitFor({ timeout: 5_000 });
-      check(await sheet.locator('[data-visual-status="pending"]').count() === 1, 'L2 в панели действия метка «Визуал готовится»');
-      check(await sheet.locator('button.btn-primary, button.btn-xp').count() === 0, 'L2 в панели действия нет кнопок покупки и Premium');
-      const preview = await page.locator('[data-look][data-look-preview="true"]').first().getAttribute('data-look-pending');
-      check(preview === toLookItemId(target.assetKey), `L2 примерка помечена data-look-preview, вещь в data-look-pending (${preview}), на Бобеке не рисуется`);
-      await page.waitForTimeout(400);
+      await page.locator('[data-looks] [data-outfit]').first().waitFor({ timeout: 20_000 });
+      check(await page.locator('[data-looks]', { hasText: target.name.ru }).count() === 0, `L2 «${target.name.ru}» (без визуала) в магазине образов не продаётся`);
+      check(await page.locator('[data-looks] [data-visual-status="pending"]').count() === 0, 'L2 в магазине образов нет меток «Визуал готовится»');
       await page.screenshot({ path: `${SCREENS}/look-wardrobe-pending-390.png` });
       const bought = await u.call('POST', '/api/shop/buy', { itemId: target.id });
       const after = (await u.call('GET', '/api/shop')).body as { balance: number };
@@ -823,36 +815,32 @@ async function main() {
     // ── M2: примерка не сохраняет, отмена возвращает образ, «Снимет: …» = правило equip() сервера, двойной тап по «Купить» — одна покупка.
     console.log('M2: примерка, подтверждение и покупка');
     await soft('M2 примерка и покупка', async () => {
-      type ShopRow = { id: string; slot: string; assetKey: string; name: { ru: string }; price: number; owned: boolean; equipped: boolean; visualStatus?: string };
+      // Гардероб продаёт готовые образы (2026-11-02, docs/OUTFITS.md): примерка образа не сохраняет, отмена возвращает сцену,
+      // двойной тап «Купить» — одна покупка, «Надеть» ставит ровно набор; костюм — тот же путь, «Снимет: …» = правило equip() сервера.
+      type ShopRow = { id: string; slug: string; slot: string; assetKey: string; name: { ru: string }; price: number; owned: boolean; equipped: boolean; visualStatus?: string };
       const u = await userPage('880013');
       const page = u.page;
-      for (const [slug, on] of [['costume-chef', 1], ['jacket-denim', 0]] as const) {
-        await env.DB.prepare("INSERT INTO user_inventory (user_id, item_id, equipped, source) SELECT ?, id, ?, 'e2e' FROM cosmetic_items WHERE slug = ?").bind(u.user.id, on, slug).run();
-      }
-      await env.DB.prepare('UPDATE game_wallets SET balance = 500 WHERE user_id = ?').bind(u.user.id).run();
-      const wear0 = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
+      await env.DB.prepare("INSERT INTO user_inventory (user_id, item_id, equipped, source) SELECT ?, id, 1, 'e2e' FROM cosmetic_items WHERE slug = 'costume-chef'").bind(u.user.id).run();
       const shop0 = (await u.call('GET', '/api/shop')).body as { balance: number; items: ShopRow[] };
-      const by = (key: string) => shop0.items.find((i) => i.assetKey === key)!;
-      const jacket = by('jacket-denim');
-      const chef = by('costume-chef');
-      const winter = by('costume-winter');
-      check(jacket?.owned && !jacket.equipped && chef?.equipped && shop0.balance === 500, 'M2 исходно: костюм повара надет, джинсовая куртка куплена и не надета, 500 Złotki');
+      const look = shop0.items.find((i) => i.slug === 'outfit-hoodie-cap')!;
+      const chef = shop0.items.find((i) => i.slug === 'costume-chef')!;
+      const winter = shop0.items.find((i) => i.slug === 'costume-winter')!;
+      await env.DB.prepare('UPDATE game_wallets SET balance = ? WHERE user_id = ?').bind(look.price + winter.price, u.user.id).run();
+      const wear0 = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
+      check(chef?.equipped && !look.owned && wear0.COSTUME === 'costume-chef', 'M2 исходно: костюм повара надет, образ «Na luzie» не куплен');
       const buys: string[] = [];
       page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/api/shop/buy')) buys.push(r.url()); });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(u.url('/shop') + '&tab=shop', { waitUntil: 'networkidle' });
       const stage = page.locator('.wardrobe-stage [data-look]').first();
       const sheet = page.locator('.action-sheet');
-      const card = page.locator('button.item-card', { hasText: jacket.name.ru });
+      const card = page.locator(`[data-outfit="${look.slug}"]`);
       await card.waitFor({ timeout: 20_000 });
 
       // Примерка и отмена
-      await card.click();
+      await card.getByRole('button', { name: 'Примерить' }).click();
       await sheet.waitFor({ timeout: 5_000 });
-      const expected = tryOn(wear0, jacket.assetKey);
-      check(await stage.getAttribute('data-look-preview') === 'true', 'M2 примерка помечена data-look-preview="true"');
-      const removeText = (await sheet.locator('[data-will-remove]').textContent()) ?? '';
-      check(expected.removed.includes(toLookItemId(chef.assetKey)) && removeText.includes(chef.name.ru), `M2 «Снимет: …» по правилу equip(): «${removeText}», ядро: ${expected.removed.join(', ')}`);
+      check(await stage.getAttribute('data-look-preview') === 'true', 'M2 примерка образа помечена data-look-preview="true"');
       await page.waitForTimeout(300);
       await page.screenshot({ path: `${SCREENS}/wardrobe-try-390.png` });
       await sheet.getByRole('button', { name: 'Отменить примерку' }).click();
@@ -860,31 +848,33 @@ async function main() {
       const wear1 = (await u.call('GET', '/api/me')).body.outfit.wear;
       check(JSON.stringify(wear1) === JSON.stringify(wear0) && (await stage.getAttribute('data-look-preview')) !== 'true', 'M2 отмена: на сервере образ не изменился, примерка снята со сцены');
 
-      // Надеть: сервер снимает то же, что показала примерка
-      await card.click();
+      // Покупка двойным тапом: один запрос, одно списание цены образа; затем «Надеть» — ровно набор, костюм снят
+      await card.getByRole('button', { name: 'Примерить' }).click();
       await sheet.waitFor({ timeout: 5_000 });
+      await sheet.locator('button.btn-primary').evaluate((b: HTMLButtonElement) => { b.click(); b.click(); });
+      await sheet.getByRole('button', { name: 'Надеть' }).waitFor({ timeout: 10_000 });
       await sheet.getByRole('button', { name: 'Надеть' }).click();
       await sheet.waitFor({ state: 'detached', timeout: 10_000 });
       const wear2 = (await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>;
-      check(JSON.stringify(equipmentFromWear(wear2)) === JSON.stringify(expected.equipment), `M2 «Надеть»: на сервере ${equipmentFromWear(wear2).join(', ')} = примерка ${expected.equipment.join(', ')}`);
+      check(JSON.stringify(wear2) === JSON.stringify({ HAT: 'cap-red' }), `M2 «Надеть» образ: на сервере ровно набор (${JSON.stringify(wear2)}), костюм снят`);
       await page.waitForTimeout(300);
       check(await stage.getAttribute('data-look-equipped') === lookDataAttributes(resolveLook(null, wear2))['data-look-equipped'], 'M2 после «Надеть» сцена показывает сохранённый образ');
 
-      // Покупка двойным тапом: один запрос, одно списание, панель остаётся с кнопкой «Надеть»
+      // Костюм: «Снимет: …» по правилу equip() — сейчас надета кепка; двойной тап «Купить» — одна покупка
       check(['ready', 'legacy-whole-look'].includes(winter?.visualStatus ?? ''), `M2 зимний образ продаётся (visualStatus ${winter?.visualStatus})`);
-      await page.locator('.chip-tab', { hasText: 'Костюмы' }).click();
       const wcard = page.locator('article.costume-card', { hasText: winter.name.ru });
-      await wcard.waitFor({ timeout: 10_000 });
+      await wcard.scrollIntoViewIfNeeded();
       await wcard.getByRole('button', { name: 'Примерить' }).click();
       await sheet.waitFor({ timeout: 5_000 });
-      // Два клика в одном такте: React ещё не перерисовал кнопку disabled — как быстрый двойной тап на телефоне.
+      const expected = tryOn(wear2, winter.assetKey);
+      const removeText = (await sheet.locator('[data-will-remove]').textContent().catch(() => '')) ?? '';
+      const removedNames = expected.removed.map((id) => shop0.items.find((i) => toLookItemId(i.assetKey) === id)?.name.ru).filter((n): n is string => !!n);
+      check(removedNames.length > 0 && removedNames.every((n) => removeText.includes(n)), `M2 «Снимет: …» по правилу equip(): «${removeText}», ядро: ${expected.removed.join(', ')}`);
       await sheet.locator('button.btn-primary').evaluate((b: HTMLButtonElement) => { b.click(); b.click(); });
       await sheet.getByRole('button', { name: 'Надеть' }).waitFor({ timeout: 10_000 });
-      const shop3 = (await u.call('GET', '/api/shop')).body as { balance: number; items: ShopRow[] };
-      // Баланс может вырасти на награду достижения «первая покупка», поэтому сверяется само списание.
-      const tx = await env.DB.prepare("SELECT amount FROM wallet_transactions WHERE user_id = ? AND amount < 0").bind(u.user.id).all<{ amount: number }>();
+      const tx = await env.DB.prepare("SELECT amount FROM wallet_transactions WHERE user_id = ? AND amount < 0 ORDER BY created_at").bind(u.user.id).all<{ amount: number }>();
       const debits = tx.results.map((r) => r.amount);
-      check(buys.length === 1 && debits.length === 1 && debits[0] === -winter.price, `M2 двойной тап «Купить»: запросов ${buys.length}, списаний ${debits.length} (${debits.join(', ')}), баланс 500 → ${shop3.balance}`);
+      check(buys.length === 2 && debits.length === 2 && debits.includes(-look.price) && debits.includes(-winter.price), `M2 двойные тапы «Купить»: запросов ${buys.length}, списаний ${debits.length} (${debits.join(', ')})`);
       await page.screenshot({ path: `${SCREENS}/wardrobe-bought-390.png` });
       await u.context.close();
     });

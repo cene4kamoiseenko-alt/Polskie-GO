@@ -30,6 +30,12 @@ const check = (ok: unknown, what: string) => {
 type ShopRow = { id: string; assetKey: string; name: { ru: string } };
 
 async function main() {
+  // 2026-11-02: гардероб продаёт готовые образы (docs/OUTFITS.md) — категорий вещей и поштучных карточек больше нет, эта проверка устарела.
+  // Гардероб проверяют scripts/outfits-screens.ts и e2e (L2, M2 в browser-check.ts).
+  if (!process.env.PG_OLD_WARDROBE) {
+    console.error('Устарело: гардероб вещей заменён готовыми образами 2026-11-02. Запускайте node --import tsx scripts/outfits-screens.ts');
+    process.exit(2);
+  }
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
   const { base, login, env } = stand;
