@@ -2,6 +2,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { and, count, eq } from 'drizzle-orm';
 import { db } from '../src/db';
 import { cityRoutes, cosmeticItems, gameWallets, paymentEvents, quests, subscriptions, userInventory, userQuests, users } from '../src/db/schema';
+import { STORY_QUESTS } from '../src/content/gamification';
 import { disposeEnv, getEnv, lessonId, login, playSession, request } from './helpers';
 
 afterAll(disposeEnv);
@@ -75,11 +76,39 @@ describe('Квести', () => {
     st = await call('POST', '/api/story/s-warszawa-dworzec/advance', { choice: 1 }); // гілка «метро»
     expect(st.body.node.pl).toContain('Metro');
     st = await call('POST', '/api/story/s-warszawa-dworzec/advance', {});
-    st = await call('POST', '/api/story/s-warszawa-dworzec/advance', {});
+    st = await call('POST', '/api/story/s-warszawa-dworzec/advance', {}); // кінець етапу 2: тепер це не фінал, а початок розділу 3
+    expect(st.body.status).toBe('ACTIVE');
+    expect(st.body.stage).toBe(2);
+    expect(st.body.stages).toBe(5);
+    // Решта розділів — за вмістом: верна відповідь у виборі, інакше «Далі». Після кожного кроку сервер і вміст мають збігатися.
+    const quest = STORY_QUESTS.find((q) => q.slug === 's-warszawa-dworzec')!;
+    let stage = 2;
+    let nodeId = quest.stages![2].start;
+    let steps = 0;
+    expect(st.body.node.pl).toBe(quest.stages![2].nodes[nodeId].pl);
+    while (st.body.status === 'ACTIVE' && steps++ < 300) {
+      const n = quest.stages![stage].nodes[nodeId];
+      if (n.choices) {
+        const i = n.choices.findIndex((c) => c.ok);
+        st = await call('POST', '/api/story/s-warszawa-dworzec/advance', { choice: i });
+        expect(st.body.result.ok, `${nodeId}`).toBe(true);
+        nodeId = n.choices[i].next!;
+      } else if (n.next) {
+        st = await call('POST', '/api/story/s-warszawa-dworzec/advance', {});
+        nodeId = n.next;
+      } else {
+        st = await call('POST', '/api/story/s-warszawa-dworzec/advance', {});
+        stage += 1;
+        nodeId = quest.stages![stage]?.start ?? '';
+      }
+      if (st.body.status === 'ACTIVE') expect(st.body.node.pl, `розділ ${stage + 1}, вузол ${nodeId}`).toBe(quest.stages![stage].nodes[nodeId].pl);
+    }
     expect(st.body.status).toBe('COMPLETED');
+    expect(stage).toBe(5);
+    expect(st.body.mistakes).toBe(1);
     const claim = await call('POST', `/api/quests/${st.body.id}/claim`);
     expect(claim.status).toBe(200);
-    expect(claim.body.xp).toBe(50);
+    expect(claim.body.xp).toBe(100);
     expect(claim.body.item.slug).toBe('scarf-pl');
     const scarf = await db.select({ n: count() }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(and(eq(userInventory.userId, user.id), eq(cosmeticItems.slug, 'scarf-pl')));
     expect(scarf[0].n).toBe(1);

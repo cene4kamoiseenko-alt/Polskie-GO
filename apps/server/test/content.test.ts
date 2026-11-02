@@ -3,7 +3,7 @@ import { checkAnswer, EXERCISE_TYPES, spreadByType, type ExerciseItem, type Orde
 import { CITY_CONTENT } from '../src/content/seed';
 import { PLACEMENT, EXAM_A1 } from '../src/content/exams';
 import { VOCAB } from '../src/content/vocab';
-import { STORY_QUESTS } from '../src/content/gamification';
+import { STORY_QUESTS, STORY_TARGET_BEFORE } from '../src/content/gamification';
 import { correctAnswers } from './helpers';
 
 const lessons = [...CITY_CONTENT.flatMap((c) => c.routes.flatMap((r) => r.lessons)), PLACEMENT, EXAM_A1];
@@ -52,6 +52,57 @@ describe('Навчальний контент', () => {
       }
     }
     expect(n).toBeGreaterThan(200);
+  });
+
+  it('сюжетні квести довгі: п\'ять розділів, кожен вузол досяжний, три мови, нагорода й target узгоджені', () => {
+    // Довжина — найкоротший шлях від початку до фіналу (верні відповіді); ~12–15 секунд на крок = близько 10 хвилин.
+    for (const q of STORY_QUESTS) {
+      expect(q.stages, q.slug).toHaveLength(5);
+      expect(q.target, `${q.slug}: target = числу розділів`).toBe(q.stages!.length);
+      expect(q.xp, q.slug).toBe(100);
+      expect(q.zlotki, q.slug).toBe(60);
+      let total = 0;
+      const newChoices: NonNullable<(typeof STORY_QUESTS)[number]['stages']>[number]['nodes'][string][] = [];
+      for (const [si, st] of q.stages!.entries()) {
+        const seen = new Set<string>();
+        const dist = new Map<string, number>([[st.start, 0]]);
+        const queue = [st.start];
+        while (queue.length) {
+          const id = queue.shift()!;
+          seen.add(id);
+          const node = st.nodes[id];
+          const nexts = [node.next, ...(node.choices ?? []).filter((c) => c.ok).map((c) => c.next)].filter((x): x is string => !!x);
+          for (const n of nexts) if (!dist.has(n)) { dist.set(n, dist.get(id)! + 1); queue.push(n); }
+        }
+        const label = `${q.slug}, розділ ${si + 1}`;
+        for (const id of Object.keys(st.nodes)) expect(seen.has(id), `${label}: вузол ${id} недосяжний`).toBe(true);
+        const ends = Object.entries(st.nodes).filter(([, n]) => n.end);
+        expect(ends.length, `${label}: має бути фінал розділу`).toBeGreaterThanOrEqual(1);
+        const steps = Math.min(...ends.map(([id]) => dist.get(id)!)) + 1;
+        total += steps;
+        // нові розділи — повноцінна розмова (≥ 6 кроків), перші лишилися як були (≥ 3)
+        expect(steps, label).toBeGreaterThanOrEqual(si >= STORY_TARGET_BEFORE[q.slug] ? 6 : 3);
+        // три мови у всьому тексті, без порожніх рядків і подвійних пробілів
+        const texts = (s: { uk?: string; ru?: string; en?: string } | undefined) => [s?.uk, s?.ru, s?.en];
+        for (const [id, node] of Object.entries(st.nodes)) {
+          expect(node.pl.trim().length, `${label}:${id}`).toBeGreaterThan(0);
+          expect(node.pl, `${label}:${id}`).not.toMatch(/\s{2,}/);
+          for (const x of texts(node.tr)) expect(x && x.trim().length > 0, `${label}:${id} — немає перекладу`).toBe(true);
+          for (const c of node.choices ?? []) {
+            for (const x of texts(c.tr)) expect(x && x.trim().length > 0, `${label}:${id} — немає перекладу відповіді`).toBe(true);
+            if (!c.ok) for (const x of texts(c.feedback)) expect(x && x.trim().length > 0, `${label}:${id} — немає підказки до помилки «${c.pl}»`).toBe(true);
+          }
+        }
+        if (si >= STORY_TARGET_BEFORE[q.slug]) {
+          for (const n of Object.values(st.nodes)) for (const c of n.choices ?? []) expect(c.ok || (c.feedback && !c.next), `${label}: хибна відповідь «${c.pl}» не веде далі`).toBeTruthy();
+          newChoices.push(...Object.values(st.nodes).filter((n) => n.choices && n.choices.length > 1 && n.choices.some((c) => !c.ok)));
+        }
+      }
+      // правильна відповідь не завжди перша: інакше квест проходиться «першим варіантом» без читання
+      const okFirstShare = newChoices.filter((n) => n.choices![0].ok).length / newChoices.length;
+      expect(okFirstShare, `${q.slug}: частка вузлів, де вірна відповідь перша`).toBeLessThanOrEqual(0.6);
+      expect(total, `${q.slug}: шлях верних відповідей`).toBeGreaterThanOrEqual(28);
+    }
   });
 
   it('сюжетні квести: усі переходи ведуть до існуючих вузлів і є правильний вибір', () => {

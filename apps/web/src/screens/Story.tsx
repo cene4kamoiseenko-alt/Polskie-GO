@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from '../lib/motion';
 import { Scene, type SceneName } from '../components/Illustrations';
 import { SceneAvatar, type SceneKey } from '../components/SceneAvatar';
+import { NpcAvatar, isPersonEmoji } from '../components/pictograms/NpcAvatar';
 import { Icon } from '../components/Icon';
 import { GameIcon } from '../components/GameIcon';
 import { useEffect, useRef, useState } from 'react';
@@ -127,7 +128,8 @@ export default function StoryScreen() {
                 {node.speaker === 'beaver' ? (
                   <Beaver mood="happy" size={96} />
                 ) : node.speaker === 'npc' ? (
-                  <SceneAvatar scene={STORY_NPC[st.slug] ?? 'meeting'} size={76} />
+                  // В длинных квестах говорят разные люди (подруга, хозяйка, сосед, сантехник): портрет — по самому персонажу (эмодзи из данных), а не один на весь квест.
+                  node.emoji && isPersonEmoji(node.emoji) ? <NpcAvatar emoji={node.emoji} seed={node.name ?? st.slug} size={76} /> : <SceneAvatar scene={STORY_NPC[st.slug] ?? 'meeting'} size={76} />
                 ) : (
                   <GameIcon name="lessons" size={64} className="shrink-0" />
                 )}

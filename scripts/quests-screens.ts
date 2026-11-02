@@ -11,6 +11,8 @@
  * 4. Картинка внутри диалога сюжетного квеста (/story/<slug>, 2026-11-02): Dworzec и Mieszkanie — кадры 2 : 1 владельца с Бобеком на кадре (второй Бобек не рисуется), Вроцлав — кадр карточки.
  * 5. Вступление миссии «11 ноября» (/life/listopad-swieto): Stary Rynek вместо SVG-сцены, второго Бобека поверх нет.
  * 6. Главная: строки «Сегодня» — значки владельца (книга, звезда, мишень) без серой плашки, остальные на плашке того же цвета; все картинки загружены.
+ * 7. Длинный сюжетный квест (2026-11-02): «Варшава» проходится в интерфейсе от первой реплики до экрана награды — пять глав, на каждой подпись «Этап N из 5 · название»,
+ *    верные ответы выбираются по тексту (порядок вариантов перемешан), неверный даёт подсказку и не двигает разговор; на 320 / 390 / 430 нет горизонтальной прокрутки и кнопка видна.
  */
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -203,6 +205,58 @@ async function main() {
       check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${w}px: главная без горизонтальной прокрутки`);
       await u.page.screenshot({ path: `${OUT}/home-today-${w}.png` });
       await u.context.close();
+    }
+    // ── 7. Длинный сюжетный квест в интерфейсе ──
+    {
+      const { STORY_QUESTS } = await import(root + '/apps/server/src/content/gamification.ts');
+      const quest = STORY_QUESTS.find((q: { slug: string }) => q.slug === 's-warszawa-dworzec');
+      for (const [w, h] of SIZES) {
+        const tag = `${w}px /story/s-warszawa-dworzec`;
+        const u = await userPage([w, h], '/story/s-warszawa-dworzec', '[data-story-scene]');
+        let steps = 0;
+        let wrongTried = false;
+        const seenStages = new Set<number>();
+        for (let si = 0; si < quest.stages.length; si++) {
+          const st = quest.stages[si];
+          let id: string = st.start;
+          for (let guard = 0; guard < 40; guard++) {
+            const node = st.nodes[id];
+            // реплика текущего узла на экране
+            await u.page.getByText(node.pl, { exact: true }).first().waitFor({ timeout: 15_000 });
+            if (guard === 0) {
+              const sub = await u.page.locator('header, [class*="ScreenHeader"], h1').first().evaluate((el) => (el.closest('div') as HTMLElement).innerText);
+              check(new RegExp(`${si + 1}\\s*из\\s*${quest.stages.length}`).test(sub), `${tag}: подпись «Этап ${si + 1} из ${quest.stages.length}» (${sub.replace(/\s+/g, ' ').slice(0, 70)})`);
+              seenStages.add(si);
+            }
+            if (node.choices) {
+              // сначала один раз неверный ответ: разговор не двигается, видна подсказка
+              const wrong = node.choices.find((c: { ok: boolean }) => !c.ok);
+              if (!wrongTried && wrong && si === 2) {
+                wrongTried = true;
+                await u.page.locator('.option', { hasText: wrong.pl }).first().click();
+                await u.page.waitForTimeout(700);
+                check(await u.page.getByText(node.pl, { exact: true }).first().isVisible(), `${tag}: неверный ответ не двигает разговор (глава 3)`);
+              }
+              const good = node.choices.find((c: { ok: boolean }) => c.ok);
+              await u.page.locator('.option', { hasText: good.pl }).first().click();
+              id = good.next;
+            } else if (node.next) {
+              await u.page.locator('.btn-primary').first().click();
+              id = node.next;
+            } else {
+              await u.page.locator('.btn-primary').first().click();
+              break;
+            }
+            steps++;
+            await u.page.waitForTimeout(250);
+          }
+        }
+        await u.page.getByText('Забрать', { exact: false }).first().waitFor({ timeout: 15_000 });
+        check(seenStages.size === 5 && steps >= 24, `${tag}: пройдены все 5 глав, шагов с выбором и «Далее» — ${steps}`);
+        check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
+        if (w === 390) await u.page.screenshot({ path: `${OUT}/story-done-${w}.png` });
+        await u.context.close();
+      }
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);
   } finally {

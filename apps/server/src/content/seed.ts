@@ -25,7 +25,7 @@ import { TORUN } from './torun';
 import { OLSZTYN } from './olsztyn';
 import { BIALYSTOK } from './bialystok';
 import { PLACEMENT, EXAM_A1 } from './exams';
-import { ACHIEVEMENTS, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from './gamification';
+import { ACHIEVEMENTS, DAILY_QUESTS, ITEMS, STORY_QUESTS, STORY_TARGET_BEFORE, WEEKLY_QUESTS } from './gamification';
 import { MISSIONS } from './missions';
 import type { CityContent, LessonSeed } from './types';
 
@@ -341,6 +341,14 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
     );
     for (const [si, st] of (q.stages ?? []).entries()) {
       out.push(insert('quest_steps', { id: `qs_${hash(q.slug)}_${si}`, quest_id: ref('quests', { slug: q.slug }), order: si, data: st }, ['quest_id', 'order'], force));
+    }
+    // Сюжетный квест удлинён (2026-11-02): новые главы вставились выше как новые этапы, а уже засеянная строка квеста (без force сид её не трогает) получает
+    // новое число этапов, награду и описание ровно один раз — пока число этапов ещё прежнее. Первые главы на проде не менялись.
+    const before = STORY_TARGET_BEFORE[q.slug];
+    if (q.kind === 'STORY' && before !== undefined && before !== q.target) {
+      out.push(
+        `UPDATE quests SET target = ${q.target}, xp_reward = ${q.xp}, zlotki_reward = ${q.zlotki}, description = ${lit(q.description)} WHERE slug = ${lit(q.slug)} AND target = ${before};`,
+      );
     }
   }
 

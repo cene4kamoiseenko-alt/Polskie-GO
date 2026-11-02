@@ -1,6 +1,7 @@
 /** Квести, досягнення та косметика. */
 import type { I18n } from '@polski-go/shared';
 import { t } from './builders';
+import { STORY_EXTRA_STAGES } from './story-chapters';
 
 export type QuestSeed = {
   slug: string;
@@ -52,7 +53,8 @@ export const WEEKLY_QUESTS: QuestSeed[] = [
 
 const BEAVER = { speaker: 'beaver' as const, name: 'Bobek', emoji: '🦫' };
 
-export const STORY_QUESTS: QuestSeed[] = [
+/** Сюжетные квесты в первоначальном виде (1–2 главы, засеяны на проде). Удлинённые версии — STORY_QUESTS ниже. */
+const STORY_BASE: QuestSeed[] = [
   {
     slug: 's-warszawa-dworzec', kind: 'STORY', city: 'warszawa', icon: '🚉', order: 1,
     title: t('Бобер прибуває до Варшави', 'Бобр прибывает в Варшаву', 'Bobek arrives in Warsaw'),
@@ -163,6 +165,34 @@ export const STORY_QUESTS: QuestSeed[] = [
     ],
   },
 ];
+
+/** Сколько этапов было у каждого сюжетного квеста до удлинения (2026-11-02): по этому числу seed обновляет уже засеянные строки на проде один раз (см. buildSeedSql). */
+export const STORY_TARGET_BEFORE: Record<string, number> = Object.fromEntries(STORY_BASE.map((q) => [q.slug, q.target]));
+
+/** Описания удлинённых квестов: о чём сюжет и сколько глав. */
+const STORY_DESCRIPTION: Record<string, I18n> = {
+  's-warszawa-dworzec': t(
+    'Бобек вийшов з потяга на Центральному вокзалі. Допоможи йому знайти подругу, купити квиток, замовити каву й прийняти запрошення на вечерю — п\'ять розділів, близько 7 хвилин.',
+    'Бобек вышел из поезда на Центральном вокзале. Помоги ему найти подругу, купить билет, заказать кофе и принять приглашение на ужин — пять глав, около 7 минут.',
+    'Bobek steps off the train at Warsaw Central. Help him find a friend, buy a ticket, order coffee and accept a dinner invitation — five chapters, about 7 minutes.',
+  ),
+  's-krakow-mieszkanie': t(
+    'У Кракові Бобек шукає дім: огляд квартири, договір оренди, сусіди, зламаний кран і новосілля — п\'ять розділів, близько 9 хвилин.',
+    'В Кракове Бобек ищет дом: просмотр квартиры, договор аренды, соседи, нет горячей воды и новоселье — пять глав, около 9 минут.',
+    'In Kraków Bobek finds a home: viewing a flat, the lease, the neighbours, no hot water and a housewarming — five chapters, about 9 minutes.',
+  ),
+  's-wroclaw-zgubiony': t(
+    'Бобек шукає Ринок у Вроцлаві: дорога, гноми, загублений телефон і вечеря з Юреком — п\'ять розділів, близько 8 хвилин.',
+    'Бобек ищет Рынок во Вроцлаве: дорога, гномы, потерянный телефон и ужин с Юреком — пять глав, около 8 минут.',
+    'Bobek looks for the Market Square in Wrocław: directions, gnomes, a lost phone and dinner with Jurek — five chapters, about 8 minutes.',
+  ),
+};
+
+/** Сюжетные квесты: первые главы + продолжение (story-chapters.ts). Этапов столько, сколько глав; награда выросла вместе с длиной (было 50 XP / 30 złotki). */
+export const STORY_QUESTS: QuestSeed[] = STORY_BASE.map((q) => {
+  const stages = [...(q.stages ?? []), ...(STORY_EXTRA_STAGES[q.slug] ?? [])];
+  return { ...q, stages, target: stages.length, xp: 100, zlotki: 60, description: STORY_DESCRIPTION[q.slug] ?? q.description };
+});
 
 export type AchievementSeed = { slug: string; title: I18n; description: I18n; icon: string; metric: string; threshold: number; zlotki: number; rewardItem?: string };
 
