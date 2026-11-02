@@ -73,7 +73,7 @@ async function main() {
       const tag = `${w}px`;
       check((await u.page.locator('[data-pass-featured="marcin-rogal"]').count()) === 1, `${tag}: сверху карточка «Продолжить» для начатой миссии`);
       const resume = (await u.page.locator('[data-pass-featured] .pg-resume').textContent()) ?? '';
-      check(/Продолжить.*шаг\s1\sиз\s6/.test(resume), `${tag}: «${resume.trim()}» — шаг из реального прогона`);
+      check(/Продолжить.*шаг\s1\sиз\s13/.test(resume), `${tag}: «${resume.trim()}» — шаг из реального прогона`);
       const listed = await u.page.locator('[data-pass-mission]').evaluateAll((els) => els.map((e) => e.getAttribute('data-pass-mission')));
       check(listed.join() === 'listopad-swieto,andrzejki-wosk', `${tag}: ниже две остальные миссии, «Рогалики» не дублируются (${listed.join(', ')})`);
       check((await u.page.locator('[data-pass-mission="marcin-rogal"]').count()) === 0, `${tag}: начатая миссия только в «Продолжить»`);
