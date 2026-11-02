@@ -4,6 +4,7 @@ import { LOOK_MANIFEST, canPurchase, equip, findLookItem, type I18n, type LookPu
 import { atomic, db, isUniqueViolation, type Stmt } from '../db';
 import { achievements, cities, cosmeticItems, gameWallets, playerProgress, quests, userInventory } from '../db/schema';
 import { MISSIONS } from '../content/missions';
+import { OUTFIT_BY_SLUG, OUTFIT_COMPONENTS, type Outfit } from '../content/outfits';
 import { HttpError, badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { isPremium } from './premium';
@@ -12,6 +13,32 @@ import { spendZlotki } from './rewards';
 /** Житло домика: один обраний фон кімнати. Безкоштовна кімната (ціна 0) обрана за замовчуванням і належить усім без запису в інвентарі. */
 const HOUSING_SLOT = 'HOUSING';
 const DEFAULT_HOUSING = 'housing-opole';
+
+/**
+ * Готові образи (content/outfits.ts, docs/OUTFITS.md): предмет слота OUTFIT — це набір речей. Сам рядок OUTFIT ніколи не «вдягнений»:
+ * образ вдягнено, коли вдягнені речі збігаються з набором. Надягання образу знімає весь одяг (рамка профілю — не одяг, лишається).
+ */
+const OUTFIT_SLOT = 'OUTFIT';
+const LOOK_WEAR: ('HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME')[] = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME'];
+/** Фірмове худі резолвер малює сам, коли куртки немає: на збіг образу воно не впливає. */
+const DEFAULT_TOP = 'hoodie-red';
+
+type OwnedRow = { source: string };
+/**
+ * Образ свій: стартовий, куплений (рядок OUTFIT) або всі речі набору отримані НЕ через образи — куплені раніше поштучно чи як нагорода.
+ * Так колишні покупки не пропадають, а речі з дешевих образів не складаються в дорогий.
+ */
+function outfitOwned(o: Outfit, hasOutfitRow: boolean, rowBySlug: (slug: string) => OwnedRow | undefined): boolean {
+  if (o.starter || hasOutfitRow) return true;
+  return o.items.every((slug) => {
+    const r = rowBySlug(slug);
+    return !!r && r.source !== 'outfit';
+  });
+}
+/** Образ вдягнено: вдягнені речі образу (без худі) — рівно набір. */
+function outfitWorn(o: Outfit, worn: ReadonlySet<string>): boolean {
+  return o.items.length === worn.size && o.items.every((slug) => worn.has(slug));
+}
 
 /** Слоти, де одночасно може бути вдягнений лише один предмет. */
 const EXCLUSIVE = new Set(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME']);
@@ -64,6 +91,12 @@ export async function listShop(userId: string) {
   ]);
   const premium = await isPremium(userId);
   const owned = new Map(inv.map((i) => [i.itemId, i]));
+  const bySlug = new Map(items.map(({ item }) => [item.slug, item]));
+  const rowBySlug = (slug: string) => {
+    const id = bySlug.get(slug)?.id;
+    return id ? owned.get(id) : undefined;
+  };
+  const worn = new Set(items.filter(({ item }) => (LOOK_WEAR as string[]).includes(item.slot) && item.slug !== DEFAULT_TOP && owned.get(item.id)?.equipped).map(({ item }) => item.slug));
   // Житло: безкоштовна кімната є в усіх; обране — те, що позначено в інвентарі, інакше кімната за замовчуванням.
   const housing = items.filter(({ item }) => item.slot === HOUSING_SLOT);
   const pickedHousing = housing.find(({ item }) => owned.get(item.id)?.equipped)?.item.slug ?? DEFAULT_HOUSING;
@@ -77,6 +110,23 @@ export async function listShop(userId: string) {
     if (q) return { kind: 'quest', title: q.title };
     if (city?.name) return { kind: 'city', title: city.name };
     return null;
+  };
+  /** Образ: свій / вдягнений і з чого складається (`wear` — як `outfit.wear` профілю: слот каталогу → asset_key; для примірки на клієнті). */
+  const outfitView = (slug: string) => {
+    const o = OUTFIT_BY_SLUG.get(slug);
+    const row = bySlug.get(slug);
+    if (!o || !row) return { owned: false, equipped: false, visualStatus: 'unknown' as ShopVisualStatus, outfit: null };
+    const wear: Record<string, string> = {};
+    for (const c of o.items) {
+      const it = bySlug.get(c);
+      if (it) wear[it.slot] = it.assetKey;
+    }
+    return {
+      owned: outfitOwned(o, owned.has(row.id), rowBySlug),
+      equipped: outfitWorn(o, worn),
+      visualStatus: 'prerendered' as ShopVisualStatus,
+      outfit: { wear, hoodie: o.hoodie, starter: !!o.starter, items: [...o.items] },
+    };
   };
   return {
     balance: wallet[0]?.balance ?? 0,
@@ -93,9 +143,12 @@ export async function listShop(userId: string) {
       rewardOnly: i.rewardOnly,
       city: citySlug ? { slug: citySlug, name: cityName } : null,
       unlock: i.rewardOnly ? unlockOf(i.id, i.slug, citySlug ? { name: cityName } : null) : null,
-      owned: owned.has(i.id) || isFreeHousing(i),
-      equipped: i.slot === HOUSING_SLOT ? i.slug === pickedHousing : owned.get(i.id)?.equipped ?? false,
-      visualStatus: shopVisualStatus(lookVerdict(i)),
+      ...(i.slot === OUTFIT_SLOT ? outfitView(i.slug) : {
+        owned: owned.has(i.id) || isFreeHousing(i),
+        equipped: i.slot === HOUSING_SLOT ? i.slug === pickedHousing : owned.get(i.id)?.equipped ?? false,
+        visualStatus: shopVisualStatus(lookVerdict(i)),
+        outfit: null,
+      }),
     })),
   };
 }
@@ -110,6 +163,9 @@ export async function buyItem(userId: string, itemId: string) {
   if (!item || !item.isActive) throw notFound('item_not_found');
   if (item.rewardOnly) throw badRequest('reward_only', 'Цей предмет можна лише заробити');
   if (have.length) throw badRequest('already_owned');
+  if (item.slot === OUTFIT_SLOT) return buyOutfit(userId, item, progress[0] ?? null);
+  // Речі наборів продаються лише в складі готових образів (2026-11-02): поштучно набір склався б дешевше за образ.
+  if (item.slot !== 'COSTUME' && OUTFIT_COMPONENTS.has(item.slug)) throw new HttpError(409, 'outfit_only', 'Ця річ продається лише в готовому образі. Złotki не списано');
   // Безкоштовне житло не купується: воно вже є в усіх (обрати його можна через equip).
   if (item.slot === HOUSING_SLOT && item.price === 0) throw badRequest('already_owned');
   // ADR-005 §12: не списуємо Złotki за річ, яку Бобек не може вдягнути (немає живописного зображення).
@@ -132,6 +188,60 @@ export async function buyItem(userId: string, itemId: string) {
   return { balance: wallet?.balance ?? 0, achievements: ach.unlocked };
 }
 
+/** Речі користувача з slug, слотом і походженням (для образів). */
+async function inventoryRows(userId: string) {
+  return db
+    .select({ itemId: userInventory.itemId, source: userInventory.source, equipped: userInventory.equipped, slug: cosmeticItems.slug, slot: cosmeticItems.slot })
+    .from(userInventory)
+    .innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId))
+    .where(eq(userInventory.userId, userId));
+}
+
+/** Купівля готового образу: ціна образу одним списанням, рядок OUTFIT і речі набору, яких ще немає (`source: 'outfit'`) — в одному пакеті D1. */
+async function buyOutfit(userId: string, item: typeof cosmeticItems.$inferSelect, progress: typeof playerProgress.$inferSelect | null) {
+  const o = OUTFIT_BY_SLUG.get(item.slug);
+  if (!o) throw notFound('item_not_found');
+  const [rows, parts] = await Promise.all([inventoryRows(userId), db.select({ id: cosmeticItems.id, slug: cosmeticItems.slug }).from(cosmeticItems).where(inArray(cosmeticItems.slug, [...o.items]))]);
+  const bySlug = new Map(rows.map((r) => [r.slug, r]));
+  if (outfitOwned(o, false, (slug) => bySlug.get(slug))) throw badRequest('already_owned');
+  if (parts.length !== o.items.length) throw new HttpError(409, 'visual_pending', 'Образ ще готується. Złotki не списано');
+  if (item.isPremium && !(await isPremium(userId))) throw forbidden('premium_required');
+  const ach = await evaluateAchievements(userId, progress, { PURCHASES: 1 });
+  try {
+    await atomic([
+      ...spendZlotki(userId, item.price, `buy:${item.slug}`, `buy:${userId}:${item.id}`),
+      db.insert(userInventory).values({ userId, itemId: item.id, source: 'shop' }),
+      ...parts.filter((p) => !bySlug.has(p.slug)).map((p) => db.insert(userInventory).values({ userId, itemId: p.id, source: 'outfit' }).onConflictDoNothing()),
+      ...ach.stmts,
+    ]);
+  } catch (e) {
+    if (isUniqueViolation(e)) throw badRequest('already_owned');
+    throw e;
+  }
+  const wallet = await db.query.gameWallets.findFirst({ where: eq(gameWallets.userId, userId) });
+  return { balance: wallet?.balance ?? 0, achievements: ach.unlocked };
+}
+
+/**
+ * Надягання готового образу: знімається весь одяг (костюм теж; рамка профілю лишається), вдягаються рівно речі набору.
+ * «Зняти» образ = повернутися до стартового «Podróżnik». Речі набору для купленого чи стартового образу дописуються, якщо їх раптом немає.
+ */
+async function equipOutfit(userId: string, item: { id: string; slug: string }, equipped: boolean) {
+  const target = equipped ? OUTFIT_BY_SLUG.get(item.slug) : [...OUTFIT_BY_SLUG.values()].find((x) => x.starter);
+  if (!target) throw notFound('item_not_found');
+  const [rows, parts] = await Promise.all([inventoryRows(userId), db.select({ id: cosmeticItems.id, slug: cosmeticItems.slug }).from(cosmeticItems).where(inArray(cosmeticItems.slug, [...target.items]))]);
+  const bySlug = new Map(rows.map((r) => [r.slug, r]));
+  const hasRow = rows.some((r) => r.slot === OUTFIT_SLOT && r.slug === target.slug);
+  if (!outfitOwned(target, hasRow, (slug) => bySlug.get(slug))) throw forbidden('not_owned');
+  const wearIds = db.select({ id: cosmeticItems.id }).from(cosmeticItems).where(inArray(cosmeticItems.slot, LOOK_WEAR));
+  await atomic([
+    ...parts.filter((p) => !bySlug.has(p.slug)).map((p) => db.insert(userInventory).values({ userId, itemId: p.id, source: target.starter ? 'starter' : 'outfit' }).onConflictDoNothing()),
+    db.update(userInventory).set({ equipped: false }).where(and(eq(userInventory.userId, userId), eq(userInventory.equipped, true), inArray(userInventory.itemId, wearIds))),
+    ...(parts.length ? [db.update(userInventory).set({ equipped: true }).where(and(eq(userInventory.userId, userId), inArray(userInventory.itemId, parts.map((p) => p.id))))] : []),
+  ]);
+  return outfit(userId);
+}
+
 /**
  * Надіти або зняти предмет зі свого інвентарю (ADR-005 §12).
  *
@@ -146,7 +256,8 @@ export async function buyItem(userId: string, itemId: string) {
  */
 export async function equipItem(userId: string, itemId: string, equipped: boolean) {
   // Безкоштовне житло належить усім: при першому виборі записуємо його в інвентар, далі все працює як із купленим.
-  const free = await db.select({ slot: cosmeticItems.slot, price: cosmeticItems.price, active: cosmeticItems.isActive }).from(cosmeticItems).where(eq(cosmeticItems.id, itemId)).get();
+  const free = await db.select({ slot: cosmeticItems.slot, slug: cosmeticItems.slug, price: cosmeticItems.price, active: cosmeticItems.isActive }).from(cosmeticItems).where(eq(cosmeticItems.id, itemId)).get();
+  if (free && free.active && free.slot === OUTFIT_SLOT) return equipOutfit(userId, { id: itemId, slug: free.slug }, equipped);
   if (free && free.active && free.slot === HOUSING_SLOT && free.price === 0) await db.insert(userInventory).values({ userId, itemId, source: 'free' }).onConflictDoNothing();
   const inv = await db
     .select({ slot: cosmeticItems.slot, assetKey: cosmeticItems.assetKey })

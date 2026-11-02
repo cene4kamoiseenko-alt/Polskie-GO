@@ -72,7 +72,7 @@ const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 type AssetResolver = (key: string, width: number) => string | null;
 
 /** Один шар: `canvas` — позиція й розмір у відсотках полотна 1024; `contain` — на все полотно. */
-function LayerImg({ layer, width, resolve }: { layer: LookRenderLayer; width: number; resolve: AssetResolver }) {
+function LayerImg({ layer, width, resolve, lazy }: { layer: LookRenderLayer; width: number; resolve: AssetResolver; lazy?: boolean }) {
   const src = resolve(layer.asset, width);
   useEffect(() => {
     if (!src && import.meta.env.DEV) console.warn(`[Beaver] немає файлу для шару «${layer.id}» (${layer.asset})`);
@@ -95,7 +95,7 @@ function LayerImg({ layer, width, resolve }: { layer: LookRenderLayer; width: nu
     style.transformOrigin = `${pct(layer.motionOrigin.x - layer.rect.x, layer.rect.w)} ${pct(layer.motionOrigin.y - layer.rect.y, layer.rect.h)}`;
   }
   const className = layer.motion ? `look-motion-${layer.motion}` : undefined;
-  return <img {...layerDataAttributes(layer)} className={className} src={src} alt="" decoding="async" draggable={false} style={style} />;
+  return <img {...layerDataAttributes(layer)} className={className} src={src} alt="" loading={lazy ? 'lazy' : undefined} decoding="async" draggable={false} style={style} />;
 }
 
 type ViewProps = {
@@ -103,6 +103,8 @@ type ViewProps = {
   className?: string;
   /** false — без жодних рухів (аватарки, списки). */
   animate?: boolean;
+  /** Картинки вантажити ліниво (довгі списки, напр. образи гардероба). */
+  lazy?: boolean;
 };
 
 /** Малює ResolvedLook. Корінь має атрибути data-look-*, кожен шар — data-look-layer/slot/owner. */
@@ -111,6 +113,7 @@ export const BeaverLook = memo(function BeaverLook({
   size = 160,
   className,
   animate = true,
+  lazy,
   resolveAsset = lookAssetUrl,
 }: ViewProps & { look: ResolvedLook; /** URL ассета шару; за замовчуванням — src/assets (прототип передає свій). */ resolveAsset?: AssetResolver }) {
   const reduce = useReducedMotion();
@@ -141,7 +144,7 @@ export const BeaverLook = memo(function BeaverLook({
           transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
         >
           {look.layers.map((l) => (
-            <LayerImg key={l.id} layer={l} width={width} resolve={resolveAsset} />
+            <LayerImg key={l.id} layer={l} width={width} resolve={resolveAsset} lazy={lazy} />
           ))}
         </motion.div>
       </motion.div>

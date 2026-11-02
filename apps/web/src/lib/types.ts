@@ -179,6 +179,11 @@ export type ShopItem = {
    * лишаються в гардеробі й надягаються, Бобек їх просто не малює. Старий сервер поля не віддає — див. shopVisualStatus.
    */
   visualStatus?: ShopVisualStatus;
+  /**
+   * Готовий образ (слот OUTFIT, 2026-11-02): з яких речей складається. `wear` — як `outfit.wear` профілю (слот каталогу → asset_key), для примірки;
+   * `hoodie` — на картинці червоне худі; `starter` — стартовий «Podróżnik». Для інших предметів null (старий сервер поля не віддає).
+   */
+  outfit?: { wear: Record<string, string>; hoodie: boolean; starter: boolean; items: string[] } | null;
 };
 export type ShopVisualStatus = 'ready' | 'prerendered' | 'legacy-whole-look' | 'not-wearable' | 'pending' | 'unknown';
 

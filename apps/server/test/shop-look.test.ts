@@ -11,6 +11,7 @@ import { atomic, db } from '../src/db';
 import { cosmeticItems, gameWallets, playerProgress, userAchievements, userInventory, walletTransactions } from '../src/db/schema';
 import { evaluateAchievements } from '../src/services/achievements';
 import { disposeEnv, getEnv, login } from './helpers';
+import { OUTFITS, OUTFIT_COMPONENTS } from '../src/content/outfits';
 
 afterAll(disposeEnv);
 afterEach(() => vi.restoreAllMocks());
@@ -60,7 +61,7 @@ describe('Каталог магазину: visualStatus', () => {
     const by = new Map<string, Record<string, unknown>>(shop.body.items.map((i: { slug: string }) => [i.slug, i]));
     for (const i of by.values()) {
       expect(Object.keys(i).sort()).toEqual(
-        ['assetKey', 'city', 'equipped', 'id', 'isPremium', 'name', 'owned', 'price', 'rarity', 'rewardOnly', 'slot', 'slug', 'unlock', 'visualStatus'].sort(),
+        ['assetKey', 'city', 'equipped', 'id', 'isPremium', 'name', 'outfit', 'owned', 'price', 'rarity', 'rewardOnly', 'slot', 'slug', 'unlock', 'visualStatus'].sort(),
       );
     }
     expect(by.get('cap-green')!.visualStatus).toBe('pending');
@@ -74,15 +75,19 @@ describe('Каталог магазину: visualStatus', () => {
     expect(by.get('frame-green')!.visualStatus).toBe('ready');
     expect(by.get('plant')!.visualStatus).toBe('not-wearable');
 
-    // Що з одягу клієнт може запропонувати купити за Złotki (як у тесті «маніфест ↔ каталог»).
+    // Що клієнт може запропонувати купити за Złotki (2026-11-02): готові образи (OUTFIT), цілісні костюми й рамки. Речі наборів поштучно не продаються (outfit_only).
     const sellable = [...by.values()]
       .filter((i) => !i.rewardOnly && (i.price as number) > 0 && i.visualStatus !== 'not-wearable' && i.visualStatus !== 'pending' && i.visualStatus !== 'unknown')
+      .filter((i) => !OUTFIT_COMPONENTS.has(i.slug as string))
       .map((i) => i.slug)
       .sort();
-    expect(sellable).toEqual([
-      'beanie-red', 'cap-red', 'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red',
-      'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
-    ]);
+    expect(sellable).toEqual(
+      [
+        'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red', 'costume-winter', 'frame-gold', 'frame-green',
+        ...OUTFITS.filter((o) => !o.starter).map((o) => o.slug),
+      ].sort(),
+    );
+    for (const o of OUTFITS) expect(by.get(o.slug)!.visualStatus, o.slug).toBe('prerendered');
   });
 });
 
@@ -116,10 +121,11 @@ describe('Покупка за ядром образу', () => {
 
   it('річ із зображенням купується: списання рівно один раз, повтор — already_owned', async () => {
     const { call, user } = await login();
-    await setBalance(user.id, 200);
+    // Костюм художника — готовий образ рівня Starówka, 650 Złotki (2026-11-02).
+    await setBalance(user.id, 670);
     const r = await call('POST', '/api/shop/buy', { itemId: itemId('costume-artist') });
     expect(r.status).toBe(200);
-    // 200 − 180 + 10 за досягнення «Модник».
+    // 670 − 650 + 10 за досягнення «Модник».
     expect(r.body.balance).toBe(30);
     expect(await balance(user.id)).toBe(30);
     expect((await inventory(user.id)).find((i) => i.itemId === itemId('costume-artist'))).toMatchObject({ equipped: false, source: 'shop' });
@@ -170,7 +176,7 @@ describe('Надягання за ядром образу', () => {
     await grant(user.id, 'jacket-denim', { equipped: true });
     await grant(user.id, 'cap-red', { equipped: true });
     await grant(user.id, 'glasses-round', { equipped: true });
-    await setBalance(user.id, 200);
+    await setBalance(user.id, 700);
     expect((await call('POST', '/api/shop/buy', { itemId: itemId('costume-artist') })).status).toBe(200);
     const inv0 = await inventory(user.id);
 

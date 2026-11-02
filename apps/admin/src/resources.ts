@@ -108,7 +108,7 @@ export const RESOURCES: ResourceDef[] = [
     name: 'items', title: 'Косметика', filters: ['slot'],
     columns: [{ key: 'slug', label: 'Slug' }, { key: 'slot', label: 'Слот' }, { key: 'name', label: 'Название', i18n: true }, { key: 'price', label: 'Цена' }, { key: 'rarity', label: 'Редкость' }, { key: 'isPremium', label: 'Premium' }],
     fields: [
-      { name: 'slug', label: 'Slug', type: 'text' }, { name: 'slot', label: 'Слот', type: 'select', options: ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FURNITURE', 'DECOR', 'SOUVENIR', 'HOUSING', 'FRAME'] },
+      { name: 'slug', label: 'Slug', type: 'text' }, { name: 'slot', label: 'Слот', type: 'select', options: ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FURNITURE', 'DECOR', 'SOUVENIR', 'HOUSING', 'FRAME', 'OUTFIT'] },
       { name: 'name', label: 'Название', type: 'i18n' }, { name: 'assetKey', label: 'Ключ ассета', type: 'text' }, { name: 'price', label: 'Цена (Złotki)', type: 'number' },
       { name: 'rarity', label: 'Редкость', type: 'select', options: ['common', 'rare', 'epic', 'legendary'] }, { name: 'isPremium', label: 'Premium', type: 'bool' }, { name: 'rewardOnly', label: 'Только награда', type: 'bool' },
       { name: 'cityId', label: 'Город', type: 'ref', resource: 'cities', display: 'namePl', nullable: true }, { name: 'isActive', label: 'Активен', type: 'bool' }, { name: 'order', label: 'Порядок', type: 'number' },

@@ -25,7 +25,7 @@ import { TORUN } from './torun';
 import { OLSZTYN } from './olsztyn';
 import { BIALYSTOK } from './bialystok';
 import { PLACEMENT, EXAM_A1 } from './exams';
-import { ACHIEVEMENTS, DAILY_QUESTS, ITEMS, STORY_QUESTS, STORY_TARGET_BEFORE, WEEKLY_QUESTS } from './gamification';
+import { ACHIEVEMENTS, COSTUME_PRICES, DAILY_QUESTS, ITEMS, STORY_QUESTS, STORY_TARGET_BEFORE, WEEKLY_QUESTS } from './gamification';
 import { MISSIONS } from './missions';
 import type { CityContent, LessonSeed } from './types';
 
@@ -310,6 +310,11 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
         force,
       ),
     );
+  }
+
+  // Костюмы стали готовыми образами по уровням (2026-11-02): новая цена и редкость — только там, где в БД всё ещё прежние значения (правку в админке не трогаем).
+  for (const [slug, c] of Object.entries(COSTUME_PRICES)) {
+    out.push(`UPDATE cosmetic_items SET price = ${c.price}, rarity = ${lit(c.rarity)} WHERE slug = ${lit(slug)} AND price = ${c.from.price} AND rarity = ${lit(c.from.rarity)};`);
   }
 
   // ── Нагороди, додані пізніше: видаємо тим, хто вже виконав умову (ідемпотентно, без зміни інших предметів) ──

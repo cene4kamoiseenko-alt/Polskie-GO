@@ -150,10 +150,11 @@ describe('Магазин і гардероб', () => {
     const winter = shop.body.items.find((i: { slug: string }) => i.slug === 'costume-winter');
     expect((await call('POST', '/api/shop/buy', { itemId: winter.id })).body.error).toBe('insufficient_funds');
 
-    await setBalance(user.id, 130);
+    // Зимовий образ — готовий образ рівня Starówka, 550 Złotki (2026-11-02).
+    await setBalance(user.id, 560);
     const buys = await Promise.all([call('POST', '/api/shop/buy', { itemId: winter.id }), call('POST', '/api/shop/buy', { itemId: winter.id })]);
     expect(buys.filter((b) => b.status === 200)).toHaveLength(1);
-    // 130 − 120 + 10 за досягнення «Модник».
+    // 560 − 550 + 10 за досягнення «Модник».
     expect(await balance(user.id)).toBe(20);
 
     const eq = await call('POST', '/api/inventory/equip', { itemId: winter.id, equipped: true });
@@ -256,7 +257,7 @@ describe('Premium через Telegram Stars', () => {
     expect(me.body.premium).toMatchObject({ active: true, planCode: 'MONTH_1', recurring: true });
 
     // Premium-предмет тепер можна купити
-    await setBalance(user.id, 500);
+    await setBalance(user.id, 1500);
     const dragon = (await call('GET', '/api/shop')).body.items.find((i: { slug: string }) => i.slug === 'costume-dragon');
     expect((await call('POST', '/api/shop/buy', { itemId: dragon.id })).status).toBe(200);
 

@@ -3,6 +3,8 @@
  * (resolveLook / tryOn, ADR-005; примірка нічого не зберігає), вкладки «Нагороди» / «Магазин»,
  * картки костюмів зі сценою, описом, умовою отримання і кнопкою «Приміряти».
  * Купівля й одягання — лише через сервер. У режимі «Домик» (?house=1) — меблі, декор і сувеніри.
+ * «Магазин» гардероба (2026-11-02, docs/OUTFITS.md): замість речей поштучно — готові образи за рівнями Osiedle / Starówka / Wawel (польські місця
+ * за зростанням: на щодень, яскраві, найкрутіші), цілісні костюми там само, нижче — рамки профілю.
  */
 import { AnimatePresence, motion } from '../lib/motion';
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -28,6 +30,16 @@ import { isVisualPending, shopVisualStatus, useWear } from '../lib/look';
 
 const WARDROBE_SLOTS = ['JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'HAT', 'GLASSES', 'SCARF', 'COSTUME', 'FRAME'];
 const HOUSE_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR'];
+/** Рівні готових образів: польська назва місця і підпис мовою інтерфейсу. «common» (стартовий образ) показується в першому рівні. */
+const TIERS = [
+  { rarity: 'rare', pl: 'Osiedle', d: 'look_tier_rare_d' },
+  { rarity: 'epic', pl: 'Starówka', d: 'look_tier_epic_d' },
+  { rarity: 'legendary', pl: 'Wawel', d: 'look_tier_legendary_d' },
+] as const;
+const TIER_RANK: Record<string, number> = { common: 0, rare: 0, epic: 1, legendary: 2 };
+const isLook = (i: ShopItem) => i.slot === 'OUTFIT' || (i.slot === 'COSTUME' && !i.rewardOnly);
+/** Образ на картці й у примірці: готова картинка набору речей (resolveLook сам обирає її з LOOK_VARIANTS). */
+const outfitLook = (i: ShopItem, mood: 'happy' | 'cheer' = 'happy', preview = false) => resolveLook(null, i.outfit?.wear ?? {}, { mood, preview });
 
 /** Лінійні іконки категорій. */
 const SLOT_GLYPH: Record<string, ReactNode> = {
@@ -97,6 +109,7 @@ function DressingRoom() {
 }
 
 function ItemArt({ item, size }: { item: ShopItem; size: number }) {
+  if (item.slot === 'OUTFIT' && item.outfit) return <BeaverLook look={outfitLook(item)} size={size * 0.85} animate={false} />;
   // Костюм — цілісна живописна картинка (legacy-whole-look); без неї — лише значок предмета, не векторний бобер.
   if (item.slot === 'COSTUME') {
     const art = costumeAsset(item.assetKey);
@@ -163,6 +176,15 @@ export default function ShopScreen() {
   const rewardCostumes = useMemo(() => [traveller, ...all.filter((i) => i.slot === 'COSTUME' && i.rewardOnly)], [all, traveller]);
   const otherRewards = useMemo(() => all.filter((i) => i.rewardOnly && i.slot !== 'COSTUME' && WARDROBE_SLOTS.includes(i.slot)), [all]);
   const items = useMemo(() => all.filter((i) => i.slot === slot && (houseMode || !i.rewardOnly)), [all, slot, houseMode]);
+  // Готові образи: стартовий першим, далі за рівнем і ціною (порядок каталогу — при рівній ціні).
+  const looks = useMemo(
+    () => all.map((i, n) => ({ i, n })).filter(({ i }) => isLook(i)).sort((a, b) => (b.i.outfit?.starter ? 1 : 0) - (a.i.outfit?.starter ? 1 : 0) || TIER_RANK[a.i.rarity] - TIER_RANK[b.i.rarity] || a.i.price - b.i.price || a.n - b.n).map(({ i }) => i),
+    [all],
+  );
+  const frames = useMemo(() => all.filter((i) => i.slot === 'FRAME' && !i.rewardOnly), [all]);
+  const nameByAsset = useMemo(() => new Map(all.map((i) => [i.assetKey, tr(i.name)])), [all, tr]);
+  /** Склад образу: «Червоне худі · Червона кепка · …» (худі — коли воно видно на картинці). */
+  const pieces = (i: ShopItem) => [...(i.outfit?.hoodie ? ['hoodie-red'] : []), ...(i.outfit?.items ?? [])].map((k) => nameByAsset.get(k)).filter(Boolean).join(' · ');
   const picked = pickedId === TRAVELLER_ID ? traveller : all.find((i) => i.id === pickedId) ?? null;
   // Примірка (ядро образу, ADR-005): нічого не зберігає, запис — лише кнопкою «Вдягнути». Без вибору — поточний образ.
   // Уже вдягнена річ показується як є; «Мандрівник» — поточний образ без костюма.
@@ -171,6 +193,7 @@ export default function ShopScreen() {
     [wear, picked],
   );
   const stageLook = useMemo(() => {
+    if (picked?.slot === 'OUTFIT' && picked.outfit) return outfitLook(picked, 'cheer', !picked.equipped);
     if (picked?.id === TRAVELLER_ID) {
       const eq = equippedCostume ? unequip(wear, equippedCostume.assetKey).equipment : wear;
       return resolveLook(null, eq, { mood: 'cheer', preview: true });
@@ -194,7 +217,7 @@ export default function ShopScreen() {
     if (i) sfx.tap();
     setPickedId(i?.id ?? null);
   };
-  const stepList = tab === 'rewards' ? [...rewardCostumes, ...otherRewards] : items;
+  const stepList = tab === 'rewards' ? [...rewardCostumes, ...otherRewards] : houseMode ? items : [...looks, ...frames];
   const step = (d: number) => {
     if (!stepList.length) return;
     const idx = picked ? stepList.findIndex((i) => i.id === picked.id) : -1;
@@ -238,7 +261,7 @@ export default function ShopScreen() {
   if (shop.isLoading) return <ScreenSkeleton />;
   if (shop.error) return <ErrorState error={shop.error} onRetry={() => shop.refetch()} />;
   const balance = shop.data!.balance;
-  const wearable = picked ? WEAR_SLOTS.includes(picked.slot) : true;
+  const wearable = picked ? WEAR_SLOTS.includes(picked.slot) || picked.slot === 'OUTFIT' : true;
 
   const costumeCard = (i: ShopItem, n: number) => {
     const key = costumeKey(i);
@@ -275,6 +298,48 @@ export default function ShopScreen() {
             ) : !soon ? (
               <span className="costume-card-cond"><Art name="coin" size={18} /> {i.price}</span>
             ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => pick(selected ? null : i)}
+            aria-pressed={selected}
+            className={cx('btn mt-1 !min-h-[40px] w-full !rounded-xl !px-2 text-[14px]', selected ? 'btn-primary' : 'btn-outline')}
+          >
+            {t('wardrobe_try')}
+          </button>
+        </div>
+      </motion.article>
+    );
+  };
+
+  /** Картка готового образу: Бобек у ньому, польська назва, склад, ціна або «є» / «стартовий», кнопка «Приміряти». */
+  const outfitCard = (i: ShopItem, n: number) => {
+    const selected = picked?.id === i.id;
+    return (
+      <motion.article
+        key={i.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(n, 6) * 0.04, duration: 0.25 }}
+        className={cx('costume-card flex flex-col', selected && 'is-selected', i.equipped && 'is-equipped')}
+        data-outfit={i.slug}
+        data-outfit-state={i.equipped ? 'wearing' : i.owned ? 'owned' : 'buyable'}
+      >
+        <div className={cx('costume-card-art look-card-art', `is-${i.rarity}`)}>
+          <span className="absolute inset-x-0 bottom-0 flex justify-center"><BeaverLook look={outfitLook(i)} size={104} animate={false} lazy={n > 3} /></span>
+          {i.equipped && <span className="costume-card-badge"><Icon name="check" size={14} strokeWidth={3.4} /> {t('shop_wearing')}</span>}
+        </div>
+        <div className="flex flex-1 flex-col gap-1.5 p-3 pt-2.5">
+          <h3 lang="pl" className="hyphens-auto break-words text-[15px] font-black leading-tight">{tr(i.name)}</h3>
+          <p className="muted line-clamp-3 text-[12px] font-bold leading-snug">{pieces(i)}</p>
+          <div className="mt-auto flex min-h-[30px] flex-wrap items-center gap-1.5 pt-1">
+            {i.outfit?.starter ? (
+              <span className="costume-card-cond is-owned"><Icon name="check" size={13} strokeWidth={3.2} /> {t('look_starter')}</span>
+            ) : i.owned ? (
+              <span className="costume-card-cond is-owned"><Icon name="check" size={13} strokeWidth={3.2} /> {t('wardrobe_owned')}</span>
+            ) : (
+              <span className="costume-card-cond" data-outfit-price><Art name="coin" size={18} /> {i.price}</span>
+            )}
           </div>
           <button
             type="button"
@@ -412,7 +477,7 @@ export default function ShopScreen() {
             </>
           )}
         </>
-      ) : (
+      ) : houseMode ? (
         <>
           {/* Категорії */}
           <div className="no-scrollbar relative z-10 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 pt-1">
@@ -429,6 +494,29 @@ export default function ShopScreen() {
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3 px-4">{items.map((i, n) => (i.slot === 'COSTUME' ? costumeCard(i, n) : itemCard(i, n)))}</div>
         </>
+      ) : (
+        <div data-looks>
+          <p className="muted mx-4 mt-4 text-[13px] font-bold leading-snug">{t('wardrobe_looks_d')}</p>
+          {TIERS.map((tier) => {
+            const list = looks.filter((i) => (TIER_RANK[i.rarity] ?? 0) === TIER_RANK[tier.rarity]);
+            if (!list.length) return null;
+            return (
+              <section key={tier.rarity} data-tier={tier.rarity} className="mt-5">
+                <h2 className="mx-4 flex flex-wrap items-baseline gap-x-2 text-[22px] font-black leading-tight">
+                  <span lang="pl" style={{ color: `var(--rarity-${tier.rarity})` }}>{tier.pl}</span>
+                  <span className="muted text-[14px] font-black">{t(tier.d)}</span>
+                </h2>
+                <div className="mt-3 grid grid-cols-2 gap-3 px-4">{list.map((i, n) => (i.slot === 'OUTFIT' ? outfitCard(i, n) : costumeCard(i, n)))}</div>
+              </section>
+            );
+          })}
+          {frames.length > 0 && (
+            <section className="mt-6" data-frames>
+              <h2 className="mx-4 text-[20px] font-black">{t('wardrobe_frames')}</h2>
+              <div className="mt-3 grid grid-cols-2 gap-3 px-4">{frames.map(itemCard)}</div>
+            </section>
+          )}
+        </div>
       )}
       </div>
       <div className="mx-4 mt-5 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-elev p-3.5">

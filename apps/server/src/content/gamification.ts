@@ -2,6 +2,7 @@
 import type { I18n } from '@polski-go/shared';
 import { t } from './builders';
 import { STORY_EXTRA_STAGES } from './story-chapters';
+import { OUTFITS } from './outfits';
 
 export type QuestSeed = {
   slug: string;
@@ -303,7 +304,7 @@ export const ACHIEVEMENTS: AchievementSeed[] = [
 
 export type ItemSeed = {
   slug: string;
-  slot: 'HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME' | 'FURNITURE' | 'DECOR' | 'SOUVENIR' | 'HOUSING' | 'FRAME';
+  slot: 'HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME' | 'FURNITURE' | 'DECOR' | 'SOUVENIR' | 'HOUSING' | 'FRAME' | 'OUTFIT';
   name: I18n;
   price: number;
   rarity?: 'common' | 'rare' | 'epic' | 'legendary';
@@ -317,6 +318,29 @@ const it = (slug: string, slot: ItemSeed['slot'], name: I18n, price: number, ext
 
 /** Цена жилья в Złotki: комната в общей квартире бесплатна, дальше — по нескольку тысяч (решение владельца 2026-11-02). Менять только здесь и в новой строке охраняемого UPDATE seed-а. */
 export const HOUSING_PRICES = { 'housing-opole': 0, 'housing-lodz': 2500, 'housing-krakow': 5000, 'housing-warszawa': 8000 } as const;
+
+/**
+ * Цельные костюмы — тоже готовые образы гардероба (2026-11-02, docs/OUTFITS.md): уровень и цена по образу. `from` — прежние цена и редкость:
+ * на проде seed без force строк не перезаписывает, поэтому охраняемый UPDATE (`COSTUME_PRICE_FIXES`) меняет только там, где всё ещё старое значение.
+ */
+export const COSTUME_PRICES: Record<string, { price: number; rarity: 'rare' | 'epic' | 'legendary'; from: { price: number; rarity: string } }> = {
+  'costume-winter': { price: 550, rarity: 'epic', from: { price: 120, rarity: 'rare' } },
+  'costume-artist': { price: 650, rarity: 'epic', from: { price: 180, rarity: 'epic' } },
+  'costume-street': { price: 1200, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
+  'costume-street-red': { price: 1200, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
+  'costume-puffer': { price: 1300, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
+  'costume-puffer-stripes': { price: 1300, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
+  'costume-sherpa': { price: 1400, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
+  'costume-duffle': { price: 1400, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
+  'costume-dragon': { price: 1500, rarity: 'legendary', from: { price: 200, rarity: 'legendary' } },
+};
+const costume = (slug: string, name: I18n, extra: Partial<ItemSeed> = {}) =>
+  it(slug, 'COSTUME', name, COSTUME_PRICES[slug].price, { rarity: COSTUME_PRICES[slug].rarity, ...extra });
+
+/** Готовые образы (content/outfits.ts) — предметы слота OUTFIT; название по-польски во всех языках. */
+const OUTFIT_ITEMS: ItemSeed[] = OUTFITS.map((o) =>
+  it(o.slug, 'OUTFIT', { uk: o.name, ru: o.name, en: o.name }, o.price, { rarity: o.tier, ...(o.starter ? { starter: true } : {}) }),
+);
 
 export const ITEMS: ItemSeed[] = [
   // Стартовий одяг — як на маскоті
@@ -354,7 +378,7 @@ export const ITEMS: ItemSeed[] = [
   it('map-paper', 'ACCESSORY', t('Паперова карта', 'Бумажная карта', 'Paper map'), 40),
   it('obwarzanek', 'ACCESSORY', t('Краківський обважанек', 'Краковский обважанек', 'Kraków pretzel'), 0, { rewardOnly: true, city: 'krakow' }),
   // Костюми
-  it('costume-dragon', 'COSTUME', t('Костюм Вавельського дракона', 'Костюм Вавельского дракона', 'Wawel dragon costume'), 200, { premium: true, rarity: 'legendary' }),
+  costume('costume-dragon', t('Костюм Вавельського дракона', 'Костюм Вавельского дракона', 'Wawel dragon costume'), { premium: true }),
   it('costume-syrenka', 'COSTUME', t('Костюм Варшавської сирени', 'Костюм Варшавской русалки', 'Warsaw mermaid costume'), 0, { rewardOnly: true, rarity: 'epic', city: 'warszawa' }),
   // Домик: жильё (2026-11-02). Цельный фон комнаты, выбирается одно. Бесплатная комната — по умолчанию (не стартовый предмет: выдаётся неявно, см. shop.ts), остальные — за Złotki.
   // Цены в одном месте: HOUSING_PRICES. Польские названия карточек — apps/web/src/lib/screenArt.ts (HOUSING), здесь переводы.
@@ -384,16 +408,17 @@ export const ITEMS: ItemSeed[] = [
   it('costume-chef', 'COSTUME', t('Костюм кухаря', 'Костюм повара', 'Chef outfit'), 0, { rewardOnly: true, rarity: 'rare' }),
   it('costume-conductor', 'COSTUME', t('Костюм провідника', 'Костюм проводника', 'Train conductor outfit'), 0, { rewardOnly: true, rarity: 'epic' }),
   it('costume-krasnal', 'COSTUME', t('Костюм гнома з Вроцлава', 'Костюм гнома из Вроцлава', 'Wrocław gnome outfit'), 0, { rewardOnly: true, rarity: 'legendary', city: 'wroclaw' }),
-  it('costume-artist', 'COSTUME', t('Костюм художника', 'Костюм художника', 'Artist outfit'), 180, { rarity: 'epic' }),
-  it('costume-winter', 'COSTUME', t('Зимовий образ', 'Зимний образ', 'Winter look'), 120, { rarity: 'rare' }),
+  costume('costume-artist', t('Костюм художника', 'Костюм художника', 'Artist outfit')),
+  costume('costume-winter', t('Зимовий образ', 'Зимний образ', 'Winter look')),
   // Скини: цільні образи (Бобек уже в усьому одязі; рюкзак лишається за гравцем). Дорогі, лише за Złotki (рішення власника 2026-11-01:
   // «дорогі й цільні»). Ціна й рідкість — стартові значення, змінюються в адмінці; самий дорогий з попередніх — 200.
-  it('costume-street', 'COSTUME', t('Стрітстайл', 'Стритстайл', 'Streetwear'), 400, { rarity: 'legendary' }),
-  it('costume-street-red', 'COSTUME', t('Червоний стрітстайл', 'Красный стритстайл', 'Red streetwear'), 400, { rarity: 'legendary' }),
-  it('costume-puffer', 'COSTUME', t('Сніговий пуховик', 'Снежный пуховик', 'Snow puffer'), 400, { rarity: 'legendary' }),
-  it('costume-puffer-stripes', 'COSTUME', t('Пуховик із червоною шапкою', 'Пуховик с красной шапкой', 'Puffer with red beanie'), 400, { rarity: 'legendary' }),
-  it('costume-sherpa', 'COSTUME', t('Пальто з хутром', 'Пальто с мехом', 'Sherpa coat'), 400, { rarity: 'legendary' }),
-  it('costume-duffle', 'COSTUME', t('Дафлкот', 'Дафлкот', 'Duffle coat'), 400, { rarity: 'legendary' }),
+  costume('costume-street', t('Стрітстайл', 'Стритстайл', 'Streetwear')),
+  costume('costume-street-red', t('Червоний стрітстайл', 'Красный стритстайл', 'Red streetwear')),
+  costume('costume-puffer', t('Сніговий пуховик', 'Снежный пуховик', 'Snow puffer')),
+  costume('costume-puffer-stripes', t('Пуховик із червоною шапкою', 'Пуховик с красной шапкой', 'Puffer with red beanie')),
+  costume('costume-sherpa', t('Пальто з хутром', 'Пальто с мехом', 'Sherpa coat')),
+  costume('costume-duffle', t('Дафлкот', 'Дафлкот', 'Duffle coat')),
+  ...OUTFIT_ITEMS,
 ];
 
 /** Нагороди за проходження іспиту міста (сувенір + костюм). */

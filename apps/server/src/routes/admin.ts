@@ -121,7 +121,7 @@ const RESOURCES: Record<string, Resource> = {
   },
   items: {
     table: t.cosmeticItems, roles: ['EDITOR'], orderBy: ['slot', 'order'], search: ['slug'], filters: ['slot'],
-    schema: z.object({ slug: z.string(), slot: z.enum(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FURNITURE', 'DECOR', 'SOUVENIR', 'HOUSING', 'FRAME']), name: i18n, assetKey: z.string(), price: z.number().int().min(0), rarity: z.enum(['common', 'rare', 'epic', 'legendary']), isPremium: z.boolean(), rewardOnly: z.boolean(), cityId: z.string().nullable(), isActive: z.boolean(), order: z.number().int() }),
+    schema: z.object({ slug: z.string(), slot: z.enum(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FURNITURE', 'DECOR', 'SOUVENIR', 'HOUSING', 'FRAME', 'OUTFIT']), name: i18n, assetKey: z.string(), price: z.number().int().min(0), rarity: z.enum(['common', 'rare', 'epic', 'legendary']), isPremium: z.boolean(), rewardOnly: z.boolean(), cityId: z.string().nullable(), isActive: z.boolean(), order: z.number().int() }),
   },
   plans: {
     table: t.subscriptionPlans, roles: [], orderBy: ['order'], idField: 'code',
