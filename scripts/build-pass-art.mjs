@@ -7,6 +7,7 @@
  *  stary_rynek_cafe_2x1.webp  (1774×887, осень, флаг)     → stary-rynek{,@640}.webp  — арт карточки «11 ноября» (listopad-swieto); раньше — вырезка 866 px из референса
  *  stary_rynek_cafe_16x9.webp (1672×941, Старый рынок)    → season-listopad{,@640}.webp — обложка сезона «Ноябрь в Познани» (экран пропуска, главная)
  *  season_swieta_16x9.webp, season_energylandia_16x9.webp (1672×941, с названием на картинке) → season-swieta{,@640}.webp, season-energylandia{,@640}.webp — обложки сезонов «Польское Рождество» и «Поездка в Energylandię»
+ *  andrzejki_mieszkanie_night_2x1.webp (1536×768, 2026-11-02, вечерний MIESZKANIE с Бобром-баристой) → andrzejki{,@640}.webp — картинка карточки и вступления миссии «Анджейки» (раньше — вырезка референса 866 px)
  *  bobek_barista_cutout.webp  (1122×1402, RGBA)           → barista.webp — вырезка героя карточки «Продолжить» (Бобек-бариста с флагом-розеткой на фартуке)
  * Вырезка чистится так же, как слои заставки (scripts/lib/sprite.mjs): альфа 253 → 255, дырочки, цвет кромки — по ближайшему плотному пикселю.
  * Размеры вырезки (ширина × высота) печатаются в конце: их нужно держать в `PASS_CUTOUT` (apps/web/src/lib/screenArt.ts).
@@ -40,6 +41,7 @@ async function frame(master, name, width, ratio) {
 
 await frame('stary_rynek_cafe_2x1.webp', 'stary-rynek', 1400, 2);
 await frame('stary_rynek_cafe_16x9.webp', 'season-listopad', 1200, 16 / 9);
+await frame('andrzejki_mieszkanie_night_2x1.webp', 'andrzejki', 1400, 2);
 await frame('season_swieta_16x9.webp', 'season-swieta', 1200, 16 / 9);
 await frame('season_energylandia_16x9.webp', 'season-energylandia', 1200, 16 / 9);
 

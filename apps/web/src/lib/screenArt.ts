@@ -3,7 +3,7 @@
  * (бюджет JS в scripts/perf.ts почти исчерпан). Обложки сезонов нужны и на главной, они остались в `lib/assets.ts`.
  *
  * Пропуск (src/assets/pass, docs/design/v19/pass; сборка — scripts/build-pass-art.mjs):
- *  · карточки миссий: «11 ноября» — Stary Rynek 2:1 (1400 px и @640), «Анджейки» — вырезка референса 866 px (кадра пока нет);
+ *  · карточки миссий: «11 ноября» — Stary Rynek 2:1 (1400 px и @640), «Анджейки» — вечерний MIESZKANIE 2:1 владельца (1400 px и @640, 2026-11-02);
  *  · вырезка героя карточки «Продолжить»: рогалики (приближённая маска референса) и Бобек-бариста.
  * Ключ — slug миссии; нет записи — карточка берёт сцену миссии. Арты ТОЛЬКО для пропуска: фон самой миссии — из реестра сцен (SCENE_ART, кадры 2:1 без пустых полей).
  *
@@ -14,7 +14,7 @@ import { artImage, pick } from './assets';
 
 const PASS_ART: Record<string, { file: string; width: number }> = {
   'listopad-swieto': { file: 'stary-rynek', width: 1400 },
-  'andrzejki-wosk': { file: 'andrzejki', width: 866 },
+  'andrzejki-wosk': { file: 'andrzejki', width: 1400 },
 };
 /** Размеры вырезок — файла, не экрана (атрибуты width/height держат место, пока картинка грузится). */
 const PASS_CUTOUT: Record<string, { file: string; w: number; h: number }> = {
@@ -27,8 +27,8 @@ const QUEST_STORY_ART: Record<string, { file: string; pos: string; scene?: strin
   's-krakow-mieszkanie': { file: 'story-krakow', pos: '50% 30%', scene: 'scene-krakow', scenePos: '50% 50%' },
   's-wroclaw-zgubiony': { file: 'story-wroclaw', pos: '50% 26%' },
 };
-/** Миссии пропуска, чей кадр 2 : 1 из `PASS_ART` годится и как фон самой миссии: Бобек на нём уже нарисован, второй поверх не нужен. «Анджейки» не входят: кадр — узкая вырезка с вывеской MIESZKANIE. */
-const PASS_MISSION_SCENE = new Set(['listopad-swieto']);
+/** Миссии пропуска, чей кадр 2 : 1 из `PASS_ART` годится и как фон самой миссии: Бобек на нём уже нарисован (бариста с кофе), второй поверх не нужен. «Анджейки» — вечерний кадр владельца 2026-11-02. */
+const PASS_MISSION_SCENE = new Set(['listopad-swieto', 'andrzejki-wosk']);
 
 /** Картинка карточки миссии в пропуске (src + srcset) или null. */
 export const passArt = (slug: string) => artImage('pass', PASS_ART[slug]);

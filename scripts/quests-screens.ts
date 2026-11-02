@@ -10,6 +10,7 @@
  * 3. Обложки сезонов «Рождество» и «Energylandia» на /pass (календарь сезонов) — кадры владельца, загружены.
  * 4. Картинка внутри диалога сюжетного квеста (/story/<slug>, 2026-11-02): Dworzec и Mieszkanie — кадры 2 : 1 владельца с Бобеком на кадре (второй Бобек не рисуется), Вроцлав — кадр карточки.
  * 5. Вступление миссии «11 ноября» (/life/listopad-swieto): Stary Rynek вместо SVG-сцены, второго Бобека поверх нет.
+ * 5а. Вступление «Анджейек» (кадр владельца 2026-11-02): вместо SVG MIESZKANIE — вечерний кадр с Бобром-баристой, второго Бобра нет; кнопка «Начать миссию» — картинка владельца без текста + живой текст и значок.
  * 6. Главная: строки «Сегодня» — значки владельца (книга, звезда, мишень) без серой плашки, остальные на плашке того же цвета; все картинки загружены.
  * 7. Длинный сюжетный квест (2026-11-02): «Варшава» проходится в интерфейсе от первой реплики до экрана награды — пять глав, на каждой подпись «Этап N из 5 · название»,
  *    верные ответы выбираются по тексту (порядок вариантов перемешан), неверный даёт подсказку и не двигает разговор; на 320 / 390 / 430 нет горизонтальной прокрутки и кнопка видна.
@@ -190,6 +191,25 @@ async function main() {
       const over = await u.page.locator('img[data-scene-art="pass-listopad-swieto"]').evaluate((el) => !!(el.parentElement as HTMLElement).querySelector('.-bottom-6'));
       check(!over, '/life/listopad-swieto: второго Бобека поверх кадра нет (он нарисован на кадре)');
       await u.page.screenshot({ path: `${OUT}/mission-listopad-390.png` });
+      await u.context.close();
+    }
+
+    // ── 5а. Вступление «Анджейек» (кадр владельца 2026-11-02) и кнопка «Начать миссию» ──
+    for (const [w, h] of SIZES) {
+      const tag = `${w}px /life/andrzejki-wosk`;
+      const sel = 'img[data-scene-art="pass-andrzejki-wosk"]';
+      const u = await userPage([w, h], '/life/andrzejki-wosk', sel, { premium: true });
+      const im = await loaded(u.page, sel);
+      check(im.ok && /andrzejki/.test(im.src), `${tag}: кадр владельца загружен (${im.src}, ${im.w} px)`);
+      const over = await u.page.locator(sel).evaluate((el) => !!(el.parentElement as HTMLElement).querySelector('.-bottom-6'));
+      check(!over, `${tag}: второго Бобра поверх нет (бариста с кофе уже на кадре)`);
+      const btn = await box(u.page, '[data-mission-start]');
+      const info = await u.page.locator('[data-mission-start]').evaluate((el) => ({ text: (el.textContent || '').trim(), img: getComputedStyle(el).borderImageSource, svg: !!el.querySelector('svg'), h: el.getBoundingClientRect().height }));
+      check(/Начать миссию/.test(info.text) && info.svg, `${tag}: на кнопке живой текст и значок «play» («${info.text}»)`);
+      check(/btn-start/.test(info.img), `${tag}: корпус кнопки — картинка владельца (${info.img.slice(0, 40)}…)`);
+      check(btn.h >= 44 && btn.w >= w - 40 && btn.b <= h, `${tag}: кнопка крупная и на экране (${Math.round(btn.w)}×${Math.round(btn.h)}, низ ${Math.round(btn.b)} из ${h})`);
+      check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
+      if (w !== 430) await u.page.screenshot({ path: `${OUT}/mission-andrzejki-${w}.png` });
       await u.context.close();
     }
 

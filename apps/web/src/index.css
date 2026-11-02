@@ -300,6 +300,42 @@ html.reduced-motion .tab-enter-next, html.reduced-motion .tab-enter-prev { anima
   .btn-red:active:not(:disabled) {
     box-shadow: 0 2px 0 #a8203a, inset 0 2px 0 rgb(255 255 255 / 0.35);
   }
+  /* Кнопка «Почати місію» з картинки власника (2026-11-02, scripts/build-ui-art.mjs): корпус — картинка без тексту, текст і значок — звичайний DOM (переклад, скрінрідер).
+     Краї тримаються без спотворення: срез 93 px = половина висоти 186 px картинки, середина розтягується. */
+  .btn-start {
+    --h: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: var(--h);
+    min-height: 44px;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 0 calc(var(--h) / 2);
+    border-image-source: url('./assets/ui/btn-start.webp');
+    border-image-slice: 0 93 fill;
+    border-image-width: 0 calc(var(--h) / 2);
+    border-image-repeat: stretch;
+    background: none;
+    color: #fff;
+    font-size: 19px;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 0 rgb(120 0 25 / 0.55);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s, filter 0.12s;
+  }
+  .btn-start:active:not(:disabled) {
+    transform: translateY(2px);
+    filter: brightness(0.94);
+  }
+  .btn-start:disabled {
+    opacity: 0.6;
+    filter: grayscale(0.35);
+  }
   /* Виділена головна дія: м'яке світіння (лише для однієї кнопки на екрані) */
   .btn-glow {
     box-shadow: 0 5px 0 #a8203a, 0 0 22px -2px rgb(255 82 101 / 0.6), 0 12px 22px -8px rgb(255 78 91 / 0.65), inset 0 2px 0 rgb(255 255 255 / 0.35);

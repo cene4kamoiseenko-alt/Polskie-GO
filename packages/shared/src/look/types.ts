@@ -8,7 +8,8 @@
 export const LOOK_CATALOG_WEAR_SLOTS = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME'] as const;
 export type LookCatalogWearSlot = (typeof LOOK_CATALOG_WEAR_SLOTS)[number];
 /** Слоти домика: не одяг, на образ не впливають. */
-export const LOOK_CATALOG_HOUSE_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR'] as const;
+/** Слоты домика: меблі, декор, сувеніри й житло (цільний фон кімнати, 2026-11-02). Бобек їх не вдягає, у маніфест образу вони не потрапляють. */
+export const LOOK_CATALOG_HOUSE_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR', 'HOUSING'] as const;
 export type LookCatalogHouseSlot = (typeof LOOK_CATALOG_HOUSE_SLOTS)[number];
 
 /**

@@ -9,6 +9,10 @@ import { evaluateAchievements } from './achievements';
 import { isPremium } from './premium';
 import { spendZlotki } from './rewards';
 
+/** Житло домика: один обраний фон кімнати. Безкоштовна кімната (ціна 0) обрана за замовчуванням і належить усім без запису в інвентарі. */
+const HOUSING_SLOT = 'HOUSING';
+const DEFAULT_HOUSING = 'housing-opole';
+
 /** Слоти, де одночасно може бути вдягнений лише один предмет. */
 const EXCLUSIVE = new Set(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME']);
 
@@ -60,6 +64,10 @@ export async function listShop(userId: string) {
   ]);
   const premium = await isPremium(userId);
   const owned = new Map(inv.map((i) => [i.itemId, i]));
+  // Житло: безкоштовна кімната є в усіх; обране — те, що позначено в інвентарі, інакше кімната за замовчуванням.
+  const housing = items.filter(({ item }) => item.slot === HOUSING_SLOT);
+  const pickedHousing = housing.find(({ item }) => owned.get(item.id)?.equipped)?.item.slug ?? DEFAULT_HOUSING;
+  const isFreeHousing = (i: { slot: string; price: number }) => i.slot === HOUSING_SLOT && i.price === 0;
   const unlockOf = (itemId: string, slug: string, city: { name: I18n | null } | null): Unlock | null => {
     const m = MISSIONS.find((x) => x.rewardItem === slug);
     if (m) return { kind: 'mission', title: m.title, slug: m.slug };
@@ -85,8 +93,8 @@ export async function listShop(userId: string) {
       rewardOnly: i.rewardOnly,
       city: citySlug ? { slug: citySlug, name: cityName } : null,
       unlock: i.rewardOnly ? unlockOf(i.id, i.slug, citySlug ? { name: cityName } : null) : null,
-      owned: owned.has(i.id),
-      equipped: owned.get(i.id)?.equipped ?? false,
+      owned: owned.has(i.id) || isFreeHousing(i),
+      equipped: i.slot === HOUSING_SLOT ? i.slug === pickedHousing : owned.get(i.id)?.equipped ?? false,
       visualStatus: shopVisualStatus(lookVerdict(i)),
     })),
   };
@@ -102,6 +110,8 @@ export async function buyItem(userId: string, itemId: string) {
   if (!item || !item.isActive) throw notFound('item_not_found');
   if (item.rewardOnly) throw badRequest('reward_only', 'Цей предмет можна лише заробити');
   if (have.length) throw badRequest('already_owned');
+  // Безкоштовне житло не купується: воно вже є в усіх (обрати його можна через equip).
+  if (item.slot === HOUSING_SLOT && item.price === 0) throw badRequest('already_owned');
   // ADR-005 §12: не списуємо Złotki за річ, яку Бобек не може вдягнути (немає живописного зображення).
   // Перевірка до Premium: не можна вести купувати Premium заради речі, яку все одно не продамо.
   if (!lookVerdict(item).ok) throw new HttpError(409, 'visual_pending', 'Цю річ ще малюють — купити можна буде, щойно вона з’явиться. Złotki не списано');
@@ -135,6 +145,9 @@ export async function buyItem(userId: string, itemId: string) {
  * несумісні речі. Предмети `pending` надягати можна: володіння чесне, Бобек їх просто не малює.
  */
 export async function equipItem(userId: string, itemId: string, equipped: boolean) {
+  // Безкоштовне житло належить усім: при першому виборі записуємо його в інвентар, далі все працює як із купленим.
+  const free = await db.select({ slot: cosmeticItems.slot, price: cosmeticItems.price, active: cosmeticItems.isActive }).from(cosmeticItems).where(eq(cosmeticItems.id, itemId)).get();
+  if (free && free.active && free.slot === HOUSING_SLOT && free.price === 0) await db.insert(userInventory).values({ userId, itemId, source: 'free' }).onConflictDoNothing();
   const inv = await db
     .select({ slot: cosmeticItems.slot, assetKey: cosmeticItems.assetKey })
     .from(userInventory)
@@ -158,12 +171,22 @@ export async function equipItem(userId: string, itemId: string, equipped: boolea
         .where(and(eq(userInventory.userId, userId), eq(userInventory.equipped, true), ne(userInventory.itemId, itemId), inArray(userInventory.itemId, conflicting))),
     );
   }
+  // Житло: одне обране. Інші вдягнені в цьому слоті знімаються тим самим пакетом.
+  if (equipped && inv.slot === HOUSING_SLOT) {
+    const housingIds = db.select({ id: cosmeticItems.id }).from(cosmeticItems).where(eq(cosmeticItems.slot, HOUSING_SLOT));
+    stmts.push(
+      db
+        .update(userInventory)
+        .set({ equipped: false })
+        .where(and(eq(userInventory.userId, userId), eq(userInventory.equipped, true), ne(userInventory.itemId, itemId), inArray(userInventory.itemId, housingIds))),
+    );
+  }
   stmts.push(db.update(userInventory).set({ equipped }).where(and(eq(userInventory.userId, userId), eq(userInventory.itemId, itemId))));
   await atomic(stmts);
   return outfit(userId);
 }
 
-/** Вдягнені предмети: { HAT: 'cap-green', ... } та розставлені в домику. */
+/** Вдягнені предмети: { HAT: 'cap-green', ... }, розставлені в домику речі та обране житло (`home`, за замовчуванням безкоштовна кімната). */
 export async function outfit(userId: string) {
   const rows = await db
     .select({ slot: cosmeticItems.slot, assetKey: cosmeticItems.assetKey })
@@ -172,9 +195,11 @@ export async function outfit(userId: string) {
     .where(and(eq(userInventory.userId, userId), eq(userInventory.equipped, true)));
   const wear: Record<string, string> = {};
   const house: string[] = [];
+  let home = DEFAULT_HOUSING;
   for (const r of rows) {
-    if (EXCLUSIVE.has(r.slot)) wear[r.slot] = r.assetKey;
+    if (r.slot === HOUSING_SLOT) home = r.assetKey;
+    else if (EXCLUSIVE.has(r.slot)) wear[r.slot] = r.assetKey;
     else house.push(r.assetKey);
   }
-  return { wear, house };
+  return { wear, house, home };
 }

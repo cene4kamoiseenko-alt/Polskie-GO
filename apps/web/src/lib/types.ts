@@ -1,6 +1,7 @@
 import type { Cefr, CheckResult, I18n, UiLang } from '@polski-go/shared';
 
-export type Outfit = { wear: Partial<Record<string, string>>; house: string[] };
+/** `home` — обране житло домика (assetKey `housing-…`; за замовчуванням безкоштовна кімната). */
+export type Outfit = { wear: Partial<Record<string, string>>; house: string[]; home: string };
 
 export type Me = {
   id: string;

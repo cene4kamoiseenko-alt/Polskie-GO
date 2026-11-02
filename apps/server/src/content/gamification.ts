@@ -303,7 +303,7 @@ export const ACHIEVEMENTS: AchievementSeed[] = [
 
 export type ItemSeed = {
   slug: string;
-  slot: 'HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME' | 'FURNITURE' | 'DECOR' | 'SOUVENIR' | 'FRAME';
+  slot: 'HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME' | 'FURNITURE' | 'DECOR' | 'SOUVENIR' | 'HOUSING' | 'FRAME';
   name: I18n;
   price: number;
   rarity?: 'common' | 'rare' | 'epic' | 'legendary';
@@ -314,6 +314,9 @@ export type ItemSeed = {
 };
 
 const it = (slug: string, slot: ItemSeed['slot'], name: I18n, price: number, extra: Partial<ItemSeed> = {}): ItemSeed => ({ slug, slot, name, price, ...extra });
+
+/** Цена жилья в Złotki: комната в общей квартире бесплатна, дальше — по нескольку тысяч (решение владельца 2026-11-02). Менять только здесь и в новой строке охраняемого UPDATE seed-а. */
+export const HOUSING_PRICES = { 'housing-opole': 0, 'housing-lodz': 2500, 'housing-krakow': 5000, 'housing-warszawa': 8000 } as const;
 
 export const ITEMS: ItemSeed[] = [
   // Стартовий одяг — як на маскоті
@@ -353,6 +356,12 @@ export const ITEMS: ItemSeed[] = [
   // Костюми
   it('costume-dragon', 'COSTUME', t('Костюм Вавельського дракона', 'Костюм Вавельского дракона', 'Wawel dragon costume'), 200, { premium: true, rarity: 'legendary' }),
   it('costume-syrenka', 'COSTUME', t('Костюм Варшавської сирени', 'Костюм Варшавской русалки', 'Warsaw mermaid costume'), 0, { rewardOnly: true, rarity: 'epic', city: 'warszawa' }),
+  // Домик: жильё (2026-11-02). Цельный фон комнаты, выбирается одно. Бесплатная комната — по умолчанию (не стартовый предмет: выдаётся неявно, см. shop.ts), остальные — за Złotki.
+  // Цены в одном месте: HOUSING_PRICES. Польские названия карточек — apps/web/src/lib/screenArt.ts (HOUSING), здесь переводы.
+  it('housing-opole', 'HOUSING', t('Кімната в Ополе', 'Комната в Ополе', 'A room in Opole'), HOUSING_PRICES['housing-opole']),
+  it('housing-lodz', 'HOUSING', t('Кавалерка в Лодзі', 'Кавалерка (студия) в Лодзи', 'A studio flat in Łódź'), HOUSING_PRICES['housing-lodz'], { rarity: 'rare' }),
+  it('housing-krakow', 'HOUSING', t('Квартира в Кракові', 'Квартира в Кракове', 'A flat in Kraków'), HOUSING_PRICES['housing-krakow'], { rarity: 'epic' }),
+  it('housing-warszawa', 'HOUSING', t('Апартаменти у Варшаві', 'Апартаменты в Варшаве', 'An apartment in Warsaw'), HOUSING_PRICES['housing-warszawa'], { rarity: 'legendary' }),
   // Домик: меблі
   it('bed-cozy', 'FURNITURE', t('Затишне ліжко', 'Уютная кровать', 'Cozy bed'), 120),
   it('desk', 'FURNITURE', t('Письмовий стіл', 'Письменный стол', 'Desk'), 100),

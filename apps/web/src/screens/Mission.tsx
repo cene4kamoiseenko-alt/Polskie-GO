@@ -140,8 +140,9 @@ function Intro({ run, onStart, onClose }: { run: MissionRun; onStart: () => void
         )}
       </div>
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto max-w-xl bg-gradient-to-t from-[var(--bg)] via-[var(--bg)] to-transparent px-4 pt-6">
-        <button className="btn btn-red mb-2 w-full text-lg" onClick={() => { haptic.tap(); onStart(); }}>
-          {resume ? t('life_continue', { n: run.step + 1, total: m.steps.length }) : t('life_start')}
+        <button className="btn-start mb-2" data-mission-start onClick={() => { haptic.tap(); onStart(); }}>
+          <Icon name="play" size={22} />
+          <span>{resume ? t('life_continue', { n: run.step + 1, total: m.steps.length }) : t('life_start')}</span>
         </button>
       </div>
     </div>

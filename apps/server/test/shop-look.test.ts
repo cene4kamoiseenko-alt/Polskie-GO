@@ -176,8 +176,9 @@ describe('Надягання за ядром образу', () => {
 
     const r = await putOn(call, 'costume-artist');
     expect(r.status).toBe(200);
-    // Формат відповіді не змінився: { wear: { SLOT: assetKey }, house: [...] }.
-    expect(Object.keys(r.body).sort()).toEqual(['house', 'wear']);
+    // Формат відповіді: { wear: { SLOT: assetKey }, house: [...], home } — `home` (обране житло, 2026-11-02) додано до незмінних wear і house.
+    expect(Object.keys(r.body).sort()).toEqual(['home', 'house', 'wear']);
+    expect(r.body.home).toBe('housing-opole');
     expect(r.body.wear).toEqual({ COSTUME: 'costume-artist', BACKPACK: 'backpack-travel', GLASSES: 'glasses-round' });
     expect(r.body.house).toEqual(['bed-basic']);
     const inv = await inventory(user.id);
