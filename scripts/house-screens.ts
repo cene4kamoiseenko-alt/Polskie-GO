@@ -3,11 +3,13 @@
  *
  *   node --import tsx scripts/house-screens.ts   → test-results/house-screens/*.png
  *
- * 1. Новый игрок: выбрана бесплатная комната в Ополе, фон загружен и закрывает кадр 2 : 1, Бобёр в кадре, четыре карточки, остальные закрыты
- *    («Не хватает N»), нет горизонтальной прокрутки; 320 / 390 / 430.
+ * 1. Новый игрок: выбрана бесплатная комната в Ополе, сцена загружена и закрывает кадр 3 : 2 (Бобёр нарисован в картинке, поверх ничего не рисуется), четыре карточки
+ *    с обложками, остальные закрыты («Не хватает N»), нет горизонтальной прокрутки; 320 / 390 / 430.
  * 2. Игрок с деньгами: «Купить» открывает подтверждение с ценой и остатком, «Отмена» ничего не меняет, подтверждение списывает ровно цену и переселяет Бобра
  *    (фон меняется, карточка «Выбрано»), после перезагрузки выбор сохраняется; вернуться в бесплатную комнату и обратно можно без повторной покупки.
  * 3. Вещи из магазина (мебель, сувениры) показываются полосой под комнатой, а не стикерами поверх фона; пустой список — подсказка.
+ * 4. Сцены (читает / спит / работает / чай): у Ополя три (сцены «работает» нет), у остальных четыре; нажатие меняет картинку, выбор переживает перезагрузку
+ *    и переносится в другую квартиру (если там есть такая сцена; иначе — сцена по времени суток); все 15 картинок открываются.
  */
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -75,12 +77,18 @@ async function main() {
       const u = await userPage([w, h]);
       check((await home(u.page)) === 'housing-opole', `${tag}: выбрана бесплатная комната в Ополе`);
       const im = await loaded(u.page, '[data-house-room] > img');
-      check(im.ok && /housing-opole/.test(im.src), `${tag}: фон комнаты загружен (${im.src})`);
+      check(im.ok && /housing-opole-(read|sleep)/.test(im.src), `${tag}: сцена комнаты загружена (${im.src})`);
       const room = await box(u.page, '[data-house-room]');
       const bg = await box(u.page, '[data-house-room] > img');
-      check(Math.abs(bg.w - room.w) < 9 && Math.abs(bg.h - room.h) < 9 && Math.abs(room.w / room.h - 2) < 0.08, `${tag}: фон закрывает кадр 2 : 1 (${Math.round(room.w)}×${Math.round(room.h)})`);
-      const bob = await u.page.locator('[data-house-bobek]').evaluate((e) => { const r = e.getBoundingClientRect(); const p = (e.parentElement as HTMLElement).getBoundingClientRect(); return { inside: r.x >= p.x && r.right <= p.right && r.y >= p.y - 1 && r.bottom <= p.bottom + 1, h: r.height }; });
-      check(bob.inside && bob.h > 60, `${tag}: Бобёр целиком в кадре комнаты (высота ${Math.round(bob.h)})`);
+      check(Math.abs(bg.w - room.w) < 9 && Math.abs(bg.h - room.h) < 9 && Math.abs(room.w / room.h - 1.5) < 0.06, `${tag}: фон закрывает кадр 3 : 2 (${Math.round(room.w)}×${Math.round(room.h)})`);
+      check((await u.page.locator('[data-house-bobek]').count()) === 0, `${tag}: поверх картинки Бобёр не рисуется (он уже в кадре)`);
+      const hr = new Date().getHours();
+      const want = hr >= 22 || hr < 6 ? 'sleep' : 'read';
+      check((await u.page.locator('[data-house-room]').getAttribute('data-house-scene')) === want, `${tag}: сцена по времени суток — ${want}`);
+      await u.page.locator('[data-housing]').last().scrollIntoViewIfNeeded();
+      await u.page.waitForTimeout(700);
+      const thumbs = await u.page.locator('[data-housing] img[loading="lazy"]').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).naturalWidth > 0));
+      check(thumbs.length === 4 && thumbs.every(Boolean), `${tag}: у четырёх карточек обложки загружены (${thumbs.length})`);
       const st = await states(u.page);
       check(st.join() === 'housing-opole:selected,housing-lodz:locked,housing-krakow:locked,housing-warszawa:locked', `${tag}: четыре карточки, остальные закрыты (${st.join(', ')})`);
       const need = await u.page.locator('[data-housing="housing-lodz"]').innerText();
@@ -117,7 +125,7 @@ async function main() {
       await u.page.waitForFunction(() => document.querySelector('[data-house-room]')?.getAttribute('data-house-room') === 'housing-lodz', null, { timeout: 15_000 });
       await u.page.waitForTimeout(700);
       const im = await loaded(u.page, '[data-house-room] > img');
-      check(im.ok && /housing-lodz/.test(im.src), `${tag}: Бобёр переехал, фон сменился (${im.src})`);
+      check(im.ok && /housing-lodz-/.test(im.src), `${tag}: Бобёр переехал, сцена сменилась (${im.src})`);
       check((await states(u.page)).join() === 'housing-opole:owned,housing-lodz:selected,housing-krakow:locked,housing-warszawa:locked', `${tag}: состояния после покупки (${(await states(u.page)).join(', ')})`);
       const left = (await db.select().from(gameWallets).where(eq(gameWallets.userId, u.user.id)))[0].balance;
       check(left >= 500 && left <= 560, `${tag}: списано ровно 2 500 (осталось ${left}; до +50 за достижение «Модник»)`);
@@ -142,10 +150,71 @@ async function main() {
       const u = await userPage([390, 844], { things: true });
       const tiles = await u.page.locator('[data-house-things] .card').count();
       check(tiles === 5, `390px: пять вещей (стартовая кровать и четыре добавленные) в полосе под комнатой (${tiles})`);
-      const over = await u.page.locator('[data-house-room] .-translate-y-full').count();
-      check(over === 1, '390px: поверх фона только Бобёр, стикеров мебели нет');
+      const over = await u.page.locator('[data-house-room] > *:not(img)').count();
+      check(over === 0, '390px: поверх сцены ничего нет — ни Бобра, ни стикеров мебели');
       await u.page.screenshot({ path: `${OUT}/house-things-390.png`, fullPage: true });
       await u.context.close();
+    }
+
+    // ── 4. Сцены ──
+    {
+      const SCENES_OF: Record<string, string[]> = { 'housing-opole': ['read', 'sleep', 'tea'], 'housing-lodz': ['read', 'sleep', 'work', 'tea'], 'housing-krakow': ['read', 'sleep', 'work', 'tea'], 'housing-warszawa': ['read', 'sleep', 'work', 'tea'] };
+      const LABEL: Record<string, string> = { read: 'Читает', sleep: 'Спит', work: 'Работает', tea: 'Пьёт чай' };
+      for (const [w, h] of SIZES) {
+        const tag = `${w}px сцены`;
+        const u = await userPage([w, h], { balance: 20_000 });
+        const shop = (await u.call('GET', '/api/shop')).body as { items: { id: string; slug: string }[] };
+        const idOf = (slug: string) => shop.items.find((i) => i.slug === slug)!.id;
+        for (const slug of ['housing-lodz', 'housing-krakow', 'housing-warszawa']) {
+          const r = await u.call('POST', '/api/shop/buy', { itemId: idOf(slug) });
+          if (r.status !== 200) throw new Error(`покупка ${slug}: ${r.status} ${JSON.stringify(r.body)}`);
+        }
+
+        const sceneOf = (p: import('playwright').Page) => p.locator('[data-house-room]').getAttribute('data-house-scene');
+        const imgSrc = (p: import('playwright').Page) => p.locator('[data-house-room] > img').evaluate((e: HTMLImageElement) => e.currentSrc.split('/').pop() || '');
+        const waitScene = (p: import('playwright').Page, slug: string, scene: string) =>
+          p.waitForFunction(({ slug, scene }) => { const i = document.querySelector('[data-house-room] > img') as HTMLImageElement | null; return !!i && i.complete && i.naturalWidth > 0 && i.currentSrc.includes(`${slug}-${scene}`); }, { slug, scene }, { timeout: 15_000 });
+
+        let okAll = true;
+        const seen: string[] = [];
+        for (const slug of Object.keys(SCENES_OF)) {
+          check((await u.call('POST', '/api/inventory/equip', { itemId: idOf(slug), equipped: true })).status === 200, `${tag}: ${slug}: выбор принят сервером`);
+          await u.open();
+          const chips = await u.page.locator('[data-house-scenes] [data-scene]').evaluateAll((els) => els.map((e) => e.getAttribute('data-scene')));
+          check(chips.join() === SCENES_OF[slug].join(), `${tag}: ${slug}: переключатель показывает ${SCENES_OF[slug].join('/')} (${chips.join('/')})`);
+          for (const scene of SCENES_OF[slug]) {
+            await u.page.locator(`[data-house-scenes] [data-scene="${scene}"]`).click();
+            try { await waitScene(u.page, slug, scene); } catch { okAll = false; }
+            const pressed = await u.page.locator(`[data-house-scenes] [data-scene="${scene}"]`).getAttribute('aria-pressed');
+            if ((await sceneOf(u.page)) !== scene || pressed !== 'true') okAll = false;
+            seen.push(`${slug}-${scene}`);
+          }
+          if (w === 390) await u.page.screenshot({ path: `${OUT}/scenes-${slug}-${w}.png`, fullPage: true });
+          check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: ${slug}: нет горизонтальной прокрутки`);
+        }
+        check(okAll && seen.length === 15, `${tag}: все ${seen.length} сцен открываются, кнопка и кадр соответствуют выбору`);
+
+        // подпись у выбранной кнопки видна на русском; запоминание и перенос в другую квартиру
+        await u.call('POST', '/api/inventory/equip', { itemId: idOf('housing-krakow'), equipped: true });
+        await u.open();
+        await u.page.locator('[data-house-scenes] [data-scene="work"]').click();
+        await waitScene(u.page, 'housing-krakow', 'work');
+        check(/Работает/.test(await u.page.locator('[data-house-scenes] [data-scene="work"]').innerText()), `${tag}: подпись «${LABEL.work}» видна`);
+        await u.open();
+        check((await sceneOf(u.page)) === 'work', `${tag}: после перезагрузки сцена та же`);
+        await u.page.locator('[data-housing="housing-lodz"]').getByRole('button', { name: 'Выбрать' }).click();
+        await u.page.waitForFunction(() => document.querySelector('[data-house-room]')?.getAttribute('data-house-room') === 'housing-lodz', null, { timeout: 15_000 });
+        await waitScene(u.page, 'housing-lodz', 'work');
+        check((await imgSrc(u.page)).includes('housing-lodz-work'), `${tag}: выбор «работает» перешёл в другую квартиру`);
+        // в Ополе «работает» нет — берётся сцена по времени суток, кнопки «работает» тоже нет
+        await u.page.locator('[data-housing="housing-opole"]').getByRole('button', { name: 'Выбрать' }).click();
+        await u.page.waitForFunction(() => document.querySelector('[data-house-room]')?.getAttribute('data-house-room') === 'housing-opole', null, { timeout: 15_000 });
+        const hr = new Date().getHours();
+        const fallback = hr >= 22 || hr < 6 ? 'sleep' : 'read';
+        await waitScene(u.page, 'housing-opole', fallback);
+        check((await sceneOf(u.page)) === fallback && (await u.page.locator('[data-house-scenes] [data-scene="work"]').count()) === 0, `${tag}: в Ополе без сцены «работает» показана «${fallback}»`);
+        await u.context.close();
+      }
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);
   } finally {

@@ -456,6 +456,11 @@ export const uk = {
   housing_confirm_d: '{name} коштує {price} Złotki. Після покупки лишиться {left}.',
   housing_moved: 'Бобек переїхав!',
   house_things: 'Речі в кімнаті',
+  house_scene_t: 'Чим зайнятий Бобек',
+  house_scene_read: 'Читає',
+  house_scene_sleep: 'Спить',
+  house_scene_work: 'Працює',
+  house_scene_tea: 'П\'є чай',
 
   diary_title: 'Щоденник мандрівника',
   diary_opened: 'Відкрито {date}',

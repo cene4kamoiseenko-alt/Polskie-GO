@@ -13,7 +13,7 @@ import { chromiumPath, startStand } from './lib/stand';
 const root = process.cwd();
 const require = createRequire(root + '/package.json');
 const AXE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
-const ROUTES = ['/', '/learn', '/map', '/quests', '/profile', '/shop', '/achievements', '/dictionary', '/settings', '/life', '/passport', '/premium', '/pass'];
+const ROUTES = ['/', '/learn', '/map', '/quests', '/profile', '/shop', '/achievements', '/dictionary', '/settings', '/life', '/passport', '/premium', '/pass', '/house'];
 
 type Found = { screen: string; theme: string; target: string; html: string; message: string };
 
