@@ -125,7 +125,7 @@ export const LOOK_ITEMS: readonly LookItem[] = [
     'Камізелька, сорочка, ліхтар. Ковпак вважаємо hat-krasnal — потребує підтвердження власника.'),
   legacyCostume('costume-artist', 'epic', ['headwear', 'neck', 'top', 'accessory'], {},
     'Берет, шарф, блуза, палітра й пензель — власних предметів немає.'),
-  legacyCostume('costume-winter', 'rare', ['headwear', 'neck', 'top', 'shoes'], { backpack: 'prop:brown-backpack' },
+  legacyCostume('costume-winter', 'epic', ['headwear', 'neck', 'top', 'shoes'], { backpack: 'prop:brown-backpack' },
     'Шапка, шарф, пуховик з рукавицями, черевики — власних предметів немає. Коричневий рюкзак — лише на картинці.'),
   legacyCostume('costume-dragon', 'legendary', ['body', 'head'], { backpack: 'prop:brown-strap' },
     'Комбінезон з крилами й капюшон. Коричневий ремінь сумки на плечі — лише на картинці.'),

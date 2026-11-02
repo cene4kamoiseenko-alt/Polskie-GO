@@ -10,6 +10,7 @@ import { VOCAB } from '../src/content/vocab';
 import { DISHES, PIEROGI_PHRASES } from '../src/content/vocab-life';
 import { tokensOf } from '../src/services/missions';
 import { disposeEnv, getEnv, login } from './helpers';
+import { LONG_MISSION_MINUTES, MISSION_SCENES } from '../src/content/mission-scenes';
 
 afterAll(disposeEnv);
 
@@ -66,6 +67,20 @@ describe('Місії: контент', () => {
         }
         if (s.kind === 'listen') expect(s.line?.hidden, key).toBe(true);
       }
+    }
+  });
+
+  it('обычные миссии и «Ноябрь в Познани» — ~10 минут: вторая сцена в конце, без шагов «послушай» (новые реплики не озвучены)', () => {
+    const long = MISSIONS.filter((m) => MISSION_SCENES[m.slug as keyof typeof MISSION_SCENES]);
+    expect(long.length).toBe(17);
+    for (const m of MISSIONS.filter((x) => !x.premium && (!x.season || x.season === 'listopad-poznan'))) expect(long.includes(m), m.slug).toBe(true);
+    for (const m of long) {
+      expect(m.steps.length, m.slug).toBeGreaterThanOrEqual(13);
+      expect(m.minutes, m.slug).toBe(LONG_MISSION_MINUTES);
+      const scene = MISSION_SCENES[m.slug as keyof typeof MISSION_SCENES];
+      expect(m.steps.slice(-scene.steps.length).map((s) => s.id), m.slug).toEqual(scene.steps.map((s) => s.id));
+      for (const s of scene.steps) expect(s.kind, `${m.slug}:${s.id}`).not.toBe('listen');
+      for (const s of scene.steps.filter((x) => x.kind === 'choice')) for (const o of s.options!.filter((x) => !x.ok)) expect(o.why?.uk && o.why.ru && o.why.en, `${m.slug}:${s.id}`).toBeTruthy();
     }
   });
 
@@ -231,8 +246,9 @@ describe('Місії: XP у завданнях і денна мета', () => {
 
   it('XP місії зараховується в завдання «Отримай 100 XP»; денна мета не «виконується» подвійним підрахунком XP', async () => {
     const { call, user } = await login();
-    await db.update(userSettings).set({ dailyGoalMinutes: 10, timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, user.id));
-    const goal = goalXpFor(10);
+    // Мета 20 хвилин: місія тепер ~10 хвилин і дає більше XP, ніж 10-хвилинна мета (2026-11-02).
+    await db.update(userSettings).set({ dailyGoalMinutes: 20, timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, user.id));
+    const goal = goalXpFor(20);
     const today = dayKey(new Date(), 'Europe/Warsaw');
     // Шість попередніх днів мету виконано; сьогодні до місії бракує рівно zabka.xp + 1.
     for (let i = 1; i <= 6; i++) await db.insert(dailyActivity).values({ userId: user.id, day: addDays(today, -i), xp: goal });

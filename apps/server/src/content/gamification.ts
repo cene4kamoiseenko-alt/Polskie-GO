@@ -332,7 +332,8 @@ export const COSTUME_PRICES: Record<string, { price: number; rarity: 'rare' | 'e
   'costume-puffer-stripes': { price: 1300, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
   'costume-sherpa': { price: 1400, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
   'costume-duffle': { price: 1400, rarity: 'legendary', from: { price: 400, rarity: 'legendary' } },
-  'costume-dragon': { price: 1500, rarity: 'legendary', from: { price: 200, rarity: 'legendary' } },
+  // Дракон — Premium; дешевле скинов, чтобы скины оставались самыми дорогими вещами магазина (look-catalog.test).
+  'costume-dragon': { price: 1100, rarity: 'legendary', from: { price: 200, rarity: 'legendary' } },
 };
 const costume = (slug: string, name: I18n, extra: Partial<ItemSeed> = {}) =>
   it(slug, 'COSTUME', name, COSTUME_PRICES[slug].price, { rarity: COSTUME_PRICES[slug].rarity, ...extra });
