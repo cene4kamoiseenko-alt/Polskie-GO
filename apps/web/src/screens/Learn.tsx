@@ -6,6 +6,7 @@ import { sceneForRoute } from '../components/LessonStage';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
+import { homeShot } from '../lib/homeArt';
 import { useJourney, useMe } from '../lib/queries';
 import type { JourneyLesson } from '../lib/types';
 import { Beaver } from '../components/Beaver';
@@ -87,6 +88,8 @@ export default function LearnScreen() {
   const me = useMe().data;
   const [picked, setPicked] = useState<JourneyLesson | null>(null);
   const nextRef = useRef<HTMLDivElement>(null);
+  /** Миниатюра маршрута «квартира» — фото Бобра с ключами в прихожей вместо векторной MIESZKANIE. */
+  const keysShot = homeShot('keys');
 
   const cities = journey.data?.cities.filter((c) => c.unlocked && c.hasContent) ?? [];
   const cityId = params.get('city') ?? journey.data?.currentCityId ?? cities[0]?.id;
@@ -143,7 +146,9 @@ export default function LearnScreen() {
         <section key={r.id} className="space-y-6 pb-4">
           <div className="location-card mx-4 flex items-center gap-3 overflow-hidden p-2 pr-3">
             <span className="relative h-[64px] w-[92px] shrink-0 overflow-hidden rounded-xl">
-              {sceneForRoute(r.slug) ? <Scene name={sceneForRoute(r.slug)!} className="absolute inset-0 h-full w-full" /> : <span className="grid h-full place-items-center bg-night"><GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={40} /></span>}
+              {sceneForRoute(r.slug) === 'flat' && keysShot ? (
+                <img src={keysShot.src} srcSet={keysShot.srcSet} sizes="92px" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: keysShot.pos }} decoding="async" draggable={false} />
+              ) : sceneForRoute(r.slug) ? <Scene name={sceneForRoute(r.slug)!} className="absolute inset-0 h-full w-full" /> : <span className="grid h-full place-items-center bg-night"><GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={40} /></span>}
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-black uppercase tracking-wide text-sky">{t('learn_location_n', { n: ri + 1 })}</div>

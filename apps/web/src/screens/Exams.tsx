@@ -5,6 +5,7 @@ import { useT } from '../i18n';
 import { api } from '../lib/api';
 import { useMe } from '../lib/queries';
 import { Beaver } from '../components/Beaver';
+import { homeShot } from '../lib/homeArt';
 import { Card, ErrorState, ScreenHeader, ScreenSkeleton, Section } from '../components/ui';
 import { PictoTile } from '../components/pictograms/Pictogram';
 
@@ -18,13 +19,25 @@ export default function ExamsScreen() {
   if (q.isLoading) return <ScreenSkeleton />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const { exams, history } = q.data!;
+  const study = homeShot('study');
   return (
     <div className="space-y-5 pb-6">
       <ScreenHeader title={t('exams_title')} subtitle={t('exams_subtitle')} />
-      <div className="mx-4 flex items-center gap-3 rounded-3xl bg-muted p-4">
-        <Beaver size={80} mood="think" animate={false} />
-        <div>
-          <div className="text-sm font-black">{t('profile_language')}: <span className="text-2xl text-pl-red">{me.progress.languageLevel}</span></div>
+      {/* Владелец 2026-11-02: «Бобек очень маленький» — крупное фото Бобра за учёбой (в очках, с тетрадью) шапкой карточки уровня. */}
+      <div className="mx-4 overflow-hidden rounded-3xl bg-muted" data-exams-hero>
+        {study ? (
+          <div className="relative aspect-[2/1] w-full">
+            <img src={study.src} srcSet={study.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: study.pos }} decoding="async" draggable={false} />
+            <span className="absolute bottom-3 right-3 rounded-2xl bg-night/80 px-3 py-1.5 text-white backdrop-blur-sm">
+              <span className="text-xs font-black">{t('profile_language')}: </span>
+              <span className="text-2xl font-black text-[#FF6B78]">{me.progress.languageLevel}</span>
+            </span>
+          </div>
+        ) : (
+          <div className="flex justify-center pt-3"><Beaver size={128} mood="think" animate={false} /></div>
+        )}
+        <div className="p-4">
+          {!study && <div className="text-sm font-black">{t('profile_language')}: <span className="text-2xl text-pl-red">{me.progress.languageLevel}</span></div>}
           <p className="muted text-xs font-bold">{t('exams_disclaimer')}</p>
         </div>
       </div>

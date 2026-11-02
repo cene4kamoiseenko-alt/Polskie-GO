@@ -109,6 +109,11 @@ async function main() {
         return r.getBoundingClientRect().right;
       });
       check(resumeTextR <= artBox.x + 4 || resumeBox.b <= artBox.y + 2, `${tag}: подпись «шаг N из M» не заходит на рогалики (${Math.round(resumeTextR)} ≤ ${Math.round(artBox.x)})`);
+      const meets = !(artBox.r <= play.x || play.r <= artBox.x || artBox.b <= play.y || play.b <= artBox.y);
+      check(!meets, `${tag}: рогалики не под кнопкой (рогалики ${Math.round(artBox.y)}…${Math.round(artBox.b)}, кнопка ${Math.round(play.y)}…${Math.round(play.b)})`);
+      check(artBox.y + artBox.h / 2 < feat.y + feat.h / 2, `${tag}: рогалики в верхней половине карточки, не внизу`);
+      const titleRr = await u.page.locator('[data-pass-featured] .pg-feature-title').evaluate((el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().right; });
+      check(titleRr <= artBox.x + 4, `${tag}: название не заходит на рогалики (${Math.round(titleRr)} ≤ ${Math.round(artBox.x)})`);
       const cards = await u.page.locator('.pg-mission').evaluateAll((els) =>
         els.map((e) => {
           const r = e.getBoundingClientRect();

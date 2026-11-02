@@ -4,13 +4,14 @@
  * а в бульбашці — інструкція до завдання. Для діалогів праворуч з'являється співрозмовник.
  */
 import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { NpcFace } from './pictograms/Pictogram';
 import { Beaver, type BeaverMood } from './Beaver';
 import { Icon, type LineIconName } from './Icon';
 import { Item, SCENE_ITEM_POOLS, Scene, type ItemName, type SceneName } from './Illustrations';
 import { CityBanner } from './Scenery';
 import { useT, type TKey } from '../i18n';
+import { homeShotFor, warmHomeShots } from '../lib/homeArt';
 import type { PublicItem } from '../lib/types';
 
 /** Локація (маршрут міста) → сцена. Невідомі маршрути показують панораму міста. */
@@ -153,6 +154,9 @@ const REVERSE_CUE = 'Jak to jest po polsku?';
 
 export type StageMood = 'idle' | 'think' | 'correct' | 'wrong';
 
+/** Ширина сцены на экране: на всю колонку минус поля (колонка не шире 576 px). */
+const STAGE_SIZES = '(min-width: 576px) 544px, calc(100vw - 32px)';
+
 const MOOD: Record<StageMood, BeaverMood> = { idle: 'happy', think: 'think', correct: 'cheer', wrong: 'sad' };
 
 type Props = {
@@ -178,10 +182,26 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
   const reverse = item.type === 'WORD_TRANSLATION' && !(item.data as { pl?: string }).pl;
   const cue = reverse ? REVERSE_CUE : (PL_CUE[item.type] ?? PL_CUE.WORD_TRANSLATION);
   const npc = (item.type === 'DIALOGUE' || item.type === 'SITUATION') ? (item.data as unknown as { npc?: { emoji: string; name: string } }).npc : undefined;
+  // Без своей локации (экзамен, входной тест, тренировка) и на маршрутах «квартира» — фото «Бобек дома» вместо векторной MIESZKANIE (владелец 2026-11-02).
+  // Бобёр нарисован в кадре: второго поверх нет, реакция на ответ — движение всего кадра.
+  const photo = (!scene && !citySlug) || scene === 'flat' ? homeShotFor(item.type) : null;
+  useEffect(() => {
+    if (photo) warmHomeShots(STAGE_SIZES);
+  }, [photo]);
 
   return (
-    <div className="lesson-stage relative h-[176px] overflow-hidden rounded-[26px]">
-      {scene ? (
+    <div className="lesson-stage relative h-[176px] overflow-hidden rounded-[26px]" data-stage-photo={photo?.kind}>
+      {photo ? (
+        <motion.div
+          key={`${mood}-${index}`}
+          className="absolute inset-0"
+          initial={false}
+          animate={reduce ? undefined : mood === 'correct' ? { scale: [1, 1.05, 1] } : mood === 'wrong' ? { x: [0, -7, 7, -3, 0] } : { scale: 1, x: 0 }}
+          transition={{ duration: mood === 'correct' ? 0.55 : 0.4 }}
+        >
+          <img src={photo.src} srcSet={photo.srcSet} sizes={STAGE_SIZES} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: photo.pos }} decoding="async" draggable={false} />
+        </motion.div>
+      ) : scene ? (
         <Scene name={scene} items={items} evening={evening} className="absolute inset-0 h-full w-full" />
       ) : citySlug ? (
         <CityBanner slug={citySlug} color={color} height={176} className="absolute inset-0" shade={false} />
@@ -202,7 +222,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
 
       {!npc && (
         <div className="absolute right-3 top-3">
-          <StageProp type={item.type} item={pool.length ? pool[(index * 3 + 1) % pool.length] : undefined} />
+          <StageProp type={item.type} item={pool.length && !photo ? pool[(index * 3 + 1) % pool.length] : undefined} />
         </div>
       )}
 
@@ -217,7 +237,8 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
         </motion.div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-end gap-1 pl-1 pr-3">
+      <div className={`absolute inset-x-0 bottom-0 flex items-end gap-1 pr-3 ${photo ? 'pl-[42%]' : 'pl-1'}`}>
+        {!photo && (
         <motion.div
           key={`${mood}-${index}`}
           className="-mb-3 shrink-0"
@@ -235,6 +256,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
         >
           <Beaver mood={MOOD[mood]} size={112} animate={mood === 'idle'} />
         </motion.div>
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={`${item.key}-${cue}`}

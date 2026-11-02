@@ -5,6 +5,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useGoBack } from '../lib/back';
 import { useT, type TKey } from '../i18n';
 import { api, ApiError } from '../lib/api';
+import { homeShot } from '../lib/homeArt';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
 import { prefetchSpeech, sfx, stopSpeech } from '../lib/audio';
@@ -214,19 +215,26 @@ export default function LessonScreen() {
 
   if (phase === 'intro' && session.lesson) {
     const l = session.lesson;
+    // Своей сцены у маршрута нет (или это «квартира») — фото «Бобек дома» за учёбой вместо векторной MIESZKANIE; Бобёр уже в кадре.
+    const introScene = sceneForRoute(session.place?.routeSlug);
+    const introPhoto = !introScene || introScene === 'flat' ? homeShot('study') : null;
     return (
       <div className="min-h-app flex flex-col px-4 pb-6 pt-3">
         <TopClose onClose={onQuit} />
         <div className="flex-1 space-y-4 overflow-y-auto">
           <div className="lesson-stage relative h-[180px] overflow-hidden rounded-[26px]">
-            <Scene name={sceneForRoute(session.place?.routeSlug) ?? 'flat'} evening={l.kind === 'BOSS' || isMissionSlug(l.slug)} className="absolute inset-0 h-full w-full" />
+            {introPhoto ? (
+              <img src={introPhoto.src} srcSet={introPhoto.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: introPhoto.pos }} decoding="async" draggable={false} data-intro-photo />
+            ) : (
+              <Scene name={introScene!} evening={l.kind === 'BOSS' || isMissionSlug(l.slug)} className="absolute inset-0 h-full w-full" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-night/80 via-transparent to-transparent" />
             {session.place && (
               <div className="absolute left-3 top-3 rounded-full bg-night/75 px-3 py-1 text-[12px] font-black uppercase tracking-wide text-sky backdrop-blur-sm">
                 {session.place.cityName} · {tr(session.place.routeTitle)}
               </div>
             )}
-            <div className="absolute bottom-0 left-1 -mb-3"><Beaver mood="explain" size={124} /></div>
+            {!introPhoto && <div className="absolute bottom-0 left-1 -mb-3"><Beaver mood="explain" size={124} /></div>}
           </div>
           <div>
             <div className="mb-1.5 flex flex-wrap gap-1.5">

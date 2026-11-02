@@ -42,7 +42,7 @@ export function PassFeatured({ m, onOpen }: { m: PassMission; onOpen: () => void
       type="button"
       whileTap={{ scale: 0.985 }}
       onClick={() => { haptic.tap(); onOpen(); }}
-      className={`pg-feature${cutout && cutout.h > cutout.w ? ' pg-feature--portrait' : ''}`}
+      className={`pg-feature${cutout ? (cutout.h > cutout.w ? ' pg-feature--portrait' : ' pg-feature--landscape') : ''}`}
       data-pass-featured={m.slug}
       aria-label={`${resume}: ${tr(m.title)}`}
     >

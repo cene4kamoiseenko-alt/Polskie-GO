@@ -1980,6 +1980,25 @@ html.reduced-motion .map-here-ring { animation: none; }
 .pg-feature--portrait .pg-feature-body {
   max-width: calc(100% - 57px - var(--cut-w));
 }
+/* Вырезка-пейзаж (рогалики 245×147). Владелец 2026-11-02: «слишком низко и под кнопкой» — теперь вверху справа, кнопка под ней в правом нижнем углу,
+   карточка не ниже 156 px, чтобы вырезка и кнопка не встречались. Правила сильнее медиа-запросов ниже (два класса). */
+.pg-feature--landscape {
+  min-height: 156px;
+}
+.pg-feature--landscape .pg-feature-art {
+  top: 12px;
+  right: 12px;
+  bottom: auto;
+  width: 34%;
+  max-height: 72px;
+}
+.pg-feature.pg-feature--landscape .pg-play {
+  top: auto;
+  bottom: 14px;
+}
+.pg-feature--landscape .pg-feature-body {
+  max-width: 60%;
+}
 .pg-feature-thumb {
   position: absolute;
   inset: 0 0 0 52%;
