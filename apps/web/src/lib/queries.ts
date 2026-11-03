@@ -11,7 +11,7 @@ export const useShop = () => useQuery({ queryKey: ['shop'], queryFn: () => api<{
 /** Після навчальних подій оновлюємо все, що могло змінитися. */
 export function useRefreshAll() {
   const qc = useQueryClient();
-  return () => Promise.all(['me', 'journey', 'quests', 'shop', 'achievements', 'stats', 'diary', 'exams'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+  return () => Promise.all(['me', 'journey', 'quests', 'shop', 'achievements', 'stats', 'diary', 'exams', 'house'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
 }
 
 export function useUpdateSettings() {

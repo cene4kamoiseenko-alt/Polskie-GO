@@ -9,6 +9,7 @@ import { achievements, playerProgress, userAchievements, userSettings, users, wa
 import { body, query, rateLimit, type AppEnv } from '../hono';
 import { advanceStory, claimDailyChest, claimQuest, listQuests, startStory, storyState } from '../services/quests';
 import { buyItem, equipItem, listShop, outfit } from '../services/shop';
+import { claimHouseBonus, houseState } from '../services/house';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
@@ -87,6 +88,12 @@ r.post('/inventory/equip', async (c) => {
   return c.json(await equipItem(c.get('userId'), itemId, equipped));
 });
 r.get('/outfit', async (c) => c.json(await outfit(c.get('userId'))));
+// Домик: состояние дня и домашний бонус (services/house.ts).
+r.get('/house', async (c) => {
+  const { day: _day, ...state } = await houseState(c.get('userId'));
+  return c.json(state);
+});
+r.post('/house/bonus', async (c) => c.json(await claimHouseBonus(c.get('userId'))));
 r.get('/wallet/transactions', async (c) =>
   c.json(await db.select().from(walletTransactions).where(eq(walletTransactions.userId, c.get('userId'))).orderBy(desc(walletTransactions.createdAt)).limit(50)),
 );

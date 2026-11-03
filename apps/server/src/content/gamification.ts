@@ -318,6 +318,8 @@ const it = (slug: string, slot: ItemSeed['slot'], name: I18n, price: number, ext
 
 /** Цена жилья в Złotki: комната в общей квартире бесплатна, дальше — по нескольку тысяч (решение владельца 2026-11-02). Менять только здесь и в новой строке охраняемого UPDATE seed-а. */
 export const HOUSING_PRICES = { 'housing-opole': 0, 'housing-lodz': 2500, 'housing-krakow': 5000, 'housing-warszawa': 8000 } as const;
+/** Домашний бонус, Złotki в день за выполненную цель дня (2026-11-03, services/house.ts): чем лучше квартира, тем больше. Моё решение — меняется здесь. */
+export const HOUSING_BONUS = { 'housing-opole': 5, 'housing-lodz': 15, 'housing-krakow': 25, 'housing-warszawa': 40 } as const;
 
 /**
  * Цельные костюмы — тоже готовые образы гардероба (2026-11-02, docs/OUTFITS.md): уровень и цена по образу. `from` — прежние цена и редкость:

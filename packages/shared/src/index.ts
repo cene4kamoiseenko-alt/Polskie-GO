@@ -12,5 +12,6 @@ export * from './pron';
 export * from './look';
 export * from './cityArt';
 export * from './sceneArt';
+// sceneArtNotes.ts (довідка до сцен) — НЕ з бочки: клієнт його не тягне; сервер і скрипти імпортують файл напряму.
 export * from './botScreens';
 export * from './mapArt';

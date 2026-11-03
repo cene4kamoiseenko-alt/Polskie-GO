@@ -14,7 +14,8 @@
  * Серия дней от вопроса не растёт: её продлевают уроки и миссии, а не 20 секунд в чате.
  */
 import { and, eq, sql } from 'drizzle-orm';
-import { QUESTION_SCENE_IMAGES, dayKey, shuffle, type UiLang } from '@polski-go/shared';
+import { dayKey, shuffle, type UiLang } from '@polski-go/shared';
+import { QUESTION_SCENE_IMAGES } from '@polski-go/shared/src/sceneArtNotes';
 import { atomic, db } from '../../db';
 import { botQuizPlayers, botQuizRounds, newId, playerProgress, userProfiles } from '../../db/schema';
 import { botApi, TelegramError } from '../../lib/telegram';

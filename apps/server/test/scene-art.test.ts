@@ -6,7 +6,8 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { MISSION_BACKGROUND_BRIEF, MISSION_SCENE_ART, QUESTION_SCENE_IMAGES, SCENE_ART, SCENE_ART_SMALL } from '@polski-go/shared';
+import { MISSION_BACKGROUND_BRIEF, MISSION_SCENE_ART, SCENE_ART_SMALL } from '@polski-go/shared';
+import { QUESTION_SCENE_IMAGES, SCENE_ART_FULL as SCENE_ART } from '@polski-go/shared/src/sceneArtNotes';
 import { MISSIONS, MISSIONS_SOON } from '../src/content/missions';
 import { quizImage } from '../src/bot/quiz/engine';
 import { QUESTION_BY_ID } from '../src/bot/quiz/questions';

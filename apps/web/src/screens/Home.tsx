@@ -11,6 +11,7 @@ import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon } from '../components/Icon';
 import { Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
+import { HouseCard } from '../components/HouseCard';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
@@ -165,6 +166,9 @@ export function HomeScreen() {
       {/* Пропуск місяця: сезонна локація з власними місіями */}
       <PassCard />
 
+      {/* Домик Бобека: день игрока (ждёт урок / отдыхает / спит), домашний бонус за цель дня и накопление на следующую квартиру */}
+      <HouseCard />
+
       {/* Учитися далі: тренування, «Польська в житті», граматика, словник; решта — у шторці */}
       <Section
         title={t('home_learn_more')}
@@ -210,6 +214,7 @@ export function HomeScreen() {
               // ШІ-співрозмовник — лише коли його підключено на сервері.
               ...(me.ai.configured ? [['ai', 'home_tile_talk', '/ai']] : []),
               ['wardrobe', 'home_shop', '/shop'],
+              ['house', 'home_tile_house', '/house'],
               ['map', 'home_passport', '/passport'],
               ['rewards', 'home_achievements', '/achievements'],
               ['leaderboard', 'home_leaderboard', '/social'],

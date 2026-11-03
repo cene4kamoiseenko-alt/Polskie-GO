@@ -3,10 +3,12 @@
  * Покупку й вибір перевіряє сервер; обране і куплене зберігається між сесіями; безкоштовна кімната не купується, а вибирається.
  */
 import { afterAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { and, eq, like } from 'drizzle-orm';
 import { db } from '../src/db';
-import { gameWallets } from '../src/db/schema';
-import { HOUSING_PRICES, ITEMS } from '../src/content/gamification';
+import { dailyActivity, gameWallets, userSettings, walletTransactions } from '../src/db/schema';
+import { HOUSING_BONUS, HOUSING_PRICES, ITEMS } from '../src/content/gamification';
+import { dayKey } from '@polski-go/shared';
+import { goalXpFor } from '../src/services/goal';
 import { disposeEnv, login } from './helpers';
 
 afterAll(disposeEnv);
@@ -110,3 +112,52 @@ describe('Житло домика', () => {
     expect(after.home).toBe('housing-lodz');
   });
 });
+
+describe('Домашний бонус (2026-11-03)', () => {
+  const doGoal = async (userId: string) => {
+    await db.update(userSettings).set({ dailyGoalMinutes: 10, timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, userId));
+    const day = dayKey(new Date(), 'Europe/Warsaw');
+    await db.insert(dailyActivity).values({ userId, day, xp: goalXpFor(10) }).onConflictDoUpdate({ target: [dailyActivity.userId, dailyActivity.day], set: { xp: goalXpFor(10) } });
+  };
+  const bonusTx = (userId: string) => db.select().from(walletTransactions).where(and(eq(walletTransactions.userId, userId), like(walletTransactions.idempotencyKey, 'house:%')));
+
+  it('бонус растёт с квартирой; новый игрок — комната в Ополе, цель накопления — kawalerka', async () => {
+    expect(HOUSING_BONUS['housing-opole']).toBeLessThan(HOUSING_BONUS['housing-lodz']);
+    expect(HOUSING_BONUS['housing-lodz']).toBeLessThan(HOUSING_BONUS['housing-krakow']);
+    expect(HOUSING_BONUS['housing-krakow']).toBeLessThan(HOUSING_BONUS['housing-warszawa']);
+    const { call } = await login();
+    const r = await call('GET', '/api/house');
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ home: 'housing-opole', bonus: HOUSING_BONUS['housing-opole'], goalDone: false, claimed: false, next: { slug: 'housing-lodz', price: HOUSING_PRICES['housing-lodz'], bonus: HOUSING_BONUS['housing-lodz'] } });
+  });
+
+  it('без цели дня бонуса нет; с целью — один раз в день, параллельные запросы не удваивают', async () => {
+    const { call, user } = await login();
+    await setBalance(user.id, 0);
+    expect((await call('POST', '/api/house/bonus')).body.error).toBe('goal_not_done');
+    await doGoal(user.id);
+    expect((await call('GET', '/api/house')).body).toMatchObject({ goalDone: true, claimed: false });
+    const claims = await Promise.all([call('POST', '/api/house/bonus'), call('POST', '/api/house/bonus')]);
+    expect(claims.some((c) => c.status === 200)).toBe(true);
+    expect(await balance(user.id)).toBe(HOUSING_BONUS['housing-opole']);
+    expect(await bonusTx(user.id)).toHaveLength(1);
+    expect((await call('POST', '/api/house/bonus')).body.error).toBe('already_claimed');
+    expect((await call('GET', '/api/house')).body).toMatchObject({ claimed: true });
+  });
+
+  it('купил kawalerkę — бонус больше, цель накопления — mieszkanie', async () => {
+    const { call, user } = await login();
+    const lodz = (await housing(call)).find((r) => r.slug === 'housing-lodz')!;
+    await setBalance(user.id, HOUSING_PRICES['housing-lodz']);
+    expect((await call('POST', '/api/shop/buy', { itemId: lodz.id })).status).toBe(200);
+    await call('POST', '/api/inventory/equip', { itemId: lodz.id, equipped: true });
+    await doGoal(user.id);
+    const st = (await call('GET', '/api/house')).body;
+    expect(st).toMatchObject({ home: 'housing-lodz', bonus: HOUSING_BONUS['housing-lodz'], next: { slug: 'housing-krakow' } });
+    const before = await balance(user.id);
+    const r = await call('POST', '/api/house/bonus');
+    expect(r.body.granted).toBe(HOUSING_BONUS['housing-lodz']);
+    expect(await balance(user.id)).toBe(before + HOUSING_BONUS['housing-lodz']);
+  });
+});
+

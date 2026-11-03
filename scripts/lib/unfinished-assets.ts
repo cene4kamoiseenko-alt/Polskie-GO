@@ -10,7 +10,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { CITY_ART } from '../../packages/shared/src/cityArt';
-import { MISSION_BACKGROUND_BRIEF, MISSION_SCENE_ART, SCENE_ART } from '../../packages/shared/src/sceneArt';
+import { MISSION_BACKGROUND_BRIEF, MISSION_SCENE_ART } from '../../packages/shared/src/sceneArt';
+import { SCENE_ART_FULL as SCENE_ART } from '../../packages/shared/src/sceneArtNotes';
 import { missingForMilestone } from '../../packages/shared/src/look/validate';
 import { CITIES } from '../../apps/server/src/content/cities';
 import { MISSIONS, MISSIONS_SOON } from '../../apps/server/src/content/missions';

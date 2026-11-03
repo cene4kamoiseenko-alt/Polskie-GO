@@ -7,11 +7,11 @@
  *    с обложками, остальные закрыты («Не хватает N»), нет горизонтальной прокрутки; 320 / 390 / 430.
  * 2. Игрок с деньгами: «Купить» открывает подтверждение с ценой и остатком, «Отмена» ничего не меняет, подтверждение списывает ровно цену и переселяет Бобра
  *    (фон меняется, карточка «Выбрано»), после перезагрузки выбор сохраняется; вернуться в бесплатную комнату и обратно можно без повторной покупки.
- * 3. Вещи из магазина (мебель, сувениры) показываются полосой под комнатой, а не стикерами поверх фона; пустой список — подсказка.
- * 5. Интерьер прямо в домике: мебель и декор с ценами, «Купить» → подтверждение → вещь в комнате (полоса «В комнате»), «Убрать» и «Поставить» без повторной покупки,
- *    без денег — «Не хватает N», сувениры — условие награды вместо цены; кнопка «Обустроить» ведёт к разделу, а не в магазин.
- * 4. Сцены (читает / спит / работает / чай): у Ополя три (сцены «работает» нет), у остальных четыре; нажатие меняет картинку, выбор переживает перезагрузку
- *    и переносится в другую квартиру (если там есть такая сцена; иначе — сцена по времени суток); все 15 картинок открываются.
+ * 3. Домашний бонус (2026-11-03): без цели дня — «Бобек ждёт урок», полоска XP и «К уроку»; цель выполнена — сцена «чай», «Забрать +5» → +5 Złotki ровно один раз,
+ *    затем «Бонус получен»; у каждой квартиры подпись «+N в день за цель».
+ * 4. Сцены (читает / спит / работает / чай): у Ополя три (сцены «работает» нет), у остальных четыре; нажатие меняет картинку; все 15 картинок открываются.
+ * 5. Главная: карточка домика — фото квартиры, статус дня, значок бонуса, когда его можно забрать, прогресс накопления на следующую квартиру; нажатие ведёт в домик.
+ * Интерьера в домике больше нет (владелец 2026-11-03).
  */
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -32,7 +32,8 @@ const check = (ok: unknown, what: string) => {
 async function main() {
   const { chromium } = require('playwright') as typeof import('playwright');
   const { db } = await import(root + '/apps/server/src/db/index.ts');
-  const { cosmeticItems, gameWallets, userInventory } = await import(root + '/apps/server/src/db/schema.ts');
+  const { cosmeticItems, dailyActivity, gameWallets, userInventory, userSettings } = await import(root + '/apps/server/src/db/schema.ts');
+  const { dayKey } = await import(root + '/packages/shared/src/index.ts');
   const { eq, inArray } = await import('drizzle-orm');
   const stand = await startStand({ ui: 'dev' });
   mkdirSync(OUT, { recursive: true });
@@ -40,11 +41,17 @@ async function main() {
   const pageErrors: string[] = [];
   let devUser = 997600;
 
-  async function userPage(size: [number, number], opts: { balance?: number; things?: boolean } = {}) {
+  async function userPage(size: [number, number], opts: { balance?: number; things?: boolean; goalDone?: boolean } = {}) {
     const u = await stand.login();
     await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
     await u.call('PATCH', '/api/me/settings', { theme: 'dark', reducedMotion: false });
     if (opts.balance !== undefined) await db.update(gameWallets).set({ balance: opts.balance }).where(eq(gameWallets.userId, u.user.id));
+    if (opts.goalDone) {
+      // Цель дня выполнена: 50 XP за сегодня (цель 10 минут), день — по часовому поясу игрока, как на сервере.
+      const tz = (await db.select().from(userSettings).where(eq(userSettings.userId, u.user.id)))[0]?.timezone ?? 'Europe/Warsaw';
+      const day = dayKey(new Date(), tz);
+      await db.insert(dailyActivity).values({ userId: u.user.id, day, xp: 50 }).onConflictDoUpdate({ target: [dailyActivity.userId, dailyActivity.day], set: { xp: 50 } });
+    }
     if (opts.things) {
       const rows = await db.select({ id: cosmeticItems.id }).from(cosmeticItems).where(inArray(cosmeticItems.slug, ['bed-cozy', 'desk', 'plant', 'souvenir-syrenka']));
       for (const r of rows) await db.insert(userInventory).values({ userId: u.user.id, itemId: r.id, equipped: true, source: 'qa' }).onConflictDoNothing();
@@ -85,8 +92,10 @@ async function main() {
       check(Math.abs(bg.w - room.w) < 9 && Math.abs(bg.h - room.h) < 9 && Math.abs(room.w / room.h - 1.5) < 0.06, `${tag}: фон закрывает кадр 3 : 2 (${Math.round(room.w)}×${Math.round(room.h)})`);
       check((await u.page.locator('[data-house-bobek]').count()) === 0, `${tag}: поверх картинки Бобёр не рисуется (он уже в кадре)`);
       const hr = new Date().getHours();
+      // Цель дня не выполнена: ночью спит, днём ждёт урок (в Ополе сцены «работает» нет — читает).
       const want = hr >= 22 || hr < 6 ? 'sleep' : 'read';
-      check((await u.page.locator('[data-house-room]').getAttribute('data-house-scene')) === want, `${tag}: сцена по времени суток — ${want}`);
+      check((await u.page.locator('[data-house-room]').getAttribute('data-house-scene')) === want, `${tag}: сцена дня — ${want}`);
+      check((await u.page.locator('[data-house-interior], [data-house-things]').count()) === 0, `${tag}: интерьера больше нет`);
       await u.page.locator('[data-housing]').last().scrollIntoViewIfNeeded();
       await u.page.waitForTimeout(700);
       const thumbs = await u.page.locator('[data-housing] img[loading="lazy"]').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).naturalWidth > 0));
@@ -97,8 +106,11 @@ async function main() {
       check(/Не хватает\s+2\s?500/.test(need.replace(/ /g, ' ')), `${tag}: у закрытой квартиры видно, чего не хватает (${need.replace(/\s+/g, ' ').slice(0, 60)})`);
       const free = await u.page.locator('[data-housing="housing-opole"]').innerText();
       check(/Бесплатно/.test(free) && /Выбрано/.test(free), `${tag}: у бесплатной комнаты «Бесплатно» и «Выбрано»`);
-      const note = await u.page.locator('[data-house-things]').innerText();
-      check(/Покупай мебель/.test(note), `${tag}: пустая полоса вещей — подсказка (${note.replace(/\s+/g, ' ').slice(0, 50)})`);
+      const bonus = u.page.locator('[data-house-bonus]');
+      await bonus.waitFor({ timeout: 10_000 });
+      check((await bonus.getAttribute('data-house-bonus')) === 'locked' && /Домашний бонус: \+5/.test(await bonus.innerText()) && (await bonus.getByRole('button', { name: 'К уроку' }).count()) === 1, `${tag}: бонус закрыт до цели дня, есть «К уроку»`);
+      const perDay = await u.page.locator('[data-housing-bonus]').allInnerTexts();
+      check(perDay.length === 4 && /\+5/.test(perDay[0]) && /\+40/.test(perDay[3]), `${tag}: у квартир подпись бонуса (${perDay.join(' | ')})`);
       check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
       await u.page.screenshot({ path: `${OUT}/house-${w}.png`, fullPage: true });
       await u.context.close();
@@ -147,14 +159,24 @@ async function main() {
       await u.context.close();
     }
 
-    // ── 3. Вещи полосой, не стикерами ──
+    // ── 3. Домашний бонус ──
     {
-      const u = await userPage([390, 844], { things: true });
-      const tiles = await u.page.locator('[data-house-things] .card').count();
-      check(tiles === 5, `390px: пять вещей (стартовая кровать и четыре добавленные) в полосе под комнатой (${tiles})`);
-      const over = await u.page.locator('[data-house-room] > *:not(img)').count();
-      check(over === 0, '390px: поверх сцены ничего нет — ни Бобра, ни стикеров мебели');
-      await u.page.screenshot({ path: `${OUT}/house-things-390.png`, fullPage: true });
+      const tag = '390px бонус';
+      const u = await userPage([390, 844], { goalDone: true, balance: 0 });
+      const bonus = u.page.locator('[data-house-bonus]');
+      await bonus.waitFor({ timeout: 10_000 });
+      check((await bonus.getAttribute('data-house-bonus')) === 'ready', `${tag}: цель дня выполнена — бонус можно забрать`);
+      const hr = new Date().getHours();
+      const want = hr >= 22 || hr < 6 ? 'sleep' : 'tea';
+      check((await u.page.locator('[data-house-room]').getAttribute('data-house-scene')) === want, `${tag}: сцена дня — ${want} (Бобек отдыхает)`);
+      await u.page.screenshot({ path: `${OUT}/bonus-ready-390.png`, fullPage: true });
+      await u.page.locator('[data-house-claim]').evaluate((b: HTMLButtonElement) => { b.click(); b.click(); });
+      await u.page.waitForFunction(() => document.querySelector('[data-house-bonus]')?.getAttribute('data-house-bonus') === 'claimed', null, { timeout: 15_000 });
+      const wallet = (await db.select().from(gameWallets).where(eq(gameWallets.userId, u.user.id)))[0].balance;
+      check(wallet === 5, `${tag}: двойной тап «Забрать» — ровно +5 (баланс ${wallet})`);
+      check(/получен/.test(await bonus.innerText()), `${tag}: «Бонус за сегодня получен»`);
+      await u.open();
+      check((await u.page.locator('[data-house-bonus]').getAttribute('data-house-bonus')) === 'claimed', `${tag}: после перезагрузки — получен`);
       await u.context.close();
     }
 
@@ -196,66 +218,32 @@ async function main() {
         }
         check(okAll && seen.length === 15, `${tag}: все ${seen.length} сцен открываются, кнопка и кадр соответствуют выбору`);
 
-        // подпись у выбранной кнопки видна на русском; запоминание и перенос в другую квартиру
-        await u.call('POST', '/api/inventory/equip', { itemId: idOf('housing-krakow'), equipped: true });
-        await u.open();
-        await u.page.locator('[data-house-scenes] [data-scene="work"]').click();
-        await waitScene(u.page, 'housing-krakow', 'work');
+        // подпись у выбранной кнопки видна на русском
         check(/Работает/.test(await u.page.locator('[data-house-scenes] [data-scene="work"]').innerText()), `${tag}: подпись «${LABEL.work}» видна`);
-        await u.open();
-        check((await sceneOf(u.page)) === 'work', `${tag}: после перезагрузки сцена та же`);
-        await u.page.locator('[data-housing="housing-lodz"]').getByRole('button', { name: 'Выбрать' }).click();
-        await u.page.waitForFunction(() => document.querySelector('[data-house-room]')?.getAttribute('data-house-room') === 'housing-lodz', null, { timeout: 15_000 });
-        await waitScene(u.page, 'housing-lodz', 'work');
-        check((await imgSrc(u.page)).includes('housing-lodz-work'), `${tag}: выбор «работает» перешёл в другую квартиру`);
-        // в Ополе «работает» нет — берётся сцена по времени суток, кнопки «работает» тоже нет
-        await u.page.locator('[data-housing="housing-opole"]').getByRole('button', { name: 'Выбрать' }).click();
-        await u.page.waitForFunction(() => document.querySelector('[data-house-room]')?.getAttribute('data-house-room') === 'housing-opole', null, { timeout: 15_000 });
-        const hr = new Date().getHours();
-        const fallback = hr >= 22 || hr < 6 ? 'sleep' : 'read';
-        await waitScene(u.page, 'housing-opole', fallback);
-        check((await sceneOf(u.page)) === fallback && (await u.page.locator('[data-house-scenes] [data-scene="work"]').count()) === 0, `${tag}: в Ополе без сцены «работает» показана «${fallback}»`);
         await u.context.close();
       }
     }
 
-    // ── 5. Интерьер в домике ──
+    // ── 5. Карточка домика на главной ──
     for (const [w, h] of SIZES) {
-      const tag = `${w}px интерьер`;
-      const u = await userPage([w, h], { balance: 150 });
-      await u.page.getByRole('button', { name: 'Обустроить' }).click();
-      await u.page.waitForTimeout(900);
-      const top = await u.page.locator('[data-house-interior]').evaluate((e) => e.getBoundingClientRect().top);
-      check(top >= -2 && top < h * 0.5 && u.page.url().includes('/house'), `${tag}: «Обустроить» прокручивает к интерьеру на том же экране (${Math.round(top)} px)`);
-      const states = await u.page.locator('[data-interior]').evaluateAll((els) => Object.fromEntries(els.map((e) => [e.getAttribute('data-interior'), e.getAttribute('data-state')])));
-      check(states['bed-basic'] === 'placed' && states['desk'] === 'buyable' && states['sofa'] === 'buyable' && states['bed-cozy'] === 'buyable', `${tag}: стартовая кровать в комнате, стол и диван можно купить (${states['bed-basic']}, ${states['desk']}, ${states['sofa']})`);
-      check(['souvenir-syrenka', 'souvenir-dragon', 'souvenir-krasnal'].every((k) => states[k] === 'reward'), `${tag}: сувениры — награды (условие вместо цены)`);
-      const rewardText = await u.page.locator('[data-interior="souvenir-syrenka"]').innerText();
-      check(/экзамен/i.test(rewardText), `${tag}: у сувенира условие «Сдай экзамен города…» (${rewardText.replace(/\s+/g, ' ').slice(0, 50)})`);
-      const desk = u.page.locator('[data-interior="desk"]');
-      await desk.scrollIntoViewIfNeeded();
-      await desk.getByRole('button').click();
-      const sheet = u.page.locator('[data-sheet]');
-      await sheet.waitFor({ timeout: 10_000 });
-      check(/Купить в домик/.test(await sheet.innerText()), `${tag}: подтверждение покупки для домика`);
-      await u.page.locator('[data-housing-confirm]').click();
-      await u.page.waitForFunction(() => document.querySelector('[data-interior="desk"]')?.getAttribute('data-state') === 'placed', null, { timeout: 15_000 });
-      const left = (await db.select().from(gameWallets).where(eq(gameWallets.userId, u.user.id)))[0].balance;
-      check(left >= 50 && left <= 110, `${tag}: стол куплен за 100 и сразу в комнате (осталось ${left}; до +50 за достижение)`);
-      check((await u.page.locator('[data-house-things] .card').count()) === 2, `${tag}: в полосе «В комнате» кровать и стол`);
-      // без денег теперь диван (150) — «Не хватает»
-      const sofaState = await u.page.locator('[data-interior="sofa"]').getAttribute('data-state');
-      check(sofaState === 'locked' && /Не хватает/.test(await u.page.locator('[data-interior="sofa"]').innerText()), `${tag}: на диван не хватает — подпись «Не хватает» (${sofaState})`);
-      // убрать и поставить — без повторной покупки
-      await desk.getByRole('button', { name: 'Убрать' }).click();
-      await u.page.waitForFunction(() => document.querySelector('[data-interior="desk"]')?.getAttribute('data-state') === 'owned', null, { timeout: 15_000 });
-      check((await u.page.locator('[data-house-things] .card').count()) === 1, `${tag}: «Убрать» — стол ушёл из комнаты, покупка осталась`);
-      await desk.getByRole('button', { name: 'Поставить' }).click();
-      await u.page.waitForFunction(() => document.querySelector('[data-interior="desk"]')?.getAttribute('data-state') === 'placed', null, { timeout: 15_000 });
-      const left2 = (await db.select().from(gameWallets).where(eq(gameWallets.userId, u.user.id)))[0].balance;
-      check(left2 === left, `${tag}: «Поставить» денег не тратит (${left} → ${left2})`);
-      check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
-      if (w === 390) await u.page.screenshot({ path: `${OUT}/interior-${w}.png`, fullPage: true });
+      const tag = `${w}px главная`;
+      const u = await userPage([w, h], { goalDone: true, balance: 1200 });
+      await u.page.goto(`${stand.base}/?devUser=${u.id}`);
+      const card = u.page.locator('[data-home-house]');
+      await card.waitFor({ timeout: 30_000 });
+      await card.scrollIntoViewIfNeeded();
+      await u.page.waitForTimeout(1200);
+      const im = await card.locator('img').first().evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, src: el.currentSrc.split('/').pop() || '' }));
+      check(im.ok && /housing-opole-/.test(im.src), `${tag}: в карточке фото квартиры (${im.src})`);
+      check((await card.locator('[data-home-house-bonus]').count()) === 1 && /\+5/.test(await card.locator('[data-home-house-bonus]').innerText()), `${tag}: значок «+5» — бонус можно забрать`);
+      const txt = (await card.innerText()).replace(/\s+/g, ' ');
+      check(/Pokój w Opolu/.test(txt) && /Копим на Kawalerka w Łodzi: 1 200 \/ 2 500/.test(txt.replace(/ /g, ' ')), `${tag}: название квартиры и накопление (${txt.slice(0, 110)})`);
+      const b = await card.evaluate((e) => { const r = e.getBoundingClientRect(); return { x: r.x, r: r.right }; });
+      check(b.x >= 0 && b.r <= w + 1 && (await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)), `${tag}: карточка в кадре, нет горизонтальной прокрутки`);
+      if (w === 390) await card.screenshot({ path: `${OUT}/home-card-${w}.png` });
+      await card.click();
+      await u.page.waitForURL(/\/house/, { timeout: 10_000 });
+      check(/\/house/.test(u.page.url()), `${tag}: нажатие ведёт в домик`);
       await u.context.close();
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);

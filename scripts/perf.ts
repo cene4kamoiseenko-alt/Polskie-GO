@@ -51,7 +51,9 @@ const FRAMES = `(ms) => new Promise((res) => { const ts = []; const t0 = perform
 // coldJsKb 770 → 774 (2026-11-02, ночь): 771 КБ после домика (сцены, интерьер), гардероба образов и баннеров Premium — их строки интерфейса живут в базовом
 // словаре uk.ts, который грузится со стартом (≈ 30 ключей). Экраны сами ленивые. Запас 3 КБ; следующий шаг — тот же вынос метаданных SCENE_ART (≈ 2 КБ по сети),
 // он записан в долг в docs/CLAUDE_HANDOFF.md и делается до новых крупных экранов.
-const BUDGET = { coldReadyMs: 3300, coldLcpMs: 3000, coldJsKb: 774, coldImagesKb: 800, warmReadyMs: 3000 };
+// coldJsKb 774 → 770 (2026-11-03): долг закрыт — справка к сценам (SCENE_ART: оригиналы, описания, дефекты) вынесена в packages/shared/src/sceneArtNotes.ts
+// и не входит в «бочку» пакета, клиент её не грузит: 775 → 768 КБ при карточке домика на главной. Картинки: фото карточки домика — @640 и только когда она на экране.
+const BUDGET = { coldReadyMs: 3300, coldLcpMs: 3000, coldJsKb: 770, coldImagesKb: 800, warmReadyMs: 3000 };
 
 async function main() {
   if (!process.argv.includes('--no-build') && !process.env.PERF_DIST) {

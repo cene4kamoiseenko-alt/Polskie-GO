@@ -15,6 +15,10 @@
  */
 export type SceneArtStatus = 'interim' | 'final';
 
+/**
+ * Що потрібно застосунку, щоб показати кадр. Довідкові поля (оригінал і вирізка, рідний розмір, що зображено, вади, кадр для бота) —
+ * у `sceneArtNotes.ts` (SCENE_ART_NOTES / SCENE_ART_FULL): клієнтові вони не потрібні й не потрапляють у стартову загрузку (бюджет JS, scripts/perf.ts).
+ */
 export interface SceneArt {
   /** Стабільний scene_id. Не перейменовується: на нього посилаються тести, документ і майбутні фінальні майстри. */
   id: string;
@@ -25,13 +29,6 @@ export interface SceneArt {
   /** Розмір основного файлу. */
   width: number;
   height: number;
-  /** Рідний розмір вирізки 2:1 (все понад це — збільшення). */
-  native: [number, number];
-  /**
-   * Оригінал кадру (шлях від кореня репозиторію) і зсув вирізки 2:1 від верхнього краю оригіналу, px.
-   * Немає — вирізка з колажу: docs/design/a11/stores/native/<file>_source_native_2x1.png.
-   */
-  source?: { file: string; top: number };
   /** Бобек намальований у самому кадрі: поверх нього другого Бобека не показуємо. */
   bakedBobek: boolean;
   /** SVG-сцена місії, яку ця картинка замінює (місія з таким `scene` у MISSIONS); без картинки клієнт малює її. */
@@ -40,16 +37,6 @@ export interface SceneArt {
   missions: string[];
   /** object-position для вузьких карток (360–390 px): кадр 2:1 обрізається по висоті, Бобек і вивіска лишаються в кадрі. */
   focus: string;
-  /** Що зображено. */
-  shows: string;
-  /**
-   * Файл кадру для Telegram (apps/web/public/bot, 1280×720) і питання, де він доречний; null — кадру в боті немає.
-   * Тимчасові вирізки сюди не потрапляють: у 1280×720 вони збільшені в 2–2,5 раза, і scripts/validate-assets.mjs
-   * відхиляє такий файл (детали < 0,44). Biedronka була підключена до питання shop-loyalty і знята 2026-10-27 (Opus).
-   */
-  telegram: { file: string; questionIds: string[] } | null;
-  /** Відомі вади кадру, які виправить майстер-файл. */
-  defects: string[];
 }
 
 /** Ширина зменшеного варіанта `<file>@640.webp` для карток і вузьких екранів. */
@@ -59,135 +46,93 @@ const common = { status: 'interim', width: 1440, height: 720, bakedBobek: true }
 
 export const SCENE_ART: Record<string, SceneArt> = {
   'store-zabka': {
-    ...common, id: 'store-zabka', file: 'zabka', brand: 'Żabka', native: [632, 316], fallbackScene: 'shop-corner',
-    missions: ['zabka-first-order'], focus: '55% 12%', shows: 'Фасад Żabka, Бобек із кавою, касир за прилавком',
-    telegram: null, defects: ['у лапі кава й табличка «Gorąca kawa», а в місії Бобек замовляє хот-дог і воду'],
+    ...common, id: 'store-zabka', file: 'zabka', brand: 'Żabka', fallbackScene: 'shop-corner',
+    missions: ['zabka-first-order'], focus: '55% 12%',
   },
   'store-biedronka': {
-    ...common, id: 'store-biedronka', file: 'biedronka', brand: 'Biedronka', native: [632, 316], fallbackScene: 'supermarket',
-    missions: ['biedronka-breakfast'], focus: '15% 10%', shows: 'Фасад Biedronka, Бобек із візком продуктів',
-    telegram: null, defects: [],
+    ...common, id: 'store-biedronka', file: 'biedronka', brand: 'Biedronka', fallbackScene: 'supermarket',
+    missions: ['biedronka-breakfast'], focus: '15% 10%',
   },
   'store-rossmann': {
-    ...common, id: 'store-rossmann', file: 'rossmann', brand: 'Rossmann', native: [550, 275], fallbackScene: 'drugstore',
-    missions: ['rossmann-basics'], focus: '30% 10%', shows: 'Фасад Rossmann, Бобек із кошиком і флаконом',
-    telegram: null,
-    defects: ['написи «KOSMETYKI» і «HIGIENA» над стелажами перекручені (читаються як «HIGIEŃYIE»), червона табличка за ними нечитабельна'],
+    ...common, id: 'store-rossmann', file: 'rossmann', brand: 'Rossmann', fallbackScene: 'drugstore',
+    missions: ['rossmann-basics'], focus: '30% 10%',
   },
   'parcel-inpost': {
-    ...common, id: 'parcel-inpost', file: 'inpost', brand: 'InPost', native: [550, 275], fallbackScene: 'parcel-locker',
-    missions: ['paczkomat'], focus: '20% 20%', shows: 'Поштомат InPost (paczkomat), Бобек з коробкою',
-    telegram: null, defects: ['панель справа обрізана: слова «Szybko», «Wygodnie» не вміщаються в кадр'],
+    ...common, id: 'parcel-inpost', file: 'inpost', brand: 'InPost', fallbackScene: 'parcel-locker',
+    missions: ['paczkomat'], focus: '20% 20%',
   },
   'fuel-orlen': {
-    ...common, id: 'fuel-orlen', file: 'orlen', brand: 'ORLEN', native: [644, 322], fallbackScene: 'petrol-station',
+    ...common, id: 'fuel-orlen', file: 'orlen', brand: 'ORLEN', fallbackScene: 'petrol-station',
     // orlen-coffee (кава в Stop Cafe) знято 2026-10-27: на кадрі Бобек із пістолетом біля колонки — інша дія; місія показує SVG-сцену.
-    missions: ['orlen-pump'], focus: '35% 10%', shows: 'Заправка ORLEN, Бобек біля колонки, Stop Cafe',
-    telegram: null, defects: ['для місії orlen-coffee не підходить: Бобек заправляє авто, а не купує каву'],
+    missions: ['orlen-pump'], focus: '35% 10%',
   },
 
   // ── Пакет власника 2026-10-28: окремі кадри місій (1536×768 і більше), у застосунку лише зменшені. ──
   'clinic-registration': {
-    ...common, id: 'clinic-registration', file: 'przychodnia', brand: 'Przychodnia', native: [1536, 768], fallbackScene: 'clinic',
-    source: { file: 'docs/design/a12/missions/przychodnia_original.webp', top: 40 },
-    missions: ['doctor-appointment'], focus: '50% 30%', shows: 'Реєстратура поліклініки (REJESTRACJA), Бобек подає картку реєстраторці',
-    telegram: null, defects: [],
+    ...common, id: 'clinic-registration', file: 'przychodnia', brand: 'Przychodnia', fallbackScene: 'clinic',
+    missions: ['doctor-appointment'], focus: '50% 30%',
   },
   'office-first-day': {
-    ...common, id: 'office-first-day', file: 'biuro', brand: 'Biuro', native: [1536, 768], fallbackScene: 'work',
-    source: { file: 'docs/design/a12/missions/biuro_original.webp', top: 110 },
-    missions: ['first-workday'], focus: '45% 30%', shows: 'Офіс, колега з бейджем тисне Бобекові руку, колежанка махає з-за столу',
-    telegram: null,
-    defects: [
-      'за вікном Варшава (Палац культури, колона Сигізмунда), а місія — у Вроцлаві',
-      'руку Бобекові тисне колега-чоловік, а зустрічає його в місії керівниця Pani Agnieszka',
-    ],
+    ...common, id: 'office-first-day', file: 'biuro', brand: 'Biuro', fallbackScene: 'work',
+    missions: ['first-workday'], focus: '45% 30%',
   },
   'street-zapiekanki': {
-    ...common, id: 'street-zapiekanki', file: 'zapiekanki', brand: 'Zapiekanki', native: [1536, 768], fallbackScene: 'street-food',
-    source: { file: 'docs/design/a12/missions/zapiekanki_original.webp', top: 50 },
-    missions: ['kazimierz-zapiekanka'], focus: '45% 40%', shows: 'Віконце ZAPIEKANKI ввечері, продавець за прилавком, Бобек із запіканкою',
-    telegram: null, defects: ['на тлі Ринок і Маріацький костел, а місія — на Plac Nowy (Казімєж)'],
+    ...common, id: 'street-zapiekanki', file: 'zapiekanki', brand: 'Zapiekanki', fallbackScene: 'street-food',
+    missions: ['kazimierz-zapiekanka'], focus: '45% 40%',
   },
   'flat-keys': {
-    ...common, id: 'flat-keys', file: 'mieszkanie', brand: 'Mieszkanie', native: [1536, 768], fallbackScene: 'flat',
-    source: { file: 'docs/design/a12/missions/mieszkanie_original.webp', top: 60 },
-    missions: ['landlord'], focus: '45% 30%', shows: 'Світла вітальня, власниця квартири передає Бобекові ключі, тека з договором на столі',
-    telegram: null, defects: [],
+    ...common, id: 'flat-keys', file: 'mieszkanie', brand: 'Mieszkanie', fallbackScene: 'flat',
+    missions: ['landlord'], focus: '45% 30%',
   },
   'bakery-pierniki': {
-    ...common, id: 'bakery-pierniki', file: 'pierniki', brand: 'Pierniki', native: [1536, 768], fallbackScene: 'bakery',
-    source: { file: 'docs/design/a12/missions/pierniki_original.webp', top: 60 },
-    missions: ['torun-bakery'], focus: '50% 35%', shows: 'Пряникова крамниця в Торуні (PIERNIKI), продавчиня подає пакет пряників, за вікном цегляна готика',
-    telegram: null, defects: [],
+    ...common, id: 'bakery-pierniki', file: 'pierniki', brand: 'Pierniki', fallbackScene: 'bakery',
+    missions: ['torun-bakery'], focus: '50% 35%',
   },
   'milk-bar': {
-    ...common, id: 'milk-bar', file: 'bar-mleczny', brand: 'Bar mleczny', native: [1672, 836], fallbackScene: 'milk-bar',
-    source: { file: 'docs/design/a12/missions/bar-mleczny_original.webp', top: 10 },
-    missions: ['bar-mleczny'], focus: '50% 35%', shows: 'BAR MLECZNY: роздача, кухарка з черпаком, Бобек із тацею (суп, котлета, картопля)',
-    telegram: null, defects: [],
+    ...common, id: 'milk-bar', file: 'bar-mleczny', brand: 'Bar mleczny', fallbackScene: 'milk-bar',
+    missions: ['bar-mleczny'], focus: '50% 35%',
   },
   'station-pkp': {
-    ...common, id: 'station-pkp', file: 'pkp', brand: 'PKP', native: [1536, 768], fallbackScene: 'train-station',
-    source: { file: 'docs/design/a12/missions/pkp_original.webp', top: 10 },
-    missions: ['train-wroclaw'], focus: '50% 30%', shows: 'Каса вокзалу (BILETY, PKP), касирка подає квиток, за склом перон і потяг',
-    telegram: null, defects: ['над перонами табличка WROCŁAW і вроцлавська готика, а Бобек у місії купує квиток на Warszawa Centralna'],
+    ...common, id: 'station-pkp', file: 'pkp', brand: 'PKP', fallbackScene: 'train-station',
+    missions: ['train-wroclaw'], focus: '50% 30%',
   },
   'store-lidl': {
-    ...common, id: 'store-lidl', file: 'lidl', brand: 'Lidl', native: [1536, 768], fallbackScene: 'supermarket',
-    source: { file: 'docs/design/a12/missions/lidl_original.webp', top: 150 },
-    missions: ['lidl-list'], focus: '30% 40%', shows: 'Вхід у Lidl, Бобек зі списком покупок і повним візком (овочі, хліб, молоко)',
-    telegram: null, defects: ['Бобек біля входу, а в місії він платить на касі самообслуговування'],
+    ...common, id: 'store-lidl', file: 'lidl', brand: 'Lidl', fallbackScene: 'supermarket',
+    missions: ['lidl-list'], focus: '30% 40%',
   },
   'tram-stop': {
-    ...common, id: 'tram-stop', file: 'tramwaj', brand: 'Tramwaj', native: [1536, 768], fallbackScene: 'tram-stop',
-    source: { file: 'docs/design/a12/missions/tramwaj_original.webp', top: 80 },
-    missions: ['first-tram'], focus: '50% 30%', shows: 'Зупинка у Вроцлаві, Бобек із квитком, під’їжджає трамвай',
-    telegram: null, defects: [],
+    ...common, id: 'tram-stop', file: 'tramwaj', brand: 'Tramwaj', fallbackScene: 'tram-stop',
+    missions: ['first-tram'], focus: '50% 30%',
   },
   // ── Пакет власника 2026-10-31: чотири кадри 1536×1024 для місій, які досі мали SVG-сцену. ──
   'stop-cafe': {
-    ...common, id: 'stop-cafe', file: 'stop-cafe', brand: 'ORLEN Stop Cafe', native: [1536, 768], fallbackScene: 'petrol-station',
-    source: { file: 'docs/design/a16/missions/stop-cafe_original.webp', top: 80 },
-    missions: ['orlen-coffee'], focus: '45% 35%', shows: 'Stop Cafe на станції ORLEN: бариста подає каву, Бобек зі стаканчиком, за вікном колонки під навісом',
-    telegram: null, defects: [],
+    ...common, id: 'stop-cafe', file: 'stop-cafe', brand: 'ORLEN Stop Cafe', fallbackScene: 'petrol-station',
+    missions: ['orlen-coffee'], focus: '45% 35%',
   },
   'urzad-okienko': {
-    ...common, id: 'urzad-okienko', file: 'urzad', brand: 'Urząd', native: [1536, 768], fallbackScene: 'office',
-    source: { file: 'docs/design/a16/missions/urzad_original.webp', top: 100 },
-    missions: ['urzad-pesel'], focus: '45% 35%', shows: 'Зала обслуговування Urząd Miasta: віконця 1–3, співробітниця за склом, автомат талонів, Бобек із документами',
-    telegram: null, defects: [],
+    ...common, id: 'urzad-okienko', file: 'urzad', brand: 'Urząd', fallbackScene: 'office',
+    missions: ['urzad-pesel'], focus: '45% 35%',
   },
   'cukiernia-rogale': {
-    ...common, id: 'cukiernia-rogale', file: 'cukiernia', brand: 'Cukiernia', native: [1536, 768], fallbackScene: 'pastry-shop',
-    source: { file: 'docs/design/a16/missions/cukiernia_original.webp', top: 80 },
-    missions: ['marcin-rogal'], focus: '45% 35%', shows: 'Cukiernia в Познані: вітрина з rogalami świętomarcińskimi, продавчиня, прапорці, за вікном Старий Ринок; Бобек із рогалем',
-    telegram: null, defects: ['Бобек у фартуху й ковпаку кондитера, а в місії він купує rogale на виніс'],
+    ...common, id: 'cukiernia-rogale', file: 'cukiernia', brand: 'Cukiernia', fallbackScene: 'pastry-shop',
+    missions: ['marcin-rogal'], focus: '45% 35%',
   },
   pierogarnia: {
-    ...common, id: 'pierogarnia', file: 'pierogarnia', brand: 'Pierogarnia', native: [1536, 768], fallbackScene: 'cafe-pierogi',
-    source: { file: 'docs/design/a16/missions/pierogarnia_original.webp', top: 180 },
-    missions: ['krakow-pierogi'], focus: '50% 35%', shows: 'Затишна pierogarnia з народним декором: żurek на столі, Бобек несе тарілку pierogów, за вікном Краків',
-    telegram: null, defects: ['Бобек несе тарілку у фартуху, як офіціант, а в місії він замовляє pierogi й żurek'],
+    ...common, id: 'pierogarnia', file: 'pierogarnia', brand: 'Pierogarnia', fallbackScene: 'cafe-pierogi',
+    missions: ['krakow-pierogi'], focus: '50% 35%',
   },
   // ── Premium-подорожі (content/missions-premium.ts), кадри власника 2026-10-31. ──
   'lotnisko-lot': {
-    ...common, id: 'lotnisko-lot', file: 'lotnisko-lot', brand: 'LOT', native: [1536, 768], fallbackScene: 'train-station',
-    source: { file: 'docs/design/a16/missions/lotnisko-lot_original.webp', top: 150 },
-    missions: ['lotnisko-lot'], focus: '40% 35%', shows: 'Стійка реєстрації LOT в аеропорту Кракова: працівниця, табло вильотів, літак за склом, Вавель на тлі; Бобек із валізою й посадковим',
-    telegram: null, defects: [],
+    ...common, id: 'lotnisko-lot', file: 'lotnisko-lot', brand: 'LOT', fallbackScene: 'train-station',
+    missions: ['lotnisko-lot'], focus: '40% 35%',
   },
   'recepcja-narty': {
-    ...common, id: 'recepcja-narty', file: 'recepcja-narty', brand: 'Zakopane', native: [1536, 768], fallbackScene: 'hotel',
-    source: { file: 'docs/design/a16/missions/recepcja-narty_original.webp', top: 90 },
-    missions: ['zakopane-ferie'], focus: '45% 35%', shows: 'Рецепція гірського готелю: адміністраторка подає картку, лижі на стійці, за вікном засніжені Татри; Бобек у зимовій куртці',
-    telegram: null, defects: [],
+    ...common, id: 'recepcja-narty', file: 'recepcja-narty', brand: 'Zakopane', fallbackScene: 'hotel',
+    missions: ['zakopane-ferie'], focus: '45% 35%',
   },
   'warszawa-starowka': {
-    ...common, id: 'warszawa-starowka', file: 'warszawa-starowka', brand: 'Warszawa', native: [1536, 768], fallbackScene: 'castle',
-    source: { file: 'docs/design/a16/missions/warszawa-starowka_original.webp', top: 160 },
-    missions: ['warszawa-dzien'], focus: '45% 35%', shows: 'Замкова площа у Варшаві: колона Сигізмунда, Королівський замок, кіоск із листівками; Бобек із картою й фотоапаратом',
-    telegram: null, defects: [],
+    ...common, id: 'warszawa-starowka', file: 'warszawa-starowka', brand: 'Warszawa', fallbackScene: 'castle',
+    missions: ['warszawa-dzien'], focus: '45% 35%',
   },
 };
 
@@ -196,10 +141,6 @@ export const MISSION_SCENE_ART: Record<string, string> = Object.fromEntries(
   Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [m, a.id] as const)),
 );
 
-/** Кадр Telegram для питання вікторини (question id → файл відносно /bot/); немає запису — картинки до питання немає. */
-export const QUESTION_SCENE_IMAGES: Record<string, string> = Object.fromEntries(
-  Object.values(SCENE_ART).flatMap((a) => (a.telegram ? a.telegram.questionIds.map((q) => [q, a.telegram!.file] as const) : [])),
-);
 
 /**
  * Що має показувати фон кожної місії (14 активних, 3 сцени Premium, 9 місій пропуску місяця): дія гравця і фон БЕЗ Бобека.
