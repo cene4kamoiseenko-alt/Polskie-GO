@@ -88,3 +88,11 @@ export const OUTFIT_BY_SLUG: ReadonlyMap<string, Outfit> = new Map(OUTFITS.map((
 
 /** Вещи, которые есть только в составе образов: отдельно их не продают (иначе набор собирался бы дешевле образа). */
 export const OUTFIT_COMPONENTS: ReadonlySet<string> = new Set(OUTFITS.flatMap((o) => o.items));
+
+/**
+ * Сняты с продажи (владелец 2026-11-03: «костюмы повторяются в магазине, хотя названия разные»): картинки почти совпадают с парой —
+ * «Красный стритстайл» ≈ «Стритстайл», «Пуховик с красной шапкой» ≈ «Снежный пуховик», «Пальто с мехом» ≈ «Дафлкот».
+ * В магазине их нет; кто уже купил — видит и надевает как раньше. Покупка — 409 `retired`.
+ */
+export const RETIRED_LOOKS: ReadonlySet<string> = new Set(['costume-street-red', 'costume-puffer-stripes', 'costume-sherpa']);
+

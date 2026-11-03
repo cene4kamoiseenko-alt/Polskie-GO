@@ -83,7 +83,8 @@ describe('Каталог магазину: visualStatus', () => {
       .sort();
     expect(sellable).toEqual(
       [
-        'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red', 'costume-winter', 'frame-gold', 'frame-green',
+        // Повторы сняты с продажи (2026-11-03): costume-street-red, costume-puffer-stripes, costume-sherpa — их в каталоге магазина нет.
+        'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-street', 'costume-winter', 'frame-gold', 'frame-green',
         ...OUTFITS.filter((o) => !o.starter).map((o) => o.slug),
       ].sort(),
     );

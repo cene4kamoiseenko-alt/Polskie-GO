@@ -4,7 +4,7 @@ import { LOOK_MANIFEST, canPurchase, equip, findLookItem, type I18n, type LookPu
 import { atomic, db, isUniqueViolation, type Stmt } from '../db';
 import { achievements, cities, cosmeticItems, gameWallets, playerProgress, quests, userInventory } from '../db/schema';
 import { MISSIONS } from '../content/missions';
-import { OUTFIT_BY_SLUG, OUTFIT_COMPONENTS, type Outfit } from '../content/outfits';
+import { OUTFIT_BY_SLUG, OUTFIT_COMPONENTS, RETIRED_LOOKS, type Outfit } from '../content/outfits';
 import { HttpError, badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { isPremium } from './premium';
@@ -131,7 +131,8 @@ export async function listShop(userId: string) {
   return {
     balance: wallet[0]?.balance ?? 0,
     premium,
-    items: items.map(({ item: i, citySlug, cityName }) => ({
+    // Снятые с продажи повторы показываются только тем, у кого они уже есть.
+    items: items.filter(({ item }) => !RETIRED_LOOKS.has(item.slug) || owned.has(item.id)).map(({ item: i, citySlug, cityName }) => ({
       id: i.id,
       slug: i.slug,
       slot: i.slot,
@@ -163,6 +164,7 @@ export async function buyItem(userId: string, itemId: string) {
   if (!item || !item.isActive) throw notFound('item_not_found');
   if (item.rewardOnly) throw badRequest('reward_only', 'Цей предмет можна лише заробити');
   if (have.length) throw badRequest('already_owned');
+  if (RETIRED_LOOKS.has(item.slug)) throw new HttpError(409, 'retired', 'Этот образ снят с продажи. Złotki не списано');
   if (item.slot === OUTFIT_SLOT) return buyOutfit(userId, item, progress[0] ?? null);
   // Речі наборів продаються лише в складі готових образів (2026-11-02): поштучно набір склався б дешевше за образ.
   if (item.slot !== 'COSTUME' && OUTFIT_COMPONENTS.has(item.slug)) throw new HttpError(409, 'outfit_only', 'Ця річ продається лише в готовому образі. Złotki не списано');

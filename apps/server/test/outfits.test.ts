@@ -8,7 +8,7 @@ import { LOOK_VARIANTS } from '@polski-go/shared';
 import { db } from '../src/db';
 import { cosmeticItems, gameWallets, userInventory, walletTransactions } from '../src/db/schema';
 import { COSTUME_PRICES, ITEMS } from '../src/content/gamification';
-import { OUTFITS, STARTER_OUTFIT } from '../src/content/outfits';
+import { OUTFITS, RETIRED_LOOKS, STARTER_OUTFIT } from '../src/content/outfits';
 import { buildSeedSql } from '../src/content/seed';
 import { disposeEnv, login } from './helpers';
 
@@ -155,5 +155,22 @@ describe('Готові образи: гравець', () => {
     expect(r.status).toBe(200);
     expect(r.body.wear).toEqual({ HAT: 'cap-red', GLASSES: 'glasses-round' });
     expect((await call('POST', '/api/shop/buy', { itemId: m.get('outfit-hoodie-cap-glasses')!.id })).body.error).toBe('already_owned');
+  });
+
+  it('повторы костюмов сняты с продажи: в магазине их нет, купить нельзя; у купивших — остаются и надеваются', async () => {
+    const { call, user } = await login();
+    await setBalance(user.id, 5000);
+    const m = await by(call);
+    for (const slug of RETIRED_LOOKS) expect(m.has(slug), slug).toBe(false);
+    for (const slug of ['costume-street', 'costume-puffer', 'costume-duffle']) expect(m.has(slug), slug).toBe(true);
+    const id = (await db.select({ id: cosmeticItems.id }).from(cosmeticItems).where(eq(cosmeticItems.slug, 'costume-sherpa')))[0].id;
+    const r = await call('POST', '/api/shop/buy', { itemId: id });
+    expect([r.status, r.body.error]).toEqual([409, 'retired']);
+    expect(await balance(user.id)).toBe(5000);
+    await grant(user.id, 'costume-sherpa', 'shop');
+    const mine = await by(call);
+    expect(mine.get('costume-sherpa')?.owned).toBe(true);
+    expect((await call('POST', '/api/inventory/equip', { itemId: id, equipped: true })).status).toBe(200);
+    expect((await wearOf(call)).COSTUME).toBe('costume-sherpa');
   });
 });
