@@ -53,7 +53,10 @@ const FRAMES = `(ms) => new Promise((res) => { const ts = []; const t0 = perform
 // он записан в долг в docs/CLAUDE_HANDOFF.md и делается до новых крупных экранов.
 // coldJsKb 774 → 770 (2026-11-03): долг закрыт — справка к сценам (SCENE_ART: оригиналы, описания, дефекты) вынесена в packages/shared/src/sceneArtNotes.ts
 // и не входит в «бочку» пакета, клиент её не грузит: 775 → 768 КБ при карточке домика на главной. Картинки: фото карточки домика — @640 и только когда она на экране.
-const BUDGET = { coldReadyMs: 3300, coldLcpMs: 3000, coldJsKb: 770, coldImagesKb: 800, warmReadyMs: 3000 };
+// coldJsKb 770 → 774 (2026-11-04): 772 КБ после девяти скинов владельца — общая карта картинок (import.meta.glob в lib/assets.ts) получила 28 новых адресов
+// (≈ 2,5 КБ: по 4 размера на скин), плюс описания трёх новых костюмов в uk.ts и заметки манифеста (≈ 1,5 КБ). Вернуть к 770: не отдавать копию @512, которая побайтно
+// равна основному файлу скина (15 скинов × ≈ 85 байт), и вынести заметки манифеста образа из клиента, как справку сцен. Записано в docs/CLAUDE_HANDOFF.md.
+const BUDGET = { coldReadyMs: 3300, coldLcpMs: 3000, coldJsKb: 774, coldImagesKb: 800, warmReadyMs: 3000 };
 
 async function main() {
   if (!process.argv.includes('--no-build') && !process.env.PERF_DIST) {

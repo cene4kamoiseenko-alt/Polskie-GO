@@ -356,7 +356,9 @@ export const ITEMS: ItemSeed[] = [
   it('beanie-blue', 'HAT', t('Синя шапка', 'Синяя шапка', 'Blue beanie'), 60),
   it('beanie-red', 'HAT', t('Червона шапка', 'Красная шапка', 'Red beanie'), 60),
   it('hat-chef', 'HAT', t('Ковпак кухаря', 'Колпак повара', 'Chef hat'), 80, { rarity: 'rare' }),
-  it('hat-krasnal', 'HAT', t('Ковпачок вроцлавського гнома', 'Колпак вроцлавского гнома', 'Wrocław gnome hat'), 0, { rewardOnly: true, rarity: 'epic', city: 'wroclaw' }),
+  // Ковпак гнома, краківська камізелька й обважанек — костюми (2026-11-04): картинки власника показують Бобека лише в них, без худі й рюкзака.
+  // Місце в списку не змінюється (порядок предметів у БД); на проді слот міняє охоронний UPDATE у seed (RESLOTTED_TO_COSTUME).
+  it('hat-krasnal', 'COSTUME', t('Ковпачок вроцлавського гнома', 'Колпак вроцлавского гнома', 'Wrocław gnome hat'), 0, { rewardOnly: true, rarity: 'epic', city: 'wroclaw' }),
   it('crown-gold', 'HAT', t('Золота корона', 'Золотая корона', 'Golden crown'), 150, { premium: true, rarity: 'legendary' }),
   // Окуляри
   it('glasses-round', 'GLASSES', t('Круглі окуляри', 'Круглые очки', 'Round glasses'), 50),
@@ -369,7 +371,7 @@ export const ITEMS: ItemSeed[] = [
   // Куртки
   it('jacket-denim', 'JACKET', t('Джинсова куртка', 'Джинсовая куртка', 'Denim jacket'), 90),
   it('jacket-rain', 'JACKET', t('Жовтий дощовик', 'Жёлтый дождевик', 'Yellow raincoat'), 70),
-  it('vest-krakowiak', 'JACKET', t('Краківська камізелька', 'Краковский жилет', 'Kraków folk vest'), 0, { rewardOnly: true, rarity: 'epic', city: 'krakow' }),
+  it('vest-krakowiak', 'COSTUME', t('Краківська камізелька', 'Краковский жилет', 'Kraków folk vest'), 0, { rewardOnly: true, rarity: 'epic', city: 'krakow' }),
   // Рюкзаки
   it('backpack-map', 'BACKPACK', t('Рюкзак з картою', 'Рюкзак с картой', 'Map backpack'), 80, { rarity: 'rare' }),
   // Взуття
@@ -379,7 +381,7 @@ export const ITEMS: ItemSeed[] = [
   it('flag-pl', 'ACCESSORY', t('Прапорець Польщі', 'Флажок Польши', 'Polish flag'), 30),
   it('camera', 'ACCESSORY', t('Фотоапарат', 'Фотоаппарат', 'Camera'), 70),
   it('map-paper', 'ACCESSORY', t('Паперова карта', 'Бумажная карта', 'Paper map'), 40),
-  it('obwarzanek', 'ACCESSORY', t('Краківський обважанек', 'Краковский обважанек', 'Kraków pretzel'), 0, { rewardOnly: true, city: 'krakow' }),
+  it('obwarzanek', 'COSTUME', t('Краківський обважанек', 'Краковский обважанек', 'Kraków pretzel'), 0, { rewardOnly: true, city: 'krakow' }),
   // Костюми
   costume('costume-dragon', t('Костюм Вавельського дракона', 'Костюм Вавельского дракона', 'Wawel dragon costume'), { premium: true }),
   it('costume-syrenka', 'COSTUME', t('Костюм Варшавської сирени', 'Костюм Варшавской русалки', 'Warsaw mermaid costume'), 0, { rewardOnly: true, rarity: 'epic', city: 'warszawa' }),

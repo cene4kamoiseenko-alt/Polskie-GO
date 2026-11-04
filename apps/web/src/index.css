@@ -1187,6 +1187,11 @@ html.reduced-motion .splash *::after {
   object-fit: cover;
   display: block;
 }
+/* Костюм без сцени картки: цілий Бобек, ноги внизу кадру (картинка квадратна, кадр 4 : 3). */
+.costume-card-art img.costume-card-cutout {
+  object-fit: contain;
+  object-position: 50% 100%;
+}
 /* Картка готового образу (2026-11-02): фон за рівнем — Osiedle спокійний, Starówka яскравіший, Wawel золотий. */
 .look-card-art {
   overflow: hidden;

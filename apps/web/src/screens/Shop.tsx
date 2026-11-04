@@ -266,6 +266,7 @@ export default function ShopScreen() {
   const costumeCard = (i: ShopItem, n: number) => {
     const key = costumeKey(i);
     const art = i.id === TRAVELLER_ID ? travellerScene() : costumeScene(i.assetKey);
+    const cutout = art ? null : costumeAsset(i.assetKey);
     const selected = picked?.id === i.id;
     const soon = isVisualPending(shopVisualStatus(i));
     const status =
@@ -281,8 +282,15 @@ export default function ShopScreen() {
         transition={{ delay: Math.min(n, 6) * 0.04, duration: 0.25 }}
         className={cx('costume-card flex flex-col', selected && 'is-selected', i.equipped && 'is-equipped')}
       >
-        <div className="costume-card-art">
-          {art ? <img src={art} alt="" loading="lazy" decoding="async" draggable={false} /> : <span className="grid h-full place-items-center"><ItemArt item={i} size={110} /></span>}
+        {/* Без сцены картки (скини, оновлені костюми 2026-11-04) — сам Бобек на всю висоту кадру на фоні рідкості, як у картці готового образу. */}
+        <div className={cx('costume-card-art', !art && cutout && `look-card-art is-${i.rarity}`)}>
+          {art ? (
+            <img src={art} alt="" loading="lazy" decoding="async" draggable={false} />
+          ) : cutout ? (
+            <img src={cutout} alt="" loading="lazy" decoding="async" draggable={false} className="costume-card-cutout" />
+          ) : (
+            <span className="grid h-full place-items-center"><ItemArt item={i} size={110} /></span>
+          )}
           {i.equipped && <span className="costume-card-badge"><Icon name="check" size={14} strokeWidth={3.4} /> {t('shop_wearing')}</span>}
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-3 pt-2.5">

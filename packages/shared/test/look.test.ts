@@ -19,6 +19,15 @@ import {
 } from '../src';
 
 const STARTER = ['hoodie-red', 'backpack-travel', 'bed-basic'];
+/** Правила для вещей без картинки. Настоящих курток и костюмов без картинки после пакета владельца 2026-11-04 нет — проверяем на вымышленных. */
+const FUTURE: LookManifest = {
+  ...LOOK_MANIFEST,
+  items: [
+    ...LOOK_MANIFEST.items,
+    { id: 'vest-future', catalogSlot: 'JACKET', domain: 'beaver', occupies: ['top'], rarity: 'epic', status: 'pending', fallback: 'hide', compatibility: null, layers: [], replaces: ['torso'] },
+    { id: 'costume-future', catalogSlot: 'COSTUME', domain: 'beaver', occupies: ['body'], rarity: 'epic', status: 'pending', fallback: 'hide', compatibility: null, layers: [] },
+  ] as LookItem[],
+};
 const errors = (m?: LookManifest) => validateManifest(m).filter((i) => i.level === 'error');
 
 describe('образ: маніфест поточного стану', () => {
@@ -32,14 +41,17 @@ describe('образ: маніфест поточного стану', () => {
     expect(LOOK_MANIFEST.items.filter((i) => i.status === 'ready' && i.domain === 'beaver')).toEqual([]);
   });
 
-  it('худі, рюкзак, кепка, окуляри й шарф — готові образи; 7 костюмів — legacy-whole-look; русалка й решта — pending', () => {
+  it('худі, рюкзак, кепка, окуляри й шарф — готові образи; костюми й нагороди міст — legacy-whole-look; решта — pending', () => {
     const by = (id: string) => LOOK_MANIFEST.items.find((i) => i.id === id)!;
     for (const id of ['hoodie-red', 'backpack-travel', 'cap-red', 'glasses-round', 'scarf-pl']) expect(by(id).status, id).toBe('prerendered');
     expect(LOOK_MANIFEST.legacyBase.includes).toEqual({ top: 'hoodie-red', backpack: 'backpack-travel' });
     const legacyCostumes = LOOK_MANIFEST.items.filter((i) => i.legacy).map((i) => i.id).sort();
-    expect(legacyCostumes).toEqual(['costume-artist', 'costume-barista', 'costume-chef', 'costume-conductor', 'costume-dragon', 'costume-duffle', 'costume-krasnal', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red', 'costume-winter']);
-    expect(by('costume-syrenka').status).toBe('pending');
-    for (const id of ['cap-green', 'glasses-sun', 'scarf-ua', 'vest-krakowiak', 'sneakers-white']) expect(by(id).status, id).toBe('pending');
+    expect(legacyCostumes).toEqual([
+      'costume-artist', 'costume-barista', 'costume-chef', 'costume-conductor', 'costume-dragon', 'costume-duffle', 'costume-krasnal', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa',
+      'costume-street', 'costume-street-red', 'costume-syrenka', 'costume-winter', 'hat-krasnal', 'obwarzanek', 'vest-krakowiak',
+    ]);
+    for (const id of ['costume-syrenka', 'hat-krasnal', 'vest-krakowiak', 'obwarzanek']) expect(by(id)).toMatchObject({ status: 'legacy-whole-look', catalogSlot: 'COSTUME' });
+    for (const id of ['cap-green', 'glasses-sun', 'scarf-ua', 'sneakers-white']) expect(by(id).status, id).toBe('pending');
     for (const id of ['jacket-denim', 'jacket-rain']) expect(by(id).status, id).toBe('prerendered');
   });
 
@@ -151,8 +163,8 @@ describe('образ: resolveLook на поточних ассетах', () => {
   });
 
   it('pending-куртка: худі з картинки — не підміна, а явна позначка extraneous', () => {
-    const look = resolveLook(null, ['vest-krakowiak', 'backpack-travel']);
-    expect(look.slots.top).toEqual({ wanted: 'vest-krakowiak', shown: 'hoodie-red', outcome: 'pending' });
+    const look = resolveLook(null, ['vest-future', 'backpack-travel'], { manifest: FUTURE });
+    expect(look.slots.top).toEqual({ wanted: 'vest-future', shown: 'hoodie-red', outcome: 'pending' });
     expect(look.extraneous).toEqual([{ slot: 'top', id: 'hoodie-red' }]);
     expect(look.drawn).toEqual(['backpack-travel']);
   });
@@ -171,11 +183,11 @@ describe('образ: resolveLook на поточних ассетах', () => {
     expect(noHat.slots.headwear.outcome).toBe('extraneous');
   });
 
-  it('костюм без живописної картинки (русалка) не малюється, покупка/володіння не губиться', () => {
-    const look = resolveLook(['costume-syrenka', ...STARTER], ['costume-syrenka', 'backpack-travel']);
+  it('костюм без живописної картинки не малюється, покупка/володіння не губиться', () => {
+    const look = resolveLook(['costume-future', ...STARTER], ['costume-future', 'backpack-travel'], { manifest: FUTURE });
     expect(look.mode).toBe('legacy-base');
-    expect(look.equipped).toContain('costume-syrenka');
-    expect(look.pending).toEqual(['costume-syrenka']);
+    expect(look.equipped).toContain('costume-future');
+    expect(look.pending).toEqual(['costume-future']);
     expect(look.slots.top.outcome).toBe('pending');
     expect(look.defaults).toEqual([]);
   });
@@ -246,11 +258,11 @@ describe('образ: tryOn', () => {
   });
 
   it('річ без шару: примірка чесно каже «не видно», а не малює іншу', () => {
-    const p = tryOn(['backpack-travel'], 'vest-krakowiak', { inventory: [...STARTER, 'vest-krakowiak'] });
+    const p = tryOn(['backpack-travel'], 'vest-future', { inventory: [...STARTER, 'vest-future'], manifest: FUTURE });
     expect(p.candidateVisible).toBe(false);
     expect(p.candidateReason).toBe('visual-pending');
-    expect(p.after.drawn).not.toContain('vest-krakowiak');
-    expect(p.after.slots.top).toEqual({ wanted: 'vest-krakowiak', shown: 'hoodie-red', outcome: 'pending' });
+    expect(p.after.drawn).not.toContain('vest-future');
+    expect(p.after.slots.top).toEqual({ wanted: 'vest-future', shown: 'hoodie-red', outcome: 'pending' });
   });
 
   it('примірка показує, що зніметься', () => {

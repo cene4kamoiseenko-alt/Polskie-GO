@@ -68,7 +68,8 @@ export function LookGallery() {
     ['Кухар + окуляри (окуляри pending)', { COSTUME: 'costume-chef', GLASSES: 'glasses-round', BACKPACK: 'backpack-travel' }],
     ['Дракон + кепка (конфлікт: капюшон)', { COSTUME: 'costume-dragon', HAT: 'cap-red', BACKPACK: 'backpack-travel' }],
     ['Зимовий + шарф (конфлікт: шия)', { COSTUME: 'costume-winter', SCARF: 'scarf-pl', BACKPACK: 'backpack-travel' }],
-    ['Жилет pending + рюкзак (худі на картинці — не жилет)', { JACKET: 'vest-krakowiak', BACKPACK: 'backpack-travel' }],
+    ['Кросівки pending + рюкзак (на картинці їх немає)', { SHOES: 'sneakers-white', BACKPACK: 'backpack-travel' }],
+    ['Краківська камізелька (костюм-нагорода) + рюкзак', { COSTUME: 'vest-krakowiak', BACKPACK: 'backpack-travel' }],
     ['Без рюкзака (рюкзак на картинці)', {}],
     ['Невідомий ключ', { HAT: 'hat-from-future', BACKPACK: 'backpack-travel' }],
   ];

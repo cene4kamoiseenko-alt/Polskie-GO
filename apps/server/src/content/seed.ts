@@ -34,6 +34,8 @@ export const CITY_CONTENT: CityContent[] = [...STANDARD_CITIES, POZNAN, ZIELONA_
 /** Ті самі міста до стандарту — лише для тестів міграції (БД, засіяна до скорочення міст). */
 export const PRE_STANDARD_CONTENT: CityContent[] = CITY_PLANS.map(([full]) => full);
 
+/** Предмети, що перейшли в слот COSTUME, і їхній колишній слот (2026-11-04). */
+const RESLOTTED_TO_COSTUME: [string, string][] = [['hat-krasnal', 'HAT'], ['vest-krakowiak', 'JACKET'], ['obwarzanek', 'ACCESSORY']];
 /** Нагороди за іспит міста, додані після запуску: [місто, предмет]. Ті, хто вже склав іспит, теж їх отримують. */
 const LATE_CITY_REWARDS: [string, string][] = [['wroclaw', 'costume-krasnal']];
 
@@ -315,6 +317,14 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
   // Костюмы стали готовыми образами по уровням (2026-11-02): новая цена и редкость — только там, где в БД всё ещё прежние значения (правку в админке не трогаем).
   for (const [slug, c] of Object.entries(COSTUME_PRICES)) {
     out.push(`UPDATE cosmetic_items SET price = ${c.price}, rarity = ${lit(c.rarity)} WHERE slug = ${lit(slug)} AND price = ${c.from.price} AND rarity = ${lit(c.from.rarity)};`);
+  }
+
+  // Ковпак гнома, краківська камізелька й обважанек стали костюмами (картинки власника 2026-11-04). На проді рядки вже є з колишнім слотом:
+  // спершу знімаємо їх із тих, у кого вони були надіті (без картинки вони не малювалися, а в слоті COSTUME вийшло б два надітих костюми),
+  // потім міняємо слот. Обидва запити діють лише поки слот прежній, тому повторний сід нічого не змінює.
+  for (const [slug, from] of RESLOTTED_TO_COSTUME) {
+    out.push(`UPDATE user_inventory SET equipped = 0 WHERE equipped = 1 AND item_id IN (SELECT id FROM cosmetic_items WHERE slug = ${lit(slug)} AND slot = ${lit(from)});`);
+    out.push(`UPDATE cosmetic_items SET slot = 'COSTUME' WHERE slug = ${lit(slug)} AND slot = ${lit(from)};`);
   }
 
   // ── Нагороди, додані пізніше: видаємо тим, хто вже виконав умову (ідемпотентно, без зміни інших предметів) ──

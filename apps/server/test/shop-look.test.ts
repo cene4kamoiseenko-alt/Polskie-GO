@@ -66,12 +66,13 @@ describe('Каталог магазину: visualStatus', () => {
     }
     expect(by.get('cap-green')!.visualStatus).toBe('pending');
     expect(by.get('crown-gold')!.visualStatus).toBe('pending');
-    expect(by.get('costume-syrenka')!.visualStatus).toBe('pending');
+    // Нагороди, що чекали картинки, отримали цілісні образи (пакет власника 2026-11-04) і стали костюмами.
+    for (const slug of ['costume-syrenka', 'hat-krasnal', 'vest-krakowiak', 'obwarzanek']) expect(by.get(slug), slug).toMatchObject({ slot: 'COSTUME', visualStatus: 'legacy-whole-look' });
     expect(by.get('costume-artist')!.visualStatus).toBe('legacy-whole-look');
     expect(by.get('hoodie-red')!.visualStatus).toBe('prerendered');
     expect(by.get('backpack-travel')!.visualStatus).toBe('prerendered');
     for (const slug of ['cap-red', 'beanie-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) expect(by.get(slug)!.visualStatus, slug).toBe('prerendered');
-    for (const slug of ['scarf-ua', 'glasses-sun', 'vest-krakowiak']) expect(by.get(slug)!.visualStatus, slug).toBe('pending');
+    for (const slug of ['scarf-ua', 'glasses-sun', 'sneakers-white']) expect(by.get(slug)!.visualStatus, slug).toBe('pending');
     expect(by.get('frame-green')!.visualStatus).toBe('ready');
     expect(by.get('plant')!.visualStatus).toBe('not-wearable');
 
@@ -115,7 +116,7 @@ describe('Покупка за ядром образу', () => {
   it('нагорода лишається нагородою: reward_only раніше за visual_pending', async () => {
     const { call, user } = await login();
     await setBalance(user.id, 1000);
-    // hat-krasnal і costume-syrenka — нагороди без зображення: причина відмови — «лише заробити».
+    // hat-krasnal і costume-syrenka — нагороди (тепер із картинками): купити не можна, лише заробити.
     for (const slug of ['hat-krasnal', 'costume-syrenka']) expect((await call('POST', '/api/shop/buy', { itemId: itemId(slug) })).body.error, slug).toBe('reward_only');
     expect(await balance(user.id)).toBe(1000);
   });
@@ -147,19 +148,19 @@ describe('Покупка за ядром образу', () => {
   it('куплене до M3 і нагородне pending лишається у власності й надягається', async () => {
     const { call, user } = await login();
     await grant(user.id, 'cap-green', { source: 'shop' });
-    await grant(user.id, 'costume-syrenka', { source: 'city' });
+    await grant(user.id, 'scarf-ua', { source: 'city' });
     // Нагорода за досягнення видається як раніше, без перевірки зображення: streak-7 → glasses-sun (pending).
     await db.update(playerProgress).set({ streakBest: 7 }).where(eq(playerProgress.userId, user.id));
     await atomic((await evaluateAchievements(user.id, null)).stmts);
     const inv0 = await inventory(user.id);
     expect(inv0.find((i) => i.itemId === itemId('glasses-sun'))).toMatchObject({ source: 'achievement' });
 
-    for (const slug of ['cap-green', 'glasses-sun', 'costume-syrenka']) expect((await putOn(call, slug)).status, slug).toBe(200);
+    for (const slug of ['cap-green', 'glasses-sun', 'scarf-ua']) expect((await putOn(call, slug)).status, slug).toBe(200);
     const wear = await wearOf(call);
-    expect(wear).toMatchObject({ HAT: 'cap-green', GLASSES: 'glasses-sun', COSTUME: 'costume-syrenka', BACKPACK: 'backpack-travel' });
+    expect(wear).toMatchObject({ HAT: 'cap-green', GLASSES: 'glasses-sun', SCARF: 'scarf-ua', BACKPACK: 'backpack-travel' });
 
     const shop = (await call('GET', '/api/shop')).body.items as { slug: string; owned: boolean; equipped: boolean; visualStatus: string }[];
-    for (const slug of ['cap-green', 'glasses-sun', 'costume-syrenka']) {
+    for (const slug of ['cap-green', 'glasses-sun', 'scarf-ua']) {
       expect(shop.find((i) => i.slug === slug), slug).toMatchObject({ owned: true, equipped: true, visualStatus: 'pending' });
     }
     // Нічого не видалено з інвентарю.

@@ -3,7 +3,7 @@
  * надягання ставить рівно набір, речі наборів поштучно не продаються, речі з дешевих образів не складаються в дорогий, колишні покупки не пропадають.
  */
 import { afterAll, describe, expect, it } from 'vitest';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql as dsql } from 'drizzle-orm';
 import { LOOK_VARIANTS } from '@polski-go/shared';
 import { db } from '../src/db';
 import { cosmeticItems, gameWallets, userInventory, walletTransactions } from '../src/db/schema';
@@ -64,6 +64,25 @@ describe('Готові образи: каталог', () => {
     expect(sql).toContain("UPDATE cosmetic_items SET price = 550, rarity = 'epic' WHERE slug = 'costume-winter' AND price = 120 AND rarity = 'rare';");
     expect(sql).toContain("UPDATE cosmetic_items SET price = 1200, rarity = 'legendary' WHERE slug = 'costume-street' AND price = 400 AND rarity = 'legendary';");
     expect(sql).toMatch(/INSERT INTO "?cosmetic_items"?[^;]*'outfit-hoodie-cap'/);
+  });
+
+  it('прод: ковпак гнома, камізелька й обважанек стають костюмами; надіті знімаються один раз (2026-11-04)', async () => {
+    const { user } = await login();
+    const slotOf = async (slug: string) => (await db.select({ slot: cosmeticItems.slot }).from(cosmeticItems).where(eq(cosmeticItems.slug, slug)))[0].slot;
+    const equippedOf = async (slug: string) =>
+      (await db.select({ e: userInventory.equipped }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(and(eq(userInventory.userId, user.id), eq(cosmeticItems.slug, slug))))[0].e;
+    expect(await slotOf('hat-krasnal')).toBe('COSTUME');
+    // Как на проде до правки: ковпак в слоте HAT и надет.
+    await db.update(cosmeticItems).set({ slot: 'HAT' }).where(eq(cosmeticItems.slug, 'hat-krasnal'));
+    await grant(user.id, 'hat-krasnal', 'achievement', true);
+    const fix = buildSeedSql({ force: false }).filter((s) => s.startsWith('UPDATE') && s.includes("'hat-krasnal'"));
+    expect(fix).toHaveLength(2);
+    for (const s of fix) await db.run(dsql.raw(s));
+    expect([await slotOf('hat-krasnal'), await equippedOf('hat-krasnal')]).toEqual(['COSTUME', false]);
+    // Повторный сид (каждый деплой) ничего не трогает: надетый уже костюмом ковпак остаётся надетым.
+    await db.update(userInventory).set({ equipped: true }).where(eq(userInventory.userId, user.id));
+    for (const s of fix) await db.run(dsql.raw(s));
+    expect([await slotOf('hat-krasnal'), await equippedOf('hat-krasnal')]).toEqual(['COSTUME', true]);
   });
 });
 

@@ -90,7 +90,6 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   prerendered('beanie-red', 'HAT', 'common', 'Червона в\'язана шапка з нашивкою PL: готові образи лише з джинсовою курткою й дощовиком (четверта партія).'),
   pending('beanie-blue', 'HAT', 'common', { hides: ['tuft'] }),
   pending('hat-chef', 'HAT', 'rare'),
-  pending('hat-krasnal', 'HAT', 'epic', { hides: ['tuft'] }),
   pending('crown-gold', 'HAT', 'legendary'),
   // Окуляри
   prerendered('glasses-round', 'GLASSES'),
@@ -103,7 +102,6 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   // Верх
   prerendered('jacket-denim', 'JACKET', 'common', 'Куртка замість худі (слот top): готові образи з рюкзаком, окулярами, кепкою, шапкою (часткова сітка, партії 2–4).'),
   prerendered('jacket-rain', 'JACKET', 'common', 'Дощовик замість худі (слот top): готові образи з рюкзаком, окулярами, кепкою, шапкою (часткова сітка, партії 2–4).'),
-  pending('vest-krakowiak', 'JACKET', 'epic', { replaces: ['torso'] }),
   // Рюкзаки
   pending('backpack-map', 'BACKPACK', 'rare'),
   // Взуття
@@ -113,20 +111,20 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   pending('flag-pl', 'ACCESSORY'),
   pending('camera', 'ACCESSORY'),
   pending('map-paper', 'ACCESSORY'),
-  pending('obwarzanek', 'ACCESSORY'),
   // Костюми: цілісні картинки перехідного періоду
   legacyCostume('costume-barista', 'rare', ['top', 'accessory'], { backpack: 'backpack-travel' },
     'Сорочка, фартух, краватка, чашка. На картинці зелений рюкзак мандрівника; ноги обрізані.'),
   legacyCostume('costume-chef', 'rare', ['top', 'neck', 'accessory'], { headwear: 'hat-chef' },
-    'Кухарський кітель, хустка, ложка. Ковпак — окремий предмет hat-chef, на картинці він є.'),
-  legacyCostume('costume-conductor', 'epic', ['headwear', 'top', 'accessory'], { backpack: 'prop:messenger-bag' },
-    'Кашкет, форма, квиток — власних предметів у каталозі немає. Сумка через плече — лише на картинці.'),
-  legacyCostume('costume-krasnal', 'legendary', ['top', 'accessory'], { headwear: 'hat-krasnal', backpack: 'prop:crossbody-bag' },
-    'Камізелька, сорочка, ліхтар. Ковпак вважаємо hat-krasnal — потребує підтвердження власника.'),
+    'Кухарський кітель, хустка, ложка (нова картинка 2026-11-04). Ковпак — окремий предмет hat-chef, на картинці він є.', false),
+  // Оновлені картинки (пакет власника 2026-11-04, docs/design/v20/skins; збірка — scripts/build-costume-art.mjs): без сцени картки, як скини.
+  legacyCostume('costume-conductor', 'epic', ['headwear', 'top'], {},
+    'Нова картинка 2026-11-04 — форма пілота: кашкет з крилами, кітель з нашивками й краватка. Сумки й квитка більше немає.', false),
+  legacyCostume('costume-krasnal', 'legendary', ['headwear', 'top', 'shoes', 'accessory'], { backpack: 'prop:crossbody-bag' },
+    'Червоний ковпак, вишита камізелька, сорочка, черевики, ліхтар. Сумка через плече — лише на картинці.', false),
   legacyCostume('costume-artist', 'epic', ['headwear', 'neck', 'top', 'accessory'], {},
-    'Берет, шарф, блуза, палітра й пензель — власних предметів немає.'),
-  legacyCostume('costume-winter', 'epic', ['headwear', 'neck', 'top', 'shoes'], { backpack: 'prop:brown-backpack' },
-    'Шапка, шарф, пуховик з рукавицями, черевики — власних предметів немає. Коричневий рюкзак — лише на картинці.'),
+    'Берет, шарф, блуза, палітра й пензель — власних предметів немає.', false),
+  legacyCostume('costume-winter', 'epic', ['headwear', 'neck', 'top', 'shoes'], { backpack: 'prop:green-backpack' },
+    'Шапка з помпоном, шарф, пуховик з хутром і рукавицями, черевики. Зелений рюкзачок — лише на картинці.', false),
   legacyCostume('costume-dragon', 'legendary', ['body', 'head'], { backpack: 'prop:brown-strap' },
     'Комбінезон з крилами й капюшон. Коричневий ремінь сумки на плечі — лише на картинці.'),
   // Скини (2026-11-01): цільні дорогі образи, друга партія мастерів (docs/design/v18/bobek-part2).
@@ -136,7 +134,13 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   skin('costume-puffer-stripes', 'Жовтий пуховик, червона шапка з помпоном, смугастий шарф. Зелений рюкзак — на картинці.'),
   skin('costume-sherpa', 'Синє пальто з хутром, хутряні навушники, біло-червоний шарф PL. Зелений рюкзак — на картинці.'),
   skin('costume-duffle', 'Синій дафлкот із дерев\'яними ґудзиками, хутряні навушники, смугастий шарф. Зелений рюкзак — на картинці.'),
-  pending('costume-syrenka', 'COSTUME', 'epic', { occupies: ['body'], note: 'Живописної картинки немає ні цілісної, ні шарової.' }),
+  // Нагороди міст і досягнень, що чекали картинки (пакет власника 2026-11-04): цілісні образи. Ковпак гнома, краківська камізелька й обважанек
+  // були речами слотів HAT / JACKET / ACCESSORY без зображення; на картинках Бобек лише в них (без худі й рюкзака), тому тепер це костюми.
+  legacyCostume('costume-syrenka', 'epic', ['headwear', 'top', 'accessory'], {},
+    'Діадема, луската туніка з плащем, щит із Сиреною, шабля.', false),
+  legacyCostume('hat-krasnal', 'epic', SKIN_SLOTS, {}, 'Червоний ковпак вроцлавського гнома; більше нічого.', false),
+  legacyCostume('vest-krakowiak', 'epic', SKIN_SLOTS, {}, 'Чорна камізелька з квітковою вишивкою й золотими застібками.', false),
+  legacyCostume('obwarzanek', 'common', SKIN_SLOTS, {}, 'Краківський обважанек з маком і кунжутом у лапі.', false),
   // Рамки профілю
   frame('frame-green', 'common'),
   frame('frame-gold', 'legendary'),

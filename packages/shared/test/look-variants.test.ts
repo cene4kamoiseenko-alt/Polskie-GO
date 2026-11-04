@@ -14,6 +14,7 @@ import {
   resolveLook,
   tryOn,
   validateManifest,
+  type LookItem,
   type LookManifest,
   type LookVariant,
 } from '../src';
@@ -31,6 +32,15 @@ const byId = (id: string): LookVariant => LOOK_VARIANTS.list.find((v) => v.id ==
 const errors = (m?: LookManifest) => validateManifest(m).filter((i) => i.level === 'error');
 const codes = (m: LookManifest) => errors(m).map((i) => i.code);
 const withVariants = (list: readonly LookVariant[]): LookManifest => ({ ...LOOK_MANIFEST, variants: { ...LOOK_VARIANTS, list } });
+/** Правила для вещей без картинки. Настоящих курток и костюмов без картинки после пакета владельца 2026-11-04 нет — проверяем на вымышленных. */
+const FUTURE: LookManifest = {
+  ...LOOK_MANIFEST,
+  items: [
+    ...LOOK_MANIFEST.items,
+    { id: 'vest-future', catalogSlot: 'JACKET', domain: 'beaver', occupies: ['top'], rarity: 'epic', status: 'pending', fallback: 'hide', compatibility: null, layers: [], replaces: ['torso'] },
+    { id: 'costume-future', catalogSlot: 'COSTUME', domain: 'beaver', occupies: ['body'], rarity: 'epic', status: 'pending', fallback: 'hide', compatibility: null, layers: [] },
+  ] as LookItem[],
+};
 
 describe('готовые образы: таблица', () => {
   it('полная сетка: все 16 сочетаний четырёх вещей, у каждого есть поза wave, поза open — у 8; плюс 16 образов с куртками (партии 2–4)', () => {
@@ -174,9 +184,9 @@ describe('готовые образы: resolveLook', () => {
   });
 
   it('pending-куртка вместо худи: образ рисуется в худи и это честно помечено extraneous', () => {
-    const look = resolveLook(null, ['vest-krakowiak', 'cap-red']);
+    const look = resolveLook(null, ['vest-future', 'cap-red'], { manifest: FUTURE });
     expect(look.mode).toBe('variant');
-    expect(look.slots.top).toEqual({ wanted: 'vest-krakowiak', shown: 'hoodie-red', outcome: 'pending' });
+    expect(look.slots.top).toEqual({ wanted: 'vest-future', shown: 'hoodie-red', outcome: 'pending' });
     expect(look.extraneous).toEqual([{ slot: 'top', id: 'hoodie-red' }]);
   });
 
@@ -334,7 +344,7 @@ describe('готовые образы: куртки и шапка (партии 
   it('покупка: куртки продаются как готовые образы', () => {
     expect(canPurchase({ id: 'i_jacket-denim', slot: 'JACKET' })).toEqual({ ok: true, status: 'prerendered' });
     expect(canPurchase({ id: 'i_jacket-rain', slot: 'JACKET' })).toEqual({ ok: true, status: 'prerendered' });
-    expect(canPurchase({ id: 'i_vest-krakowiak', slot: 'JACKET' })).toMatchObject({ ok: false, reason: 'visual-pending' });
+    expect(canPurchase({ id: 'i_vest-future', slot: 'JACKET' }, {}, FUTURE)).toMatchObject({ ok: false, reason: 'visual-pending' });
   });
 
   it('все картинки курток лежат на диске: главный файл, @512 и @256', () => {

@@ -50,7 +50,10 @@ describe('Живописний Бобек у вебі: ассети за ман�
     const chef = resolveLook(null, { ...STARTER, COSTUME: 'costume-chef', HAT: 'hat-chef', GLASSES: 'glasses-sun' }, { mood: 'wave' });
     expect(chef.mode).toBe('legacy-costume');
     expect(chef.layers.map((l) => l.asset)).toEqual(['costumes/chef']);
-    expect(lookAssetUrl('costumes/chef', 256)).toBe(assetByKey('costumes/chef'));
+    // Нова картинка кухаря (2026-11-04) має розміри доставки, як скини: на 256 — свій файл @256, на 1024 — @1024.
+    expect(lookAssetUrl('costumes/chef', 256)).toMatch(/costumes\/chef@256\.webp$/);
+    expect(lookAssetUrl('costumes/chef', 1024)).toMatch(/costumes\/chef@1024\.webp$/);
+    expect(assetByKey('costumes/chef')).toMatch(/costumes\/chef\.webp$/);
     expect(chef.drawn).toEqual(['costume-chef', 'hat-chef']);
     expect(chef.pending).toEqual(['glasses-sun']);
   });
