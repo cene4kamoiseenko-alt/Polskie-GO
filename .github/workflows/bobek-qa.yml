@@ -1,0 +1,106 @@
+# Проверяем новые слои и интеграцию Бобека при каждом PR. Никаких деплоев и секретов.
+name: Bobek visual QA
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/components/Beaver.tsx'
+      - 'apps/web/src/dev/**'
+      - 'apps/web/src/lib/bobekPreview.ts'
+      - 'apps/web/src/assets/look/**'
+      - 'packages/shared/src/look/**'
+      - 'scripts/look-prototype-screens.ts'
+      - 'scripts/validate-bobek-art.mjs'
+      - 'scripts/check-bobek-preview.mjs'
+      - 'scripts/bobek-release-gate.mjs'
+      - 'scripts/import-bobek-v2.mjs'
+      - 'scripts/check-bobek-v2.mjs'
+      - 'scripts/generate-bobek-v2.mjs'
+      - 'assets/bobek-v2-sources.json.gz.b64'
+      - 'assets/bobek-v3-sources.json.gz.b64'
+      - 'assets/bobek-v31-sources.json.gz.b64'
+      - 'scripts/generate-bobek-v3.mjs'
+      - 'scripts/check-bobek-v3.mjs'
+      - 'scripts/bobek-v3-frame-qa.mjs'
+      - 'scripts/generate-bobek-coherent.mjs'
+      - 'scripts/check-bobek-coherent.mjs'
+      - 'scripts/generate-bobek-v4-colorway.mjs'
+      - 'scripts/check-bobek-v4-colorway.mjs'
+      - 'scripts/generate-bobek-v5.mjs'
+      - 'scripts/check-bobek-v5.mjs'
+      - 'apps/web/src/dev/bobekArtGate.ts'
+      - 'apps/web/src/dev/coherentAssets.ts'
+      - 'docs/design/BOBEK_ART_APPROVAL.json'
+      - 'package.json'
+      - '.github/workflows/bobek-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bobek:
+    name: Bobek typecheck / sprites / manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript types
+        run: npm run typecheck
+      - name: Generate independent V2 QA art (35 source SVG / 105 WebP)
+        run: npm run bobek:v2:generate
+      - name: Generate V3.2 cutout and both arms (7 idle + 5 wave, 36 WebP)
+        run: npm run bobek:v3:generate
+      - name: V3.2 alpha, aligned sleeves, and garment poses
+        run: npm run bobek:v3:check
+      - name: Render both V3.2 cutout waves and measure shoulder contact
+        run: npm run bobek:v3:frames
+      - name: Upload 8 red + blue keyframes for human review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bobek-v32-visual-qa
+          path: docs/qa/bobek-v3-frames
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Generate coherent Bobek master references with zero moving clothing
+        run: npm run bobek:coherent:generate
+      - name: Verify face and alpha silhouettes stay identical across full outfits
+        run: npm run bobek:coherent:check
+      - name: Generate blue pixel-registered hoodie without garment offsets
+        run: npm run bobek:v4:colorway
+      - name: Verify canonical Bobek silhouette and identity never move between colorways
+        run: npm run bobek:v4:check
+      - name: Generate V5 registered nude body and individually drawn hoodie/denim layers
+        run: npm run bobek:v5:generate
+      - name: Test shared body geometry and art component alignment for two outfits
+        run: npm run bobek:v5:check
+      - name: Build real web client (detect Vite bundling errors)
+        run: npm run build:web
+      - name: Install headless Chromium for actual UI safety check
+        run: npx playwright install --with-deps chromium
+      - name: Verify canonical Bobek on 320px and 390px and reject persisted V3 outfit
+        run: node --import tsx scripts/look-prototype-screens.ts
+      - name: Upload mobile proof of protected original Bobek
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bobek-safe-original-screens
+          path: docs/qa/bobek-stable
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Sprite dimensions and alpha
+        run: npm run bobek:check
+      - name: Preview flag and safe localStorage parsing
+        run: npm run bobek:check:preview
+      - name: V2 pose and independent wardrobe manifest
+        run: npm run bobek:v2:check
+      - name: Bobek release-readiness audit (informational while art is pending)
+        run: npm run bobek:release
+      - name: Beaver manifest and garment compatibility
+        run: npm run test -w @polski-go/server -- test/look-prototype.test.ts
