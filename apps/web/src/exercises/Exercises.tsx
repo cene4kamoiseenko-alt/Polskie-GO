@@ -187,7 +187,7 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
         {data.translation && <p className="muted text-center font-bold">„{tr(data.translation)}”</p>}
         <div className="flex flex-wrap justify-center gap-2">
           {data.options.map((o) => (
-            <motion.button key={o.id} whileTap={{ scale: 0.94 }} data-state={state(o.id)} onClick={() => pick(o.id, o.text)} className="option w-auto px-4 text-xl">
+            <motion.button key={o.id} whileTap={{ scale: 0.94 }} data-state={state(o.id)} onClick={() => pick(o.id, o.text)} className="option w-auto px-4 text-center text-xl">
               {tr(o.text)}
             </motion.button>
           ))}
@@ -302,15 +302,17 @@ function ChoiceExercise({ item, result, onChange, onSubmit }: ExProps) {
             data-state={state(o.id)}
             onClick={() => pick(o.id, o.text)}
             className={cx(
-              'option flex items-center gap-3',
-              item.type === 'FILL_GAP' && 'option-chip !w-auto justify-center',
-              grid && 'justify-center text-center',
+              'option flex items-center justify-center text-center',
+              item.type === 'FILL_GAP' && 'option-chip !w-auto gap-3',
+              grid && 'gap-3',
+              // Слово по центру плашки, а не рядом с буквой: буква прижата к левому краю, поля слева и справа равны (владелец 2026-11-07).
+              !grid && item.type !== 'FILL_GAP' && 'relative px-14',
             )}
           >
             {item.type === 'LISTENING' ? (
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sky/15 text-sky"><Icon name="headphones" size={16} /></span>
+              <span className="absolute left-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-sky/15 text-sky"><Icon name="headphones" size={16} /></span>
             ) : (
-              !grid && item.type !== 'FILL_GAP' && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-2 border-soft text-sm font-black">{String.fromCharCode(65 + i)}</span>
+              !grid && item.type !== 'FILL_GAP' && <span className="absolute left-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg border-2 border-soft text-sm font-black">{String.fromCharCode(65 + i)}</span>
             )}
             <span>{tr(o.text)}</span>
           </motion.button>

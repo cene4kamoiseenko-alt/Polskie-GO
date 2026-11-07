@@ -119,7 +119,7 @@ function Trainer({ items }: { items: Item[] }) {
         {q.opts.map((o) => {
           const state = !picked ? undefined : o.id === q.target.id ? 'correct' : o.id === picked ? 'wrong' : undefined;
           return (
-            <motion.button key={o.id} className="option" data-state={state} animate={state === 'wrong' ? { x: [0, -8, 8, -4, 4, 0] } : { x: 0 }} onClick={() => answer(o.id)}>
+            <motion.button key={o.id} className="option text-center" data-state={state} animate={state === 'wrong' ? { x: [0, -8, 8, -4, 4, 0] } : { x: 0 }} onClick={() => answer(o.id)}>
               {q.toCasual ? o.pl : o.neutral.pl}
             </motion.button>
           );
