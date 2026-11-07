@@ -12,9 +12,24 @@
  */
 import { artImage, pick } from './assets';
 
+/**
+ * Кадры сезонов (картинки владельца 2026-11-07, scripts/build-season-art.mjs): один кадр на сезон 2:1 — карточка миссии в пропуске и фон её вступления.
+ * Кадр стоит у тех миссий сезона, которым подходит по смыслу (Вроцлав и мост с замками — «Замочек на Тумском мосту», велосипед до Сопота — «Городской велосипед»);
+ * остальные миссии сезона (День бабушки, Прима апрелис, участок, 3 Мая, День отца, поезд к морю) пока показывают свою сцену, пока для них нет кадров.
+ */
+const SEASON_FRAMES: [file: string, missions: string[]][] = [
+  ['scene-swieta', ['jarmark-oscypek', 'wigilia-kolacja', 'sylwester-impreza']],
+  ['scene-karnawal', ['paczki-zamowienie', 'trzech-kroli']],
+  ['scene-walentynki', ['walentynki-kwiaty', 'walentynki-kolacja', 'most-tumski']],
+  ['scene-wielkanoc', ['palma-pisanki', 'swieconka', 'smigus-dyngus']],
+  ['scene-wiosna', ['rower-miejski']],
+  ['scene-majowka', ['majowka-domek', 'grill-jezioro']],
+  ['scene-wianki', ['wianki-wisla']],
+];
 const PASS_ART: Record<string, { file: string; width: number }> = {
   'listopad-swieto': { file: 'stary-rynek', width: 1400 },
   'andrzejki-wosk': { file: 'andrzejki', width: 1400 },
+  ...Object.fromEntries(SEASON_FRAMES.flatMap(([file, missions]) => missions.map((m) => [m, { file, width: 1400 }]))),
 };
 /** Размеры вырезок — файла, не экрана (атрибуты width/height держат место, пока картинка грузится). */
 const PASS_CUTOUT: Record<string, { file: string; w: number; h: number }> = {
@@ -28,7 +43,7 @@ const QUEST_STORY_ART: Record<string, { file: string; pos: string; scene?: strin
   's-wroclaw-zgubiony': { file: 'story-wroclaw', pos: '50% 26%' },
 };
 /** Миссии пропуска, чей кадр 2 : 1 из `PASS_ART` годится и как фон самой миссии: Бобек на нём уже нарисован (бариста с кофе), второй поверх не нужен. «Анджейки» — вечерний кадр владельца 2026-11-02. */
-const PASS_MISSION_SCENE = new Set(['listopad-swieto', 'andrzejki-wosk']);
+const PASS_MISSION_SCENE = new Set(['listopad-swieto', 'andrzejki-wosk', ...SEASON_FRAMES.flatMap(([, missions]) => missions)]);
 
 /** Картинка карточки миссии в пропуске (src + srcset) или null. */
 export const passArt = (slug: string) => artImage('pass', PASS_ART[slug]);

@@ -72,6 +72,13 @@ const PASS_SEASON_COVER: Record<string, { file: string; width: number }> = {
   // Названия «Polskie Boże Narodzenie» и «Поездка в Energylandię» нарисованы на самих кадрах (мастера владельца).
   swieta: { file: 'season-swieta', width: 1200 },
   energylandia: { file: 'season-energylandia', width: 1200 },
+  // Сезоны января–июня 2027: картинки владельца от 2026-11-07 (scripts/build-season-art.mjs).
+  karnawal: { file: 'season-karnawal', width: 1200 },
+  walentynki: { file: 'season-walentynki', width: 1200 },
+  wielkanoc: { file: 'season-wielkanoc', width: 1200 },
+  wiosna: { file: 'season-wiosna', width: 1200 },
+  majowka: { file: 'season-majowka', width: 1200 },
+  wianki: { file: 'season-wianki', width: 1200 },
 };
 
 /** Обложка сезона пропуска (по slug сезона) или null — тогда сцена первой миссии сезона, как раньше. */
