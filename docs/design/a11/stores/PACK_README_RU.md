@@ -23,4 +23,4 @@ Every scene has a **static Bobek baked into its background**. Therefore, to show
 Brand signage is AI-rendered: verify logos, text, placements, store details and rights before publishing. Not affiliated with the depicted brands. Do not replace higher-quality existing scenes automatically.
 
 ## Implementation
-Read `PROMPT_FOR_CLAUDE_SONNET_RU.md` and `asset-manifest.json`. Use stable IDs. All image text is decorative and must never be used as assessment content, prices, opening hours, or actual store information.
+Read `asset-manifest.json`. Use stable IDs. All image text is decorative and must never be used as assessment content, prices, opening hours, or actual store information.

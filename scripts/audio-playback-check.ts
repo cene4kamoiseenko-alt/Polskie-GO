@@ -1,5 +1,5 @@
 /**
- * Браузерна перевірка PRE-GENERATED AUDIO ONLY (docs/PROMPT_AUDIO_PREGENERATED.md) на локальному стенді:
+ * Браузерна перевірка PRE-GENERATED AUDIO ONLY (docs/AUDIO_LIBRARY_RU.md) на локальному стенді:
  *  • динамік грає готовий MP3 з /api/audio/<відбиток>/<audio_id>.mp3 (справжній MP3 з ffmpeg у R2 Miniflare);
  *  • 20 повторних натискань — жодного нового мережевого запиту файлу; повторне відкриття застосунку — файл із Cache Storage;
  *  • файлу немає — «Озвучка скоро появится», кнопка приглушена (aria-disabled), повторне натискання без запиту;

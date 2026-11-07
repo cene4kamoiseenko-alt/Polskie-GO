@@ -612,12 +612,12 @@
       "wroclaw"
     ]
   },
-  "updated": "2026-10-27 (Sonnet, этап 2; уроки Katowice, Opole, Wrocław обновлены)",
+  "updated": "2026-10-27 (этап 2; уроки Katowice, Opole, Wrocław обновлены)",
   "pipeline": {
     "masters": "docs/design/a10/cities/city-<slug>.webp — полноразмерные панорамы владельца 1774×887 (2:1). Хранятся отдельно, приложение их не грузит. Меньше рекомендованных 2880×1440: не растягиваются.",
     "build": "node scripts/build-city-art.mjs → apps/web/src/assets/cities/<slug>.webp (1440×720, ≤ 220 КБ) и <slug>@640.webp (640×320, ≤ 60 КБ). Lanczos, без blur, WebP q72–78 по бюджету.",
     "registry": "packages/shared/src/cityArt.ts (CITY_ART); тест apps/server/test/city-art.test.ts звіряє размер, вес, статус и docs/CITY_ART_INVENTORY.md",
     "style": "Premium 2.5D cartoon travel-game environment, cinematic golden-hour lighting, colorful Polish architecture, high detail, vibrant colors, crisp edges",
-    "interim_review": "2026-10-27 (Opus): 10 временных кадров просмотрены по файлам (scripts/lib/image-quality.mjs: полос нет, детали 0,42–0,46 — кадры увеличены и пересвечены резкостью). Новых исходников городов в пакетах владельца нет (V4 — 17 тематических панелей без городов). Ни один город не переведён в final; приоритеты — needed_art.priority (1 — первым)."
+    "interim_review": "2026-10-27: 10 временных кадров просмотрены по файлам (scripts/lib/image-quality.mjs: полос нет, детали 0,42–0,46 — кадры увеличены и пересвечены резкостью). Новых исходников городов в пакетах владельца нет (V4 — 17 тематических панелей без городов). Ни один город не переведён в final; приоритеты — needed_art.priority (1 — первым)."
   }
 }

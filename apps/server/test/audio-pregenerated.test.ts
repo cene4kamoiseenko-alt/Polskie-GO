@@ -1,5 +1,5 @@
 /**
- * PRE-GENERATED AUDIO ONLY (docs/PROMPT_AUDIO_PREGENERATED.md): кнопка динаміка ніколи не викликає ElevenLabs.
+ * PRE-GENERATED AUDIO ONLY (docs/AUDIO_LIBRARY_RU.md): кнопка динаміка ніколи не викликає ElevenLabs.
  * Гравець отримує лише готовий MP3 з R2 через Worker (GET /api/audio/<відбиток>/<audio_id>.mp3): перше й повторні
  * відтворення, повторне відкриття застосунку, відсутній файл — нуль запитів до ElevenLabs. Генерація — лише адмінка
  * (AUDIO_GENERATION_MODE=admin_only), з перевіркою voice_id. Мережа підмінена: будь-який запит до ElevenLabs рахується.

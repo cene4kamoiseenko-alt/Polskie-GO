@@ -38,7 +38,7 @@
 
 - `wrangler deploy --dry-run -c wrangler.staging.jsonc`: привязки — `DB (polski-go-staging)`, `ASSETS`, `ENVIRONMENT=staging`, `TTS_PROVIDER=off`, `STT_PROVIDER=off`, ничего больше.
 - Локальный запуск (`wrangler dev -c wrangler.staging.jsonc --local`, локальная база, миграции 0001–0009 и seed применены): `/api/health` → `"environment":"staging"`, миграция `0009_bot_quiz.sql`, `"bot":null`; `/api/auth/dev` без `DEV_AUTH` → 404; чужой `Origin` не получает CORS; корректно подписанный `initData` с токеном вне `STAGING_BOT_ID` → `401 bot_token_missing`, а с совпавшим `STAGING_BOT_ID` → 200.
-- Повторная проверка 2026-10-27 (Opus, тот же код плюс миграция `0010_tts_spend.sql`). `npm run staging:check` прошёл. `wrangler deploy --dry-run -c wrangler.staging.jsonc` — те же пять привязок. Локальные `d1 migrations apply polski-go-staging --local -c wrangler.staging.jsonc` в отдельную папку применили 0000–0010, повторный запуск ответил «No migrations to apply». После них seed.
+- Повторная проверка 2026-10-27 (тот же код плюс миграция `0010_tts_spend.sql`). `npm run staging:check` прошёл. `wrangler deploy --dry-run -c wrangler.staging.jsonc` — те же пять привязок. Локальные `d1 migrations apply polski-go-staging --local -c wrangler.staging.jsonc` в отдельную папку применили 0000–0010, повторный запуск ответил «No migrations to apply». После них seed.
 
   `wrangler dev` с токеном не из `STAGING_BOT_ID`:
 

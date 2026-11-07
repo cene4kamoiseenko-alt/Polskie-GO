@@ -456,7 +456,7 @@
     "Исправлено 2026-10-27: комментарий о 640×360 в catalog.ts заменён на 1280×720; старые ru/*.jpg удалены."
   ],
   "candidates_not_integrated": "Доски владельца с живыми данными или образцом вопроса (correct-answer, lesson-complete, streak, travel-passport, quick-question) и tg-practice остаются только в docs/design/a10/telegram/. Подключать их можно только после версий без статических чисел.",
-  "updated": "2026-10-27 (Sonnet, этап 1)",
+  "updated": "2026-10-27 (этап 1)",
   "pipeline": {
     "master": "docs/design/a10/telegram/tg-*.webp — полнокадровые доски владельца 1672×941 (16:9). Меньше требуемых 1920×1080: не растягиваются, помечены below_spec.",
     "build": "node scripts/build-bot-images.mjs → apps/web/public/bot/scenes/ru/<сцена>.jpg (1280×720, то, что шлёт sendPhoto) и <сцена>@640.jpg (640×360). Только уменьшение Lanczos, без blur и заливки полос.",
@@ -525,7 +525,7 @@
         "ru"
       ],
       "replaces": "ru/shopping.jpg",
-      "note": "логотип żabka — вопрос прав открыт (Opus)"
+      "note": "логотип żabka — вопрос прав открыт"
     },
     {
       "scene": "food",
@@ -546,12 +546,12 @@
         "ru"
       ],
       "replaces": "ru/transport.jpg",
-      "note": "логотип MPK Wrocław — вопрос прав открыт (Opus)"
+      "note": "логотип MPK Wrocław — вопрос прав открыт"
     }
   ],
   "removed": [
     "apps/web/public/bot/ru/*.jpg (11 файлов): растянутые 640×360 с размытыми полосами и белой каймой; заменены или сняты с использования",
-    "apps/web/public/bot/scenes/stores/biedronka.jpg (+@640): вырезка ~560×316 из коллажа, увеличенная до 1280×720 (детали 0,37 < 0,44). Снята с Telegram 2026-10-27 (Opus): вопрос shop-loyalty у uk / pl / en снова идёт текстом, русский сохраняет доску «Покупки». Источник остаётся в docs/design/a11/stores/.",
+    "apps/web/public/bot/scenes/stores/biedronka.jpg (+@640): вырезка ~560×316 из коллажа, увеличенная до 1280×720 (детали 0,37 < 0,44). Снята с Telegram 2026-10-27: вопрос shop-loyalty у uk / pl / en снова идёт текстом, русский сохраняет доску «Покупки». Источник остаётся в docs/design/a11/stores/.",
     "apps/web/public/bot/commands/profile.jpg: кадр с плашкой «TWOJA SERIA!» на /profile (надпись про серию, а не про профиль). /profile показывает commands/start.jpg до появления сцены профиля; та же плашка остаётся только в напоминании о серии (commands/reminder-streak.jpg), где она верна."
   ],
   "blocked_scenes": [
