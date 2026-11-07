@@ -1,5 +1,5 @@
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 import { db } from '../src/db';
 import { cityRoutes, cosmeticItems, gameWallets, paymentEvents, quests, subscriptions, userInventory, userQuests, users } from '../src/db/schema';
 import { STORY_QUESTS } from '../src/content/gamification';
@@ -109,9 +109,10 @@ describe('Квести', () => {
     const claim = await call('POST', `/api/quests/${st.body.id}/claim`);
     expect(claim.status).toBe(200);
     expect(claim.body.xp).toBe(100);
-    expect(claim.body.item.slug).toBe('scarf-pl');
-    const scarf = await db.select({ n: count() }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(and(eq(userInventory.userId, user.id), eq(cosmeticItems.slug, 'scarf-pl')));
-    expect(scarf[0].n).toBe(1);
+    // Награда — готовый образ «Kibic» (худи и бело-красный шарф), а не отдельная вещь: образ приходит вместе со своим шарфом (источник outfit).
+    expect(claim.body.item.slug).toBe('outfit-hoodie-scarf');
+    const inv = await db.select({ slug: cosmeticItems.slug, source: userInventory.source }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(and(eq(userInventory.userId, user.id), inArray(cosmeticItems.slug, ['outfit-hoodie-scarf', 'scarf-pl'])));
+    expect(inv.sort((a, b) => a.slug.localeCompare(b.slug))).toEqual([{ slug: 'outfit-hoodie-scarf', source: 'quest' }, { slug: 'scarf-pl', source: 'outfit' }]);
   });
 
   it('сюжет закритого міста недоступний', async () => {

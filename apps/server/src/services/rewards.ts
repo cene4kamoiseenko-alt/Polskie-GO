@@ -7,7 +7,8 @@
 import { eq, sql } from 'drizzle-orm';
 import { dayKey, levelFromXp, updateStreak, weekKey } from '@polski-go/shared';
 import { db, type Stmt } from '../db';
-import { dailyActivity, gameWallets, playerProgress, subscriptions, userInventory, userSettings } from '../db/schema';
+import { dailyActivity, gameWallets, playerProgress, subscriptions, userSettings } from '../db/schema';
+import { OUTFITS } from '../content/outfits';
 import { activeSubWhere } from './premium';
 
 export function leagueFor(xpTotal: number): string {
@@ -105,9 +106,17 @@ export function grantZlotki(userId: string, amount: number, reason: string, key:
   };
 }
 
-/** Видати предмет (якщо ще немає — повторна видача ігнорується). */
+/** Речі наборів готових образів: slug образу → slug речей (JSON для json_each у запиті видачі). */
+const OUTFIT_PARTS_JSON = JSON.stringify(Object.fromEntries(OUTFITS.map((o) => [o.slug, o.items])));
+
+/**
+ * Видати предмет (якщо ще немає — повторна видача ігнорується). Готовий образ (слот OUTFIT) видається разом із речами набору: сам рядок образу — з джерелом
+ * нагороди, речі — з джерелом `outfit` (як при купівлі), тож «свій образ» не виводиться з речей, що прийшли в складі іншого образу. Один запит, без зміни викликів.
+ */
 export function grantItem(userId: string, itemId: string, source: string): Stmt {
-  return db.insert(userInventory).values({ userId, itemId, source }).onConflictDoNothing();
+  return db.run(sql`INSERT OR IGNORE INTO user_inventory (user_id, item_id, source)
+    SELECT ${userId}, ci.id, CASE WHEN ci.id = ${itemId} THEN ${source} ELSE 'outfit' END FROM cosmetic_items ci
+    WHERE ci.id = ${itemId} OR ci.slug IN (SELECT j.value FROM json_each(json_extract(${OUTFIT_PARTS_JSON}, '$."' || (SELECT slug FROM cosmetic_items WHERE id = ${itemId}) || '"')) j)`);
 }
 
 export type ActivityInc = Partial<{ lessons: number; exercises: number; correct: number; newWords: number; reviews: number; seconds: number; practiceXp: number }>;

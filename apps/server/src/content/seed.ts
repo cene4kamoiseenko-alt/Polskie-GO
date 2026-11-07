@@ -6,6 +6,7 @@
  */
 import { DEFAULT_REWARDS, type I18n } from '@polski-go/shared';
 import { resetIds } from './builders';
+import { OUTFIT_BY_SLUG } from './outfits';
 import { CONTINUATION_TEXT_FIXES } from './continuation-fixes';
 import { EXERCISE_FIXES } from './exercise-fixes';
 import { LESSON_EDITS, TASK_EDITS } from './task-edits';
@@ -44,10 +45,14 @@ const LATE_CITY_REWARDS: [string, string][] = [['wroclaw', 'costume-krasnal'], [
  * (правку в админке не трогаем). Кто уже получил достижение или забрал квест, получает и новый предмет; прежний остаётся у него.
  */
 const REWARD_REBIND: ['achievements' | 'quests', string, string | null, string][] = [
-  ['achievements', 'streak-7', 'glasses-sun', 'cap-red'],
-  ['achievements', 'city-3', 'backpack-map', 'jacket-denim'],
+  ['achievements', 'streak-7', 'glasses-sun', 'outfit-hoodie-cap'],
+  ['achievements', 'streak-7', 'cap-red', 'outfit-hoodie-cap'],
+  ['achievements', 'city-3', 'backpack-map', 'outfit-denim-cap'],
+  ['achievements', 'city-3', 'jacket-denim', 'outfit-denim-cap'],
+  ['achievements', 'perfect-10', 'glasses-round', 'outfit-hoodie-glasses'],
   ['achievements', 'sezon-swieta', null, 'costume-winter'],
   ['quests', 's-krakow-mieszkanie', 'rug-red', 'obwarzanek'],
+  ['quests', 's-warszawa-dworzec', 'scarf-pl', 'outfit-hoodie-scarf'],
 ];
 /** Переименования предметов: [slug, прежнее название по-русски (охрана), новое название]. */
 const ITEM_RENAMES: [string, string, I18n][] = [['costume-conductor', 'Костюм проводника', { uk: 'Костюм пілота', ru: 'Костюм пилота', en: 'Pilot uniform' }]];
@@ -351,6 +356,16 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
         ? `INSERT INTO user_inventory (user_id, item_id, source) SELECT ua.user_id, ci.id, 'achievement' FROM user_achievements ua JOIN achievements a ON a.id = ua.achievement_id JOIN cosmetic_items ci ON ci.slug = ${lit(to)} WHERE a.slug = ${lit(slug)} AND a.reward_item_id = ci.id ON CONFLICT DO NOTHING;`
         : `INSERT INTO user_inventory (user_id, item_id, source) SELECT uq.user_id, ci.id, 'quest' FROM user_quests uq JOIN quests q ON q.id = uq.quest_id JOIN cosmetic_items ci ON ci.slug = ${lit(to)} WHERE q.slug = ${lit(slug)} AND uq.status = 'CLAIMED' AND q.reward_item_id = ci.id ON CONFLICT DO NOTHING;`,
     );
+    // Готовый образ приходит с вещами набора (источник `outfit`, как при покупке): тем, кто уже получил награду.
+    const parts = OUTFIT_BY_SLUG.get(to)?.items;
+    if (parts?.length) {
+      const list = parts.map((p) => lit(p)).join(', ');
+      out.push(
+        table === 'achievements'
+          ? `INSERT INTO user_inventory (user_id, item_id, source) SELECT ua.user_id, part.id, 'outfit' FROM user_achievements ua JOIN achievements a ON a.id = ua.achievement_id JOIN cosmetic_items ci ON ci.id = a.reward_item_id JOIN cosmetic_items part ON part.slug IN (${list}) WHERE a.slug = ${lit(slug)} AND ci.slug = ${lit(to)} ON CONFLICT DO NOTHING;`
+          : `INSERT INTO user_inventory (user_id, item_id, source) SELECT uq.user_id, part.id, 'outfit' FROM user_quests uq JOIN quests q ON q.id = uq.quest_id JOIN cosmetic_items ci ON ci.id = q.reward_item_id JOIN cosmetic_items part ON part.slug IN (${list}) WHERE q.slug = ${lit(slug)} AND uq.status = 'CLAIMED' AND ci.slug = ${lit(to)} ON CONFLICT DO NOTHING;`,
+      );
+    }
   }
 
   // ── Нагороди, додані пізніше: видаємо тим, хто вже виконав умову (ідемпотентно, без зміни інших предметів) ──

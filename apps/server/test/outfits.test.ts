@@ -9,7 +9,7 @@ import { db } from '../src/db';
 import { cosmeticItems, gameWallets, userInventory, walletTransactions } from '../src/db/schema';
 import { ACHIEVEMENTS, CITY_REWARDS, COSTUME_PRICES, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from '../src/content/gamification';
 import { MISSIONS } from '../src/content/missions';
-import { OUTFITS, RETIRED_LOOKS, STARTER_OUTFIT } from '../src/content/outfits';
+import { OUTFITS, OUTFIT_BY_SLUG, RETIRED_LOOKS, STARTER_OUTFIT } from '../src/content/outfits';
 import { buildSeedSql } from '../src/content/seed';
 import { disposeEnv, login } from './helpers';
 
@@ -98,12 +98,16 @@ describe('Перепривязка наград (2026-11-04)', () => {
     await db.run(dsql.raw(`UPDATE cosmetic_items SET name = '{"uk":"Костюм провідника","ru":"Костюм проводника","en":"Train conductor outfit"}' WHERE slug = 'costume-conductor'`));
     const sql = buildSeedSql({ force: false });
     const fix = sql.filter((s) => /^UPDATE (achievements|quests|cosmetic_items) SET (reward_item_id|name)/.test(s) || /FROM user_(achievements|quests) /.test(s));
-    expect(fix.length).toBeGreaterThanOrEqual(9);
+    expect(fix.length).toBeGreaterThanOrEqual(15);
     for (let k = 0; k < 2; k++) await run(fix);
     const ach = (await db.run(dsql.raw(`SELECT ci.slug FROM achievements a JOIN cosmetic_items ci ON ci.id = a.reward_item_id WHERE a.slug = 'streak-7'`))) as unknown as { results: { slug: string }[] };
-    expect(ach.results[0].slug).toBe('cap-red');
+    // Цепочка: очки → красная кепка (2026-11-04) → готовый образ «Na luzie» (2026-11-07). Образ приходит вместе с кепкой (источник outfit), прежняя награда остаётся.
+    expect(ach.results[0].slug).toBe('outfit-hoodie-cap');
     const inv = await db.select({ slug: cosmeticItems.slug, source: userInventory.source }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(eq(userInventory.userId, user.id));
-    expect(inv.filter((i) => i.slug === 'cap-red')).toEqual([{ slug: 'cap-red', source: 'achievement' }]);
+    expect(inv.filter((i) => ['cap-red', 'outfit-hoodie-cap'].includes(i.slug)).sort((a, b) => a.slug.localeCompare(b.slug))).toEqual([
+      { slug: 'cap-red', source: 'outfit' },
+      { slug: 'outfit-hoodie-cap', source: 'achievement' },
+    ]);
     const name = (await db.select({ name: cosmeticItems.name }).from(cosmeticItems).where(eq(cosmeticItems.slug, 'costume-conductor')))[0].name as { ru: string };
     expect(name.ru).toBe('Костюм пилота');
     // Правка в админке не перетирается: другое название и другая награда остаются.
@@ -125,7 +129,13 @@ describe('Перепривязка наград (2026-11-04)', () => {
     for (const slug of slugs) {
       const it = ITEMS.find((i) => i.slug === slug)!;
       expect(it, slug).toBeTruthy();
+      // Отдельные вещи (кепка, очки, куртка, шарф) наградой не выдаются: только костюм, готовый образ или сувенир города (владелец 2026-11-07).
+      expect(['COSTUME', 'OUTFIT', 'SOUVENIR'], `${slug}: награда — не готовый костюм или образ`).toContain(it.slot);
       if (it.slot === 'SOUVENIR') continue;
+      if (it.slot === 'OUTFIT') {
+        expect(OUTFIT_BY_SLUG.has(slug), slug).toBe(true);
+        continue;
+      }
       expect(findLookItem(slug)?.status, slug).not.toBe('pending');
     }
     expect(MISSIONS.find((m) => m.slug === 'lotnisko-lot')!.rewardItem).toBe('costume-conductor');
