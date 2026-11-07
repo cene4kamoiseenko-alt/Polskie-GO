@@ -14,6 +14,7 @@ import { t } from './builders';
 import { SEASON_MISSIONS } from './seasons';
 import { PREMIUM_MISSIONS } from './missions-premium';
 import { withSecondScenes } from './mission-scenes';
+import { hardenTwoAnswerSteps } from './mission-hardening';
 
 export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean };
 export type MissionOption = { pl?: string; text?: I18n; ok: boolean; why?: I18n };
@@ -1033,5 +1034,7 @@ export const MISSIONS_SOON: { slug: string; category: MissionCategory; scene: st
 MISSIONS.push(...PREMIUM_MISSIONS, ...SEASON_MISSIONS);
 /** Вторые сцены (2026-11-02, docs/MISSIONS_LONG.md): обычные миссии и «Ноябрь в Познани» — ~10 минут; шаги в конец, массив тот же (на него ссылаются по импорту). */
 MISSIONS.splice(0, MISSIONS.length, ...withSecondScenes(MISSIONS));
+/** Шаги с двумя верными ответами (2026-11-07): к ним добавлен ещё один правдоподобный неверный вариант, подсказки не называют ответ (content/mission-hardening.ts). */
+MISSIONS.splice(0, MISSIONS.length, ...hardenTwoAnswerSteps(MISSIONS));
 
 export const missionBySlug = (slug: string) => MISSIONS.find((m) => m.slug === slug);
