@@ -4,11 +4,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import { normalize } from '@polski-go/shared';
-import { MISSIONS } from '../src/content/missions';
+import { MISSIONS, type MissionOption } from '../src/content/missions';
 import { TWO_ANSWER_PATCHES, hardenTwoAnswerSteps } from '../src/content/mission-hardening';
 
 const steps = MISSIONS.flatMap((m) => m.steps.filter((s) => s.kind !== 'build' && s.options!.filter((o) => o.ok).length >= 2).map((s) => ({ key: `${m.slug}/${s.id}`, step: s })));
-const text = (o: { pl?: string; text?: { ru: string } }) => o.pl ?? o.text?.ru ?? '';
+const text = (o: MissionOption) => o.pl ?? o.text?.ru ?? '';
 const words = (s: string) => normalize(s).split(' ').filter((w) => w.length >= 5);
 
 describe('миссии: шаги с двумя верными ответами', () => {
@@ -46,7 +46,7 @@ describe('миссии: шаги с двумя верными ответами',
         step.options!.filter((o) => o.ok).flatMap((o) => words(text(o))).filter((w) => !step.options!.filter((x) => !x.ok).some((x) => words(text(x)).includes(w))),
       );
       for (const lang of ['uk', 'ru', 'en'] as const) {
-        const hint = words(patch.hint![lang]);
+        const hint = words(patch.hint![lang] ?? '');
         for (const w of onlyRight) expect(hint, `${key} [${lang}]: подсказка называет «${w}»`).not.toContain(w);
       }
     }

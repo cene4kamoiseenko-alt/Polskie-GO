@@ -4,7 +4,7 @@
  * WORD_ORDER из базы).
  */
 import { afterAll, describe, expect, it } from 'vitest';
-import { checkAnswer, normalize, ORDER_SPEC_KEYS, orderTokens, orderVariants, type ExerciseItem, type OrderData } from '@polski-go/shared';
+import { checkAnswer, normalize, orderSpecAnswers, orderTokens, orderVariants, type ExerciseItem, type OrderData } from '@polski-go/shared';
 import { MISSIONS, type MissionStep } from '../src/content/missions';
 import { acceptedPhrases, bankTokens, buildWhy, tokensOf } from '../src/services/missions';
 import { resetRateLimits } from '../src/hono';
@@ -119,10 +119,10 @@ describe('уроки: BUILD_SENTENCE и WORD_ORDER', () => {
     const items = await lessonOrderItems();
     expect(items.length).toBe(106);
     const answers = new Set([...items.map((i) => normalize((i.data as OrderData).answer.join(' '))), ...builds.map(({ step }) => normalize(tokensOf(step.answer!).join(' ')))]);
-    const orphan = ORDER_SPEC_KEYS.filter((k) => !answers.has(k));
+    const orphan = orderSpecAnswers().filter((k) => !answers.has(k));
     expect(orphan, `Записи без задания:\n${orphan.join('\n')}`).toEqual([]);
     const lessonKeys = new Set(items.map((i) => normalize((i.data as OrderData).answer.join(' '))));
-    expect(ORDER_SPEC_KEYS.filter((k) => lessonKeys.has(k)).length).toBeGreaterThan(55);
+    expect(orderSpecAnswers().filter((k) => lessonKeys.has(k)).length).toBeGreaterThan(55);
   });
 
   it('все допустимые порядки собираются из плашек задания и засчитываются; неверная перестановка — нет', async () => {

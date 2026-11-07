@@ -105,7 +105,7 @@ export function expandOrderSpec(spec: string): string[] {
  * сочинённые части («X i Y» — любая первой), обстоятельства времени и места в начале, середине или конце, «się» / «mi» / «tu» рядом с глаголом,
  * дополнение перед глаголом. Предложения, где перестановка меняет смысл (порядок действий, «вчера холоднее, чем сегодня»), сюда не попадают.
  */
-const ORDER_SPEC_LIST: [answer: string, specs: string[]][] = [
+const specList = (): [answer: string, specs: string[]][] => [
   // ───────── Миссии ─────────
   ['Poproszę hot doga i wodę', ['Poproszę [hot doga] i [wodę]', '[Hot doga] i [wodę] poproszę']],
   ['Czy mogę tu kupić bilet na tramwaj', ['Czy [mogę] [tu] kupić bilet na tramwaj', 'Czy mogę kupić tu bilet na tramwaj']],
@@ -247,9 +247,16 @@ const ORDER_SPEC_LIST: [answer: string, specs: string[]][] = [
   ['W niedzielę jestem u babci', ['Jestem [w niedzielę] [u babci]']],
 ];
 
-/** Записи по ключу `normalize(ответ)`; один ключ — одна запись (повтор в таблице — ошибка, её ловит тест). */
-export const ORDER_SPECS: ReadonlyMap<string, readonly string[]> = new Map(ORDER_SPEC_LIST.map(([answer, specs]) => [normalize(answer), specs]));
-export const ORDER_SPEC_KEYS = ORDER_SPEC_LIST.map(([answer]) => normalize(answer));
+/**
+ * Записи по ключу `normalize(ответ)`. Таблица строится при первом обращении, а не при загрузке модуля: клиент (мини-приложение) её не использует,
+ * и при загрузке модуля она не должна попадать в его бандл (бюджет JS, scripts/perf.ts).
+ */
+let table: Map<string, readonly string[]> | null = null;
+export function orderSpecs(): ReadonlyMap<string, readonly string[]> {
+  return (table ??= new Map(specList().map(([answer, specs]) => [normalize(answer), specs])));
+}
+/** Ключи в порядке таблицы, с повторами, если они есть (повтор — ошибка, её ловит тест). */
+export const orderSpecAnswers = (): string[] => specList().map(([answer]) => normalize(answer));
 
 const cache = new Map<string, string[]>();
 
@@ -261,7 +268,7 @@ export function orderVariants(answer: string | readonly string[]): string[] {
   const key = normalize(typeof answer === 'string' ? answer : answer.join(' '));
   const hit = cache.get(key);
   if (hit) return hit;
-  const specs = ORDER_SPECS.get(key);
+  const specs = orderSpecs().get(key);
   const own = new Set([key]);
   const out: string[] = [];
   for (const spec of specs ?? []) {

@@ -5,8 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAX_ORDER_VARIANTS,
-  ORDER_SPECS,
-  ORDER_SPEC_KEYS,
+  orderSpecAnswers,
+  orderSpecs,
   checkAnswer,
   diagnoseOrder,
   expandOrderSpec,
@@ -46,12 +46,12 @@ describe('запись допустимых порядков', () => {
 
 describe('таблица ORDER_SPECS', () => {
   it('ключи не повторяются', () => {
-    expect(new Set(ORDER_SPEC_KEYS).size).toBe(ORDER_SPEC_KEYS.length);
-    expect(ORDER_SPEC_KEYS.length).toBeGreaterThan(100);
+    expect(new Set(orderSpecAnswers()).size).toBe(orderSpecAnswers().length);
+    expect(orderSpecAnswers().length).toBeGreaterThan(100);
   });
 
   it('каждая запись раскрывается в перестановки слов ответа: ни одно слово не потеряно, не добавлено и не изменено (без необязательных)', () => {
-    for (const [key, specs] of ORDER_SPECS) {
+    for (const [key, specs] of orderSpecs()) {
       for (const spec of specs) {
         const required = spec.replace(/\([^)]*\)/g, ' ');
         for (const phrase of expandOrderSpec(required)) expect(bag(phrase), `«${key}»: ${spec} → ${phrase}`).toEqual(bag(key));
@@ -66,7 +66,7 @@ describe('таблица ORDER_SPECS', () => {
   });
 
   it('варианты ответа не содержат сам ответ и не повторяются', () => {
-    for (const key of ORDER_SPEC_KEYS) {
+    for (const key of orderSpecAnswers()) {
       const out = orderVariants(key).map((v) => normalize(v));
       expect(out, key).not.toContain(key);
       expect(new Set(out).size, key).toBe(out.length);
