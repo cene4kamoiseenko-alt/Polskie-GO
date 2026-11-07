@@ -138,6 +138,11 @@ async function main() {
       const wearBefore = Object.keys((await u.call('GET', '/api/me')).body.outfit.wear).sort().join();
       check(wearBefore === 'GLASSES,HAT', `${tag}: надет «Miejski luzak» (${wearBefore})`);
       await u.open('rewards');
+      // «Miejski luzak» (худи + кепка + очки): картинка позы wave с «призраком» на лице (мастер 09) заменена чистой open — на сцене именно она
+      // (владелец 2026-11-07: «поплыла моделька»).
+      const luzakSrc = (await u.page.locator('.wardrobe-stage img').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).currentSrc || (e as HTMLImageElement).src).join(' '))) as string;
+      check(/hoodie-cap-glasses_open/.test(luzakSrc) && !/hoodie-cap-glasses_wave/.test(luzakSrc), `${tag}: на сцене «Miejski luzak» — чистая картинка open, а не битая wave (${luzakSrc.split('/').pop()?.slice(0, 60)})`);
+      await u.page.screenshot({ path: `${OUT}/luzak-worn-390.png` });
       const traveller = u.page.locator('article.costume-card').first();
       check(!((await traveller.getAttribute('class')) ?? '').includes('is-equipped'), `${tag}: «Путешественник» не помечен надетым, пока надет другой образ`);
       await traveller.getByRole('button', { name: 'Примерить' }).click();
