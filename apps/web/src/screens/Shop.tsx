@@ -76,6 +76,8 @@ function DressingRoom() {
         <linearGradient id="dr-spot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF4D6" stopOpacity="0.35" /><stop offset="1" stopColor="#FFF4D6" stopOpacity="0" /></linearGradient>
       </defs>
       <rect width="390" height="300" fill="url(#dr-glow)" />
+      {/* пол: рисуется ДО подиума — раньше лежал поверх и срезал нижнюю часть подиума ровной чертой (скриншоты владельца 2026-11-07) */}
+      <rect x="0" y="262" width="390" height="38" fill="#0A1A30" />
       {/* арка */}
       <path d="M118 236 V108 a77 77 0 0 1 154 0 V236 Z" fill="url(#dr-arch)" stroke="#6E9AD8" strokeOpacity="0.5" strokeWidth="3" />
       <path d="M136 236 V112 a59 59 0 0 1 118 0 V236" fill="none" stroke="#9CC4FF" strokeOpacity="0.25" strokeWidth="2" />
@@ -103,7 +105,6 @@ function DressingRoom() {
       <ellipse cx="195" cy="256" rx="118" ry="26" fill="#0A1C36" opacity="0.7" />
       <ellipse cx="195" cy="246" rx="112" ry="22" fill="url(#dr-ped)" stroke="#6FB8FF" strokeWidth="3" style={{ filter: 'drop-shadow(0 0 10px rgba(54,185,255,0.75))' }} />
       <ellipse cx="195" cy="242" rx="96" ry="15" fill="#2C4A72" opacity="0.8" />
-      <rect x="0" y="262" width="390" height="38" fill="#0A1A30" />
     </svg>
   );
 }

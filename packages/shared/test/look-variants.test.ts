@@ -49,7 +49,8 @@ describe('готовые образы: таблица', () => {
     const keys = grid().map((v) => v.items.join('+'));
     expect(new Set(keys).size).toBe(16);
     expect(new Set(keys)).toEqual(new Set(subsets(AXES).map((s) => [...s].sort().join('+'))));
-    for (const v of LOOK_VARIANTS.list) expect(v.images.wave, v.id).toBe(`variants/${v.id}_wave`);
+    // Единственное исключение — «Miejski luzak» (худи + кепка + очки): мастер 09 с «призраком» на лице не используется, поза wave показывает чистую open.
+    for (const v of LOOK_VARIANTS.list) expect(v.images.wave, v.id).toBe(v.id === 'hoodie-cap-glasses' ? 'variants/hoodie-cap-glasses_open' : `variants/${v.id}_wave`);
     expect(LOOK_VARIANTS.list.filter((v) => v.images.open).map((v) => v.id).sort()).toEqual([
       'hoodie', 'hoodie-cap', 'hoodie-cap-glasses', 'hoodie-cap-glasses-scarf-pack', 'hoodie-glasses', 'hoodie-glasses-scarf', 'hoodie-pack', 'hoodie-scarf',
     ]);

@@ -72,9 +72,16 @@ const JACKET_SETS: readonly JacketSet[] = [
 const nameOf = (items: readonly string[], hoodie: boolean) =>
   [...(hoodie ? ['hoodie'] : []), ...PRIORITY.filter((id) => items.includes(id)).map((id) => SHORT[id])].join('-');
 
+/**
+ * Образы, у которых поза `wave` (мастер 09) нарисована с дефектом: «призрак» на щеке и у козырька, лицо «плывёт» (владелец 2026-11-07: «поплыла
+ * моделька, сделай нормальной либо удали»). Чистой версии нет, поэтому вместо неё показывается чистая поза `open` (мастер 29, 1024 px); картинка
+ * `_wave` удалена, мастер 09 лежит в `docs/design/v18/bobek31/held/`. Когда придёт чистая версия — убрать образ из списка и вернуть файлы.
+ */
+const WAVE_IS_OPEN: ReadonlySet<string> = new Set(['hoodie-cap-glasses']);
+
 function variant(items: readonly string[], hoodie = true): LookVariant {
   const id = nameOf(items, hoodie);
-  const images: Partial<Record<LookVariantPose, string>> = { wave: `variants/${id}_wave` };
+  const images: Partial<Record<LookVariantPose, string>> = { wave: `variants/${id}_${WAVE_IS_OPEN.has(id) && HAS_OPEN.has(id) ? 'open' : 'wave'}` };
   if (HAS_OPEN.has(id)) images.open = `variants/${id}_open`;
   return { id, items: [...items].sort(), images };
 }
