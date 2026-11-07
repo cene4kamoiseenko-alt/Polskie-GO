@@ -1,0 +1,67 @@
+# Ночная резервная копия production-базы D1 (docs/OPERATIONS_RU.md, раздел «Резервные копии»). Дополняет Time Travel Cloudflare
+# (на бесплатном плане — 7 дней): копия хранится 30 дней как артефакт GitHub, зашифрованная паролем (в базе — данные игроков).
+#
+# Нужно один раз (владелец): GitHub → Settings → Environments → создать «production-backup» и добавить секреты
+#   CLOUDFLARE_API_TOKEN  — токен с правом «D1: Edit» (экспорт — операция записи в API) только для этого аккаунта;
+#   CLOUDFLARE_ACCOUNT_ID — id аккаунта Cloudflare;
+#   BACKUP_PASSPHRASE     — длинный пароль шифрования (хранить вне GitHub: без него копию не открыть).
+# Пока секретов нет, задача завершается с предупреждением и ничего не делает (не падает каждую ночь).
+# Экспорт D1 на время выгрузки блокирует запросы к базе (секунды при нынешнем объёме) — поэтому ночью по Варшаве.
+# Файл не запускался из среды разработки: проверьте его первым ручным запуском (Actions → D1 backup → Run workflow).
+name: D1 backup (nightly)
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d1-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: production-backup
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Secrets present?
+        id: check
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning::Секреты production-backup не заданы — резервная копия не сделана (docs/OPERATIONS_RU.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+      - name: Export D1 (production)
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%MZ)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          npx --yes wrangler@4.152.0 d1 export polski-go --remote --output "polski-go-$STAMP.sql"
+          test -s "polski-go-$STAMP.sql"
+          echo "Строк INSERT: $(grep -c '^INSERT' "polski-go-$STAMP.sql")"
+          gzip -9 "polski-go-$STAMP.sql"
+          gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" \
+            --output "polski-go-$STAMP.sql.gz.gpg" "polski-go-$STAMP.sql.gz"
+          rm "polski-go-$STAMP.sql.gz"
+          ls -la
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          name: d1-backup-${{ env.STAMP }}
+          path: polski-go-*.sql.gz.gpg
+          retention-days: 30
+          if-no-files-found: error

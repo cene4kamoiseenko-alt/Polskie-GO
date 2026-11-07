@@ -4,7 +4,7 @@
  * З `force: true` оновлює існуючий контент з репозиторію.
  * Зв'язки задаються підзапитами за slug, тож seed працює і з рядками, створеними в адмінці.
  */
-import { DEFAULT_REWARDS } from '@polski-go/shared';
+import { DEFAULT_REWARDS, type I18n } from '@polski-go/shared';
 import { resetIds } from './builders';
 import { CONTINUATION_TEXT_FIXES } from './continuation-fixes';
 import { EXERCISE_FIXES } from './exercise-fixes';
@@ -37,7 +37,20 @@ export const PRE_STANDARD_CONTENT: CityContent[] = CITY_PLANS.map(([full]) => fu
 /** Предмети, що перейшли в слот COSTUME, і їхній колишній слот (2026-11-04). */
 const RESLOTTED_TO_COSTUME: [string, string][] = [['hat-krasnal', 'HAT'], ['vest-krakowiak', 'JACKET'], ['obwarzanek', 'ACCESSORY']];
 /** Нагороди за іспит міста, додані після запуску: [місто, предмет]. Ті, хто вже склав іспит, теж їх отримують. */
-const LATE_CITY_REWARDS: [string, string][] = [['wroclaw', 'costume-krasnal']];
+const LATE_CITY_REWARDS: [string, string][] = [['wroclaw', 'costume-krasnal'], ['lodz', 'costume-artist'], ['zakopane', 'costume-puffer']];
+/**
+ * Перепривязка наград (2026-11-04, «скины поперепривязывай под своё видение»): [таблица, slug, прежний предмет | null, новый предмет].
+ * Невидимые награды (вещи без картинки, ковёр после удаления интерьера) заменены видимыми; на проде — только там, где в БД ещё прежний предмет
+ * (правку в админке не трогаем). Кто уже получил достижение или забрал квест, получает и новый предмет; прежний остаётся у него.
+ */
+const REWARD_REBIND: ['achievements' | 'quests', string, string | null, string][] = [
+  ['achievements', 'streak-7', 'glasses-sun', 'cap-red'],
+  ['achievements', 'city-3', 'backpack-map', 'jacket-denim'],
+  ['achievements', 'sezon-swieta', null, 'costume-winter'],
+  ['quests', 's-krakow-mieszkanie', 'rug-red', 'obwarzanek'],
+];
+/** Переименования предметов: [slug, прежнее название по-русски (охрана), новое название]. */
+const ITEM_RENAMES: [string, string, I18n][] = [['costume-conductor', 'Костюм проводника', { uk: 'Костюм пілота', ru: 'Костюм пилота', en: 'Pilot uniform' }]];
 
 type Value = string | number | boolean | null | undefined | object | Raw;
 class Raw {
@@ -325,6 +338,19 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
   for (const [slug, from] of RESLOTTED_TO_COSTUME) {
     out.push(`UPDATE user_inventory SET equipped = 0 WHERE equipped = 1 AND item_id IN (SELECT id FROM cosmetic_items WHERE slug = ${lit(slug)} AND slot = ${lit(from)});`);
     out.push(`UPDATE cosmetic_items SET slot = 'COSTUME' WHERE slug = ${lit(slug)} AND slot = ${lit(from)};`);
+  }
+
+  for (const [slug, oldRu, name] of ITEM_RENAMES) {
+    out.push(`UPDATE cosmetic_items SET name = ${lit(name)} WHERE slug = ${lit(slug)} AND json_extract(name, '$.ru') = ${lit(oldRu)};`);
+  }
+  for (const [table, slug, from, to] of REWARD_REBIND) {
+    const item = (s: string) => `(SELECT id FROM cosmetic_items WHERE slug = ${lit(s)})`;
+    out.push(`UPDATE ${table} SET reward_item_id = ${item(to)} WHERE slug = ${lit(slug)} AND ${from ? `reward_item_id = ${item(from)}` : 'reward_item_id IS NULL'};`);
+    out.push(
+      table === 'achievements'
+        ? `INSERT INTO user_inventory (user_id, item_id, source) SELECT ua.user_id, ci.id, 'achievement' FROM user_achievements ua JOIN achievements a ON a.id = ua.achievement_id JOIN cosmetic_items ci ON ci.slug = ${lit(to)} WHERE a.slug = ${lit(slug)} AND a.reward_item_id = ci.id ON CONFLICT DO NOTHING;`
+        : `INSERT INTO user_inventory (user_id, item_id, source) SELECT uq.user_id, ci.id, 'quest' FROM user_quests uq JOIN quests q ON q.id = uq.quest_id JOIN cosmetic_items ci ON ci.slug = ${lit(to)} WHERE q.slug = ${lit(slug)} AND uq.status = 'CLAIMED' AND q.reward_item_id = ci.id ON CONFLICT DO NOTHING;`,
+    );
   }
 
   // ── Нагороди, додані пізніше: видаємо тим, хто вже виконав умову (ідемпотентно, без зміни інших предметів) ──

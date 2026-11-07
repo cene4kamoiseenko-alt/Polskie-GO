@@ -64,7 +64,7 @@ type Preparable = { _prepare(): { getQuery(): { sql: string; params: unknown[] }
  */
 export async function atomic(stmts: (Stmt | null | undefined | false)[]) {
   const list = stmts.filter(Boolean) as Stmt[];
-  if (!list.length) return;
+  if (!list.length) return [] as D1Result[];
   if (!bound) throw new Error('Database is not bound');
   const d1 = bound;
   const prepared = list.map((q) => {
@@ -72,7 +72,9 @@ export async function atomic(stmts: (Stmt | null | undefined | false)[]) {
     return d1.prepare(sql).bind(...params);
   });
   try {
-    await d1.batch(prepared);
+    // Результаты по порядку запросов: `meta.changes` показывает, записала ли строки именно эта операция (нужно, чтобы отличить
+    // выигравшего гонку двойного нажатия от проигравшего: INSERT OR IGNORE / UPDATE … WHERE NOT EXISTS у проигравшего даёт 0).
+    return await d1.batch(prepared);
   } catch (e) {
     throw mapDbError(e);
   }

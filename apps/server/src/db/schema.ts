@@ -730,6 +730,28 @@ export const audioAssets = sqliteTable(
  * Тексти, яких клієнт попросив, а готового файлу в бібліотеці не знайшлося (режим бібліотеки синтез не викликає).
  * Звідси видно нові чи змінені тексти й те, що озвучувати не передбачено (відповіді ШІ-репетитора).
  */
+/**
+ * Журнал ошибок (2026-11-04, эксплуатация): падения сервера (500), ошибки Mini App у игроков и нарушения CSP (режим Report-Only).
+ * Одна строка = одна ошибка за день: `id` = день + отпечаток (вид, сообщение, место), повтор увеличивает `count`. Хранится 30 дней (cron).
+ * Админка показывает последние сутки (`/api/admin/dashboard` → appErrors). Без персональных данных: ни id игрока, ни initData, ни тела запроса.
+ */
+export const errorLog = sqliteTable(
+  'error_log',
+  {
+    id: text('id').primaryKey(),
+    day: text('day').notNull(),
+    kind: text('kind', { enum: ['server', 'client', 'csp'] }).notNull(),
+    message: text('message').notNull(),
+    detail: text('detail'),
+    path: text('path'),
+    release: text('release'),
+    count: integer('count').notNull().default(1),
+    firstAt: integer('first_at').notNull(),
+    lastAt: integer('last_at').notNull(),
+  },
+  (t) => [index('error_log_day_idx').on(t.day, t.lastAt)],
+);
+
 export const audioMisses = sqliteTable('audio_misses', {
   unitId: text('unit_id').primaryKey(),
   text: text('text').notNull(),

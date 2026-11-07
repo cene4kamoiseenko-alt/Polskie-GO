@@ -43,7 +43,6 @@ export async function getEnv() {
     TELEGRAM_BOT_TOKEN: BOT_TOKEN,
     TELEGRAM_WEBHOOK_SECRET: 'hook-secret',
     DEV_AUTH: 'false',
-    ANTHROPIC_API_KEY: '',
     ADMIN_EMAIL: 'admin@test.dev',
     ADMIN_PASSWORD: 'admin-password-123',
   };

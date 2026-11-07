@@ -295,15 +295,11 @@ describe('Premium через Telegram Stars', () => {
     expect(days).toBeLessThan(93);
   });
 
-  it('AI: Premium-режими захищені, ліміт Free діє, без ключа — обмежений режим', async () => {
+  it('ИИ-репетитор убран (2026-11-04): маршрутов нет, в профиле нет поля ai', async () => {
     const { call } = await login();
-    expect((await call('POST', '/api/ai/message', { mode: 'roleplay', scene: 'cafe', text: 'Dzień dobry' })).body.error).toBe('premium_required');
-    const r = await call('POST', '/api/ai/message', { mode: 'chat', text: 'kot i pies' });
-    expect(r.status).toBe(200);
-    expect(r.body.offline).toBe(true);
-    expect(r.body.reply).toContain('kot');
-    for (let i = 1; i < 10; i++) await call('POST', '/api/ai/message', { mode: 'chat', text: 'cześć', conversationId: r.body.conversationId });
-    expect((await call('POST', '/api/ai/message', { mode: 'chat', text: 'cześć' })).body.error).toBe('ai_limit_reached');
+    expect((await call('POST', '/api/ai/message', { mode: 'chat', text: 'cześć' })).status).toBe(404);
+    expect((await call('GET', '/api/ai/conversations')).status).toBe(404);
+    expect((await call('GET', '/api/me')).body.ai).toBeUndefined();
   });
 });
 

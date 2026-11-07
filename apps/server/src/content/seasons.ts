@@ -11,6 +11,9 @@
 import type { I18n } from '@polski-go/shared';
 import { t } from './builders';
 import type { Mission, MissionLine, MissionOption, MissionStep } from './missions';
+import { withSwietaScenes } from './mission-scenes-swieta';
+import { KARNAWAL, WALENTYNKI, WIELKANOC } from './seasons-2027-a';
+import { MAJOWKA, WIANKI, WIOSNA } from './seasons-2027-b';
 
 export type Season = {
   slug: string;
@@ -620,7 +623,8 @@ const PARK: Mission[] = [
   },
 ];
 
-export const SEASON_MISSIONS: Mission[] = [...MARCIN, ...SWIETA, ...PARK];
+// «Польское Рождество» — по ~20 минут (две сцены в конце каждой миссии, mission-scenes-swieta.ts; владелец 2026-11-04).
+export const SEASON_MISSIONS: Mission[] = [...MARCIN, ...withSwietaScenes(SWIETA), ...KARNAWAL, ...WALENTYNKI, ...WIELKANOC, ...WIOSNA, ...MAJOWKA, ...WIANKI, ...PARK];
 
 export const SEASONS: Season[] = [
   {
@@ -634,6 +638,43 @@ export const SEASONS: Season[] = [
     title: t('Польське Різдво', 'Польское Рождество', 'Christmas in Poland'),
     tagline: t('Ярмарок у Кракові, Вігілія та Сильвестр.', 'Ярмарка в Кракове, Вигилия и Сильвестр.', 'Kraków’s Christmas market, Wigilia and New Year’s Eve.'),
     missions: SWIETA.map((m) => m.slug), achievement: 'sezon-swieta',
+  },
+  // Январь–июнь 2027 (владелец 2026-11-04: «с января по июнь можно добавить миссии»): seasons-2027-a.ts, seasons-2027-b.ts.
+  {
+    slug: 'karnawal', start: '2027-01-01', end: '2027-01-31', city: 'warszawa', scene: 'bakery', color: '#D6457A',
+    title: t('Карнавал і пончики', 'Карнавал и пончики', 'Carnival and pączki'),
+    tagline: t('Пончики на Жирний четвер, хода Трьох Королів і День бабусі.', 'Пончики на Жирный четверг, шествие Трёх Королей и День бабушки.', 'Pączki for Fat Thursday, the Three Kings parade and Grandma’s Day.'),
+    missions: KARNAWAL.map((m) => m.slug), achievement: 'sezon-karnawal',
+  },
+  {
+    slug: 'walentynki', start: '2027-02-01', end: '2027-02-28', city: 'wroclaw', scene: 'gift-shop', color: '#E0245E',
+    title: t('Валентинів день у Вроцлаві', 'День Валентина во Вроцлаве', 'Valentine’s in Wrocław'),
+    tagline: t('Квіти, вечеря на двох і замочок на Тумському мосту.', 'Цветы, ужин на двоих и замочек на Тумском мосту.', 'Flowers, dinner for two and a padlock on Tumski Bridge.'),
+    missions: WALENTYNKI.map((m) => m.slug), achievement: 'sezon-walentynki',
+  },
+  {
+    slug: 'wielkanoc', start: '2027-03-01', end: '2027-03-31', city: 'krakow', scene: 'market-hall', color: '#E8A21A',
+    title: t('Великдень у Кракові', 'Пасха в Кракове', 'Easter in Kraków'),
+    tagline: t('Пальми й писанки, свяченка, великодній сніданок і обливаний понеділок.', 'Пальмы и писанки, свяченка, пасхальный завтрак и обливной понедельник.', 'Palms and pisanki, the Easter basket, Easter breakfast and Wet Monday.'),
+    missions: WIELKANOC.map((m) => m.slug), achievement: 'sezon-wielkanoc',
+  },
+  {
+    slug: 'wiosna', start: '2027-04-01', end: '2027-04-30', city: 'gdansk', scene: 'work', color: '#2BB3A3',
+    title: t('Весна над морем', 'Весна у моря', 'Spring by the sea'),
+    tagline: t('Прима апріліс, міський велосипед до Сопота й перші дні на ділянці.', 'Прима апрелис, городской велосипед до Сопота и первые дни на участке.', 'April Fools’, a city bike to Sopot and the first days at the allotment.'),
+    missions: WIOSNA.map((m) => m.slug), achievement: 'sezon-wiosna',
+  },
+  {
+    slug: 'majowka', start: '2027-05-01', end: '2027-05-31', city: 'olsztyn', scene: 'hotel', color: '#C8102E',
+    title: t('Майські на Мазурах', 'Майские на Мазурах', 'The May weekend in Masuria'),
+    tagline: t('Будиночок біля озера, гриль і байдарки та свято 3 Травня у Варшаві.', 'Домик у озера, гриль и байдарки и праздник 3 Мая в Варшаве.', 'A lake cabin, barbecue and kayaks, and 3 May in Warsaw.'),
+    missions: MAJOWKA.map((m) => m.slug), achievement: 'sezon-majowka',
+  },
+  {
+    slug: 'wianki', start: '2027-06-01', end: '2027-06-30', city: 'krakow', scene: 'old-market', color: '#1E88E5',
+    title: t('Вянки й канікули', 'Венки и каникулы', 'Wianki and the holidays'),
+    tagline: t('Найкоротша ніч над Віслою, День батька й нічний потяг до моря.', 'Самая короткая ночь над Вислой, День отца и ночной поезд к морю.', 'The shortest night on the Vistula, Father’s Day and a night train to the sea.'),
+    missions: WIANKI.map((m) => m.slug), achievement: 'sezon-wianki',
   },
   {
     slug: 'energylandia', start: '2027-07-01', end: '2027-07-31', city: 'krakow', scene: 'amusement-park', color: '#6B45D8',

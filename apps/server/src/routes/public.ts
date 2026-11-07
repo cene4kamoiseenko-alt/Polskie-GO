@@ -9,7 +9,7 @@ import {
   aiConversations, aiUsage, botQuizPlayers, botQuizRounds, dailyActivity, gameWallets, languageSkills, learningSessions, notificationLog, paymentEvents, playerProgress, subscriptions,
   userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions,
 } from '../db/schema';
-import { body, query, rateLimit, type AppEnv } from '../hono';
+import { body, edgeRateLimit, query, rateLimit, type AppEnv } from '../hono';
 import { forgetUser } from '../auth';
 import { HttpError, badRequest } from '../lib/errors';
 import { validateInitData } from '../lib/telegram';
@@ -22,7 +22,7 @@ const TOKEN_TTL = 7 * 24 * 3600;
 export const authRoutes = new Hono<AppEnv>();
 
 /** Вхід через підписані Telegram initData. */
-authRoutes.post('/auth/telegram', rateLimit(30, 60_000, 'auth'), async (c) => {
+authRoutes.post('/auth/telegram', edgeRateLimit('RL_AUTH'), rateLimit(30, 60_000, 'auth'), async (c) => {
   const { initData } = z.object({ initData: z.string().min(10).max(8192) }).parse(await body(c));
   let data;
   try {

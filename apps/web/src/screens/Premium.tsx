@@ -140,7 +140,6 @@ export default function PremiumScreen() {
   const banner = todayBanner();
   const features: [LineIconName, string, string][] = [
     ...FEATURES.map(([icon, title, desc]) => [icon, t(title), t(desc, { n: gift.zlotki })] as [LineIconName, string, string]),
-    ...(me.ai.configured ? [['chat', t('prem_ai'), t('prem_ai_d', { n: 150 })] as [LineIconName, string, string]] : []),
   ];
 
   return (

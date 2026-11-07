@@ -4,6 +4,7 @@
  * Тут: недовантажений модуль → «Перезавантажити» (браузер кешує невдалий імпорт до перезавантаження);
  * інша помилка → «Спробувати ще» (скидання межі). Перехід на інший маршрут теж скидає межу.
  */
+import { reportError } from '../lib/errorReport';
 import { Component, type ReactNode } from 'react';
 import { useT } from '../i18n';
 import { Beaver } from './Beaver';
@@ -43,6 +44,8 @@ export class ScreenBoundary extends Component<Props, State> {
 
   componentDidCatch(error: unknown) {
     console.error('[screen]', error);
+    // Ошибка загрузки чанка после выкладки — не ошибка кода (экран предлагает обновить); остальное — в журнал ошибок.
+    if (!isChunkError(error)) reportError(error instanceof Error ? `${error.name}: ${error.message}` : String(error), error instanceof Error ? error.stack : undefined);
   }
 
   render() {

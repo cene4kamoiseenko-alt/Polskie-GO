@@ -72,7 +72,10 @@ export async function claimHouseBonus(userId: string, now = new Date()) {
   const st = await houseState(userId, now);
   if (!st.goalDone) throw badRequest('goal_not_done', 'Сначала выполни цель дня');
   if (st.claimed) throw badRequest('already_claimed');
-  await atomic(grantZlotki(userId, st.bonus, `house:${st.home}`, bonusKey(userId, st.day), now).stmts);
+  const res = await atomic(grantZlotki(userId, st.bonus, `house:${st.home}`, bonusKey(userId, st.day), now).stmts);
+  // Двойное нажатие / два телефона: оба запроса прошли проверку выше, но награду записал только один (ключ идемпотентности).
+  // Первая операция пакета — UPDATE баланса с условием «ещё не начислено»: 0 изменённых строк = опоздавший, он получает тот же отказ, что и при повторе.
+  if ((res[0]?.meta?.changes ?? 0) === 0) throw badRequest('already_claimed');
   const wallet = await db.select({ balance: gameWallets.balance }).from(gameWallets).where(eq(gameWallets.userId, userId)).get();
   const { day: _day, ...state } = await houseState(userId, now);
   return { granted: st.bonus, balance: wallet?.balance ?? 0, house: state };

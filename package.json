@@ -23,7 +23,10 @@
     "perf": "node --import tsx scripts/perf.ts",
     "a11y": "node --import tsx scripts/a11y.ts",
     "screens": "node --import tsx scripts/screens.ts",
-    "assets": "node scripts/validate-assets.mjs"
+    "assets": "node scripts/validate-assets.mjs",
+    "backup:d1": "mkdir -p backups && wrangler d1 export polski-go --remote --output backups/polski-go-$(date -u +%Y-%m-%dT%H%MZ).sql",
+    "restore:drill": "node scripts/d1-restore-drill.mjs",
+    "load:test": "node --import tsx scripts/load-test.ts"
   },
   "engines": {
     "node": ">=20"

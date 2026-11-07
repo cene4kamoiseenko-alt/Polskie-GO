@@ -223,7 +223,8 @@ describe('Місії: проходження', () => {
 
     // Пройшов місію до появи костюма: seed видає його один раз і не чіпає інші предмети.
     const old = await login();
-    await db.insert(userMissions).values({ userId: old.user.id, missionSlug: 'train-wroclaw', completions: 2, flawless: 0, bestMistakes: 1, firstCompletedAt: new Date(), lastCompletedAt: new Date() });
+    // Костюм пілота з 2026-11-04 — нагорода «Рейсу до Гданська» (раніше — поїзда до Вроцлава).
+    await db.insert(userMissions).values({ userId: old.user.id, missionSlug: 'lotnisko-lot', completions: 2, flawless: 0, bestMistakes: 1, firstCompletedAt: new Date(), lastCompletedAt: new Date() });
     const { env } = await getEnv();
     const late = buildSeedSql().filter((q) => q.startsWith('INSERT INTO user_inventory'));
     expect(late.length).toBeGreaterThanOrEqual(4);

@@ -211,8 +211,6 @@ export function HomeScreen() {
             [
               ['story', 'home_tile_slang', '/slang'],
               ['exam', 'home_tile_exams', '/exams'],
-              // ШІ-співрозмовник — лише коли його підключено на сервері.
-              ...(me.ai.configured ? [['ai', 'home_tile_talk', '/ai']] : []),
               ['wardrobe', 'home_shop', '/shop'],
               ['house', 'home_tile_house', '/house'],
               ['map', 'home_passport', '/passport'],

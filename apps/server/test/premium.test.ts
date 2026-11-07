@@ -247,7 +247,7 @@ describe('що дає Premium', () => {
     expect((await prem.call('GET', '/api/me')).body.premium.giftReady).toBe(false);
   });
 
-  it('значок Premium у рейтингу; без ключа ШІ застосунок не показує ШІ', async () => {
+  it('значок Premium у рейтингу; поля ШІ в профілі більше немає (репетитор прибраний 2026-11-04)', async () => {
     mockBot();
     const prem = await login();
     await pay(prem, 'MONTH_3');
@@ -255,6 +255,6 @@ describe('що дає Premium', () => {
     await playSession(prem.call, s.body.sessionId);
     const board = (await prem.call('GET', '/api/leaderboard?scope=all')).body;
     expect(board.rows.find((r: { isMe: boolean }) => r.isMe)).toMatchObject({ premium: true });
-    expect((await prem.call('GET', '/api/me')).body.ai).toMatchObject({ configured: false });
+    expect((await prem.call('GET', '/api/me')).body.ai).toBeUndefined();
   });
 });

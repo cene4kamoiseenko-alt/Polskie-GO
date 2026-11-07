@@ -14,11 +14,10 @@
     "bot:setup": "node --env-file-if-exists=.env scripts/setup-bot.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.3.0",
     "@polski-go/shared": "0.1.0",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.15",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261024.1",

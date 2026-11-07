@@ -35,7 +35,7 @@ export function parseJsonc(text) {
 
 /** Ключи верхнего уровня, которые staging вправе иметь. Остальные привязки (kv, r2, queues, services, ai…) могли бы указывать на ресурсы production. */
 // placement (Smart Placement) і minify не задають ні прив'язок, ні маршрутів — лише де й у якому вигляді виконується той самий Worker.
-const ALLOWED_KEYS = new Set(['$schema', 'name', 'main', 'compatibility_date', 'compatibility_flags', 'observability', 'placement', 'minify', 'workers_dev', 'assets', 'd1_databases', 'triggers', 'vars', 'keep_vars']);
+const ALLOWED_KEYS = new Set(['$schema', 'name', 'main', 'compatibility_date', 'compatibility_flags', 'observability', 'placement', 'minify', 'workers_dev', 'assets', 'd1_databases', 'ratelimits', 'triggers', 'vars', 'keep_vars']);
 const SECRET_LIKE = /TOKEN|SECRET|KEY|PASSWORD|WEBHOOK|SETUP/i;
 
 /** Проблемы конфигурации staging относительно production (пустой список — всё в порядке). */
@@ -75,6 +75,9 @@ export function checkStagingConfig(stagingText, productionText) {
   // Код и так игнорирует DEV_AUTH в production (config.devAuth), но в боевом конфиге его быть не должно вовсе.
   if (prod.vars && 'DEV_AUTH' in prod.vars) problems.push('в wrangler.jsonc (production) задан DEV_AUTH: вход без Telegram в production запрещён');
 
+  // Ограничители запросов (2026-11-04): ни с чем боевым не связаны, но у staging свои namespace_id — иначе staging расходовал бы счётчики production.
+  const rl = (c) => (Array.isArray(c.ratelimits) ? c.ratelimits : []);
+  for (const r of rl(stg)) if (rl(prod).some((p) => String(p.namespace_id) === String(r.namespace_id))) problems.push(`ограничитель «${r.name}» staging делит namespace_id ${r.namespace_id} с production`);
   for (const k of Object.keys(stg)) if (!ALLOWED_KEYS.has(k)) problems.push(`в staging лишний ключ «${k}»: привязки и маршруты могут указывать на production`);
   for (const k of ['route', 'routes', 'zone_id', 'account_id']) if (k in stg) problems.push(`в staging задан «${k}»`);
 

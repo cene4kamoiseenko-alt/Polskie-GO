@@ -54,15 +54,16 @@
   </head>
   <body>
     <div id="root"><div class="pre-splash" aria-hidden="true"><div class="pre-stage">
-      <img class="pre-bg" src="/src/assets/splash/royal/bg.webp" srcset="/src/assets/splash/royal/bg@640.webp 640w, /src/assets/splash/royal/bg.webp 941w" sizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw" width="941" height="1672" alt="" fetchpriority="low" onload="this.classList.add('on')" />
+      <img class="pre-bg" src="/src/assets/splash/royal/bg.webp" srcset="/src/assets/splash/royal/bg@640.webp 640w, /src/assets/splash/royal/bg.webp 941w" sizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw" width="941" height="1672" alt="" fetchpriority="low" />
     </div>
     <div class="pre-brandbar"><div class="pre-lockup">
       <img class="pre-orn" src="/src/assets/splash/royal/orn.webp" width="424" height="134" alt="" fetchpriority="high" />
       <img class="pre-logo" src="/src/assets/splash/royal/logo.webp" width="868" height="168" alt="" fetchpriority="high" />
     </div></div></div></div>
     <script>
-      // Фон мог встигнути завантажитись до того, як розбір сторінки повісив onload: тоді проявляємо його одразу.
-      (function () { var i = document.querySelector('.pre-bg'); if (i && i.complete) i.classList.add('on'); })();
+      // Фон проявляється, коли завантажився; якщо встиг раніше, ніж дійшло до цього скрипта, — одразу. Без атрибута onload:
+      // CSP (scripts/build-cf.mjs) дозволяє вбудовані скрипти лише за хешем, а обробники в атрибутах — ні.
+      (function () { var i = document.querySelector('.pre-bg'); if (!i) return; var on = function () { i.classList.add('on'); }; if (i.complete) on(); else i.addEventListener('load', on); })();
     </script>
     <!-- Офіційний SDK Telegram Mini Apps (після розмітки: заставку видно одразу) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>

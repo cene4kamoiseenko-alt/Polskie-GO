@@ -5,8 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { initTelegram, tg } from './lib/telegram';
 import { guessLang, preloadLang } from './i18n';
+import { installErrorReporting } from './lib/errorReport';
 import './index.css';
 
+installErrorReporting();
 initTelegram();
 // Словник мови користувача вантажиться одразу, паралельно з авторизацією.
 void preloadLang(guessLang(tg?.initDataUnsafe.user?.language_code));

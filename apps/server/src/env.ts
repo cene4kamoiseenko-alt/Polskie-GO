@@ -4,6 +4,13 @@
  */
 export type Bindings = {
   DB: D1Database;
+  /**
+   * Ограничители запросов Cloudflare (Workers Rate Limiting, `ratelimits` в wrangler.jsonc): общие для всех изолятов в дата-центре, в отличие
+   * от счётчиков в памяти (hono.ts → rateLimit). Ключ — IP. Нет привязки (тесты, локальный запуск) — работают только счётчики в памяти.
+   */
+  RL_AUTH?: RateLimit;
+  RL_ADMIN?: RateLimit;
+  RL_REPORT?: RateLimit;
   /** Зібрані Mini App і адмінка (Workers Static Assets). */
   ASSETS?: Fetcher;
   ENVIRONMENT?: string;
@@ -22,9 +29,6 @@ export type Bindings = {
   /** Ключ ссылки самонастройки `/telegram/setup?key=…`; без него — TELEGRAM_WEBHOOK_SECRET (старый вариант). */
   BOT_SETUP_KEY?: string;
   DEV_AUTH?: string;
-  ANTHROPIC_API_KEY?: string;
-  AI_MODEL?: string;
-  AI_MONTHLY_OUTPUT_TOKENS?: string;
   INIT_DATA_MAX_AGE?: string;
   ADMIN_EMAIL?: string;
   /**
@@ -161,15 +165,6 @@ export const config = {
   /** Вхід без Telegram — лише для локальної розробки. У production завжди вимкнено. */
   get devAuth() {
     return str(env.DEV_AUTH) === 'true' && !this.isProd;
-  },
-  get anthropicKey() {
-    return str(env.ANTHROPIC_API_KEY);
-  },
-  get aiModel() {
-    return str(env.AI_MODEL) || 'claude-opus-5-5';
-  },
-  get aiMonthlyOutputTokens() {
-    return Number(str(env.AI_MONTHLY_OUTPUT_TOKENS) || 5_000_000);
   },
   get initDataMaxAgeSec() {
     return Number(str(env.INIT_DATA_MAX_AGE) || 86_400);

@@ -17,7 +17,10 @@ import { missionHref, missionsQuery } from '../components/MissionCard';
 import { PassFeatured, PassMissionCard } from '../components/PassCards';
 import { SeasonCover } from '../components/MissionScene';
 
-const BADGE_FOR: Record<string, string> = { 'listopad-poznan': 'season-rogal', swieta: 'season-gift', energylandia: 'season-ticket' };
+const BADGE_FOR: Record<string, string> = {
+  'listopad-poznan': 'season-rogal', swieta: 'season-gift', karnawal: 'season-paczek', walentynki: 'season-heart', wielkanoc: 'season-egg',
+  wiosna: 'season-bike', majowka: 'season-flag', wianki: 'season-sun', energylandia: 'season-ticket',
+};
 const LOCALE = { uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' } as const;
 /** «1 листопада» — без року: межі сезону поруч, рік видно з календаря. */
 const dayMonth = (day: string, lang: keyof typeof LOCALE) => new Date(`${day}T12:00:00`).toLocaleDateString(LOCALE[lang], { day: 'numeric', month: 'long' });

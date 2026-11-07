@@ -80,6 +80,16 @@ describe('конфигурация staging', () => {
     expect(checkStagingConfig(stgText, prodText)).toEqual([]);
   });
 
+  it('ограничители запросов: у staging свои namespace_id, общий с production — отказ', () => {
+    const stg = parseJsonc(stgText);
+    const prod = parseJsonc(prodText);
+    expect(stg.ratelimits.map((r: any) => r.name).sort()).toEqual(prod.ratelimits.map((r: any) => r.name).sort());
+    const ids = [...stg.ratelimits, ...prod.ratelimits].map((r: any) => String(r.namespace_id));
+    expect(new Set(ids).size).toBe(ids.length);
+    const problems = checkStagingConfig(mutated((c) => (c.ratelimits[0].namespace_id = prod.ratelimits[0].namespace_id)), prodText);
+    expect(problems.join('\n')).toContain('делит namespace_id');
+  });
+
   it('одинаковый database_id у staging и production — отказ', () => {
     const prod = JSON.stringify({ ...parseJsonc(prodText), d1_databases: [{ binding: 'DB', database_name: 'polski-go', database_id: 'same-id' }] });
     const problems = checkStagingConfig(mutated((c) => (c.d1_databases[0].database_id = 'same-id')), prod);

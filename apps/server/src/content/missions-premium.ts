@@ -569,7 +569,8 @@ export const PREMIUM_MISSIONS: Mission[] = [
   },
   // ───────────── Premium: рейс LOT із Кракова ─────────────
   {
-    premium: true, minutes: 15, xp: 55, zlotki: 30, slug: 'lotnisko-lot', category: 'transport', tags: ['travel', 'airport'], city: 'krakow', scene: 'train-station',
+    // Нагорода — костюм пілота (власник 2026-11-04: «пусть выдают за рейс в Гданьск»).
+    premium: true, minutes: 15, xp: 55, zlotki: 30, slug: 'lotnisko-lot', rewardItem: 'costume-conductor', category: 'transport', tags: ['travel', 'airport'], city: 'krakow', scene: 'train-station',
     npc: { name: 'Pani Ola', role: t('працівниця реєстрації', 'сотрудница регистрации', 'check-in agent') },
     title: t('Рейс до Гданська', 'Рейс в Гданьск', 'Flight to Gdańsk'),
     goal: t('Зареєструйся на рейс, пройди контроль безпеки, не пропусти зміну виходу, а в Гданську знайди загублену валізу.', 'Зарегистрируйся на рейс, пройди контроль безопасности, не пропусти смену выхода, а в Гданьске найди потерянный чемодан.', 'Check in, get through security, catch the gate change, and in Gdańsk track down your lost suitcase.'),

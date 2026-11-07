@@ -4,10 +4,11 @@
  */
 import { afterAll, describe, expect, it } from 'vitest';
 import { and, eq, sql as dsql } from 'drizzle-orm';
-import { LOOK_VARIANTS } from '@polski-go/shared';
+import { LOOK_VARIANTS, findLookItem } from '@polski-go/shared';
 import { db } from '../src/db';
 import { cosmeticItems, gameWallets, userInventory, walletTransactions } from '../src/db/schema';
-import { COSTUME_PRICES, ITEMS } from '../src/content/gamification';
+import { ACHIEVEMENTS, CITY_REWARDS, COSTUME_PRICES, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from '../src/content/gamification';
+import { MISSIONS } from '../src/content/missions';
 import { OUTFITS, RETIRED_LOOKS, STARTER_OUTFIT } from '../src/content/outfits';
 import { buildSeedSql } from '../src/content/seed';
 import { disposeEnv, login } from './helpers';
@@ -83,6 +84,52 @@ describe('Готові образи: каталог', () => {
     await db.update(userInventory).set({ equipped: true }).where(eq(userInventory.userId, user.id));
     for (const s of fix) await db.run(dsql.raw(s));
     expect([await slotOf('hat-krasnal'), await equippedOf('hat-krasnal')]).toEqual(['COSTUME', true]);
+  });
+});
+
+describe('Перепривязка наград (2026-11-04)', () => {
+  it('прод: награды и название пилота меняются только там, где старое значение; заслужившие получают новый предмет один раз', async () => {
+    const { user } = await login();
+    const idOf = async (slug: string) => (await db.select({ id: cosmeticItems.id }).from(cosmeticItems).where(eq(cosmeticItems.slug, slug)))[0].id;
+    const run = async (sqls: string[]) => { for (const s of sqls) await db.run(dsql.raw(s)); };
+    // Как на проде до правки: «7 дней подряд» даёт очки без картинки, у игрока это достижение уже есть; костюм ещё называется «проводник».
+    await db.run(dsql.raw(`UPDATE achievements SET reward_item_id = '${await idOf('glasses-sun')}' WHERE slug = 'streak-7'`));
+    await db.run(dsql.raw(`INSERT INTO user_achievements (user_id, achievement_id) SELECT '${user.id}', id FROM achievements WHERE slug = 'streak-7'`));
+    await db.run(dsql.raw(`UPDATE cosmetic_items SET name = '{"uk":"Костюм провідника","ru":"Костюм проводника","en":"Train conductor outfit"}' WHERE slug = 'costume-conductor'`));
+    const sql = buildSeedSql({ force: false });
+    const fix = sql.filter((s) => /^UPDATE (achievements|quests|cosmetic_items) SET (reward_item_id|name)/.test(s) || /FROM user_(achievements|quests) /.test(s));
+    expect(fix.length).toBeGreaterThanOrEqual(9);
+    for (let k = 0; k < 2; k++) await run(fix);
+    const ach = (await db.run(dsql.raw(`SELECT ci.slug FROM achievements a JOIN cosmetic_items ci ON ci.id = a.reward_item_id WHERE a.slug = 'streak-7'`))) as unknown as { results: { slug: string }[] };
+    expect(ach.results[0].slug).toBe('cap-red');
+    const inv = await db.select({ slug: cosmeticItems.slug, source: userInventory.source }).from(userInventory).innerJoin(cosmeticItems, eq(cosmeticItems.id, userInventory.itemId)).where(eq(userInventory.userId, user.id));
+    expect(inv.filter((i) => i.slug === 'cap-red')).toEqual([{ slug: 'cap-red', source: 'achievement' }]);
+    const name = (await db.select({ name: cosmeticItems.name }).from(cosmeticItems).where(eq(cosmeticItems.slug, 'costume-conductor')))[0].name as { ru: string };
+    expect(name.ru).toBe('Костюм пилота');
+    // Правка в админке не перетирается: другое название и другая награда остаются.
+    await db.run(dsql.raw(`UPDATE cosmetic_items SET name = '{"uk":"Пілот","ru":"Лётчик","en":"Pilot"}' WHERE slug = 'costume-conductor'`));
+    await db.run(dsql.raw(`UPDATE achievements SET reward_item_id = '${await idOf('scarf-pl')}' WHERE slug = 'city-3'`));
+    await run(fix);
+    expect(((await db.select({ name: cosmeticItems.name }).from(cosmeticItems).where(eq(cosmeticItems.slug, 'costume-conductor')))[0].name as { ru: string }).ru).toBe('Лётчик');
+    const city3 = (await db.run(dsql.raw(`SELECT ci.slug FROM achievements a JOIN cosmetic_items ci ON ci.id = a.reward_item_id WHERE a.slug = 'city-3'`))) as unknown as { results: { slug: string }[] };
+    expect(city3.results[0].slug).toBe('scarf-pl');
+  });
+
+  it('невидимых наград нет: всё, что выдают достижения, квесты, миссии и экзамены городов, имеет картинку', () => {
+    const slugs = [
+      ...ACHIEVEMENTS.flatMap((a) => (a.rewardItem ? [a.rewardItem] : [])),
+      ...[...DAILY_QUESTS, ...WEEKLY_QUESTS, ...STORY_QUESTS].flatMap((q) => (q.rewardItem ? [q.rewardItem] : [])),
+      ...MISSIONS.flatMap((m) => (m.rewardItem ? [m.rewardItem] : [])),
+      ...Object.values(CITY_REWARDS).flat(),
+    ];
+    for (const slug of slugs) {
+      const it = ITEMS.find((i) => i.slug === slug)!;
+      expect(it, slug).toBeTruthy();
+      if (it.slot === 'SOUVENIR') continue;
+      expect(findLookItem(slug)?.status, slug).not.toBe('pending');
+    }
+    expect(MISSIONS.find((m) => m.slug === 'lotnisko-lot')!.rewardItem).toBe('costume-conductor');
+    expect(MISSIONS.find((m) => m.slug === 'train-wroclaw')!.rewardItem).toBeUndefined();
   });
 });
 

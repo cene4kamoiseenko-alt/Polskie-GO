@@ -2,6 +2,7 @@
  * API адмін-панелі. Ролі: SUPERADMIN (усе), EDITOR (контент), SUPPORT (користувачі, платежі — перегляд).
  * Кожна зміна записується в admin_audit_logs.
  */
+import { recentErrors } from '../services/error-log';
 import { timingSafeEqual } from 'node:crypto';
 import { Hono, type Context } from 'hono';
 import { and, asc, count, desc, eq, getTableColumns, gt, gte, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
@@ -12,7 +13,7 @@ import { getBindings } from '../env';
 import { atomic, db, isUniqueViolation } from '../db';
 import * as t from '../db/schema';
 import { forgetUser, requireAdmin } from '../auth';
-import { body, query, rateLimit, type AppEnv } from '../hono';
+import { body, edgeRateLimit, query, rateLimit, type AppEnv } from '../hono';
 import { HttpError, badRequest, notFound } from '../lib/errors';
 import { hashPassword, verifyPassword, verifyPasswordDummy } from '../lib/password';
 import { assertLoginAllowed, recordLoginFailure } from '../services/admin-guard';
@@ -97,7 +98,7 @@ const RESOURCES: Record<string, Resource> = {
   },
   exercises: {
     table: t.exercises, roles: ['EDITOR'], orderBy: ['lessonId', 'order'], filters: ['lessonId', 'type'],
-    schema: z.object({ lessonId: z.string(), order: z.number().int(), type: z.enum(EXERCISE_TYPES), skill: z.string().min(1), data: z.record(z.any()), explanation: i18n.nullable(), audioUrl: z.string().nullable(), imageUrl: z.string().nullable() }),
+    schema: z.object({ lessonId: z.string(), order: z.number().int(), type: z.enum(EXERCISE_TYPES), skill: z.string().min(1), data: z.record(z.string(), z.any()), explanation: i18n.nullable(), audioUrl: z.string().nullable(), imageUrl: z.string().nullable() }),
   },
   vocabulary: {
     table: t.vocabularyEntries, roles: ['EDITOR'], orderBy: ['pl'], search: ['pl'], filters: ['cefr', 'status'],
@@ -113,7 +114,7 @@ const RESOURCES: Record<string, Resource> = {
   },
   questSteps: {
     table: t.questSteps, roles: ['EDITOR'], orderBy: ['questId', 'order'], filters: ['questId'],
-    schema: z.object({ questId: z.string(), order: z.number().int(), data: z.object({ title: i18n, start: z.string(), nodes: z.record(z.any()) }) }),
+    schema: z.object({ questId: z.string(), order: z.number().int(), data: z.object({ title: i18n, start: z.string(), nodes: z.record(z.string(), z.any()) }) }),
   },
   achievements: {
     table: t.achievements, roles: ['EDITOR'], orderBy: ['order'], search: ['slug'],
@@ -152,7 +153,7 @@ function needRole(c: Context<AppEnv>, ...roles: Role[]) {
 
 export const adminRoutes = new Hono<AppEnv>();
 
-adminRoutes.post('/login', rateLimit(10, 5 * 60_000, 'admin-login'), async (c) => {
+adminRoutes.post('/login', edgeRateLimit('RL_ADMIN'), rateLimit(10, 5 * 60_000, 'admin-login'), async (c) => {
   const { email, password } = z.object({ email: z.string().email().max(254), password: z.string().min(1).max(256) }).parse(await body(c));
   // Адрес пишется так, как его видит Cloudflare (подделать нельзя); без него (тесты, локально) все считаются одним адресом.
   const ip = c.req.header('cf-connecting-ip') ?? 'unknown';
@@ -216,7 +217,7 @@ a.get('/dashboard', async (c) => {
     db.select({ sum: sql<number>`coalesce(sum(${t.paymentEvents.amount}), 0)` }).from(t.paymentEvents).where(and(eq(t.paymentEvents.type, 'SUCCESSFUL_PAYMENT'), isNull(t.paymentEvents.error))),
   ]);
   const day = (col: string) => sql.raw(`strftime('%Y-%m-%d', ${col} / 1000, 'unixepoch')`);
-  const [signups, topLessons, errors, retention] = await Promise.all([
+  const [signups, topLessons, errors, retention, appErrors] = await Promise.all([
     db.all<{ day: string; count: number }>(sql`SELECT ${day('created_at')} AS day, COUNT(*) AS count FROM users WHERE created_at >= ${d30.getTime()} GROUP BY 1 ORDER BY 1`),
     db.all<{ slug: string; title: string; count: number }>(sql`
       SELECT l.slug, l.title, COUNT(*) AS count FROM user_lesson_progress p JOIN lessons l ON l.id = p.lesson_id
@@ -233,6 +234,8 @@ a.get('/dashboard', async (c) => {
         AVG(CASE WHEN EXISTS (SELECT 1 FROM daily_activity a WHERE a.user_id = u.id AND a.day >= strftime('%Y-%m-%d', u.created_at / 1000 + 7 * 86400, 'unixepoch')) THEN 1.0 ELSE 0 END)
           FILTER (WHERE u.created_at < ${now - 8 * 86_400_000}) AS d7
       FROM users u WHERE u.created_at >= ${now - 90 * 86_400_000}`),
+    // Журнал ошибок за сутки (services/error-log.ts): сервер, Mini App, CSP. До миграции 0015 таблицы нет — пусто, а не 500.
+    recentErrors(new Date(now)).catch(() => ({ hours: 24, total: { server: 0, client: 0, csp: 0 }, items: [] })),
   ]);
   const n = (r: { n: number }[]) => r[0]?.n ?? 0;
   return c.json({
@@ -242,6 +245,7 @@ a.get('/dashboard', async (c) => {
     signups: signups.map((s) => ({ day: s.day, count: Number(s.count) })),
     topLessons: topLessons.map((x) => ({ slug: x.slug, title: JSON.parse(x.title), count: Number(x.count) })),
     errors: errors.map((e) => ({ exerciseId: e.exercise_id, lesson: e.lesson, type: e.type, wrong: Number(e.wrong), total: Number(e.total), rate: Math.round((Number(e.wrong) / Number(e.total)) * 100) })),
+    appErrors,
     retention: { d1: retention[0]?.d1 != null ? Math.round(Number(retention[0].d1) * 100) : null, d7: retention[0]?.d7 != null ? Math.round(Number(retention[0].d7) * 100) : null },
   });
 });
@@ -698,7 +702,7 @@ a.post('/audio/generate', rateLimit(30, 60_000, 'audio-generate'), async (c) => 
     .object({
       items: z.array(z.object({ id: z.string().regex(/^[0-9a-f]{64}$/), text: z.string().min(1).max(300), model: z.enum(LIBRARY_MODELS) })).min(1).max(25),
       maxCredits: z.number().min(0).max(1_000_000),
-      rates: z.record(z.enum(LIBRARY_MODELS), z.number().min(0).max(10)).optional(),
+      rates: z.partialRecord(z.enum(LIBRARY_MODELS), z.number().min(0).max(10)).optional(),
       /** Адмін підтвердив генерацію голосом, який ElevenLabs не описує як чоловічий Kamil. */
       allowOtherVoice: z.boolean().optional(),
     })

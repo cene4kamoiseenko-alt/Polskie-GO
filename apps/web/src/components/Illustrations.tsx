@@ -385,6 +385,12 @@ const BADGE_ART: Record<string, { item: ItemName; color: string }> = {
   'season-rogal': { item: 'bread', color: '#C8502E' },
   'season-gift': { item: 'gift', color: '#1F8A5B' },
   'season-ticket': { item: 'ticket', color: '#6B45D8' },
+  'season-paczek': { item: 'bread', color: '#D6457A' },
+  'season-heart': { item: 'card', color: '#E0245E' },
+  'season-egg': { item: 'basket', color: '#E8A21A' },
+  'season-bike': { item: 'map', color: '#2BB3A3' },
+  'season-flag': { item: 'beaver-map', color: '#C8102E' },
+  'season-sun': { item: 'train', color: '#1E88E5' },
 };
 
 export type Tier = 'bronze' | 'silver' | 'gold' | 'legendary';

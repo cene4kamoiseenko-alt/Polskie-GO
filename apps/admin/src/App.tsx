@@ -549,6 +549,49 @@ function AudienceCard() {
   );
 }
 
+/** Журнал ошибок за сутки: падения сервера, ошибки Mini App у игроков, нарушения CSP (режим Report-Only). Подробности — Workers Logs в Cloudflare. */
+function AppErrors({ data }: { data?: { total: Record<string, number>; items: { kind: string; message: string; path: string | null; count: number; lastAt: string; detail: string | null }[] } }) {
+  if (!data) return null;
+  const KIND: Record<string, string> = { server: 'Сервер', client: 'Приложение', csp: 'CSP' };
+  const sum = data.total.server + data.total.client + data.total.csp;
+  return (
+    <div className="panel" data-app-errors>
+      <h2 className="flex items-center justify-between border-b p-3 font-bold">
+        <span>Ошибки за 24 часа</span>
+        <span className={sum ? 'text-rose-600' : 'text-emerald-700'}>
+          {sum ? `сервер ${data.total.server} · приложение ${data.total.client} · CSP ${data.total.csp}` : 'нет'}
+        </span>
+      </h2>
+      {data.items.length > 0 && (
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className="th">Где</th>
+              <th className="th">Сообщение</th>
+              <th className="th text-right">Раз</th>
+              <th className="th">Последняя</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.items.map((e, i) => (
+              <tr key={i} className="border-t align-top">
+                <td className="td whitespace-nowrap">{KIND[e.kind] ?? e.kind}</td>
+                <td className="td">
+                  <div className="font-mono text-xs">{e.message}</div>
+                  {e.path && <div className="text-xs text-slate-500">{e.path}</div>}
+                  {e.detail && <pre className="mt-1 max-w-xl overflow-x-auto whitespace-pre-wrap text-[11px] text-slate-500">{e.detail}</pre>}
+                </td>
+                <td className="td text-right font-bold">{e.count}</td>
+                <td className="td whitespace-nowrap text-xs">{new Date(e.lastAt).toLocaleString('ru-RU')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function Dashboard() {
   const { data, error } = useLoad(() => api('/dashboard'), []);
   if (error) return <p className="text-rose-600">{error}</p>;
@@ -567,6 +610,7 @@ function Dashboard() {
         <Stat label="Доход за 30 дней" value={`⭐ ${data.revenue30Stars}`} sub={`${data.payments30} платежей · всего ⭐ ${data.revenueAllStars}`} />
         <Stat label="Средний прогресс" value={`${data.avgXp} XP`} sub={`${data.avgLessons} уроков · ${data.avgWords} слов`} />
       </div>
+      <AppErrors data={data.appErrors} />
       <div className="panel p-4">
         <h2 className="mb-3 font-bold">Регистрации в приложении за 30 дней</h2>
         <div className="flex h-32 items-end gap-1" role="img" aria-label="Регистрации по дням">
@@ -1388,7 +1432,6 @@ function Rewards() {
     weeklyQuestXp: 'XP недельного квеста (справочно)', storyQuestXp: 'XP сюжетного квеста (справочно)', cityExamXp: 'XP за экзамен города', lessonZlotki: 'Złotki за урок',
     perfectZlotki: 'Złotki за идеальный урок', dailyQuestZlotki: 'Złotki ежедневного квеста (справочно)', storyQuestZlotki: 'Złotki сюжета (справочно)', cityExamZlotki: 'Złotki за экзамен города',
     replayFactor: 'Доля XP за повтор урока (0–1)', maxRewardedReplaysPerDay: 'Повторов урока с наградой в сутки', practiceXpDailyCap: 'Лимит XP тренировок в день',
-    freeAiMessagesPerDay: 'AI-сообщений в день (Free)', premiumAiMessagesPerDay: 'AI-сообщений в день (Premium)',
     premiumGiftZlotki: 'Premium: подарок месяца, Złotki', premiumWelcomeZlotki: 'Premium: приветственный бонус при первой оплате, Złotki',
     premiumLoyalty3Zlotki: 'Premium: бонус на 3-м подарке (3-й месяц), Złotki', premiumLoyalty6Zlotki: 'Premium: бонус на 6-м подарке, Złotki',
     premiumLoyalty12Zlotki: 'Premium: бонус на 12-м подарке, Złotki', premiumPlan3Zlotki: 'Premium: бонус за тариф на 3 месяца, Złotki',

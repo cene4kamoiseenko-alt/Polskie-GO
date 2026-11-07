@@ -93,7 +93,6 @@ Worker `polskie-go` → **Settings → Variables and Secrets** (тип *Secret*)
 | `SESSION_SECRET` | случайная строка ≥ 32 символов |
 | `WEB_APP_URL` | `https://polskie-go.<аккаунт>.workers.dev` (или свой домен) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | первый вход в `/admin/` |
-| `ANTHROPIC_API_KEY` | необязательно; без ключа AI честно работает в ограниченном режиме |
 
 Проверка: `https://polskie-go.<аккаунт>.workers.dev/api/health` → `{"ok":true, "version": {"commit": …}, "migration": "0011_bot_contacts.sql", "bot": {…}}` (коммит сборки, последняя миграция, состояние webhook — без секретов).
 

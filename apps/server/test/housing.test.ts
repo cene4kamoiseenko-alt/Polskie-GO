@@ -138,7 +138,10 @@ describe('Домашний бонус (2026-11-03)', () => {
     await doGoal(user.id);
     expect((await call('GET', '/api/house')).body).toMatchObject({ goalDone: true, claimed: false });
     const claims = await Promise.all([call('POST', '/api/house/bonus'), call('POST', '/api/house/bonus')]);
-    expect(claims.some((c) => c.status === 200)).toBe(true);
+    // Выиграл один, опоздавший получает тот же отказ, что и при обычном повторе (не второй тост «+5»): найдено нагрузочным тестом 2026-11-07.
+    expect(claims.map((c) => c.status).sort()).toEqual([200, 400]);
+    expect(claims.find((c) => c.status === 400)!.body.error).toBe('already_claimed');
+    expect(claims.find((c) => c.status === 200)!.body.granted).toBe(HOUSING_BONUS['housing-opole']);
     expect(await balance(user.id)).toBe(HOUSING_BONUS['housing-opole']);
     expect(await bonusTx(user.id)).toHaveLength(1);
     expect((await call('POST', '/api/house/bonus')).body.error).toBe('already_claimed');

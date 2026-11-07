@@ -14,3 +14,4 @@ apps/server/seed.sql
 content-lint.txt
 assets/audio/reports/
 assets/audio/.generation-progress.json
+backups/

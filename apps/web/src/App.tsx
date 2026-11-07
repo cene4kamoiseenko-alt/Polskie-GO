@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useIsFetching } from '@tanstack/react-query';
 import { SplashScene } from './components/Splash';
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LazyMotion, MotionConfig, loadMotionFeatures, motion } from './lib/motion';
 import { I18nProvider, profileLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
@@ -27,7 +27,6 @@ const ShopScreen = lazy(() => import('./screens/Shop'));
 const HouseScreen = lazy(() => import('./screens/House'));
 const DiaryScreen = lazy(() => import('./screens/Diary'));
 const DictionaryScreen = lazy(() => import('./screens/Dictionary'));
-const AiScreen = lazy(() => import('./screens/Ai'));
 const ExamsScreen = lazy(() => import('./screens/Exams'));
 const SocialScreen = lazy(() => import('./screens/Social'));
 const PremiumScreen = lazy(() => import('./screens/Premium'));
@@ -225,7 +224,8 @@ export function App() {
                 <Route path="/house" element={<HouseScreen />} />
                 <Route path="/diary" element={<DiaryScreen />} />
                 <Route path="/dictionary" element={<DictionaryScreen />} />
-                <Route path="/ai" element={<AiScreen />} />
+                {/* ИИ-репетитор убран (владелец 2026-11-04): старые ссылки ведут на главную. */}
+                <Route path="/ai" element={<Navigate to="/" replace />} />
                 <Route path="/exams" element={<ExamsScreen />} />
                 <Route path="/grammar" element={<GrammarScreen />} />
                 <Route path="/social" element={<SocialScreen />} />

@@ -570,7 +570,8 @@ export const MISSIONS: Mission[] = [
 
   // ───────────── 8. Квиток до Вроцлава ─────────────
   {
-    slug: 'train-wroclaw', rewardItem: 'costume-conductor', category: 'transport', tags: [], city: 'warszawa', scene: 'train-station',
+    // Костюм пілота (колишній «провідника») з 2026-11-04 — нагорода премі-місії «Рейс до Гданська»; хто вже пройшов цю місію, його зберігає.
+    slug: 'train-wroclaw', category: 'transport', tags: [], city: 'warszawa', scene: 'train-station',
     npc: { name: 'Pan Adam', role: t('касир на вокзалі', 'кассир на вокзале', 'ticket clerk') },
     title: t('Квиток до Вроцлава', 'Билет до Вроцлава', 'A ticket to Wrocław'),
     goal: t('Купи квиток на потрібний час, обери місце й знайди перон.', 'Купи билет на нужное время, выбери место и найди перрон.', 'Buy a ticket, choose a seat and find the platform.'),

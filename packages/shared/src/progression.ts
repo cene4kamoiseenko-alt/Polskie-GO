@@ -24,8 +24,6 @@ export const DEFAULT_REWARDS = {
   maxRewardedReplaysPerDay: 2,
   /** Ліміт XP за повторення/тренування на день (захист від накрутки). */
   practiceXpDailyCap: 300,
-  freeAiMessagesPerDay: 10,
-  premiumAiMessagesPerDay: 150,
   /**
    * Награды Premium в Złotki (docs/PREMIUM_LOGIC_V2.md). Меняются в админке без выкладки.
    * Подарок месяца — раз в месяц; приветственный — один раз, при первой оплате; лояльность — на 3-й, 6-й и 12-й полученный

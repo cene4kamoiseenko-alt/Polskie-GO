@@ -7,9 +7,8 @@
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { and, count, eq, like } from 'drizzle-orm';
 import { LOOK_MANIFEST, equip, equipmentFromWear, resolveLook, unequip } from '@polski-go/shared';
-import { atomic, db } from '../src/db';
-import { cosmeticItems, gameWallets, playerProgress, userAchievements, userInventory, walletTransactions } from '../src/db/schema';
-import { evaluateAchievements } from '../src/services/achievements';
+import { db } from '../src/db';
+import { cosmeticItems, gameWallets, userAchievements, userInventory, walletTransactions } from '../src/db/schema';
 import { disposeEnv, getEnv, login } from './helpers';
 import { OUTFITS, OUTFIT_COMPONENTS } from '../src/content/outfits';
 
@@ -149,9 +148,8 @@ describe('Покупка за ядром образу', () => {
     const { call, user } = await login();
     await grant(user.id, 'cap-green', { source: 'shop' });
     await grant(user.id, 'scarf-ua', { source: 'city' });
-    // Нагорода за досягнення видається як раніше, без перевірки зображення: streak-7 → glasses-sun (pending).
-    await db.update(playerProgress).set({ streakBest: 7 }).where(eq(playerProgress.userId, user.id));
-    await atomic((await evaluateAchievements(user.id, null)).stmts);
+    // Нагорода без зображення (колишня нагорода «7 днів поспіль»; з 2026-11-04 ця нагорода — cap-red, тож видаємо напряму): лишається у власності й надягається.
+    await grant(user.id, 'glasses-sun', { source: 'achievement' });
     const inv0 = await inventory(user.id);
     expect(inv0.find((i) => i.itemId === itemId('glasses-sun'))).toMatchObject({ source: 'achievement' });
 

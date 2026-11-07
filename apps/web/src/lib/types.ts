@@ -53,7 +53,6 @@ export type Me = {
   outfit: Outfit;
   counters: { dueReviews: number; mistakes: number; unseenAchievements: number };
   /** configured — ШІ-співрозмовник підключений на сервері (є ключ); інакше його входи в застосунку приховано. */
-  ai: { used: number; limit: number; configured: boolean };
   /** Може бути відсутнім, якщо сервер старіший за клієнт. */
   rewards?: { exerciseXp: number };
   /** server — серверна польська озвучка доступна. */

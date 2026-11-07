@@ -92,7 +92,8 @@ describe('пропуск місяця: доступ', () => {
       ['listopad-swieto', false, true, false],
       ['andrzejki-wosk', false, true, false],
     ]);
-    expect(list.pass.upcoming.map((s) => s.slug)).toEqual(['swieta', 'energylandia']);
+    // Январь–июнь 2027 добавлены 2026-11-04 (seasons-2027-a/b.ts): все будущие сезоны по порядку дат.
+    expect(list.pass.upcoming.map((s) => s.slug)).toEqual(['swieta', 'karnawal', 'walentynki', 'wielkanoc', 'wiosna', 'majowka', 'wianki', 'energylandia']);
     expect(list.pass.upcoming[0]).toMatchObject({ state: 'upcoming', startsIn: 20 });
     expect(list.pass.archive).toEqual([]);
 

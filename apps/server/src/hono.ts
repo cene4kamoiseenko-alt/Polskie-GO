@@ -47,6 +47,22 @@ export function requester(c: Context): string {
  * Ключ — requester(). Підбір пароля адмінки додатково захищає D1-лічильник (services/admin-guard.ts).
  */
 const buckets = new Map<string, { n: number; reset: number }>();
+/**
+ * Ограничитель Cloudflare (общий для изолятов) поверх счётчика в памяти: вход по initData, вход в админку, отчёты об ошибках клиента.
+ * Ключ — IP из `cf-connecting-ip`. Нет привязки или она недоступна — пропускаем (счётчик в памяти и D1-лимит админки остаются).
+ */
+export function edgeRateLimit(binding: 'RL_AUTH' | 'RL_ADMIN' | 'RL_REPORT') {
+  return createMiddleware<AppEnv>(async (c, next) => {
+    const rl = c.env?.[binding];
+    if (rl) {
+      const ip = c.req.header('cf-connecting-ip') ?? 'anon';
+      const verdict = await rl.limit({ key: `${binding}:${ip}` }).catch(() => ({ success: true }));
+      if (!verdict.success) throw new HttpError(429, 'rate_limited', 'Too many requests');
+    }
+    await next();
+  });
+}
+
 /** Для тестів, які проходять місто повністю швидше, ніж це можливо вручну. */
 export const resetRateLimits = () => buckets.clear();
 export function rateLimit(max: number, windowMs: number, scope = 'g') {

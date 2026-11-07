@@ -14,6 +14,7 @@
  *  3. Невідомий результат (тайм-аут, обрив мережі, воркер упав після відправки, lease прострочено) — UNKNOWN: Telegram не має
  *     ключа ідемпотентності, тому таке нагадування не повторюється автоматично (краще пропустити день, ніж надіслати двічі).
  */
+import { purgeErrors } from './services/error-log';
 import { and, asc, eq, gt, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from 'drizzle-orm';
 import { dayDiff, dayKey, effectiveStreak } from '@polski-go/shared';
 import { db } from './db';
@@ -276,6 +277,7 @@ export async function sendCampaignChunk(budget = SEND_BUDGET) {
 export async function runScheduled(now = new Date()) {
   await pruneUsage(now);
   await pruneLoginFailures(now);
+  await purgeErrors(now).catch((e) => console.warn('error log cleanup failed', (e as Error).message));
   await db.delete(telegramUpdates).where(lt(telegramUpdates.createdAt, new Date(now.getTime() - UPDATES_KEEP_MS)));
   // Таблиці з міграції 0009: до її застосування запит упаде — це не повинно зупиняти нагадування.
   await db

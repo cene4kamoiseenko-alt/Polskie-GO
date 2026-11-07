@@ -5,7 +5,7 @@ import { config } from '../env';
 import { and, count, desc, eq, gt, inArray, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import {
-  aiUsage, cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
+  cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
   quests, reviewSchedule, subscriptions, walletTransactions, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
 } from '../db/schema';
 import { getRewards } from './gameConfig';
@@ -20,11 +20,11 @@ export { goalXpFor as goalXp } from './goal';
 import { goalXpFor as goalXp } from './goal';
 
 export async function getMe(userId: string) {
-  // Один пакет D1: «сьогоднішні» рядки (денна активність, ліміт ШІ) читаються за всіма можливими ключами дня,
+  // Один пакет D1: «сьогоднішні» рядки (денна активність) читаються за всіма можливими ключами дня,
   // бо пояс користувача стає відомим лише з цього ж пакета. Вбрання (JOIN) і нагороди (кеш) — паралельно.
   const now = new Date();
   const days = dayCandidates(now);
-  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, usageRows, giftRows], look, cfg] = await Promise.all([
+  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, giftRows], look, cfg] = await Promise.all([
     db.batch([
       db.select().from(users).where(eq(users.id, userId)),
       db.select().from(userSettings).where(eq(userSettings.userId, userId)),
@@ -40,7 +40,6 @@ export async function getMe(userId: string) {
         .from(reviewSchedule)
         .where(and(eq(reviewSchedule.userId, userId), or(eq(reviewSchedule.itemType, 'EXERCISE'), and(eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))))),
       db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
-      db.select().from(aiUsage).where(and(eq(aiUsage.userId, userId), inArray(aiUsage.day, days))),
       db.select({ key: walletTransactions.idempotencyKey }).from(walletTransactions).where(inArray(walletTransactions.idempotencyKey, giftKeys(userId, now))),
     ]),
     outfit(userId),
@@ -51,9 +50,7 @@ export async function getMe(userId: string) {
   const tz = user.settings?.timezone ?? 'Europe/Warsaw';
   const today = dayKey(now, tz);
   const todayRow = activityRows.filter((r) => r.day === today);
-  const usageRow = usageRows.filter((r) => r.day === today);
   const todayAct = todayRow[0];
-  const usage = usageRow[0];
   const dueReviews = dueRow[0]?.n ?? 0;
   const mistakes = mistakesRow[0]?.n ?? 0;
   const unseenAch = unseenRow[0]?.n ?? 0;
@@ -105,8 +102,6 @@ export async function getMe(userId: string) {
       : { active: false },
     outfit: look,
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
-    // configured: без ключа ШІ-співрозмовник не працює — застосунок ховає його входи й не обіцяє його в Premium.
-    ai: { used: usage?.requests ?? 0, limit: premium ? cfg.premiumAiMessagesPerDay : cfg.freeAiMessagesPerDay, configured: !!config.anthropicKey },
     rewards: { exerciseXp: cfg.exerciseXp },
     /**
      * Озвучка — лише готові MP3 голосу бібліотеки (Kamil): клієнт рахує audio_id = sha256(audioNorm(текст)) і бере

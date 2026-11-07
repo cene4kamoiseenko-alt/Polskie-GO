@@ -18,7 +18,6 @@ import { achievementMetrics } from '../services/achievements';
 import { answerMission, listMissions, missionHint, startMission } from '../services/missions';
 import { passport } from '../services/passport';
 import { SLANG, SLANG_GROUPS } from '../content/slang';
-import { AI_MODES, ROLEPLAYS, listConversations, sendMessage, type AiMode } from '../services/ai';
 
 export const gameRoutes = new Hono<AppEnv>();
 const r = gameRoutes;
@@ -140,19 +139,3 @@ r.post('/premium/invoice', rateLimit(10, 60_000, 'invoice'), async (c) => {
   return c.json(await createInvoice(c.get('userId'), plan, (settings?.uiLanguage ?? 'uk') as UiLang));
 });
 r.post('/premium/cancel', async (c) => c.json(await cancelSubscription(c.get('userId'))));
-
-// ── AI ──
-r.get('/ai/conversations', async (c) =>
-  c.json({ conversations: await listConversations(c.get('userId')), modes: AI_MODES, roleplays: ROLEPLAYS, configured: !!config.anthropicKey }),
-);
-r.post('/ai/message', rateLimit(20, 60_000, 'ai'), async (c) => {
-  const b = z
-    .object({
-      conversationId: z.string().optional(),
-      mode: z.enum(Object.keys(AI_MODES) as [AiMode, ...AiMode[]]).default('chat'),
-      scene: z.enum(ROLEPLAYS).optional(),
-      text: z.string().min(1).max(1000),
-    })
-    .parse(await body(c));
-  return c.json(await sendMessage(c.get('userId'), b));
-});

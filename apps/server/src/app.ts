@@ -7,7 +7,9 @@ import { bindDb, db, mapDbError } from './db';
 import { uploads } from './db/schema';
 import { config, setEnv } from './env';
 import { requireUser } from './auth';
-import { rateLimit, type AppEnv } from './hono';
+import { body, edgeRateLimit, rateLimit, type AppEnv } from './hono';
+import { recordError } from './services/error-log';
+import { z } from 'zod';
 import { HttpError } from './lib/errors';
 import { authRoutes, meRoutes } from './routes/public';
 import { learnRoutes } from './routes/learn';
@@ -51,6 +53,14 @@ export function buildApp() {
     if (e instanceof HttpError) return c.json({ error: e.code, message: e.message }, e.status as never);
     if (e instanceof ZodError) return c.json({ error: 'validation_error', issues: e.issues.slice(0, 5) }, 400);
     console.error(err);
+    // Журнал ошибок (services/error-log.ts): фоном, ответ не ждёт. В тестах ExecutionContext нет — запись просто идёт без waitUntil.
+    const er = err instanceof Error ? err : new Error(String(err));
+    const write = recordError({ kind: 'server', message: `${er.name}: ${er.message}`, detail: er.stack ?? null, path: c.req.path });
+    try {
+      c.executionCtx.waitUntil(write);
+    } catch {
+      /* без ExecutionContext */
+    }
     return c.json({ error: 'internal_error', message: 'Internal error' }, 500);
   });
 
@@ -101,6 +111,46 @@ export function buildApp() {
   // Готовий MP3 аудіобібліотеки з R2 (services/audio-library.ts → serveLibraryFile): без входу, щоб працювали кеш
   // браузера й Range-запити <audio>. Лише вже озвучене; ElevenLabs звідси не викликається ніколи.
   app.get('/api/audio/:fp/:file', rateLimit(600, 60_000, 'audio'), (c) => serveLibraryFile(c.req.raw, c.req.param('fp'), c.req.param('file')));
+
+  // Ошибки Mini App у игроков и отчёты CSP (Report-Only, apps/web/public/_headers): без входа — ошибка бывает и до входа.
+  // Два ограничителя (Cloudflare по IP и счётчик в памяти), тело ≤ 1 МБ (body), поля обрезаются; ответ 204 без тела.
+  const clientError = z.object({
+    message: z.string().min(1).max(1000),
+    detail: z.string().max(4000).optional(),
+    path: z.string().max(300).optional(),
+    release: z.string().max(60).optional(),
+  });
+  app.post('/api/client-errors', edgeRateLimit('RL_REPORT'), rateLimit(30, 60_000, 'report'), async (c) => {
+    const b = clientError.parse(await body(c));
+    await recordError({ kind: 'client', message: b.message, detail: b.detail ?? null, path: b.path ?? null, release: b.release ?? null });
+    return c.body(null, 204);
+  });
+  app.post('/api/csp-report', edgeRateLimit('RL_REPORT'), rateLimit(30, 60_000, 'report'), async (c) => {
+    // Старый формат report-uri: { "csp-report": {...} }; Reporting API: [{ type: "csp-violation", body: {...} }].
+    const raw = (await body(c)) as Record<string, unknown> | Record<string, unknown>[];
+    const reports = (Array.isArray(raw) ? raw.map((r) => (r as { body?: unknown }).body) : [(raw as Record<string, unknown>)['csp-report']]).slice(0, 5);
+    for (const r of reports) {
+      if (!r || typeof r !== 'object') continue;
+      const v = r as Record<string, unknown>;
+      const directive = String(v['effective-directive'] ?? v['violated-directive'] ?? v.effectiveDirective ?? 'unknown').slice(0, 80);
+      const blocked = String(v['blocked-uri'] ?? v.blockedURL ?? '').slice(0, 300);
+      let host = blocked;
+      try {
+        host = blocked.startsWith('http') ? new URL(blocked).origin : blocked;
+      } catch {
+        /* inline, eval, data: */
+      }
+      const page = String(v['document-uri'] ?? v.documentURL ?? '');
+      let path = '';
+      try {
+        path = page ? new URL(page).pathname : '';
+      } catch {
+        /* нет адреса */
+      }
+      await recordError({ kind: 'csp', message: `${directive} ${host}`.trim(), detail: String(v['source-file'] ?? v.sourceFile ?? '').slice(0, 300) || null, path });
+    }
+    return c.body(null, 204);
+  });
 
   // Порядок важливий: адмінка й webhook мають власну авторизацію, далі — вхід, потім маршрути користувача.
   app.route('/api/admin', adminRoutes);
