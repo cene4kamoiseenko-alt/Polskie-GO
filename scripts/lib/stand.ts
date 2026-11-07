@@ -69,7 +69,7 @@ export async function startStand(opts: { ui: 'dev' | 'dist'; dist?: string; app?
     const vite = await createServer({
       root: `${root}/apps/${ui}`,
       configFile: `${root}/apps/${ui}/vite.config.ts`,
-      server: { host: '127.0.0.1', port: await freePort(), strictPort: true, proxy: { '/api': api, '/uploads': api, '/privacy': api, '/delete-account': api, '/.well-known': api } },
+      server: { host: '127.0.0.1', port: await freePort(), strictPort: true, proxy: { '/api': api, '/uploads': api, '/privacy': api, '/terms': api, '/delete-account': api, '/.well-known': api } },
       logLevel: 'error',
     });
     await vite.listen();
@@ -82,7 +82,7 @@ export async function startStand(opts: { ui: 'dev' | 'dist'; dist?: string; app?
     const rules = headerRules(dist);
     const server = httpServer((req, res) => {
       const path = decodeURIComponent((req.url ?? '/').split('?')[0]);
-      if (path.startsWith('/api/') || path.startsWith('/uploads/') || path === '/privacy' || path === '/delete-account' || path.startsWith('/.well-known/')) {
+      if (path.startsWith('/api/') || path.startsWith('/uploads/') || path === '/privacy' || path === '/terms' || path === '/delete-account' || path.startsWith('/.well-known/')) {
         apiRequest(req, res).catch(() => { res.writeHead(500); res.end('QA bridge error'); });
         return;
       }

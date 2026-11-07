@@ -36,6 +36,19 @@ describe('гость и ключ устройства', () => {
     expect(inv.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('профиль: guest=true у гостя, guest=false у игрока Telegram и у устройства, вошедшего по коду', async () => {
+    const g = await guest();
+    const gm = await meOf(g.token);
+    expect((gm.body.user ?? gm.body).guest).toBe(true);
+
+    const tgUser = await login();
+    expect(((await tgUser.call('GET', '/api/me')).body.user ?? (await tgUser.call('GET', '/api/me')).body).guest).toBe(false);
+    const made = await tgUser.call('POST', '/api/me/link-code');
+    const inn = await request('POST', '/api/auth/link', { code: made.body.code, platform: 'twa' });
+    const linked = await meOf(inn.body.token);
+    expect((linked.body.user ?? linked.body).guest).toBe(false);
+  });
+
   it('в базе только sha-256 ключа, а не сам ключ', async () => {
     const g = await guest();
     const rows = await db.select().from(deviceCredentials);
@@ -199,6 +212,23 @@ describe('страницы для Google Play и Digital Asset Links', () => {
     expect((await get('/privacy')).text).toContain('Політика конфіденційності');
     // Контакт по умолчанию — бот, а не придуманный адрес.
     expect((await get('/privacy?lang=en')).text).toContain('t.me/');
+  });
+
+  it('/terms: три языка; правила для имён и фото, жалобы и модерация, оплата только в Telegram; без скриптов', async () => {
+    for (const [lang, title, reports] of [['uk', 'Умови використання', 'Скарги та модерація'], ['ru', 'Условия использования', 'Жалобы и модерация'], ['en', 'Terms of Use', 'Reports and moderation']] as const) {
+      const r = await get(`/terms?lang=${lang}`);
+      expect(r.status).toBe(200);
+      expect(r.type).toContain('text/html');
+      expect(r.text).toContain(title);
+      expect(r.text).toContain(reports);
+      expect(r.text).not.toMatch(/<script/i);
+    }
+    expect((await get('/terms?lang=ru')).text).toContain('/paysupport');
+  });
+
+  it('/privacy сообщает про жалобы на игроков', async () => {
+    expect((await get('/privacy?lang=ru')).text).toContain('Жалобы:');
+    expect((await get('/privacy?lang=en')).text).toContain('Reports:');
   });
 
   it('/delete-account описывает путь в приложении и ручное удаление', async () => {

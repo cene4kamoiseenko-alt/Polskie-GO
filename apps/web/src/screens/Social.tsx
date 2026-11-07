@@ -17,6 +17,7 @@ import { Beaver } from '../components/Beaver';
 import { Art } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { UserAvatar } from '../components/Avatars';
+import { ReportButton, ReportDialog, type ReportTarget } from '../components/ReportPlayer';
 import { Progress, Skeleton, cx, useBackButton, useToast } from '../components/ui';
 import { rankFor } from './Home';
 
@@ -122,6 +123,7 @@ export default function SocialScreen() {
   const qc = useQueryClient();
   const toast = useToast();
   const [code, setCode] = useState('');
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
   const lb = useQuery({ queryKey: ['lb', tab], queryFn: () => api<Board>(`/leaderboard?scope=${tab}`) });
   const friends = useQuery({ queryKey: ['friends'], queryFn: () => api<{ friends: Friend[]; referralCode: string; inviteLink: string }>('/friends'), enabled: tab === 'friends' });
   useBackButton(useGoBack());
@@ -235,6 +237,7 @@ export default function SocialScreen() {
                         <div className="text-[12px] font-bold text-sky">{t('lb_level_n', { n: r.level })}</div>
                       </div>
                       <span className="relative text-[16px] font-black text-white">{r.xp} XP</span>
+                      <ReportButton target={{ id: r.userId, name: r.name }} onOpen={setReporting} />
                     </motion.div>
                   ))}
                 </div>
@@ -264,7 +267,7 @@ export default function SocialScreen() {
               </button>
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-night/60 px-3 py-2">
                 <span className="text-[14px] font-bold text-mist">{t('friends_code')}:</span>
-                <button onClick={() => copy(friends.data!.referralCode)} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-elev px-3 py-1.5 font-mono text-[17px] font-black tracking-wider text-white">
+                <button onClick={() => copy(friends.data!.referralCode)} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-night/60 px-3 py-1.5 font-mono text-[17px] font-black tracking-wider text-white">
                   {friends.data.referralCode}
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" /></svg>
                 </button>
@@ -320,12 +323,14 @@ export default function SocialScreen() {
                       {f.user.xp !== null && me && <div className="text-[10.5px] font-bold text-[var(--text-muted)]">{f.user.xp >= me.progress.xpTotal ? '+' : '−'}{t('friends_vs', { n: Math.abs(f.user.xp - me.progress.xpTotal) })}</div>}
                     </div>
                   )}
+                  <ReportButton target={{ id: f.user.id, name: f.user.name }} onOpen={setReporting} />
                 </div>
               ))}
             </div>
           ) : null}
         </>
       )}
+      <ReportDialog target={reporting} onClose={() => setReporting(null)} />
     </div>
   );
 }

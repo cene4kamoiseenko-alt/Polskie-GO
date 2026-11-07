@@ -13,6 +13,7 @@ import { getBindings } from '../env';
 import { atomic, db, isUniqueViolation } from '../db';
 import * as t from '../db/schema';
 import { forgetUser, requireAdmin } from '../auth';
+import { listReports, resolveReports } from '../services/reports';
 import { body, edgeRateLimit, query, rateLimit, type AppEnv } from '../hono';
 import { HttpError, badRequest, notFound } from '../lib/errors';
 import { hashPassword, verifyPassword, verifyPasswordDummy } from '../lib/password';
@@ -486,6 +487,22 @@ a.post('/support/:id/close', async (c) => {
   const res = await closeSupport(c.req.param('id'));
   await audit(c, 'support_close', 'support', c.req.param('id'));
   return c.json(res);
+});
+
+// ── Жалобы игроков на имена и фото (требование Google Play) ──
+a.get('/reports', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const { status } = z.object({ status: z.enum(['OPEN', 'DONE']).default('OPEN') }).parse(query(c));
+  return c.json({ items: await listReports(status) });
+});
+a.post('/reports/:userId/resolve', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const userId = c.req.param('userId');
+  const { action } = z.object({ action: z.enum(['dismiss', 'reset_name', 'ban']) }).parse(await body(c));
+  const closed = await resolveReports(userId, action);
+  if (action === 'ban') forgetUser(userId);
+  await audit(c, `report_${action}`, 'user', userId, { closed });
+  return c.json({ ok: true, closed });
 });
 
 // ── Бот: перевірка та налаштування (команди, меню, webhook із callback_query, серверний секрет) ──

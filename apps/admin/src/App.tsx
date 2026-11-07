@@ -1420,6 +1420,63 @@ function Support({ admin }: { admin: Admin }) {
   );
 }
 
+const REASON_RU: Record<string, string> = { name: 'имя', photo: 'фото', other: 'другое' };
+
+/** Жалобы игроков на имена и фото (требование Google Play): по игрокам, больше жалоб — выше. */
+function Reports() {
+  const [status, setStatus] = useState<'OPEN' | 'DONE'>('OPEN');
+  const { data, error, reload } = useLoad(() => api(`/reports?status=${status}`), [status]);
+  const resolve = async (userId: string, action: 'dismiss' | 'reset_name' | 'ban') => {
+    if (action === 'ban' && !confirm('Заблокировать игрока? Он больше не сможет войти в приложение.')) return;
+    try {
+      await api(`/reports/${userId}/resolve`, { method: 'POST', body: { action } });
+      reload();
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-black">Жалобы на игроков</h1>
+      <p className="text-sm text-slate-500">
+        Игроки жалуются на имя или фото из рейтинга и списка друзей. «Сбросить имя» ставит нейтральное имя «Bóbr» и очищает описание профиля; «Заблокировать» закрывает вход; «Закрыть» оставляет всё как есть.
+        Открытые жалобы разбирайте не реже раза в сутки: этого ждёт Google Play.
+      </p>
+      <div className="flex gap-2">
+        {(['OPEN', 'DONE'] as const).map((s) => (
+          <button key={s} className={`rounded-full px-3 py-1 text-sm font-bold ${status === s ? 'bg-slate-900 text-white' : 'bg-white shadow-sm'}`} onClick={() => setStatus(s)}>
+            {s === 'OPEN' ? 'Открытые' : 'Разобранные'}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-rose-600">{error}</p>}
+      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-400">Жалоб нет.</p> : null}
+      {data?.items.map((r: any) => (
+        <div key={r.userId} className="panel flex flex-wrap items-center gap-3 p-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <b className="break-words">{r.name}</b>
+              {r.username && <span className="text-sm text-slate-500">@{r.username}</span>}
+              {r.guest && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold">гость</span>}
+              {r.banned && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800">заблокирован</span>}
+            </div>
+            <div className="text-sm text-slate-500">
+              Жалоб: <b>{r.count}</b> · {r.reasons.map((x: string) => REASON_RU[x] ?? x).join(', ')} · {new Date(r.lastAt).toLocaleString('ru')} · <Link className="underline" to={`/users/${r.userId}`}>профиль</Link>
+            </div>
+          </div>
+          {status === 'OPEN' && (
+            <div className="flex flex-wrap gap-2">
+              <button className="btn" onClick={() => resolve(r.userId, 'reset_name')}>Сбросить имя</button>
+              <button className="btn !bg-rose-600" onClick={() => resolve(r.userId, 'ban')}>Заблокировать</button>
+              <button className="btn !bg-slate-200 !text-slate-800" onClick={() => resolve(r.userId, 'dismiss')}>Закрыть</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Rewards() {
   const { data, error } = useLoad(() => api('/config/rewards'), []);
   const [form, setForm] = useState<Record<string, number> | null>(null);
@@ -1558,7 +1615,7 @@ export function App() {
     const r = admin.role;
     const items: [string, string][] = [['/', '📊 Обзор']];
     if (r !== 'SUPPORT') for (const d of RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns')) items.push([`/r/${d.name}`, d.title]);
-    if (r !== 'EDITOR') items.push(['/audience', '🤝 Аудитория бота'], ['/users', '👥 Пользователи'], ['/payments', '⭐ Платежи'], ['/support', '💬 Поддержка']);
+    if (r !== 'EDITOR') items.push(['/audience', '🤝 Аудитория бота'], ['/users', '👥 Пользователи'], ['/payments', '⭐ Платежи'], ['/support', '💬 Поддержка'], ['/reports', '🚩 Жалобы']);
     if (r !== 'SUPPORT') items.push(['/audio', '🎧 Аудиобиблиотека']);
     if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифы'], ['/r/campaigns', '📣 Рассылки'], ['/rewards', '🎁 Награды'], ['/bot', '🤖 Бот'], ['/audit', '📜 Журнал действий'], ['/admins', '🔐 Администраторы']);
     return items;
@@ -1611,6 +1668,7 @@ export function App() {
           <Route path="/users/:id" element={<UserDetail admin={admin} />} />
           <Route path="/payments" element={<Payments admin={admin} />} />
           <Route path="/support" element={<Support admin={admin} />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/bot" element={<Bot />} />
           <Route path="/audio" element={<AudioLibrary admin={admin} />} />

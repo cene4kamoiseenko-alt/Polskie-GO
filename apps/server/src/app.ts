@@ -164,7 +164,7 @@ export function buildApp() {
   app.route('/api', gameRoutes);
   app.all('/api/*', (c) => c.json({ error: 'not_found' }, 404));
 
-  // Страницы для Google Play (/privacy, /delete-account) и Digital Asset Links приложения Android (/.well-known/assetlinks.json).
+  // Страницы для Google Play (/privacy, /terms, /delete-account) и Digital Asset Links приложения Android (/.well-known/assetlinks.json).
   app.route('/', siteRoutes);
 
   // Завантажені адміністратором ассети (зберігаються в D1).

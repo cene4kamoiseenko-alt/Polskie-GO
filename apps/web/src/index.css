@@ -1052,9 +1052,7 @@ html.reduced-motion .splash *::after {
   background: linear-gradient(90deg, #4a2a22 0%, #2a2030 100%);
   border-color: rgb(227 154 107 / 0.6);
 }
-.light .lb-row {
-  background: var(--bg-elev);
-}
+/* Строки рейтинга тёмные и в светлой теме: имя и уровень в них белые, на светлом фоне их не видно (раньше `.light .lb-row` светлил фон). */
 
 /* Картка предмета гардероба */
 .item-card {

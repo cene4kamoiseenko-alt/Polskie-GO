@@ -89,6 +89,8 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
       {error && <p role="alert" className="text-sm font-black text-coral" data-welcome-error>{error}</p>}
       <p className="muted text-xs font-bold leading-snug">
         {t('welcome_privacy_note')}{' '}
+        <a className="underline" href={`/terms?lang=${lang}`} target="_blank" rel="noopener" data-welcome-terms>{t('welcome_terms')}</a>
+        {' · '}
         <a className="underline" href={`/privacy?lang=${lang}`} target="_blank" rel="noopener">{t('welcome_privacy')}</a>
       </p>
     </main>

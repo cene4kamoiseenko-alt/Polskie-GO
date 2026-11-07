@@ -73,6 +73,13 @@ export function startParam(): string | undefined {
 
 export function share(url: string, text: string) {
   const link = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-  if (tg) tg.openTelegramLink(link);
-  else window.open(link, '_blank');
+  if (tg) return tg.openTelegramLink(link);
+  // Android-приложение и браузер: системное окно «Поделиться» (любой мессенджер); если его нет или оно отказало — окно Telegram.
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    navigator.share({ url, text }).catch((e: unknown) => {
+      if ((e as { name?: string })?.name !== 'AbortError') window.open(link, '_blank', 'noopener');
+    });
+    return;
+  }
+  window.open(link, '_blank', 'noopener');
 }

@@ -1,6 +1,7 @@
 /**
  * Публичные страницы, которых требует Google Play, и файл связи сайта с Android-приложением:
  *  · /privacy — политика конфиденциальности (uk / ru / en, выбор — `?lang=`);
+ *  · /terms — условия использования: правила для имён и фото, жалобы и модерация (требование Google Play к данным игроков);
  *  · /delete-account — как удалить аккаунт и данные (обязательная ссылка в форме Data safety);
  *  · /.well-known/assetlinks.json — Digital Asset Links: подтверждает, что приложение с этим именем пакета и ключом подписи вправе открывать сайт как TWA
  *    (без него Android показывает адресную строку браузера). Имя пакета и отпечатки — переменные ANDROID_PACKAGE_NAME и ANDROID_SHA256_FINGERPRINTS.
@@ -40,6 +41,7 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
         'Акаунт у Telegram: числовий ідентифікатор Telegram, ім’я, прізвище, ім’я користувача, адреса фото профілю і мова інтерфейсу — їх передає Telegram під час входу в Mini App.',
         'Акаунт «гість» (Android, веб): випадковий внутрішній номер і ключ пристрою. Ім’я, e-mail чи номер телефону не потрібні.',
         'Навчальні дані: прогрес, відповіді на завдання, словник, досягнення, віртуальна валюта й речі, серія днів, налаштування (мова, мета, час нагадування, часовий пояс). За вашим вибором: публічний профіль і рейтинг, друзі.',
+        'Скарги: якщо ви скаржитеся на гравця, ми зберігаємо, хто, на кого, з якої причини й коли поскаржився. Гравець, на якого скаржаться, не дізнається, хто це зробив. Скарги видаляються разом з акаунтом.',
         'Платежі: Premium у Telegram оплачується Telegram Stars; ми зберігаємо запис про платіж (сума, статус, ідентифікатор платежу), але не дані карток. Покупки в Android-версії проходитимуть через Google Play, який обробляє платіж.',
         'Голос: під час вправ на вимову запис із мікрофона надсилається на наш сервер лише для перевірки й передається постачальнику розпізнавання мовлення (Microsoft Azure або Google, якщо увімкнено). Ми не зберігаємо аудіозаписи.',
         'Технічні дані: звіти про помилки (текст помилки, адреса екрана, версія застосунку — без імені й ідентифікаторів гравця), IP-адреса обробляється Cloudflare для захисту від зловживань і обмеження кількості запитів.',
@@ -61,6 +63,7 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
         'Аккаунт Telegram: числовой идентификатор Telegram, имя, фамилия, имя пользователя, адрес фото профиля и язык интерфейса — их передаёт Telegram при входе в Mini App.',
         'Аккаунт «гость» (Android, веб): случайный внутренний номер и ключ устройства. Имя, e-mail и номер телефона не нужны.',
         'Учебные данные: прогресс, ответы на задания, словарь, достижения, виртуальная валюта и вещи, серия дней, настройки (язык, цель, время напоминания, часовой пояс). По вашему выбору: публичный профиль и рейтинг, друзья.',
+        'Жалобы: если вы жалуетесь на игрока, мы храним, кто, на кого, по какой причине и когда пожаловался. Игрок, на которого жалуются, не узнает, кто это сделал. Жалобы удаляются вместе с аккаунтом.',
         'Платежи: Premium в Telegram оплачивается Telegram Stars; мы храним запись о платеже (сумма, статус, идентификатор платежа), но не данные карт. Покупки в Android-версии будут проходить через Google Play, который обрабатывает платёж.',
         'Голос: в упражнениях на произношение запись с микрофона отправляется на наш сервер только для проверки и передаётся поставщику распознавания речи (Microsoft Azure или Google, если включено). Аудиозаписи мы не сохраняем.',
         'Технические данные: отчёты об ошибках (текст ошибки, адрес экрана, версия приложения — без имени и идентификаторов игрока); IP-адрес обрабатывает Cloudflare для защиты от злоупотреблений и ограничения частоты запросов.',
@@ -82,6 +85,7 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
         'Telegram account: your numeric Telegram ID, first and last name, username, profile photo URL and interface language, provided by Telegram when you open the Mini App.',
         'Guest account (Android, web): a random internal ID and a device key. No name, e-mail address or phone number is required.',
         'Learning data: progress, exercise answers, vocabulary, achievements, virtual currency and items, daily streak, settings (language, goal, reminder time, time zone). Optionally: public profile, leaderboard, friends.',
+        'Reports: if you report a player, we store who reported whom, the reason and the date. The reported player is not told who reported them. Reports are deleted together with the account.',
         'Payments: Premium in Telegram is paid with Telegram Stars; we keep a payment record (amount, status, payment ID) but never card data. Purchases in the Android version go through Google Play, which processes the payment.',
         'Voice: in pronunciation exercises the microphone recording is sent to our server only to be checked and is passed to a speech-recognition provider (Microsoft Azure or Google, when enabled). We do not store audio recordings.',
         'Technical data: error reports (error text, screen address, app version — no name or player identifiers); your IP address is processed by Cloudflare for abuse protection and rate limiting.',
@@ -129,6 +133,43 @@ const DELETE: Record<Lang, (c: string) => Doc> = {
   }),
 };
 
+/** Условия использования: правила для имён и фото, которые видят другие игроки, жалобы и последствия (UGC-политика Google Play), платежи, возраст. */
+const TERMS: Record<Lang, (c: string) => Doc> = {
+  uk: (c) => ({
+    title: 'Умови використання — POLSKI GO',
+    updated: 'Оновлено 7 листопада 2026',
+    sections: [
+      { h: 'Про застосунок', p: ['POLSKI GO — навчальний застосунок для вивчення польської мови. Користуватися ним можна від 13 років. Користуючись застосунком, ви погоджуєтеся з цими умовами та з політикою конфіденційності (/privacy).'] },
+      { h: 'Імена та фото', p: ['Ім’я гравця й фото профілю бачать інші гравці в рейтингу та у списку друзів. Не використовуйте образливі, ненависницькі, непристойні імена чи фото, не видавайте себе за іншу людину, не рекламуйте сторонні сервіси.'] },
+      { h: 'Скарги та модерація', p: ['На будь-якого гравця можна поскаржитися кнопкою-прапорцем у рейтингу чи списку друзів. Ми розглядаємо скарги: можемо замінити ім’я на нейтральне, обмежити або заблокувати акаунт. За повторні порушення акаунт блокується.'] },
+      { h: 'Premium і платежі', p: ['Premium у Telegram оплачується Telegram Stars; питання щодо оплати та повернення коштів — через /paysupport у боті. У версії для Android Premium наразі не продається. Віртуальна валюта (злотки) та речі не мають грошової вартості й не обмінюються на гроші.'] },
+      { h: 'Зміни та зв’язок', p: [`Ми можемо змінювати ці умови; чинна версія завжди за цією адресою. З будь-яких питань пишіть ${c}.`] },
+    ],
+  }),
+  ru: (c) => ({
+    title: 'Условия использования — POLSKI GO',
+    updated: 'Обновлено 7 ноября 2026',
+    sections: [
+      { h: 'О приложении', p: ['POLSKI GO — учебное приложение для изучения польского языка. Пользоваться им можно с 13 лет. Пользуясь приложением, вы соглашаетесь с этими условиями и с политикой конфиденциальности (/privacy).'] },
+      { h: 'Имена и фото', p: ['Имя игрока и фото профиля видят другие игроки в рейтинге и в списке друзей. Не используйте оскорбительные, ненавистнические, непристойные имена и фото, не выдавайте себя за другого человека, не рекламируйте сторонние сервисы.'] },
+      { h: 'Жалобы и модерация', p: ['На любого игрока можно пожаловаться кнопкой-флажком в рейтинге или списке друзей. Мы рассматриваем жалобы: можем заменить имя на нейтральное, ограничить или заблокировать аккаунт. За повторные нарушения аккаунт блокируется.'] },
+      { h: 'Premium и платежи', p: ['Premium в Telegram оплачивается Telegram Stars; вопросы об оплате и возвратах — через /paysupport в боте. В версии для Android Premium пока не продаётся. Виртуальная валюта (злотки) и вещи не имеют денежной стоимости и не обмениваются на деньги.'] },
+      { h: 'Изменения и связь', p: [`Мы можем менять эти условия; действующая версия всегда по этому адресу. По любым вопросам пишите ${c}.`] },
+    ],
+  }),
+  en: (c) => ({
+    title: 'Terms of Use — POLSKI GO',
+    updated: 'Updated 7 November 2026',
+    sections: [
+      { h: 'About the app', p: ['POLSKI GO is an educational app for learning Polish. You must be at least 13 to use it. By using the app you agree to these terms and to the privacy policy (/privacy).'] },
+      { h: 'Names and photos', p: ['Your player name and profile photo are visible to other players in the leaderboard and the friends list. Do not use offensive, hateful or obscene names or photos, do not impersonate anyone, and do not advertise other services.'] },
+      { h: 'Reports and moderation', p: ['You can report any player with the flag button in the leaderboard or the friends list. We review reports: we may replace a name with a neutral one, restrict or block an account. Accounts that break these rules repeatedly are blocked.'] },
+      { h: 'Premium and payments', p: ['Premium in Telegram is paid with Telegram Stars; for payment questions and refunds use /paysupport in the bot. Premium is not sold in the Android version yet. Virtual currency (złotki) and items have no cash value and cannot be exchanged for money.'] },
+      { h: 'Changes and contact', p: [`We may change these terms; the current version is always at this address. For any questions contact us ${c}.`] },
+    ],
+  }),
+};
+
 function page(lang: Lang, path: string, doc: Doc, contactHtml: string): string {
   const nav = LANGS.map((l) => (l === lang ? `<b>${LANG_NAME[l]}</b>` : `<a href="${path}?lang=${l}">${LANG_NAME[l]}</a>`)).join(' · ');
   const body = doc.sections.map((s) => `<h2>${escapeHtml(s.h)}</h2>${s.p.map((p) => `<p>${escapeHtml(p).replace(CONTACT_MARK, contactHtml)}</p>`).join('')}`).join('');
@@ -156,6 +197,11 @@ const html = (body: string) => new Response(body, { headers: { 'content-type': '
 siteRoutes.get('/privacy', (c) => {
   const lang = pickLang(c);
   return html(page(lang, '/privacy', PRIVACY[lang](CONTACT_MARK), contact(lang)));
+});
+
+siteRoutes.get('/terms', (c) => {
+  const lang = pickLang(c);
+  return html(page(lang, '/terms', TERMS[lang](CONTACT_MARK), contact(lang)));
 });
 
 siteRoutes.get('/delete-account', (c) => {

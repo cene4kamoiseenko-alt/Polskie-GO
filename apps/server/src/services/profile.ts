@@ -60,6 +60,8 @@ export async function getMe(userId: string) {
   return {
     id: user.id,
     telegramId: user.telegramId.toString(),
+    // Гостевой аккаунт (вход вне Telegram, services/standalone-auth.ts): id отрицательный. Напоминания и рассылки такому игроку не приходят.
+    guest: user.telegramId < 0,
     firstName: user.firstName,
     lastName: user.lastName,
     username: user.username,

@@ -10,7 +10,7 @@ import { api } from '../lib/api';
 import { haptic } from '../lib/telegram';
 import { takeLaunchRoute } from '../lib/launch';
 import { speak, stopSpeech } from '../lib/audio';
-import { useJourney, useUpdateSettings } from '../lib/queries';
+import { useJourney, useMe, useUpdateSettings } from '../lib/queries';
 import type { Me } from '../lib/types';
 import { Beaver } from '../components/Beaver';
 import { Progress, cx } from '../components/ui';
@@ -61,7 +61,9 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [heard, setHeard] = useState(false);
 
-  const steps = ['hello', 'lang', 'level', ...(level !== 'A0' ? ['placement'] : []), 'goal', 'time', 'reminder', 'map'];
+  // Гостю (вход вне Telegram) напоминания не приходят — шаг про них не показываем и время не сохраняем.
+  const guest = !!useMe().data?.guest;
+  const steps = ['hello', 'lang', 'level', ...(level !== 'A0' ? ['placement'] : []), 'goal', 'time', ...(guest ? [] : ['reminder']), 'map'];
   const id = steps[step];
   const nextStep = () => setStep((s) => Math.min(s + 1, steps.length - 1));
 
@@ -70,7 +72,7 @@ export default function Onboarding() {
     try {
       const me = await api<Me>('/me/onboarding', {
         method: 'POST',
-        body: { uiLanguage: lang, selfLevel: level, learningGoal: goal, dailyGoalMinutes: time, reminderHour: hour, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        body: { uiLanguage: lang, selfLevel: level, learningGoal: goal, dailyGoalMinutes: time, reminderHour: guest ? null : hour, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       });
       // Бот просив відкрити конкретний екран: після знайомства — він (вступний тест не перебиваємо).
       const launch = takeLaunchRoute();

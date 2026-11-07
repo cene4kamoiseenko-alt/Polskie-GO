@@ -29,6 +29,10 @@ const uk = {
   set_privacy_link: 'Політика конфіденційності',
   set_delete_page: 'Як видалити акаунт',
   prem_store_only: 'Оформлення Premium у цій версії з’явиться пізніше. Усі безкоштовні уроки й місії доступні вже зараз.',
+  set_notif_guest: 'Нагадування Бобек надсилає через Telegram, тому в гостьовому акаунті їх немає.',
+  welcome_terms: 'умови використання',
+  set_terms_link: 'Умови використання',
+  theme_system: 'Як у системі',
 };
 
 type Copy = Record<keyof typeof uk, string>;
@@ -58,6 +62,10 @@ const ru: Copy = {
   set_privacy_link: 'Политика конфиденциальности',
   set_delete_page: 'Как удалить аккаунт',
   prem_store_only: 'Оформление Premium в этой версии появится позже. Все бесплатные уроки и миссии доступны уже сейчас.',
+  set_notif_guest: 'Напоминания Бобек присылает через Telegram, поэтому в гостевом аккаунте их нет.',
+  welcome_terms: 'условия использования',
+  set_terms_link: 'Условия использования',
+  theme_system: 'Как в системе',
 };
 
 const en: Copy = {
@@ -85,6 +93,10 @@ const en: Copy = {
   set_privacy_link: 'Privacy policy',
   set_delete_page: 'How to delete your account',
   prem_store_only: 'Premium purchase in this version will be available later. All free lessons and missions are available now.',
+  set_notif_guest: 'Bobek sends reminders through Telegram, so a guest account has none.',
+  welcome_terms: 'terms of use',
+  set_terms_link: 'Terms of use',
+  theme_system: 'Like the system',
 };
 
 const COPY: Record<'uk' | 'ru' | 'en', Copy> = { uk, ru, en };

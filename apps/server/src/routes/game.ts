@@ -5,12 +5,13 @@ import { z } from 'zod';
 import type { UiLang } from '@polski-go/shared';
 import { config } from '../env';
 import { db } from '../db';
-import { achievements, playerProgress, userAchievements, userSettings, users, walletTransactions } from '../db/schema';
+import { achievements, playerProgress, REPORT_REASONS, userAchievements, userSettings, users, walletTransactions } from '../db/schema';
 import { body, query, rateLimit, type AppEnv } from '../hono';
 import { advanceStory, claimDailyChest, claimQuest, listQuests, startStory, storyState } from '../services/quests';
 import { buyItem, equipItem, listShop, outfit } from '../services/shop';
 import { claimHouseBonus, houseState } from '../services/house';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
+import { reportPlayer } from '../services/reports';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
 import { claimPremiumGift, premiumBonuses, premiumGift } from '../services/premium-gift';
@@ -114,6 +115,11 @@ r.post('/friends', async (c) => c.json(await addFriendByCode(c.get('userId'), z.
 r.post('/friends/:id/respond', async (c) => {
   const { accept } = z.object({ accept: z.boolean() }).parse(await body(c));
   return c.json(await respondFriend(c.get('userId'), c.req.param('id'), accept));
+});
+// Жалоба на игрока (имя или фото в рейтинге и у друзей): требование Google Play к приложениям, где игроки видят чужие имена.
+r.post('/players/:id/report', rateLimit(10, 60_000, 'report'), async (c) => {
+  const { reason } = z.object({ reason: z.enum(REPORT_REASONS) }).parse(await body(c));
+  return c.json(await reportPlayer(c.get('userId'), c.req.param('id'), reason));
 });
 
 // ── Premium ──

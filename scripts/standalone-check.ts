@@ -59,6 +59,21 @@ async function main() {
     check(me?.id || me?.user?.id, '2. профиль гостя открывается');
     await a.page.screenshot({ path: `${OUT}/guest-first-screen.png` });
 
+    // 2b. Знакомство гостя: шага «Напоминать о занятиях?» нет (гостю напоминания не приходят), остальные шаги на месте. До конца знакомство не проходим.
+    await a.page.locator('button.btn-red').first().click({ timeout: 20_000 });
+    let steps = 0;
+    let sawReminder = false;
+    for (let i = 0; i < 8; i++) {
+      const btn = a.page.locator('[data-onboarding-action] button');
+      await btn.waitFor({ timeout: 10_000 });
+      steps++;
+      if (/Напоминать о занятиях/.test(await a.page.locator('body').innerText())) sawReminder = true;
+      if (/урок|тест/i.test(await btn.innerText())) break;
+      await btn.click();
+      await a.page.waitForTimeout(400);
+    }
+    check(steps === 5 && !sawReminder, `2b. знакомство гостя: ${steps} шагов после приветствия (язык, уровень, цель, время, карта), вопроса про напоминания нет`);
+
     // 3. Повторный запуск: приветствия нет.
     await a.page.reload();
     await a.page.waitForTimeout(1500);
@@ -68,6 +83,22 @@ async function main() {
     await a.page.reload();
     await a.page.waitForTimeout(2000);
     check((await a.page.locator('[data-welcome]').count()) === 0, '3. просроченный токен: вход заново по ключу, без приветствия');
+
+    // 3b. Настройки гостя: вместо переключателя напоминаний — пояснение, предупреждение о гостевом аккаунте.
+    await a.page.evaluate(async () => {
+      const auth = JSON.parse(localStorage.getItem('pg_auth') ?? 'null') as { token: string };
+      await fetch('/api/me/onboarding', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null }),
+      });
+    });
+    await a.page.goto(url('/settings'));
+    await a.page.locator('[data-guest-no-reminders]').waitFor({ timeout: 30_000 });
+    check(/Telegram/.test(await a.page.locator('[data-guest-no-reminders]').innerText()), '3b. настройки гостя: вместо переключателя напоминаний — пояснение');
+    check(/гостев/i.test(await a.page.locator('main').innerText()), '3b. настройки гостя: предупреждение, что аккаунт хранится только на этом устройстве');
+    check(!/Как в Telegram/.test(await a.page.locator('main').innerText()), '3b. настройки гостя: тема не «как в Telegram»');
+    await a.page.screenshot({ path: `${OUT}/settings-guest.png`, fullPage: true });
 
     // 4. Вход по коду из Telegram.
     const tgUser = await stand.login();
@@ -97,12 +128,40 @@ async function main() {
     await b.page.locator('[data-link-code]').waitFor({ timeout: 15_000 });
     check(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(await b.page.locator('[data-link-code]').innerText()), '5. настройки: «Получить код» показывает код переноса');
     check((await b.page.locator('[data-privacy-link]').getAttribute('href'))?.startsWith('/privacy?lang='), '5. настройки: ссылка на политику конфиденциальности');
+    check((await b.page.locator('[data-guest-no-reminders]').count()) === 0, '5. настройки игрока Telegram, вошедшего по коду: пояснения «вы гость» нет');
     await b.page.screenshot({ path: `${OUT}/settings-link.png`, fullPage: true });
     await b.page.goto(url('/premium'));
     await b.page.locator('[data-premium-store-note]').waitFor({ timeout: 30_000 });
     check((await b.page.locator('.btn-xp').count()) === 0, '5. Premium вне Telegram: кнопки покупки Stars нет, есть пояснение');
     check(!/Stars/i.test(await b.page.locator('main').innerText()), '5. Premium вне Telegram: слова «Stars» на экране нет');
     await b.page.screenshot({ path: `${OUT}/premium-standalone.png`, fullPage: true });
+
+    // 5b. Жалоба на игрока (требование Google Play): друг в списке → флажок → причина → жалоба записана на сервере.
+    const { db } = await import(root + '/apps/server/src/db/index.ts');
+    const { playerReports } = await import(root + '/apps/server/src/db/schema.ts');
+    const { eq } = await import('drizzle-orm');
+    const friend = await stand.login();
+    const mine = (await tgUser.call('GET', '/api/friends')).body as { referralCode: string };
+    await friend.call('POST', '/api/friends', { code: mine.referralCode });
+    const incoming = ((await tgUser.call('GET', '/api/friends')).body.friends as { id: string; incoming: boolean }[]).find((f) => f.incoming);
+    await tgUser.call('POST', `/api/friends/${incoming!.id}/respond`, { accept: true });
+    await b.page.goto(url('/social?tab=friends'));
+    await b.page.locator(`[data-report-open="${friend.user.id}"]`).waitFor({ timeout: 30_000 });
+    check(true, '5b. друг в списке: рядом флажок «Пожаловаться»');
+    // Светлая тема (так открывается приложение в Android со светлой системой): имя в строке белое, поэтому фон строки должен остаться тёмным.
+    const rowBg = await b.page.evaluate((id) => getComputedStyle(document.querySelector(`[data-report-open="${id}"]`)!.closest('.lb-row')!).backgroundImage, friend.user.id);
+    check(/gradient/.test(rowBg), '5b. светлая тема: строка друга остаётся тёмной (белое имя читается)');
+    await b.page.locator(`[data-report-open="${friend.user.id}"]`).click();
+    await b.page.locator('[data-report-reason="name"]').waitFor({ timeout: 10_000 });
+    check((await b.page.locator('[data-report-reason]').count()) === 3, '5b. диалог: три причины (имя, фото, другое)');
+    await b.page.waitForTimeout(800); // диалог появляется с анимацией
+    await b.page.screenshot({ path: `${OUT}/report-dialog.png` });
+    await b.page.locator('[data-report-reason="name"]').click();
+    await b.page.locator('[data-report-reason]').first().waitFor({ state: 'detached', timeout: 10_000 });
+    const sent = await db.select().from(playerReports).where(eq(playerReports.reportedId, friend.user.id));
+    check(sent.length === 1 && sent[0].reporterId === tgUser.user.id && sent[0].reason === 'name' && sent[0].status === 'OPEN', '5b. жалоба записана на сервере: кто, на кого, причина, открыта');
+    check((await b.page.evaluate(() => document.documentElement.scrollWidth)) <= 390, '5b. список друзей с флажками: нет горизонтальной прокрутки на 390 px');
+    await b.page.screenshot({ path: `${OUT}/friends-report.png` });
 
     // 6. Статические файлы приложения и страницы.
     const get = async (path: string) => b.page.evaluate(async (p) => { const r = await fetch(p); return { status: r.status, type: r.headers.get('content-type') ?? '', text: await r.text() }; }, path);
@@ -118,6 +177,8 @@ async function main() {
     check((await get('/sw.js')).status === 200, '6. /sw.js есть');
     const priv = await get('/privacy?lang=ru');
     check(priv.status === 200 && priv.type.includes('text/html') && /Политика конфиденциальности/.test(priv.text), '6. /privacy отдаётся Worker-ом (не оболочкой приложения)');
+    const terms = await get('/terms?lang=en');
+    check(terms.status === 200 && terms.type.includes('text/html') && /Terms of Use/.test(terms.text) && /Reports and moderation/.test(terms.text), '6. /terms отдаётся Worker-ом: правила для имён и фото, жалобы');
     const del = await get('/delete-account?lang=en');
     check(del.status === 200 && /Delete account/.test(del.text), '6. /delete-account отдаётся');
     const links = await get('/.well-known/assetlinks.json');

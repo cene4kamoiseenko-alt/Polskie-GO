@@ -8,7 +8,7 @@
 const VERSION = 'pg-v1';
 const SHELL = ['/offline.html', '/favicon.svg', '/icons/icon-192.png'];
 const MAX_ENTRIES = 300;
-const SKIP = /^\/(api|telegram|uploads|admin|privacy|delete-account|\.well-known)(\/|$)/;
+const SKIP = /^\/(api|telegram|uploads|admin|privacy|terms|delete-account|\.well-known)(\/|$)/;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));

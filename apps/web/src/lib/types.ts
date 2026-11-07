@@ -10,6 +10,8 @@ export type Me = {
   photoUrl: string | null;
   referralCode: string;
   onboarded: boolean;
+  /** Гостевой аккаунт (вход вне Telegram без кода из Telegram). Может отсутствовать, если сервер старше клиента. */
+  guest?: boolean;
   createdAt: string;
   settings: {
     uiLanguage: UiLang;

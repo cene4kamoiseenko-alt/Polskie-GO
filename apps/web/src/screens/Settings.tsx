@@ -139,7 +139,7 @@ export default function SettingsScreen() {
         <div className="font-black">{t('set_language')}</div>
         <Seg value={s.uiLanguage} options={LANGS} onChange={(v) => set({ uiLanguage: v })} />
         <div className="pt-2 font-black">{t('set_theme')}</div>
-        <Seg value={s.theme} options={[['auto', t('theme_auto')], ['light', t('theme_light')], ['dark', t('theme_dark')]]} onChange={(v) => set({ theme: v })} />
+        <Seg value={s.theme} options={[['auto', isStandalone ? c('theme_system') : t('theme_auto')], ['light', t('theme_light')], ['dark', t('theme_dark')]]} onChange={(v) => set({ theme: v })} />
         <div className="pt-2 font-black">{t('set_goal')}</div>
         <Seg value={s.dailyGoalMinutes} options={[[5, '5 min'], [10, '10 min'], [15, '15 min'], [20, '20 min']]} onChange={(v) => set({ dailyGoalMinutes: v })} />
       </Card>
@@ -151,8 +151,12 @@ export default function SettingsScreen() {
         <button className="btn btn-primary mt-2 w-full" onClick={saveProfile}>{t('save')}</button>
       </Card>
       <Card className="divide-y divide-[var(--border)] px-4">
-        <Toggle icon="clock" label={t('set_notifications')} checked={s.notificationsEnabled} onChange={(v) => set({ notificationsEnabled: v, reminderHour: s.reminderHour ?? 19 })} />
-        {s.notificationsEnabled && (
+        {me.guest ? (
+          <p className="muted py-3 text-sm font-semibold leading-snug" data-guest-no-reminders>{c('set_notif_guest')}</p>
+        ) : (
+          <Toggle icon="clock" label={t('set_notifications')} checked={s.notificationsEnabled} onChange={(v) => set({ notificationsEnabled: v, reminderHour: s.reminderHour ?? 19 })} />
+        )}
+        {!me.guest && s.notificationsEnabled && (
           <div className="py-3">
             <div className="mb-2 text-sm font-black">{t('set_reminder_hour')}</div>
             <Seg value={s.reminderHour ?? 19} options={[8, 12, 18, 19, 20, 21].map((h) => [h, `${h}:00`] as [number, string])} onChange={(v) => set({ reminderHour: v })} />
@@ -168,7 +172,7 @@ export default function SettingsScreen() {
         <Toggle label={t('set_public_profile')} description={t('set_public_profile_d')} checked={s.publicProfile} onChange={(v) => set({ publicProfile: v })} />
         <Toggle label={t('set_leaderboard')} checked={s.showInLeaderboard} onChange={(v) => set({ showInLeaderboard: v })} />
       </Card>
-      <LinkCodeCard guest={isStandalone && !tg} />
+      <LinkCodeCard guest={!!me.guest} />
       <Card className="space-y-2 p-4">
         <div className="font-black">{t('set_data')}</div>
         <button className="btn btn-ghost w-full" onClick={() => nav('/premium')}><Icon name="crown" size={20} className="text-xp-dark" /> {t('set_premium')}</button>
@@ -177,6 +181,8 @@ export default function SettingsScreen() {
       </Card>
       <p className="muted text-center text-xs font-bold">
         <a className="underline" href={`/privacy?lang=${lang}`} target="_blank" rel="noopener" data-privacy-link>{c('set_privacy_link')}</a>
+        {' · '}
+        <a className="underline" href={`/terms?lang=${lang}`} target="_blank" rel="noopener" data-terms-link>{c('set_terms_link')}</a>
         {' · '}
         <a className="underline" href={`/delete-account?lang=${lang}`} target="_blank" rel="noopener">{c('set_delete_page')}</a>
       </p>

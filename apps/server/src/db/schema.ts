@@ -884,6 +884,27 @@ export const supportRequests = sqliteTable(
   (t) => [index('support_requests_tg_status_idx').on(t.telegramId, t.status), index('support_requests_status_idx').on(t.status, t.createdAt)],
 );
 
+export const REPORT_REASONS = ['name', 'photo', 'other'] as const;
+export const REPORT_STATUS = ['OPEN', 'DONE'] as const;
+
+/**
+ * Жалобы игроков друг на друга (имя в рейтинге и у друзей, фото). Нужны Google Play: приложение, где игроки видят чужие имена, обязано
+ * давать пожаловаться прямо в приложении. Одна жалоба от игрока на игрока; разбирает админка («Жалобы»).
+ */
+export const playerReports = sqliteTable(
+  'player_reports',
+  {
+    id: id(),
+    reporterId: text('reporter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    reportedId: text('reported_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    reason: text('reason', { enum: REPORT_REASONS }).notNull(),
+    status: text('status', { enum: REPORT_STATUS }).notNull().default('OPEN'),
+    createdAt: createdAt(),
+    resolvedAt: ts('resolved_at'),
+  },
+  (t) => [uniqueIndex('player_reports_pair_uq').on(t.reporterId, t.reportedId), index('player_reports_status_idx').on(t.status, t.createdAt), index('player_reports_reported_idx').on(t.reportedId)],
+);
+
 export const QUIZ_ROUND_STATUS = ['OPEN', 'ANSWERED'] as const;
 
 /** Одне надіслане питання: порядок варіантів, відповідь і нагорода. Відповідь приймається один раз (OPEN → ANSWERED). */
