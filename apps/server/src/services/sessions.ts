@@ -530,7 +530,11 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   await atomic(stmts);
 
   const answeredCount = Object.values(state.answers).filter((a) => a.done).length;
-  return { ...result, explanation: item.explanation ?? null, retry, answered: answeredCount, total: items.length };
+  // Сборка предложения: объяснение формы («после X — винительный») показывается, только если выбрана неверная форма; при верных словах в другом
+  // порядке или нехватке слов оно бы «объясняло» ошибку, которой нет.
+  const { diagnosis, ...visible } = result;
+  const note = diagnosis && diagnosis !== 'trap' ? null : (item.explanation ?? null);
+  return { ...visible, explanation: note, retry, answered: answeredCount, total: items.length };
 }
 
 type FinishResult = Awaited<ReturnType<typeof finishOnce>>;

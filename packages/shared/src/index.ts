@@ -4,6 +4,7 @@ export * from './text';
 export * from './answers';
 export * from './grammarOptions';
 export * from './sentenceTiles';
+export * from './orderVariants';
 export * from './srs';
 export * from './dates';
 export * from './progression';

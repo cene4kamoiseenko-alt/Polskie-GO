@@ -15,6 +15,7 @@ import {
 import { matchText, normalize, similarity, sameSpeechPolarityAndNumbers } from './text';
 import { grammarOptions } from './grammarOptions';
 import { sentenceTiles } from './sentenceTiles';
+import { diagnoseOrder, orderVariants } from './orderVariants';
 
 export type AnswerPayload =
   | { optionId: string }
@@ -151,9 +152,10 @@ export function checkAnswer(item: ExerciseItem, payload: AnswerPayload): CheckRe
     const d = item.data as OrderData;
     const tokens = Array.isArray(p.tokens) ? (p.tokens as unknown[]).map(String) : [];
     const given = normalize(tokens.join(' '));
-    const options = [d.answer, ...(d.alternatives ?? [])];
+    // Верные: эталон, перечисленные автором альтернативы и допустимые порядки из записи (orderVariants.ts) — у польского порядок слов свободный.
+    const options = [d.answer, ...(d.alternatives ?? []), ...orderVariants(d.answer).map((v) => [v])];
     const correct = options.some((o) => normalize(o.join(' ')) === given);
-    return { correct, done: true, correctAnswer: d.answer.join(' ') };
+    return { correct, done: true, correctAnswer: d.answer.join(' '), ...(correct ? {} : { diagnosis: diagnoseOrder(options, tokens) }) };
   }
 
   if (t === 'MATCH_PAIRS') {

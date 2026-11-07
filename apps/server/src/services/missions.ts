@@ -5,7 +5,7 @@
  * Перше проходження дає повну нагороду, повторні — невеликий XP раз на день.
  */
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-import { dayKey, normalize, seededRandom, shuffle, type I18n } from '@polski-go/shared';
+import { dayKey, diagnoseOrder, normalize, orderVariants, seededRandom, shuffle, type I18n } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
 import { cosmeticItems, missionRuns, newId, reviewSchedule, subscriptions, userMissionSteps, userMissions, userSettings, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
 import { activeSubWhere, isPremium } from './premium';
@@ -26,12 +26,50 @@ const hashSeed = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.ch
 export const tokensOf = (answer: string) => answer.replace(/[.,!?;:„”"]/g, ' ').split(/\s+/).filter(Boolean);
 const cleanPhrase = (s: string) => normalize(s.replace(/[.,!?;:„”"]/g, ' '));
 
+/**
+ * Усі правильні фрази кроку «build»: еталон, вказані автором варіанти (`accept`) і допустимі порядки слів із запису (orderVariants.ts).
+ * У польській порядок слів вільний, тому «Poproszę wodę i hot doga» так само вірно, як «Poproszę hot doga i wodę».
+ */
+const acceptedCache = new WeakMap<MissionStep, string[]>();
+export function acceptedPhrases(step: MissionStep): string[] {
+  let hit = acceptedCache.get(step);
+  if (!hit) {
+    hit = [step.answer!, ...(step.accept ?? []), ...orderVariants(step.answer!)];
+    acceptedCache.set(step, hit);
+  }
+  return hit;
+}
+
+/**
+ * Слова для збирання: слова еталона + слова, потрібні іншим правильним варіантам (інакше такий варіант не зібрати: «tutaj» замість «tu»)
+ * + «пастки» (`extra`: форми, яких немає в жодному правильному варіанті).
+ */
+export function bankTokens(step: MissionStep): string[] {
+  const out = tokensOf(step.answer!);
+  const need = new Map<string, number>();
+  for (const w of out) need.set(normalize(w), (need.get(normalize(w)) ?? 0) + 1);
+  for (const phrase of acceptedPhrases(step).slice(1)) {
+    const have = new Map<string, number>();
+    for (const w of tokensOf(phrase)) {
+      const k = normalize(w);
+      have.set(k, (have.get(k) ?? 0) + 1);
+      if ((have.get(k) ?? 0) > (need.get(k) ?? 0)) {
+        out.push(w);
+        need.set(k, have.get(k)!);
+      }
+    }
+  }
+  const known = new Set(out.map((w) => normalize(w)));
+  for (const w of step.extra ?? []) if (!known.has(normalize(w))) out.push(w);
+  return out;
+}
+
 /** Крок для клієнта: без позначок правильності; порядок варіантів і слів стабільний для проходження. */
 function publicStep(m: Mission, step: MissionStep, seed: string) {
   const rnd = seededRandom(hashSeed(`${seed}:${step.id}`));
   const base = { id: step.id, kind: step.kind, line: step.line ?? null, task: step.task };
   if (step.kind === 'build') {
-    return { ...base, tokens: shuffle([...tokensOf(step.answer!), ...(step.extra ?? [])], rnd) };
+    return { ...base, tokens: shuffle(bankTokens(step), rnd) };
   }
   const order = shuffle(step.options!.map((_, i) => i), rnd);
   return { ...base, options: order.map((i) => ({ id: i, pl: step.options![i].pl ?? null, text: step.options![i].text ?? null })) };
@@ -163,11 +201,43 @@ export async function missionHint(userId: string, runId: string, stepIdx: number
 function isCorrect(step: MissionStep, answer: { option?: number; text?: string }) {
   if (step.kind === 'build') {
     const given = cleanPhrase(answer.text ?? '');
-    return [step.answer!, ...(step.accept ?? [])].some((a) => cleanPhrase(a) === given);
+    return acceptedPhrases(step).some((a) => cleanPhrase(a) === given);
   }
   const opt = step.options![answer.option ?? -1];
   if (!opt) throw badRequest('bad_option');
   return opt.ok;
+}
+
+const WHY_ORDER: I18n = {
+  uk: 'Слова вибрано правильно, але порядок не підходить. Спробуй переставити їх.',
+  ru: 'Слова выбраны правильно, но порядок не подходит. Попробуй переставить их.',
+  en: 'The words are right, but the order doesn’t work. Try rearranging them.',
+};
+const WHY_MISSING: I18n = {
+  uk: 'Усі вибрані слова потрібні, але їх бракує: у фразі слів більше.',
+  ru: 'Все выбранные слова нужны, но их не хватает: во фразе слов больше.',
+  en: 'Every word you chose belongs, but some are missing: the phrase has more words.',
+};
+const WHY_MIXED: I18n = {
+  uk: 'Не зовсім: слова з різних варіантів змішалися. Склади фразу ще раз.',
+  ru: 'Не совсем: слова из разных вариантов перемешались. Собери фразу ещё раз.',
+  en: 'Not quite: words from different versions got mixed. Build the phrase again.',
+};
+
+/**
+ * Пояснення до неправильної відповіді «build»: за словами відповіді, а не за самим фактом помилки. Пояснення форми («після poproszę —
+ * знахідний відмінок») лишається лише тоді, коли вибрано хибну форму (woda замість wodę); якщо форми правильні, а порядок інший або слів бракує,
+ * про відмінок не мовимо (скарга власника 2026-11-07: «приложение не должно объяснять ошибку падежом, если падеж использован правильно»).
+ */
+export function buildWhy(step: MissionStep, text: string): I18n {
+  const accepted = acceptedPhrases(step).map((p) => [p]);
+  const given = text.split(/\s+/).filter(Boolean);
+  switch (diagnoseOrder(accepted, given)) {
+    case 'trap': return step.explain;
+    case 'order': return WHY_ORDER;
+    case 'missing': return WHY_MISSING;
+    default: return WHY_MIXED;
+  }
 }
 
 /** Відповідь на крок. Правильна — перехід далі (на останньому кроці — завершення й нагороди). */
@@ -180,8 +250,8 @@ export async function answerMission(userId: string, runId: string, stepIdx: numb
 
   if (!correct) {
     await atomic([bump(run, { mistakes: run.mistakes + 1, stepFailed: true })]);
-    const why: I18n | undefined = step.kind === 'build' ? undefined : step.options![answer.option!].why;
-    return { correct: false, why: why ?? step.explain, mistakes: run.mistakes + 1 };
+    const why: I18n | undefined = step.kind === 'build' ? buildWhy(step, answer.text ?? '') : (step.options![answer.option!].why ?? step.explain);
+    return { correct: false, why, mistakes: run.mistakes + 1 };
   }
 
   const firstTry = !run.stepFailed;
