@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { SPEECH_RATES, audioNorm, isLoneLetter, speechText } from '@polski-go/shared';
+import { PLAYBACK_RATES, audioNorm, isLoneLetter, speechText } from '@polski-go/shared';
 import { API_BASE, api, assetUrl } from './api';
 
 /**
@@ -245,7 +245,9 @@ function playElement(src: string, rate: number, onStart: () => void): Promise<vo
     el.onloadedmetadata = () => {
       el.playbackRate = rate;
     };
-    (el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true;
+    // Тон не змінюється при сповільненні (стандартна властивість і префікс старого Safari).
+    (el as HTMLAudioElement & { preservesPitch?: boolean; webkitPreservesPitch?: boolean }).preservesPitch = true;
+    (el as HTMLAudioElement & { webkitPreservesPitch?: boolean }).webkitPreservesPitch = true;
     el.play().catch((e: Error) => finish(e.name === 'NotAllowedError' ? new Error('blocked') : e));
   });
 }
@@ -314,12 +316,12 @@ export async function speak(text: string, opts: { url?: string | null; slow?: bo
   const fromLibrary = async () => {
     const src = await libraryAudio(text);
     if (!mine()) return;
-    await playElement(src, slow ? SPEECH_RATES.slow : 1, () => started('library'));
+    await playElement(src, slow ? PLAYBACK_RATES.slow : PLAYBACK_RATES.normal, () => started('library'));
   };
   try {
     if (opts.url) {
       try {
-        await playElement(assetUrl(opts.url), slow ? 0.8 : 1, () => started('recording'));
+        await playElement(assetUrl(opts.url), slow ? PLAYBACK_RATES.slow : PLAYBACK_RATES.normal, () => started('recording'));
       } catch (e) {
         // Запис не відтворився (немає файлу, мережа, формат) — та сама фраза з бібліотеки.
         if ((e as Error).message === 'blocked' || !mine()) throw e;

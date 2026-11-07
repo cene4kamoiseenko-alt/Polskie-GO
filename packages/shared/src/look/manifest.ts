@@ -113,7 +113,7 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   pending('map-paper', 'ACCESSORY'),
   // Костюми: цілісні картинки перехідного періоду
   legacyCostume('costume-barista', 'rare', ['top', 'accessory'], { backpack: 'backpack-travel' },
-    'Сорочка, фартух, краватка, чашка. На картинці зелений рюкзак мандрівника; ноги обрізані.'),
+    'Сорочка, фартух, краватка, чашка кави (нова картинка 2026-11-07, docs/design/v21/skins): Бобер на повний зріст. Зелений рюкзак мандрівника — лише на картинці.', false),
   legacyCostume('costume-chef', 'rare', ['top', 'neck', 'accessory'], { headwear: 'hat-chef' },
     'Кухарський кітель, хустка, ложка (нова картинка 2026-11-04). Ковпак — окремий предмет hat-chef, на картинці він є.', false),
   // Оновлені картинки (пакет власника 2026-11-04, docs/design/v20/skins; збірка — scripts/build-costume-art.mjs): без сцени картки, як скини.
@@ -125,8 +125,8 @@ export const LOOK_ITEMS: readonly LookItem[] = [
     'Берет, шарф, блуза, палітра й пензель — власних предметів немає.', false),
   legacyCostume('costume-winter', 'epic', ['headwear', 'neck', 'top', 'shoes'], { backpack: 'prop:green-backpack' },
     'Шапка з помпоном, шарф, пуховик з хутром і рукавицями, черевики. Зелений рюкзачок — лише на картинці.', false),
-  legacyCostume('costume-dragon', 'legendary', ['body', 'head'], { backpack: 'prop:brown-strap' },
-    'Комбінезон з крилами й капюшон. Коричневий ремінь сумки на плечі — лише на картинці.'),
+  legacyCostume('costume-dragon', 'legendary', ['body', 'head'], {},
+    'Комбінезон-кігурумі з капюшоном, рогами, крилами й хвостом-шипами (нова картинка 2026-11-07, docs/design/v21/skins): Бобер на повний зріст. Рюкзака на картинці немає.', false),
   // Скини (2026-11-01): цільні дорогі образи, друга партія мастерів (docs/design/v18/bobek-part2).
   skin('costume-street', 'Чорний бомбер з червоними смугами, чорні навушники на шиї, худі під курткою. Зелений рюкзак — на картинці.'),
   skin('costume-street-red', 'Чорний бомбер, червоні навушники на шиї, худі під курткою. Зелений рюкзак — на картинці.'),

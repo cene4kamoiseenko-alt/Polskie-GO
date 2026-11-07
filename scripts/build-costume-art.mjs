@@ -1,5 +1,5 @@
 /**
- * Скины Бобека — цельные картинки костюмов (пакет владельца 2026-11-04, docs/design/v20/skins/<имя>.webp, 1254×1254 с прозрачностью).
+ * Скины Бобека — цельные картинки костюмов (пакеты владельца 2026-11-04 — docs/design/v20/skins/<имя>.webp и 2026-11-07 — docs/design/v21/skins/<имя>.webp, 1254×1254 с прозрачностью).
  *
  *   node scripts/build-costume-art.mjs                — собрать apps/web/src/assets/costumes/<имя>.webp (512) и @256, @512, @1024
  *   node scripts/build-costume-art.mjs --sheet out.png — + контрольный лист на тёмном фоне рядом с позой wave (не в репозиторий)
@@ -15,13 +15,19 @@
  *
  * Какие предметы каталога — в docs/design/v20/skins/README.md; в маннифесте образа это `legacyCostume(...)` со статусом legacy-whole-look.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
 
-const MASTERS = new URL('../docs/design/v20/skins/', import.meta.url);
+/** Мастера лежат по пакетам владельца: v20 (2026-11-04) и v21 (2026-11-07: бариста и дракон); имя файла — имя костюма. */
+const MASTER_DIRS = [new URL('../docs/design/v20/skins/', import.meta.url), new URL('../docs/design/v21/skins/', import.meta.url)];
+const masterOf = (name) => {
+  const url = MASTER_DIRS.map((d) => new URL(`${name}.webp`, d)).find((u) => existsSync(u));
+  if (!url) throw new Error(`build-costume-art: мастера ${name}.webp нет ни в одном пакете (${MASTER_DIRS.map((d) => d.pathname).join(', ')})`);
+  return url;
+};
 const OUT = new URL('../apps/web/src/assets/costumes/', import.meta.url);
 const WAVE = new URL('../apps/web/src/assets/beaver/wave.webp', import.meta.url);
 
@@ -36,6 +42,10 @@ const EYE = {
   'hat-krasnal': 540,
   'vest-krakowiak': 376,
   obwarzanek: 376,
+  // Пакет 2026-11-07 (docs/design/v21/skins): новые картинки баристы и дракона заменяют прежние. Мой замер строки глаз даёт на 5–11 px ниже таблицы выше
+  // (artist 362 против 357, krasnal 415 против 408), поэтому из замера вычтено 7 px.
+  barista: 366,
+  dragon: 407,
 };
 /** Линия глаз позы wave (1024): тот же замер. */
 const WAVE_EYE = 289;
@@ -98,7 +108,7 @@ const target = { feet: wb.y1 / wave.w, eyeToFeet: (wb.y1 - WAVE_EYE) / wave.w };
 
 const items = [];
 for (const [name, eye] of Object.entries(EYE)) {
-  const img = await load(new URL(`${name}.webp`, MASTERS));
+  const img = await load(masterOf(name));
   const cleaned = dropGhosts(img);
   const b = bbox(img);
   // Доли холста на пиксель мастера: рост как у wave, но не больше, чем позволяют верх и бока.

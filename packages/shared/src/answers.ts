@@ -13,6 +13,7 @@ import {
   type TextData,
 } from './types';
 import { matchText, normalize, similarity, sameSpeechPolarityAndNumbers } from './text';
+import { grammarOptions } from './grammarOptions';
 
 export type AnswerPayload =
   | { optionId: string }
@@ -64,7 +65,9 @@ export function toPublicItem(item: ExerciseItem, rnd: () => number = Math.random
   }
   if (TEXT_TYPES.includes(t)) {
     const { accepted: _a, ...d } = item.data as TextData;
-    return { ...rest, data: d };
+    // «Поставь слово в правильную форму» — выбор из четырёх форм (grammarOptions.ts); ответ клиент шлёт текстом, проверка сервера не меняется.
+    const forms = t === 'GRAMMAR' ? grammarOptions(item.data as TextData) : null;
+    return { ...rest, data: forms ? { ...d, options: shuffle(forms, rnd) } : d };
   }
   if (ORDER_TYPES.includes(t)) {
     const { answer: _a, alternatives: _alt, ...d } = item.data as OrderData;
@@ -130,6 +133,12 @@ export function checkAnswer(item: ExerciseItem, payload: AnswerPayload): CheckRe
   if (TEXT_TYPES.includes(t)) {
     const d = item.data as TextData;
     const input = typeof p.text === 'string' ? p.text.slice(0, 500) : '';
+    // Задание показывается выбором из четырёх форм (grammarOptions.ts): снисходительности к диакритике нет — «chce» и «chcę» разные формы.
+    if (t === 'GRAMMAR' && grammarOptions(d)) {
+      const typed = input.trim().toLowerCase();
+      const exact = d.accepted.find((a) => a.toLowerCase() === typed);
+      return { correct: !!exact, done: true, correctAnswer: exact ?? d.accepted[0] };
+    }
     const { match, best } = matchText(input, d.accepted, { allowTypos: t !== 'GRAMMAR' });
     return { correct: match !== 'wrong', almost: match === 'diacritics' || match === 'typo', done: true, correctAnswer: best };
   }

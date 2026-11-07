@@ -39,7 +39,7 @@ const TIERS = [
 const TIER_RANK: Record<string, number> = { common: 0, rare: 0, epic: 1, legendary: 2 };
 const isLook = (i: ShopItem) => i.slot === 'OUTFIT' || (i.slot === 'COSTUME' && !i.rewardOnly);
 /** Образ на картці й у примірці: готова картинка набору речей (resolveLook сам обирає її з LOOK_VARIANTS). */
-const outfitLook = (i: ShopItem, mood: 'happy' | 'cheer' = 'happy', preview = false) => resolveLook(null, i.outfit?.wear ?? {}, { mood, preview });
+const outfitLook = (i: ShopItem, mood: 'happy' | 'cheer' | 'wave' = 'happy', preview = false) => resolveLook(null, i.outfit?.wear ?? {}, { mood, preview });
 
 /** Лінійні іконки категорій. */
 const SLOT_GLYPH: Record<string, ReactNode> = {
@@ -171,7 +171,10 @@ export default function ShopScreen() {
 
   const all = shop.data?.items ?? [];
   const equippedCostume = all.find((i) => i.slot === 'COSTUME' && i.equipped) ?? null;
-  const traveller = useMemo(() => travellerItem(t('wardrobe_traveller'), !equippedCostume), [t, equippedCostume]);
+  // «Мандрівник» — це стартовий образ Podróżnik (худі й рюкзак), а не «будь-що без костюма»: інакше з надітим образом із кепкою й окулярами
+  // він значився надітим, примірка малювала Бобека в кепці й окулярах, а «Вдягнути» не було (скарга власника 2026-11-07).
+  const starter = useMemo(() => all.find((i) => i.slot === 'OUTFIT' && i.outfit?.starter) ?? null, [all]);
+  const traveller = useMemo(() => travellerItem(t('wardrobe_traveller'), starter ? starter.equipped : !equippedCostume), [t, equippedCostume, starter]);
   // «Нагороди»: стартовий образ і костюми-нагороди великими картками, решта нагород — звичайними.
   const rewardCostumes = useMemo(() => [traveller, ...all.filter((i) => i.slot === 'COSTUME' && i.rewardOnly)], [all, traveller]);
   const otherRewards = useMemo(() => all.filter((i) => i.rewardOnly && i.slot !== 'COSTUME' && WARDROBE_SLOTS.includes(i.slot)), [all]);
@@ -195,15 +198,19 @@ export default function ShopScreen() {
   const stageLook = useMemo(() => {
     if (picked?.slot === 'OUTFIT' && picked.outfit) return outfitLook(picked, 'cheer', !picked.equipped);
     if (picked?.id === TRAVELLER_ID) {
+      // Стартового образа нет среди готовых картинок: в позе «cheer» это крупный план по пояс (парит над подиумом), поэтому — поза во весь рост «wave».
+      if (starter) return outfitLook(starter, 'wave', !starter.equipped);
+      // Старий сервер без стартового образу в каталозі: «без костюма».
       const eq = equippedCostume ? unequip(wear, equippedCostume.assetKey).equipment : wear;
       return resolveLook(null, eq, { mood: 'cheer', preview: true });
     }
     return preview ? preview.after : resolveLook(null, wear, { mood: picked ? 'cheer' : 'happy' });
-  }, [wear, picked, preview, equippedCostume]);
+  }, [wear, picked, preview, equippedCostume, starter]);
   // Що зніме підтвердження (вирішує те саме правило equip(), що й сервер): назви з каталогу.
   const nameByLook = useMemo(() => new Map(all.map((i) => [toLookItemId(i.assetKey), tr(i.name)])), [all, tr]);
-  const willRemove = (picked?.id === TRAVELLER_ID ? (equippedCostume ? [toLookItemId(equippedCostume.assetKey)] : []) : preview?.removed ?? [])
-    .map((id) => nameByLook.get(id))
+  // «Мандрівник» знімає все, що надіто поверх стартового образу (кепку, окуляри, костюм…).
+  const travellerRemoves = starter ? Object.values(wear).filter((k): k is string => !!k && !(starter.outfit?.items ?? []).includes(k)).map((k) => nameByAsset.get(k)) : equippedCostume ? [nameByLook.get(toLookItemId(equippedCostume.assetKey))] : [];
+  const willRemove = (picked?.id === TRAVELLER_ID ? travellerRemoves : (preview?.removed ?? []).map((id) => nameByLook.get(id)))
     .filter((n): n is string => !!n);
   // Чому обраної речі не видно на Бобеку: «візуал готується» або «під костюмом не видно».
   const hiddenReason = preview && !preview.candidateVisible
@@ -407,10 +414,14 @@ export default function ShopScreen() {
   const primary: ReactNode = !picked ? null : isTraveller ? (
     <button
       className="btn btn-green min-h-[46px] w-full px-4"
-      disabled={busy || !equippedCostume}
-      onClick={() => equippedCostume && act(() => api('/inventory/equip', { body: { itemId: equippedCostume.id, equipped: false } }), t('toast_saved'))}
+      disabled={busy || traveller.equipped || (!starter && !equippedCostume)}
+      onClick={() =>
+        starter
+          ? act(() => api('/inventory/equip', { body: { itemId: starter.id, equipped: true } }), t('toast_saved'))
+          : equippedCostume && act(() => api('/inventory/equip', { body: { itemId: equippedCostume.id, equipped: false } }), t('toast_saved'))
+      }
     >
-      {equippedCostume ? t('wardrobe_take_off') : t('shop_wearing')}
+      {traveller.equipped ? t('shop_wearing') : equippedCostume ? t('wardrobe_take_off') : t('shop_equip')}
     </button>
   ) : picked.owned ? (
     <button className="btn btn-green min-h-[46px] w-full px-4" disabled={busy} onClick={() => act(() => api('/inventory/equip', { body: { itemId: picked.id, equipped: !picked.equipped } }), t('toast_saved'))}>

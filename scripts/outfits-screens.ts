@@ -45,9 +45,9 @@ async function main() {
     const page = await context.newPage();
     page.on('pageerror', (e) => pageErrors.push(e.message));
     await page.addInitScript(({ token, id }) => localStorage.setItem('pg_auth', JSON.stringify({ token, owner: `dev:${id}`, exp: Date.now() + 86_400_000 })), { token: u.token, id });
-    const open = async () => {
-      await page.goto(`${stand.base}/shop?tab=shop&devUser=${id}`);
-      await page.locator('[data-looks] [data-outfit]').first().waitFor({ timeout: 30_000 });
+    const open = async (tab: 'shop' | 'rewards' = 'shop') => {
+      await page.goto(`${stand.base}/shop?${tab === 'shop' ? 'tab=shop&' : ''}devUser=${id}`);
+      await page.locator(tab === 'shop' ? '[data-looks] [data-outfit]' : 'article.costume-card').first().waitFor({ timeout: 30_000 });
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(700);
     };
@@ -126,6 +126,40 @@ async function main() {
       check((await v.page.locator(`[data-outfit="${slug}"]`).getAttribute('data-outfit-state')) === 'wearing', `${tag}: после перезагрузки образ надет`);
       await v.page.screenshot({ path: `${OUT}/bought-390.png` });
       await v.context.close();
+    }
+    // ── 3. «Путешественник» во вкладке «Награды» (жалоба владельца 2026-11-07): надет образ с кепкой и очками, а «Путешественник» значился надетым,
+    //      примерка показывала Бобека в кепке и очках, «Надеть» не было. «Путешественник» = стартовый образ Podróżnik (худи и рюкзак).
+    {
+      const tag = '390px путешественник';
+      const u = await userPage([390, 844], 1000);
+      const luzak = ((await u.call('GET', '/api/shop')).body.items as { id: string; slug: string }[]).find((i) => i.slug === 'outfit-hoodie-cap-glasses')!;
+      await u.call('POST', '/api/shop/buy', { itemId: luzak.id });
+      await u.call('POST', '/api/inventory/equip', { itemId: luzak.id, equipped: true });
+      const wearBefore = Object.keys((await u.call('GET', '/api/me')).body.outfit.wear).sort().join();
+      check(wearBefore === 'GLASSES,HAT', `${tag}: надет «Miejski luzak» (${wearBefore})`);
+      await u.open('rewards');
+      const traveller = u.page.locator('article.costume-card').first();
+      check(!((await traveller.getAttribute('class')) ?? '').includes('is-equipped'), `${tag}: «Путешественник» не помечен надетым, пока надет другой образ`);
+      await traveller.getByRole('button', { name: 'Примерить' }).click();
+      const sheet = u.page.locator('.action-sheet');
+      await sheet.waitFor({ timeout: 5_000 });
+      await u.page.waitForTimeout(500);
+      const stageItems = (await u.page.locator('.wardrobe-stage [data-look]').first().getAttribute('data-look-items')) ?? '';
+      check(!/cap|glasses/.test(stageItems), `${tag}: примерка «Путешественника» без кепки и очков (${stageItems})`);
+      check(/Надето/.test(await u.page.locator('[data-try-caption]').innerText()) === false, `${tag}: подпись сцены не говорит «Надето»`);
+      await u.page.screenshot({ path: `${OUT}/traveller-try-390.png` });
+      const wear = sheet.getByRole('button', { name: 'Надеть' });
+      check((await wear.count()) === 1 && (await wear.isEnabled()), `${tag}: в панели есть активная кнопка «Надеть»`);
+      await wear.click();
+      await sheet.waitFor({ state: 'detached', timeout: 10_000 });
+      const wearAfter = Object.entries((await u.call('GET', '/api/me')).body.outfit.wear as Record<string, string>).map(([k, x]) => `${k}:${x}`).sort().join();
+      check(wearAfter === 'BACKPACK:backpack-travel', `${tag}: на сервере ровно стартовый образ (${wearAfter})`);
+      await u.page.waitForTimeout(500);
+      check(((await traveller.getAttribute('class')) ?? '').includes('is-equipped'), `${tag}: «Путешественник» теперь надет`);
+      await u.open('rewards');
+      check(((await u.page.locator('article.costume-card').first().getAttribute('class')) ?? '').includes('is-equipped'), `${tag}: после перезагрузки «Путешественник» надет`);
+      await u.page.screenshot({ path: `${OUT}/traveller-worn-390.png` });
+      await u.context.close();
     }
     check(pageErrors.length === 0, `без ошибок страницы${pageErrors.length ? ': ' + pageErrors.slice(0, 3).join(' | ') : ''}`);
   } finally {

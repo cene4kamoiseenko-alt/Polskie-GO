@@ -1,5 +1,5 @@
 /**
- * Скины владельца 2026-11-04 (docs/design/v20/skins) — в реальном браузере (Chromium, не Telegram на iPhone / Android).
+ * Скины владельца 2026-11-04 (docs/design/v20/skins) и 2026-11-07 (docs/design/v21/skins: бариста и дракон) — в реальном браузере (Chromium, не Telegram на iPhone / Android).
  *
  *   node --import tsx scripts/skins-screens.ts   → test-results/skins/*.png
  *
@@ -18,8 +18,8 @@ const require = createRequire(root + '/package.json');
 const OUT = resolve(root, 'test-results/skins');
 const SIZES: [number, number][] = [[320, 640], [390, 844], [430, 932]];
 
-const REWARDS = ['costume-chef', 'costume-conductor', 'costume-krasnal', 'costume-syrenka', 'hat-krasnal', 'vest-krakowiak', 'obwarzanek'];
-const FOR_SALE = ['costume-artist', 'costume-winter'];
+const REWARDS = ['costume-chef', 'costume-conductor', 'costume-krasnal', 'costume-syrenka', 'hat-krasnal', 'vest-krakowiak', 'obwarzanek', 'costume-barista'];
+const FOR_SALE = ['costume-artist', 'costume-winter', 'costume-dragon'];
 const file = (slug: string) => slug.replace(/^costume-/, '');
 
 const failures: string[] = [];
@@ -77,7 +77,7 @@ async function main() {
         check(r.ok, `${w}px «Награды»: ${slug} — новая картинка загружена`);
         check(r.desc.length > 10 && !r.desc.startsWith('costume_desc'), `${w}px «Награды»: ${slug} — описание («${r.desc.slice(0, 40)}»)`);
       }
-      check((await page.locator('.costume-card img[src*="-scene"]').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).src).filter((s) => /(artist|winter|krasnal|chef|conductor)-scene/.test(s)))).length === 0, `${w}px «Награды»: старых сцен карточек нет`);
+      check((await page.locator('.costume-card img[src*="-scene"]').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).src).filter((s) => /(artist|winter|krasnal|chef|conductor|barista|dragon)-scene/.test(s)))).length === 0, `${w}px «Награды»: старых сцен карточек нет`);
       check(await noScroll(), `${w}px «Награды»: нет горизонтальной прокрутки`);
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: `${OUT}/rewards-${w}.png`, fullPage: true });

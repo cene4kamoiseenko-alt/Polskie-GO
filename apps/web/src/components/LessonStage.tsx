@@ -182,7 +182,9 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
   const items = pool.length ? [0, 1, 2].map((k) => pool[(index + k) % pool.length]) : undefined;
   const badge = stageBadge(item.type);
   const reverse = item.type === 'WORD_TRANSLATION' && !(item.data as { pl?: string }).pl;
-  const cue = reverse ? REVERSE_CUE : (PL_CUE[item.type] ?? PL_CUE.WORD_TRANSLATION);
+  // «Поставь слово в правильную форму» выбором (grammarOptions.ts): Бобек говорит «Wybierz», а не «Wpisz»; без вариантов — по-прежнему ввод.
+  const choosesForm = item.type === 'GRAMMAR' && Array.isArray((item.data as { options?: unknown }).options);
+  const cue = reverse ? REVERSE_CUE : choosesForm ? 'Wybierz poprawną formę!' : (PL_CUE[item.type] ?? PL_CUE.WORD_TRANSLATION);
   const npc = (item.type === 'DIALOGUE' || item.type === 'SITUATION') ? (item.data as unknown as { npc?: { emoji: string; name: string } }).npc : undefined;
   // Без своей локации (экзамен, входной тест, тренировка) — фото «Бобек дома» вместо векторной MIESZKANIE (владелец 2026-11-02).
   // Бобёр нарисован в кадре: второго поверх нет, реакция на ответ — движение всего кадра. В уроках города остаётся Бобек игрока (его образ).

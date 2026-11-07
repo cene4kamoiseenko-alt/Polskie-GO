@@ -5,7 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { audioNorm } from '@polski-go/shared';
+import { audioNorm, PLAYBACK_RATES } from '@polski-go/shared';
 vi.mock('../../web/src/lib/api', () => ({ API_BASE: '', api: vi.fn(async () => ({ ok: true })), assetUrl: (s) => s }));
 class FakeAudio {
     static latest;
@@ -46,19 +46,23 @@ async function setup() {
 }
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 describe('Відтворення лише готових MP3 (змодельований браузер)', () => {
-    it('грає файл бібліотеки за audio_id: {base}{sha256(audioNorm)}.mp3; повільно — той самий файл із 0,75', async () => {
+    it('грає файл бібліотеки за audio_id: {base}{sha256(audioNorm)}.mp3; звичайно — спокійніше за файл (0,85), повільно — той самий файл із 0,65', async () => {
         const { audio, synth } = await setup();
         const fetch = stubFetch();
         audio.configureAudio({ base: BASE });
         const task = audio.speak('Dzień dobry!');
         await vi.waitFor(() => expect(FakeAudio.latest.src).toMatch(/^blob:/));
         expect(fetch).toHaveBeenCalledOnce();
+        // Слова звучали надто швидко (власник 2026-11-07): файл — синтез у природному темпі, у клієнті він грається з тим самим тоном, але спокійніше.
+        expect(FakeAudio.latest.playbackRate).toBe(PLAYBACK_RATES.normal);
+        expect(PLAYBACK_RATES.normal).toBeLessThan(1);
         // Знак оклику лишається частиною вимови («Dzień dobry!» ≠ «Dzień dobry»), крапка й регістр — ні.
         expect(String(fetch.mock.calls[0][0])).toBe(fileOf('dzień dobry!'));
         FakeAudio.latest.onplaying(); FakeAudio.latest.onended();
         expect(await task).toEqual({ played: true, source: 'library', issue: null });
         const slow = audio.speak('Dzień dobry!', { slow: true });
-        await vi.waitFor(() => expect(FakeAudio.latest.playbackRate).toBe(0.75));
+        await vi.waitFor(() => expect(FakeAudio.latest.playbackRate).toBe(PLAYBACK_RATES.slow));
+        expect(PLAYBACK_RATES.slow).toBeLessThan(PLAYBACK_RATES.normal);
         expect(fetch).toHaveBeenCalledOnce();
         FakeAudio.latest.onplaying(); FakeAudio.latest.onended();
         await slow;

@@ -327,9 +327,12 @@ const POLISH = ['ą', 'ć', 'ę', 'ł', 'ń', 'ó', 'ś', 'ź', 'ż'];
 
 function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
   const { t, tr } = useT();
-  const data = d<{ source?: I18n; pl?: string; base?: string; audioText?: string; audioUrl?: string; translation?: I18n }>(item);
+  const data = d<{ source?: I18n; pl?: string; base?: string; audioText?: string; audioUrl?: string; translation?: I18n; options?: string[] }>(item);
   const [value, setValue] = useState('');
+  const [chosen, setChosen] = useState<string | null>(null);
   const ref = useRef<HTMLTextAreaElement>(null);
+  // «Поставь слово в правильную форму»: сервер присылает четыре формы (grammarOptions.ts) — выбор вместо ввода: клавиатура закрывала польские буквы.
+  const forms = item.type === 'GRAMMAR' && Array.isArray(data.options) && data.options.length >= 3 ? data.options : null;
   useEffect(() => {
     if (item.type === 'DICTATION' && data.audioText) speak(data.audioText, { url: data.audioUrl });
   }, [item.key]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -348,6 +351,52 @@ function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
       el.setSelectionRange(s + 1, s + 1);
     });
   };
+  if (forms) {
+    const choose = (form: string) => {
+      if (result) return;
+      haptic.select();
+      sfx.tap();
+      setChosen(form);
+      onChange({ text: form });
+    };
+    const formState = (form: string) => {
+      if (!result) return chosen === form ? 'selected' : undefined;
+      if (String(result.correctAnswer ?? '').toLowerCase() === form.toLowerCase()) return 'correct';
+      return chosen === form ? 'wrong' : undefined;
+    };
+    return (
+      <div className="space-y-4" data-grammar-choice>
+        {data.pl && (
+          <div className="card prompt-card p-4 text-center">
+            <p className="text-[23px] font-black leading-snug">
+              <Highlight text={data.pl} fill={chosen ?? undefined} state={result && chosen ? (result.correct ? 'correct' : 'wrong') : undefined} />
+            </p>
+            {data.base && <p className="mt-2 font-black text-sky-dark">({data.base})</p>}
+            {data.translation && <p className="muted mt-1 font-bold">{tr(data.translation)}</p>}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2.5 pt-1" role="group" aria-label={t('ex_GRAMMAR')}>
+          {forms.map((form, i) => (
+            <motion.button
+              key={form}
+              type="button"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0, ...optionMotion(formState(form)) }}
+              transition={{ delay: result || chosen ? 0 : i * 0.04, duration: formState(form) === 'wrong' ? 0.35 : 0.2 }}
+              whileTap={{ scale: 0.97 }}
+              data-state={formState(form)}
+              data-form={form}
+              lang="pl"
+              onClick={() => choose(form)}
+              className="option justify-center text-center text-xl"
+            >
+              {form}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
       {item.type === 'SENTENCE_TRANSLATION' && data.source && (
