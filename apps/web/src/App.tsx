@@ -17,6 +17,7 @@ import { ScreenBoundary } from './components/ScreenBoundary';
 import { HomeScreen } from './screens/Home';
 
 const Onboarding = lazy(() => import('./screens/Onboarding'));
+const Welcome = lazy(() => import('./screens/Welcome'));
 const MapScreen = lazy(() => import('./screens/Map'));
 const LearnScreen = lazy(() => import('./screens/Learn'));
 const LessonScreen = lazy(() => import('./screens/Lesson'));
@@ -183,7 +184,16 @@ export function App() {
 
   let body;
   if (me.isLoading) body = <SplashScene loading onRetry={() => void me.refetch()} />;
-  else if (me.error) {
+  else if (me.error instanceof ApiError && me.error.code === 'welcome_required') {
+    // Первый запуск вне Telegram (Android-приложение, веб): сначала выбор — гость или код из Telegram.
+    body = (
+      <ScreenBoundary resetKey="welcome">
+        <Suspense fallback={<Splash />}>
+          <Welcome onDone={() => void me.refetch()} />
+        </Suspense>
+      </ScreenBoundary>
+    );
+  } else if (me.error) {
     const banned = me.error instanceof ApiError && me.error.code === 'banned';
     body = banned ? <ErrorState error={new Error('banned')} /> : <SplashScene error onRetry={() => me.refetch()} />;
   } else if (me.data && !me.data.onboarded && !loc.pathname.startsWith('/lesson')) {

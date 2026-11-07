@@ -7,3 +7,9 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_WEBHOOK_SECRET=
 ADMIN_EMAIL=admin@polski.go
 ADMIN_PASSWORD=change-me-please
+# Android-приложение (docs/ANDROID_RU.md): имя пакета и отпечатки SHA-256 ключа подписи для /.well-known/assetlinks.json, контакт для страниц /privacy и /delete-account.
+# ANDROID_PACKAGE_NAME=app.polskigo.android
+# ANDROID_SHA256_FINGERPRINTS=AA:BB:...
+# SUPPORT_CONTACT=support@example.com
+STANDALONE_AUTH=on   # вход вне Telegram (гости и коды переноса); в production по умолчанию выключен, включает владелец
+# GUEST_DAILY_LIMIT=3000   # новых гостей в сутки

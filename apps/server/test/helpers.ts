@@ -43,6 +43,8 @@ export async function getEnv() {
     TELEGRAM_BOT_TOKEN: BOT_TOKEN,
     TELEGRAM_WEBHOOK_SECRET: 'hook-secret',
     DEV_AUTH: 'false',
+    // Вход вне Telegram в production выключен по умолчанию; тесты его включают (отдельный тест проверяет выключенное состояние).
+    STANDALONE_AUTH: 'on',
     ADMIN_EMAIL: 'admin@test.dev',
     ADMIN_PASSWORD: 'admin-password-123',
   };

@@ -19,6 +19,7 @@ import { adminRoutes } from './routes/admin';
 import { readBotConfig } from './bot/maintain';
 import { libraryEnabled, libraryVoice, serveLibraryFile } from './services/audio-library';
 import { audioGenerationMode } from './services/audio-policy';
+import { siteRoutes } from './site';
 
 export function buildApp() {
   const app = new Hono<AppEnv>();
@@ -162,6 +163,9 @@ export function buildApp() {
   app.route('/api', learnRoutes);
   app.route('/api', gameRoutes);
   app.all('/api/*', (c) => c.json({ error: 'not_found' }, 404));
+
+  // Страницы для Google Play (/privacy, /delete-account) и Digital Asset Links приложения Android (/.well-known/assetlinks.json).
+  app.route('/', siteRoutes);
 
   // Завантажені адміністратором ассети (зберігаються в D1).
   app.get('/uploads/:name', async (c) => {

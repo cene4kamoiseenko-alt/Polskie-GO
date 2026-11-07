@@ -1,4 +1,5 @@
 import { tg, startParam } from './telegram';
+import { apiPlatform, isStandalone } from './platform';
 import { bootMark } from './boot';
 
 /** Адрес API. Пусто — тот же домен (один сервер). Для Cloudflare Pages задайте VITE_API_URL=https://api.ваш-домен */
@@ -40,7 +41,42 @@ async function timedFetch(url: string, init: RequestInit = {}, ms = 15_000): Pro
 
 /** Токен зберігається між запусками (7 днів) і прив'язаний до користувача Telegram — повторний вхід без зайвого запиту. */
 const AUTH_KEY = 'pg_auth';
-const authOwner = () => String(tg?.initDataUnsafe.user?.id ?? `dev:${new URLSearchParams(location.search).get('devUser') ?? 100001}`);
+/** Чей это токен: игрок Telegram, устройство (вход вне Telegram) или тестовый пользователь. Чужой токен не используется. */
+const authOwner = () => String(tg?.initDataUnsafe.user?.id ?? (isStandalone ? 'device' : `dev:${new URLSearchParams(location.search).get('devUser') ?? 100001}`));
+
+/**
+ * Ключ устройства (вход вне Telegram, docs/ANDROID_RU.md): выдаёт сервер при создании гостя или при вводе кода переноса. Без него токен после истечения
+ * не обновить. Если хранилище недоступно, ключ живёт в памяти до закрытия приложения.
+ */
+const DEVICE_KEY = 'pg_device';
+let memoryKey: string | null = null;
+const deviceKey = (): string | null => {
+  try {
+    return localStorage.getItem(DEVICE_KEY) ?? memoryKey;
+  } catch {
+    return memoryKey;
+  }
+};
+function saveDeviceKey(k: string) {
+  memoryKey = k;
+  try {
+    localStorage.setItem(DEVICE_KEY, k);
+  } catch {
+    /* хранилище недоступно */
+  }
+}
+/** Забыть этот аккаунт на устройстве (после удаления аккаунта или выхода). */
+export function forgetDevice() {
+  memoryKey = null;
+  token = null;
+  authPromise = null;
+  try {
+    localStorage.removeItem(DEVICE_KEY);
+    localStorage.removeItem(AUTH_KEY);
+  } catch {
+    /* хранилище недоступно */
+  }
+}
 function savedToken(): string | null {
   try {
     const s = JSON.parse(localStorage.getItem(AUTH_KEY) ?? 'null') as { token: string; owner: string; exp: number } | null;
@@ -74,7 +110,49 @@ export function takeEarlyMe<T>(): Promise<T | null> | null {
   return early && early.token === token ? early.data : null;
 }
 
+const json = { 'content-type': 'application/json' };
+
+/** Вход вне Telegram: ключ устройства → токен. Нет ключа — приложение показывает экран приветствия (гость или код из Telegram). */
+async function authenticateDevice() {
+  const key = deviceKey();
+  if (!key) throw new ApiError(401, 'welcome_required');
+  const res = await timedFetch(`${API_BASE}/api/auth/device`, { method: 'POST', headers: json, body: JSON.stringify({ deviceKey: key }) });
+  const body = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    // Ключ неизвестен серверу (аккаунт удалён): начинаем сначала.
+    forgetDevice();
+    throw new ApiError(401, 'welcome_required');
+  }
+  if (!res.ok) throw new ApiError(res.status, body.error ?? 'auth_failed', body.message);
+  token = body.token;
+  saveToken(body.token);
+  bootMark('auth');
+}
+
+/** Новый гость на этом устройстве. */
+export async function signInAsGuest(language?: string) {
+  const res = await timedFetch(`${API_BASE}/api/auth/guest`, { method: 'POST', headers: json, body: JSON.stringify({ platform: apiPlatform, language, startParam: startParam() ?? undefined }) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, body.error ?? 'auth_failed', body.message);
+  saveDeviceKey(body.deviceKey);
+  token = body.token;
+  saveToken(body.token);
+  authPromise = Promise.resolve();
+}
+
+/** Вход по коду переноса из Telegram (или с другого устройства): устройство получает ключ и входит в тот же аккаунт. */
+export async function signInWithCode(code: string) {
+  const res = await timedFetch(`${API_BASE}/api/auth/link`, { method: 'POST', headers: json, body: JSON.stringify({ code, platform: apiPlatform }) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, body.error ?? 'auth_failed', body.message);
+  saveDeviceKey(body.deviceKey);
+  token = body.token;
+  saveToken(body.token);
+  authPromise = Promise.resolve();
+}
+
 async function authenticate() {
+  if (!tg && isStandalone) return authenticateDevice();
   const res = tg
     ? await timedFetch(`${API_BASE}/api/auth/telegram`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData }) })
     : // Поза Telegram — режим розробки (на сервері вмикається DEV_AUTH=true).

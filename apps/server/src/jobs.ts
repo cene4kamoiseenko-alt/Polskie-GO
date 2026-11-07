@@ -15,6 +15,7 @@
  *     ключа ідемпотентності, тому таке нагадування не повторюється автоматично (краще пропустити день, ніж надіслати двічі).
  */
 import { purgeErrors } from './services/error-log';
+import { purgeLinkCodes } from './services/standalone-auth';
 import { and, asc, eq, gt, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from 'drizzle-orm';
 import { dayDiff, dayKey, effectiveStreak } from '@polski-go/shared';
 import { db } from './db';
@@ -214,6 +215,8 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stat
       .where(
         and(
           eq(users.isBanned, false),
+          // Гості (вхід вне Telegram, telegram_id < 0) бота не мають: напоминания им не шлём.
+          gt(users.telegramId, 0),
           eq(userSettings.notificationsEnabled, true),
           // Хто заблокував бота, тому 30 днів не пишемо.
           notExists(
@@ -253,7 +256,7 @@ export async function sendCampaignChunk(budget = SEND_BUDGET) {
     .select({ id: users.id, telegramId: users.telegramId, lang: userSettings.uiLanguage })
     .from(users)
     .innerJoin(userSettings, eq(userSettings.userId, users.id))
-    .where(and(eq(users.isBanned, false), eq(userSettings.notificationsEnabled, true), c.cursor ? gt(users.id, c.cursor) : undefined))
+    .where(and(eq(users.isBanned, false), gt(users.telegramId, 0), eq(userSettings.notificationsEnabled, true), c.cursor ? gt(users.id, c.cursor) : undefined))
     .orderBy(asc(users.id))
     .limit(budget);
   let sent = 0;
@@ -278,6 +281,7 @@ export async function runScheduled(now = new Date()) {
   await pruneUsage(now);
   await pruneLoginFailures(now);
   await purgeErrors(now).catch((e) => console.warn('error log cleanup failed', (e as Error).message));
+  await purgeLinkCodes(now).catch((e) => console.warn('link code cleanup failed', (e as Error).message));
   await db.delete(telegramUpdates).where(lt(telegramUpdates.createdAt, new Date(now.getTime() - UPDATES_KEEP_MS)));
   // Таблиці з міграції 0009: до її застосування запит упаде — це не повинно зупиняти нагадування.
   await db

@@ -25,6 +25,9 @@ export async function listPlans() {
 export async function createInvoice(userId: string, planCode: string, lang: UiLang) {
   const plan = await db.query.subscriptionPlans.findFirst({ where: eq(subscriptionPlans.code, planCode) });
   if (!plan || !plan.isActive) throw notFound('plan_not_found');
+  // Гость (вход вне Telegram, telegram_id < 0) платить Stars не может: в Android-версии оплата — через Google Play (docs/ANDROID_RU.md).
+  const owner = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { telegramId: true } });
+  if (!owner || owner.telegramId < 0) throw new HttpError(409, 'stars_unavailable', 'Telegram Stars are only available inside Telegram');
   // Вторая автопродлеваемая подписка поверх первой означала бы двойное списание каждые 30 дней. Отменённая (но ещё
   // действующая) подписка не мешает оформить новую; разовые тарифы продлевают срок и не конфликтуют.
   if (plan.recurring) {

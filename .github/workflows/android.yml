@@ -1,0 +1,66 @@
+# Сборка Android-пакета (AAB) для Google Play из android/twa-manifest.json (docs/ANDROID_RU.md). Только вручную; ничего не публикует.
+# Секреты — в GitHub Environment «android-release»: ANDROID_KEYSTORE_BASE64 (ключ загрузки в base64), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD.
+# Файл не запускался из среды разработки (там нет Android SDK и доступа к Google): проверьте его первым ручным запуском.
+name: Android build (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'versionCode (целое, растёт с каждой загрузкой в Google Play)'
+        required: true
+        default: '1'
+        type: string
+      version_name:
+        description: 'versionName (для людей, например 1.0.0)'
+        required: true
+        default: '1.0.0'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: android-release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Bubblewrap
+        run: |
+          npm i -g @bubblewrap/cli@1.27.0
+          mkdir -p ~/.bubblewrap
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
+      - name: Ключ загрузки и версия
+        working-directory: android
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > polski-go-upload.keystore
+          node -e "const f='twa-manifest.json',m=JSON.parse(require('fs').readFileSync(f,'utf8'));m.appVersionCode=Number(process.env.VERSION_CODE);m.appVersionName=process.env.VERSION_NAME;m.appVersion=process.env.VERSION_NAME;require('fs').writeFileSync(f,JSON.stringify(m,null,2)+'\n')"
+      - name: Сборка
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          bubblewrap update --skipVersionUpgrade
+          bubblewrap build --skipPwaValidation
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polski-go-android
+          path: |
+            android/app-release-bundle.aab
+            android/app-release-signed.apk
+          if-no-files-found: error
+          retention-days: 14

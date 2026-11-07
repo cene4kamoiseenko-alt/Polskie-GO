@@ -15,6 +15,7 @@ import { HttpError, badRequest } from '../lib/errors';
 import { validateInitData } from '../lib/telegram';
 import { signToken } from '../lib/token';
 import { upsertTelegramUser } from '../services/users';
+import { PLATFORMS, createGuest, createLinkCode, issueDeviceKey, loginWithDevice, redeemLinkCode } from '../services/standalone-auth';
 import { getDiary, getMe, getStats } from '../services/profile';
 
 const TOKEN_TTL = 7 * 24 * 3600;
@@ -45,11 +46,51 @@ authRoutes.post('/auth/dev', async (c) => {
   return c.json({ token: signToken({ uid: user.id, typ: 'user' }, TOKEN_TTL), dev: true });
 });
 
+/**
+ * Вход вне Telegram (Android-приложение и веб, services/standalone-auth.ts). Ограничения: общий лимит Cloudflare на вход и отдельный счётчик на создание гостей
+ * и подбор кода. `STANDALONE_AUTH=off` выключает всё это разом.
+ */
+const standalone = async () => {
+  if (!config.standaloneAuth) throw new HttpError(404, 'not_found');
+};
+const platformField = z.enum(PLATFORMS as [string, ...string[]]).default('web');
+
+/** Новый гость: аккаунт на этом устройстве. Ответ содержит ключ устройства — он показывается один раз. */
+authRoutes.post('/auth/guest', edgeRateLimit('RL_AUTH'), rateLimit(10, 60_000, 'guest'), async (c) => {
+  await standalone();
+  const b = z.object({ platform: platformField, language: z.string().max(8).optional(), startParam: z.string().max(64).optional() }).parse(await body(c));
+  const user = await createGuest({ language: b.language, startParam: b.startParam });
+  const deviceKey = await issueDeviceKey(user.id, b.platform as 'web' | 'twa');
+  return c.json({ token: signToken({ uid: user.id, typ: 'user' }, TOKEN_TTL), deviceKey, guest: true });
+});
+
+/** Повторный вход по ключу устройства (токен истёк). */
+authRoutes.post('/auth/device', edgeRateLimit('RL_AUTH'), rateLimit(30, 60_000, 'device'), async (c) => {
+  await standalone();
+  const { deviceKey } = z.object({ deviceKey: z.string().min(20).max(80) }).parse(await body(c));
+  const user = await loginWithDevice(deviceKey);
+  return c.json({ token: signToken({ uid: user.id, typ: 'user' }, TOKEN_TTL), guest: user.telegramId < 0 });
+});
+
+/** Вход по одноразовому коду переноса (его выдаёт `/me/link-code` в Telegram или на другом устройстве). */
+authRoutes.post('/auth/link', edgeRateLimit('RL_AUTH'), rateLimit(10, 60_000, 'link'), async (c) => {
+  await standalone();
+  const b = z.object({ code: z.string().min(6).max(16), platform: platformField }).parse(await body(c));
+  const { user, deviceKey } = await redeemLinkCode(b.code, b.platform as 'web' | 'twa');
+  return c.json({ token: signToken({ uid: user.id, typ: 'user' }, TOKEN_TTL), deviceKey, guest: user.telegramId < 0 });
+});
+
 /** Маршрути користувача (requireUser підключено в app.ts). */
 export const meRoutes = new Hono<AppEnv>();
 const me = meRoutes;
 
 me.get('/me', async (c) => c.json(await getMe(c.get('userId'))));
+
+/** Код переноса: ввести на другом устройстве (Android-приложение, веб), чтобы войти в этот же аккаунт. Действует 10 минут, один раз. */
+me.post('/me/link-code', rateLimit(10, 60_000, 'link-code'), async (c) => {
+  await standalone();
+  return c.json(await createLinkCode(c.get('userId')));
+});
 
 me.patch('/me/settings', async (c) => {
   const b = z

@@ -3,8 +3,10 @@ import { Icon } from '../components/Icon';
 import type { UiLang } from '@polski-go/shared';
 import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
-import { api, downloadExport } from '../lib/api';
+import { api, downloadExport, forgetDevice } from '../lib/api';
+import { isStandalone } from '../lib/platform';
 import { tg } from '../lib/telegram';
+import { useStandaloneCopy } from '../lib/standaloneCopy';
 import { useMe, useUpdateSettings } from '../lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Me } from '../lib/types';
@@ -78,8 +80,41 @@ function Seg<T extends string | number>({ value, options, onChange }: { value: T
   );
 }
 
-export default function SettingsScreen() {
+/** Код для входа на другом устройстве (Android-приложение, браузер): одноразовый, 10 минут. Гостю напоминает, что без него аккаунт живёт только на этом устройстве. */
+function LinkCodeCard({ guest }: { guest: boolean }) {
   const { t } = useT();
+  const c = useStandaloneCopy();
+  const toast = useToast();
+  const [code, setCode] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const get = async () => {
+    setBusy(true);
+    try {
+      setCode((await api<{ code: string }>('/me/link-code', { method: 'POST', body: {} })).code);
+    } catch {
+      toast(c('set_link_fail'), '⚠️');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card className="space-y-2 p-4">
+      <div className="font-black">{c('set_link_title')}</div>
+      <p className="muted text-sm font-semibold leading-snug">{guest ? c('set_link_guest') : c('set_link_text')}</p>
+      {code ? (
+        <div className="space-y-1 text-center">
+          <div className="select-all rounded-2xl bg-night/60 py-3 text-2xl font-black tracking-widest text-white" data-link-code>{code}</div>
+          <p className="muted text-xs font-bold">{c('set_link_valid')}</p>
+        </div>
+      ) : null}
+      <button className="btn btn-ghost w-full" disabled={busy} onClick={get} data-link-get>{c('set_link_get')}</button>
+    </Card>
+  );
+}
+
+export default function SettingsScreen() {
+  const { t, lang } = useT();
+  const c = useStandaloneCopy();
   const nav = useNavigate();
   const qc = useQueryClient();
   const toast = useToast();
@@ -133,12 +168,18 @@ export default function SettingsScreen() {
         <Toggle label={t('set_public_profile')} description={t('set_public_profile_d')} checked={s.publicProfile} onChange={(v) => set({ publicProfile: v })} />
         <Toggle label={t('set_leaderboard')} checked={s.showInLeaderboard} onChange={(v) => set({ showInLeaderboard: v })} />
       </Card>
+      <LinkCodeCard guest={isStandalone && !tg} />
       <Card className="space-y-2 p-4">
         <div className="font-black">{t('set_data')}</div>
         <button className="btn btn-ghost w-full" onClick={() => nav('/premium')}><Icon name="crown" size={20} className="text-xp-dark" /> {t('set_premium')}</button>
         <button className="btn btn-ghost w-full" onClick={() => downloadExport()}><Icon name="arrow-right" size={20} className="rotate-90" /> {t('set_export')}</button>
         <button className="w-full py-2 font-black text-coral" onClick={() => setDel(true)}>{t('set_delete')}</button>
       </Card>
+      <p className="muted text-center text-xs font-bold">
+        <a className="underline" href={`/privacy?lang=${lang}`} target="_blank" rel="noopener" data-privacy-link>{c('set_privacy_link')}</a>
+        {' · '}
+        <a className="underline" href={`/delete-account?lang=${lang}`} target="_blank" rel="noopener">{c('set_delete_page')}</a>
+      </p>
       <p className="muted text-center text-xs font-bold">POLSKI GO · {t('set_version', { v: '0.1.0' })}</p>
       <Modal open={del} onClose={() => setDel(false)}>
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-coral/15 text-coral"><Icon name="alert" size={36} /></div>
@@ -150,6 +191,7 @@ export default function SettingsScreen() {
             onClick={async () => {
               await api('/me', { method: 'DELETE', body: { confirm: 'DELETE' } });
               toast(t('set_deleted'), '👋');
+              forgetDevice();
               setTimeout(() => (tg ? tg.close() : window.location.reload()), 800);
             }}
           >

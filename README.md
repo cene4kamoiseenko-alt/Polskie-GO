@@ -2,7 +2,7 @@
 
 **Вивчай польську. Подорожуй. Перемагай!**
 
-Telegram Mini App — образовательная игра для изучения польского языка (A0 → B2).
+Telegram Mini App и Android-приложение — образовательная игра для изучения польского языка (A0 → B2).
 Пользователь путешествует по иллюстрированной карте Польши вместе с бобром Бобеком,
 проходит уроки, квесты и экзамены городов, собирает сувениры и одевает персонажа.
 
@@ -11,7 +11,6 @@ Telegram Mini App — образовательная игра для изуче�
 | Mini App | React 18 · TypeScript · Vite · Tailwind CSS 4 · Framer Motion · Telegram Mini Apps SDK |
 | Backend | Cloudflare Workers · Hono · Drizzle ORM · Cloudflare D1 (SQLite) · Zod |
 | Админ-панель | отдельное React-приложение (`/admin/`, на русском): аудитория бота, пользователи, контент, платежи — `docs/ADMIN_RU.md` |
-| AI | Anthropic Claude через серверный API (ключ только на сервере) |
 | Платежи | Telegram Stars (подписка + разовые тарифы) |
 | Хостинг | один бесплатный Cloudflare Worker: API + Mini App + админка, D1, Cron |
 | Тесты | Vitest (модульные + интеграционные на локальной D1 через Miniflare), Playwright E2E |
@@ -23,11 +22,12 @@ Telegram Mini App — образовательная игра для изуче�
 ```
 packages/shared   общая игровая логика: проверка ответов, SM-2, XP/уровни, серии, даты
 apps/server       Worker (Hono API), схема Drizzle и миграции D1, учебный контент, seed, тесты
-apps/web          Telegram Mini App (игра)
+apps/web          приложение (игра): Telegram Mini App, веб и Android (PWA)
 apps/admin        веб-панель администратора
+android/          конфигурация Android-оболочки для Google Play (TWA)
 scripts/          сборка для Cloudflare, E2E-сценарий в браузере
 wrangler.jsonc    конфигурация Cloudflare Worker
-docs/             архитектура и статус
+docs/             архитектура, статус, Android (docs/ANDROID_RU.md)
 ```
 
 ## Быстрый старт (локально)

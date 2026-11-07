@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#07182C" />
     <title>POLSKI GO</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <!-- Заставка: спершу логотип (він малюється першим і задає FCP), потім фон (Варшава, шари власника); той самий srcset і sizes, що в <img> нижче й у Splash.tsx. -->
     <link rel="preload" as="image" href="/src/assets/splash/royal/logo.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="/src/assets/splash/royal/orn.webp" fetchpriority="high" />
@@ -19,7 +21,10 @@
           if (!saved || !saved.token || saved.exp <= Date.now() + 3600000) return;
           var m = /(?:^|[#&])tgWebAppData=([^&]*)/.exec(location.hash);
           var user = m ? new URLSearchParams(decodeURIComponent(m[1])).get('user') : null;
-          var owner = m ? (user ? String(JSON.parse(user).id) : '') : 'dev:' + (new URLSearchParams(location.search).get('devUser') || 100001);
+          var q = new URLSearchParams(location.search);
+          var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) >= 0 && !q.has('standalone');
+          // Как authOwner() в lib/api.ts: игрок Telegram, тестовый пользователь (localhost) или устройство (Android-приложение, веб).
+          var owner = m ? (user ? String(JSON.parse(user).id) : '') : local ? 'dev:' + (q.get('devUser') || 100001) : 'device';
           if (owner !== saved.owner) return;
           window.__pgEarlyMe = {
             token: saved.token,

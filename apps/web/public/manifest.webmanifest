@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "POLSKI GO",
+  "short_name": "POLSKI GO",
+  "description": "Вивчай польську з бобром Бобеком: уроки, місії, квести й екзамени міст.",
+  "lang": "uk",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07182C",
+  "theme_color": "#07182C",
+  "categories": ["education"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

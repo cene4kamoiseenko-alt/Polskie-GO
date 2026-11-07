@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { haptic, tg } from '../lib/telegram';
+import { isStandalone } from '../lib/platform';
+import { useStandaloneCopy } from '../lib/standaloneCopy';
 import { useMe } from '../lib/queries';
 import { Beaver } from '../components/Beaver';
 import { Card, Confetti, ScreenHeader, ScreenSkeleton, cx, useToast } from '../components/ui';
@@ -60,6 +62,7 @@ const nextMonthStart = (month: string) => {
 
 export default function PremiumScreen() {
   const { t, tr, date } = useT();
+  const copy = useStandaloneCopy();
   const qc = useQueryClient();
   const toast = useToast();
   const me = useMe().data!;
@@ -254,7 +257,11 @@ export default function PremiumScreen() {
         <p className="muted pt-1 text-xs font-bold">{t('prem_free_note')}</p>
       </Card>
 
-      {data.canBuy && (
+      {/* Android-приложение и веб без Telegram: Stars там не платятся, оплата в Android-версии — через Google Play (docs/ANDROID_RU.md). */}
+      {data.canBuy && isStandalone && (
+        <Card className="mx-4 p-4 text-sm font-semibold leading-snug" ><p data-premium-store-note>{copy('prem_store_only')}</p></Card>
+      )}
+      {data.canBuy && !isStandalone && (
         <>
           {sub && (
             <div className="px-4" data-premium-extend>
@@ -292,6 +299,7 @@ export default function PremiumScreen() {
       )}
 
       {/* Умови й підтримка з оплат (вимоги Telegram до оплат у Stars: /terms і /paysupport у боті). */}
+      {!isStandalone && (
       <Card className="mx-4 space-y-2 p-4 text-sm font-semibold leading-snug">
         <div className="font-black">{t('prem_terms_title')}</div>
         <p>{t('prem_terms_1')}</p>
@@ -301,6 +309,7 @@ export default function PremiumScreen() {
           <button className="btn btn-sky mt-1 w-full !py-2 text-sm" onClick={openSupport}><Icon name="chat" size={18} /> {t('prem_support')}</button>
         )}
       </Card>
+      )}
     </div>
   );
 }

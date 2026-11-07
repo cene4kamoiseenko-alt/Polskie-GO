@@ -6,10 +6,15 @@ import { App } from './App';
 import { initTelegram, tg } from './lib/telegram';
 import { guessLang, preloadLang } from './i18n';
 import { installErrorReporting } from './lib/errorReport';
+import { isStandalone } from './lib/platform';
 import './index.css';
 
 installErrorReporting();
 initTelegram();
+// Android-приложение и браузер: service worker показывает страницу «нет сети» и держит файлы сборки в кеше. Внутри Telegram и в разработке не нужен.
+if (isStandalone && import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+}
 // Словник мови користувача вантажиться одразу, паралельно з авторизацією.
 void preloadLang(guessLang(tg?.initDataUnsafe.user?.language_code));
 

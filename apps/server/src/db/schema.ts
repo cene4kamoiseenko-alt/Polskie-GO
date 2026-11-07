@@ -1052,3 +1052,34 @@ export const ttsSpend = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.day, t.kind] })],
 );
+
+/**
+ * Вход вне Telegram (Android-приложение, веб): ключ устройства. Аккаунт без Telegram — «гость»: `users.telegram_id` отрицательный (настоящие id Telegram положительные,
+ * ограничения NOT NULL / UNIQUE остаются прежними). В базе только sha-256 ключа; сам ключ — в хранилище устройства. Подробнее — services/standalone-auth.ts.
+ */
+export const deviceCredentials = sqliteTable(
+  'device_credentials',
+  {
+    id: id(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    keyHash: text('key_hash').notNull().unique(),
+    platform: text('platform').notNull().default('web'),
+    createdAt: createdAt(),
+    lastUsedAt: createdAt('last_used_at'),
+  },
+  (t) => [index('device_credentials_user_idx').on(t.userId)],
+);
+
+/** Одноразовые коды переноса: «войти на другом устройстве как этот игрок». Живут 10 минут; в базе только sha-256 кода. */
+export const linkCodes = sqliteTable(
+  'link_codes',
+  {
+    id: id(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    codeHash: text('code_hash').notNull().unique(),
+    expiresAt: ts('expires_at').notNull(),
+    usedAt: ts('used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('link_codes_user_idx').on(t.userId, t.expiresAt)],
+);

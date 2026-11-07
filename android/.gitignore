@@ -1,0 +1,5 @@
+# Оболочку Android генерирует Bubblewrap из twa-manifest.json при каждой сборке: в репозитории только конфигурация.
+*
+!.gitignore
+!twa-manifest.json
+!README.md

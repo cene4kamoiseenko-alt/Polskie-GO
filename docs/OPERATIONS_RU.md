@@ -14,6 +14,7 @@
 | Time Travel D1 (восстановление на любую минуту) | Cloudflare, на бесплатном плане — **7 дней** | `npx wrangler d1 time-travel info polski-go` |
 | Логи Worker | `observability.enabled` в `wrangler.jsonc` | Cloudflare → Workers → polskie-go → Logs |
 | Проверка выкладки с телефона | `GET /api/health`: коммит, миграция, бот, озвучка | Открыть `/api/health` |
+| Вход вне Telegram (Android, веб): гости, ключи устройств, коды переноса | `standalone-auth.ts`, миграция `0016`; включается переменной `STANDALONE_AUTH=on` (по умолчанию выключен), суточный потолок гостей `GUEST_DAILY_LIMIT`; коды чистятся ежесуточно (`jobs.ts`) | `standalone.test.ts`; в админке такие игроки — с отрицательным Telegram id |
 
 ## 2. Что сделать вам (один раз; из среды разработки этого не сделать)
 

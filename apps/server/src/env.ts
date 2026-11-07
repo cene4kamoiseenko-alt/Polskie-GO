@@ -29,6 +29,18 @@ export type Bindings = {
   /** Ключ ссылки самонастройки `/telegram/setup?key=…`; без него — TELEGRAM_WEBHOOK_SECRET (старый вариант). */
   BOT_SETUP_KEY?: string;
   DEV_AUTH?: string;
+  /**
+   * Вход вне Telegram (Android-приложение, веб): гости и коды переноса. **По умолчанию выключен**: открытое создание аккаунтов на бесплатном плане D1 (100 тыс. записей в сутки)
+   * можно использовать, чтобы исчерпать лимит и остановить Telegram-версию. Владелец включает значением `on` (docs/ANDROID_RU.md, шаг 7). services/standalone-auth.ts.
+   */
+  STANDALONE_AUTH?: string;
+  /** Сколько новых гостей в сутки принимать (по умолчанию 3000 ≈ 36 тыс. записей D1); больше — 503 guests_busy до следующих суток. */
+  GUEST_DAILY_LIMIT?: string;
+  /** Android-приложение (Google Play): имя пакета и отпечатки SHA-256 ключа подписи для /.well-known/assetlinks.json (через запятую; их показывает Play Console). */
+  ANDROID_PACKAGE_NAME?: string;
+  ANDROID_SHA256_FINGERPRINTS?: string;
+  /** Куда писать игрокам по вопросам данных и поддержки: адрес e-mail или ссылка; показывается на страницах /privacy и /delete-account. */
+  SUPPORT_CONTACT?: string;
   INIT_DATA_MAX_AGE?: string;
   ADMIN_EMAIL?: string;
   /**
@@ -165,6 +177,23 @@ export const config = {
   /** Вхід без Telegram — лише для локальної розробки. У production завжди вимкнено. */
   get devAuth() {
     return str(env.DEV_AUTH) === 'true' && !this.isProd;
+  },
+  /** Гости и коды переноса: включаются явно (`STANDALONE_AUTH=on`). */
+  get standaloneAuth() {
+    return str(env.STANDALONE_AUTH) === 'on';
+  },
+  get guestDailyLimit() {
+    const n = Number(str(env.GUEST_DAILY_LIMIT) || 3000);
+    return Number.isFinite(n) && n >= 0 ? n : 3000;
+  },
+  get androidPackage() {
+    return str(env.ANDROID_PACKAGE_NAME) || 'app.polskigo.android';
+  },
+  get androidFingerprints() {
+    return str(env.ANDROID_SHA256_FINGERPRINTS).split(',').map((x) => x.trim().toUpperCase()).filter(Boolean);
+  },
+  get supportContact() {
+    return str(env.SUPPORT_CONTACT);
   },
   get initDataMaxAgeSec() {
     return Number(str(env.INIT_DATA_MAX_AGE) || 86_400);
