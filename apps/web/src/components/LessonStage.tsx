@@ -146,7 +146,7 @@ export const stageBadge = (type: string) => TYPE_BADGE[type] ?? TYPE_BADGE.WORD_
 const PL_CUE: Record<string, string> = {
   WORD_TRANSLATION: 'Wybierz tłumaczenie!', PICTURE_WORD: 'Co widzisz na obrazku?', ODD_ONE_OUT: 'Co tu nie pasuje?',
   FIND_ERROR: 'Znajdź błąd!', FILL_GAP: 'Uzupełnij zdanie!', GRAMMAR: 'Wpisz poprawną formę!', LISTENING: 'Posłuchaj i wybierz!',
-  DICTATION: 'Posłuchaj i napisz!', READING: 'Przeczytaj i odpowiedz!', SENTENCE_TRANSLATION: 'Przetłumacz na polski!',
+  DICTATION: 'Posłuchaj i ułóż zdanie!', READING: 'Przeczytaj i odpowiedz!', SENTENCE_TRANSLATION: 'Ułóż tłumaczenie!',
   BUILD_SENTENCE: 'Ułóż zdanie!', WORD_ORDER: 'Ułóż słowa po kolei!', MATCH_PAIRS: 'Połącz w pary!', PRONUNCIATION: 'Powiedz to na głos!',
   DIALOGUE: 'Porozmawiajmy!', SITUATION: 'Co powiesz?',
 };

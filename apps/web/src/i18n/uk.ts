@@ -272,7 +272,7 @@ export const uk = {
   ex_GRAMMAR: 'Постав слово в правильну форму',
   ex_READING: 'Прочитай і дай відповідь',
   ex_PICTURE_WORD: 'Що на картинці?',
-  ex_DICTATION: 'Послухай і запиши',
+  ex_DICTATION: 'Послухай і збери зі слів',
   ex_ODD_ONE_OUT: 'Знайди зайве слово',
   ex_WORD_ORDER: 'Розстав слова в правильному порядку',
   ex_type_here: 'Пиши польською…',
@@ -870,7 +870,7 @@ export const uk = {
   "costume_desc_duffle": "Дафлкот на дерев’яних ґудзиках і хутряні навушники — на кожен день.",
   ex_normal: "Звичайно",
   ex_sub_LISTENING: "Обери те, що прозвучало.",
-  ex_sub_DICTATION: "Запиши те, що почуєш.",
+  ex_sub_DICTATION: "Збери те, що почуєш.",
   ex_sub_PRONUNCIATION: "Натисни на мікрофон і скажи фразу.",
   // ── Головна (варіант A) і пропуск місяця ──
   home_learn_more: 'Учитися далі',

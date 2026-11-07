@@ -261,7 +261,7 @@ export const en: Dict = {
   ex_GRAMMAR: 'Put the word in the right form',
   ex_READING: 'Read and answer',
   ex_PICTURE_WORD: 'What is in the picture?',
-  ex_DICTATION: 'Listen and type',
+  ex_DICTATION: 'Listen and build it from words',
   ex_ODD_ONE_OUT: 'Find the odd one out',
   ex_WORD_ORDER: 'Put the words in order',
   ex_type_here: 'Type in Polish…',
@@ -838,7 +838,7 @@ export const en: Dict = {
   "costume_desc_duffle": "A duffle coat with wooden toggles and fluffy earmuffs for every day.",
   ex_normal: "Normal",
   ex_sub_LISTENING: "Choose what you heard.",
-  ex_sub_DICTATION: "Write down what you hear.",
+  ex_sub_DICTATION: "Build what you hear.",
   ex_sub_PRONUNCIATION: "Tap the microphone and say the phrase.",
   // ── Головна (варіант A) і пропуск місяця ──
   home_learn_more: 'Keep learning',

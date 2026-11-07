@@ -14,6 +14,7 @@ import {
 } from './types';
 import { matchText, normalize, similarity, sameSpeechPolarityAndNumbers } from './text';
 import { grammarOptions } from './grammarOptions';
+import { sentenceTiles } from './sentenceTiles';
 
 export type AnswerPayload =
   | { optionId: string }
@@ -67,7 +68,10 @@ export function toPublicItem(item: ExerciseItem, rnd: () => number = Math.random
     const { accepted: _a, ...d } = item.data as TextData;
     // «Поставь слово в правильную форму» — выбор из четырёх форм (grammarOptions.ts); ответ клиент шлёт текстом, проверка сервера не меняется.
     const forms = t === 'GRAMMAR' ? grammarOptions(item.data as TextData) : null;
-    return { ...rest, data: forms ? { ...d, options: shuffle(forms, rnd) } : d };
+    if (forms) return { ...rest, data: { ...d, options: shuffle(forms, rnd) } };
+    // Перевод предложения и диктант собираются из слов-плашек (sentenceTiles.ts): поле ввода и ряд польских букв не нужны. Ответ клиент шлёт текстом.
+    if (t === 'SENTENCE_TRANSLATION' || t === 'DICTATION') return { ...rest, data: { ...d, tokens: shuffle(sentenceTiles(item.data as TextData), rnd) } };
+    return { ...rest, data: d };
   }
   if (ORDER_TYPES.includes(t)) {
     const { answer: _a, alternatives: _alt, ...d } = item.data as OrderData;

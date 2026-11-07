@@ -3,6 +3,7 @@ export * from './i18n';
 export * from './text';
 export * from './answers';
 export * from './grammarOptions';
+export * from './sentenceTiles';
 export * from './srs';
 export * from './dates';
 export * from './progression';

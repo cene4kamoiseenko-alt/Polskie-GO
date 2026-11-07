@@ -261,7 +261,7 @@ export const ru: Dict = {
   ex_GRAMMAR: 'Поставь слово в правильную форму',
   ex_READING: 'Прочитай и ответь',
   ex_PICTURE_WORD: 'Что на картинке?',
-  ex_DICTATION: 'Послушай и запиши',
+  ex_DICTATION: 'Послушай и собери из слов',
   ex_ODD_ONE_OUT: 'Найди лишнее слово',
   ex_WORD_ORDER: 'Расставь слова в правильном порядке',
   ex_type_here: 'Пиши по-польски…',
@@ -838,7 +838,7 @@ export const ru: Dict = {
   "costume_desc_duffle": "Дафлкот на деревянных пуговицах и меховые наушники — на каждый день.",
   ex_normal: "Обычно",
   ex_sub_LISTENING: "Выбери то, что прозвучало.",
-  ex_sub_DICTATION: "Запиши то, что услышишь.",
+  ex_sub_DICTATION: "Собери то, что услышишь.",
   ex_sub_PRONUNCIATION: "Нажми на микрофон и скажи фразу.",
   // ── Головна (варіант A) і пропуск місяця ──
   home_learn_more: 'Учиться дальше',

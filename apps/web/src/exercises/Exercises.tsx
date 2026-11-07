@@ -329,12 +329,14 @@ const POLISH = ['ą', 'ć', 'ę', 'ł', 'ń', 'ó', 'ś', 'ź', 'ż'];
 
 function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
   const { t, tr } = useT();
-  const data = d<{ source?: I18n; pl?: string; base?: string; audioText?: string; audioUrl?: string; translation?: I18n; options?: string[] }>(item);
+  const data = d<{ source?: I18n; pl?: string; base?: string; audioText?: string; audioUrl?: string; translation?: I18n; options?: string[]; tokens?: string[] }>(item);
   const [value, setValue] = useState('');
   const [chosen, setChosen] = useState<string | null>(null);
   const ref = useRef<HTMLTextAreaElement>(null);
   // «Поставь слово в правильную форму»: сервер присылает четыре формы (grammarOptions.ts) — выбор вместо ввода: клавиатура закрывала польские буквы.
   const forms = item.type === 'GRAMMAR' && Array.isArray(data.options) && data.options.length >= 3 ? data.options : null;
+  // Перевод и диктант: сервер присылает слова-плашки (sentenceTiles.ts) — собираем фразу пальцем, без клавиатуры и ряда польских букв.
+  const tiles = item.type !== 'GRAMMAR' && Array.isArray(data.tokens) && data.tokens.length >= 3 ? data.tokens : null;
   useEffect(() => {
     if (item.type === 'DICTATION' && data.audioText) speak(data.audioText, { url: data.audioUrl });
   }, [item.key]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -399,6 +401,24 @@ function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
       </div>
     );
   }
+  if (tiles) {
+    return (
+      <div className="space-y-5" data-sentence-tiles>
+        {item.type === 'SENTENCE_TRANSLATION' && data.source && (
+          <div className="card prompt-card p-4 text-center text-xl font-black">{tr(data.source)}</div>
+        )}
+        {item.type === 'DICTATION' && data.audioText && (
+          <div className="grid grid-cols-2 gap-3">
+            <SpeakPill text={data.audioText} url={data.audioUrl} />
+            <SpeakPill text={data.audioText} url={data.audioUrl} slow />
+          </div>
+        )}
+        {item.type === 'DICTATION' && data.audioText && !result && <CantListen place="controls" text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
+        <TileBuilder itemKey={item.key} tokens={tiles} result={result} onWords={(words) => onChange(words ? { text: words.join(' ') } : null)} />
+        {item.type === 'DICTATION' && data.audioText && !result && <CantListen place="bottom" text={data.audioText} onSkip={() => onSubmit({ skipped: true })} />}
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
       {item.type === 'SENTENCE_TRANSLATION' && data.source && (
@@ -452,8 +472,24 @@ function TextExercise({ item, result, onChange, onSubmit }: ExProps) {
 
 // ───────── Складання речення ─────────
 function OrderExercise({ item, result, onChange }: ExProps) {
-  const { t, tr } = useT();
+  const { tr } = useT();
   const data = d<{ tokens: string[]; translation?: I18n }>(item);
+  return (
+    <div className="space-y-5">
+      {data.translation && (
+        <div className="card prompt-card p-4 text-center text-xl font-black">{tr(data.translation)}</div>
+      )}
+      <TileBuilder itemKey={item.key} tokens={data.tokens} result={result} onWords={(words) => onChange(words ? { tokens: words } : null)} />
+    </div>
+  );
+}
+
+/**
+ * Сборка фразы из слов-плашек: банк слов внизу, собранное — в пунктирной рамке сверху. Общая для «Собери предложение» и для переводов и диктантов.
+ * `onWords` получает слова в выбранном порядке или null, пока ничего не выбрано.
+ */
+function TileBuilder({ itemKey, tokens, result, onWords }: { itemKey: string; tokens: string[]; result: AnswerResult | null; onWords: (words: string[] | null) => void }) {
+  const { t } = useT();
   const [picked, setPicked] = useState<number[]>([]);
   const reduced = useReducedMotion();
   // Однолітерний прийменник чи сполучник чекає на наступне слово й звучить разом із ним («w» + «domu»).
@@ -469,30 +505,27 @@ function OrderExercise({ item, result, onChange }: ExProps) {
   const update = (next: number[]) => {
     if (next.length < picked.length) carry.current = null;
     setPicked(next);
-    onChange(next.length ? { tokens: next.map((i) => data.tokens[i]) } : null);
+    onWords(next.length ? next.map((i) => tokens[i]) : null);
   };
   return (
-    <div className="space-y-5">
-      {data.translation && (
-        <div className="card prompt-card p-4 text-center text-xl font-black">{tr(data.translation)}</div>
-      )}
+    <>
       {/* Спільний layoutId: слово плавно переїжджає з банку в речення і назад. */}
-      <LayoutGroup id={item.key}>
+      <LayoutGroup id={itemKey}>
         <div className={cx('flex min-h-[112px] flex-wrap content-start gap-2 rounded-2xl border-2 border-dashed p-3', result ? (result.correct ? 'border-brand' : 'border-coral') : 'border-soft')}>
           {!picked.length && <span className="muted m-auto text-sm font-bold">{t('ex_tap_words')}</span>}
           {picked.map((ti, pos) => (
             <motion.button
-              layoutId={reduced ? undefined : `w-${item.key}-${ti}`}
+              layoutId={reduced ? undefined : `w-${itemKey}-${ti}`}
               key={`${ti}`}
               onClick={() => !result && update(picked.filter((_, i) => i !== pos))}
               className="rounded-xl border-2 border-soft bg-elev px-3 py-2 text-lg font-bold shadow-[0_3px_0_var(--border)]"
             >
-              {data.tokens[ti]}
+              {tokens[ti]}
             </motion.button>
           ))}
         </div>
         <div className="flex flex-wrap justify-center gap-2">
-          {data.tokens.map((tok, i) =>
+          {tokens.map((tok, i) =>
             picked.includes(i) ? (
               <span key={i} className="rounded-xl border-2 border-transparent bg-muted px-3 py-2 text-lg font-bold text-transparent" aria-hidden>
                 {tok}
@@ -500,7 +533,7 @@ function OrderExercise({ item, result, onChange }: ExProps) {
             ) : (
               <motion.button
                 key={i}
-                layoutId={reduced ? undefined : `w-${item.key}-${i}`}
+                layoutId={reduced ? undefined : `w-${itemKey}-${i}`}
                 whileTap={{ scale: 0.92 }}
                 disabled={!!result}
                 onClick={() => {
@@ -518,7 +551,7 @@ function OrderExercise({ item, result, onChange }: ExProps) {
           )}
         </div>
       </LayoutGroup>
-    </div>
+    </>
   );
 }
 
