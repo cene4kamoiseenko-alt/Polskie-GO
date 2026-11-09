@@ -70,7 +70,7 @@
 - [ ] **Аккаунт Play Console** и (для личного аккаунта) закрытый тест: 12 тестировщиков × 14 дней. **Владелец.**
 - [ ] **Решить адрес сайта:** свой домен вместо `workers.dev` до первой загрузки; имя пакета `app.polskigo.android` (после загрузки не меняется). **Владелец.**
 - [ ] **Ключ загрузки, секреты GitHub `android-release`, первая сборка AAB, внутренний тест.** Workflow не запускался из среды разработки. **Владелец.**
-- [ ] **Переменные Cloudflare:** `STANDALONE_AUTH=on` (вход вне Telegram **выключен по умолчанию**), `ANDROID_PACKAGE_NAME`, `ANDROID_SHA256_FINGERPRINTS` (отпечаток ключа подписи Play), `SUPPORT_CONTACT`. Без отпечатка приложение открывается с адресной строкой. **Владелец.**
+- [ ] **Переменные Cloudflare:** `STANDALONE_AUTH=on` (**уже включена в `wrangler.jsonc`** с 2026-11-09; в коде вход вне Telegram по умолчанию выключен; проверка — `/api/health`: `standalone.enabled` и `standalone.tables` должны быть `true`), `ANDROID_PACKAGE_NAME`, `ANDROID_SHA256_FINGERPRINTS` (отпечаток ключа подписи Play), `SUPPORT_CONTACT`. Без отпечатка приложение открывается с адресной строкой. **Владелец.**
 - [ ] **Проверка на двух настоящих Android-телефонах** (микрофон в оболочке, озвучка, вход по коду, офлайн-страница, удаление аккаунта). Не проверялось. **Владелец.**
 - [ ] **Оплата Premium в Android** — Google Play Billing (отдельный этап, `docs/ANDROID_RU.md`, раздел 5). Пока Premium в Android не продаётся.
 - [ ] Формы Play (Data safety, Content rating, Target audience) — заготовки ответов в `docs/play/LISTING_RU.md`; отправляет владелец.

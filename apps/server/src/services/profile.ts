@@ -62,6 +62,8 @@ export async function getMe(userId: string) {
     telegramId: user.telegramId.toString(),
     // Гостевой аккаунт (вход вне Telegram, services/standalone-auth.ts): id отрицательный. Напоминания и рассылки такому игроку не приходят.
     guest: user.telegramId < 0,
+    // Включён ли вход вне Telegram на сервере (STANDALONE_AUTH=on): без него карточка «Вход на другом устройстве» в настройках не показывается.
+    standaloneAuth: config.standaloneAuth,
     firstName: user.firstName,
     lastName: user.lastName,
     username: user.username,

@@ -79,6 +79,8 @@ export function buildApp() {
     const meta = (last?.meta ?? {}) as { served_by_region?: string; served_by_primary?: boolean };
     const migration = last?.results[0]?.name ?? null;
     const bot = await readBotConfig();
+    // Вход вне Telegram (STANDALONE_AUTH): включён ли и есть ли таблицы миграции 0016 — без них «Получить код» в настройках падает с ошибкой 500.
+    const standaloneTables = await c.env.DB.prepare('SELECT (SELECT count(*) FROM link_codes) + (SELECT count(*) FROM device_credentials) AS n').first().then(() => true).catch(() => false);
     // Аудіобібліотека: скільки файлів голосу бібліотеки готово — щоб перевірити хід озвучки без входу в адмінку. Без id голосу.
     const voice = libraryVoice();
     const audioRows = voice
@@ -91,6 +93,7 @@ export function buildApp() {
         environment: config.environment,
         version: version ? { commit: version.commit, builtAt: version.builtAt } : null,
         migration,
+        standalone: { enabled: config.standaloneAuth, tables: standaloneTables },
         edge: { colo: (c.req.raw.cf as { colo?: string } | undefined)?.colo ?? null, d1: { ms: d1Ms, region: meta.served_by_region ?? null, primary: meta.served_by_primary ?? null } },
         audio: {
           r2: !!c.env.AUDIO,

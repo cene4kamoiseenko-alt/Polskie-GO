@@ -2,6 +2,7 @@
  * Вход вне Telegram (Android-приложение, веб): гости, ключ устройства, коды переноса и публичные страницы для Google Play.
  * Устройство — services/standalone-auth.ts; страницы и assetlinks — site.ts.
  */
+import { readFileSync } from 'node:fs';
 import { afterAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../src/db';
@@ -93,6 +94,37 @@ describe('гость и ключ устройства', () => {
     expect(await off('/api/auth/guest', {})).toBe(404);
     expect(await off('/api/auth/device', { deviceKey: `pgd_${'y'.repeat(43)}` })).toBe(404);
     expect(await off('/api/auth/link', { code: 'ABCD-EFGH' })).toBe(404);
+  });
+
+  it('жалоба владельца 2026-11-07: «Получить код» в Telegram падал с ошибкой, потому что в боевом конфиге вход вне Telegram был выключен — теперь он включён, а при выключенном код не выдаётся и клиент об этом знает', async () => {
+    // боевой wrangler.jsonc включает вход (иначе /api/me/link-code отвечает 404 и «Получить код» всегда заканчивается ошибкой)
+    expect(readFileSync(new URL('../../../wrangler.jsonc', import.meta.url), 'utf8')).toMatch(/"STANDALONE_AUTH":\s*"on"/);
+
+    const { app, env } = await getEnv();
+    const tg = await login();
+    // включено: код выдаётся, а /api/me сообщает клиенту, что карточку «Вход на другом устройстве» показывать можно
+    const on = await tg.call('POST', '/api/me/link-code');
+    expect(on.status).toBe(200);
+    expect(on.body.code).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+    expect(((await tg.call('GET', '/api/me')).body.user ?? (await tg.call('GET', '/api/me')).body).standaloneAuth).toBe(true);
+
+    // выключено: код не выдаётся (404), /api/me говорит клиенту скрыть карточку
+    const headers = { authorization: `Bearer ${tg.token}`, 'content-type': 'application/json' };
+    const offEnv = { ...env, STANDALONE_AUTH: '' };
+    const codeOff = await app.request('/api/me/link-code', { method: 'POST', headers, body: '{}' }, offEnv);
+    const meOff = (await (await app.request('/api/me', { headers }, offEnv)).json()) as { user?: { standaloneAuth?: boolean }; standaloneAuth?: boolean };
+    setEnv(env);
+    expect(codeOff.status).toBe(404);
+    expect((meOff.user ?? meOff).standaloneAuth).toBe(false);
+  });
+
+  it('/api/health показывает, включён ли вход вне Telegram и есть ли таблицы миграции 0016: так видно с телефона, почему не выдаётся код', async () => {
+    const { app, env } = await getEnv();
+    const on = (await (await app.request('/api/health', {}, env)).json()) as { standalone: { enabled: boolean; tables: boolean } };
+    expect(on.standalone).toEqual({ enabled: true, tables: true });
+    const off = (await (await app.request('/api/health', {}, { ...env, STANDALONE_AUTH: '' })).json()) as { standalone: { enabled: boolean; tables: boolean } };
+    setEnv(env);
+    expect(off.standalone.enabled).toBe(false);
   });
 });
 

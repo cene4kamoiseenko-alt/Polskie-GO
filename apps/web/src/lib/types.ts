@@ -12,6 +12,8 @@ export type Me = {
   onboarded: boolean;
   /** Гостевой аккаунт (вход вне Telegram без кода из Telegram). Может отсутствовать, если сервер старше клиента. */
   guest?: boolean;
+  /** Вход вне Telegram включён на сервере (код переноса можно получить). */
+  standaloneAuth?: boolean;
   createdAt: string;
   settings: {
     uiLanguage: UiLang;

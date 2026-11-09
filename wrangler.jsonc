@@ -45,6 +45,8 @@
   "triggers": { "crons": ["*/15 * * * *"] },
   // Несекретні налаштування. Секрети (TELEGRAM_BOT_TOKEN, SESSION_SECRET, ...) — у панелі Cloudflare.
   // AUDIO_GENERATION_MODE: платна генерація озвучки лише з адмінки (services/audio-policy.ts); off — вимкнути зовсім.
-  "vars": { "ENVIRONMENT": "production", "AUDIO_GENERATION_MODE": "admin_only" },
+  // STANDALONE_AUTH=on — вход вне Telegram (гость, код переноса из настроек Telegram; Android-приложение и браузер, docs/ANDROID_RU.md). Без неё сервер отвечает
+  // 404 на /api/me/link-code, и в Telegram «Получить код» заканчивается ошибкой. Выключить: поставить off (запросы входа ограничены Cloudflare и счётчиками, services/standalone-auth.ts).
+  "vars": { "ENVIRONMENT": "production", "AUDIO_GENERATION_MODE": "admin_only", "STANDALONE_AUTH": "on" },
   "keep_vars": true
 }

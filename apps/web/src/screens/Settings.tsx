@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon';
 import type { UiLang } from '@polski-go/shared';
 import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
-import { api, downloadExport, forgetDevice } from '../lib/api';
+import { api, downloadExport, forgetDevice, ApiError } from '../lib/api';
 import { isStandalone } from '../lib/platform';
 import { tg } from '../lib/telegram';
 import { useStandaloneCopy } from '../lib/standaloneCopy';
@@ -91,8 +91,9 @@ function LinkCodeCard({ guest }: { guest: boolean }) {
     setBusy(true);
     try {
       setCode((await api<{ code: string }>('/me/link-code', { method: 'POST', body: {} })).code);
-    } catch {
-      toast(c('set_link_fail'), '⚠️');
+    } catch (e) {
+      const status = e instanceof ApiError ? e.status : 0;
+      toast(c(status === 429 ? 'set_link_many' : status === 404 ? 'set_link_off' : 'set_link_fail'), '⚠️');
     } finally {
       setBusy(false);
     }
@@ -172,7 +173,7 @@ export default function SettingsScreen() {
         <Toggle label={t('set_public_profile')} description={t('set_public_profile_d')} checked={s.publicProfile} onChange={(v) => set({ publicProfile: v })} />
         <Toggle label={t('set_leaderboard')} checked={s.showInLeaderboard} onChange={(v) => set({ showInLeaderboard: v })} />
       </Card>
-      <LinkCodeCard guest={!!me.guest} />
+      {me.standaloneAuth && <LinkCodeCard guest={!!me.guest} />}
       <Card className="space-y-2 p-4">
         <div className="font-black">{t('set_data')}</div>
         <button className="btn btn-ghost w-full" onClick={() => nav('/premium')}><Icon name="crown" size={20} className="text-xp-dark" /> {t('set_premium')}</button>
