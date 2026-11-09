@@ -201,6 +201,40 @@ textarea {
   color: #07182c;
 }
 
+/* Потягнути вниз — оновити: кружок зі стрілкою виїжджає з-під верху екрана (PullToRefresh у components). Стиль міняється напряму в DOM. */
+.ptr {
+  position: fixed;
+  left: 50%;
+  top: calc(var(--safe-t) + 4px);
+  z-index: 85;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background: var(--bg-elev);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -20px);
+  transition: opacity 0.15s, background-color 0.12s, color 0.12s;
+}
+.ptr[data-ptr='armed'] {
+  background: var(--color-brand);
+  color: #07182c;
+}
+.ptr[data-ptr='busy'] svg {
+  animation: ptr-spin 0.8s linear infinite;
+}
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ptr[data-ptr='busy'] svg { animation: none; }
+}
+html.reduced-motion .ptr[data-ptr='busy'] svg { animation: none; }
+
 /* Перемикання вкладок (свайпом або натисканням): вміст коротко з'являється з боку, куди перейшли.
    fill-mode backwards: після анімації transform не лишається, і fixed-нащадки (панель примірки) не прив'язуються до блоку. */
 @keyframes tab-enter-next {

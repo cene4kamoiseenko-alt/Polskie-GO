@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { haptic } from '../lib/telegram';
+import { useTabSwipe } from '../lib/swipe';
 import { ErrorState, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
@@ -21,18 +22,22 @@ const CATS: { id: string; key: TKey }[] = [
   { id: 'work', key: 'life_cat_work' },
 ];
 
+const CAT_IDS = CATS.map((c) => c.id);
+
 export default function MissionsScreen() {
   const { t, tr } = useT();
   const nav = useNavigate();
   const [cat, setCat] = useState('all');
   const q = useQuery(missionsQuery);
+  // Свайп по экрану листает категории (Все → Магазины → Еда → …), как вкладки в Квестах.
+  const swipe = useTabSwipe(CAT_IDS, cat, (k) => { haptic.select(); setCat(k); });
   if (q.isLoading) return <ScreenSkeleton />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const { missions, soon } = q.data!;
   const list = missions.filter((m) => cat === 'all' || m.category === cat);
   const done = missions.filter((m) => m.completions > 0).length;
   return (
-    <div className="pb-6">
+    <div ref={swipe.ref} className="pb-6" data-tab-swipe="life">
       <ScreenHeader title={t('life_title')} subtitle={t('life_progress', { n: done, total: missions.length })} />
       <p className="muted px-4 text-sm font-semibold">{t('life_subtitle')}</p>
       {/* Пропуск місяця: сезонні місії — окремо від загального списку */}
@@ -44,6 +49,7 @@ export default function MissionsScreen() {
           </button>
         ))}
       </div>
+      <div key={cat} className={swipe.enter}>
       <div className="mt-3 grid gap-3 px-4">
         {list.map((m) => <MissionCard key={m.slug} m={m} onOpen={() => nav(missionHref(m))} />)}
       </div>
@@ -62,6 +68,7 @@ export default function MissionsScreen() {
           </div>
         </section>
       )}
+      </div>
       <p className="muted mx-4 mt-6 rounded-2xl bg-muted p-3 text-xs font-semibold leading-snug">{t('life_disclaimer')}</p>
     </div>
   );

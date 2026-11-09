@@ -12,6 +12,8 @@ import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { useMe } from '../lib/queries';
 import { haptic, share } from '../lib/telegram';
+import { copyText } from '../lib/clipboard';
+import { useTabSwipe } from '../lib/swipe';
 import { Icon } from '../components/Icon';
 import { Beaver } from '../components/Beaver';
 import { Art } from '../components/GameArt';
@@ -114,6 +116,8 @@ function Podium({ rows }: { rows: Row[] }) {
   );
 }
 
+const TABS = ['league', 'friends'] as const;
+
 export default function SocialScreen() {
   const { t } = useT();
   const nav = useNavigate();
@@ -127,6 +131,8 @@ export default function SocialScreen() {
   const lb = useQuery({ queryKey: ['lb', tab], queryFn: () => api<Board>(`/leaderboard?scope=${tab}`) });
   const friends = useQuery({ queryKey: ['friends'], queryFn: () => api<{ friends: Friend[]; referralCode: string; inviteLink: string }>('/friends'), enabled: tab === 'friends' });
   useBackButton(useGoBack());
+  // Свайп по экрану переключает «Лига» ↔ «Друзья» (как вкладки в Квестах и Магазине).
+  const swipe = useTabSwipe(TABS, tab, (k) => { haptic.select(); setParams({ tab: k }, { replace: true }); });
 
   const add = async () => {
     try {
@@ -145,13 +151,10 @@ export default function SocialScreen() {
     qc.invalidateQueries({ queryKey: ['lb'] });
   };
   const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      /* буфер обміну недоступний у деяких WebView — код усе одно видно на екрані */
-    }
-    haptic.select();
-    toast(t('friends_copied'), '📋');
+    // Запасной путь для WebView без navigator.clipboard (lib/clipboard); тост «скопировано» — только если запись удалась.
+    const ok = await copyText(text);
+    haptic[ok ? 'success' : 'error']();
+    toast(ok ? t('friends_copied') : `${t('friends_code')}: ${text}`, ok ? '📋' : '⚠️');
   };
 
   const rows = lb.data?.rows ?? [];
@@ -189,7 +192,7 @@ export default function SocialScreen() {
     ) : null;
 
   return (
-    <div className="space-y-4 pb-8">
+    <div ref={swipe.ref} className="space-y-4 pb-8" data-tab-swipe="social">
       {/* Заголовок і вкладки */}
       <div className="safe-top flex items-start gap-2 px-4 pt-3">
         <div className="min-w-0 flex-1">
@@ -199,7 +202,7 @@ export default function SocialScreen() {
           </div>
         </div>
         <div className="flex shrink-0 rounded-full border border-[var(--border)] bg-elev p-1">
-          {(['league', 'friends'] as const).map((k) => (
+          {TABS.map((k) => (
             <button
               key={k}
               onClick={() => { haptic.select(); setParams({ tab: k }, { replace: true }); }}
@@ -211,6 +214,7 @@ export default function SocialScreen() {
         </div>
       </div>
 
+      <div key={tab} className={cx('space-y-4', swipe.enter)}>
       {tab === 'league' ? (
         lb.isLoading ? (
           <div className="space-y-3 px-4"><Skeleton className="h-64" /><Skeleton className="h-28" /></div>
@@ -330,6 +334,7 @@ export default function SocialScreen() {
           ) : null}
         </>
       )}
+      </div>
       <ReportDialog target={reporting} onClose={() => setReporting(null)} />
     </div>
   );

@@ -9,7 +9,8 @@ export const EDGE_ZONE = 28;
 /** Жест належить вкладеному елементу: поле вводу, повзунок, горизонтальна прокрутка (ряд чипів) або інша зона свайпу. */
 function blocked(target: EventTarget | null, zone: HTMLElement): boolean {
   for (let n = target instanceof Element ? target : null; n && n !== zone; n = n.parentElement) {
-    if (n.matches('input, textarea, select, [contenteditable="true"], [data-no-swipe], [data-swipe-zone]')) return true;
+    // Шторка и модальное окно лежат в DOM внутри экрана: жест в них не должен листать вкладки позади.
+    if (n.matches('input, textarea, select, [contenteditable="true"], [data-no-swipe], [data-swipe-zone], [data-sheet], [data-modal]')) return true;
     if (n.scrollWidth > n.clientWidth + 1) {
       const ox = getComputedStyle(n).overflowX;
       if (ox === 'auto' || ox === 'scroll') return true;

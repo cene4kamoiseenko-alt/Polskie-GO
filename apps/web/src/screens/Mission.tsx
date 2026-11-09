@@ -11,6 +11,7 @@ import type { I18n } from '@polski-go/shared';
 import { useT } from '../i18n';
 import { ApiError, api } from '../lib/api';
 import { haptic } from '../lib/telegram';
+import { useSwipe } from '../lib/swipe';
 import { prefetchSpeech, sfx } from '../lib/audio';
 import type { MissionAnswer, MissionFinish, MissionLine, MissionRun, MissionStepPublic } from '../lib/types';
 import { Confetti, ErrorState, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
@@ -266,6 +267,9 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
     setIdx((i) => i + 1);
   };
 
+  // Свайп влево после верного ответа = «Далее» (как в уроке); при ошибке жест ничего не делает — исправлять нужно осознанно.
+  const swipeNext = useSwipe({ onLeft: feedback?.ok ? () => { haptic.tap(); next(); } : undefined });
+
   const retry = () => {
     setFeedback(null);
     setWrongId(null);
@@ -282,7 +286,7 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
 
   const revealed = !!feedback?.ok;
   return (
-    <div className="flex min-h-screen flex-col pb-56">
+    <div ref={swipeNext} className="flex min-h-screen flex-col pb-56" data-swipe-next={revealed ? 'ready' : undefined}>
       <TopBar onClose={onClose} value={idx + (feedback?.ok ? 1 : 0)} max={steps.length} />
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div key={step.id} className="flex flex-1 flex-col gap-4 px-4 pt-2" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.2 }}>

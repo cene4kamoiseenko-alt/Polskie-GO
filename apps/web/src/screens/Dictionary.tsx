@@ -7,6 +7,7 @@ import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import type { VocabEntry } from '../lib/types';
 import { haptic } from '../lib/telegram';
+import { useTabSwipe } from '../lib/swipe';
 import { Card, EmptyState, ScreenHeader, Sheet, Skeleton, SpeakButton, cx } from '../components/ui';
 import { Icon } from '../components/Icon';
 
@@ -21,6 +22,8 @@ export default function DictionaryScreen() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
   const [topic, setTopic] = useState<string | null>(null);
   const [open, setOpen] = useState<VocabEntry | null>(null);
+  // Свайп по списку листает фильтры (Все → Мои → Выученные → Избранные → К повторению), как вкладки в Квестах.
+  const swipe = useTabSwipe(FILTERS, filter, (k) => { haptic.select(); setFilter(k); });
 
   useEffect(() => {
     const tm = setTimeout(() => setDebounced(search), 300);
@@ -51,7 +54,7 @@ export default function DictionaryScreen() {
   };
 
   return (
-    <div className="pb-6">
+    <div ref={swipe.ref} className="min-h-app pb-6" data-tab-swipe="dictionary">
       <ScreenHeader title={t('dict_title')} subtitle={t('dict_subtitle')} />
       <div className="space-y-3 px-4">
         <label className="relative block">
@@ -75,7 +78,7 @@ export default function DictionaryScreen() {
         </div>
         {list.isLoading && <Skeleton className="h-64" />}
         {!list.isLoading && !items.length && <EmptyState text={t('dict_empty')} />}
-        <div className="space-y-2">
+        <div key={filter} className={cx('space-y-2', swipe.enter)}>
           {items.map((w) => (
             <Card key={w.id} className="flex items-center gap-3 px-3 py-2.5" onClick={() => setOpen(w)}>
               <WordTile pl={w.pl} picture={w.emoji} />

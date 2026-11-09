@@ -39,6 +39,8 @@ const MissionScreen = lazy(() => import('./screens/Mission'));
 const PassportScreen = lazy(() => import('./screens/Passport'));
 const SlangScreen = lazy(() => import('./screens/Slang'));
 const PassScreen = lazy(() => import('./screens/Pass'));
+// «Потянуть вниз — обновить»: отдельный чанк, подключается уже после старта (бюджет JS холодного старта).
+const PullToRefresh = lazy(() => import('./components/PullToRefresh'));
 
 const TAB_ROUTES = ['/', '/map', '/learn', '/quests', '/profile'];
 
@@ -141,6 +143,14 @@ export function App() {
     const timer = setTimeout(prefetchScreens, 600);
     return () => clearTimeout(timer);
   }, [me.data?.onboarded, fetching]);
+
+  // Жест «потянуть вниз — обновить» подключаем, когда экран загрузил свои данные и стало тихо (как и предзагрузку экранов).
+  const [pullReady, setPullReady] = useState(false);
+  useEffect(() => {
+    if (pullReady || !me.data?.onboarded || fetching > 0) return;
+    const timer = setTimeout(() => setPullReady(true), 1500);
+    return () => clearTimeout(timer);
+  }, [pullReady, me.data?.onboarded, fetching]);
 
   const showNav = TAB_ROUTES.includes(loc.pathname);
   const reduced = me.data?.settings.reducedMotion;
@@ -279,6 +289,11 @@ export function App() {
           <ToastProvider>
             <div className="safe-top mx-auto min-h-full max-w-xl">{shown}</div>
             <EdgeSwipeBack />
+            {pullReady && (
+              <Suspense fallback={null}>
+                <PullToRefresh />
+              </Suspense>
+            )}
           </ToastProvider>
         </MotionConfig>
       </LazyMotion>

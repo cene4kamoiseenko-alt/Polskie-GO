@@ -11,6 +11,7 @@ import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
 import { prefetchSpeech, sfx, stopSpeech } from '../lib/audio';
 import { haptic } from '../lib/telegram';
+import { useSwipe } from '../lib/swipe';
 import { Beaver } from '../components/Beaver';
 import { Icon, type LineIconName } from '../components/Icon';
 import { Badge, Stamp } from '../components/Illustrations';
@@ -193,6 +194,11 @@ export default function LessonScreen() {
     else setPos((p) => p + 1);
   };
 
+  // Свайп влево после проверенного ответа = «Далее» (только когда результат показан, чтобы случайный жест не пропустил вопрос).
+  const swipeNext = useSwipe({
+    onLeft: phase === 'play' && result && !speed && item && item.type !== 'DIALOGUE' && item.type !== 'SITUATION' ? () => { haptic.tap(); next(); } : undefined,
+  });
+
   const onQuit = useCallback(() => setQuit(true), []);
   useBackButton(phase === 'play' || phase === 'intro' ? onQuit : null);
 
@@ -325,7 +331,7 @@ export default function LessonScreen() {
   const stageMood: StageMood = result ? (result.correct ? 'correct' : result.skipped ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
 
   return (
-    <div className="min-h-app flex flex-col">
+    <div ref={swipeNext} className="min-h-app flex flex-col" data-swipe-next={result && !speed ? 'ready' : undefined}>
       <div className="flex items-center gap-3 px-4 pt-3">
         <button onClick={onQuit} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev text-[var(--text-muted)]" aria-label={t('close')}>
           <Icon name="x" size={20} />

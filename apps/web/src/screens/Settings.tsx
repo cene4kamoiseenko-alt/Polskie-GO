@@ -13,6 +13,7 @@ import type { Me } from '../lib/types';
 import { Card, Modal, ScreenHeader, Toggle, cx, useToast } from '../components/ui';
 import { speak, type SpeechOutcome } from '../lib/audio';
 import { PronHint } from '../components/PronHint';
+import { CopyCode } from '../components/CopyCode';
 
 /**
  * Польська озвучка — готові записи голосу Kamil; перевірка справжнім відтворенням фрази з бібліотеки.
@@ -104,7 +105,7 @@ function LinkCodeCard({ guest }: { guest: boolean }) {
       <p className="muted text-sm font-semibold leading-snug">{guest ? c('set_link_guest') : c('set_link_text')}</p>
       {code ? (
         <div className="space-y-1 text-center">
-          <div className="select-all rounded-2xl bg-night/60 py-3 text-2xl font-black tracking-widest text-white" data-link-code>{code}</div>
+          <CopyCode value={code} hint={c('copy_tap')} done={c('copy_done')} fail={c('copy_fail')} data-copy-code="link" />
           <p className="muted text-xs font-bold">{c('set_link_valid')}</p>
         </div>
       ) : null}
