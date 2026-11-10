@@ -34,7 +34,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://t.me https://*.telegram.org",
   "font-src 'self' data:",
-  "media-src 'self' blob:",
+  // data: — тихий WAV, которым lib/audio.ts «разблокирует» звук первым касанием (iOS, Telegram); без него отчёт `media-src data`, а в блокирующем режиме — нет озвучки.
+  "media-src 'self' blob: data:",
   "connect-src 'self'",
   "worker-src 'self' blob:",
   "object-src 'none'",

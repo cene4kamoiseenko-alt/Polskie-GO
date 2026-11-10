@@ -35,6 +35,11 @@ async function main() {
     const first = await page.goto(`${stand.base}/`);
     const csp = first?.headers()['content-security-policy-report-only'] ?? '';
     check(/script-src 'self' https:\/\/telegram\.org 'sha256-/.test(csp) && /report-uri \/api\/csp-report/.test(csp), `заголовок CSP Report-Only на месте (${csp.length} симв.)`);
+    check(/media-src [^;]*\bdata:/.test(csp), 'media-src разрешает data: (тихий WAV для разблокировки звука)');
+    // Первое касание «разблокирует» звук для iOS и Telegram: lib/audio.ts подставляет в <audio> тихий WAV как data:-адрес (media-src должен его разрешать).
+    // Без касания этот путь не выполнялся, и отчёт `media-src data` (журнал владельца, 2026-11-10) проверка не видела.
+    await page.mouse.click(2, 2);
+    await page.waitForTimeout(600);
     const screens = ['/', '/learn', '/map', '/shop', '/shop?tab=shop', '/house', '/pass', '/premium', '/profile', '/achievements', '/missions', '/quests', '/dictionary', '/exams', '/social'];
     for (const path of screens) {
       await page.goto(`${stand.base}${path}`);
