@@ -599,7 +599,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
         {r.placement && (
           <div className="card w-full p-4 text-left">
             <div className="text-lg font-black">{t('res_placement', { level: r.placement.level })}</div>
-            <div className="muted text-sm font-semibold">{t('res_placement_text', { cities: r.placement.unlocked.join(', ') })}</div>
+            <div className="muted text-sm font-semibold">{t('res_placement_text', { cities: (r.placement.cities ?? r.placement.unlocked).join(', ') })}</div>
           </div>
         )}
 

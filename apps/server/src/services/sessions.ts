@@ -619,7 +619,7 @@ async function finishOnce(userId: string, sessionId: string) {
   let newWords: { id: string; pl: string; translations: unknown }[] = [];
   let cityCompleted: null | { cityId: string; nextCity: unknown; rewards: unknown[] } = null;
   let levelConfirmed: Cefr | null = null;
-  let placement: null | { level: Cefr; unlocked: string[] } = null;
+  let placement: null | { level: Cefr; unlocked: string[]; cities: string[] } = null;
 
   if (s.mode === 'LESSON' && s.lessonId) {
     const lesson = lessonRows[0];
@@ -869,7 +869,7 @@ async function applyPlacement(userId: string, accuracy: number) {
   const level: Cefr = accuracy >= 0.8 ? 'A1' : 'A0';
   // Рекомендуємо лише міста, де вже є уроки (порожні зупинки маршруту не можуть бути стартом).
   const top = await db
-    .selectDistinct({ id: cities.id, slug: cities.slug, order: cities.order })
+    .selectDistinct({ id: cities.id, slug: cities.slug, namePl: cities.namePl, order: cities.order })
     .from(cities)
     .innerJoin(cityRoutes, eq(cityRoutes.cityId, cities.id))
     .innerJoin(lessons, and(eq(lessons.routeId, cityRoutes.id), eq(lessons.status, 'PUBLISHED')))
@@ -879,13 +879,16 @@ async function applyPlacement(userId: string, accuracy: number) {
   const openCount = accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1;
   const stmts: Stmt[] = [db.update(userProfiles).set({ placementLevel: level }).where(eq(userProfiles.userId, userId))];
   const unlocked: string[] = [];
+  // Названия для итогового экрана («Warszawa, Łódź»): коды городов (slug) игроку не показываем (владелец 2026-11-10).
+  const cityNames: string[] = [];
   for (const [i, c] of top.slice(0, openCount).entries()) {
     const ins = db.insert(userCities).values({ userId, cityId: c.id, source: i === 0 ? 'journey' : 'placement' });
     stmts.push(i === 0 ? ins.onConflictDoNothing() : ins.onConflictDoUpdate({ target: [userCities.userId, userCities.cityId], set: { source: 'placement' } }));
     unlocked.push(c.slug);
+    cityNames.push(c.namePl);
   }
   // Рекомендоване стартове місто — останнє відкрите.
   const start = top[openCount - 1];
   if (start) stmts.push(db.update(playerProgress).set({ currentCityId: start.id }).where(eq(playerProgress.userId, userId)));
-  return { result: { level, unlocked }, stmts };
+  return { result: { level, unlocked, cities: cityNames }, stmts };
 }

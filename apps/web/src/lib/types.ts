@@ -138,7 +138,7 @@ export type FinishResult = {
   newWords: { id: string; pl: string; translations: I18n }[];
   cityCompleted: null | { cityId: string; nextCity: null | { id: string; slug: string; name: I18n; namePl: string; emoji: string; hasLessons: boolean }; rewards: { slug: string; name: I18n; slot: string }[] };
   levelConfirmed: Cefr | null;
-  placement: null | { level: Cefr; unlocked: string[] };
+  placement: null | { level: Cefr; unlocked: string[]; cities?: string[] };
   questsCompleted: { id: string; title: I18n; icon: string }[];
   achievements: { slug: string; title: I18n; description?: I18n; icon: string; zlotki: number }[];
   durationSec: number;
