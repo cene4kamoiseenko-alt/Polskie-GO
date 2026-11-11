@@ -194,7 +194,7 @@ export default function SocialScreen() {
   return (
     <div ref={swipe.ref} className="space-y-4 pb-8" data-tab-swipe="social">
       {/* Заголовок і вкладки */}
-      <div className="safe-top flex items-start gap-2 px-4 pt-3">
+      <div className="flex items-start gap-2 px-4 pt-3">
         <div className="min-w-0 flex-1">
           <h1 className="text-[30px] font-black leading-none">{t('lb_title')}</h1>
           <div className="mt-1 flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">

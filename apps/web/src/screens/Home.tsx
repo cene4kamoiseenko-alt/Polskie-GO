@@ -50,8 +50,11 @@ export function Wordmark({ size = 22 }: { size?: number }) {
 }
 
 /** Шапка вкладок: логотип, серія, Złotki, Premium. Налаштування — у профілі (без дубля в шапці). */
-/** noSafe — шапка лежит внутри экрана, который уже отступил от шапки Telegram (карта): второй отступ не нужен. */
-export function TopStats({ compact, noSafe, left }: { compact?: boolean; noSafe?: boolean; /** Вместо логотипа (карта: прогресс путешествия). */ left?: ReactNode }) {
+/**
+ * Отступ от шапки Telegram (--safe-t) здесь НЕ добавляется: его уже даёт обёртка приложения (App.tsx, .safe-top). Раньше шапка добавляла его второй раз,
+ * и в полноэкранном режиме Telegram на iPhone над логотипом оставалась пустая полоса высотой с саму шапку (владелец 2026-11-11, scripts/safe-area-check.ts).
+ */
+export function TopStats({ compact, left }: { compact?: boolean; /** Вместо логотипа (карта: прогресс путешествия). */ left?: ReactNode }) {
   const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data;
@@ -59,7 +62,7 @@ export function TopStats({ compact, noSafe, left }: { compact?: boolean; noSafe?
   if (!me) return <div className="h-14" />;
   const round = 'grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev shadow-[var(--shadow-card)]';
   return (
-    <div className={cx(!noSafe && 'safe-top', 'flex items-center gap-1.5 px-4 pt-2')}>
+    <div className="flex items-center gap-1.5 px-4 pt-2">
       {left ?? (
         <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-auto min-w-0 shrink">
           <Wordmark size={19} />

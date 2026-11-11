@@ -442,7 +442,7 @@ export default function ShopScreen() {
   return (
     <div ref={swipeTabs.ref} className="pb-56" data-tab-swipe="shop">
       {/* Заголовок */}
-      <div className="safe-top relative z-10 flex items-center gap-3 px-4 pt-3">
+      <div className="relative z-10 flex items-center gap-3 px-4 pt-3">
         <h1 className="flex-1 text-[34px] font-black leading-none">{houseMode ? t('house_edit') : t('shop_title')}</h1>
         <span className="hud-pill !h-11 !px-4 !text-[18px]"><Art name="coin" size={26} /> {balance}</span>
       </div>

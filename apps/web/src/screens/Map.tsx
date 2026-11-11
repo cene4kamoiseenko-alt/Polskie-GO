@@ -125,7 +125,6 @@ export default function MapScreen() {
         <div className="pointer-events-auto">
           <TopStats
             compact
-            noSafe
             left={
               <h1 className="map-chip mr-auto min-w-0 shrink" aria-label={t('map_journey_d', { done: completedCount, total: j.cities.length })}>
                 <Icon name="map" size={16} className="shrink-0 text-pl-red" />
