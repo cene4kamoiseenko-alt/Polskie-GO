@@ -29,7 +29,7 @@ const check = (ok: unknown, what: string) => {
 };
 
 type Stand = Awaited<ReturnType<typeof startStand>>;
-type Opened = { page: Page; context: BrowserContext; cdp: CDPSession; apiGets: () => number; swipe: (x0: number, y0: number, x1: number, y1: number, hold?: () => Promise<void>) => Promise<void> };
+type Opened = { page: Page; context: BrowserContext; cdp: CDPSession; apiGets: () => number; swipe: (x0: number, y0: number, x1: number, y1: number, hold?: () => Promise<void>, after?: number) => Promise<void> };
 
 async function main() {
   const { chromium } = require('playwright') as typeof import('playwright');
@@ -57,7 +57,8 @@ async function main() {
     });
     await page.goto(`${stand.base}${path}${path.includes('?') ? '&' : '?'}devUser=${id}`);
     const cdp = await context.newCDPSession(page);
-    const swipe = async (x0: number, y0: number, x1: number, y1: number, hold?: () => Promise<void>) => {
+    // after — пауза после отпускания пальца: 450 мс для жестов с мгновенным эффектом, 0 там, где состояние нужно прочитать сразу (кружок обновления живёт 700 мс).
+    const swipe = async (x0: number, y0: number, x1: number, y1: number, hold?: () => Promise<void>, after = 450) => {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
       for (let i = 1; i <= 12; i++) {
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + ((x1 - x0) * i) / 12, y: y0 + ((y1 - y0) * i) / 12 }] });
@@ -65,7 +66,7 @@ async function main() {
       }
       if (hold) await hold();
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await page.waitForTimeout(450);
+      if (after) await page.waitForTimeout(after);
     };
     return { page, context, cdp, apiGets: () => gets, swipe };
   }
@@ -154,7 +155,7 @@ async function main() {
       await swipe(200, 160, 200, 520, async () => {
         midState = (await state()) ?? '';
         await page.screenshot({ path: `${OUT}/pull-armed.png` });
-      });
+      }, 0);
       check(midState === 'armed', `B5 длинное протягивание окрашивает кружок (${midState})`);
       await page.waitForTimeout(200);
       check(apiGets() > base, `B5 после отпускания данные запрошены заново (+${apiGets() - base} запросов)`);
@@ -163,7 +164,7 @@ async function main() {
       check((await state()) === 'idle', 'B5 по окончании кружок убирается');
 
       const after = apiGets();
-      await swipe(200, 160, 200, 520);
+      await swipe(200, 160, 200, 520, undefined, 0);
       await page.waitForTimeout(200);
       check(apiGets() === after && (await state()) === 'busy', 'B6 повтор сразу после обновления: кружок есть, лишних запросов нет');
       await page.waitForTimeout(900);
@@ -240,14 +241,15 @@ async function main() {
     // ── D. Свайп влево как «Далее» ───────────────────────────────────────────────────────────────────────────────────────────────────
     {
       const { page, context, swipe } = await open('/practice/FIVE_MIN');
-      await page.locator('[data-action="start"]:visible, [data-grammar-choice]:visible, button.option:visible, [data-token]:visible, [data-pair]:visible, textarea:visible').first().waitFor({ timeout: 30_000 }).catch(async (e) => {
+      await page.locator('[data-action="start"]:visible, [data-action="skip"]:visible, [data-grammar-choice]:visible, button.option:visible, [data-token]:visible, [data-pair]:visible, textarea:visible').first().waitFor({ timeout: 30_000 }).catch(async (e) => {
         await page.screenshot({ path: `${OUT}/no-exercise.png` });
         console.log('на экране:', (await text(page)).replace(/\s+/g, ' ').slice(0, 300), '| путь:', new URL(page.url()).pathname);
         throw e;
       });
       const start = page.locator('[data-action="start"]:visible');
       if (await start.count()) await start.click();
-      await page.waitForFunction(() => document.querySelector('[data-grammar-choice], textarea, button.option, [data-token], [data-pair]'), null, { timeout: 30_000 });
+      // Первое задание практики случайное: бывает и «Произношение» (микрофон, его пропускаем кнопкой), поэтому ждём любое действие.
+      await page.waitForFunction(() => document.querySelector('[data-grammar-choice], textarea, button.option, [data-token], [data-pair], [data-action="skip"]'), null, { timeout: 30_000 });
       let done = false;
       for (let tries = 0; tries < 8 && !done; tries++) {
         await page.waitForTimeout(1100);
@@ -289,9 +291,11 @@ async function main() {
     {
       const { MISSIONS } = await import(root + '/apps/server/src/content/missions.ts');
       const m = MISSIONS.find((x: { steps: { kind: string; options?: unknown[] }[] }) => x.steps[0].kind !== 'build' && (x.steps[0].options?.length ?? 0) >= 2);
-      const first = m.steps[0] as { options: { ok: boolean }[] };
-      const good = first.options.findIndex((o) => o.ok);
-      const bad = first.options.findIndex((o) => !o.ok);
+      const first = m.steps[0] as { options: { ok: boolean; pl?: string; text?: { ru?: string } }[] };
+      // Сервер перемешивает варианты для каждого прохождения, поэтому кнопку ищем по тексту варианта, а не по его номеру в данных.
+      const labelOf = (o: { pl?: string; text?: { ru?: string } }) => (o.pl ?? o.text?.ru ?? '').replace(/\s+/g, ' ').trim();
+      const goodLabel = labelOf(first.options.find((o) => o.ok)!);
+      const badLabel = labelOf(first.options.find((o) => !o.ok)!);
       const { page, context, swipe } = await open(`/life/${m.slug}`);
       for (let tries = 0; tries < 6 && !(await page.locator('button.option').count()); tries++) {
         await page.waitForTimeout(700);
@@ -303,14 +307,19 @@ async function main() {
       const h0 = await heading();
       await page.waitForTimeout(1100);
       // ошибка: «Далее» жестом недоступно
-      await page.locator('button.option').nth(bad).click();
+      const pick = async (label: string) => {
+        const i = (await page.evaluate(`[...document.querySelectorAll('button.option')].findIndex((b) => b.innerText.replace(/\\s+/g, ' ').trim() === ${JSON.stringify(label)})`)) as number;
+        if (i < 0) throw new Error(`нет кнопки «${label}»`);
+        await page.locator('button.option').nth(i).click();
+      };
+      await pick(badLabel);
       await page.getByRole('button', { name: /Проверить/ }).click();
       await page.waitForTimeout(700);
       await swipe(320, 400, 80, 406);
       check((await page.locator('[data-swipe-next]').count()) === 0 && (await heading()) === h0, 'D2 миссия: после ошибки свайп влево шаг не пропускает');
       await page.getByRole('button', { name: /Попробовать ещё/ }).click();
       await page.waitForTimeout(1100);
-      await page.locator('button.option').nth(good).click();
+      await pick(goodLabel);
       await page.getByRole('button', { name: /Проверить/ }).click();
       await page.locator('[data-swipe-next="ready"]').waitFor({ timeout: 10_000 });
       check(true, 'D2 миссия: после верного ответа жест «Далее» включён');
