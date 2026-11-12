@@ -16,7 +16,7 @@ import { microphoneRecordingAvailable, recognizeRecordedPolish } from '../lib/re
 import type { RecognitionRun } from '../lib/recognition';
 import type { Transcription } from '../lib/api';
 import { ApiError } from '../lib/api';
-import { SpeakButton, SpeakPill, Waveform, cx } from '../components/ui';
+import { SpeakButton, SpeakPill, Waveform, cx, useToast } from '../components/ui';
 import { PronHint } from '../components/PronHint';
 import { NpcFace } from '../components/pictograms/Pictogram';
 import { ArtPicture } from '../components/Illustrations';
@@ -857,6 +857,7 @@ type Bubble = { who: 'npc' | 'me' | 'coach'; text: string; sub?: string };
 
 function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
   const { t, tr } = useT();
+  const toast = useToast();
   const data = d<{ npc: { name: string; emoji: string; role?: I18n }; scene?: I18n; steps: Step[] }>(item);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [step, setStep] = useState(0);
@@ -891,9 +892,12 @@ function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
     if (finished) onDialogueDone();
   }, [finished]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Пока идёт переход к следующей реплике (700 мс после верного ответа), варианты заблокированы: иначе второй тап посылал серверу уже принятый шаг → 400 wrong_step.
+  const advancing = useRef(false);
   const choose = async (o: { id: string; text: string; tr: I18n }) => {
-    if (busy) return;
+    if (busy || advancing.current) return;
     setBusy(true);
+    let keepLocked = false;
     try {
       const res = await submitStep({ step, optionId: o.id });
       if (res.correct) {
@@ -901,7 +905,13 @@ function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
         haptic.success();
         setBubbles((b) => [...b, { who: 'me', text: o.text, sub: tr(o.tr) }]);
         speak(o.text);
-        setTimeout(() => setStep((x) => x + 1), 700);
+        advancing.current = true;
+        keepLocked = true;
+        setTimeout(() => {
+          advancing.current = false;
+          setStep((x) => x + 1);
+          setBusy(false);
+        }, 700);
       } else {
         sfx.wrong();
         haptic.error();
@@ -909,8 +919,13 @@ function DialogueExercise({ item, submitStep, onDialogueDone }: ExProps) {
         setTimeout(() => setShake(null), 500);
         if (res.feedback) setBubbles((b) => [...b, { who: 'coach', text: tr(res.feedback!) }]);
       }
+    } catch (e) {
+      // Сервер принимает шаги по порядку и уже ушёл вперёд: ответ на этот шаг дошёл, а к телефону не вернулся (обрыв связи). Не застреваем на шаге — идём дальше.
+      if (e instanceof ApiError && e.code === 'wrong_step') setStep((x) => x + 1);
+      // Ответ не дошёл (нет связи, тайм-аут): как в обычных заданиях урока — говорим об этом, нажать можно ещё раз.
+      else toast(t(typeof navigator !== 'undefined' && navigator.onLine === false ? 'error_offline' : 'answer_failed'), '⚠️');
     } finally {
-      setBusy(false);
+      if (!keepLocked) setBusy(false);
     }
   };
 
