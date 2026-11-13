@@ -6,7 +6,7 @@
  * пути нормализуются (длинные id → :id). Хранится 30 дней (jobs.ts → purgeErrors). Админка: /api/admin/dashboard → appErrors.
  * Подробности, падения Worker вне HTTP и логи — Workers Logs в панели Cloudflare (observability включён в wrangler.jsonc).
  */
-import { and, desc, gte, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { errorLog } from '../db/schema';
 
@@ -61,21 +61,39 @@ export async function recordError(e: ErrorInput, now = new Date()): Promise<void
   }
 }
 
-/** Ошибки за последние `hours` часов: по видам и самые свежие (для админки). */
-export async function recentErrors(now = new Date(), hours = 24) {
+/**
+ * Ошибки за последние `hours` часов (для админки). Одна и та же ошибка в разные дни — одна строка: счётчики складываются, время — последнее.
+ * Итоги по видам считаются отдельно и без лимита, поэтому не зависят ни от отбора по виду, ни от длины списка.
+ */
+export async function recentErrors(now = new Date(), hours = 24, opts: { kind?: ErrorKind | 'all'; limit?: number } = {}) {
+  const { kind = 'all', limit = 50 } = opts;
   const since = now.getTime() - hours * 3_600_000;
-  const rows = await db
-    .select()
-    .from(errorLog)
-    .where(and(gte(errorLog.day, new Date(since).toISOString().slice(0, 10)), gte(errorLog.lastAt, since)))
-    .orderBy(desc(errorLog.lastAt))
-    .limit(50);
+  const inRange = and(gte(errorLog.day, new Date(since).toISOString().slice(0, 10)), gte(errorLog.lastAt, since));
+  const lastAt = sql<number>`max(${errorLog.lastAt})`;
+  const [sums, rows] = await Promise.all([
+    db.select({ kind: errorLog.kind, n: sql<number>`sum(${errorLog.count})` }).from(errorLog).where(inRange).groupBy(errorLog.kind),
+    db
+      .select({ kind: errorLog.kind, message: errorLog.message, path: errorLog.path, count: sql<number>`sum(${errorLog.count})`, lastAt, detail: sql<string | null>`max(${errorLog.detail})` })
+      .from(errorLog)
+      .where(kind === 'all' ? inRange : and(inRange, eq(errorLog.kind, kind)))
+      .groupBy(errorLog.kind, errorLog.message, errorLog.path)
+      .orderBy(desc(lastAt))
+      .limit(limit),
+  ]);
   const total = { server: 0, client: 0, csp: 0 } as Record<ErrorKind, number>;
-  for (const r of rows) total[r.kind] += r.count;
+  for (const r of sums) total[r.kind] = Number(r.n) || 0;
   return {
     hours,
     total,
-    items: rows.map((r) => ({ kind: r.kind, message: r.message, path: r.path, count: r.count, lastAt: new Date(r.lastAt).toISOString(), detail: r.detail?.split('\n').slice(0, 4).join('\n') ?? null })),
+    items: rows.map((r) => ({ kind: r.kind, message: r.message, path: r.path, count: Number(r.count), lastAt: new Date(Number(r.lastAt)).toISOString(), detail: r.detail?.split('\n').slice(0, 4).join('\n') ?? null })),
+  };
+}
+
+/** Пустой отчёт — только если таблицы журнала ещё нет (база до миграции 0015). Остальные сбои базы не прячем: админка покажет ошибку. */
+export function emptyIfNoTable(hours: number) {
+  return (e: unknown) => {
+    if (/no such table/i.test(String((e as Error)?.message ?? e))) return { hours, total: { server: 0, client: 0, csp: 0 } as Record<ErrorKind, number>, items: [] };
+    throw e;
   };
 }
 

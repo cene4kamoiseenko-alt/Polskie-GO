@@ -2,7 +2,8 @@
  * API адмін-панелі. Ролі: SUPERADMIN (усе), EDITOR (контент), SUPPORT (користувачі, платежі — перегляд).
  * Кожна зміна записується в admin_audit_logs.
  */
-import { recentErrors } from '../services/error-log';
+import { emptyIfNoTable, recentErrors } from '../services/error-log';
+import { INSIGHT_DAYS, adminInsights, sourceKey } from '../services/admin-insights';
 import { timingSafeEqual } from 'node:crypto';
 import { Hono, type Context } from 'hono';
 import { and, asc, count, desc, eq, getTableColumns, gt, gte, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
@@ -236,7 +237,8 @@ a.get('/dashboard', async (c) => {
           FILTER (WHERE u.created_at < ${now - 8 * 86_400_000}) AS d7
       FROM users u WHERE u.created_at >= ${now - 90 * 86_400_000}`),
     // Журнал ошибок за сутки (services/error-log.ts): сервер, Mini App, CSP. До миграции 0015 таблицы нет — пусто, а не 500.
-    recentErrors(new Date(now)).catch(() => ({ hours: 24, total: { server: 0, client: 0, csp: 0 }, items: [] })),
+    // Редактору контента журнал ошибок не показываем — как и /errors.
+    c.get('admin')!.role === 'EDITOR' ? Promise.resolve(null) : recentErrors(new Date(now)).catch(emptyIfNoTable(24)),
   ]);
   const n = (r: { n: number }[]) => r[0]?.n ?? 0;
   return c.json({
@@ -249,6 +251,23 @@ a.get('/dashboard', async (c) => {
     appErrors,
     retention: { d1: retention[0]?.d1 != null ? Math.round(Number(retention[0].d1) * 100) : null, d7: retention[0]?.d7 != null ? Math.round(Number(retention[0].d7) * 100) : null },
   });
+});
+
+// Аналитика «Обзора»: графики по дням, воронка новичков, источники, входной тест, напоминания (services/admin-insights.ts). Только агрегаты.
+// Только SUPERADMIN и SUPPORT: редактору контента хватает сводки /dashboard (популярные уроки, трудные упражнения).
+a.get('/insights', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const q = z.object({ days: z.coerce.number().int().refine((d) => (INSIGHT_DAYS as readonly number[]).includes(d)).default(30) }).parse(query(c));
+  return c.json(await adminInsights(new Date(), q.days));
+});
+
+// Журнал ошибок за период: сутки, неделя или месяц (хранится 30 дней), с отбором по виду. Отбор и итоги — в SQL (services/error-log.ts).
+a.get('/errors', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const q = z
+    .object({ hours: z.coerce.number().int().refine((h) => [24, 168, 720].includes(h)).default(24), kind: z.enum(['all', 'server', 'client', 'csp']).default('all') })
+    .parse(query(c));
+  return c.json(await recentErrors(new Date(), q.hours, { kind: q.kind, limit: 200 }).catch(emptyIfNoTable(q.hours)));
 });
 
 // ── Універсальний CRUD ──
@@ -339,11 +358,28 @@ a.put('/config/rewards', async (c) => {
 // ── Користувачі ──
 a.get('/users', async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');
-  const q = z.object({ search: z.string().optional(), skip: z.coerce.number().default(0) }).parse(query(c));
+  const q = z
+    .object({ search: z.string().optional(), skip: z.coerce.number().default(0), filter: z.enum(['all', 'new', 'active', 'premium', 'guests', 'banned']).default('all') })
+    .parse(query(c));
   const s = q.search ? `%${q.search.toLowerCase()}%` : null;
-  const where = s
+  const found = s
     ? or(sql`lower(${t.users.username}) LIKE ${s}`, sql`lower(${t.users.firstName}) LIKE ${s}`, /^\d+$/.test(q.search!) ? eq(t.users.telegramId, Number(q.search)) : undefined)
     : undefined;
+  // Отбор списка: новые и активные — за сутки; Premium — с действующей подпиской; гости — вход вне Telegram (telegram_id < 0).
+  const day = new Date(Date.now() - 86_400_000);
+  const filtered =
+    q.filter === 'new'
+      ? gte(t.users.createdAt, day)
+      : q.filter === 'active'
+        ? gte(t.users.lastSeenAt, day)
+        : q.filter === 'guests'
+          ? sql`${t.users.telegramId} < 0`
+          : q.filter === 'banned'
+            ? eq(t.users.isBanned, true)
+            : q.filter === 'premium'
+              ? sql`EXISTS (SELECT 1 FROM subscriptions x WHERE x.user_id = ${t.users.id} AND x.status IN ('ACTIVE', 'CANCELLED') AND x.expires_at > ${Date.now()})`
+              : undefined;
+  const where = and(found, filtered);
   const [rows, total] = await Promise.all([
     db.select({ u: t.users, progress: t.playerProgress }).from(t.users).leftJoin(t.playerProgress, eq(t.playerProgress.userId, t.users.id)).where(where).orderBy(desc(t.users.createdAt)).limit(50).offset(q.skip),
     db.select({ n: count() }).from(t.users).where(where),
@@ -393,8 +429,15 @@ a.get('/users/:id', async (c) => {
     db.select({ ua: t.userAchievements, slug: t.achievements.slug }).from(t.userAchievements).innerJoin(t.achievements, eq(t.achievements.id, t.userAchievements.achievementId)).where(eq(t.userAchievements.userId, id)),
   ]);
   if (!user[0]) throw notFound();
+  // Откуда пришёл: первая метка /start в боте (реклама, экран, викторина) и блокировка бота — для карточки игрока.
+  const bot = await db
+    .select({ startParam: t.botContacts.startParam, lastCommand: t.botContacts.lastCommand, firstSeenAt: t.botContacts.firstSeenAt, blockedAt: t.botContacts.blockedAt })
+    .from(t.botContacts)
+    .where(eq(t.botContacts.telegramId, user[0].telegramId));
   return c.json({
     ...user[0],
+    bot: bot[0] ?? null,
+    source: sourceKey(user[0], bot[0]?.startParam),
     settings: settings[0] ?? null,
     profile: profile[0] ?? null,
     progress: progress[0] ?? null,

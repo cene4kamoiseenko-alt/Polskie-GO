@@ -1,12 +1,56 @@
 @import 'tailwindcss';
-body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+
+/*
+ * Админка POLSKI GO (обновление 2026-11-12): цвета приложения — ночной синий, мятный, золото, коралл, небесный.
+ * Классы .inp / .btn-* / .panel / .th / .td прежние: их используют все экраны, новый вид получают и старые.
+ */
+@theme {
+  --color-night: #07182c;
+  --color-night-2: #0e2746;
+  --color-brand: #1fb57e;
+  --color-brand-soft: #e3f7ee;
+  --color-gold: #e39a14;
+  --color-gold-soft: #fff4dc;
+  --color-coral: #e5485b;
+  --color-coral-soft: #ffe8eb;
+  --color-sky: #1d8fd6;
+  --color-sky-soft: #e2f3ff;
+  --color-line: #e6eaf2;
+  --color-canvas: #f4f6fb;
+}
+
+/* В Tailwind 4 рамка по умолчанию цвета текста — в старых экранах это давало тёмные линии. Светлая линия для всех. */
+@layer base {
+  *, ::after, ::before, ::backdrop { border-color: var(--color-line); }
+  /* Видимый фокус для работы с клавиатуры (WCAG 2.4.7): кольцо только при навигации клавишами, не при щелчке мышью. */
+  :focus-visible { outline: 3px solid #1d8fd6; outline-offset: 2px; border-radius: 10px; }
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-canvas);
+  color: #1d2a3b;
+  -webkit-font-smoothing: antialiased;
+}
+
 @layer components {
-  .inp { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100; }
-  .btn-p, .btn-s, .btn-d { @apply inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-50; }
-  .btn-p { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
-  .btn-s { @apply border border-slate-300 bg-white hover:bg-slate-100; }
-  .btn-d { @apply bg-rose-600 text-white hover:bg-rose-700; }
-  .panel { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
-  .th { @apply px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
-  .td { @apply px-3 py-2 align-top text-sm; }
+  .inp { @apply w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/15; }
+  .btn-p, .btn-s, .btn-d { @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50; }
+  /* Заливки кнопок темнее фирменных: белый текст — не ниже 4.5:1 (проверка axe, 2026-11-12). */
+  .btn-p { @apply bg-[#127a53] text-white shadow-sm shadow-brand/30 hover:bg-[#0f6b48]; }
+  .btn-s { @apply border border-line bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50; }
+  .btn-d { @apply bg-[#c9334a] text-white shadow-sm shadow-coral/30 hover:bg-[#b8293f]; }
+  .panel { @apply rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgb(16_24_40/0.04),0_4px_16px_-8px_rgb(16_24_40/0.08)]; }
+  .th { @apply bg-slate-50/80 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500; }
+  .td { @apply px-3 py-2.5 align-top text-sm; }
+  tbody tr { @apply transition-colors hover:bg-slate-50/70; }
+  .chip { @apply inline-flex min-h-9 items-center gap-1 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 md:min-h-0; }
+  .chip-on { @apply border-night bg-night text-white hover:border-night; }
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold; }
+  .badge-green { @apply bg-brand-soft text-[#13784f]; }
+  .badge-gold { @apply bg-gold-soft text-[#9a6200]; }
+  .badge-red { @apply bg-coral-soft text-[#b42336]; }
+  .badge-sky { @apply bg-sky-soft text-[#0f6aa6]; }
+  .badge-gray { @apply bg-slate-100 text-slate-600; }
+  .link { @apply font-semibold text-[#0f6aa6] underline-offset-2 hover:underline; }
 }

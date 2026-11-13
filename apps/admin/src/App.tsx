@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Link, NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, apiBlob, hasToken, setToken, upload } from './api';
 import { EXERCISE_TEMPLATES, RESOURCES, type Field, type ResourceDef } from './resources';
+import { Card, PageHeader, cx, useLoad } from './ui';
+import Dashboard, { sourceLabel } from './Dashboard';
+import Errors from './Errors';
 
 type Admin = { id: string; email: string; name: string; role: 'SUPERADMIN' | 'EDITOR' | 'SUPPORT' };
 
@@ -15,32 +18,14 @@ const show = (v: unknown, i18n?: boolean): string => {
   return String(v);
 };
 
-function useLoad<T>(fn: () => Promise<T>, deps: unknown[]) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const reload = useCallback(() => {
-    setLoading(true);
-    fn()
-      .then((d) => {
-        setData(d);
-        setError(null);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(reload, [reload]);
-  return { data, error, loading, reload };
-}
-
 function Login({ onLogin }: { onLogin: (a: Admin) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-emerald-50 to-rose-50">
+    <div className="grid min-h-screen place-items-center bg-[radial-gradient(900px_500px_at_20%_-10%,#1d8fd6_0%,transparent_60%),radial-gradient(700px_500px_at_110%_110%,#1fb57e_0%,transparent_55%),#07182c] p-4">
       <form
-        className="panel w-full max-w-sm space-y-4 p-6"
+        className="panel w-full max-w-sm space-y-4 p-7 shadow-2xl"
         onSubmit={async (e) => {
           e.preventDefault();
           try {
@@ -52,9 +37,12 @@ function Login({ onLogin }: { onLogin: (a: Admin) => void }) {
           }
         }}
       >
-        <h1 className="text-2xl font-black">
-          <span className="text-rose-600">POLSKI</span> <span className="text-amber-500">GO</span> <span className="text-slate-400">· админка</span>
-        </h1>
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">
+            <span className="text-coral">POLSKI</span> <span className="text-gold">GO</span>
+          </h1>
+          <p className="text-sm text-slate-500">Вход в админку</p>
+        </div>
         <input className="inp" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
         <input className="inp" type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         {error && <p className="text-sm text-rose-600">{error}</p>}
@@ -67,9 +55,9 @@ function Login({ onLogin }: { onLogin: (a: Admin) => void }) {
 function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {
   return (
     <div className="panel p-4">
-      <div className="text-xs font-semibold uppercase text-slate-500">{label}</div>
-      <div className="mt-1 text-2xl font-black">{value}</div>
-      {sub && <div className="text-xs text-slate-500">{sub}</div>}
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-black tracking-tight text-night">{value}</div>
+      {sub && <div className="mt-0.5 text-xs text-slate-500">{sub}</div>}
     </div>
   );
 }
@@ -306,7 +294,9 @@ function AudioLibrary({ admin }: { admin: Admin }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-black">🎧 Аудиобиблиотека ElevenLabs</h1>
+      <PageHeader title="Аудиобиблиотека" subtitle="Озвучка ElevenLabs: готовые файлы, генерация недостающих, проверка голоса" />
+      <WarmAudio />
+      <CompareVoices />
       <div className="panel space-y-1 p-4 text-sm">
         {accError && <div className="text-rose-600">{accError}</div>}
         {acc && (
@@ -531,142 +521,6 @@ function CompareVoices() {
 }
 
 /** Короткая сводка аудитории бота на «Обзоре» (SUPERADMIN и SUPPORT; редактору раздел недоступен — карточки нет). */
-function AudienceCard() {
-  const { data } = useLoad<any>(() => api('/audience').catch(() => null), []);
-  const s = data?.summary;
-  if (!s) return null;
-  return (
-    <Link to="/audience" className="panel block p-4 hover:bg-slate-50" data-audience-card>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="font-bold">🤝 Аудитория бота</div>
-        <span className="text-sm text-sky-700 underline">открыть список →</span>
-      </div>
-      <div className="mt-1 text-sm">
-        Всего <b>{s.total}</b> · новые за сутки <b>{s.new1}</b>, за 7 дней <b>{s.new7}</b> · открыли приложение <b>{s.app}</b> · только бот <b>{s.botOnly}</b>
-        {s.blocked > 0 && <> · заблокировали бота <b>{s.blocked}</b></>}
-      </div>
-    </Link>
-  );
-}
-
-/** Журнал ошибок за сутки: падения сервера, ошибки Mini App у игроков, нарушения CSP (режим Report-Only). Подробности — Workers Logs в Cloudflare. */
-function AppErrors({ data }: { data?: { total: Record<string, number>; items: { kind: string; message: string; path: string | null; count: number; lastAt: string; detail: string | null }[] } }) {
-  if (!data) return null;
-  const KIND: Record<string, string> = { server: 'Сервер', client: 'Приложение', csp: 'CSP' };
-  const sum = data.total.server + data.total.client + data.total.csp;
-  return (
-    <div className="panel" data-app-errors>
-      <h2 className="flex items-center justify-between border-b p-3 font-bold">
-        <span>Ошибки за 24 часа</span>
-        <span className={sum ? 'text-rose-600' : 'text-emerald-700'}>
-          {sum ? `сервер ${data.total.server} · приложение ${data.total.client} · CSP ${data.total.csp}` : 'нет'}
-        </span>
-      </h2>
-      {data.items.length > 0 && (
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="th">Где</th>
-              <th className="th">Сообщение</th>
-              <th className="th text-right">Раз</th>
-              <th className="th">Последняя</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.items.map((e, i) => (
-              <tr key={i} className="border-t align-top">
-                <td className="td whitespace-nowrap">{KIND[e.kind] ?? e.kind}</td>
-                <td className="td">
-                  <div className="font-mono text-xs">{e.message}</div>
-                  {e.path && <div className="text-xs text-slate-500">{e.path}</div>}
-                  {e.detail && <pre className="mt-1 max-w-xl overflow-x-auto whitespace-pre-wrap text-[11px] text-slate-500">{e.detail}</pre>}
-                </td>
-                <td className="td text-right font-bold">{e.count}</td>
-                <td className="td whitespace-nowrap text-xs">{new Date(e.lastAt).toLocaleString('ru-RU')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-function Dashboard() {
-  const { data, error } = useLoad(() => api('/dashboard'), []);
-  if (error) return <p className="text-rose-600">{error}</p>;
-  if (!data) return <p>Загрузка…</p>;
-  const maxS = Math.max(1, ...data.signups.map((s: any) => s.count));
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-black">Обзор</h1>
-      <AudienceCard />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Аккаунтов в приложении" value={data.users} sub={`+${data.new7} за 7 дней`} />
-        <Stat label="Активные (24 ч / 7 дн.)" value={`${data.active1} / ${data.active7}`} />
-        <Stat label="Пройдено уроков" value={data.lessonsTotal} sub={`${data.lessons7} за 7 дней`} />
-        <Stat label="Retention D1 / D7" value={`${data.retention.d1 ?? '—'}% / ${data.retention.d7 ?? '—'}%`} />
-        <Stat label="Premium-подписчиков" value={data.premium} />
-        <Stat label="Доход за 30 дней" value={`⭐ ${data.revenue30Stars}`} sub={`${data.payments30} платежей · всего ⭐ ${data.revenueAllStars}`} />
-        <Stat label="Средний прогресс" value={`${data.avgXp} XP`} sub={`${data.avgLessons} уроков · ${data.avgWords} слов`} />
-      </div>
-      <AppErrors data={data.appErrors} />
-      <div className="panel p-4">
-        <h2 className="mb-3 font-bold">Регистрации в приложении за 30 дней</h2>
-        <div className="flex h-32 items-end gap-1" role="img" aria-label="Регистрации по дням">
-          {data.signups.map((s: any) => (
-            <div key={s.day} title={`${s.day}: ${s.count}`} className="flex-1 rounded-t bg-emerald-500" style={{ height: `${(s.count / maxS) * 100}%`, minHeight: 2 }} />
-          ))}
-        </div>
-      </div>
-      <WarmAudio />
-      <CompareVoices />
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="panel">
-          <h2 className="border-b p-3 font-bold">Популярные уроки</h2>
-          <table className="w-full">
-            <tbody>
-              {data.topLessons.map((l: any) => (
-                <tr key={l.slug} className="border-b last:border-0">
-                  <td className="td">{l.title?.ru || l.title?.uk}</td>
-                  <td className="td text-right font-bold">{l.count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="panel">
-          <h2 className="border-b p-3 font-bold">Частые ошибки</h2>
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="th">Урок</th>
-                <th className="th">Тип</th>
-                <th className="th text-right">Ошибок</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.errors.map((e: any) => (
-                <tr key={e.exerciseId} className="border-t">
-                  <td className="td">
-                    <Link className="text-emerald-700 underline" to={`/r/exercises/${e.exerciseId}`}>
-                      {e.lesson}
-                    </Link>
-                  </td>
-                  <td className="td">{e.type}</td>
-                  <td className="td text-right font-bold">
-                    {e.rate}% ({e.wrong}/{e.total})
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function I18nInput({ value, onChange, multiline }: { value: any; onChange: (v: any) => void; multiline?: boolean }) {
   const v = value ?? {};
   return (
@@ -1114,7 +968,7 @@ function Audience() {
               </div>
             </div>
           ))}
-          {data && !data.items.length && <p className="text-slate-400">Никого не нашлось</p>}
+          {data && !data.items.length && <p className="text-slate-500">Никого не нашлось</p>}
         </div>
       ) : (
         <div className="panel overflow-x-auto">
@@ -1146,7 +1000,7 @@ function Audience() {
               ))}
               {data && !data.items.length && (
                 <tr>
-                  <td className="td text-slate-400" colSpan={7}>Никого не нашлось</td>
+                  <td className="td text-slate-500" colSpan={7}>Никого не нашлось</td>
                 </tr>
               )}
             </tbody>
@@ -1166,53 +1020,116 @@ function Audience() {
   );
 }
 
+const USER_FILTERS: [string, string][] = [
+  ['all', 'Все'],
+  ['new', 'Новые за сутки'],
+  ['active', 'Заходили за сутки'],
+  ['premium', 'Premium'],
+  ['guests', 'Вне Telegram'],
+  ['banned', 'Заблокированные'],
+];
+
 function Users() {
-  const [search, setSearch] = useState('');
-  const [q, setQ] = useState('');
-  const { data, error } = useLoad(() => api(`/users?search=${encodeURIComponent(q)}`), [q]);
+  const [params, setParams] = useSearchParams();
+  const filter = params.get('filter') ?? 'all';
+  const q = params.get('q') ?? '';
+  const [search, setSearch] = useState(q);
+  const [items, setItems] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(
+    async (skip: number) => {
+      setBusy(true);
+      try {
+        const r = await api(`/users?filter=${filter}&search=${encodeURIComponent(q)}&skip=${skip}`);
+        setItems((prev) => (skip ? [...prev, ...r.items] : r.items));
+        setTotal(r.total);
+        setError(null);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [filter, q],
+  );
+  useEffect(() => void load(0), [load]);
+  const set = (patch: Record<string, string>) => setParams({ filter, q, ...patch }, { replace: true });
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-black">Пользователи приложения</h1>
-      <p className="text-sm text-slate-500">Те, у кого есть аккаунт в Mini App. Всех, кто писал боту, — в разделе <Link className="text-sky-700 underline" to="/audience">«Аудитория бота»</Link>.</p>
-      <form onSubmit={(e) => { e.preventDefault(); setQ(search); }} className="flex max-w-md gap-2">
+      <PageHeader
+        title="Пользователи приложения"
+        subtitle={<>Те, у кого есть аккаунт в Mini App или в приложении вне Telegram. Всех, кто писал боту, — в разделе <Link className="link" to="/audience">«Аудитория бота»</Link>.</>}
+      />
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Отбор">
+        {USER_FILTERS.map(([k, label]) => (
+          <button key={k} type="button" aria-pressed={filter === k} className={cx('chip', filter === k && 'chip-on')} onClick={() => set({ filter: k })}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <form onSubmit={(e) => { e.preventDefault(); set({ q: search.trim() }); }} className="flex max-w-xl gap-2">
         <input className="inp" placeholder="Имя, @username или Telegram ID" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button className="btn-p">Найти</button>
       </form>
-      {error && <p className="text-rose-600">{error}</p>}
-      <div className="panel overflow-x-auto">
+      {error && <p className="text-coral">{error}</p>}
+      <Card bodyClass="overflow-x-auto p-0" title={`Найдено: ${total}`} subtitle={items.length < total ? `показано ${items.length}` : undefined}>
         <table className="w-full">
-          <thead className="border-b bg-slate-50">
+          <thead className="border-b border-line">
             <tr>
-              {['Пользователь', 'Telegram ID', 'Уровень', 'XP', 'Польский', 'Premium', 'Создан', ''].map((h) => (
+              {['Пользователь', 'Telegram ID', 'Уровень', 'XP', 'Польский', 'Premium', 'Создан', 'Был', ''].map((h) => (
                 <th key={h} className="th">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {data?.items.map((u: any) => (
-              <tr key={u.id} className="border-b">
-                <td className="td">{u.firstName} {u.username && <span className="text-slate-400">@{u.username}</span>} {u.isBanned && <span className="rounded bg-rose-100 px-1 text-rose-700">заблокирован</span>}</td>
-                <td className="td font-mono">{u.telegramId}</td>
+            {items.map((u: any) => (
+              <tr key={u.id} className="border-b border-line last:border-0">
+                <td className="td">
+                  <span className="font-semibold text-night">{u.firstName || '—'}</span> {u.username && <span className="text-slate-500">@{u.username}</span>}{' '}
+                  {u.isBanned && <span className="badge badge-red">заблокирован</span>} {u.telegramId < 0 && <span className="badge badge-sky">вне Telegram</span>}
+                </td>
+                <td className="td font-mono text-xs">{u.telegramId}</td>
                 <td className="td">{u.progress?.playerLevel}</td>
                 <td className="td">{u.progress?.xpTotal}</td>
                 <td className="td">{u.progress?.languageLevel}</td>
-                <td className="td">{u.subscriptions.length ? '👑' : '—'}</td>
-                <td className="td">{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td className="td"><Link className="text-sky-700 underline" to={`/users/${u.id}`}>подробнее</Link></td>
+                <td className="td">{u.subscriptions.length ? <span className="badge badge-gold">👑 Premium</span> : '—'}</td>
+                <td className="td whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString('ru')}</td>
+                <td className="td whitespace-nowrap text-slate-500">{ago(new Date(u.lastSeenAt).getTime())}</td>
+                <td className="td"><Link className="link" to={`/users/${u.id}`}>подробнее</Link></td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+        {!items.length && !busy && <p className="p-4 text-sm text-slate-500">Никого не нашлось</p>}
+      </Card>
+      {items.length < total && (
+        <button className="btn-s" disabled={busy} onClick={() => load(items.length)}>
+          {busy ? 'Загрузка…' : `Показать ещё (${total - items.length})`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const LANG_RU: Record<string, string> = { uk: 'украинский', ru: 'русский', en: 'английский' };
+const CITY_SOURCE: Record<string, string> = { journey: 'по пути', placement: 'входной тест' };
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</dt>
+      <dd className="mt-0.5 break-words text-sm font-semibold text-night">{children}</dd>
     </div>
   );
 }
 
 function UserDetail({ admin }: { admin: Admin }) {
   const { id } = useParams();
-  const { data: u, error, reload } = useLoad(() => api(`/users/${id}`), [id]);
+  const { data: u, error, reload } = useLoad<any>(() => api(`/users/${id}`), [id]);
   const [days, setDays] = useState(30);
-  if (error) return <p className="text-rose-600">{error}</p>;
+  if (error) return <p className="text-coral">{error}</p>;
   if (!u) return <p>Загрузка…</p>;
   const act = async (path: string, body: any) => {
     try {
@@ -1222,11 +1139,34 @@ function UserDetail({ admin }: { admin: Admin }) {
       alert((e as Error).message);
     }
   };
+  const live = (u.subscriptions as any[]).find((s) => ['ACTIVE', 'CANCELLED'].includes(s.status) && new Date(s.expiresAt).getTime() > Date.now());
+  const current = (u.cities as any[]).find((c) => c.cityId === u.progress?.currentCityId);
+  const placedCities = (u.cities as any[]).filter((c) => c.source === 'placement').length;
+  const placementResult = u.profile?.placementLevel ? (placedCities >= 2 ? 'Краков (80 % и выше)' : placedCities === 1 ? 'Лодзь (50–79 %)' : 'Варшава (ниже 50 %)') : null;
+  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Без имени';
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-black">
-        {u.firstName} {u.username && <span className="text-slate-400">@{u.username}</span>}
-      </h1>
+      <div className="panel flex flex-wrap items-center gap-4 p-5" data-user-head>
+        {u.photoUrl ? (
+          <img src={u.photoUrl} alt="" className="h-16 w-16 rounded-2xl object-cover" />
+        ) : (
+          <span className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-sky to-brand text-2xl font-black text-white">{name[0]?.toUpperCase()}</span>
+        )}
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-black tracking-tight text-night">
+            {name} {u.username && <span className="text-lg font-semibold text-slate-500">@{u.username}</span>}
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="badge badge-gray font-mono">ID {u.telegramId}</span>
+            {live && <span className="badge badge-gold">👑 Premium до {new Date(live.expiresAt).toLocaleDateString('ru')}</span>}
+            {u.isBanned && <span className="badge badge-red">заблокирован{u.banReason ? `: ${u.banReason}` : ''}</span>}
+            {u.telegramId < 0 && <span className="badge badge-sky">вне Telegram</span>}
+            {u.bot?.blockedAt && <span className="badge badge-red">заблокировал бота</span>}
+            {u.settings && <span className={cx('badge', u.settings.notificationsEnabled ? 'badge-green' : 'badge-gray')}>{u.settings.notificationsEnabled ? `напоминания в ${u.settings.reminderHour}:00` : 'напоминания выключены'}</span>}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <Stat label="Уровень" value={u.progress?.playerLevel} />
         <Stat label="XP" value={u.progress?.xpTotal} />
@@ -1234,20 +1174,60 @@ function UserDetail({ admin }: { admin: Admin }) {
         <Stat label="Серия" value={`${u.progress?.streakCurrent} (рекорд ${u.progress?.streakBest})`} />
         <Stat label="Złotki" value={u.wallet?.balance} />
       </div>
-      <div className="panel flex flex-wrap items-center gap-3 p-4">
-        <button className="btn-d" onClick={() => { const reason = u.isBanned ? undefined : prompt('Причина блокировки') ?? undefined; void act(`/users/${id}/ban`, { banned: !u.isBanned, reason }); }}>
-          {u.isBanned ? 'Разблокировать' : 'Заблокировать'}
-        </button>
-        {admin.role === 'SUPERADMIN' && (
-          <>
-            <input className="inp w-24" type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} />
-            <button className="btn-p" onClick={() => act(`/users/${id}/premium`, { days })}>Выдать Premium (дней)</button>
-            <button className="btn-s" onClick={() => act(`/users/${id}/premium`, { revoke: true })}>Отменить Premium</button>
-          </>
-        )}
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Table title="Города" rows={u.cities} cols={[['city.namePl', 'Город'], ['unlockedAt', 'Открыт'], ['bossPassedAt', 'Экзамен']]} />
+
+      <Card title="Профиль" data-user-facts>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
+          <Fact label="Зарегистрирован">{new Date(u.createdAt).toLocaleString('ru')}</Fact>
+          <Fact label="Последний вход">{ago(new Date(u.lastSeenAt).getTime())}</Fact>
+          <Fact label="Знакомство">{u.onboardedAt ? `пройдено ${new Date(u.onboardedAt).toLocaleDateString('ru')}` : 'не пройдено'}</Fact>
+          <Fact label="Откуда пришёл">{sourceLabel(u.source ?? 'none')}</Fact>
+          <Fact label="Заявленный уровень">{u.profile?.selfLevel ?? '—'}</Fact>
+          <Fact label="Входной тест">{placementResult ? `${placementResult} · ${u.profile.placementLevel}` : 'не проходил'}</Fact>
+          <Fact label="Текущий город">{current?.city?.namePl ?? '—'}</Fact>
+          <Fact label="Пройдено уроков">{u.progress?.lessonsCompleted ?? 0} · слов {u.progress?.wordsLearned ?? 0}</Fact>
+          <Fact label="Язык интерфейса">{LANG_RU[u.settings?.uiLanguage] ?? u.settings?.uiLanguage ?? '—'}</Fact>
+          <Fact label="Часовой пояс">{u.settings?.timezone ?? '—'}</Fact>
+          <Fact label="Цель в день">{u.settings?.dailyGoalMinutes ? `${u.settings.dailyGoalMinutes} мин` : '—'}</Fact>
+          <Fact label="Последний день занятий">{u.progress?.lastActiveDay ?? '—'}</Fact>
+        </dl>
+      </Card>
+
+      <Card title="Действия">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            className={u.isBanned ? 'btn-s' : 'btn-d'}
+            onClick={() => {
+              if (u.isBanned) return void act(`/users/${id}/ban`, { banned: false });
+              // «Отмена» в окне — блокировки нет (раньше пустая причина всё равно блокировала).
+              const reason = prompt(`Заблокировать «${name}»? Игрок не сможет пользоваться приложением, пока его не разблокируют.\n\nПричина:`);
+              if (reason === null) return;
+              void act(`/users/${id}/ban`, { banned: true, reason: reason.trim() || undefined });
+            }}
+          >
+            {u.isBanned ? 'Разблокировать' : 'Заблокировать'}
+          </button>
+          {admin.role === 'SUPERADMIN' && (
+            <>
+              <span className="mx-1 hidden h-6 w-px bg-line sm:block" />
+              <input className="inp w-24" type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Дней Premium" />
+              <button className="btn-p" disabled={!(days >= 1)} onClick={() => act(`/users/${id}/premium`, { days })}>Выдать Premium на {days || 0} дн.</button>
+              <button
+                className="btn-s"
+                disabled={!live}
+                onClick={() => {
+                  const ok = confirm(`Отменить Premium у «${name}»? Доступ пропадёт сразу.\n\nПодписка Stars в самом Telegram этим не отменяется — если она была, списания продолжатся. Вернуть звёзды за платёж можно в разделе «Платежи».`);
+                  if (ok) void act(`/users/${id}/premium`, { revoke: true });
+                }}
+              >
+                Отменить Premium
+              </button>
+            </>
+          )}
+        </div>
+      </Card>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Table title="Города" rows={(u.cities as any[]).map((c) => ({ ...c, sourceRu: CITY_SOURCE[c.source] ?? c.source }))} cols={[['city.namePl', 'Город'], ['sourceRu', 'Как открыт'], ['unlockedAt', 'Открыт'], ['bossPassedAt', 'Экзамен']]} />
         <Table title="Подписки" rows={u.subscriptions} cols={[['planCode', 'План'], ['status', 'Статус'], ['expiresAt', 'До']]} />
         <Table title="Сессии обучения" rows={u.sessions} cols={[['mode', 'Режим'], ['lesson.slug', 'Урок'], ['correct', '✓'], ['total', 'Σ'], ['xpAwarded', 'XP'], ['startedAt', 'Начало']]} />
         <Table title="Начисления XP" rows={u.xpEvents} cols={[['reason', 'Причина'], ['amount', 'XP'], ['createdAt', 'Когда']]} />
@@ -1262,7 +1242,9 @@ function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [strin
   const fmt = (v: any) => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT/.test(v) ? new Date(v).toLocaleString('ru') : show(v));
   return (
     <div className="panel overflow-x-auto">
-      <h2 className="border-b p-3 font-bold">{title}</h2>
+      <h2 className="flex items-center justify-between border-b px-4 py-3 text-[15px] font-bold text-night">
+        {title} <span className="text-xs font-semibold text-slate-500">{rows?.length ?? 0}</span>
+      </h2>
       <table className="w-full">
         <thead>
           <tr>{cols.map(([, l]) => <th key={l} className="th">{l}</th>)}</tr>
@@ -1270,7 +1252,7 @@ function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [strin
         <tbody>
           {rows?.length ? rows.map((r, i) => (
             <tr key={i} className="border-t">{cols.map(([k]) => <td key={k} className="td">{fmt(get(r, k))}</td>)}</tr>
-          )) : <tr><td className="td text-slate-400">—</td></tr>}
+          )) : <tr><td className="td text-slate-500" colSpan={cols.length}>пусто</td></tr>}
         </tbody>
       </table>
     </div>
@@ -1373,7 +1355,7 @@ function Support({ admin }: { admin: Admin }) {
         ))}
       </div>
       {error && <p className="text-rose-600">{error}</p>}
-      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-400">Обращений нет.</p> : null}
+      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-500">Обращений нет.</p> : null}
       {data?.items.map((r: any) => (
         <div key={r.id} className="panel space-y-3 p-4">
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -1450,7 +1432,7 @@ function Reports() {
         ))}
       </div>
       {error && <p className="text-rose-600">{error}</p>}
-      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-400">Жалоб нет.</p> : null}
+      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-500">Жалоб нет.</p> : null}
       {data?.items.map((r: any) => (
         <div key={r.userId} className="panel flex flex-wrap items-center gap-3 p-4">
           <div className="min-w-0 flex-1">
@@ -1603,6 +1585,40 @@ function Admins() {
   );
 }
 
+type NavItem = [to: string, label: string, icon: string];
+
+const ROLE_RU: Record<Admin['role'], string> = { SUPERADMIN: 'главный администратор', EDITOR: 'редактор контента', SUPPORT: 'поддержка' };
+
+/** Меню по разделам; что видно — зависит от роли (как и раньше: сервер всё равно проверяет права сам). */
+function navGroups(role: Admin['role']): [string, NavItem[]][] {
+  const content = RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns').map((d): NavItem => [`/r/${d.name}`, d.title, '•']);
+  const groups: [string, NavItem[]][] = [['Главное', [['/', 'Обзор', '📊'], ...(role !== 'EDITOR' ? ([['/errors', 'Ошибки', '⚠️']] as NavItem[]) : [])]]];
+  if (role !== 'EDITOR') {
+    groups.push(['Игроки', [['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
+    groups.push(['Деньги', [['/payments', 'Платежи', '⭐'], ...(role === 'SUPERADMIN' ? ([['/r/plans', 'Тарифы', '👑']] as NavItem[]) : [])]]);
+  }
+  if (role !== 'SUPPORT') groups.push(['Контент', [...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
+  if (role === 'SUPERADMIN') {
+    groups.push(['Бот', [['/r/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
+    groups.push(['Система', [['/audit', 'Журнал действий', '📜'], ['/admins', 'Администраторы', '🔐']]]);
+  }
+  return groups;
+}
+
+function Brand() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-coral to-gold text-sm font-black text-white shadow-lg shadow-coral/30">PG</span>
+      <span className="leading-tight">
+        <span className="block text-[15px] font-black tracking-tight">
+          <span className="text-[#ff7a88]">POLSKI</span> <span className="text-[#ffc857]">GO</span>
+        </span>
+        <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/60">админка</span>
+      </span>
+    </div>
+  );
+}
+
 export function App() {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [checked, setChecked] = useState(!hasToken());
@@ -1610,71 +1626,106 @@ export function App() {
   useEffect(() => {
     if (hasToken()) api<Admin>('/me').then(setAdmin).catch(() => setToken(null)).finally(() => setChecked(true));
   }, []);
-  const nav = useMemo(() => {
-    if (!admin) return [];
-    const r = admin.role;
-    const items: [string, string][] = [['/', '📊 Обзор']];
-    if (r !== 'SUPPORT') for (const d of RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns')) items.push([`/r/${d.name}`, d.title]);
-    if (r !== 'EDITOR') items.push(['/audience', '🤝 Аудитория бота'], ['/users', '👥 Пользователи'], ['/payments', '⭐ Платежи'], ['/support', '💬 Поддержка'], ['/reports', '🚩 Жалобы']);
-    if (r !== 'SUPPORT') items.push(['/audio', '🎧 Аудиобиблиотека']);
-    if (r === 'SUPERADMIN') items.push(['/r/plans', '👑 Тарифы'], ['/r/campaigns', '📣 Рассылки'], ['/rewards', '🎁 Награды'], ['/bot', '🤖 Бот'], ['/audit', '📜 Журнал действий'], ['/admins', '🔐 Администраторы']);
-    return items;
+  const groups = useMemo(() => (admin ? navGroups(admin.role) : []), [admin]);
+  // Сколько ошибок за сутки — прямо на пункте меню «Ошибки», чтобы проблему было видно с любой страницы.
+  // Обновляется раз в 5 минут, пока вкладка открыта (админка может весь день висеть открытой). Редактору журнал не нужен.
+  const [errors24, setErrors24] = useState(0);
+  useEffect(() => {
+    if (!admin || admin.role === 'EDITOR') return;
+    const load = () => {
+      if (document.visibilityState === 'hidden') return;
+      api<{ total: Record<string, number> }>('/errors?hours=24')
+        .then((r) => setErrors24((r.total.server ?? 0) + (r.total.client ?? 0) + (r.total.csp ?? 0)))
+        .catch(() => {});
+    };
+    load();
+    const t = setInterval(load, 5 * 60_000);
+    document.addEventListener('visibilitychange', load);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', load);
+    };
   }, [admin]);
 
   if (!checked) return null;
   if (!admin) return <Login onLogin={setAdmin} />;
   return (
     <div className="min-h-screen md:flex">
-      {/* На телефоне меню прячется за кнопкой, на широком экране — колонка слева. */}
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-4 py-2 md:hidden">
-        <span className="text-lg font-black">
-          <span className="text-rose-600">POLSKI</span> <span className="text-amber-500">GO</span>
-        </span>
-        <button className="btn-s" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
+      <a href="#main" className="sr-only z-50 rounded-xl bg-white px-4 py-2 font-semibold text-night shadow focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
+        Перейти к содержимому
+      </a>
+      {/* На телефоне меню прячется за кнопкой, на широком экране — тёмная колонка слева. */}
+      <header className="sticky top-0 z-20 flex items-center justify-between bg-night px-4 py-2.5 text-white shadow-md md:hidden">
+        <Brand />
+        <button className="rounded-xl border border-white/20 px-3 py-1.5 text-sm font-semibold text-white" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
           {menu ? '✕ Закрыть' : '☰ Меню'}
         </button>
       </header>
-      <aside className={`${menu ? 'block' : 'hidden'} shrink-0 border-b bg-white p-3 md:block md:w-56 md:border-b-0 md:border-r`}>
-        <div className="mb-4 hidden px-2 text-lg font-black md:block">
-          <span className="text-rose-600">POLSKI</span> <span className="text-amber-500">GO</span>
+      <aside className={cx(menu ? 'block' : 'hidden', 'shrink-0 bg-night text-white md:sticky md:top-0 md:block md:h-screen md:w-60 md:overflow-y-auto')}>
+        <div className="hidden px-5 pb-4 pt-5 md:block">
+          <Brand />
         </div>
-        <nav className="space-y-0.5">
-          {nav.map(([to, label]) => (
-            <NavLink key={to} to={to} end={to === '/'} onClick={() => setMenu(false)} className={({ isActive }) => `block rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-emerald-50 font-bold text-emerald-700' : 'hover:bg-slate-100'}`}>
-              {label}
-            </NavLink>
+        <nav className="space-y-3 px-3 py-3 md:py-0">
+          {groups.map(([title, items]) => (
+            <div key={title}>
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-white/60">{title}</div>
+              <div className="space-y-0.5">
+                {items.map(([to, label, icon]) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === '/'}
+                    onClick={() => setMenu(false)}
+                    className={({ isActive }) =>
+                      cx('flex items-center gap-2.5 rounded-xl px-3 py-[5px] text-[13.5px] transition', isActive ? 'bg-white/12 font-semibold text-white shadow-inner' : 'text-white/70 hover:bg-white/6 hover:text-white')
+                    }
+                  >
+                    <span className="w-5 text-center text-[13px] opacity-80" aria-hidden>{icon}</span>
+                    {label}
+                    {to === '/errors' && errors24 > 0 && (
+                      <span className="ml-auto rounded-full bg-coral px-1.5 py-px text-[11px] font-bold text-white" data-nav-errors>
+                        {errors24}
+                        <span className="sr-only"> за сутки</span>
+                      </span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
-        <div className="mt-6 border-t px-2 pt-3 text-xs text-slate-500">
-          {admin.email}
-          <br />
-          {admin.role}
-          <button className="mt-2 block text-rose-600 underline" onClick={() => { setToken(null); location.reload(); }}>
+        <div className="m-3 rounded-xl bg-white/6 p-3 text-xs text-white/70">
+          <div className="truncate font-semibold text-white">{admin.email}</div>
+          <div>{ROLE_RU[admin.role] ?? admin.role}</div>
+          <button className="mt-2 font-semibold text-[#ff7a88] hover:underline" onClick={() => { setToken(null); location.reload(); }}>
             Выйти
           </button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 p-4 md:p-6">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          {RESOURCES.map((d) => (
-            <Route key={d.name} path={`/r/${d.name}`} element={<ResourceList def={d} />} />
-          ))}
-          {RESOURCES.map((d) => (
-            <Route key={`${d.name}-e`} path={`/r/${d.name}/:id`} element={<ResourceEdit def={d} />} />
-          ))}
-          <Route path="/audience" element={<Audience />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/users/:id" element={<UserDetail admin={admin} />} />
-          <Route path="/payments" element={<Payments admin={admin} />} />
-          <Route path="/support" element={<Support admin={admin} />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/rewards" element={<Rewards />} />
-          <Route path="/bot" element={<Bot />} />
-          <Route path="/audio" element={<AudioLibrary admin={admin} />} />
-          <Route path="/audit" element={<Audit />} />
-          <Route path="/admins" element={<Admins />} />
-        </Routes>
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-5 outline-none md:px-8 md:py-7">
+        <div className="mx-auto max-w-[1280px]">
+          <Routes>
+            <Route path="/" element={<Dashboard analytics={admin.role !== 'EDITOR'} />} />
+            <Route path="/errors" element={<Errors />} />
+            {RESOURCES.map((d) => (
+              <Route key={d.name} path={`/r/${d.name}`} element={<ResourceList def={d} />} />
+            ))}
+            {RESOURCES.map((d) => (
+              <Route key={`${d.name}-e`} path={`/r/${d.name}/:id`} element={<ResourceEdit def={d} />} />
+            ))}
+            <Route path="/audience" element={<Audience />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/users/:id" element={<UserDetail admin={admin} />} />
+            <Route path="/payments" element={<Payments admin={admin} />} />
+            <Route path="/support" element={<Support admin={admin} />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/bot" element={<Bot />} />
+            <Route path="/audio" element={<AudioLibrary admin={admin} />} />
+            <Route path="/audit" element={<Audit />} />
+            <Route path="/admins" element={<Admins />} />
+          </Routes>
+        </div>
       </main>
     </div>
   );
