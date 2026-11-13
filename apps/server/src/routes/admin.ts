@@ -6,6 +6,11 @@ import { emptyIfNoTable, recentErrors } from '../services/error-log';
 import { INSIGHT_DAYS, adminInsights, sourceKey } from '../services/admin-insights';
 import { attention, auditLog, paymentsSummary } from '../services/admin-ops';
 import { campaignAudience, campaignText, findTelegramPlayer, sendBotText } from '../services/campaigns';
+import { DAY_FILTERS, dailyOverview, dailyQuestions, dayReport, userDailyQuiz } from '../services/daily-quiz-admin';
+import { replacePlanItem, setDaySkipped, setQuestionDisabled } from '../bot/daily/plan';
+import { sendDailyTest } from '../bot/daily/send';
+import { addDays, DAILY_LEVELS, isDayEditable, readDailyRun, readDailyState, SEND_AT_RE, warsawDay, writeDailyState } from '../bot/daily/state';
+import type { QuizScene } from '../bot/quiz/scenes';
 import { timingSafeEqual } from 'node:crypto';
 import { Hono, type Context } from 'hono';
 import { and, asc, count, desc, eq, getTableColumns, gt, gte, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
@@ -454,9 +459,12 @@ a.get('/users/:id', async (c) => {
     .select({ startParam: t.botContacts.startParam, lastCommand: t.botContacts.lastCommand, firstSeenAt: t.botContacts.firstSeenAt, blockedAt: t.botContacts.blockedAt })
     .from(t.botContacts)
     .where(eq(t.botContacts.telegramId, user[0].telegramId));
+  // Вопросы дня за 14 дней (таблицы из миграции 0018: до неё — пусто).
+  const dailyQuiz = await userDailyQuiz(user[0].telegramId, 'ru').catch(() => []);
   return c.json({
     ...user[0],
     bot: bot[0] ?? null,
+    dailyQuiz,
     source: sourceKey(user[0], bot[0]?.startParam),
     settings: settings[0] ?? null,
     profile: profile[0] ?? null,
@@ -919,6 +927,79 @@ a.post('/campaigns/:id/cancel', async (c) => {
   if (!rows.length) throw badRequest('not_sending');
   await audit(c, 'cancel', 'campaign', id, { sentCount: rows[0].sentCount });
   return c.json({ ok: true });
+});
+
+// ── Вопрос дня: план публикаций до запуска, запуск и остановка, отчёт по дню, банк вопросов с выключателем ──
+const dqLang = (c: Context<AppEnv>) => z.enum(['ru', 'uk', 'en']).catch('ru').parse(query(c).lang);
+const dqDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+/** Менять можно будущие дни и сегодняшний, пока отправка не началась. */
+async function assertDayEditable(day: string) {
+  if (!isDayEditable(day, warsawDay(new Date()), await readDailyRun())) throw badRequest('day_locked');
+}
+a.get('/daily-quiz', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  return c.json(await dailyOverview(dqLang(c)));
+});
+a.get('/daily-quiz/questions', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  return c.json(await dailyQuestions(dqLang(c)));
+});
+a.get('/daily-quiz/day/:day', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const day = dqDay.parse(c.req.param('day'));
+  const q = z.object({ filter: z.enum(DAY_FILTERS).catch('all'), after: z.coerce.number().int().positive().optional() }).parse(query(c));
+  return c.json(await dayReport(day, dqLang(c), q.filter, q.after ?? null));
+});
+a.patch('/daily-quiz/state', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const b = z.object({ enabled: z.boolean().optional(), sendAt: z.string().regex(SEND_AT_RE).optional(), startDay: dqDay.nullable().optional() }).parse(await body(c));
+  const before = await readDailyState();
+  const today = warsawDay(new Date());
+  // Запуск без даты — с сегодняшнего дня; дата в прошлом не принимается.
+  if (b.enabled && !b.startDay && !before.startDay) b.startDay = today;
+  if (b.startDay && b.startDay < today) throw badRequest('day_locked');
+  const state = await writeDailyState(b);
+  const action = b.enabled === true && !before.enabled ? 'daily_quiz_start' : b.enabled === false && before.enabled ? 'daily_quiz_stop' : 'daily_quiz_settings';
+  await audit(c, action, 'daily_quiz', state.startDay, { before, after: state });
+  return c.json({ state });
+});
+a.patch('/daily-quiz/plan/:day/:level', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const day = dqDay.parse(c.req.param('day'));
+  const level = z.enum(DAILY_LEVELS).parse(c.req.param('level'));
+  const b = z.object({ questionId: z.string().max(64).optional(), image: z.string().max(40).optional() }).parse(await body(c));
+  await assertDayEditable(day);
+  await replacePlanItem(day, level, b as { questionId?: string; image?: QuizScene }, c.get('admin')!.id);
+  await audit(c, 'daily_quiz_plan', 'daily_quiz', day, { day, level, ...b });
+  return c.json({ ok: true });
+});
+a.patch('/daily-quiz/plan/:day', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const day = dqDay.parse(c.req.param('day'));
+  const { skipped } = z.object({ skipped: z.boolean() }).parse(await body(c));
+  await assertDayEditable(day);
+  await setDaySkipped(day, skipped, c.get('admin')!.id);
+  await audit(c, 'daily_quiz_skip', 'daily_quiz', day, { day, skipped });
+  return c.json({ ok: true });
+});
+a.patch('/daily-quiz/questions/:id', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const id = c.req.param('id');
+  const { disabled } = z.object({ disabled: z.boolean() }).parse(await body(c));
+  const today = warsawDay(new Date());
+  // Выключенный вопрос уходит из плана с первого дня, который ещё можно менять.
+  const from = isDayEditable(today, today, await readDailyRun()) ? today : addDays(today, 1);
+  await setQuestionDisabled(id, disabled, c.get('admin')!.id, from);
+  await audit(c, 'daily_quiz_question', 'daily_quiz_question', id, { disabled });
+  return c.json({ ok: true });
+});
+a.post('/daily-quiz/test', rateLimit(20, 10 * 60_000, 'admin-daily-test'), async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const b = z.object({ who: z.string().min(1).max(64), day: dqDay, level: z.enum(DAILY_LEVELS), lang: z.enum(['uk', 'ru', 'en']).optional() }).parse(await body(c));
+  if (!getBindings().TELEGRAM_BOT_TOKEN) throw badRequest('bot_not_configured');
+  const player = await findTelegramPlayer(b.who);
+  await sendDailyTest(player.telegramId, (b.lang ?? player.lang ?? 'ru') as 'uk' | 'ru' | 'en', b.day, b.level);
+  return c.json({ ok: true, sentTo: player.telegramId, to: { id: player.id, firstName: player.firstName, username: player.username } });
 });
 
 adminRoutes.route('/', a);
