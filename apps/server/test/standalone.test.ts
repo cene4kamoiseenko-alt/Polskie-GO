@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { deviceCredentials, linkCodes, userInventory, users } from '../src/db/schema';
+import { deviceCredentials, linkCodes, userInventory, userSettings, users } from '../src/db/schema';
 import { setEnv } from '../src/env';
 import { createLinkCode, LINK_CODE_TTL_MS, MAX_ACTIVE_CODES, normalizeCode, redeemLinkCode } from '../src/services/standalone-auth';
 import { disposeEnv, getEnv, login, request } from './helpers';
@@ -206,8 +206,17 @@ describe('код переноса: войти на новом устройств
     const row = (await db.select().from(users).where(and(eq(users.id, id))))[0];
     expect(row.telegramId).toBeLessThan(0);
     const { readFileSync } = await import('node:fs');
+    // Напоминания — условие в самом запросе jobs.ts; рассылки — общее правило campaignRecipients (services/campaigns.ts, обновление админки 2026-11-13).
     const jobs = readFileSync(new URL('../src/jobs.ts', import.meta.url), 'utf8');
-    expect(jobs.match(/gt\(users\.telegramId, 0\)/g)).toHaveLength(2);
+    const campaigns = readFileSync(new URL('../src/services/campaigns.ts', import.meta.url), 'utf8');
+    expect(jobs.match(/gt\(users\.telegramId, 0\)/g)).toHaveLength(1);
+    expect(jobs).toContain('campaignRecipients(c.cursor)');
+    expect(campaigns).toMatch(/export function campaignRecipients[\s\S]*?gt\(users\.telegramId, 0\)/);
+    // И на деле: гость с включёнными уведомлениями в охват рассылки не попадает.
+    const { campaignAudience } = await import('../src/services/campaigns');
+    const before = (await campaignAudience()).total;
+    await db.update(userSettings).set({ notificationsEnabled: true }).where(eq(userSettings.userId, id));
+    expect((await campaignAudience()).total).toBe(before);
   });
 });
 

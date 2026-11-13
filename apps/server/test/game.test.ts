@@ -344,7 +344,7 @@ describe('Адмін-панель', () => {
     const all = j.body.cities[0].routes.flatMap((r: { lessons: { slug: string }[] }) => r.lessons.map((l) => l.slug));
     expect(all).toContain('waw-7-test');
     const log = await admin('GET', '/audit');
-    expect(log.body.some((l: { entity: string; action: string }) => l.entity === 'lessons' && l.action === 'create')).toBe(true);
+    expect(log.body.items.some((l: { entity: string; action: string }) => l.entity === 'lessons' && l.action === 'create')).toBe(true);
 
     await admin('DELETE', `/resources/lessons/${lesson.body.id}`);
   });

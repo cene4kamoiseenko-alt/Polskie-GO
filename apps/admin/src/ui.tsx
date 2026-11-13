@@ -123,7 +123,7 @@ export function Segmented<T extends string | number>({ value, options, onChange,
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl border border-dashed border-line bg-slate-50/60 px-4 py-6 text-center text-sm text-slate-500">{children}</div>;
+  return <div className="rounded-xl border border-dashed border-line bg-slate-50/60 px-4 py-6 text-center text-sm text-slate-600">{children}</div>;
 }
 
 export function Skeleton({ className }: { className?: string }) {
@@ -133,3 +133,133 @@ export function Skeleton({ className }: { className?: string }) {
 /** «12.11» из «2026-11-12». */
 export const shortDay = (d: string) => `${d.slice(8, 10)}.${d.slice(5, 7)}`;
 export const fmt = (n: number) => n.toLocaleString('ru-RU');
+
+/** «5 мин назад», «вчера», дата — для последней активности. */
+export function ago(ms: number) {
+  const min = Math.round((Date.now() - ms) / 60_000);
+  if (min < 1) return 'только что';
+  if (min < 60) return `${min} мин назад`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h} ч назад`;
+  const d = Math.round(h / 24);
+  if (d === 1) return 'вчера';
+  if (d < 7) return `${d} дн. назад`;
+  return new Date(ms).toLocaleDateString('ru');
+}
+
+/** Дата и время коротко: «13.11.2026, 14:05». Пусто — «—». */
+export const when = (v: string | number | Date | null | undefined) => (v == null || v === '' ? '—' : new Date(v).toLocaleString('ru', { dateStyle: 'short', timeStyle: 'short' }));
+const asMs = (v: string | number | Date) => new Date(v).getTime();
+
+/** Время: «5 мин назад» на экране, точная дата — во всплывающей подсказке и для экранного диктора. */
+export function Time({ v }: { v: string | number | Date | null | undefined }) {
+  if (v == null || v === '') return <span className="text-slate-500">—</span>;
+  const ms = asMs(v);
+  return (
+    <time dateTime={new Date(ms).toISOString()} title={when(ms)} className="whitespace-nowrap">
+      {Date.now() - ms < 7 * 86_400_000 ? ago(ms) : when(ms)}
+    </time>
+  );
+}
+
+export type Tone = 'green' | 'gold' | 'red' | 'sky' | 'gray';
+export function Badge({ tone = 'gray', children, ...rest }: { tone?: Tone; children: ReactNode; [k: `data-${string}`]: string | undefined }) {
+  return (
+    <span className={cx('badge', `badge-${tone}`)} {...rest}>
+      {children}
+    </span>
+  );
+}
+
+/** Подпись поля над полем ввода (или слева на широком экране) и подсказка под ним. */
+export function Field({ label, hint, children, wide }: { label: ReactNode; hint?: ReactNode; children: ReactNode; wide?: boolean }) {
+  return (
+    <label className={cx('block text-sm', wide && 'md:grid md:grid-cols-[200px_1fr] md:items-start md:gap-4')}>
+      <span className={cx('mb-1 block font-semibold text-slate-700', wide && 'md:pt-2')}>{label}</span>
+      <span className="block">
+        {children}
+        {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
+export type Col<T> = { key: string; label: ReactNode; render: (row: T) => ReactNode; className?: string; align?: 'right' };
+
+/** Широкая таблица прокручивается вбок внутри карточки; тогда до неё можно дойти клавишей Tab и листать стрелками (WCAG 2.1.1). */
+function useScrollable<E extends HTMLElement>() {
+  const ref = useRef<E>(null);
+  const [scrollable, setScrollable] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setScrollable(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => ro.disconnect();
+  }, []);
+  return { ref, scrollable };
+}
+
+/** Таблица в карточке: заголовок колонок, «пусто», загрузка. На телефоне прокручивается по горизонтали внутри карточки. */
+export function DataTable<T>({ cols, rows, rowKey, empty = 'Пусто', loading, caption }: { cols: Col<T>[]; rows: T[] | null | undefined; rowKey: (r: T, i: number) => string; empty?: ReactNode; loading?: boolean; caption?: string }) {
+  const { ref, scrollable } = useScrollable<HTMLDivElement>();
+  return (
+    // relative: скрытые подписи колонок (sr-only, position: absolute) остаются внутри прокрутки, а не выталкивают страницу вбок.
+    <div ref={ref} className="relative overflow-x-auto" {...(scrollable ? { tabIndex: 0, role: 'region', 'aria-label': `${caption ?? 'Таблица'} — листается вбок` } : {})}>
+      <table className="w-full">
+        {caption && <caption className="sr-only">{caption}</caption>}
+        <thead>
+          <tr>
+            {cols.map((c) => (
+              <th key={c.key} scope="col" className={cx('th', c.align === 'right' && 'text-right')}>
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {loading && !rows?.length ? (
+            <tr data-loading="">
+              <td className="td text-slate-500" colSpan={cols.length}>
+                Загрузка…
+              </td>
+            </tr>
+          ) : rows?.length ? (
+            rows.map((r, i) => (
+              <tr key={rowKey(r, i)} className="border-t border-line">
+                {cols.map((c) => (
+                  <td key={c.key} className={cx('td', c.align === 'right' && 'text-right tabular-nums', c.className)}>
+                    {c.render(r)}
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : (
+            <tr data-empty="">
+              <td className="td py-6 text-center text-slate-500" colSpan={cols.length}>
+                {empty}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Ошибка загрузки страницы с кнопкой «Повторить». */
+export function LoadError({ error, retry }: { error: string; retry?: () => void }) {
+  return (
+    <div role="alert" className="panel flex flex-wrap items-center justify-between gap-3 border-coral/30 bg-coral-soft/50 p-4 text-sm text-[#8f1d2f]">
+      <span>Не удалось загрузить: {error}</span>
+      {retry && (
+        <button className="btn-s" onClick={retry}>
+          Повторить
+        </button>
+      )}
+    </div>
+  );
+}

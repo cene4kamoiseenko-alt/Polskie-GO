@@ -1,5 +1,7 @@
 /**
  * Админка в браузере: вход, «Аудитория бота» (счётчики, фильтры, поиск, «показать ещё»), обзор и пользователи — на русском,
+ * платежи с возвратом, поддержка с ответом, рассылка (черновик → пробное себе → отправка → остановка), журнал, администраторы,
+ * награды, бот, списки и редактор контента (обновление 2026-11-13) —
  * на телефоне (390×844, меню за кнопкой, без горизонтальной прокрутки) и на компьютере (1280×800).
  * Данные — настоящий webhook бота (Bot API подменён) и настоящий вход в Mini App.
  * Запуск: node --import tsx scripts/admin-screens.ts   → test-results/admin-screens/<экран>-<ширина>.png
@@ -51,6 +53,17 @@ async function main() {
   await request('POST', '/api/client-errors', { message: 'wrong_step', path: '/lesson/l_krk-2-mam', detail: 'Ae@index.js:10:141047' });
   await request('POST', '/api/csp-report', { 'csp-report': { 'effective-directive': 'img-src', 'blocked-uri': 'https://t.me/i/userpic/320/x.jpg', 'document-uri': 'https://app.example/profile' } });
   await say({ id: app2.telegramId, first_name: `User${app2.telegramId}`, language_code: 'uk' }, '/lesson');
+  // Обновление админки 2026-11-13: оплата (для «Платежей» и возврата), обращение в поддержку, получатель рассылки, второй администратор.
+  const { db } = await import(root + '/apps/server/src/db/index.ts');
+  const schema = await import(root + '/apps/server/src/db/schema.ts');
+  const { eq } = await import('drizzle-orm');
+  await db.insert(schema.paymentEvents).values({ userId: app1.user.id, type: 'SUCCESSFUL_PAYMENT', planCode: 'MONTH_1', amount: 250, currency: 'XTR', chargeId: 'screens_charge_1', payload: 'inv_screens_1' });
+  await say({ id: app2.telegramId, first_name: `User${app2.telegramId}`, language_code: 'uk' }, '/paysupport');
+  await say({ id: app2.telegramId, first_name: `User${app2.telegramId}`, language_code: 'uk' }, 'Не пришёл Premium после оплаты');
+  await db.update(schema.userSettings).set({ notificationsEnabled: true, uiLanguage: 'ru' }).where(eq(schema.userSettings.userId, app1.user.id));
+  const rootLogin = await request('POST', '/api/admin/login', { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD });
+  const asRoot = { authorization: `Bearer ${rootLogin.body.token}` };
+  await request('POST', '/api/admin/admins', { email: 'support-screens@test.dev', name: 'Оксана', role: 'SUPPORT', password: 'support-password-123' }, asRoot);
 
   const browser = await chromium.launch({ executablePath: chromiumPath(chromium) });
   try {
@@ -68,7 +81,26 @@ async function main() {
       };
       const noHScroll = async (what: string) => {
         const over = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-        check(over <= 1, `${width}px ${what}: нет горизонтальной прокрутки страницы (${over}px)`);
+        // Что вылезает за край: самые глубокие элементы правее окна (подсказка для исправления).
+        const culprits = over > 1
+          ? await p.evaluate(() => {
+              const w = document.documentElement.clientWidth;
+              return [...document.querySelectorAll('body *')]
+                .filter((e) => e.getBoundingClientRect().right > w + 1 && ![...e.children].some((c) => c.getBoundingClientRect().right > w + 1))
+                .slice(0, 3)
+                .map((e) => `${e.tagName.toLowerCase()}.${String((e as HTMLElement).className).split(' ').slice(0, 3).join('.')}`);
+            })
+          : [];
+        check(over <= 1, `${width}px ${what}: нет горизонтальной прокрутки страницы (${over}px)${culprits.length ? ` — ${culprits.join(', ')}` : ''}`);
+      };
+
+      const toast = (text: string) => p.locator('[data-toast]', { hasText: text }).first().waitFor({ timeout: 10_000 });
+      const wide = width >= 600;
+      /** Перейти в раздел из меню (на телефоне — через «☰ Меню»). Название пункта — начало его текста (за ним может стоять счётчик). */
+      const go = async (label: string, h1: string) => {
+        if (!wide) await p.click('button:has-text("Меню")');
+        await p.locator('nav').getByRole('link', { name: new RegExp(`^${label}`) }).click();
+        await p.locator('h1', { hasText: h1 }).waitFor({ timeout: 10_000 });
       };
 
       await p.goto(`${base}/admin/`);
@@ -158,6 +190,13 @@ async function main() {
       await p.locator('[data-user-facts]').waitFor({ timeout: 10_000 });
       const facts = await p.locator('[data-user-facts]').innerText();
       check(/Откуда пришёл/i.test(facts) && /Входной тест/i.test(facts) && /Текущий город/i.test(facts) && /Warszawa/.test(facts), `${width}px карточка игрока: откуда пришёл, входной тест, текущий город (Warszawa)`);
+      check((await p.locator('[data-message-player]').count()) === 1, `${width}px карточка игрока: «Написать игроку»`);
+      if (width >= 600) {
+        await p.fill('#msg-player', 'Premium уже включён, перезапустите приложение');
+        await p.click('[data-message-player] button:has-text("Отправить")');
+        await toast('Сообщение отправлено');
+        check(true, `${width}px карточка игрока: сообщение от бота отправлено`);
+      }
       await noHScroll('карточка игрока');
       await axe('карточка игрока');
       await p.screenshot({ path: `${OUT}/user-${width}.png`, fullPage: true });
@@ -178,13 +217,169 @@ async function main() {
       await noHScroll('ошибки');
       await axe('«Ошибки»');
       await p.screenshot({ path: `${OUT}/errors-${width}.png`, fullPage: true });
+
+      // ── Обновление админки 2026-11-13 ──
+      // «Платежи»: выручка, журнал понятными словами, возврат звёзд через окно подтверждения.
+      await go('Платежи', 'Платежи');
+      await p.locator('[data-money-kpis]').waitFor({ timeout: 10_000 });
+      check((await p.locator('[data-money-kpis]').innerText()).includes('250 ⭐'), `${width}px «Платежи»: выручка 250 ⭐`);
+      await p.locator('[data-payment-log] tbody tr:not([data-loading]):not([data-empty])').first().waitFor({ timeout: 10_000 });
+      const log = await p.locator('[data-payment-log]').innerText();
+      check(/оплата/.test(log) && log.includes('1 месяц'), `${width}px «Платежи»: журнал — «оплата», тариф словами («1 месяц»)`);
+      await noHScroll('платежи');
+      await axe('«Платежи»');
+      await p.screenshot({ path: `${OUT}/payments-${width}.png`, fullPage: true });
+      await p.click('[data-payment-log] button:has-text("Вернуть звёзды")');
+      await p.locator('[data-dialog]').waitFor({ timeout: 5_000 });
+      check((await p.locator('[data-dialog]').innerText()).includes('Отменить возврат нельзя'), `${width}px «Платежи»: возврат — окно подтверждения с предупреждением`);
+      await axe('окно подтверждения');
+      if (!wide) {
+        await p.click('[data-dialog] button:has-text("Отмена")');
+        await p.locator('[data-dialog]').waitFor({ state: 'detached', timeout: 5_000 });
+        check(true, `${width}px «Платежи»: «Отмена» закрывает окно, звёзды не возвращаются`);
+      } else {
+        await p.click('[data-dialog-confirm]');
+        await toast('Звёзды возвращены');
+        await p.locator('[data-payment-log]', { hasText: 'возвращено' }).waitFor({ timeout: 10_000 });
+        check((await p.locator('[data-payment-log] button:has-text("Вернуть звёзды")').count()) === 0, `${width}px «Платежи»: после возврата — «возвращено», кнопки возврата больше нет`);
+      }
+
+      // «Поддержка»: число на меню, обращение как чат, ответ в бот.
+      check(((await p.locator('[data-nav-count="support"]').textContent().catch(() => '')) ?? '').startsWith('1'), `${width}px меню: у «Поддержки» число открытых обращений (1)`);
+      await go('Поддержка', 'Поддержка по оплате');
+      await p.locator('[data-support="OPEN"]').waitFor({ timeout: 10_000 });
+      check((await p.locator('[data-support="OPEN"]').innerText()).includes('Не пришёл Premium'), `${width}px «Поддержка»: текст обращения`);
+      await noHScroll('поддержка');
+      await axe('«Поддержка»');
+      await p.screenshot({ path: `${OUT}/support-${width}.png`, fullPage: true });
+      if (wide) {
+        await p.fill('[data-support="OPEN"] textarea', 'Premium включён, перезапустите приложение.');
+        await p.click('[data-support="OPEN"] button:has-text("Ответить в бот")');
+        await toast('Ответ отправлен в бот');
+        await p.locator('text=Открытых обращений нет').waitFor({ timeout: 10_000 });
+        await p.waitForFunction(() => !document.querySelector('[data-nav-count="support"]'), null, { timeout: 10_000 });
+        check(true, `${width}px «Поддержка»: ответ ушёл, обращение закрыто, число на меню исчезло`);
+      }
+
+      await go('Жалобы', 'Жалобы на игроков');
+      await noHScroll('жалобы');
+      await axe('«Жалобы»');
+
+      // «Рассылки»: охват, черновик с предпросмотром, пробное сообщение себе, отправка и остановка.
+      await go('Рассылки', 'Рассылки');
+      await p.locator('[data-campaign-audience]').waitFor({ timeout: 10_000 });
+      check(/получат:\s*1 чел/.test(await p.locator('[data-campaign-audience]').innerText()), `${width}px «Рассылки»: охват — 1 человек с уведомлениями`);
+      await p.click('button:has-text("Новая рассылка")');
+      await p.getByLabel('Название').fill('Новые уроки в Кракове');
+      await p.fill('#camp-text', 'Нові уроки в Кракові вже чекають!');
+      check((await p.locator('[data-campaign-preview]').innerText()).includes('Нові уроки в Кракові'), `${width}px «Рассылки»: предпросмотр как в Telegram`);
+      await noHScroll('рассылки');
+      await axe('«Рассылки» (новая)');
+      await p.screenshot({ path: `${OUT}/campaign-editor-${width}.png`, fullPage: true });
+      if (!wide) await p.click('[data-campaign-editor] button:has-text("Отмена")');
+      else {
+        await p.click('button:has-text("Сохранить черновик")');
+        await toast('Черновик сохранён');
+        await p.locator('[data-campaign="DRAFT"]').waitFor({ timeout: 10_000 });
+        await p.getByLabel('Проверить на себе').fill(String(app1.telegramId));
+        await p.click('button:has-text("Отправить пробное")');
+        await toast('Пробное сообщение отправлено');
+        check(true, `${width}px «Рассылки»: пробное сообщение себе`);
+        await p.click('button:has-text("Отправить всем")');
+        await p.locator('[data-dialog]').waitFor({ timeout: 5_000 });
+        check((await p.locator('[data-dialog]').innerText()).includes('1 чел.'), `${width}px «Рассылки»: перед отправкой — сколько человек получат`);
+        await p.click('[data-dialog-confirm]');
+        await toast('Рассылка запущена');
+        await p.locator('[data-campaign="SENDING"]').waitFor({ timeout: 10_000 });
+        await p.click('[data-campaign="SENDING"] button:has-text("Остановить")');
+        await p.click('[data-dialog-confirm]');
+        await p.locator('[data-campaign="CANCELLED"]').waitFor({ timeout: 10_000 });
+        check(true, `${width}px «Рассылки»: запуск и остановка`);
+        await axe('«Рассылки» (список)');
+        await p.screenshot({ path: `${OUT}/campaigns-${width}.png`, fullPage: true });
+      }
+
+      // «Журнал действий»: обычными словами, отбор по действию.
+      await go('Журнал действий', 'Журнал действий');
+      await p.locator('[data-audit] tbody tr:not([data-loading]):not([data-empty])').first().waitFor({ timeout: 10_000 });
+      if (wide) {
+        const audit = await p.locator('[data-audit]').innerText();
+        check(/вернул звёзды за\s+платёж/.test(audit) && /запустил\s+рассылку/.test(audit) && /написал\s+игроку/.test(audit), `${width}px «Журнал»: «вернул звёзды за платёж», «запустил рассылку», «написал игроку»`);
+        await p.getByLabel('Действие').selectOption('payment_refund');
+        await p.waitForFunction(() => document.querySelectorAll('[data-audit] tbody tr:not([data-loading])').length === 1, null, { timeout: 10_000 });
+        check(true, `${width}px «Журнал»: отбор по действию`);
+      }
+      await noHScroll('журнал');
+      await axe('«Журнал действий»');
+      await p.screenshot({ path: `${OUT}/audit-${width}.png`, fullPage: true });
+
+      // «Администраторы»: «это вы», роль меняется прямо в списке.
+      await go('Администраторы', 'Администраторы');
+      await p.locator('[data-admins]', { hasText: 'support-screens@test.dev' }).waitFor({ timeout: 10_000 });
+      check((await p.locator('[data-admins]').innerText()).includes('это вы'), `${width}px «Администраторы»: отмечено «это вы»`);
+      if (wide) {
+        await p.getByLabel('Роль: Оксана').selectOption('EDITOR');
+        await toast('Роль изменена');
+        check(true, `${width}px «Администраторы»: роль изменена из списка`);
+      }
+      await noHScroll('администраторы');
+      await axe('«Администраторы»');
+      await p.screenshot({ path: `${OUT}/admins-${width}.png`, fullPage: true });
+
+      // «Награды»: по группам, изменённое отмечено, «Сохранить (1)».
+      await go('Награды', 'Награды и лимиты');
+      await p.locator('#rw-lessonXp').waitFor({ timeout: 10_000 });
+      if (wide) {
+        await p.fill('#rw-lessonXp', '25');
+        check((await p.locator('button:has-text("Сохранить (1)")').count()) === 1, `${width}px «Награды»: «Сохранить (1)» после изменения`);
+        await p.click('button:has-text("Сохранить (1)")');
+        await toast('Награды сохранены');
+        await p.locator('[data-reward="lessonXp"] button:has-text("вернуть")').click();
+        await p.click('button:has-text("Сохранить (1)")');
+        await p.locator('text=Все изменения сохранены').waitFor({ timeout: 10_000 });
+        check(true, `${width}px «Награды»: сохранить и вернуть значение по умолчанию`);
+      }
+      await noHScroll('награды');
+      await axe('«Награды»');
+      await p.screenshot({ path: `${OUT}/rewards-${width}.png`, fullPage: true });
+
+      await go('Бот', 'Telegram-бот');
+      await p.locator('[data-bot-status]').waitFor({ timeout: 15_000 });
+      await noHScroll('бот');
+      await axe('«Бот»');
+      await p.screenshot({ path: `${OUT}/bot-${width}.png`, fullPage: true });
+
+      // Контент: статусы словами, редактор с «Сохранить» внизу и вопросом при уходе без сохранения.
+      await go('Уроки', 'Уроки');
+      await p.locator('[data-resource-list="lessons"] tbody tr:not([data-loading]):not([data-empty])').first().waitFor({ timeout: 10_000 });
+      check((await p.locator('[data-resource-list="lessons"]').innerText()).includes('опубликовано'), `${width}px «Уроки»: статус словами`);
+      await noHScroll('уроки');
+      await axe('«Уроки»');
+      await p.screenshot({ path: `${OUT}/lessons-${width}.png` });
+      await p.locator('[data-resource-list="lessons"] tbody a.link').first().click();
+      await p.locator('[data-resource-edit="lessons"]').waitFor({ timeout: 10_000 });
+      check(await p.locator('[data-save]').isDisabled(), `${width}px редактор урока: «Сохранить» неактивна без изменений`);
+      await p.locator('[data-resource-edit] input[type=number]').first().fill('99');
+      // Правка сделана сразу после открытия: поздний ответ сервера не должен её затереть (раньше затирал — 2026-11-13).
+      await p.waitForTimeout(800);
+      check((await p.locator('[data-resource-edit] input[type=number]').first().inputValue()) === '99', `${width}px редактор урока: правка не пропадает, когда приходит ответ сервера`);
+      await p.locator('text=Есть несохранённые изменения').waitFor({ timeout: 5_000 });
+      check(!(await p.locator('[data-save]').isDisabled()), `${width}px редактор урока: после правки — «Сохранить» активна`);
+      await noHScroll('редактор урока');
+      await axe('редактор урока');
+      await p.screenshot({ path: `${OUT}/lesson-edit-${width}.png`, fullPage: true });
+      await p.click('button:has-text("← Уроки")');
+      await p.locator('[data-dialog]', { hasText: 'Уйти без сохранения?' }).waitFor({ timeout: 5_000 });
+      await p.click('[data-dialog-confirm]');
+      await p.locator('[data-resource-list="lessons"]').waitFor({ timeout: 10_000 });
+      check(true, `${width}px редактор урока: уход без сохранения — с вопросом`);
+
       check(errors.length === 0, `${width}px без ошибок JavaScript ${errors.join('; ')}`);
       await context.close();
     }
 
     // Редактор контента: на «Обзоре» сводка по урокам и пояснение вместо аналитики, в меню нет «Ошибок», запросов с отказом 403 — нет.
-    const root = await request('POST', '/api/admin/login', { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD });
-    await request('POST', '/api/admin/admins', { email: 'editor-screens@test.dev', name: 'Редактор', role: 'EDITOR', password: 'editor-password-123' }, { authorization: `Bearer ${root.body.token}` });
+    await request('POST', '/api/admin/admins', { email: 'editor-screens@test.dev', name: 'Редактор', role: 'EDITOR', password: 'editor-password-123' }, asRoot);
     {
       const width = 1280;
       const context = await browser.newContext({ viewport: { width, height: 800 }, locale: 'ru-RU' });

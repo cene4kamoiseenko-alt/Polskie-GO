@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { api, apiBlob, hasToken, setToken, upload } from './api';
-import { EXERCISE_TEMPLATES, RESOURCES, type Field, type ResourceDef } from './resources';
-import { Card, PageHeader, cx, useLoad } from './ui';
+import { Link, NavLink, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
+import { api, apiBlob, hasToken, setToken } from './api';
+import { RESOURCES } from './resources';
+import { Card, PageHeader, ago, cx, useLoad } from './ui';
 import Dashboard, { sourceLabel } from './Dashboard';
 import Errors from './Errors';
+import Money, { PaymentLog } from './Money';
+import Campaigns from './Campaigns';
+import { ResourceEdit, ResourceList } from './Content';
+import { Reports, Support } from './Inbox';
+import { Admins, Audit, Bot, ROLE_RU, Rewards } from './System';
+import { useFeedback } from './feedback';
 
 type Admin = { id: string; email: string; name: string; role: 'SUPERADMIN' | 'EDITOR' | 'SUPPORT' };
 
@@ -520,300 +526,6 @@ function CompareVoices() {
   );
 }
 
-/** Короткая сводка аудитории бота на «Обзоре» (SUPERADMIN и SUPPORT; редактору раздел недоступен — карточки нет). */
-function I18nInput({ value, onChange, multiline }: { value: any; onChange: (v: any) => void; multiline?: boolean }) {
-  const v = value ?? {};
-  return (
-    <div className="grid gap-2 md:grid-cols-3">
-      {(['uk', 'ru', 'en'] as const).map((l) => (
-        <label key={l} className="text-xs font-semibold text-slate-500">
-          {l.toUpperCase()}
-          {multiline ? (
-            <textarea className="inp mt-1 min-h-24" value={v[l] ?? ''} onChange={(e) => onChange({ ...v, [l]: e.target.value })} />
-          ) : (
-            <input className="inp mt-1" value={v[l] ?? ''} onChange={(e) => onChange({ ...v, [l]: e.target.value })} />
-          )}
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function RefSelect({ field, value, onChange }: { field: Extract<Field, { type: 'ref' }>; value: any; onChange: (v: any) => void }) {
-  const { data } = useLoad(() => api(`/resources/${field.resource}?take=500`), [field.resource]);
-  return (
-    <select className="inp" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
-      {field.nullable !== false && <option value="">—</option>}
-      {data?.items.map((r: any) => (
-        <option key={r.id} value={r.id}>
-          {get(r, field.display)}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function FieldInput({ field, value, onChange }: { field: Field; value: any; onChange: (v: any) => void }) {
-  const [jsonText, setJsonText] = useState(() => JSON.stringify(value ?? null, null, 2));
-  const [jsonErr, setJsonErr] = useState('');
-  switch (field.type) {
-    case 'text':
-      return <input className="inp" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />;
-    case 'textarea':
-      return <textarea className="inp min-h-24" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />;
-    case 'number':
-      return <input className="inp" type="number" value={value ?? 0} onChange={(e) => onChange(Number(e.target.value))} />;
-    case 'bool':
-      return <input type="checkbox" className="h-5 w-5" checked={!!value} onChange={(e) => onChange(e.target.checked)} />;
-    case 'select':
-      return (
-        <select className="inp" value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
-          {field.options.map((o) => (
-            <option key={o}>{o}</option>
-          ))}
-        </select>
-      );
-    case 'i18n':
-      return <I18nInput value={value} onChange={onChange} multiline={field.name === 'explanation' || field.name === 'description'} />;
-    case 'tags':
-      return <input className="inp" value={(value ?? []).join(', ')} onChange={(e) => onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} />;
-    case 'ref':
-      return <RefSelect field={field} value={value} onChange={onChange} />;
-    case 'asset':
-      return (
-        <div className="flex items-center gap-2">
-          <input className="inp" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)} placeholder="/uploads/…" />
-          <label className="btn-s cursor-pointer whitespace-nowrap">
-            ⬆ Файл
-            <input type="file" accept="image/*,audio/*,application/json" className="hidden" onChange={async (e) => e.target.files?.[0] && onChange(await upload(e.target.files[0]))} />
-          </label>
-          {value && String(value).match(/\.(png|jpe?g|webp|gif)$/) && <img src={value} className="h-10 w-10 rounded object-cover" alt="" />}
-          {value && String(value).match(/\.(mp3|ogg|wav|webm)$/) && <audio src={value} controls className="h-8" />}
-        </div>
-      );
-    case 'json':
-      return (
-        <div>
-          <textarea
-            className={`inp min-h-40 font-mono text-xs ${jsonErr ? 'border-rose-500' : ''}`}
-            value={jsonText}
-            onChange={(e) => {
-              setJsonText(e.target.value);
-              try {
-                onChange(JSON.parse(e.target.value));
-                setJsonErr('');
-              } catch (err) {
-                setJsonErr((err as Error).message);
-              }
-            }}
-          />
-          {jsonErr && <p className="text-xs text-rose-600">{jsonErr}</p>}
-        </div>
-      );
-  }
-}
-
-function ResourceList({ def }: { def: ResourceDef }) {
-  const [params, setParams] = useSearchParams();
-  const qs = params.toString();
-  const { data, error, loading } = useLoad(() => api(`/resources/${def.name}?${qs}`), [def.name, qs]);
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black">{def.title}</h1>
-        <Link className="btn-p" to={`/r/${def.name}/new${qs ? `?${qs}` : ''}`}>
-          + Добавить
-        </Link>
-      </div>
-      <input className="inp max-w-sm" placeholder="Поиск…" defaultValue={params.get('search') ?? ''} onKeyDown={(e) => e.key === 'Enter' && setParams({ ...Object.fromEntries(params), search: (e.target as HTMLInputElement).value })} />
-      {[...params.entries()].filter(([k]) => k !== 'search').length > 0 && (
-        <button className="btn-s" onClick={() => setParams({})}>
-          ✕ Сбросить фильтры
-        </button>
-      )}
-      {error && <p className="text-rose-600">{error}</p>}
-      <div className="panel overflow-x-auto">
-        <table className="w-full">
-          <thead className="border-b bg-slate-50">
-            <tr>
-              {def.columns.map((c) => (
-                <th key={c.key} className="th">
-                  {c.label}
-                </th>
-              ))}
-              <th className="th" />
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td className="td">Загрузка…</td>
-              </tr>
-            )}
-            {data?.items.map((r: any) => (
-              <tr key={r[def.idField ?? 'id']} className="border-b hover:bg-slate-50">
-                {def.columns.map((c) => (
-                  <td key={c.key} className="td max-w-xs truncate">
-                    {show(get(r, c.key), c.i18n)}
-                  </td>
-                ))}
-                <td className="td whitespace-nowrap text-right">
-                  {def.name === 'lessons' && (
-                    <Link className="mr-3 text-emerald-700 underline" to={`/r/exercises?lessonId=${r.id}`}>
-                      упражнения
-                    </Link>
-                  )}
-                  {def.name === 'routes' && (
-                    <Link className="mr-3 text-emerald-700 underline" to={`/r/lessons?routeId=${r.id}`}>
-                      уроки
-                    </Link>
-                  )}
-                  {def.name === 'cities' && (
-                    <Link className="mr-3 text-emerald-700 underline" to={`/r/routes?cityId=${r.id}`}>
-                      маршруты
-                    </Link>
-                  )}
-                  {def.name === 'quests' && r.kind === 'STORY' && (
-                    <Link className="mr-3 text-emerald-700 underline" to={`/r/questSteps?questId=${r.id}`}>
-                      этапы
-                    </Link>
-                  )}
-                  {def.name === 'campaigns' && r.status === 'DRAFT' && <SendCampaign id={r.id} />}
-                  <Link className="text-sky-700 underline" to={`/r/${def.name}/${r[def.idField ?? 'id']}`}>
-                    изменить
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-sm text-slate-500">Всего: {data?.total ?? 0}</p>
-    </div>
-  );
-}
-
-function SendCampaign({ id }: { id: string }) {
-  const [sent, setSent] = useState(false);
-  return (
-    <button
-      className="mr-3 text-rose-700 underline"
-      disabled={sent}
-      onClick={async () => {
-        if (!confirm('Отправить рассылку всем пользователям, которые согласились на уведомления?')) return;
-        try {
-          await api(`/campaigns/${id}/send`, { body: {} });
-          setSent(true);
-        } catch (e) {
-          alert((e as Error).message);
-        }
-      }}
-    >
-      {sent ? 'отправляется…' : 'отправить'}
-    </button>
-  );
-}
-
-function ResourceEdit({ def }: { def: ResourceDef }) {
-  const { id } = useParams();
-  const [params] = useSearchParams();
-  const nav = useNavigate();
-  const isNew = id === 'new';
-  const [form, setForm] = useState<Record<string, any> | null>(null);
-  const [msg, setMsg] = useState('');
-  const [key, setKey] = useState(0);
-
-  useEffect(() => {
-    if (isNew) {
-      const pre = Object.fromEntries([...params.entries()].filter(([k]) => def.filters?.includes(k)));
-      setForm({ ...def.defaults, ...pre });
-    } else api(`/resources/${def.name}/${id}`).then(setForm).catch((e) => setMsg(e.message));
-  }, [id, def]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!form) return <p>{msg || 'Загрузка…'}</p>;
-  const set = (name: string, v: any) => setForm((f) => ({ ...f!, [name]: v }));
-  const payload = () => {
-    const out: Record<string, any> = {};
-    for (const f of def.fields) {
-      let v = form[f.name];
-      if (f.type === 'i18n' && v && !v.uk) v = f.name === 'explanation' && def.name === 'exercises' ? null : v;
-      out[f.name] = v ?? (f.type === 'i18n' ? null : v);
-    }
-    return out;
-  };
-  const save = async () => {
-    setMsg('');
-    try {
-      const r = isNew ? await api(`/resources/${def.name}`, { body: payload() }) : await api(`/resources/${def.name}/${id}`, { method: 'PATCH', body: payload() });
-      setMsg('✅ Сохранено');
-      if (isNew) nav(`/r/${def.name}/${r[def.idField ?? 'id']}`, { replace: true });
-    } catch (e) {
-      setMsg(`❌ ${(e as Error).message}`);
-    }
-  };
-  const remove = async () => {
-    if (!confirm('Удалить запись? Это необратимо.')) return;
-    try {
-      await api(`/resources/${def.name}/${id}`, { method: 'DELETE' });
-      nav(-1);
-    } catch (e) {
-      setMsg(`❌ ${(e as Error).message}`);
-    }
-  };
-
-  return (
-    <div className="max-w-4xl space-y-4">
-      <div className="flex items-center gap-3">
-        <button className="btn-s" onClick={() => nav(-1)}>
-          ←
-        </button>
-        <h1 className="text-2xl font-black">
-          {def.title}: {isNew ? 'новая запись' : show(form.slug ?? form.pl ?? form.code ?? form.title, true)}
-        </h1>
-      </div>
-      {def.name === 'exercises' && (
-        <div className="panel flex flex-wrap items-center gap-2 p-3 text-sm">
-          <span className="font-semibold">Шаблон данных для типа {form.type}:</span>
-          <button
-            className="btn-s"
-            onClick={() => {
-              set('data', EXERCISE_TEMPLATES[form.type] ?? {});
-              setKey((k) => k + 1);
-            }}
-          >
-            Вставить шаблон
-          </button>
-          <span className="text-slate-500">Правильный ответ хранится в данных и никогда не отправляется игроку до проверки.</span>
-        </div>
-      )}
-      <div className="panel space-y-4 p-5" key={key}>
-        {def.fields.map((f) => (
-          <div key={f.name} className="grid gap-1 md:grid-cols-[200px_1fr] md:items-start">
-            <label className="pt-2 text-sm font-semibold text-slate-600">{f.label}</label>
-            <FieldInput field={f} value={form[f.name]} onChange={(v) => set(f.name, v)} />
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-3">
-        <button className="btn-p" onClick={save}>
-          Сохранить
-        </button>
-        {!isNew && (
-          <button className="btn-d" onClick={remove}>
-            Удалить
-          </button>
-        )}
-        <span className="text-sm">{msg}</span>
-      </div>
-      {def.name === 'lessons' && !isNew && (
-        <Link className="btn-s" to={`/r/exercises?lessonId=${id}`}>
-          Упражнения урока →
-        </Link>
-      )}
-    </div>
-  );
-}
-
 const AUDIENCE_FILTERS: [string, string][] = [
   ['all', 'Все'],
   ['bot_only', 'Только бот'],
@@ -831,19 +543,6 @@ function source(p: string | null) {
   if (p === 'quiz') return 'ссылка на /quiz';
   if (p.startsWith('screen_')) return `ссылка на экран «${p.slice(7)}»`;
   return p;
-}
-
-/** «5 мин назад», «вчера», дата — для последней активности. */
-function ago(ms: number) {
-  const min = Math.round((Date.now() - ms) / 60_000);
-  if (min < 1) return 'только что';
-  if (min < 60) return `${min} мин назад`;
-  const h = Math.round(min / 60);
-  if (h < 24) return `${h} ч назад`;
-  const d = Math.round(h / 24);
-  if (d === 1) return 'вчера';
-  if (d < 7) return `${d} дн. назад`;
-  return new Date(ms).toLocaleDateString('ru');
 }
 
 type Person = {
@@ -1125,19 +824,47 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** Написать игроку от имени бота: обычное сообщение в его чат с ботом (поддержка, ответ на вопрос). */
+function MessagePlayer({ id, name, blocked }: { id: string; name: string; blocked: boolean }) {
+  const { run } = useFeedback();
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card title="Написать игроку" subtitle="сообщение придёт от бота в чат с игроком; игрок может ответить только через /paysupport" data-message-player>
+      {blocked && <p className="mb-3 text-sm text-[#b42336]">Игрок заблокировал бота — сообщение не дойдёт.</p>}
+      <form
+        className="space-y-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          if (await run(() => api(`/users/${id}/message`, { body: { text } }), `Сообщение отправлено: ${name}`)) setText('');
+          setBusy(false);
+        }}
+      >
+        <label className="sr-only" htmlFor="msg-player">
+          Текст сообщения
+        </label>
+        <textarea id="msg-player" className="inp min-h-[80px]" maxLength={3500} value={text} placeholder="Например: «Premium уже включён, перезапустите приложение»" onChange={(e) => setText(e.target.value)} />
+        <div className="flex items-center justify-between gap-2">
+          <button className="btn-p" disabled={busy || !text.trim()}>
+            {busy ? 'Отправка…' : 'Отправить'}
+          </button>
+          <span className="text-xs text-slate-500">{text.length} / 3500</span>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
 function UserDetail({ admin }: { admin: Admin }) {
   const { id } = useParams();
   const { data: u, error, reload } = useLoad<any>(() => api(`/users/${id}`), [id]);
   const [days, setDays] = useState(30);
+  const { run, ask, confirm } = useFeedback();
   if (error) return <p className="text-coral">{error}</p>;
   if (!u) return <p>Загрузка…</p>;
-  const act = async (path: string, body: any) => {
-    try {
-      await api(path, { body });
-      reload();
-    } catch (e) {
-      alert((e as Error).message);
-    }
+  const act = async (path: string, body: any, ok: string) => {
+    if (await run(() => api(path, { body }), ok)) reload();
   };
   const live = (u.subscriptions as any[]).find((s) => ['ACTIVE', 'CANCELLED'].includes(s.status) && new Date(s.expiresAt).getTime() > Date.now());
   const current = (u.cities as any[]).find((c) => c.cityId === u.progress?.currentCityId);
@@ -1196,12 +923,19 @@ function UserDetail({ admin }: { admin: Admin }) {
         <div className="flex flex-wrap items-center gap-3">
           <button
             className={u.isBanned ? 'btn-s' : 'btn-d'}
-            onClick={() => {
-              if (u.isBanned) return void act(`/users/${id}/ban`, { banned: false });
+            onClick={async () => {
+              if (u.isBanned) return void act(`/users/${id}/ban`, { banned: false }, 'Игрок разблокирован');
               // «Отмена» в окне — блокировки нет (раньше пустая причина всё равно блокировала).
-              const reason = prompt(`Заблокировать «${name}»? Игрок не сможет пользоваться приложением, пока его не разблокируют.\n\nПричина:`);
+              const reason = await ask({
+                title: `Заблокировать «${name}»?`,
+                body: 'Игрок не сможет пользоваться приложением, пока его не разблокируют.',
+                label: 'Причина (видна только в админке)',
+                optional: true,
+                confirm: 'Заблокировать',
+                danger: true,
+              });
               if (reason === null) return;
-              void act(`/users/${id}/ban`, { banned: true, reason: reason.trim() || undefined });
+              void act(`/users/${id}/ban`, { banned: true, reason: reason || undefined }, 'Игрок заблокирован');
             }}
           >
             {u.isBanned ? 'Разблокировать' : 'Заблокировать'}
@@ -1210,13 +944,23 @@ function UserDetail({ admin }: { admin: Admin }) {
             <>
               <span className="mx-1 hidden h-6 w-px bg-line sm:block" />
               <input className="inp w-24" type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Дней Premium" />
-              <button className="btn-p" disabled={!(days >= 1)} onClick={() => act(`/users/${id}/premium`, { days })}>Выдать Premium на {days || 0} дн.</button>
+              <button className="btn-p" disabled={!(days >= 1)} onClick={() => act(`/users/${id}/premium`, { days }, `Premium выдан на ${days} дн.`)}>Выдать Premium на {days || 0} дн.</button>
               <button
                 className="btn-s"
                 disabled={!live}
-                onClick={() => {
-                  const ok = confirm(`Отменить Premium у «${name}»? Доступ пропадёт сразу.\n\nПодписка Stars в самом Telegram этим не отменяется — если она была, списания продолжатся. Вернуть звёзды за платёж можно в разделе «Платежи».`);
-                  if (ok) void act(`/users/${id}/premium`, { revoke: true });
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `Отменить Premium у «${name}»?`,
+                    body: (
+                      <>
+                        <p>Доступ пропадёт сразу.</p>
+                        <p>Подписка Stars в самом Telegram этим не отменяется — если она была, списания продолжатся. Вернуть звёзды за платёж можно ниже, в журнале платежей.</p>
+                      </>
+                    ),
+                    confirm: 'Отменить Premium',
+                    danger: true,
+                  });
+                  if (ok) void act(`/users/${id}/premium`, { revoke: true }, 'Premium отменён');
                 }}
               >
                 Отменить Premium
@@ -1226,14 +970,16 @@ function UserDetail({ admin }: { admin: Admin }) {
         </div>
       </Card>
 
+      {u.telegramId > 0 && <MessagePlayer id={id!} name={name} blocked={!!u.bot?.blockedAt} />}
+
       <div className="grid gap-4 xl:grid-cols-2">
         <Table title="Города" rows={(u.cities as any[]).map((c) => ({ ...c, sourceRu: CITY_SOURCE[c.source] ?? c.source }))} cols={[['city.namePl', 'Город'], ['sourceRu', 'Как открыт'], ['unlockedAt', 'Открыт'], ['bossPassedAt', 'Экзамен']]} />
         <Table title="Подписки" rows={u.subscriptions} cols={[['planCode', 'План'], ['status', 'Статус'], ['expiresAt', 'До']]} />
         <Table title="Сессии обучения" rows={u.sessions} cols={[['mode', 'Режим'], ['lesson.slug', 'Урок'], ['correct', '✓'], ['total', 'Σ'], ['xpAwarded', 'XP'], ['startedAt', 'Начало']]} />
         <Table title="Начисления XP" rows={u.xpEvents} cols={[['reason', 'Причина'], ['amount', 'XP'], ['createdAt', 'Когда']]} />
         <Table title="Кошелёк" rows={u.transactions} cols={[['reason', 'Причина'], ['amount', 'Сумма'], ['createdAt', 'Когда']]} />
-        <Table title="Платежи" rows={u.payments} cols={[['type', 'Событие'], ['planCode', 'План'], ['amount', '⭐'], ['error', 'Ошибка'], ['createdAt', 'Когда']]} />
       </div>
+      {u.payments?.length > 0 && <PaymentLog user={id} superadmin={admin.role === 'SUPERADMIN'} onRefund={reload} />}
     </div>
   );
 }
@@ -1259,335 +1005,9 @@ function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [strin
   );
 }
 
-/** Вернуть звёзды за платёж (Telegram refundStarPayment): Premium по этому платежу снимается сразу. Только SUPERADMIN. */
-function RefundButton({ chargeId, onDone }: { chargeId: string; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  return (
-    <button
-      className="btn !bg-rose-600 !px-2 !py-1 text-xs"
-      disabled={busy}
-      onClick={async () => {
-        if (!confirm('Вернуть звёзды за этот платёж? Premium по нему отключится сразу. Отменить нельзя.')) return;
-        setBusy(true);
-        try {
-          await api('/payments/refund', { method: 'POST', body: { chargeId } });
-          onDone();
-        } catch (e) {
-          alert((e as Error).message);
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      ↩️ Вернуть звёзды
-    </button>
-  );
-}
-
-function Payments({ admin }: { admin: Admin }) {
-  const { data, error, reload } = useLoad(() => api('/payments'), []);
-  if (error) return <p className="text-rose-600">{error}</p>;
-  if (!data) return <p>Загрузка…</p>;
-  const refunded = new Set(data.items.filter((e: any) => e.type === 'REFUND').map((e: any) => e.payload));
-  const refundable = data.items.filter((e: any) => e.type === 'SUCCESSFUL_PAYMENT' && !e.error && e.chargeId && !refunded.has(e.chargeId));
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-black">Платежи и подписки</h1>
-      <div className="flex flex-wrap gap-2">
-        {data.subscriptions.map((s: any) => (
-          <span key={`${s.status}${s.planCode}`} className="rounded-full bg-white px-3 py-1 text-sm shadow-sm">
-            {s.planCode} · {s.status}: <b>{s.count}</b>
-          </span>
-        ))}
-      </div>
-      {admin.role === 'SUPERADMIN' && refundable.length > 0 && (
-        <div className="panel overflow-x-auto">
-          <h2 className="border-b p-3 font-bold">Возврат звёзд</h2>
-          <p className="px-3 pt-2 text-sm text-slate-500">Telegram вернёт звёзды пользователю, Premium по этому платежу отключится сразу. Пользователь получит сообщение в боте.</p>
-          <table className="w-full">
-            <tbody>
-              {refundable.map((e: any) => (
-                <tr key={e.id} className="border-t">
-                  <td className="td">{new Date(e.createdAt).toLocaleString('ru')}</td>
-                  <td className="td">{e.user?.firstName ?? '—'}</td>
-                  <td className="td">{e.planCode}</td>
-                  <td className="td">⭐ {e.amount}</td>
-                  <td className="td font-mono text-xs">{e.chargeId}</td>
-                  <td className="td"><RefundButton chargeId={e.chargeId} onDone={reload} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <Table title={`Журнал платёжных событий (${data.total})`} rows={data.items} cols={[['createdAt', 'Когда'], ['type', 'Событие'], ['user.firstName', 'Пользователь'], ['planCode', 'План'], ['amount', '⭐'], ['chargeId', 'Charge ID'], ['payload', 'Платёж (для возврата)'], ['error', 'Ошибка']]} />
-    </div>
-  );
-}
-
-/** Обращения из бота (/paysupport): текст, платежи человека, ответ в бот, возврат звёзд. */
-function Support({ admin }: { admin: Admin }) {
-  const [status, setStatus] = useState<'OPEN' | 'DONE' | 'all'>('OPEN');
-  const { data, error, reload } = useLoad(() => api(`/support?status=${status}`), [status]);
-  const [reply, setReply] = useState<Record<string, string>>({});
-  const send = async (id: string) => {
-    try {
-      await api(`/support/${id}/reply`, { method: 'POST', body: { text: reply[id] ?? '' } });
-      setReply({ ...reply, [id]: '' });
-      reload();
-    } catch (e) {
-      alert((e as Error).message);
-    }
-  };
-  const close = async (id: string) => {
-    await api(`/support/${id}/close`, { method: 'POST', body: {} });
-    reload();
-  };
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-black">Поддержка по оплате</h1>
-      <p className="text-sm text-slate-500">Пользователь пишет боту /paysupport, следующее сообщение становится обращением. Ответ уходит пользователю в бот и закрывает обращение.</p>
-      <div className="flex gap-2">
-        {(['OPEN', 'DONE', 'all'] as const).map((s) => (
-          <button key={s} className={`rounded-full px-3 py-1 text-sm font-bold ${status === s ? 'bg-slate-900 text-white' : 'bg-white shadow-sm'}`} onClick={() => setStatus(s)}>
-            {s === 'OPEN' ? 'Открытые' : s === 'DONE' ? 'Закрытые' : 'Все'}
-          </button>
-        ))}
-      </div>
-      {error && <p className="text-rose-600">{error}</p>}
-      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-500">Обращений нет.</p> : null}
-      {data?.items.map((r: any) => (
-        <div key={r.id} className="panel space-y-3 p-4">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <b>{r.user?.firstName ?? 'Без приложения'}</b>
-            {r.user?.username && <span className="text-slate-500">@{r.user.username}</span>}
-            <span className="text-slate-500">Telegram ID {r.telegramId}</span>
-            <span className="text-slate-500">{new Date(r.createdAt).toLocaleString('ru')}</span>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${r.status === 'OPEN' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>{r.status === 'OPEN' ? 'Открыто' : 'Закрыто'}</span>
-          </div>
-          <p className="whitespace-pre-wrap rounded-xl bg-slate-50 p-3">{r.text}</p>
-          {r.reply && <p className="whitespace-pre-wrap rounded-xl bg-emerald-50 p-3 text-sm"><b>Ответ:</b> {r.reply}</p>}
-          {r.payments.length > 0 && (
-            <table className="w-full text-sm">
-              <tbody>
-                {r.payments.map((p: any, i: number) => (
-                  <tr key={i} className="border-t">
-                    <td className="td">{new Date(p.createdAt).toLocaleString('ru')}</td>
-                    <td className="td">{p.type === 'REFUND' ? '↩️ Возврат' : '⭐ Оплата'}</td>
-                    <td className="td">{p.planCode}</td>
-                    <td className="td">{p.amount}</td>
-                    <td className="td font-mono text-xs">{p.chargeId}</td>
-                    <td className="td">
-                      {admin.role === 'SUPERADMIN' && p.type === 'SUCCESSFUL_PAYMENT' && !p.error && !r.payments.some((x: any) => x.type === 'REFUND' && x.chargeId === p.chargeId) && (
-                        <RefundButton chargeId={p.chargeId} onDone={reload} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {r.status === 'OPEN' && (
-            <div className="space-y-2">
-              <textarea className="inp min-h-[80px] w-full" placeholder="Ответ пользователю (уйдёт в бот)" value={reply[r.id] ?? ''} onChange={(e) => setReply({ ...reply, [r.id]: e.target.value })} />
-              <div className="flex gap-2">
-                <button className="btn" disabled={!(reply[r.id] ?? '').trim()} onClick={() => send(r.id)}>Ответить в бот</button>
-                <button className="btn !bg-slate-200 !text-slate-800" onClick={() => close(r.id)}>Закрыть без ответа</button>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const REASON_RU: Record<string, string> = { name: 'имя', photo: 'фото', other: 'другое' };
-
-/** Жалобы игроков на имена и фото (требование Google Play): по игрокам, больше жалоб — выше. */
-function Reports() {
-  const [status, setStatus] = useState<'OPEN' | 'DONE'>('OPEN');
-  const { data, error, reload } = useLoad(() => api(`/reports?status=${status}`), [status]);
-  const resolve = async (userId: string, action: 'dismiss' | 'reset_name' | 'ban') => {
-    if (action === 'ban' && !confirm('Заблокировать игрока? Он больше не сможет войти в приложение.')) return;
-    try {
-      await api(`/reports/${userId}/resolve`, { method: 'POST', body: { action } });
-      reload();
-    } catch (e) {
-      alert((e as Error).message);
-    }
-  };
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-black">Жалобы на игроков</h1>
-      <p className="text-sm text-slate-500">
-        Игроки жалуются на имя или фото из рейтинга и списка друзей. «Сбросить имя» ставит нейтральное имя «Bóbr» и очищает описание профиля; «Заблокировать» закрывает вход; «Закрыть» оставляет всё как есть.
-        Открытые жалобы разбирайте не реже раза в сутки: этого ждёт Google Play.
-      </p>
-      <div className="flex gap-2">
-        {(['OPEN', 'DONE'] as const).map((s) => (
-          <button key={s} className={`rounded-full px-3 py-1 text-sm font-bold ${status === s ? 'bg-slate-900 text-white' : 'bg-white shadow-sm'}`} onClick={() => setStatus(s)}>
-            {s === 'OPEN' ? 'Открытые' : 'Разобранные'}
-          </button>
-        ))}
-      </div>
-      {error && <p className="text-rose-600">{error}</p>}
-      {!data ? <p>Загрузка…</p> : !data.items.length ? <p className="text-slate-500">Жалоб нет.</p> : null}
-      {data?.items.map((r: any) => (
-        <div key={r.userId} className="panel flex flex-wrap items-center gap-3 p-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <b className="break-words">{r.name}</b>
-              {r.username && <span className="text-sm text-slate-500">@{r.username}</span>}
-              {r.guest && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold">гость</span>}
-              {r.banned && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800">заблокирован</span>}
-            </div>
-            <div className="text-sm text-slate-500">
-              Жалоб: <b>{r.count}</b> · {r.reasons.map((x: string) => REASON_RU[x] ?? x).join(', ')} · {new Date(r.lastAt).toLocaleString('ru')} · <Link className="underline" to={`/users/${r.userId}`}>профиль</Link>
-            </div>
-          </div>
-          {status === 'OPEN' && (
-            <div className="flex flex-wrap gap-2">
-              <button className="btn" onClick={() => resolve(r.userId, 'reset_name')}>Сбросить имя</button>
-              <button className="btn !bg-rose-600" onClick={() => resolve(r.userId, 'ban')}>Заблокировать</button>
-              <button className="btn !bg-slate-200 !text-slate-800" onClick={() => resolve(r.userId, 'dismiss')}>Закрыть</button>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Rewards() {
-  const { data, error } = useLoad(() => api('/config/rewards'), []);
-  const [form, setForm] = useState<Record<string, number> | null>(null);
-  const [msg, setMsg] = useState('');
-  useEffect(() => setForm(data), [data]);
-  if (error) return <p className="text-rose-600">{error}</p>;
-  if (!form) return <p>Загрузка…</p>;
-  const labels: Record<string, string> = {
-    exerciseXp: 'XP за правильное упражнение', lessonXp: 'XP за урок', perfectBonusXp: 'Бонус за идеальный урок', dailyQuestXp: 'XP ежедневного квеста (справочно)',
-    weeklyQuestXp: 'XP недельного квеста (справочно)', storyQuestXp: 'XP сюжетного квеста (справочно)', cityExamXp: 'XP за экзамен города', lessonZlotki: 'Złotki за урок',
-    perfectZlotki: 'Złotki за идеальный урок', dailyQuestZlotki: 'Złotki ежедневного квеста (справочно)', storyQuestZlotki: 'Złotki сюжета (справочно)', cityExamZlotki: 'Złotki за экзамен города',
-    replayFactor: 'Доля XP за повтор урока (0–1)', maxRewardedReplaysPerDay: 'Повторов урока с наградой в сутки', practiceXpDailyCap: 'Лимит XP тренировок в день',
-    premiumGiftZlotki: 'Premium: подарок месяца, Złotki', premiumWelcomeZlotki: 'Premium: приветственный бонус при первой оплате, Złotki',
-    premiumLoyalty3Zlotki: 'Premium: бонус на 3-м подарке (3-й месяц), Złotki', premiumLoyalty6Zlotki: 'Premium: бонус на 6-м подарке, Złotki',
-    premiumLoyalty12Zlotki: 'Premium: бонус на 12-м подарке, Złotki', premiumPlan3Zlotki: 'Premium: бонус за тариф на 3 месяца, Złotki',
-    premiumPlan12Zlotki: 'Premium: бонус за тариф на 12 месяцев, Złotki',
-  };
-  return (
-    <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-black">Награды и лимиты</h1>
-      <p className="text-sm text-slate-500">Награды квестов задаются в каждом квесте отдельно. Изменения применяются в течение 30 секунд.</p>
-      <div className="panel space-y-3 p-5">
-        {Object.entries(form).map(([k, v]) => (
-          <label key={k} className="grid grid-cols-[1fr_140px] items-center gap-3 text-sm">
-            <span>{labels[k] ?? k}</span>
-            <input className="inp" type="number" step="any" value={v} onChange={(e) => setForm({ ...form, [k]: Number(e.target.value) })} />
-          </label>
-        ))}
-      </div>
-      <button
-        className="btn-p"
-        onClick={async () => {
-          try {
-            await api('/config/rewards', { method: 'PUT', body: form });
-            setMsg('✅ Сохранено');
-          } catch (e) {
-            setMsg(`❌ ${(e as Error).message}`);
-          }
-        }}
-      >
-        Сохранить
-      </button>
-      <span className="ml-3 text-sm">{msg}</span>
-    </div>
-  );
-}
-
-/** Бот: перевірка й налаштування без секретів у браузері (секрет webhook знає лише сервер і Telegram). */
-function Bot() {
-  const { data, error, loading, reload } = useLoad(() => api('/bot'), []);
-  const [busy, setBusy] = useState('');
-  const [result, setResult] = useState<any>(null);
-  const run = async (mode: 'setup' | 'rotate') => {
-    if (mode === 'rotate' && !confirm('Сгенерировать новый секрет webhook? Старый перестанет действовать через 10 минут после подтверждения Telegram.')) return;
-    setBusy(mode);
-    try {
-      setResult(await api('/bot/setup', { body: { mode } }));
-      reload();
-    } catch (e) {
-      setResult({ error: (e as Error).message });
-    } finally {
-      setBusy('');
-    }
-  };
-  const report = data?.report;
-  const wh = report?.webhook;
-  return (
-    <div className="max-w-3xl space-y-4">
-      <h1 className="text-2xl font-black">Telegram-бот</h1>
-      {error && <p className="text-rose-600">{error}</p>}
-      {loading && <p>Проверка…</p>}
-      {report && (
-        <div className="grid gap-3 md:grid-cols-3">
-          <Stat label="Бот" value={report.bot ? `@${report.bot.username}` : '—'} sub={report.ok ? 'Telegram отвечает' : 'есть ошибки'} />
-          <Stat label="Webhook" value={wh?.url ? (wh.allowedUpdates.length === 0 || wh.allowedUpdates.includes('callback_query') ? '✅ с кнопками' : '⚠️ без callback_query') : '❌ не установлен'} sub={wh ? `очередь: ${wh.pending}` : undefined} />
-          <Stat label="Секрет webhook" value={report.secretGeneration ? `поколение ${report.secretGeneration}` : 'из переменной Cloudflare'} sub={report.secretGeneration ? (report.secretConfirmed ? 'подтверждён Telegram' : 'ждёт подтверждения') : 'перейдёт на серверный при настройке'} />
-        </div>
-      )}
-      {wh?.lastError && <p className="text-sm text-amber-700">Последняя ошибка доставки: {wh.lastError} ({wh.lastErrorAt})</p>}
-      {report?.hints?.length > 0 && (
-        <ul className="list-disc pl-5 text-sm">
-          {report.hints.map((h: string) => (
-            <li key={h}>{h}</li>
-          ))}
-        </ul>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <button className="btn-s" disabled={!!busy} onClick={reload}>Проверить</button>
-        <button className="btn-p" disabled={!!busy} onClick={() => run('setup')}>{busy === 'setup' ? 'Настройка…' : 'Настроить бота'}</button>
-        <button className="btn-s" disabled={!!busy} onClick={() => run('rotate')}>{busy === 'rotate' ? 'Смена…' : 'Сменить секрет webhook'}</button>
-      </div>
-      {data?.maintenance && <p className="text-xs text-slate-500">Автопроверка cron: {new Date(data.maintenance.checkedAt).toLocaleString('ru')} · {data.maintenance.webhook} {data.maintenance.error ? `· ${data.maintenance.error}` : ''}</p>}
-      {result && <pre className="panel overflow-auto p-3 text-xs">{JSON.stringify(result, null, 2)}</pre>}
-    </div>
-  );
-}
-
-function Audit() {
-  const { data, error } = useLoad(() => api('/audit'), []);
-  if (error) return <p className="text-rose-600">{error}</p>;
-  return <Table title="Журнал действий администраторов" rows={data ?? []} cols={[['createdAt', 'Когда'], ['admin.email', 'Админ'], ['action', 'Действие'], ['entity', 'Объект'], ['entityId', 'ID'], ['details', 'Детали']]} />;
-}
-
-function Admins() {
-  const { data, reload } = useLoad(() => api('/admins'), []);
-  const [f, setF] = useState({ email: '', name: '', role: 'EDITOR', password: '' });
-  return (
-    <div className="space-y-4">
-      <Table title="Администраторы" rows={data ?? []} cols={[['email', 'Email'], ['name', 'Имя'], ['role', 'Роль'], ['isActive', 'Активен'], ['lastLoginAt', 'Вход']]} />
-      <div className="panel grid max-w-2xl gap-2 p-4 md:grid-cols-2">
-        <input className="inp" placeholder="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
-        <input className="inp" placeholder="Имя" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        <select className="inp" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
-          <option>EDITOR</option>
-          <option>SUPPORT</option>
-          <option>SUPERADMIN</option>
-        </select>
-        <input className="inp" type="password" placeholder="Пароль (мин. 10 символов)" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
-        <button className="btn-p" onClick={async () => { try { await api('/admins', { body: f }); reload(); } catch (e) { alert((e as Error).message); } }}>
-          Добавить администратора
-        </button>
-      </div>
-    </div>
-  );
-}
-
 type NavItem = [to: string, label: string, icon: string];
 
-const ROLE_RU: Record<Admin['role'], string> = { SUPERADMIN: 'главный администратор', EDITOR: 'редактор контента', SUPPORT: 'поддержка' };
+type Attention = { support: number; reports: number; errors: number };
 
 /** Меню по разделам; что видно — зависит от роли (как и раньше: сервер всё равно проверяет права сам). */
 function navGroups(role: Admin['role']): [string, NavItem[]][] {
@@ -1599,11 +1019,18 @@ function navGroups(role: Admin['role']): [string, NavItem[]][] {
   }
   if (role !== 'SUPPORT') groups.push(['Контент', [...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
   if (role === 'SUPERADMIN') {
-    groups.push(['Бот', [['/r/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
+    groups.push(['Бот', [['/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
     groups.push(['Система', [['/audit', 'Журнал действий', '📜'], ['/admins', 'Администраторы', '🔐']]]);
   }
   return groups;
 }
+
+/** Число на пункте меню: сколько ждёт внимания (ошибки за сутки, открытые обращения, жалобы). */
+const NAV_COUNT: Record<string, [keyof Attention, string]> = {
+  '/errors': ['errors', 'ошибок за сутки'],
+  '/support': ['support', 'открытых обращений'],
+  '/reports': ['reports', 'игроков с жалобами'],
+};
 
 function Brand() {
   return (
@@ -1627,25 +1054,25 @@ export function App() {
     if (hasToken()) api<Admin>('/me').then(setAdmin).catch(() => setToken(null)).finally(() => setChecked(true));
   }, []);
   const groups = useMemo(() => (admin ? navGroups(admin.role) : []), [admin]);
-  // Сколько ошибок за сутки — прямо на пункте меню «Ошибки», чтобы проблему было видно с любой страницы.
-  // Обновляется раз в 5 минут, пока вкладка открыта (админка может весь день висеть открытой). Редактору журнал не нужен.
-  const [errors24, setErrors24] = useState(0);
+  // Что ждёт внимания — числами прямо на пунктах меню (ошибки за сутки, открытые обращения, жалобы), чтобы видеть с любой страницы.
+  // Обновляется раз в 5 минут, пока вкладка открыта (админка может весь день висеть открытой). Редактору эти разделы не нужны.
+  const [attention, setAttention] = useState<Attention | null>(null);
+  const loadAttention = useCallback(() => {
+    if (document.visibilityState === 'hidden') return;
+    api<Attention>('/attention')
+      .then(setAttention)
+      .catch(() => {});
+  }, []);
   useEffect(() => {
     if (!admin || admin.role === 'EDITOR') return;
-    const load = () => {
-      if (document.visibilityState === 'hidden') return;
-      api<{ total: Record<string, number> }>('/errors?hours=24')
-        .then((r) => setErrors24((r.total.server ?? 0) + (r.total.client ?? 0) + (r.total.csp ?? 0)))
-        .catch(() => {});
-    };
-    load();
-    const t = setInterval(load, 5 * 60_000);
-    document.addEventListener('visibilitychange', load);
+    loadAttention();
+    const t = setInterval(loadAttention, 5 * 60_000);
+    document.addEventListener('visibilitychange', loadAttention);
     return () => {
       clearInterval(t);
-      document.removeEventListener('visibilitychange', load);
+      document.removeEventListener('visibilitychange', loadAttention);
     };
-  }, [admin]);
+  }, [admin, loadAttention]);
 
   if (!checked) return null;
   if (!admin) return <Login onLogin={setAdmin} />;
@@ -1682,10 +1109,14 @@ export function App() {
                   >
                     <span className="w-5 text-center text-[13px] opacity-80" aria-hidden>{icon}</span>
                     {label}
-                    {to === '/errors' && errors24 > 0 && (
-                      <span className="ml-auto rounded-full bg-coral px-1.5 py-px text-[11px] font-bold text-white" data-nav-errors>
-                        {errors24}
-                        <span className="sr-only"> за сутки</span>
+                    {NAV_COUNT[to] && attention && attention[NAV_COUNT[to][0]] > 0 && (
+                      <span
+                        className={cx('ml-auto rounded-full px-1.5 py-px text-[11px] font-bold', to === '/errors' ? 'bg-coral text-white' : 'bg-gold text-night')}
+                        data-nav-count={NAV_COUNT[to][0]}
+                        {...(to === '/errors' ? { 'data-nav-errors': '' } : {})}
+                      >
+                        {attention[NAV_COUNT[to][0]]}
+                        <span className="sr-only"> {NAV_COUNT[to][1]}</span>
                       </span>
                     )}
                   </NavLink>
@@ -1707,23 +1138,25 @@ export function App() {
           <Routes>
             <Route path="/" element={<Dashboard analytics={admin.role !== 'EDITOR'} />} />
             <Route path="/errors" element={<Errors />} />
-            {RESOURCES.map((d) => (
-              <Route key={d.name} path={`/r/${d.name}`} element={<ResourceList def={d} />} />
+            {RESOURCES.filter((d) => d.name !== 'campaigns').map((d) => (
+              <Route key={d.name} path={`/r/${d.name}`} element={<ResourceList key={d.name} def={d} />} />
             ))}
             {RESOURCES.map((d) => (
-              <Route key={`${d.name}-e`} path={`/r/${d.name}/:id`} element={<ResourceEdit def={d} />} />
+              <Route key={`${d.name}-e`} path={`/r/${d.name}/:id`} element={<ResourceEdit key={d.name} def={d} />} />
             ))}
             <Route path="/audience" element={<Audience />} />
             <Route path="/users" element={<Users />} />
             <Route path="/users/:id" element={<UserDetail admin={admin} />} />
-            <Route path="/payments" element={<Payments admin={admin} />} />
-            <Route path="/support" element={<Support admin={admin} />} />
-            <Route path="/reports" element={<Reports />} />
+            <Route path="/payments" element={<Money superadmin={admin.role === 'SUPERADMIN'} />} />
+            <Route path="/support" element={<Support superadmin={admin.role === 'SUPERADMIN'} onChange={loadAttention} />} />
+            <Route path="/reports" element={<Reports onChange={loadAttention} />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/bot" element={<Bot />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/r/campaigns" element={<Navigate to="/campaigns" replace />} />
             <Route path="/audio" element={<AudioLibrary admin={admin} />} />
             <Route path="/audit" element={<Audit />} />
-            <Route path="/admins" element={<Admins />} />
+            <Route path="/admins" element={<Admins me={admin.id} />} />
           </Routes>
         </div>
       </main>

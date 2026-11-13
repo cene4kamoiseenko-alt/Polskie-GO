@@ -4,6 +4,8 @@
  */
 import { emptyIfNoTable, recentErrors } from '../services/error-log';
 import { INSIGHT_DAYS, adminInsights, sourceKey } from '../services/admin-insights';
+import { attention, auditLog, paymentsSummary } from '../services/admin-ops';
+import { campaignAudience, campaignText, findTelegramPlayer, sendBotText } from '../services/campaigns';
 import { timingSafeEqual } from 'node:crypto';
 import { Hono, type Context } from 'hono';
 import { and, asc, count, desc, eq, getTableColumns, gt, gte, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
@@ -38,6 +40,8 @@ import { runSetup } from '../bot/setup';
 
 const i18n = z.object({ uk: z.string().min(1), ru: z.string().optional(), en: z.string().optional(), pl: z.string().optional() });
 const status = z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
+const campaignText4k = z.string().max(4000);
+const campaignMessage = z.object({ uk: campaignText4k.min(1), ru: campaignText4k.optional(), en: campaignText4k.optional() });
 const json = z.any();
 
 type Role = 'SUPERADMIN' | 'EDITOR' | 'SUPPORT';
@@ -132,7 +136,8 @@ const RESOURCES: Record<string, Resource> = {
   },
   campaigns: {
     table: t.notificationCampaigns, roles: [], orderBy: ['-createdAt'],
-    schema: z.object({ kind: z.enum(['reminder', 'new_lessons', 'new_city', 'event', 'challenge']), title: z.string().min(1).max(100), message: i18n }),
+    // Telegram принимает сообщение до 4096 символов — с запасом.
+    schema: z.object({ kind: z.enum(['reminder', 'new_lessons', 'new_city', 'event', 'challenge']), title: z.string().min(1).max(100), message: campaignMessage }),
   },
 };
 
@@ -270,6 +275,12 @@ a.get('/errors', async (c) => {
   return c.json(await recentErrors(new Date(), q.hours, { kind: q.kind, limit: 200 }).catch(emptyIfNoTable(q.hours)));
 });
 
+// Числа на пунктах меню: открытые обращения, игроки с жалобами, ошибки за сутки (services/admin-ops.ts).
+a.get('/attention', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  return c.json(await attention());
+});
+
 // ── Універсальний CRUD ──
 a.get('/resources/:name', async (c) => {
   const res = guard(c, c.req.param('name'), false);
@@ -316,10 +327,18 @@ a.post('/resources/:name', async (c) => {
   return c.json(item);
 });
 
+/** Отправленная или отправляемая рассылка — уже история: её не меняют и не удаляют, иначе журнал разойдётся с тем, что получили игроки. */
+async function assertCampaignDraft(name: string, id: string) {
+  if (name !== 'campaigns') return;
+  const camp = await db.query.notificationCampaigns.findFirst({ where: eq(t.notificationCampaigns.id, id), columns: { status: true } });
+  if (camp && camp.status !== 'DRAFT') throw badRequest('already_sent');
+}
+
 a.patch('/resources/:name/:id', async (c) => {
   const name = c.req.param('name');
   const res = guard(c, name, true);
   const id = c.req.param('id');
+  await assertCampaignDraft(name, id);
   const data = res.schema.partial().parse(await body(c));
   const [item] = Object.keys(data).length
     ? await db.update(res.table).set(data as never).where(eq(idCol(res), id)).returning()
@@ -333,6 +352,7 @@ a.delete('/resources/:name/:id', async (c) => {
   const name = c.req.param('name');
   const res = guard(c, name, true);
   const id = c.req.param('id');
+  await assertCampaignDraft(name, id);
   await db.delete(res.table).where(eq(idCol(res), id));
   await audit(c, 'delete', name, id);
   return c.json({ ok: true });
@@ -483,16 +503,35 @@ a.post('/users/:id/premium', async (c) => {
   return c.json({ ok: true });
 });
 
+// Написать игроку от имени бота (поддержка): обычное сообщение в чат с ботом, без кнопки. Гостям вне Telegram писать некуда.
+a.post('/users/:id/message', rateLimit(30, 10 * 60_000, 'admin-user-message'), async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const id = c.req.param('id');
+  const { text } = z.object({ text: z.string().trim().min(1).max(3500) }).parse(await body(c));
+  const user = await db.query.users.findFirst({ where: eq(t.users.id, id), columns: { telegramId: true } });
+  if (!user) throw notFound();
+  if (user.telegramId <= 0) throw badRequest('no_telegram');
+  if (!getBindings().TELEGRAM_BOT_TOKEN) throw badRequest('bot_not_configured');
+  await sendBotText(user.telegramId, text, false);
+  await audit(c, 'message', 'user', id, { chars: text.length });
+  return c.json({ ok: true });
+});
+
 // ── Монетизація ──
 a.get('/payments', async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');
-  const q = z.object({ type: z.string().optional(), skip: z.coerce.number().default(0) }).parse(query(c));
-  const where = q.type ? eq(t.paymentEvents.type, q.type) : undefined;
+  const q = z
+    .object({ type: z.enum(['INVOICE_CREATED', 'PRE_CHECKOUT', 'SUCCESSFUL_PAYMENT', 'REFUND', 'CANCEL']).optional(), user: z.string().max(64).optional(), skip: z.coerce.number().int().min(0).max(100_000).default(0) })
+    .parse(query(c));
+  const where = and(q.type ? eq(t.paymentEvents.type, q.type) : undefined, q.user ? eq(t.paymentEvents.userId, q.user) : undefined);
+  // Уже возвращён ли платёж — по всему журналу, а не только по загруженной странице (кнопка «Вернуть звёзды» не появится второй раз).
+  const refunded = sql<number>`EXISTS (SELECT 1 FROM payment_events r WHERE r.type = 'REFUND' AND r.payload = ${t.paymentEvents.chargeId})`;
   const [items, total, subs] = await Promise.all([
     db
-      .select({ ev: t.paymentEvents, user: { id: t.users.id, firstName: t.users.firstName, username: t.users.username } })
+      .select({ ev: t.paymentEvents, refunded, planTitle: t.subscriptionPlans.title, user: { id: t.users.id, firstName: t.users.firstName, username: t.users.username } })
       .from(t.paymentEvents)
       .leftJoin(t.users, eq(t.users.id, t.paymentEvents.userId))
+      .leftJoin(t.subscriptionPlans, eq(t.subscriptionPlans.code, t.paymentEvents.planCode))
       .where(where)
       .orderBy(desc(t.paymentEvents.createdAt))
       .limit(100)
@@ -500,7 +539,14 @@ a.get('/payments', async (c) => {
     db.select({ n: count() }).from(t.paymentEvents).where(where),
     db.select({ status: t.subscriptions.status, planCode: t.subscriptions.planCode, count: count() }).from(t.subscriptions).groupBy(t.subscriptions.status, t.subscriptions.planCode),
   ]);
-  return c.json({ items: items.map((x) => ({ ...x.ev, user: x.user?.id ? x.user : null })), total: total[0]?.n ?? 0, subscriptions: subs });
+  return c.json({ items: items.map(({ ev: { raw: _raw, ...ev }, refunded: r, planTitle, user }) => ({ ...ev, planTitle: planTitle?.ru || planTitle?.uk || null, refunded: !!Number(r), user: user?.id ? user : null })), total: total[0]?.n ?? 0, subscriptions: subs });
+});
+
+// Деньги за период: выручка по дням, возвраты, тарифы, кто сейчас с Premium (services/admin-ops.ts).
+a.get('/payments/summary', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const q = z.object({ days: z.coerce.number().int().refine((d) => (INSIGHT_DAYS as readonly number[]).includes(d)).default(30) }).parse(query(c));
+  return c.json(await paymentsSummary(new Date(), q.days));
 });
 
 // Повернення зірок за платіж (Telegram refundStarPayment): Premium за цим платежем знімається одразу.
@@ -562,31 +608,71 @@ a.post('/bot/setup', rateLimit(10, 10 * 60_000, 'admin-bot'), async (c) => {
   return c.json(report);
 });
 
-// ── Журнал дій ──
+// ── Журнал дій: отбор по администратору, действию и объекту, постранично ──
 a.get('/audit', async (c) => {
   needRole(c, 'SUPERADMIN');
-  const rows = await db
-    .select({ log: t.adminAuditLogs, email: t.adminUsers.email })
-    .from(t.adminAuditLogs)
-    .leftJoin(t.adminUsers, eq(t.adminUsers.id, t.adminAuditLogs.adminId))
-    .orderBy(desc(t.adminAuditLogs.createdAt))
-    .limit(200);
-  return c.json(rows.map((r) => ({ ...r.log, admin: r.email ? { email: r.email } : null })));
+  const q = z
+    .object({
+      admin: z.string().max(64).optional(),
+      action: z.string().max(64).optional(),
+      entity: z.string().max(64).optional(),
+      before: z.string().regex(/^\d{1,15}_[\w-]{1,64}$/).optional(),
+    })
+    .parse(query(c));
+  const before = q.before ? { at: Number(q.before.split('_')[0]), id: q.before.slice(q.before.indexOf('_') + 1) } : undefined;
+  return c.json(await auditLog({ adminId: q.admin || undefined, action: q.action || undefined, entity: q.entity || undefined, before }));
 });
 
 // ── Адміністратори ──
 a.get('/admins', async (c) => {
   needRole(c, 'SUPERADMIN');
   return c.json(
-    await db.select({ id: t.adminUsers.id, email: t.adminUsers.email, name: t.adminUsers.name, role: t.adminUsers.role, isActive: t.adminUsers.isActive, lastLoginAt: t.adminUsers.lastLoginAt }).from(t.adminUsers),
+    await db
+      .select({ id: t.adminUsers.id, email: t.adminUsers.email, name: t.adminUsers.name, role: t.adminUsers.role, isActive: t.adminUsers.isActive, lastLoginAt: t.adminUsers.lastLoginAt, createdAt: t.adminUsers.createdAt })
+      .from(t.adminUsers)
+      .orderBy(asc(t.adminUsers.createdAt)),
   );
 });
 a.post('/admins', async (c) => {
   needRole(c, 'SUPERADMIN');
-  const b = z.object({ email: z.string().email(), name: z.string().min(1), role: z.enum(['SUPERADMIN', 'EDITOR', 'SUPPORT']), password: z.string().min(10) }).parse(await body(c));
-  const [created] = await db.insert(t.adminUsers).values({ email: b.email, name: b.name, role: b.role, passwordHash: await hashPassword(b.password) }).returning();
+  const b = z.object({ email: z.string().email().max(254), name: z.string().trim().min(1).max(80), role: z.enum(['SUPERADMIN', 'EDITOR', 'SUPPORT']), password: z.string().min(10).max(256) }).parse(await body(c));
+  let created: typeof t.adminUsers.$inferSelect;
+  try {
+    [created] = await db.insert(t.adminUsers).values({ email: b.email, name: b.name, role: b.role, passwordHash: await hashPassword(b.password) }).returning();
+  } catch (e) {
+    if (isUniqueViolation(e)) throw badRequest('duplicate');
+    throw e;
+  }
   await audit(c, 'create', 'admin', created.id, { email: created.email, role: created.role });
   return c.json({ id: created.id });
+});
+// Имя, роль, доступ. Себя нельзя отключить или понизить, и в админке всегда остаётся хотя бы один активный главный администратор.
+a.patch('/admins/:id', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const id = c.req.param('id');
+  const b = z.object({ name: z.string().trim().min(1).max(80).optional(), role: z.enum(['SUPERADMIN', 'EDITOR', 'SUPPORT']).optional(), isActive: z.boolean().optional() }).parse(await body(c));
+  const target = await db.query.adminUsers.findFirst({ where: eq(t.adminUsers.id, id) });
+  if (!target) throw notFound();
+  const demotes = (b.role !== undefined && b.role !== 'SUPERADMIN') || b.isActive === false;
+  if (id === c.get('admin')!.id && demotes) throw badRequest('cannot_change_self');
+  if (Object.keys(b).length) {
+    // Проверка «останется ли другой главный» — в том же запросе: два главных, одновременно понижающие друг друга, не оставят админку без главного.
+    const keepsSuper = demotes ? sql`(SELECT COUNT(*) FROM admin_users WHERE role = 'SUPERADMIN' AND is_active = 1 AND id <> ${id}) >= 1` : undefined;
+    const rows = await db.update(t.adminUsers).set(b).where(and(eq(t.adminUsers.id, id), keepsSuper)).returning({ id: t.adminUsers.id });
+    if (!rows.length) throw badRequest('last_superadmin');
+  }
+  await audit(c, 'update', 'admin', id, b);
+  return c.json({ ok: true });
+});
+// Новый пароль администратору (забыл пароль). Свой пароль меняется так же.
+a.post('/admins/:id/password', rateLimit(20, 10 * 60_000, 'admin-password'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const id = c.req.param('id');
+  const { password } = z.object({ password: z.string().min(10).max(256) }).parse(await body(c));
+  const rows = await db.update(t.adminUsers).set({ passwordHash: await hashPassword(password) }).where(eq(t.adminUsers.id, id)).returning({ id: t.adminUsers.id });
+  if (!rows.length) throw notFound();
+  await audit(c, 'password_reset', 'admin', id);
+  return c.json({ ok: true });
 });
 
 // ── Завантаження ассетів (зберігаються в D1) ──
@@ -781,6 +867,15 @@ a.post('/audio/verify', async (c) => {
 });
 
 // ── Розсилки: надсилаються частинами за розкладом (cron) ──
+// Список с ходом отправки и охват: сколько человек получат рассылку сейчас и на каком языке.
+a.get('/campaigns', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const [items, audience] = await Promise.all([
+    db.select().from(t.notificationCampaigns).orderBy(desc(t.notificationCampaigns.createdAt)).limit(100),
+    campaignAudience(),
+  ]);
+  return c.json({ items: items.map(({ cursor: _cursor, ...x }) => x), audience });
+});
 a.post('/campaigns/:id/send', async (c) => {
   needRole(c, 'SUPERADMIN');
   const id = c.req.param('id');
@@ -788,8 +883,41 @@ a.post('/campaigns/:id/send', async (c) => {
   if (!camp) throw notFound();
   if (camp.status !== 'DRAFT') throw badRequest('already_sent');
   if (!getBindings().TELEGRAM_BOT_TOKEN) throw badRequest('bot_not_configured');
-  await db.update(t.notificationCampaigns).set({ status: 'SENDING', cursor: null }).where(eq(t.notificationCampaigns.id, id));
-  await audit(c, 'send', 'campaign', id);
+  // Условие на статус в самом запросе: две одновременные кнопки «Отправить» не запустят рассылку дважды.
+  const started = await db
+    .update(t.notificationCampaigns)
+    .set({ status: 'SENDING', cursor: null })
+    .where(and(eq(t.notificationCampaigns.id, id), eq(t.notificationCampaigns.status, 'DRAFT')))
+    .returning({ id: t.notificationCampaigns.id });
+  if (!started.length) throw badRequest('already_sent');
+  await audit(c, 'send', 'campaign', id, { audience: (await campaignAudience()).total });
+  return c.json({ ok: true });
+});
+// Пробное сообщение одному игроку (обычно себе): тот же текст и та же кнопка, что получат все. Рассылка остаётся черновиком.
+a.post('/campaigns/:id/test', rateLimit(20, 10 * 60_000, 'admin-campaign-test'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const id = c.req.param('id');
+  const { who, lang } = z.object({ who: z.string().min(1).max(64), lang: z.enum(['uk', 'ru', 'en']).optional() }).parse(await body(c));
+  const camp = await db.query.notificationCampaigns.findFirst({ where: eq(t.notificationCampaigns.id, id) });
+  if (!camp) throw notFound();
+  if (!getBindings().TELEGRAM_BOT_TOKEN) throw badRequest('bot_not_configured');
+  const player = await findTelegramPlayer(who);
+  const used = lang ?? player.lang ?? 'uk';
+  await sendBotText(player.telegramId, campaignText(camp.message, used));
+  await audit(c, 'test', 'campaign', id, { userId: player.id, lang: used });
+  return c.json({ ok: true, to: { id: player.id, firstName: player.firstName, username: player.username }, lang: used });
+});
+// Остановить идущую рассылку: кто уже получил — получил, остальным не уйдёт.
+a.post('/campaigns/:id/cancel', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const id = c.req.param('id');
+  const rows = await db
+    .update(t.notificationCampaigns)
+    .set({ status: 'CANCELLED' })
+    .where(and(eq(t.notificationCampaigns.id, id), eq(t.notificationCampaigns.status, 'SENDING')))
+    .returning({ sentCount: t.notificationCampaigns.sentCount });
+  if (!rows.length) throw badRequest('not_sending');
+  await audit(c, 'cancel', 'campaign', id, { sentCount: rows[0].sentCount });
   return c.json({ ok: true });
 });
 

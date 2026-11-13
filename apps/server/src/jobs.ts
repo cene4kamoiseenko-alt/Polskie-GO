@@ -16,9 +16,10 @@
  */
 import { purgeErrors } from './services/error-log';
 import { purgeLinkCodes } from './services/standalone-auth';
+import { campaignMarkup, campaignRecipients, campaignText } from './services/campaigns';
 import { and, asc, eq, gt, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from 'drizzle-orm';
 import { dayDiff, dayKey, effectiveStreak } from '@polski-go/shared';
-import { db } from './db';
+import { atomic, db } from './db';
 import { botQuizRounds, notificationCampaigns, notificationLog, playerProgress, telegramUpdates, userSettings, users } from './db/schema';
 import { botApi, TelegramError } from './lib/telegram';
 import { config } from './env';
@@ -47,8 +48,6 @@ const UPDATES_KEEP_MS = 3 * 86_400_000;
 const QUIZ_ROUNDS_KEEP_MS = 30 * 86_400_000;
 
 const REMINDER_KINDS: readonly ReminderKind[] = ['lesson', 'streak', 'return'];
-
-const openButton = () => ({ inline_keyboard: [[{ text: '🚀 POLSKI GO', web_app: { url: config.webAppUrl } }]] });
 
 /** Який із трьох сценаріїв пасує користувачеві (лише реальні дані: серія й остання активність). */
 export function pickReminderKind(streak: number, lastActiveDay: string | null, today: string): ReminderKind {
@@ -256,24 +255,28 @@ export async function sendCampaignChunk(budget = SEND_BUDGET) {
     .select({ id: users.id, telegramId: users.telegramId, lang: userSettings.uiLanguage })
     .from(users)
     .innerJoin(userSettings, eq(userSettings.userId, users.id))
-    .where(and(eq(users.isBanned, false), gt(users.telegramId, 0), eq(userSettings.notificationsEnabled, true), c.cursor ? gt(users.id, c.cursor) : undefined))
+    .where(campaignRecipients(c.cursor))
     .orderBy(asc(users.id))
     .limit(budget);
   let sent = 0;
   for (const u of batch) {
-    const text = c.message[u.lang] ?? c.message.uk;
+    const text = campaignText(c.message, u.lang);
     try {
-      await botApi('sendMessage', { chat_id: u.telegramId, text, reply_markup: openButton() });
+      await botApi('sendMessage', { chat_id: u.telegramId, text, reply_markup: campaignMarkup() });
       sent++;
     } catch {
       /* користувач міг заблокувати бота */
     }
   }
   const done = batch.length < budget;
-  await db
-    .update(notificationCampaigns)
-    .set({ sentCount: c.sentCount + sent, cursor: batch.at(-1)?.id ?? c.cursor, ...(done ? { status: 'SENT', sentAt: new Date() } : {}) })
-    .where(eq(notificationCampaigns.id, c.id));
+  // Счётчик прибавляется к текущему значению в базе; «отправлена» — только если её не остановили из админки, пока шла эта порция.
+  await atomic([
+    db
+      .update(notificationCampaigns)
+      .set({ sentCount: sql`${notificationCampaigns.sentCount} + ${sent}`, cursor: batch.at(-1)?.id ?? c.cursor })
+      .where(eq(notificationCampaigns.id, c.id)),
+    done && db.update(notificationCampaigns).set({ status: 'SENT', sentAt: new Date() }).where(and(eq(notificationCampaigns.id, c.id), eq(notificationCampaigns.status, 'SENDING'))),
+  ]);
   return sent;
 }
 
