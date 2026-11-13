@@ -24,7 +24,7 @@ export async function getMe(userId: string) {
   // бо пояс користувача стає відомим лише з цього ж пакета. Вбрання (JOIN) і нагороди (кеш) — паралельно.
   const now = new Date();
   const days = dayCandidates(now);
-  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, giftRows, quizRow], look, cfg] = await Promise.all([
+  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, giftRows], look, cfg, quizRow] = await Promise.all([
     db.batch([
       db.select().from(users).where(eq(users.id, userId)),
       db.select().from(userSettings).where(eq(userSettings.userId, userId)),
@@ -41,11 +41,16 @@ export async function getMe(userId: string) {
         .where(and(eq(reviewSchedule.userId, userId), or(eq(reviewSchedule.itemType, 'EXERCISE'), and(eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))))),
       db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
       db.select({ key: walletTransactions.idempotencyKey }).from(walletTransactions).where(inArray(walletTransactions.idempotencyKey, giftKeys(userId, now))),
-      // Вопрос дня в боте — по Telegram ID игрока (нет строки — присылаем).
-      db.select({ pushEnabled: botQuizPlayers.pushEnabled }).from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, sql`(SELECT telegram_id FROM users WHERE id = ${userId})`)),
     ]),
     outfit(userId),
     getRewards(),
+    // Вопрос дня в боте — по Telegram ID игрока (нет строки — присылаем). Отдельным мягким запросом: на базе без таблиц бота
+    // (до миграции 0009) профиль обязан открываться.
+    db
+      .select({ pushEnabled: botQuizPlayers.pushEnabled })
+      .from(botQuizPlayers)
+      .where(eq(botQuizPlayers.telegramId, sql`(SELECT telegram_id FROM users WHERE id = ${userId})`))
+      .catch(() => [] as { pushEnabled: boolean }[]),
   ]);
   const sub = subRow[0] ?? null;
   const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0], currentCity: cityRow[0] ?? null } };
