@@ -134,6 +134,27 @@ describe('банк: качество', () => {
     expect(hits).toEqual([]);
   });
 
+  it('размер и распределение: не меньше 250 вопросов, на каждом уровне от 80, в каждой теме от 20, каждая сцена занята', () => {
+    expect(QUIZ_QUESTIONS.length).toBeGreaterThanOrEqual(250);
+    const count = (key: 'cefr' | 'category' | 'image') => {
+      const out: Record<string, number> = {};
+      for (const q of QUIZ_QUESTIONS) out[q[key]] = (out[q[key]] ?? 0) + 1;
+      return out;
+    };
+    const levels = count('cefr');
+    for (const level of ['A1', 'A2', 'B1']) expect(levels[level] ?? 0, level).toBeGreaterThanOrEqual(80);
+    const topics = count('category');
+    for (const topic of ['shopping', 'food', 'transport', 'city', 'work', 'health', 'everyday', 'grammar', 'talk']) expect(topics[topic] ?? 0, topic).toBeGreaterThanOrEqual(20);
+    const scenes = count('image');
+    for (const scene of QUIZ_SCENES) expect(scenes[scene] ?? 0, scene).toBeGreaterThanOrEqual(2);
+    // На каждом уровне хватает разных картинок и тем, чтобы соседние дни не повторялись.
+    for (const level of ['A1', 'A2', 'B1']) {
+      const pool = QUIZ_QUESTIONS.filter((q) => q.cefr === level);
+      expect(new Set(pool.map((q) => q.image)).size, `${level}: сцен`).toBeGreaterThanOrEqual(8);
+      expect(new Set(pool.map((q) => q.category)).size, `${level}: тем`).toBe(9);
+    }
+  });
+
   it('polishPhrases: варианты, польские цитаты из вопроса и фраза с подставленным верным ответом', () => {
     const gap = QUIZ_QUESTIONS.find((q) => q.prompt.en.includes('___') && Array.isArray(q.options));
     expect(gap).toBeTruthy();

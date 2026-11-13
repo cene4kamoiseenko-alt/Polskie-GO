@@ -18,7 +18,7 @@ export const SHOPPING: QuizQuestion[] = [
     },
   }),
   q({
-    id: 'shop-paragon', category: 'shopping', cefr: 'A1', kind: 'meaning', image: 'lidl',
+    id: 'shop-paragon', category: 'shopping', cefr: 'A1', kind: 'meaning', image: 'pierniki',
     prompt: {
       ru: 'Ты заплатил, и кассир спрашивает: «Paragon?» Что он предлагает?',
       uk: 'Ти заплатив, і касир питає: «Paragon?» Що він пропонує?',
@@ -37,7 +37,7 @@ export const SHOPPING: QuizQuestion[] = [
     },
   }),
   q({
-    id: 'shop-card', category: 'shopping', cefr: 'A1', kind: 'reply', image: 'stop-cafe',
+    id: 'shop-card', category: 'shopping', cefr: 'A1', kind: 'reply', image: 'zapiekanki',
     prompt: {
       ru: 'Кассир: «Jak będzie pan płacił?» Ты платишь картой. Что ответишь?',
       uk: 'Касир: «Jak będzie pan płacił?» Ти платиш карткою. Що відповіси?',
@@ -67,7 +67,7 @@ export const SHOPPING: QuizQuestion[] = [
     },
   }),
   q({
-    id: 'shop-gratis', category: 'shopping', cefr: 'A1', kind: 'meaning', image: 'lidl',
+    id: 'shop-gratis', category: 'shopping', cefr: 'A1', kind: 'meaning', image: 'pierniki',
     prompt: {
       ru: 'На ценнике: «Druga sztuka gratis». Что это значит?',
       uk: 'На ціннику: «Druga sztuka gratis». Що це означає?',

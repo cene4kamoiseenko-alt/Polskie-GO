@@ -135,7 +135,7 @@ export const FOOD: QuizQuestion[] = [
     },
   }),
   q({
-    id: 'food-pay-card', category: 'food', cefr: 'A2', kind: 'verb', image: 'stop-cafe',
+    id: 'food-pay-card', category: 'food', cefr: 'A2', kind: 'verb', image: 'cukiernia',
     prompt: {
       ru: 'Вставь: «Czy mogę ___ za kawę telefonem?» (заплатить)',
       uk: 'Встав: «Czy mogę ___ za kawę telefonem?» (заплатити)',

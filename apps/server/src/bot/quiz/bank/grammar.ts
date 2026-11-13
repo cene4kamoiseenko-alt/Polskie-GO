@@ -48,7 +48,7 @@ export const GRAMMAR_Q: QuizQuestion[] = [
     },
   }),
   q({
-    id: 'gr-o-osiemnastej', category: 'grammar', cefr: 'A2', kind: 'preposition', image: 'stop-cafe',
+    id: 'gr-o-osiemnastej', category: 'grammar', cefr: 'A2', kind: 'preposition', image: 'cukiernia',
     prompt: {
       ru: 'Вставь: «Spotykamy się ___.» (в 18:00)',
       uk: 'Встав: «Spotykamy się ___.» (о 18:00)',
