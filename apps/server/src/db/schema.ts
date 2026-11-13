@@ -933,6 +933,80 @@ export const botQuizRounds = sqliteTable(
   (t) => [index('bot_quiz_rounds_tg_idx').on(t.telegramId, t.sentAt)],
 );
 
+// ───────────────────────── Вопрос дня (рассылка раз в день) ─────────────────────────
+
+export const DAILY_LEVELS = ['A1', 'A2', 'B1'] as const;
+export const DAILY_STATUS = ['PENDING', 'SENT', 'BLOCKED', 'NO_CHAT', 'FAILED', 'UNKNOWN'] as const;
+
+/** План публикаций: на день (по Варшаве) и уровень — вопрос и картинка; skipped — в этот день рассылки нет. edited_by — кто поменял в админке. */
+export const dailyQuizPlan = sqliteTable(
+  'daily_quiz_plan',
+  {
+    day: text('day').notNull(),
+    level: text('level', { enum: DAILY_LEVELS }).notNull(),
+    questionId: text('question_id').notNull(),
+    image: text('image').notNull(),
+    skipped: bool('skipped').notNull().default(false),
+    editedBy: text('edited_by'),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.level] })],
+);
+
+/**
+ * Отправка вопроса дня человеку: ключ (день, telegram_id) — не больше одного вопроса в день (захват INSERT … ON CONFLICT DO NOTHING).
+ * Доставка (status), ответ (answered_at, chosen — индекс варианта в банке, correct) — для отчёта в админке; раунд — bot_quiz_rounds.
+ */
+export const dailyQuizSends = sqliteTable(
+  'daily_quiz_sends',
+  {
+    day: text('day').notNull(),
+    telegramId: integer('telegram_id').notNull(),
+    userId: text('user_id'),
+    level: text('level', { enum: DAILY_LEVELS }).notNull(),
+    lang: text('lang').notNull(),
+    questionId: text('question_id').notNull(),
+    status: text('status', { enum: DAILY_STATUS }).notNull().default('PENDING'),
+    roundId: text('round_id'),
+    error: text('error'),
+    leaseUntil: ts('lease_until'),
+    sentAt: ts('sent_at'),
+    answeredAt: ts('answered_at'),
+    chosen: integer('chosen'),
+    correct: bool('correct'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.telegramId] }),
+    index('daily_quiz_sends_level_idx').on(t.day, t.level, t.status),
+    index('daily_quiz_sends_round_idx').on(t.roundId),
+    index('daily_quiz_sends_tg_idx').on(t.telegramId, t.day),
+  ],
+);
+
+/** Выключатель вопроса из админки (база вопросов — в коде): выключенный не попадает ни в план, ни в /quiz. */
+export const dailyQuizQuestions = sqliteTable('daily_quiz_questions', {
+  questionId: text('question_id').primaryKey(),
+  disabled: bool('disabled').notNull().default(false),
+  updatedBy: text('updated_by'),
+  updatedAt: updatedAt(),
+});
+
+/**
+ * Счётчики человека по вопросу дня (по Telegram ID — и для тех, у кого нет аккаунта): ignored — сколько вопросов подряд без ответа
+ * (после трёх пауза), last_sent_at — последняя отправка, no_chat_at — Telegram отказал «нет чата с ботом», streak — дней подряд с ответом.
+ * Отдельная таблица, а не столбцы bot_quiz_players: миграция только добавляет таблицы, прежние не меняются.
+ */
+export const dailyQuizPeople = sqliteTable('daily_quiz_people', {
+  telegramId: integer('telegram_id').primaryKey(),
+  ignored: integer('ignored').notNull().default(0),
+  lastSentAt: ts('last_sent_at'),
+  noChatAt: ts('no_chat_at'),
+  streak: integer('streak').notNull().default(0),
+  streakDay: text('streak_day'),
+  updatedAt: updatedAt(),
+});
+
 // ───────────────────────── Місії «Польська в житті» ─────────────────────────
 
 /** Проходження місії. Відповіді перевіряє сервер; version захищає від паралельних запитів. */
