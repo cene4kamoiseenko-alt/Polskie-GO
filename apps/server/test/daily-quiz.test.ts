@@ -13,7 +13,10 @@ import { readDailyRun } from '../src/bot/daily/state';
 import { QUESTION_BY_ID, QUIZ_QUESTIONS } from '../src/bot/quiz/questions';
 import { addDays, isDayEditable, isSendingDay, readDailyState, sendWindow, warsawDay, writeDailyState } from '../src/bot/daily/state';
 import { ensurePlan, pickDaily, planRange, replacePlanItem, setDaySkipped, setQuestionDisabled } from '../src/bot/daily/plan';
-import { disposeEnv, getEnv, login } from './helpers';
+import { disposeEnv, getEnv, login, request } from './helpers';
+import { botQuizRounds, notificationLog } from '../src/db/schema';
+import { pickQuestion } from '../src/bot/quiz/engine';
+import { runScheduled, sendReminders } from '../src/jobs';
 import { fakeTelegram, tgError, type TgCall } from './tg-fake';
 
 const ORIGIN = 'https://polski.example';
@@ -327,5 +330,159 @@ describe('отправка', () => {
     await runDay('2027-01-15');
     expect(toChats(calls, [silent])).toHaveLength(4);
     await writeDailyState({ enabled: false });
+  });
+});
+
+// ───────────── Ответ, выключатель, /stop ─────────────
+
+let upd = 70_000;
+const hook = (body: unknown) => request('POST', '/telegram/webhook', body, { 'x-telegram-bot-api-secret-token': 'hook-secret' });
+const press = (tg: number, data: string, messageId = 1) =>
+  hook({ update_id: ++upd, callback_query: { id: `cb${upd}`, from: { id: tg, first_name: 'Ola', language_code: 'ru' }, message: { message_id: messageId, chat: { id: tg, type: 'private' } }, data } });
+const say = (tg: number, text: string) => hook({ update_id: ++upd, message: { message_id: upd, chat: { id: tg, type: 'private' }, from: { id: tg, first_name: 'Ola', language_code: 'ru' }, text } });
+/** Раунд вопроса дня человека за день и позиция верного (или неверного) варианта. */
+async function dailyRound(tg: number, day: string) {
+  const send = (await db.select().from(dailyQuizSends).where(and(eq(dailyQuizSends.day, day), eq(dailyQuizSends.telegramId, tg))))[0];
+  const round = (await db.select().from(botQuizRounds).where(eq(botQuizRounds.id, send.roundId!)))[0];
+  const q = QUESTION_BY_ID.get(round.questionId)!;
+  return { send, round, pos: (correct: boolean) => round.optionOrder.findIndex((i) => (i === q.answer) === correct) };
+}
+const xpOf = async (userId: string) => (await db.select().from(playerProgress).where(eq(playerProgress.userId, userId)))[0].xpTotal;
+
+describe('ответ на вопрос дня', () => {
+  it('верный ответ с аккаунтом: итог в том же сообщении, +10 XP без лимита /quiz; повторное нажатие — без второго XP', async () => {
+    const u = await appPlayer();
+    await db.update(userSettings).set({ uiLanguage: 'ru' }).where(eq(userSettings.userId, u.user.id));
+    await launch('2027-01-20');
+    fakeTelegram();
+    await runDay('2027-01-20');
+    const { round, pos } = await dailyRound(u.telegramId, '2027-01-20');
+    const before = await xpOf(u.user.id);
+    const calls = fakeTelegram();
+    expect((await press(u.telegramId, `qa:${round.id}:${pos(true)}`)).status).toBe(200);
+    const edit = calls.find((c) => c.method === 'editMessageCaption')!;
+    expect(edit.params.caption).toContain(QUESTION_BY_ID.get(round.questionId)!.explain.ru);
+    expect(edit.params.caption).toContain('+10 XP');
+    expect(JSON.stringify(edit.params.reply_markup)).toContain('qz:daily:0');
+    expect(await xpOf(u.user.id)).toBe(before + 10);
+    const player = (await db.select().from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, u.telegramId)))[0];
+    expect(player?.rewardCount ?? 0).toBe(0);
+    const send = (await dailyRound(u.telegramId, '2027-01-20')).send;
+    expect(send).toMatchObject({ correct: true, chosen: QUESTION_BY_ID.get(round.questionId)!.answer });
+    expect(send.answeredAt).toBeTruthy();
+    await press(u.telegramId, `qa:${round.id}:${pos(true)}`);
+    expect(await xpOf(u.user.id)).toBe(before + 10);
+  });
+
+  it('без аккаунта: XP нет, подсказка про вход и кнопка в приложение вместо урока', async () => {
+    const tg = await botOnly('ru');
+    await launch('2027-01-21');
+    fakeTelegram();
+    await runDay('2027-01-21');
+    const { round, pos } = await dailyRound(tg, '2027-01-21');
+    const calls = fakeTelegram();
+    await press(tg, `qa:${round.id}:${pos(true)}`);
+    const edit = calls.find((c) => c.method === 'editMessageCaption')!;
+    expect(edit.params.caption).toContain('POLSKI GO');
+    expect(edit.params.caption).not.toContain('XP</');
+    expect(JSON.stringify(edit.params.reply_markup.inline_keyboard[0])).not.toContain('bot_screen=learn');
+  });
+
+  it('процент верных по уровню — с пятого ответившего; серия вопросов дня растёт день за днём', async () => {
+    const five = [await botOnly('ru'), await botOnly('ru'), await botOnly('ru'), await botOnly('ru'), await botOnly('ru')];
+    await launch('2027-01-22');
+    fakeTelegram();
+    await runDay('2027-01-22');
+    const answered = (await db.select().from(dailyQuizSends).where(and(eq(dailyQuizSends.day, '2027-01-22'), eq(dailyQuizSends.level, 'A1')))).filter((r) => r.answeredAt).length;
+    expect(answered).toBe(0);
+    let last: TgCall[] = [];
+    for (const [i, tg] of five.entries()) {
+      const { round, pos } = await dailyRound(tg, '2027-01-22');
+      last = fakeTelegram();
+      await press(tg, `qa:${round.id}:${pos(i < 4)}`);
+      const caption = last.find((c) => c.method === 'editMessageCaption')!.params.caption as string;
+      if (i < 4) expect(caption, `answer ${i + 1}`).not.toMatch(/📊/);
+      else expect(caption).toMatch(/📊 Сегодня верно ответили 80 %/);
+    }
+    await launch('2027-01-23');
+    fakeTelegram();
+    await runDay('2027-01-23');
+    const { round, pos } = await dailyRound(five[0], '2027-01-23');
+    last = fakeTelegram();
+    await press(five[0], `qa:${round.id}:${pos(false)}`);
+    expect(last.find((c) => c.method === 'editMessageCaption')!.params.caption).toContain('2 дня подряд');
+  });
+
+  it('«Не присылать вопрос дня» выключает рассылку человеку, кнопка меняется на «Присылать»; /stop без аккаунта — тоже', async () => {
+    const tg = await botOnly('ru');
+    let calls = fakeTelegram();
+    await press(tg, 'qz:daily:0', 55);
+    expect((await db.select().from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg)))[0].pushEnabled).toBe(false);
+    expect(calls.find((c) => c.method === 'answerCallbackQuery')!.params.text).toMatch(/больше не пришлю/);
+    await press(tg, 'qz:daily:1', 55);
+    expect((await db.select().from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg)))[0].pushEnabled).toBe(true);
+    const other = await botOnly('ru');
+    calls = fakeTelegram();
+    await say(other, '/stop');
+    expect((await db.select().from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, other)))[0].pushEnabled).toBe(false);
+    const people = await allPeople();
+    expect(dailyEligibility(people.find((p) => p.telegramId === other)!)).toBe('opted_out');
+  });
+
+  it('/quiz не задаёт выключенные вопросы', () => {
+    const off = new Set(QUIZ_QUESTIONS.slice(0, QUIZ_QUESTIONS.length - 5).map((q) => q.id));
+    for (let i = 0; i < 200; i++) expect(off.has(pickQuestion([], 'A1', Math.random, off).id)).toBe(false);
+  });
+});
+
+// ───────────── Напоминания и приглашения при включённой рассылке ─────────────
+
+describe('одно сообщение в день', () => {
+  async function reminderPlayer() {
+    const u = await login();
+    await db.update(userSettings).set({ notificationsEnabled: true, reminderHour: 19, timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, u.user.id));
+    return u;
+  }
+  const at19 = (day: string) => new Date(`${day}T18:05:00Z`);
+  const reminderLog = async (userId: string, day: string) => (await db.select().from(notificationLog).where(and(eq(notificationLog.userId, userId), eq(notificationLog.day, day))))[0];
+
+  it('получатель вопроса дня напоминание не получает (SKIPPED daily_quiz); выключивший вопрос дня — получает', async () => {
+    const gets = await reminderPlayer();
+    const optedOut = await reminderPlayer();
+    await db.insert(botQuizPlayers).values({ telegramId: optedOut.telegramId, pushEnabled: false });
+    await launch('2027-02-01');
+    const calls = fakeTelegram();
+    await sendReminders(at19('2027-02-01'));
+    expect(toChats(calls, [gets.telegramId])).toEqual([]);
+    expect(toChats(calls, [optedOut.telegramId])).toHaveLength(1);
+    expect(await reminderLog(gets.user.id, '2027-02-01')).toMatchObject({ status: 'SKIPPED', error: 'daily_quiz' });
+  });
+
+  it('в пропущенный день и при выключенной рассылке напоминания идут всем', async () => {
+    const a = await reminderPlayer();
+    await launch('2027-02-02');
+    await ensurePlan('2027-02-02', 1);
+    await setDaySkipped('2027-02-02', true, null);
+    let calls = fakeTelegram();
+    await sendReminders(at19('2027-02-02'));
+    expect(toChats(calls, [a.telegramId])).toHaveLength(1);
+    await writeDailyState({ enabled: false });
+    calls = fakeTelegram();
+    await sendReminders(at19('2027-02-03'));
+    expect(toChats(calls, [a.telegramId])).toHaveLength(1);
+  });
+
+  it('пока рассылка включена, приглашения к /quiz не отправляются', async () => {
+    const u = await login();
+    await db.update(userSettings).set({ notificationsEnabled: true, reminderHour: 8, timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, u.user.id));
+    await db.insert(botQuizPlayers).values({ telegramId: u.telegramId, answered: 1, lastQuestionAt: new Date(0) });
+    await launch('2027-02-04');
+    let calls = fakeTelegram();
+    await runScheduled(new Date('2027-02-04T12:00:00Z'));
+    expect(toChats(calls, [u.telegramId])).toEqual([]);
+    await writeDailyState({ enabled: false });
+    calls = fakeTelegram();
+    await runScheduled(new Date('2027-02-05T12:00:00Z'));
+    expect(toChats(calls, [u.telegramId])).toHaveLength(1);
   });
 });

@@ -32,7 +32,9 @@ import { maintainBot } from './bot/maintain';
 import { sendQuizInvites } from './bot/quiz/invites';
 import { sendCard } from './bot/send';
 import { ensurePlan } from './bot/daily/plan';
-import { warsawDay } from './bot/daily/state';
+import { readDailyState, warsawDay } from './bot/daily/state';
+import { dailyEligibility, personByTelegramId } from './bot/daily/audience';
+import { dailyReplacesReminders } from './bot/daily/send';
 
 /** Безкоштовний Worker має ліміт 50 підзапитів за виклик: бюджет рахується у викликах Bot API (фото + запасний текст — два). */
 const SEND_BUDGET = 35;
@@ -178,6 +180,9 @@ async function retryFailed(now: Date, budget: number, stats: { calls: number }):
 /** Повертає кількість нагадувань, які Telegram прийняв. `budget` — найбільше викликів Bot API за запуск. */
 export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stats = { calls: 0 }) {
   if (budget <= 0) return 0;
+  // Пока идёт рассылка вопроса дня, напоминание получают только те, кому вопрос не придёт (выключили его, пауза, нет чата):
+  // одно сообщение в день. Таблиц вопроса дня может ещё не быть (миграция 0018) — тогда всё как раньше.
+  const dailyOn = await dailyReplacesReminders(now).catch(() => false);
   await expireLeases(now);
   let sent = await retryFailed(now, budget, stats);
   // 1) Які пояси зараз у годині нагадування: DISTINCT (пояс, година) — кілька рядків замість тисяч користувачів.
@@ -242,6 +247,14 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stat
         .onConflictDoNothing()
         .returning({ id: notificationLog.id });
       if (!claimed.length) continue;
+      if (dailyOn) {
+        const person = await personByTelegramId(u.telegramId).catch(() => null);
+        if (person && dailyEligibility(person) === 'ok') {
+          // Вместо напоминания придёт вопрос дня (со строкой о серии); строка журнала закрывает день — кандидат не вернётся.
+          await db.update(notificationLog).set({ status: 'SKIPPED', error: 'daily_quiz', leaseUntil: null, updatedAt: now }).where(eq(notificationLog.id, claimed[0].id));
+          continue;
+        }
+      }
       if (await deliver({ logId: claimed[0].id, telegramId: u.telegramId, lang: u.lang, kind, streak, attempt: 1, hour: u.hour }, now, stats)) sent++;
     }
   }
@@ -302,5 +315,7 @@ export async function runScheduled(now = new Date()) {
   const stats = { calls: 0 };
   await sendReminders(now, left, stats);
   left -= stats.calls;
-  await sendQuizInvites(now, left).catch((e) => console.warn('quiz invites failed', (e as Error).message));
+  // Приглашения к /quiz — только пока рассылка вопроса дня выключена (иначе два сообщения в день).
+  const daily = await readDailyState().catch(() => null);
+  if (!daily?.enabled) await sendQuizInvites(now, left).catch((e) => console.warn('quiz invites failed', (e as Error).message));
 }

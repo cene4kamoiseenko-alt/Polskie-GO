@@ -16,6 +16,7 @@ import { commandForLabel, sendPanel } from './panel';
 import { sendCard, type Sent } from './send';
 import { QUIZ_COPY } from './quiz/copy';
 import { handleQuizCallback, sendQuizBlocked, startQuiz, type CallbackQuery } from './quiz/engine';
+import { setQuizPush } from './daily/answer';
 
 export type BotMessage = {
   message_id?: number;
@@ -154,15 +155,15 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
       break;
     }
     case 'stop': {
-      // Выключаем только учебные напоминания существующего пользователя; о выполненном сообщаем лишь после успешной записи.
+      // Выключаем учебные напоминания (у игрока приложения) и вопрос дня по Telegram ID (у всех, и без аккаунта);
+      // о выполненном сообщаем лишь после успешной записи.
       if (dbDown) return failStop(target.chatId, copy.stopFailed);
-      if (user) {
-        try {
-          await disableReminders(user.id);
-        } catch (e) {
-          log('stop', e);
-          return failStop(target.chatId, copy.stopFailed);
-        }
+      try {
+        if (user) await disableReminders(user.id);
+        await setQuizPush(from.id, false, now);
+      } catch (e) {
+        log('stop', e);
+        return failStop(target.chatId, copy.stopFailed);
       }
       card = copy.stop(vars);
       break;

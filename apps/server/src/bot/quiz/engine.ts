@@ -27,6 +27,10 @@ import type { BotUser } from '../data';
 import { escapeHtml as h } from '../html';
 import { buildKeyboard, isPhotoProblem, screenUrl } from '../send';
 import { QUIZ_COPY, type QuizCopy } from './copy';
+import { DAILY_COPY } from '../daily/copy';
+import { dailyResultFor, recordDailyAnswer, setQuizPush } from '../daily/answer';
+import { disabledQuestionIds } from '../daily/plan';
+import { dailyResultView, dailyToggle } from '../daily/views';
 import { quizSceneFile } from './scenes';
 import { BUTTON_TEXT_MAX, LETTERS } from './layout';
 import { CATEGORY_NAMES, QUESTION_BY_ID, QUIZ_QUESTIONS, optionsOf, type QuizQuestion } from './questions';
@@ -88,11 +92,14 @@ const LEVEL_WEIGHTS: Record<'low' | 'mid' | 'high', Record<QuizQuestion['cefr'],
 const band = (level: string | null) => (level === 'B1' || level === 'B2' ? 'high' : level === 'A2' ? 'mid' : 'low');
 
 /** Вопрос под уровень: без недавних и, если можно, не из темы прошлого вопроса. */
-export function pickQuestion(recent: string[], level: string | null, rnd: () => number = Math.random): QuizQuestion {
+export function pickQuestion(recent: string[], level: string | null, rnd: () => number = Math.random, exclude: Set<string> = new Set()): QuizQuestion {
   const seen = new Set(recent);
   const lastCategory = recent.length ? QUESTION_BY_ID.get(recent[recent.length - 1])?.category : undefined;
-  let pool = QUIZ_QUESTIONS.filter((x) => !seen.has(x.id));
-  if (!pool.length) pool = QUIZ_QUESTIONS.filter((x) => x.id !== recent[recent.length - 1]);
+  // Выключенные в админке вопросы не задаются (если выключено всё — банк целиком, чтобы /quiz не сломался).
+  const bank = QUIZ_QUESTIONS.filter((x) => !exclude.has(x.id));
+  const all = bank.length ? bank : QUIZ_QUESTIONS;
+  let pool = all.filter((x) => !seen.has(x.id));
+  if (!pool.length) pool = all.filter((x) => x.id !== recent[recent.length - 1]);
   const otherTopic = pool.filter((x) => x.category !== lastCategory);
   if (otherTopic.length) pool = otherTopic;
   const weights = LEVEL_WEIGHTS[band(level)];
@@ -131,7 +138,9 @@ export async function startQuiz(t: QuizTarget, now = new Date()): Promise<StartR
   if (gate.status !== 'open') return { status: gate.status };
 
   const recent = player?.recent ?? [];
-  const question = pickQuestion(recent, t.user ? await levelOf(t.user.id).catch(() => null) : null);
+  // Таблица выключателей — из миграции 0018: до её применения /quiz работает со всем банком.
+  const disabled = await disabledQuestionIds().catch(() => new Set<string>());
+  const question = pickQuestion(recent, t.user ? await levelOf(t.user.id).catch(() => null) : null, Math.random, disabled);
   const order = shuffle([...optionsOf(question, t.lang).keys()]);
   const nextRecent = [...recent.filter((id) => id !== question.id), question.id].slice(-RECENT_KEEP);
   const nowMs = now.getTime();
@@ -340,8 +349,12 @@ async function toast(cb: CallbackQuery, text?: string) {
   }
 }
 
+/** Вопрос дня (и его пробная отправка из админки): без таймера, свой итог (dailyResultView). */
+const isDaily = (round: Pick<Round, 'source'>) => round.source === 'daily' || round.source === 'test';
+
 /** Итог для отправленного вопроса с учётом лимита наград и переключателем приглашений. */
 async function resultFor(round: Round, question: QuizQuestion, user: BotUser | null, now: Date) {
+  if (isDaily(round)) return dailyResultView(round, question, await dailyResultFor(round, user));
   const player = await db.select().from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, round.telegramId)).get();
   const day = dayKey(now, user?.timezone ?? 'Europe/Warsaw');
   const view = resultView(round, question, { hasUser: !!user, rewardsLeft: rewardsLeft(player, day), cap: !!player && player.day === day && player.dayCount >= QUIZ_DAILY_CAP });
@@ -366,6 +379,20 @@ export async function handleQuizCallback(cb: CallbackQuery, user: BotUser | null
     const res = await startQuiz({ telegramId: cb.from.id, chatId: chat.id, lang, user, source: data === 'qz:go' ? 'push' : 'next' }, now);
     await toast(cb, res.status === 'cap' ? copy.cap(QUIZ_DAILY_CAP) : undefined);
     return res.status;
+  }
+
+  const daily = /^qz:daily:([01])$/.exec(data);
+  if (daily) {
+    const enabled = daily[1] === '1';
+    await setQuizPush(cb.from.id, enabled, now);
+    await toast(cb, enabled ? DAILY_COPY[lang].onDone : DAILY_COPY[lang].offDone);
+    const msg = cb.message as { message_id: number; chat: { id: number }; reply_markup?: InlineKeyboard } | undefined;
+    const rows = msg?.reply_markup?.inline_keyboard ?? [];
+    if (msg && rows.length) {
+      const updated = rows.map((r) => r.map((b) => ('callback_data' in b && b.callback_data.startsWith('qz:daily:') ? dailyToggle(lang, enabled) : b)));
+      await botApi('editMessageReplyMarkup', { chat_id: msg.chat.id, message_id: msg.message_id, reply_markup: { inline_keyboard: updated } }).catch(() => {});
+    }
+    return enabled ? 'daily_on' : 'daily_off';
   }
 
   const push = /^qz:push:([01])$/.exec(data);
@@ -414,7 +441,8 @@ async function answerRound(cb: CallbackQuery, roundId: string, position: number,
   }
 
   const correct = chosen === question.answer;
-  const onTime = now.getTime() - round.sentAt.getTime() <= QUIZ_ON_TIME_MS;
+  // У вопроса дня времени на ответ нет.
+  const onTime = isDaily(round) || now.getTime() - round.sentAt.getTime() <= QUIZ_ON_TIME_MS;
   const claimed = await db
     .update(botQuizRounds)
     .set({ status: 'ANSWERED', chosen, correct, onTime, answeredAt: now })
@@ -428,7 +456,12 @@ async function answerRound(cb: CallbackQuery, roundId: string, position: number,
   }
 
   let xp = 0;
-  if (correct && onTime && user) {
+  if (round.source === 'daily') {
+    // XP за вопрос дня — вне дневного лимита наград /quiz (вопрос один в день).
+    xp = await recordDailyAnswer(round, chosen, correct, user, now);
+  } else if (round.source === 'test') {
+    // Пробная отправка из админки: без XP и без записи в отчёт.
+  } else if (correct && onTime && user) {
     const day = dayKey(now, user.timezone ?? 'Europe/Warsaw');
     if (await claimRewardSlot(cb.from.id, day, now)) {
       try {
