@@ -767,6 +767,8 @@ export const en: Dict = {
   theme_dark: 'Dark',
   set_goal: 'Daily goal',
   set_notifications: 'Reminders',
+  set_daily_quiz: 'Question of the day in the bot',
+  set_daily_quiz_d: 'Once a day Bobek sends a Polish question with an explanation in Telegram.',
   set_reminder_hour: 'Reminder time',
   set_sound: 'Sounds',
   set_pron: "Pronunciation hint",

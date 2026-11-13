@@ -5,7 +5,7 @@ import { config } from '../env';
 import { and, count, desc, eq, gt, inArray, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import {
-  cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
+  botQuizPlayers, cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
   quests, reviewSchedule, subscriptions, walletTransactions, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
 } from '../db/schema';
 import { getRewards } from './gameConfig';
@@ -24,7 +24,7 @@ export async function getMe(userId: string) {
   // бо пояс користувача стає відомим лише з цього ж пакета. Вбрання (JOIN) і нагороди (кеш) — паралельно.
   const now = new Date();
   const days = dayCandidates(now);
-  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, giftRows], look, cfg] = await Promise.all([
+  const [[userRow, settingsRow, profileRow, progressRow, cityRow, walletRow, subRow, activityRows, dueRow, mistakesRow, unseenRow, giftRows, quizRow], look, cfg] = await Promise.all([
     db.batch([
       db.select().from(users).where(eq(users.id, userId)),
       db.select().from(userSettings).where(eq(userSettings.userId, userId)),
@@ -41,6 +41,8 @@ export async function getMe(userId: string) {
         .where(and(eq(reviewSchedule.userId, userId), or(eq(reviewSchedule.itemType, 'EXERCISE'), and(eq(reviewSchedule.itemType, 'WORD'), gt(reviewSchedule.lapses, 0))))),
       db.select({ n: count() }).from(userAchievements).where(and(eq(userAchievements.userId, userId), eq(userAchievements.seen, false))),
       db.select({ key: walletTransactions.idempotencyKey }).from(walletTransactions).where(inArray(walletTransactions.idempotencyKey, giftKeys(userId, now))),
+      // Вопрос дня в боте — по Telegram ID игрока (нет строки — присылаем).
+      db.select({ pushEnabled: botQuizPlayers.pushEnabled }).from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, sql`(SELECT telegram_id FROM users WHERE id = ${userId})`)),
     ]),
     outfit(userId),
     getRewards(),
@@ -62,6 +64,8 @@ export async function getMe(userId: string) {
     telegramId: user.telegramId.toString(),
     // Гостевой аккаунт (вход вне Telegram, services/standalone-auth.ts): id отрицательный. Напоминания и рассылки такому игроку не приходят.
     guest: user.telegramId < 0,
+    // Вопрос дня в боте (переключатель в настройках): у гостя бота нет — null.
+    dailyQuiz: user.telegramId < 0 ? null : (quizRow[0]?.pushEnabled ?? true),
     // Включён ли вход вне Telegram на сервере (STANDALONE_AUTH=on): без него карточка «Вход на другом устройстве» в настройках не показывается.
     standaloneAuth: config.standaloneAuth,
     firstName: user.firstName,

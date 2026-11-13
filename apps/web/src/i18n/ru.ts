@@ -767,6 +767,8 @@ export const ru: Dict = {
   theme_dark: 'Тёмная',
   set_goal: 'Цель на день',
   set_notifications: 'Напоминания',
+  set_daily_quiz: 'Вопрос дня в боте',
+  set_daily_quiz_d: 'Раз в день Бобек присылает в Telegram вопрос по польскому с пояснением.',
   set_reminder_hour: 'Время напоминания',
   set_sound: 'Звуки',
   set_pron: "Подсказка произношения",

@@ -798,6 +798,8 @@ export const uk = {
   theme_dark: 'Темна',
   set_goal: 'Мета на день',
   set_notifications: 'Нагадування',
+  set_daily_quiz: 'Питання дня в боті',
+  set_daily_quiz_d: 'Раз на день Бобек надсилає в Telegram питання з польської з поясненням.',
   set_reminder_hour: 'Час нагадування',
   set_sound: 'Звуки',
   set_pron: "Підказка вимови",

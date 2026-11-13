@@ -19,7 +19,7 @@ export function useRefreshAll() {
 export function useUpdateSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: Partial<Me['settings']>) => api<Me>('/me/settings', { method: 'PATCH', body }),
+    mutationFn: (body: Partial<Me['settings']> & { dailyQuiz?: boolean }) => api<Me>('/me/settings', { method: 'PATCH', body }),
     onSuccess: (me) => qc.setQueryData(['me'], me),
   });
 }

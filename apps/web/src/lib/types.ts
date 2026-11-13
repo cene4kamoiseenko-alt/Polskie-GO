@@ -14,6 +14,8 @@ export type Me = {
   guest?: boolean;
   /** Вход вне Telegram включён на сервере (код переноса можно получить). */
   standaloneAuth?: boolean;
+  /** Вопрос дня в боте: присылать ли (null — гость, у него нет бота; поле может отсутствовать у старого сервера). */
+  dailyQuiz?: boolean | null;
   createdAt: string;
   settings: {
     uiLanguage: UiLang;

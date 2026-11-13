@@ -126,7 +126,7 @@ export default function SettingsScreen() {
   const [del, setDel] = useState(false);
   const [beaverName, setBeaverName] = useState(me.profile.beaverName);
   const [displayName, setDisplayName] = useState(me.profile.displayName ?? '');
-  const set = (patch: Partial<Me['settings']>) => upd.mutate(patch);
+  const set = (patch: Partial<Me['settings']> & { dailyQuiz?: boolean }) => upd.mutate(patch);
 
   const saveProfile = async () => {
     const r = await api<Me>('/me/profile', { method: 'PATCH', body: { beaverName: beaverName || 'Bobek', displayName: displayName || null } });
@@ -162,6 +162,11 @@ export default function SettingsScreen() {
           <div className="py-3">
             <div className="mb-2 text-sm font-black">{t('set_reminder_hour')}</div>
             <Seg value={s.reminderHour ?? 19} options={[8, 12, 18, 19, 20, 21].map((h) => [h, `${h}:00`] as [number, string])} onChange={(v) => set({ reminderHour: v })} />
+          </div>
+        )}
+        {!me.guest && typeof me.dailyQuiz === 'boolean' && (
+          <div data-daily-quiz-toggle>
+            <Toggle icon="chat" label={t('set_daily_quiz')} description={t('set_daily_quiz_d')} checked={me.dailyQuiz} onChange={(v) => set({ dailyQuiz: v })} />
           </div>
         )}
         <Toggle icon="headphones" label={t('set_sound')} checked={s.soundEnabled} onChange={(v) => set({ soundEnabled: v })} />

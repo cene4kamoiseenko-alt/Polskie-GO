@@ -17,6 +17,7 @@ import { signToken } from '../lib/token';
 import { upsertTelegramUser } from '../services/users';
 import { PLATFORMS, createGuest, createLinkCode, issueDeviceKey, loginWithDevice, redeemLinkCode } from '../services/standalone-auth';
 import { getDiary, getMe, getStats } from '../services/profile';
+import { setQuizPush } from '../bot/daily/answer';
 
 const TOKEN_TTL = 7 * 24 * 3600;
 
@@ -107,8 +108,11 @@ me.patch('/me/settings', async (c) => {
       pronHint: z.enum(['simple', 'ipa', 'off']).optional(),
       publicProfile: z.boolean().optional(),
       showInLeaderboard: z.boolean().optional(),
+      // Вопрос дня в боте: хранится по Telegram ID (bot_quiz_players), у гостя бота нет.
+      dailyQuiz: z.boolean().optional(),
     })
     .parse(await body(c));
+  const { dailyQuiz, ...settings } = b;
   if (b.timezone) {
     try {
       new Intl.DateTimeFormat('en', { timeZone: b.timezone });
@@ -117,7 +121,12 @@ me.patch('/me/settings', async (c) => {
     }
   }
   const userId = c.get('userId');
-  if (Object.keys(b).length) await atomic([db.update(userSettings).set(b).where(eq(userSettings.userId, userId)), ...(await rebaseStreakDay(userId, b.timezone))]);
+  if (dailyQuiz !== undefined) {
+    const u = await db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, userId)).get();
+    if (!u || u.telegramId <= 0) throw badRequest('no_telegram');
+    await setQuizPush(u.telegramId, dailyQuiz);
+  }
+  if (Object.keys(settings).length) await atomic([db.update(userSettings).set(settings).where(eq(userSettings.userId, userId)), ...(await rebaseStreakDay(userId, settings.timezone))]);
   return c.json(await getMe(userId));
 });
 
