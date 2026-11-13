@@ -112,7 +112,8 @@ export function Kpi({ label, value, icon, tone = 'brand', now, prev, hint, inver
 
 export function Segmented<T extends string | number>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
   return (
-    <div role="group" aria-label={label} className="inline-flex rounded-xl border border-line bg-white p-0.5 shadow-sm">
+    // flex-wrap: на узком экране длинный переключатель переносится, а не обрезается краем карточки.
+    <div role="group" aria-label={label} className="inline-flex max-w-full flex-wrap rounded-xl border border-line bg-white p-0.5 shadow-sm">
       {options.map(([v, text]) => (
         <button key={String(v)} type="button" aria-pressed={v === value} onClick={() => onChange(v)} className={cx('min-h-10 rounded-[10px] px-3 py-1.5 text-sm font-semibold transition md:min-h-0', v === value ? 'bg-night text-white shadow' : 'text-slate-600 hover:bg-slate-100')}>
           {text}

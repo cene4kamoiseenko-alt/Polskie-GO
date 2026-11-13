@@ -65,6 +65,19 @@ async function main() {
   const asRoot = { authorization: `Bearer ${rootLogin.body.token}` };
   await request('POST', '/api/admin/admins', { email: 'support-screens@test.dev', name: 'Оксана', role: 'SUPPORT', password: 'support-password-123' }, asRoot);
 
+  // Вопрос дня (2026-11-13): сегодняшняя рассылка двум людям (минутный запуск в окне отправки), app1 ответил верно; потом рассылку выключаем —
+  // владелец видит план до запуска и запускает сам.
+  const daily = await import(root + '/apps/server/src/bot/daily/state.ts');
+  const { runDailyQuizTick } = await import(root + '/apps/server/src/bot/daily/send.ts');
+  const { QUESTION_BY_ID } = await import(root + '/apps/server/src/bot/quiz/questions.ts');
+  const todayW = daily.warsawDay(new Date());
+  const st = await daily.writeDailyState({ enabled: true, startDay: todayW });
+  await runDailyQuizTick(new Date(daily.sendWindow(st, todayW).from.getTime() + 60_000));
+  await daily.writeDailyState({ enabled: false, startDay: null });
+  const dq = (await db.select().from(schema.dailyQuizSends).where(eq(schema.dailyQuizSends.telegramId, app1.telegramId)))[0];
+  const dqRound = (await db.select().from(schema.botQuizRounds).where(eq(schema.botQuizRounds.id, dq.roundId)))[0];
+  await request('POST', '/telegram/webhook', { update_id: ++upd, callback_query: { id: `cb${upd}`, from: { id: app1.telegramId, first_name: 'A' }, message: { message_id: 1, chat: { id: app1.telegramId, type: 'private' } }, data: `qa:${dqRound.id}:${dqRound.optionOrder.indexOf(QUESTION_BY_ID.get(dqRound.questionId).answer)}` } }, { 'x-telegram-bot-api-secret-token': env.TELEGRAM_WEBHOOK_SECRET });
+
   const browser = await chromium.launch({ executablePath: chromiumPath(chromium) });
   try {
     for (const [width, height] of [[390, 844], [1280, 800]] as const) {
@@ -298,6 +311,61 @@ async function main() {
         await axe('«Рассылки» (список)');
         await p.screenshot({ path: `${OUT}/campaigns-${width}.png`, fullPage: true });
       }
+
+      // «Вопрос дня»: план на 30 дней до запуска, запуск и остановка, замена вопроса, отчёт по дню, банк вопросов, блок в карточке игрока.
+      await go('Вопрос дня', 'Вопрос дня');
+      await p.locator('[data-daily-day]').first().waitFor({ timeout: 15_000 });
+      check((await p.locator('[data-daily-day]').count()) === 30, `${width}px «Вопрос дня»: план на 30 дней (${await p.locator('[data-daily-day]').count()})`);
+      check((await p.locator('[data-daily-state="off"]').count()) === 1, `${width}px «Вопрос дня»: рассылка выключена, пока владелец не запустит`);
+      check((await p.locator('[data-daily-item]').count()) === 90, `${width}px «Вопрос дня»: по 3 уровня в каждом дне`);
+      await p.locator('[data-daily-day]').nth(1).locator('summary').first().click();
+      check((await p.locator('[data-daily-day]').nth(1).locator('[data-daily-preview]').first().innerText()).includes('Pytanie dnia'), `${width}px «Вопрос дня»: «как увидит игрок»`);
+      await noHScroll('вопрос дня: план');
+      await axe('«Вопрос дня» (план)');
+      await p.screenshot({ path: `${OUT}/daily-plan-${width}.png`, fullPage: false });
+      if (wide) {
+        await p.click('[data-daily-start]');
+        await p.locator('[data-dialog]').waitFor({ timeout: 5_000 });
+        check(/людям/.test(await p.locator('[data-dialog]').innerText()), `${width}px «Вопрос дня»: перед запуском — сколько человек получат и сколько займёт`);
+        await p.click('[data-dialog-confirm]');
+        await toast('Рассылка запущена');
+        await p.locator('[data-daily-state="on"]').waitFor({ timeout: 10_000 });
+        await p.click('[data-daily-stop]');
+        await p.click('[data-dialog-confirm]');
+        await p.locator('[data-daily-state="off"]').waitFor({ timeout: 10_000 });
+        check(true, `${width}px «Вопрос дня»: запуск и остановка`);
+        const sel = p.locator('[data-daily-day]').nth(2).locator('[data-daily-replace]').first();
+        const values = await sel.locator('option').evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value));
+        const current = await sel.inputValue();
+        await sel.selectOption(values.find((v) => v !== current)!);
+        await toast('Вопрос заменён');
+        check(true, `${width}px «Вопрос дня»: вопрос заменён из списка`);
+      }
+      await p.getByRole('group', { name: 'Раздел' }).getByRole('button', { name: 'День' }).click();
+      await p.locator('[data-daily-level]').first().waitFor({ timeout: 10_000 });
+      await p.locator('table:has(caption:text("Получатели вопроса дня")) tbody tr:not([data-loading]):not([data-empty])').first().waitFor({ timeout: 10_000 });
+      const dayText = await p.locator('main').innerText();
+      check(/дошло/.test(dayText) && /✓ верно/.test(dayText), `${width}px «Вопрос дня» → «День»: доставка и верный ответ по каждому человеку`);
+      await p.waitForTimeout(400); // переключатель вкладок плавно меняет цвет — проверяем контраст после перехода
+      await noHScroll('вопрос дня: день');
+      await axe('«Вопрос дня» (день)');
+      await p.screenshot({ path: `${OUT}/daily-day-${width}.png`, fullPage: true });
+      await p.getByRole('group', { name: 'Раздел' }).getByRole('button', { name: 'Вопросы' }).click();
+      await p.locator('[data-daily-toggle]').first().waitFor({ timeout: 10_000 });
+      if (wide) {
+        await p.locator('[data-daily-toggle]').first().click();
+        await toast('Вопрос выключен');
+        await p.locator('[data-daily-toggle]').first().click();
+        await toast('Вопрос включён');
+        check(true, `${width}px «Вопрос дня» → «Вопросы»: выключатель вопроса`);
+      }
+      await p.waitForTimeout(400);
+      await noHScroll('вопрос дня: вопросы');
+      await axe('«Вопрос дня» (вопросы)');
+      await p.screenshot({ path: `${OUT}/daily-questions-${width}.png`, fullPage: false });
+      await p.goto(`${base}/admin/users/${app1.user.id}`);
+      await p.locator('[data-user-daily]').waitFor({ timeout: 10_000 });
+      check((await p.locator('[data-user-daily]').innerText()).includes('✓ верно'), `${width}px карточка игрока: блок «Вопросы дня»`);
 
       // «Журнал действий»: обычными словами, отбор по действию.
       await go('Журнал действий', 'Журнал действий');

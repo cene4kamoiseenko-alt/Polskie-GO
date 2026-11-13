@@ -7,6 +7,7 @@ import Dashboard, { sourceLabel } from './Dashboard';
 import Errors from './Errors';
 import Money, { PaymentLog } from './Money';
 import Campaigns from './Campaigns';
+import { DailyQuiz } from './DailyQuiz';
 import { ResourceEdit, ResourceList } from './Content';
 import { Reports, Support } from './Inbox';
 import { Admins, Audit, Bot, ROLE_RU, Rewards } from './System';
@@ -919,6 +920,32 @@ function UserDetail({ admin }: { admin: Admin }) {
         </dl>
       </Card>
 
+      <Card title="Вопросы дня" subtitle="последние 14 дней: дошёл ли вопрос, ответил ли, верно ли" data-user-daily>
+        {u.dailyQuiz?.length ? (
+          <ul className="divide-y divide-line text-sm">
+            {(u.dailyQuiz as { day: string; prompt: string; status: string; answeredAt: number | null; correct: boolean | null }[]).map((d) => (
+              <li key={d.day} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+                <span className="w-14 shrink-0 tabular-nums text-slate-500">{d.day.slice(8, 10)}.{d.day.slice(5, 7)}</span>
+                <span className="min-w-0 flex-1">{d.prompt}</span>
+                <span className="text-xs">
+                  {d.status !== 'SENT' ? (
+                    <span className="text-[#b42336]">не дошёл</span>
+                  ) : !d.answeredAt ? (
+                    <span className="text-slate-500">без ответа</span>
+                  ) : d.correct ? (
+                    <span className="font-semibold text-[#0f6b48]">✓ верно</span>
+                  ) : (
+                    <span className="font-semibold text-[#b42336]">✗ неверно</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-500">Вопросов дня ещё не было.</p>
+        )}
+      </Card>
+
       <Card title="Действия">
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -1019,8 +1046,10 @@ function navGroups(role: Admin['role']): [string, NavItem[]][] {
   }
   if (role !== 'SUPPORT') groups.push(['Контент', [...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
   if (role === 'SUPERADMIN') {
-    groups.push(['Бот', [['/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
+    groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠'], ['/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
     groups.push(['Система', [['/audit', 'Журнал действий', '📜'], ['/admins', 'Администраторы', '🔐']]]);
+  } else if (role === 'SUPPORT') {
+    groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠']]]);
   }
   return groups;
 }
@@ -1153,6 +1182,7 @@ export function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/bot" element={<Bot />} />
             <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/daily-quiz" element={<DailyQuiz superadmin={admin.role === 'SUPERADMIN'} />} />
             <Route path="/r/campaigns" element={<Navigate to="/campaigns" replace />} />
             <Route path="/audio" element={<AudioLibrary admin={admin} />} />
             <Route path="/audit" element={<Audit />} />

@@ -38,6 +38,12 @@ const ERRORS: Record<string, string> = {
   file_too_large: 'Файл слишком большой',
   unsupported_type: 'Такой тип файла не поддерживается',
   already_sent: 'Уже отправлено',
+  day_locked: 'Этот день уже не изменить: он прошёл или рассылка сегодня уже идёт',
+  wrong_level: 'Вопрос другого уровня — выберите вопрос того же уровня',
+  question_disabled: 'Этот вопрос выключен — сначала включите его во вкладке «Вопросы»',
+  unknown_question: 'Такого вопроса нет в базе',
+  bad_image: 'Такой картинки нет — выберите одну из 16 сцен',
+  no_plan_day: 'На этот день плана нет',
 };
 const message = (body: any, status: string) => {
   if (body?.issues) return body.issues.map((i: any) => `${i.path?.join('.')}: ${i.message}`).join('; ');

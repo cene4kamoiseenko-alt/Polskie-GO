@@ -315,6 +315,12 @@ const ACTION_RU: Record<string, string> = {
   bot_rotate_secret: 'сменил секрет webhook',
   generate: 'создал',
   upload: 'загрузил',
+  daily_quiz_start: 'запустил',
+  daily_quiz_stop: 'остановил',
+  daily_quiz_settings: 'изменил время',
+  daily_quiz_plan: 'изменил план',
+  daily_quiz_skip: 'пропустил или вернул день',
+  daily_quiz_question: 'включил или выключил',
 };
 const ENTITY_RU: Record<string, string> = {
   cities: 'город',
@@ -337,12 +343,17 @@ const ENTITY_RU: Record<string, string> = {
   'config.rewards': 'награды',
   audio: 'озвучку',
   asset: 'файл',
+  daily_quiz: 'рассылку вопроса дня',
+  daily_quiz_question: 'вопрос дня',
 };
 /** Где объект стоит в другом падеже: «написал игроку», «подарил Premium игроку», «сменил пароль администратору». */
 const OBJECT_CASE: Record<string, string> = {
   'message:user': 'игроку',
   'premium_grant:user': 'игроку',
   'password_reset:admin': 'администратору',
+  'daily_quiz_plan:daily_quiz': 'вопроса дня',
+  'daily_quiz_skip:daily_quiz': 'в рассылке вопроса дня',
+  'daily_quiz_settings:daily_quiz': 'рассылки вопроса дня',
 };
 const RESOURCE_NAMES = new Set(['cities', 'routes', 'lessons', 'exercises', 'vocabulary', 'quests', 'questSteps', 'achievements', 'items', 'plans']);
 
