@@ -28,6 +28,7 @@ import { escapeHtml as h } from '../html';
 import { buildKeyboard, isPhotoProblem, screenUrl } from '../send';
 import { QUIZ_COPY, type QuizCopy } from './copy';
 import { quizSceneFile } from './scenes';
+import { BUTTON_TEXT_MAX, LETTERS } from './layout';
 import { CATEGORY_NAMES, QUESTION_BY_ID, QUIZ_QUESTIONS, optionsOf, type QuizQuestion } from './questions';
 
 /** Сколько верных ответов в местный день дают XP. */
@@ -43,9 +44,7 @@ export const QUIZ_SECONDS = 20;
 export const QUIZ_ON_TIME_MS = 30_000;
 export const QUIZ_XP = 10;
 const RECENT_KEEP = 40;
-/** Варианты длиннее этого не помещаются в кнопку на узком экране: тогда они идут в текст, а кнопки — буквы. */
-const BUTTON_TEXT_MAX = 30;
-export const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+export { LETTERS };
 
 /**
  * Картинка вопроса — сцена по смыслу (`question.image`, одна из 16 полноразмерных сцен, без надписей на языке интерфейса),
@@ -193,7 +192,7 @@ export async function sendQuizBlocked(t: QuizTarget, result: Exclude<StartResult
   await botApi('sendMessage', { chat_id: t.chatId, text: copy.cap(QUIZ_DAILY_CAP), reply_markup: buildKeyboard(buttons, { chatType: 'private' }) });
 }
 
-type InlineKeyboard = { inline_keyboard: ({ text: string; callback_data: string } | { text: string; web_app: { url: string } })[][] };
+export type InlineKeyboard = { inline_keyboard: ({ text: string; callback_data: string } | { text: string; web_app: { url: string } })[][] };
 
 /** Текст вопроса и кнопки вариантов. Длинные варианты — в тексте, кнопки — только буквы. */
 export function questionView(question: QuizQuestion, order: number[], lang: UiLang, roundId: string): { text: string; keyboard: InlineKeyboard } {
@@ -249,10 +248,11 @@ export function resultView(round: Round, question: QuizQuestion, opts: { hasUser
 const pushToggle = (copy: QuizCopy, enabled: boolean) => (enabled ? { text: copy.pushOff, callback_data: 'qz:push:0' } : { text: copy.pushOn, callback_data: 'qz:push:1' });
 
 /** Фото с подписью; если Telegram отверг саму картинку — тот же текст сообщением. */
-async function sendWithPhoto(chatId: number, text: string, keyboard: InlineKeyboard, image: string | null): Promise<{ messageId: number | null; photo: boolean }> {
+export async function sendWithPhoto(chatId: number, text: string, keyboard: InlineKeyboard, image: string | null, stats?: { calls: number }): Promise<{ messageId: number | null; photo: boolean }> {
   const photo = image ? botImageUrl(image) : '';
   if (photo.startsWith('https://')) {
     try {
+      if (stats) stats.calls++;
       const msg = await botApi<{ message_id: number }>('sendPhoto', { chat_id: chatId, photo, caption: text, parse_mode: 'HTML', reply_markup: keyboard });
       return { messageId: msg?.message_id ?? null, photo: true };
     } catch (e) {
@@ -260,12 +260,13 @@ async function sendWithPhoto(chatId: number, text: string, keyboard: InlineKeybo
       console.warn('quiz: photo rejected, sending text', (e as Error).message);
     }
   }
+  if (stats) stats.calls++;
   const msg = await botApi<{ message_id: number }>('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', reply_markup: keyboard });
   return { messageId: msg?.message_id ?? null, photo: false };
 }
 
 /** Заменить вопрос итогом в том же сообщении; если сообщение уже не изменить — прислать итог отдельно. */
-async function showResult(round: Round, view: { text: string; keyboard: InlineKeyboard }) {
+export async function showResult(round: Round, view: { text: string; keyboard: InlineKeyboard }) {
   if (round.messageId) {
     try {
       await botApi(round.hasPhoto ? 'editMessageCaption' : 'editMessageText', {
@@ -306,7 +307,7 @@ async function releaseRewardSlot(telegramId: number, day: string) {
 }
 
 /** XP за верный ответ вовремя: журнал, день, лига, задания «Получи N XP», достижения. Возвращает начисленное (0 — без прогресса). */
-async function awardXp(userId: string, roundId: string, now: Date): Promise<number> {
+export async function awardXp(userId: string, roundId: string, now: Date): Promise<number> {
   let ctx;
   try {
     ctx = await loadCtx(userId, now);

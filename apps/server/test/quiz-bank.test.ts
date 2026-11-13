@@ -7,6 +7,7 @@ import { UI_LANGS } from '@polski-go/shared';
 import imageVersions from '../src/bot/image-versions.json';
 import { QUIZ_SCENES, quizSceneFile, SCENE_LABELS } from '../src/bot/quiz/scenes';
 import { QUIZ_QUESTIONS, optionsOf, polishPhrases } from '../src/bot/quiz/questions';
+import { dailyQuestionView, dailyResultView } from '../src/bot/daily/views';
 import { CITY_CONTENT, PRE_STANDARD_CONTENT } from '../src/content/seed';
 import { MISSIONS } from '../src/content/missions';
 import { EXAM_A1, PLACEMENT } from '../src/content/exams';
@@ -139,5 +140,60 @@ describe('банк: качество', () => {
     const phrases = polishPhrases(gap!);
     const filled = phrases.find((p) => !p.includes('___') && p.includes((gap!.options as string[])[gap!.answer]));
     expect(filled, phrases.join(' | ')).toBeTruthy();
+  });
+});
+
+describe('вопрос дня: вид сообщения', () => {
+  const roundId = 'f'.repeat(32);
+  const round = (q: (typeof QUIZ_QUESTIONS)[number], lang: 'ru' | 'uk' | 'en', order: number[]) => ({
+    id: roundId, telegramId: 1, chatId: 1, messageId: 1, questionId: q.id, optionOrder: order, lang, source: 'daily', status: 'ANSWERED' as const,
+    hasPhoto: true, chosen: (q.answer + 1) % 4, correct: false, onTime: true, xp: 10, sentAt: new Date(), answeredAt: new Date(),
+  });
+
+  it('худший случай влезает в подпись к фото (≤ 1024 знаков): строка серии, процент, XP, серия вопросов дня; callback_data ≤ 64 байт', () => {
+    for (const q of QUIZ_QUESTIONS) {
+      for (const lang of UI_LANGS) {
+        const order = [3, 2, 1, 0];
+        const view = dailyQuestionView(q, order, lang, roundId, { streak: 365, returning: false, hasUser: true });
+        expect(view.text.length, `${q.id} ${lang}`).toBeLessThanOrEqual(1024);
+        const result = dailyResultView(round(q, lang, order), q, { hasUser: true, xp: 10, percent: 100, dailyStreak: 365, pushEnabled: true });
+        expect(result.text.length, `${q.id} ${lang} result`).toBeLessThanOrEqual(1024);
+        for (const b of [...view.keyboard.inline_keyboard.flat(), ...result.keyboard.inline_keyboard.flat()]) {
+          if ('callback_data' in b) expect(Buffer.byteLength(b.callback_data), q.id).toBeLessThanOrEqual(64);
+          expect(b.text.length, b.text).toBeLessThanOrEqual(40);
+        }
+      }
+    }
+  });
+
+  it('вопрос: заголовок «Pytanie dnia», 4 варианта кнопками, без таймера; кнопка урока — только со строкой серии', () => {
+    const q = QUIZ_QUESTIONS[0];
+    const plain = dailyQuestionView(q, [0, 1, 2, 3], 'ru', roundId, { streak: null, returning: false, hasUser: true });
+    expect(plain.text).toContain('🧠 Pytanie dnia');
+    expect(plain.text).not.toMatch(/секунд/);
+    const answers = plain.keyboard.inline_keyboard.flat().filter((b) => 'callback_data' in b && b.callback_data.startsWith('qa:'));
+    expect(answers).toHaveLength(4);
+    expect(plain.keyboard.inline_keyboard.flat().some((b) => 'web_app' in b)).toBe(false);
+    const streak = dailyQuestionView(q, [0, 1, 2, 3], 'ru', roundId, { streak: 5, returning: false, hasUser: true });
+    expect(streak.text).toMatch(/🔥 .*5/);
+    expect(streak.keyboard.inline_keyboard.flat().filter((b) => 'web_app' in b)).toHaveLength(1);
+    expect(dailyQuestionView(q, [0, 1, 2, 3], 'ru', roundId, { streak: null, returning: true, hasUser: true }).text).toMatch(/👋/);
+  });
+
+  it('итог: пояснение, процент, XP; без аккаунта — вход в приложение вместо урока; переключатель вопроса дня', () => {
+    const q = QUIZ_QUESTIONS[0];
+    const r = round(q, 'ru', [0, 1, 2, 3]);
+    const withUser = dailyResultView(r, q, { hasUser: true, xp: 10, percent: 80, dailyStreak: 2, pushEnabled: true });
+    expect(withUser.text).toContain(q.explain.ru);
+    expect(withUser.text).toMatch(/80 %/);
+    expect(withUser.text).toContain('+10 XP');
+    const flat = withUser.keyboard.inline_keyboard.flat();
+    expect(flat.map((b) => ('callback_data' in b ? b.callback_data : 'web_app'))).toEqual(['web_app', 'qz:next', 'qz:daily:0']);
+    const guest = dailyResultView({ ...r, xp: 0 }, q, { hasUser: false, xp: 0, percent: null, dailyStreak: 1, pushEnabled: false });
+    expect(guest.text).not.toMatch(/%/);
+    expect(guest.text).toContain('POLSKI GO');
+    const gflat = guest.keyboard.inline_keyboard.flat();
+    expect(gflat.at(-1)).toMatchObject({ callback_data: 'qz:daily:1' });
+    expect(JSON.stringify(gflat[0])).not.toContain('bot_screen=learn');
   });
 });
