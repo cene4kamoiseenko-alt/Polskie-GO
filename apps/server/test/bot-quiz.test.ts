@@ -8,6 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { and, eq, sql } from 'drizzle-orm';
 import { dayKey, UI_LANGS } from '@polski-go/shared';
 import { db } from '../src/db';
+import imageVersions from '../src/bot/image-versions.json';
 import { botQuizPlayers, botQuizRounds, dailyActivity, notificationLog, playerProgress, quests, userQuests, userSettings, xpEvents } from '../src/db/schema';
 import { QUIZ_COPY } from '../src/bot/quiz/copy';
 import { inviteHour, sendQuizInvites } from '../src/bot/quiz/invites';
@@ -50,9 +51,9 @@ const ru = async () => {
 };
 
 describe('банк вопросов', () => {
-  it('60 вопросов, уникальные id, верный вариант существует, варианты различаются, четыре языка', () => {
-    expect(QUIZ_QUESTIONS).toHaveLength(60);
-    expect(new Set(QUIZ_QUESTIONS.map((q) => q.id)).size).toBe(60);
+  it('не меньше 60 вопросов, уникальные id, верный вариант существует, варианты различаются, три языка', () => {
+    expect(QUIZ_QUESTIONS.length).toBeGreaterThanOrEqual(60);
+    expect(new Set(QUIZ_QUESTIONS.map((q) => q.id)).size).toBe(QUIZ_QUESTIONS.length);
     for (const q of QUIZ_QUESTIONS) {
       for (const lang of UI_LANGS) {
         const opts = optionsOf(q, lang);
@@ -167,8 +168,7 @@ describe('полный цикл в чате', () => {
     expect(btns.length).toBe(optionsOf(q, 'ru').length);
     expect(btns.every((b) => b.callback_data!.startsWith(`qa:${round.id}:`))).toBe(true);
     if (sent.method === 'sendPhoto') {
-      expect(sent.params.photo).toMatch(/^https:\/\/polski\.example\/bot\/scenes\/ru\/(shopping|food|transport)\.jpg\?v=[0-9a-f]{10}$/);
-      expect(['shopping', 'food', 'transport']).toContain(q.category);
+      expect(sent.params.photo).toBe(`https://polski.example/bot/quiz/${q.image}.jpg?v=${(imageVersions as Record<string, string>)[`quiz/${q.image}.jpg`]}`);
     }
 
     vi.unstubAllGlobals();

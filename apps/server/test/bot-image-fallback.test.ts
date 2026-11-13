@@ -129,15 +129,10 @@ describe('Telegram отверг фото: тот же текст и кнопки
 });
 
 describe('быстрый вопрос с картинкой', () => {
-  /** Игрок, которому осталось только вопросы с картинкой для языка: так выбор не случаен. */
-  async function playerWithOnlyPhotoQuestions(telegramId: number, lang: UiLang) {
-    const photo = QUIZ_QUESTIONS.filter((q) => quizImage(q, lang));
-    expect(photo.length).toBeGreaterThan(0);
-    const filler = QUIZ_QUESTIONS.filter((q) => !quizImage(q, lang));
-    // Последним в списке — вопрос из другой темы, чтобы выбор «не той же темы» не отсеял вопросы с картинкой.
-    const last = filler.find((q) => !photo.some((p) => p.category === q.category)) ?? filler[0];
-    const recent = [...filler.filter((q) => q.id !== last.id), last].map((q) => q.id);
-    await db.insert(botQuizPlayers).values({ telegramId, recent, day: '2000-01-01', dayCount: 0 });
+  /** Игрок без истории вопросов: у каждого вопроса есть картинка (сцена по смыслу, 2026-11-13). */
+  async function playerWithOnlyPhotoQuestions(telegramId: number, _lang: UiLang) {
+    expect(QUIZ_QUESTIONS.every((q) => quizImage(q))).toBe(true);
+    await db.insert(botQuizPlayers).values({ telegramId, recent: [], day: '2000-01-01', dayCount: 0 });
   }
 
   it.each([['ru', 40]] as const)('%s: отказ по фото → вопрос текстом, раунд открыт без фото', async (lang, offset) => {
@@ -153,13 +148,13 @@ describe('быстрый вопрос с картинкой', () => {
     expect(round).toMatchObject({ status: 'OPEN', hasPhoto: false });
   });
 
-  it.each(['uk', 'en'] as const)('%s: картинок к вопросам нет — вопрос уходит текстом', async (lang) => {
-    expect(QUIZ_QUESTIONS.filter((q) => quizImage(q, lang))).toEqual([]);
+  it.each(['uk', 'en'] as const)('%s: вопрос уходит фото сцены с версией адреса', async (lang) => {
     const telegramId = 8_300_060 + UI_LANGS.indexOf(lang);
     const calls = fakeTelegram();
     const result = await startQuiz({ telegramId, chatId: telegramId, lang, user: null, source: 'command' });
     expect(result.status).toBe('sent');
-    expect(calls.map((c) => c.method)).toEqual(['sendMessage']);
+    expect(calls.map((c) => c.method)).toEqual(['sendPhoto']);
+    expect(calls[0].params.photo).toMatch(/\/bot\/quiz\/[a-z-]+\.jpg\?v=[0-9a-f]{10}$/);
   });
 
   it('блокировка бота (403) картинкой не маскируется: вопрос не остаётся «открытым»', async () => {

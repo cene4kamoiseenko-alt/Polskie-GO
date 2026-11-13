@@ -15,7 +15,6 @@
  */
 import { and, eq, sql } from 'drizzle-orm';
 import { dayKey, shuffle, type UiLang } from '@polski-go/shared';
-import { QUESTION_SCENE_IMAGES } from '@polski-go/shared/src/sceneArtNotes';
 import { atomic, db } from '../../db';
 import { botQuizPlayers, botQuizRounds, newId, playerProgress, userProfiles } from '../../db/schema';
 import { botApi, TelegramError } from '../../lib/telegram';
@@ -28,7 +27,8 @@ import type { BotUser } from '../data';
 import { escapeHtml as h } from '../html';
 import { buildKeyboard, isPhotoProblem, screenUrl } from '../send';
 import { QUIZ_COPY, type QuizCopy } from './copy';
-import { CATEGORY_NAMES, QUESTION_BY_ID, QUIZ_QUESTIONS, optionsOf, type QuizCategory, type QuizQuestion } from './questions';
+import { quizSceneFile } from './scenes';
+import { CATEGORY_NAMES, QUESTION_BY_ID, QUIZ_QUESTIONS, optionsOf, type QuizQuestion } from './questions';
 
 /** Сколько верных ответов в местный день дают XP. */
 export const QUIZ_REWARDED_MAX = 3;
@@ -48,20 +48,11 @@ const BUTTON_TEXT_MAX = 30;
 export const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
 /**
- * Тематические доски владельца (docs/design/a10/telegram) — с русскими заголовками («ПОКУПКИ»…), поэтому только для русского интерфейса.
- * Для остальных тем и языков вопрос приходит текстом: случайная картинка «не по теме» хуже, чем никакой,
- * а комплект просит не прикладывать фото к каждому сообщению.
+ * Картинка вопроса — сцена по смыслу (`question.image`, одна из 16 полноразмерных сцен, без надписей на языке интерфейса),
+ * одинаковая для всех языков. Тематические доски с русскими заголовками больше не используются: у каждого вопроса свой кадр.
  */
-const RU_CATEGORY_IMAGES: Partial<Record<QuizCategory, string>> = { shopping: 'scenes/ru/shopping.jpg', food: 'scenes/ru/food.jpg', transport: 'scenes/ru/transport.jpg' };
-
-/**
- * Кадр по смыслу самого вопроса (реестр SCENE_ART, `telegram.questionIds`), одинаковый для всех языков: на нём нет русских
- * подписей. Доска категории выше приоритетом (она полноразмерная, а эти кадры — временные, увеличенные из коллажа),
- * поэтому такой кадр получают те языки, у которых картинки к вопросу не было. Вопрос, где картинка выдаёт ответ
- * («Где посылка?» — постамат InPost на кадре), в реестр не попадает.
- */
-export function quizImage(question: QuizQuestion, lang: UiLang): string | null {
-  return (lang === 'ru' && RU_CATEGORY_IMAGES[question.category]) || QUESTION_SCENE_IMAGES[question.id] || null;
+export function quizImage(question: QuizQuestion, _lang?: UiLang): string {
+  return quizSceneFile(question.image);
 }
 
 type Player = typeof botQuizPlayers.$inferSelect;

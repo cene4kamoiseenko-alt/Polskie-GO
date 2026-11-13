@@ -91,15 +91,14 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     expect(MISSIONS.find((m) => m.slug === 'landlord')!.npc.name).toBe('Pani Marta');
   });
 
-  it('кадров магазинов в Telegram нет: временные вырезки увеличены и отклоняются проверкой файлов; русский сохраняет доску категории', () => {
+  it('кадров магазинов в Telegram нет: временные вырезки увеличены и отклоняются проверкой файлов; вопросы бота — полноразмерные сцены (2026-11-13)', () => {
     expect(Object.values(SCENE_ART).filter((a) => a.telegram)).toEqual([]);
     expect(QUESTION_SCENE_IMAGES).toEqual({});
     expect(existsSync(new URL('scenes/stores/', botPublic)), 'scenes/stores/ снята с публикации').toBe(false);
-    const loyalty = QUESTION_BY_ID.get('shop-loyalty')!;
-    expect(quizImage(loyalty, 'ru')).toBe('scenes/ru/shopping.jpg');
-    for (const lang of ['uk', 'en'] as const) expect(quizImage(loyalty, lang), lang).toBeNull();
-    // Кадр InPost выдал бы ответ «в постамате».
-    for (const lang of ['ru', 'uk', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!, lang)).toBeNull();
+    // Картинка вопроса — его сцена, одна на все языки (вопрос дня); вырезок магазинов среди них нет.
+    for (const lang of ['ru', 'uk', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('shop-loyalty')!, lang)).toBe('quiz/lidl.jpg');
+    // Кадр InPost выдал бы ответ «в постамате»: вопрос о посылке идёт с кадром квартиры.
+    expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!)).toBe('quiz/mieszkanie.jpg');
   });
 
   it('для каждой из 47 миссий (14 + 6 сцен Premium + 27 миссий пропуска месяца) описан фон без Бобека и действие игрока', () => {
