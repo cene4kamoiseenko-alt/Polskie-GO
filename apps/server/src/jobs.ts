@@ -31,6 +31,8 @@ import { pickLang } from './bot/data';
 import { maintainBot } from './bot/maintain';
 import { sendQuizInvites } from './bot/quiz/invites';
 import { sendCard } from './bot/send';
+import { ensurePlan } from './bot/daily/plan';
+import { warsawDay } from './bot/daily/state';
 
 /** Безкоштовний Worker має ліміт 50 підзапитів за виклик: бюджет рахується у викликах Bot API (фото + запасний текст — два). */
 const SEND_BUDGET = 35;
@@ -291,6 +293,8 @@ export async function runScheduled(now = new Date()) {
     .delete(botQuizRounds)
     .where(lt(botQuizRounds.sentAt, new Date(now.getTime() - QUIZ_ROUNDS_KEEP_MS)))
     .catch((e) => console.warn('quiz rounds cleanup failed', (e as Error).message));
+  // План вопроса дня на 30 днів уперед: дописується сам, навіть поки розсилка вимкнена (адмінка показує його до запуску).
+  await ensurePlan(warsawDay(now)).catch((e) => console.warn('daily quiz plan failed', (e as Error).message));
   if (!config.botToken) return;
   // Бюджет — виклики Bot API за запуск: самоперевірка бота, розсилка, нагадування, запрошення до питань.
   let left = SEND_BUDGET - (await maintainBot(now).catch(() => 0));
