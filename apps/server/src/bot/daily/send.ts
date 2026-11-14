@@ -2,7 +2,8 @@
  * Отправка вопроса дня: отдельный cron раз в минуту (свой вызов Worker и свой лимит подзапросов), не больше DAILY_PER_RUN вызовов
  * Bot API за запуск. Порядок одного запуска:
  *  1. рассылка включена, день наступил, сейчас окно отправки (от времени рассылки 4 часа), день не пропущен в плане;
- *  2. ход дня (курсор по telegram_id) — в app_state; новый день — с начала, «done» — до завтра ничего не делаем;
+ *  2. ход дня (курсор по telegram_id) — в app_state, сохраняется по ходу запуска и в конце; новый день — с начала, «done» — до завтра
+ *     ничего не делаем; непредвиденная ошибка на человеке останавливает запуск на нём (курсор остаётся перед ним, повтор в следующую минуту);
  *  3. кандидаты по курсору (до 100), правило «кто получает» (audience.ts); захват (день, человек) INSERT … ON CONFLICT DO NOTHING —
  *     два пересёкшихся запуска не пришлют одному человеку два вопроса;
  *  4. раунд bot_quiz_rounds (source 'daily', без таймера) → фото сцены с вопросом → SENT; ошибка Telegram записывается:
@@ -30,6 +31,8 @@ export const DAILY_PER_RUN = 40;
 /** Сколько кандидатов читать за запуск. */
 const SCAN = 100;
 const LEASE_MS = 5 * 60_000;
+/** Курсор дня сохраняется каждые столько обработанных людей: оборванный запуск (лимит Worker) не заставит следующий начинать заново. */
+const CURSOR_EVERY = 8;
 
 /** Сегодня идёт рассылка вопроса дня (включена, день наступил, не пропущен): для напоминаний и приглашений /quiz. */
 export async function dailyReplacesReminders(now: Date): Promise<boolean> {
@@ -146,7 +149,15 @@ export async function runDailyQuizTick(now = new Date(), budget = DAILY_PER_RUN)
   for (const p of people) {
     if (stats.calls >= budget) break;
     if (dailyEligibility(p) === 'ok') {
-      const outcome = await sendTo(p, plan[personLevel(p) as DailyLevel]!, today, now, stats);
+      let outcome: Outcome;
+      try {
+        outcome = await sendTo(p, plan[personLevel(p) as DailyLevel]!, today, now, stats);
+      } catch (e) {
+        // Сбой базы или лимит запросов Worker на самом захвате: человека не пропускаем, курсор остаётся перед ним.
+        console.error('daily quiz: tick stopped', p.telegramId, (e as Error).message);
+        stopped = true;
+        break;
+      }
       if (outcome === 'rate_limited') {
         stopped = true;
         break;
@@ -155,6 +166,7 @@ export async function runDailyQuizTick(now = new Date(), budget = DAILY_PER_RUN)
     }
     processed++;
     run.cursor = p.telegramId;
+    if (processed % CURSOR_EVERY === 0) await writeDailyRun(run).catch(() => {});
   }
   if (!stopped && processed === people.length && people.length < SCAN) run.done = true;
   await writeDailyRun(run);

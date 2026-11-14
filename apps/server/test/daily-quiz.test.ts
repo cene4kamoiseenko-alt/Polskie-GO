@@ -276,6 +276,50 @@ describe('отправка', () => {
     expect(new Set(mine.map((c) => c.params.chat_id)).size).toBe(3);
   });
 
+  it('ошибка базы посреди запуска: запуск не падает, прогресс до неё сохранён, следующий запуск продолжает с того же человека', async () => {
+    const { env } = await getEnv();
+    const ids = [await botOnly(), await botOnly(), await botOnly(), await botOnly()];
+    const bad = ids[2];
+    await launch('2027-01-18');
+    await env.DB.prepare(`CREATE TRIGGER daily_fail_claim BEFORE INSERT ON daily_quiz_sends WHEN NEW.telegram_id = ${bad} BEGIN SELECT RAISE(ABORT, 'boom'); END`).run();
+    try {
+      const calls = fakeTelegram();
+      const run = await runDailyQuizTick(at('2027-01-18'));
+      expect(run.sent).toBeGreaterThanOrEqual(2);
+      expect(toChats(calls, [bad, ids[3]])).toHaveLength(0);
+      expect((await readDailyRun())?.cursor).toBe(ids[1]);
+    } finally {
+      await env.DB.prepare('DROP TRIGGER daily_fail_claim').run();
+    }
+    const calls = fakeTelegram();
+    await runDailyQuizTick(at('2027-01-18', '17:02'));
+    expect(toChats(calls, ids).map((c) => c.params.chat_id)).toEqual(expect.arrayContaining([bad, ids[3]]));
+    expect(toChats(calls, [ids[0], ids[1]])).toHaveLength(0);
+    const rows = await db.select().from(dailyQuizSends).where(and(eq(dailyQuizSends.day, '2027-01-18'), inArray(dailyQuizSends.telegramId, ids)));
+    expect(rows.map((r) => r.status)).toEqual(Array(4).fill('SENT'));
+  });
+
+  it('курсор сохраняется по ходу запуска, а не только в конце: оборванный запуск не заставит начинать заново', async () => {
+    const { env } = await getEnv();
+    for (let i = 0; i < 20; i++) await botOnly();
+    await launch('2027-01-19');
+    await env.DB.prepare('CREATE TABLE daily_cursor_log (id INTEGER PRIMARY KEY AUTOINCREMENT, v TEXT)').run();
+    for (const [name, when] of [['ins', 'INSERT'], ['upd', 'UPDATE']] as const)
+      await env.DB.prepare(`CREATE TRIGGER daily_cursor_${name} AFTER ${when} ON app_state WHEN NEW.key = 'daily_quiz_run' BEGIN INSERT INTO daily_cursor_log (v) VALUES (NEW.value); END`).run();
+    try {
+      fakeTelegram();
+      await runDailyQuizTick(at('2027-01-19'));
+      const writes = (await env.DB.prepare('SELECT v FROM daily_cursor_log ORDER BY id').all<{ v: string }>()).results.map((r) => (JSON.parse(r.v) as { cursor: number }).cursor);
+      expect(writes.length).toBeGreaterThanOrEqual(3);
+      expect([...writes].sort((a, b) => a - b)).toEqual(writes);
+      expect(writes.at(-1)).toBeGreaterThan(writes[0]);
+    } finally {
+      await env.DB.prepare('DROP TRIGGER daily_cursor_ins').run();
+      await env.DB.prepare('DROP TRIGGER daily_cursor_upd').run();
+      await env.DB.prepare('DROP TABLE daily_cursor_log').run();
+    }
+  });
+
   it('заблокировал бота → BLOCKED и больше не шлём; «нет чата с ботом» → NO_CHAT, пока снова не напишет', async () => {
     const blocker = await botOnly();
     const stranger = await botOnly();

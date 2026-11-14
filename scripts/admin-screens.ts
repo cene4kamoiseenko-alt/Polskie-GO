@@ -14,7 +14,7 @@ import { chromiumPath, startStand } from './lib/stand';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright') as typeof import('playwright');
 const AXE = readFileSync(createRequire(process.cwd() + '/package.json').resolve('axe-core/axe.min.js'), 'utf8');
-type AxeNode = { id: string; impact: string | null; nodes: { target: string[] }[] };
+type AxeNode = { id: string; impact: string | null; nodes: { target: string[]; data: { fg: string; bg: string; ratio: number } | null }[] };
 const root = process.cwd();
 const OUT = resolve(root, 'test-results/admin-screens');
 mkdirSync(OUT, { recursive: true });
@@ -87,9 +87,13 @@ async function main() {
       p.on('pageerror', (e) => errors.push(e.message));
       // Доступность (axe-core, правила WCAG 2 A/AA): на новых экранах админки — без нарушений (обновление админки 2026-11-12).
       const axe = async (what: string) => {
+        // Контраст считаем по итоговым цветам: ждём конец переходов и конечных анимаций (иначе axe видит цвет посреди перехода и результат
+        // плавает от запуска к запуску). Бесконечные анимации (индикаторы загрузки) не ждём, потолок ожидания — 3 с.
+        await p.evaluate(`Promise.race([Promise.all(document.getAnimations().filter((a) => a.effect && a.effect.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => null))), new Promise((r) => setTimeout(r, 3000))])`);
+        await p.waitForTimeout(100);
         await p.addScriptTag({ content: AXE });
-        const found = (await p.evaluate(`window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] }).then((r) => r.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.map((n) => ({ target: n.target })) })))`)) as AxeNode[];
-        const list = found.map((v) => `${v.id} (${v.impact}, ${v.nodes.length}: ${v.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(' | ')})`);
+        const found = (await p.evaluate(`window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] }).then((r) => r.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.map((n) => ({ target: n.target, data: n.any && n.any[0] && n.any[0].data ? { fg: n.any[0].data.fgColor, bg: n.any[0].data.bgColor, ratio: n.any[0].data.contrastRatio } : null })) })))`)) as AxeNode[];
+        const list = found.map((v) => `${v.id} (${v.impact}, ${v.nodes.length}: ${v.nodes.slice(0, 2).map((n) => n.target.join(' ') + (n.data ? ` [${n.data.fg} на ${n.data.bg}, ${n.data.ratio}]` : '')).join(' | ')})`);
         check(found.length === 0, `${width}px ${what}: доступность WCAG 2 A/AA — нарушений нет${list.length ? ': ' + list.join('; ') : ''}`);
       };
       const noHScroll = async (what: string) => {
