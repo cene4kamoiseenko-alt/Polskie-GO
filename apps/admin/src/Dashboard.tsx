@@ -86,6 +86,51 @@ function ErrorsCard({ data }: { data?: { total: Record<string, number>; items: {
   );
 }
 
+type Rate = { n: number; base: number };
+type RetentionWeek = { week: string; signups: number; d1: Rate; d7: Rate; d30: Rate };
+
+/** Минимум игроков в основе, ниже которого процент ненадёжен (помечается звёздочкой). */
+const RETENTION_MIN_BASE = 10;
+const rateCell = (r: Rate) => (r.base === 0 ? '—' : `${Math.round((100 * r.n) / r.base)}%${r.base < RETENTION_MIN_BASE ? '*' : ''}`);
+const ruDate = (iso: string) => iso.split('-').reverse().join('.');
+
+/**
+ * Удержание по неделям регистрации: какая доля новичков недели снова занималась ровно на 1-й, 7-й и 30-й день после регистрации.
+ * «—» — день ещё не наступил ни у кого из недели; «*» — в основе меньше 10 игроков.
+ */
+function RetentionCard({ weeks }: { weeks: RetentionWeek[] }) {
+  return (
+    <Card title="Удержание по неделям регистрации" subtitle="снова занимались на 1-й, 7-й и 30-й день после регистрации · дни по Варшаве" data-retention-card>
+      {/* Таблица умещается и на 390 px; прокручиваемая область всё равно доступна с клавиатуры (axe: scrollable-region-focusable). */}
+      <div className="overflow-x-auto" role="region" aria-label="Удержание по неделям регистрации" tabIndex={0}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs font-bold text-slate-600">
+              <th scope="col" className="py-1.5 pr-3 font-bold">Неделя с понедельника</th>
+              <th scope="col" className="px-2 text-right font-bold">Новых</th>
+              <th scope="col" className="px-2 text-right font-bold">D1</th>
+              <th scope="col" className="px-2 text-right font-bold">D7</th>
+              <th scope="col" className="pl-2 text-right font-bold">D30</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...weeks].reverse().map((w) => (
+              <tr key={w.week} className="border-t border-slate-100" data-retention-row={w.week}>
+                <th scope="row" className="py-1.5 pr-3 text-left font-semibold text-night">{ruDate(w.week)}</th>
+                <td className="px-2 text-right tabular-nums">{fmt(w.signups)}</td>
+                <td className="px-2 text-right tabular-nums">{rateCell(w.d1)}</td>
+                <td className="px-2 text-right tabular-nums">{rateCell(w.d7)}</td>
+                <td className="pl-2 text-right tabular-nums">{rateCell(w.d30)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-xs text-slate-600">«—» — нужный день ещё не наступил; «*» — в основе меньше {RETENTION_MIN_BASE} игроков, цифре верить рано.</p>
+    </Card>
+  );
+}
+
 /** `analytics` — графики, воронка и источники: главному администратору и поддержке. Редактор контента видит сводку по урокам. */
 export default function Dashboard({ analytics = true }: { analytics?: boolean }) {
   const [days, setDays] = useState(30);
@@ -129,10 +174,12 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Kpi compact label="Всего аккаунтов" value={fmt(d.users)} tone="night" hint={`активны за сутки ${d.active1} · за 7 дн. ${d.active7}`} />
           <Kpi compact label="Premium сейчас" value={fmt(d.premium)} tone="gold" hint={`платежей за 30 дн. ${d.payments30}`} />
-          <Kpi compact label="Возвращаются" value={`${d.retention.d1 == null ? '—' : `${d.retention.d1}%`} / ${d.retention.d7 == null ? '—' : `${d.retention.d7}%`}`} tone="sky" hint="на 2-й день / через неделю (90 дн.)" />
+          <Kpi compact label="Возвращаются" value={[d.retention.d1, d.retention.d7, d.retention.d30].map((v: number | null) => (v == null ? '—' : `${v}%`)).join(' / ')} tone="sky" hint="D1 / D7 / D30: на следующий день, через 7 и 30 дней после регистрации (8 недель)" />
           <Kpi compact label="Средний игрок" value={`${fmt(d.avgXp)} XP`} tone="brand" hint={`${d.avgLessons} уроков · ${d.avgWords} слов`} />
         </div>
       )}
+
+      {d?.retention?.weeks?.length > 0 && <RetentionCard weeks={d.retention.weeks} />}
 
       {i && (
         <div className={`space-y-5 transition-opacity ${ins.loading ? 'opacity-60' : ''}`}>

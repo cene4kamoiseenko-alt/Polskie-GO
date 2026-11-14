@@ -180,3 +180,61 @@ export async function adminInsights(now: Date, days: number) {
     reminders: { days: reminderDays, enabled: num(enabled[0]?.n), telegramUsers: num(enabled[0]?.telegram), quizInvites: num(quiz[0]?.n) },
   };
 }
+
+export type RetentionRate = { n: number; base: number };
+export type RetentionWeek = { week: string; signups: number; d1: RetentionRate; d7: RetentionRate; d30: RetentionRate };
+export const RETENTION_WEEKS = 8;
+
+/**
+ * Удержание по неделям регистрации (владелец 2026-11-14: «проверь удержание»). Для каждого новичка — день регистрации по Варшаве (d0) и
+ * три вопроса: занимался ли он РОВНО на следующий день (D1), на 7-й (D7) и на 30-й (D30) день после d0 (daily_activity.day — день игрока
+ * по его поясу; для аудитории Польша/Украина разница — не больше суток). День N входит в основу, только когда он уже закончился:
+ * зарегистрированные позавчера ещё не «должны» были вернуться на 7-й день, поэтому не снижают D7. Раньше D1/D7 считались по UTC, а
+ * D7 был «в любой день с седьмого» — рядом с полуночью это давало ложные «вернулся» и завышенный D7.
+ * Возвращает `weeks` (от старой к новой, пустые недели — нулями) и итог по всем неделям окна. Только агрегаты.
+ */
+export async function retentionReport(now: Date, weeks = RETENTION_WEEKS) {
+  const off = tzOffsetMs(now);
+  const offSec = Math.round(off / 1000);
+  const localDay = (ms: number) => new Date(ms + off).toISOString().slice(0, 10);
+  const today = localDay(now.getTime());
+  const todayMs = Date.parse(`${today}T00:00:00Z`);
+  const monday = todayMs - ((new Date(todayMs).getUTCDay() + 6) % 7) * DAY_MS;
+  const firstMonday = monday - (weeks - 1) * 7 * DAY_MS;
+  const since = firstMonday - off; // полночь первого понедельника окна по Варшаве, в UTC
+
+  const rows = await db.all<{ week: string; signups: Num; b1: Num; n1: Num; b7: Num; n7: Num; b30: Num; n30: Num }>(sql`
+    WITH s AS (
+      SELECT u.id AS id, strftime('%Y-%m-%d', u.created_at / 1000 + ${offSec}, 'unixepoch') AS d0 FROM users u WHERE u.created_at >= ${since}
+    ), r AS (
+      SELECT s.id AS id, s.d0 AS d0,
+        date(s.d0, '-' || ((CAST(strftime('%w', s.d0) AS INTEGER) + 6) % 7) || ' days') AS week,
+        EXISTS (SELECT 1 FROM daily_activity a WHERE a.user_id = s.id AND a.day = date(s.d0, '+1 day')) AS r1,
+        EXISTS (SELECT 1 FROM daily_activity a WHERE a.user_id = s.id AND a.day = date(s.d0, '+7 day')) AS r7,
+        EXISTS (SELECT 1 FROM daily_activity a WHERE a.user_id = s.id AND a.day = date(s.d0, '+30 day')) AS r30
+      FROM s
+    )
+    SELECT week, COUNT(*) AS signups,
+      SUM(CASE WHEN date(d0, '+1 day') < ${today} THEN 1 ELSE 0 END) AS b1,
+      SUM(CASE WHEN date(d0, '+1 day') < ${today} AND r1 THEN 1 ELSE 0 END) AS n1,
+      SUM(CASE WHEN date(d0, '+7 day') < ${today} THEN 1 ELSE 0 END) AS b7,
+      SUM(CASE WHEN date(d0, '+7 day') < ${today} AND r7 THEN 1 ELSE 0 END) AS n7,
+      SUM(CASE WHEN date(d0, '+30 day') < ${today} THEN 1 ELSE 0 END) AS b30,
+      SUM(CASE WHEN date(d0, '+30 day') < ${today} AND r30 THEN 1 ELSE 0 END) AS n30
+    FROM r GROUP BY week ORDER BY week`);
+
+  const byWeek = new Map(rows.map((r) => [r.week, r]));
+  const out: RetentionWeek[] = Array.from({ length: weeks }, (_, i) => {
+    const week = localDay(firstMonday + i * 7 * DAY_MS);
+    const r = byWeek.get(week);
+    return {
+      week,
+      signups: num(r?.signups),
+      d1: { n: num(r?.n1), base: num(r?.b1) },
+      d7: { n: num(r?.n7), base: num(r?.b7) },
+      d30: { n: num(r?.n30), base: num(r?.b30) },
+    };
+  });
+  const sum = (k: 'd1' | 'd7' | 'd30'): RetentionRate => ({ n: out.reduce((s, w) => s + w[k].n, 0), base: out.reduce((s, w) => s + w[k].base, 0) });
+  return { tz: REPORT_TZ, weeks: out, total: { d1: sum('d1'), d7: sum('d7'), d30: sum('d30') } };
+}

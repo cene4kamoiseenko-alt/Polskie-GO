@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Cefr, UiLang } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { haptic } from '../lib/telegram';
+import { haptic, requestBotWriteAccess } from '../lib/telegram';
 import { takeLaunchRoute } from '../lib/launch';
 import { speak, stopSpeech } from '../lib/audio';
 import { useJourney, useMe, useUpdateSettings } from '../lib/queries';
@@ -66,6 +66,22 @@ export default function Onboarding() {
   const steps = ['hello', 'lang', 'level', ...(level !== 'A0' ? ['placement'] : []), 'goal', 'time', ...(guest ? [] : ['reminder']), 'map'];
   const id = steps[step];
   const nextStep = () => setStep((s) => Math.min(s + 1, steps.length - 1));
+  // Выбрав время напоминания, игрок один раз видит системное окно Telegram «разрешить боту писать вам»: без него бот не сможет
+  // начать разговор с тем, кто открыл приложение по ссылке. Отказ ничего не блокирует — идём дальше.
+  const [asking, setAsking] = useState(false);
+  const next = async () => {
+    haptic.tap();
+    if (id === 'reminder' && hour !== null && !guest) {
+      if (asking) return;
+      setAsking(true);
+      try {
+        await requestBotWriteAccess();
+      } finally {
+        setAsking(false);
+      }
+    }
+    nextStep();
+  };
 
   const finish = async () => {
     setBusy(true);
@@ -238,7 +254,7 @@ export default function Onboarding() {
             {placement ? t('ob_placement_yes') : t('ob_first_lesson')}
           </button>
         ) : (
-          <button className={cx('btn w-full text-lg', step === 0 ? 'btn-red' : 'btn-primary')} onClick={() => { haptic.tap(); nextStep(); }}>
+          <button className={cx('btn w-full text-lg', step === 0 ? 'btn-red' : 'btn-primary')} disabled={asking} aria-busy={asking} onClick={next}>
             {step === 0 ? `${t('start')} →` : t('continue')}
           </button>
         )}

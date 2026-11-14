@@ -9,13 +9,13 @@ import { and, eq, sql } from 'drizzle-orm';
 import { dayKey, UI_LANGS } from '@polski-go/shared';
 import { db } from '../src/db';
 import imageVersions from '../src/bot/image-versions.json';
-import { botQuizPlayers, botQuizRounds, dailyActivity, notificationLog, playerProgress, quests, userQuests, userSettings, xpEvents } from '../src/db/schema';
+import { botContacts, botQuizPlayers, botQuizRounds, dailyActivity, notificationLog, playerProgress, quests, userQuests, userSettings, xpEvents } from '../src/db/schema';
 import { QUIZ_COPY } from '../src/bot/quiz/copy';
 import { inviteHour, sendQuizInvites } from '../src/bot/quiz/invites';
 import { inviteAllowed, LETTERS, pickQuestion, questionView, quizGate, QUIZ_DAILY_CAP, QUIZ_MIN_GAP_MS, QUIZ_PUSH_GAP_MS, QUIZ_REWARDED_MAX, QUIZ_XP, resultView, rewardsLeft } from '../src/bot/quiz/engine';
 import { CATEGORY_NAMES, QUESTION_BY_ID, QUIZ_QUESTIONS, optionsOf } from '../src/bot/quiz/questions';
 import { disposeEnv, getEnv, login, request } from './helpers';
-import { fakeTelegram, type TgCall } from './tg-fake';
+import { fakeTelegram, tgError, type TgCall } from './tg-fake';
 
 const ORIGIN = 'https://polski.example';
 
@@ -391,5 +391,30 @@ describe('приглашения cron', () => {
     await db.update(botQuizPlayers).set({ ignoredPushes: 0, pushEnabled: false }).where(eq(botQuizPlayers.telegramId, tg));
     expect(await sendQuizInvites(tomorrow, 10)).toBe(0);
     expect(calls.filter((c) => c.params.chat_id === tg)).toHaveLength(0);
+  });
+  it('403 на приглашение → тишина; она снимается, когда игрок написал боту после отказа (bot/mute.ts)', async () => {
+    const u = await ru();
+    const tg = u.telegramId;
+    await db.update(userSettings).set({ notificationsEnabled: true, reminderHour: 19, timezone: 'Europe/Warsaw', updatedAt: new Date('2026-01-01T00:00:00Z') }).where(eq(userSettings.userId, u.user.id));
+    const at13 = new Date('2026-10-28T12:05:00Z'); // 13:05 в Варшаве
+    await db.insert(botQuizPlayers).values({ telegramId: tg, answered: 1, lastQuestionAt: new Date(0) });
+
+    fakeTelegram(() => tgError(403, 'Forbidden: bot was blocked by the user'));
+    expect(await sendQuizInvites(at13, 10)).toBe(1);
+    expect((await db.select().from(notificationLog).where(and(eq(notificationLog.userId, u.user.id), eq(notificationLog.kind, 'quiz_invite'))))[0].status).toBe('BLOCKED');
+
+    // Назавтра игрок молчит — приглашения нет и вызова нет.
+    vi.unstubAllGlobals();
+    const tomorrow = new Date(at13.getTime() + 86_400_000);
+    let calls = fakeTelegram();
+    expect(await sendQuizInvites(tomorrow, 10)).toBe(0);
+    expect(calls.filter((c) => c.params.chat_id === tg)).toHaveLength(0);
+
+    // Написал боту после отказа — на следующий подходящий день приглашение приходит.
+    await db.insert(botContacts).values({ telegramId: tg, firstName: 'T', firstSeenAt: new Date('2026-01-01T00:00:00Z'), lastSeenAt: new Date(at13.getTime() + 3_600_000) });
+    vi.unstubAllGlobals();
+    calls = fakeTelegram();
+    expect(await sendQuizInvites(tomorrow, 10)).toBe(1);
+    expect(calls.filter((c) => c.params.chat_id === tg)).toHaveLength(1);
   });
 });

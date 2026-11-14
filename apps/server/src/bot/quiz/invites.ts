@@ -8,18 +8,18 @@
  *  • после двух приглашений подряд без ответа — пауза, пока ученик не ответит сам (`ignored_pushes`).
  * Само приглашение — текст и кнопка «Начать», вопрос приходит по нажатию (`qz:go`), без картинки.
  */
-import { and, eq, gt, inArray, lt, notExists, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { dayKey, type UiLang } from '@polski-go/shared';
 import { db } from '../../db';
 import { botQuizPlayers, notificationLog, userSettings, users } from '../../db/schema';
 import { botApi, TelegramError } from '../../lib/telegram';
 import { pickLang } from '../data';
+import { notMuted } from '../mute';
 import { QUIZ_COPY } from './copy';
 import { inviteAllowed } from './engine';
 
 export const INVITE_HOURS = { main: 13, alt: 17 } as const;
 const IGNORED_MAX = 2;
-const BLOCKED_QUIET_MS = 30 * 86_400_000;
 
 /** Час приглашения: 13:00, а если ежедневное напоминание стоит на 12–14 часов — 17:00. */
 export function inviteHour(reminderHour: number | null): number {
@@ -57,7 +57,6 @@ export async function sendQuizInvites(now: Date, budget: number): Promise<number
   });
   if (!due.length) return 0;
 
-  const blockedSince = new Date(now.getTime() - BLOCKED_QUIET_MS);
   const rows = await db
     .select({ id: users.id, telegramId: users.telegramId, tz: userSettings.timezone, lang: userSettings.uiLanguage, reminderHour: userSettings.reminderHour, player: botQuizPlayers })
     .from(users)
@@ -71,12 +70,8 @@ export async function sendQuizInvites(now: Date, budget: number): Promise<number
         eq(botQuizPlayers.pushEnabled, true),
         gt(botQuizPlayers.answered, 0),
         lt(botQuizPlayers.ignoredPushes, IGNORED_MAX),
-        notExists(
-          db
-            .select({ x: sql`1` })
-            .from(notificationLog)
-            .where(and(eq(notificationLog.userId, users.id), eq(notificationLog.status, 'BLOCKED'), gt(notificationLog.createdAt, blockedSince))),
-        ),
+        // Тишина после отказа Telegram (403) снимается, когда игрок написал боту или сохранил настройки (bot/mute.ts).
+        notMuted(now),
       ),
     )
     .limit(budget * 3);

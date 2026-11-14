@@ -22,6 +22,8 @@ export type TgWebApp = {
   openTelegramLink(url: string): void;
   openLink(url: string): void;
   showConfirm(msg: string, cb: (ok: boolean) => void): void;
+  /** Bot API 6.9+: системное окно «разрешить боту писать вам»; callback получает true, если человек разрешил. */
+  requestWriteAccess?: (cb?: (allowed: boolean) => void) => void;
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void };
   HapticFeedback: { impactOccurred(s: HapticStyle): void; notificationOccurred(t: 'error' | 'success' | 'warning'): void; selectionChanged(): void };
 };
@@ -65,6 +67,37 @@ export const haptic = {
   error: () => tg?.HapticFeedback.notificationOccurred('error'),
   select: () => tg?.HapticFeedback.selectionChanged(),
 };
+
+/**
+ * Разрешение боту писать игроку в личные сообщения (Bot API 6.9+). Нужно тому, кто открыл Mini App по ссылке и не нажимал Start у бота:
+ * без него Telegram отвечает 403 «bot can't initiate conversation», и напоминания не доходят. Спрашиваем в тот момент, когда игрок сам
+ * выбрал время напоминания (знакомство, настройки). Возвращает false только если человек явно отказал: старый клиент, Android-приложение
+ * и браузер (там нечего спрашивать) и зависшее окно считаются «можно». Отказ ничего не ломает — напоминание останется выбранным
+ * и заработает, как только игрок напишет боту.
+ */
+export function requestBotWriteAccess(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!tg || typeof tg.requestWriteAccess !== 'function') return resolve(true);
+    try {
+      if (!tg.isVersionAtLeast('6.9')) return resolve(true);
+    } catch {
+      return resolve(true);
+    }
+    let done = false;
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
+      resolve(ok);
+    };
+    try {
+      tg.requestWriteAccess((allowed) => finish(allowed !== false));
+    } catch {
+      finish(true);
+    }
+    // Окно могут не закрыть ни «разрешить», ни «отклонить» (свернули приложение): интерфейс не должен ждать вечно.
+    setTimeout(() => finish(true), 60_000);
+  });
+}
 
 export function startParam(): string | undefined {
   if (tg?.initDataUnsafe.start_param) return tg.initDataUnsafe.start_param;

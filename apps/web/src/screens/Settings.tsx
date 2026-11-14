@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { api, downloadExport, forgetDevice, ApiError } from '../lib/api';
 import { isStandalone } from '../lib/platform';
-import { tg } from '../lib/telegram';
+import { requestBotWriteAccess, tg } from '../lib/telegram';
 import { useStandaloneCopy } from '../lib/standaloneCopy';
 import { useMe, useUpdateSettings } from '../lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
@@ -156,7 +156,18 @@ export default function SettingsScreen() {
         {me.guest ? (
           <p className="muted py-3 text-sm font-semibold leading-snug" data-guest-no-reminders>{c('set_notif_guest')}</p>
         ) : (
-          <Toggle icon="clock" label={t('set_notifications')} checked={s.notificationsEnabled} onChange={(v) => set({ notificationsEnabled: v, reminderHour: s.reminderHour ?? 19 })} />
+          <Toggle
+            icon="clock"
+            label={t('set_notifications')}
+            checked={s.notificationsEnabled}
+            onChange={(v) => {
+              const patch = { notificationsEnabled: v, reminderHour: s.reminderHour ?? 19 };
+              // Включая напоминания, игрок один раз видит окно Telegram «разрешить боту писать вам»; настройки сохраняются после него:
+              // сохранение позже прошлого отказа Telegram (403) снимает «тишину» (bot/mute.ts) — бот пробует снова.
+              if (v) void requestBotWriteAccess().then(() => set(patch));
+              else set(patch);
+            }}
+          />
         )}
         {!me.guest && s.notificationsEnabled && (
           <div className="py-3">

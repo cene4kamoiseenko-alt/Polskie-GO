@@ -6,9 +6,10 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { notificationLog, playerProgress, userSettings } from '../src/db/schema';
+import { botContacts, notificationLog, playerProgress, userSettings } from '../src/db/schema';
 import { NOTIFY_MAX_ATTEMPTS, pickReminderKind, reminderCard, runScheduled, sendReminders } from '../src/jobs';
 import { BOT_TOKEN, disposeEnv, getEnv, login, request } from './helpers';
+import { resetRateLimits } from '../src/hono';
 import { fakeTelegram, tgError, type TgCall } from './tg-fake';
 import { versioned } from './bot-images';
 
@@ -22,6 +23,7 @@ afterAll(disposeEnv);
 afterEach(() => vi.unstubAllGlobals());
 // Каждый тест работает со своими пользователями: прежние не получают напоминаний.
 beforeEach(async () => {
+  resetRateLimits(); // вход ограничен по частоте, а тестов с новыми игроками много
   const { env } = await getEnv();
   await env.DB.prepare('UPDATE user_settings SET notifications_enabled = 0').run();
 });
@@ -33,7 +35,8 @@ async function mk(o: { lang?: string; streak?: number; last?: string | null; hou
   const u = await login();
   await db
     .update(userSettings)
-    .set({ timezone: 'Europe/Warsaw', reminderHour: o.hour === undefined ? 9 : o.hour, notificationsEnabled: true, uiLanguage: o.lang ?? 'ru' })
+    // updatedAt — задолго до любых отказов Telegram в тестах (время cron подменено, а настоящее «сейчас» позже него: без этого сохранение настроек выглядело бы свежим)
+    .set({ timezone: 'Europe/Warsaw', reminderHour: o.hour === undefined ? 9 : o.hour, notificationsEnabled: true, uiLanguage: o.lang ?? 'ru', updatedAt: new Date('2026-01-01T00:00:00Z') })
     .where(eq(userSettings.userId, u.user.id));
   await db.update(playerProgress).set({ streakCurrent: o.streak ?? 0, lastActiveDay: o.last ?? null }).where(eq(playerProgress.userId, u.user.id));
   return u;
@@ -192,6 +195,71 @@ describe('ошибка Telegram не оставляет ложного «отп�
     const later = fakeTelegram();
     await sendReminders(at('2026-12-15'));
     expect(to(later, u.telegramId)).toHaveLength(1);
+  });
+
+  /** Строка bot_contacts: когда игрок последний раз писал боту и помечен ли бот заблокированным (my_chat_member). */
+  const contact = (telegramId: number, lastSeenAt: Date, blockedAt: Date | null = null) =>
+    db
+      .insert(botContacts)
+      .values({ telegramId, firstName: 'T', firstSeenAt: new Date('2026-01-01T00:00:00Z'), lastSeenAt, blockedAt })
+      .onConflictDoUpdate({ target: botContacts.telegramId, set: { lastSeenAt, blockedAt } });
+  const refuse403 = () => fakeTelegram(() => tgError(403, "Forbidden: bot can't initiate conversation with a user"));
+
+  it('403 → тишина снимается, когда игрок написал боту ПОСЛЕ отказа; сообщение до отказа её не снимает', async () => {
+    const u = await mk();
+    refuse403();
+    await sendReminders(at('2026-11-10'));
+    expect(await reminder(u.user.id)).toMatchObject({ status: 'BLOCKED' });
+    // Писал боту до отказа — это не повод ждать сообщений: тишина остаётся.
+    await contact(u.telegramId, new Date('2026-11-09T10:00:00Z'));
+    const quiet = fakeTelegram();
+    await sendReminders(at('2026-11-11'));
+    expect(to(quiet, u.telegramId)).toHaveLength(0);
+    // Нажал Start после отказа — на следующий день напоминание приходит.
+    await contact(u.telegramId, new Date('2026-11-11T20:00:00Z'));
+    const after = fakeTelegram();
+    await sendReminders(at('2026-11-12'));
+    expect(to(after, u.telegramId)).toHaveLength(1);
+  });
+
+  it('403 → тишина снимается, когда игрок сохранил настройки (выбрал время напоминания) после отказа', async () => {
+    const u = await mk();
+    refuse403();
+    await sendReminders(at('2026-11-10'));
+    const quiet = fakeTelegram();
+    await sendReminders(at('2026-11-11'));
+    expect(to(quiet, u.telegramId)).toHaveLength(0);
+    await db.update(userSettings).set({ reminderHour: 9, updatedAt: new Date('2026-11-11T20:00:00Z') }).where(eq(userSettings.userId, u.user.id));
+    const after = fakeTelegram();
+    await sendReminders(at('2026-11-12'));
+    expect(to(after, u.telegramId)).toHaveLength(1);
+  });
+
+  it('новый отказ — новая тишина: повторный 403 после снятия снова молчит до следующего жеста игрока', async () => {
+    const u = await mk();
+    refuse403();
+    await sendReminders(at('2026-11-10'));
+    await db.update(userSettings).set({ updatedAt: new Date('2026-11-11T20:00:00Z') }).where(eq(userSettings.userId, u.user.id));
+    const retry = refuse403();
+    await sendReminders(at('2026-11-12'));
+    expect(to(retry, u.telegramId)).toHaveLength(1); // одна лишняя попытка после жеста игрока …
+    const quiet = fakeTelegram();
+    await sendReminders(at('2026-11-13'));
+    await sendReminders(at('2026-11-14'));
+    expect(to(quiet, u.telegramId)).toHaveLength(0); // … и снова тишина: настройки сохранены раньше нового отказа
+  });
+
+  it('бот помечен заблокированным (bot_contacts.blocked_at): вызовов к Telegram нет, пока игрок не напишет снова', async () => {
+    const u = await mk();
+    await contact(u.telegramId, new Date('2026-11-01T10:00:00Z'), new Date('2026-11-05T10:00:00Z'));
+    const calls = fakeTelegram();
+    await sendReminders(at('2026-11-10'));
+    expect(to(calls, u.telegramId)).toHaveLength(0);
+    expect(await logs(u.user.id)).toHaveLength(0); // попытки не было: ни записи, ни вызова
+    await contact(u.telegramId, new Date('2026-11-10T07:00:00Z'), null); // написал боту: blocked_at снят
+    const after = fakeTelegram();
+    await sendReminders(at('2026-11-10'));
+    expect(to(after, u.telegramId)).toHaveLength(1);
   });
 
   it('неопределённый результат (обрыв сети): UNKNOWN, автоматически не повторяется; токен в журнал не попадает', async () => {

@@ -3,7 +3,7 @@
  * Кожна зміна записується в admin_audit_logs.
  */
 import { emptyIfNoTable, recentErrors } from '../services/error-log';
-import { INSIGHT_DAYS, adminInsights, sourceKey } from '../services/admin-insights';
+import { INSIGHT_DAYS, adminInsights, retentionReport, sourceKey } from '../services/admin-insights';
 import { attention, auditLog, paymentsSummary } from '../services/admin-ops';
 import { campaignAudience, campaignText, findTelegramPlayer, sendBotText } from '../services/campaigns';
 import { DAY_FILTERS, dailyOverview, dailyQuestions, dayReport, userDailyQuiz } from '../services/daily-quiz-admin';
@@ -239,19 +239,15 @@ a.get('/dashboard', async (c) => {
       SELECT a.exercise_id, l.slug AS lesson, a.type, SUM(CASE WHEN a.is_correct THEN 0 ELSE 1 END) AS wrong, COUNT(*) AS total
       FROM exercise_attempts a JOIN exercises e ON e.id = a.exercise_id JOIN lessons l ON l.id = e.lesson_id
       GROUP BY a.exercise_id, l.slug, a.type HAVING COUNT(*) >= 3 ORDER BY (SUM(CASE WHEN a.is_correct THEN 0 ELSE 1 END) * 1.0 / COUNT(*)) DESC LIMIT 10`),
-    // Retention D1/D7: частка користувачів, активних наступного / через 7 днів після реєстрації.
-    db.all<{ d1: number | null; d7: number | null }>(sql`
-      SELECT
-        AVG(CASE WHEN EXISTS (SELECT 1 FROM daily_activity a WHERE a.user_id = u.id AND a.day = strftime('%Y-%m-%d', u.created_at / 1000 + 86400, 'unixepoch')) THEN 1.0 ELSE 0 END)
-          FILTER (WHERE u.created_at < ${now - 2 * 86_400_000}) AS d1,
-        AVG(CASE WHEN EXISTS (SELECT 1 FROM daily_activity a WHERE a.user_id = u.id AND a.day >= strftime('%Y-%m-%d', u.created_at / 1000 + 7 * 86400, 'unixepoch')) THEN 1.0 ELSE 0 END)
-          FILTER (WHERE u.created_at < ${now - 8 * 86_400_000}) AS d7
-      FROM users u WHERE u.created_at >= ${now - 90 * 86_400_000}`),
+    // Удержание: точные D1 / D7 / D30 по дню регистрации (Варшава) и по неделям регистрации — services/admin-insights.ts (retentionReport).
+    retentionReport(nowD),
     // Журнал ошибок за сутки (services/error-log.ts): сервер, Mini App, CSP. До миграции 0015 таблицы нет — пусто, а не 500.
     // Редактору контента журнал ошибок не показываем — как и /errors.
     c.get('admin')!.role === 'EDITOR' ? Promise.resolve(null) : recentErrors(new Date(now)).catch(emptyIfNoTable(24)),
   ]);
   const n = (r: { n: number }[]) => r[0]?.n ?? 0;
+  /** Процент вернувшихся от тех, у кого нужный день уже закончился; пока таких нет — null. */
+  const ratePct = (r: { n: number; base: number }) => (r.base > 0 ? Math.round((100 * r.n) / r.base) : null);
   return c.json({
     users: n(users), active1: n(active1), active7: n(active7), new7: n(new7), lessonsTotal: n(lessonsTotal), lessons7: n(lessons7),
     avgXp: Math.round(avg[0]?.xp ?? 0), avgLessons: Math.round((avg[0]?.lessons ?? 0) * 10) / 10, avgWords: Math.round(avg[0]?.words ?? 0),
@@ -260,7 +256,7 @@ a.get('/dashboard', async (c) => {
     topLessons: topLessons.map((x) => ({ slug: x.slug, title: JSON.parse(x.title), count: Number(x.count) })),
     errors: errors.map((e) => ({ exerciseId: e.exercise_id, lesson: e.lesson, type: e.type, wrong: Number(e.wrong), total: Number(e.total), rate: Math.round((Number(e.wrong) / Number(e.total)) * 100) })),
     appErrors,
-    retention: { d1: retention[0]?.d1 != null ? Math.round(Number(retention[0].d1) * 100) : null, d7: retention[0]?.d7 != null ? Math.round(Number(retention[0].d7) * 100) : null },
+    retention: { d1: ratePct(retention.total.d1), d7: ratePct(retention.total.d7), d30: ratePct(retention.total.d30), weeks: retention.weeks },
   });
 });
 

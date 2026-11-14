@@ -151,6 +151,11 @@ async function main() {
       // в этом наборе никто не проходил входной тест — карточка говорит об этом, а не рисует пустые полосы
       check(/не проходил тест/.test(await p.locator('[data-placement-card]').innerText()), `${width}px «Обзор»: входной тест (никто из новичков не проходил)`);
       check((await p.locator('[data-reminders-card]').innerText()).includes('включены у'), `${width}px «Обзор»: напоминания бота`);
+      // Удержание: точные D1 / D7 / D30 и таблица по неделям регистрации (в этом наборе все новички — этой недели, дни ещё не наступили)
+      await p.locator('[data-retention-card]').waitFor({ timeout: 10_000 });
+      const retention = await p.locator('[data-retention-card]').innerText();
+      check(/Удержание по неделям регистрации/.test(retention) && /D30/.test(retention) && (await p.locator('[data-retention-row]').count()) >= 1, `${width}px «Обзор»: удержание по неделям регистрации`);
+      check(/D1 \/ D7 \/ D30/.test(await p.locator('body').innerText()), `${width}px «Обзор»: показатель «Возвращаются» — D1 / D7 / D30`);
       check((await p.locator('[data-app-errors]').innerText()).includes('приложение 1'), `${width}px «Обзор»: ошибки за сутки — 1 в приложении`);
       await p.click('button:has-text("7 дней")');
       await p.waitForFunction(() => /^7 дн\./.test(document.querySelector('h1 + p')?.textContent ?? ''), null, { timeout: 10_000 });

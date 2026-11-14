@@ -10,7 +10,8 @@
  * Доставка нагадування (таблиця notification_log, ключ (user_id, kind, day)):
  *  1. Рядок PENDING створює той запуск, чий INSERT виконався першим (унікальний ключ), — паралельний cron пропускає користувача.
  *  2. Telegram прийняв — SENT. Явна відмова (429, 5xx) — FAILED з next_attempt_at і не більше NOTIFY_MAX_ATTEMPTS спроб
- *     в межах того ж місцевого дня; 400/401/404 — FAILED без повтору; 403 — BLOCKED (користувача пропускаємо 30 днів).
+ *     в межах того ж місцевого дня; 400/401/404 — FAILED без повтору; 403 — BLOCKED (тиша до 30 днів, але вона знімається, щойно
+ *     гравець напише боту чи збереже налаштування — `bot/mute.ts`).
  *  3. Невідомий результат (тайм-аут, обрив мережі, воркер упав після відправки, lease прострочено) — UNKNOWN: Telegram не має
  *     ключа ідемпотентності, тому таке нагадування не повторюється автоматично (краще пропустити день, ніж надіслати двічі).
  */
@@ -29,6 +30,7 @@ import { reminderImage } from './bot/catalog';
 import { COPY, type Card, type ReminderKind } from './bot/copy';
 import { pickLang } from './bot/data';
 import { maintainBot } from './bot/maintain';
+import { notMuted } from './bot/mute';
 import { sendQuizInvites } from './bot/quiz/invites';
 import { sendCard } from './bot/send';
 import { ensurePlan } from './bot/daily/plan';
@@ -47,7 +49,6 @@ const RETRY_DELAY_MS = [5 * 60_000, 20 * 60_000];
 const RETURN_AFTER_DAYS = 3;
 /** Серія від цього значення — окреме нагадування про серію (серія в 1 день — звичайне нагадування). */
 const STREAK_MIN = 2;
-const BLOCKED_QUIET_MS = 30 * 86_400_000;
 const UPDATES_KEEP_MS = 3 * 86_400_000;
 const QUIZ_ROUNDS_KEEP_MS = 30 * 86_400_000;
 
@@ -197,7 +198,6 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stat
   }
   // 2) Лише ті, кому саме зараз: їхня година в їхньому поясі, сьогодні ще не вчилися й не отримували нагадування.
   const tzs = [...due.keys()];
-  const blockedSince = new Date(now.getTime() - BLOCKED_QUIET_MS);
   for (let i = 0; i < tzs.length && stats.calls < budget; i += TZ_PER_QUERY) {
     const byZone = tzs.slice(i, i + TZ_PER_QUERY).map((tz) => {
       const { hour, day } = due.get(tz)!;
@@ -224,13 +224,8 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stat
           // Гості (вхід вне Telegram, telegram_id < 0) бота не мають: напоминания им не шлём.
           gt(users.telegramId, 0),
           eq(userSettings.notificationsEnabled, true),
-          // Хто заблокував бота, тому 30 днів не пишемо.
-          notExists(
-            db
-              .select({ x: sql`1` })
-              .from(notificationLog)
-              .where(and(eq(notificationLog.userId, users.id), eq(notificationLog.status, 'BLOCKED'), gt(notificationLog.createdAt, blockedSince))),
-          ),
+          // Після відмови Telegram (403) мовчимо до 30 днів, але не довше, ніж гравець не писав боту й не зберігав налаштування (bot/mute.ts).
+          notMuted(now),
           or(...byZone),
         ),
       )
