@@ -7,12 +7,12 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { and, count, eq } from 'drizzle-orm';
 import { addDays, dayKey } from '@polski-go/shared';
 import { db } from '../src/db';
-import { gameConfig, gameWallets, paymentEvents, playerProgress, subscriptions, supportRequests, userInventory } from '../src/db/schema';
+import { botContacts, gameConfig, gameWallets, paymentEvents, playerProgress, subscriptions, supportRequests, userInventory } from '../src/db/schema';
 import { disposeEnv, login, playSession, request } from './helpers';
 
 type Call = { method: string; body: Record<string, any> };
 
-function mockBot(fail?: (method: string) => boolean) {
+function mockBot(fail?: (method: string) => boolean, error: { code: number; description: string } = { code: 400, description: 'Bad Request: CHARGE_NOT_FOUND' }) {
   const calls: Call[] = [];
   const realFetch = globalThis.fetch;
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
@@ -20,7 +20,7 @@ function mockBot(fail?: (method: string) => boolean) {
     const method = String(url).split('/').pop()!;
     const body = JSON.parse(String(init?.body ?? '{}'));
     calls.push({ method, body });
-    if (fail?.(method)) return new Response(JSON.stringify({ ok: false, error_code: 400, description: 'Bad Request: CHARGE_NOT_FOUND' }), { status: 400 });
+    if (fail?.(method)) return new Response(JSON.stringify({ ok: false, error_code: error.code, description: error.description }), { status: error.code });
     const result = method === 'createInvoiceLink' ? 'https://t.me/$invoice123' : method === 'sendMessage' ? { message_id: 1 } : true;
     return new Response(JSON.stringify({ ok: true, result }), { status: 200 });
   });
@@ -154,6 +154,50 @@ describe('вимоги Telegram: /terms і /paysupport', () => {
     await db.update(supportRequests).set({ createdAt: new Date(Date.now() - 61 * 60_000) }).where(eq(supportRequests.telegramId, tg));
     await say(tg, 'поздно');
     expect((await db.select().from(supportRequests).where(eq(supportRequests.telegramId, tg)))[0].status).toBe('AWAITING');
+  });
+});
+
+describe('підтримка з екрана Premium (кнопка «Підтримка з оплати»)', () => {
+  it('кнопка відкриває звернення, підказка приходить у чат бота мовою гравця, наступне повідомлення стає текстом звернення', async () => {
+    const calls = mockBot();
+    const u = await login();
+    const r = await u.call('POST', '/api/support/open', {});
+    expect(r).toMatchObject({ status: 200, body: { sent: true } });
+    expect(calls.at(-1)).toMatchObject({ method: 'sendMessage', body: { chat_id: u.telegramId, text: expect.stringContaining('Підтримка з оплати') } });
+    expect((await db.select().from(supportRequests).where(eq(supportRequests.telegramId, u.telegramId)))[0]).toMatchObject({ status: 'AWAITING', userId: u.user.id });
+    await say(u.telegramId, 'Оплатил, а Premium не включился');
+    expect(calls.at(-1)!.body.text).toContain('Повідомлення передано в підтримку');
+    expect((await db.select().from(supportRequests).where(eq(supportRequests.telegramId, u.telegramId)))[0]).toMatchObject({ status: 'OPEN', text: 'Оплатил, а Premium не включился' });
+  });
+
+  it('Telegram не приймає повідомлення (бота не запускали або заблокували): sent=false, звернення чекає на текст, застосунок відкриє посилання зі стартом', async () => {
+    mockBot((m) => m === 'sendMessage', { code: 403, description: "Forbidden: bot can't initiate conversation with a user" });
+    const u = await login();
+    expect(await u.call('POST', '/api/support/open', {})).toMatchObject({ status: 200, body: { sent: false } });
+    expect((await db.select().from(supportRequests).where(eq(supportRequests.telegramId, u.telegramId)))[0].status).toBe('AWAITING');
+    mockBot((m) => m === 'sendMessage', { code: 403, description: 'Forbidden: bot was blocked by the user' });
+    expect(await u.call('POST', '/api/support/open', {})).toMatchObject({ status: 200, body: { sent: false } });
+  });
+
+  it('гість без Telegram: 400 no_telegram, звернення не створюється', async () => {
+    const calls = mockBot();
+    const g = await request('POST', '/api/auth/guest', { platform: 'twa', language: 'ru' }, { 'cf-connecting-ip': '10.9.9.9' });
+    expect(g.status).toBe(200);
+    const r = await request('POST', '/api/support/open', {}, { authorization: `Bearer ${g.body.token}` });
+    expect(r).toMatchObject({ status: 400, body: { error: 'no_telegram' } });
+    expect(calls.filter((c) => c.method === 'sendMessage')).toHaveLength(0);
+  });
+
+  it('посилання t.me/<бот>?start=paysupport — те саме, що /paysupport; мітка paysupport не потрапляє в «звідки прийшли»', async () => {
+    const calls = mockBot();
+    const tg = 7_730_050;
+    await say(tg, '/start paysupport', 'ru');
+    expect(calls.at(-1)!.body.text).toContain('Поддержка по оплате');
+    expect((await db.select().from(supportRequests).where(eq(supportRequests.telegramId, tg)))[0].status).toBe('AWAITING');
+    await say(tg, 'Не пришёл Premium');
+    expect(calls.at(-1)!.body.text).toContain('передано в поддержку');
+    const [contact] = await db.select().from(botContacts).where(eq(botContacts.telegramId, tg));
+    expect(contact.startParam).toBeNull();
   });
 });
 

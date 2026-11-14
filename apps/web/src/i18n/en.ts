@@ -747,6 +747,7 @@ export const en: Dict = {
   prem_terms_2: 'You can cancel auto-renewal any time here or in Telegram (Settings → My Stars). Premium stays active until the end of the paid period.',
   prem_terms_3: 'Payment questions and refunds: message the bot /paysupport. If Premium didn’t turn on after payment, we’ll refund your Stars.',
   prem_support: 'Payment support',
+  prem_support_opening: 'Opening the chat…',
   prem_month: '/mo',
   prem_recurring: 'Auto-renews, cancel anytime',
   prem_once: 'One-time payment',

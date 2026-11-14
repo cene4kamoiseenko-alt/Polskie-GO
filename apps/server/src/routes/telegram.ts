@@ -58,7 +58,8 @@ async function noteContact(update: Update, now = new Date()) {
     if (!msg?.from || (msg.chat?.type ?? 'private') !== 'private') return;
     const cmd = parseCommand(msg.text);
     const command = cmd?.name ?? (typeof msg.text === 'string' ? (commandForLabel(msg.text) ?? 'text') : msg.successful_payment ? 'payment' : null);
-    const startParam = cmd?.name === 'start' && /^[A-Za-z0-9_-]{1,64}$/.test(cmd.arg) ? cmd.arg : null;
+    // paysupport — действие уже знакомого человека (кнопка поддержки в приложении), а не источник: в «откуда пришли» не попадает.
+    const startParam = cmd?.name === 'start' && cmd.arg !== 'paysupport' && /^[A-Za-z0-9_-]{1,64}$/.test(cmd.arg) ? cmd.arg : null;
     await recordBotContact(msg.from, { command: command?.slice(0, 32) ?? null, startParam }, now);
   } catch (e) {
     console.warn('bot: contact not recorded', (e as Error).message);

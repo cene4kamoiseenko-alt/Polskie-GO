@@ -15,6 +15,7 @@ import { reportPlayer } from '../services/reports';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
 import { claimPremiumGift, premiumBonuses, premiumGift } from '../services/premium-gift';
+import { openSupportFromApp } from '../services/support';
 import { achievementMetrics } from '../services/achievements';
 import { answerMission, listMissions, missionHint, startMission } from '../services/missions';
 import { passport } from '../services/passport';
@@ -145,3 +146,5 @@ r.post('/premium/invoice', rateLimit(10, 60_000, 'invoice'), async (c) => {
   return c.json(await createInvoice(c.get('userId'), plan, (settings?.uiLanguage ?? 'uk') as UiLang));
 });
 r.post('/premium/cancel', async (c) => c.json(await cancelSubscription(c.get('userId'))));
+// Кнопка «Підтримка з оплати»: звернення відкривається, підказка іде в чат бота; відповідь — `sent` (див. services/support.ts).
+r.post('/support/open', rateLimit(5, 10 * 60_000, 'support-open'), async (c) => c.json(await openSupportFromApp(c.get('userId'))));

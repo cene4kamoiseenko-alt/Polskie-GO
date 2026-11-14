@@ -4,7 +4,7 @@ import { Icon, type LineIconName } from '../components/Icon';
 import { useState } from 'react';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { haptic, tg } from '../lib/telegram';
+import { haptic, openBotChat, tg } from '../lib/telegram';
 import { isStandalone } from '../lib/platform';
 import { useStandaloneCopy } from '../lib/standaloneCopy';
 import { useMe } from '../lib/queries';
@@ -127,10 +127,21 @@ export default function PremiumScreen() {
     }
   };
 
-  const openSupport = () => {
-    const url = `https://t.me/${q.data?.bot ?? ''}`;
-    if (tg?.openTelegramLink && q.data?.bot) tg.openTelegramLink(url);
-    else window.open(url, '_blank');
+  // Поддержка по оплате: сервер открывает обращение и сам присылает в чат бота подсказку «опишите одним сообщением»; затем открываем чат
+  // и закрываем Mini App (иначе чат остался бы под ним). Если сервер не смог написать первым (бота не запускали, сбой) — ссылка со
+  // стартовым параметром, она запускает ту же поддержку в боте.
+  const [supportBusy, setSupportBusy] = useState(false);
+  const openSupport = async () => {
+    const bot = q.data?.bot;
+    if (!bot || supportBusy) return;
+    haptic.tap();
+    setSupportBusy(true);
+    try {
+      const r = await api<{ sent: boolean }>('/support/open', { body: {} }).catch(() => ({ sent: false }));
+      openBotChat(bot, r.sent ? undefined : 'paysupport');
+    } finally {
+      setSupportBusy(false);
+    }
   };
 
   if (q.isLoading) return <ScreenSkeleton />;
@@ -306,7 +317,7 @@ export default function PremiumScreen() {
         <p>{t('prem_terms_2')}</p>
         <p>{t('prem_terms_3')}</p>
         {data.bot && (
-          <button className="btn btn-sky mt-1 w-full !py-2 text-sm" onClick={openSupport}><Icon name="chat" size={18} /> {t('prem_support')}</button>
+          <button className="btn btn-sky mt-1 w-full !py-2 text-sm" onClick={openSupport} disabled={supportBusy} data-premium-support><Icon name="chat" size={18} /> {t(supportBusy ? 'prem_support_opening' : 'prem_support')}</button>
         )}
       </Card>
       )}

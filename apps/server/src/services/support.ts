@@ -5,9 +5,11 @@
  */
 import { and, desc, eq, gt, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { paymentEvents, supportRequests, users } from '../db/schema';
+import { paymentEvents, supportRequests, userSettings, users } from '../db/schema';
 import { badRequest, notFound } from '../lib/errors';
-import { botApi } from '../lib/telegram';
+import { botApi, TelegramError } from '../lib/telegram';
+import { COPY } from '../bot/copy';
+import { pickLang } from '../bot/data';
 
 /** Скільки чекаємо на текст звернення після /paysupport. */
 export const SUPPORT_WAIT_MS = 60 * 60_000;
@@ -19,6 +21,30 @@ export async function openSupport(telegramId: number, userId: string | null, now
     db.delete(supportRequests).where(and(eq(supportRequests.telegramId, telegramId), eq(supportRequests.status, 'AWAITING'))),
     db.insert(supportRequests).values({ telegramId, userId, status: 'AWAITING', createdAt: now, updatedAt: now }),
   ]);
+}
+
+/**
+ * Кнопка «Підтримка з оплати» на екрані Premium: відкриває звернення і сама надсилає в чат бота підказку «опишіть одним повідомленням»
+ * (те саме, що відповідь на /paysupport). Так людина бачить реакцію в чаті, а не покладається на те, що Telegram відкриє посилання
+ * на чат бота з-під Mini App (з Bot API 7.0 застосунок не закривається сам, і чат лишається під ним).
+ * `sent: false` — Telegram не прийняв повідомлення (бота не запускали або заблокували): застосунок відкриє посилання з параметром
+ * start=paysupport, яке запускає ту саму підтримку; звернення вже чекає на текст.
+ */
+export async function openSupportFromApp(userId: string, now = new Date()): Promise<{ sent: boolean }> {
+  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  // Гість (вхід поза Telegram) не має чату з ботом.
+  if (!user || user.telegramId <= 0) throw badRequest('no_telegram');
+  const settings = await db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) });
+  const lang = pickLang(settings?.uiLanguage, null);
+  await openSupport(user.telegramId, userId, now);
+  try {
+    await botApi('sendMessage', { chat_id: user.telegramId, text: COPY[lang].premium.paySupport });
+    return { sent: true };
+  } catch (e) {
+    // 403 — бота не запускали або заблокували, 400 — чат не знайдено: це не збій, а підстава відкрити посилання зі стартом.
+    if (e instanceof TelegramError && (e.code === 403 || e.code === 400)) return { sent: false };
+    throw e;
+  }
 }
 
 /** Звичайне повідомлення: якщо людина щойно відкрила підтримку — це текст звернення. true — повідомлення прийнято. */

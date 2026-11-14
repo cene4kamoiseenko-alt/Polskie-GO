@@ -71,6 +71,19 @@ export function startParam(): string | undefined {
   return new URLSearchParams(window.location.search).get('startapp') ?? undefined;
 }
 
+/**
+ * Открыть чат с ботом (с `start` — ссылкой со стартовым параметром, бот получает /start <параметр>) и закрыть Mini App.
+ * С Bot API 7.0 openTelegramLink приложение само не закрывает: чат открывается под ним, и человек не видит никакой реакции.
+ * Вне Telegram — обычная ссылка в новой вкладке.
+ */
+export function openBotChat(bot: string, start?: string) {
+  const url = `https://t.me/${bot}${start ? `?start=${encodeURIComponent(start)}` : ''}`;
+  if (tg) {
+    tg.openTelegramLink(url);
+    tg.close();
+  } else window.open(url, '_blank', 'noopener');
+}
+
 export function share(url: string, text: string) {
   const link = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
   if (tg) return tg.openTelegramLink(link);

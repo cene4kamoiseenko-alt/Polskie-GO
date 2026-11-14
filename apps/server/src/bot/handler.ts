@@ -64,6 +64,8 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
   }
   const arg = cmd?.arg ?? '';
   const quiz = cmd?.name === 'quiz' || (cmd?.name === 'start' && arg === 'quiz');
+  // Ссылка t.me/<бот>?start=paysupport (кнопка поддержки в приложении, если бот не смог написать первым) — то же, что /paysupport.
+  const paySupport = cmd?.name === 'paysupport' || (cmd?.name === 'start' && arg === 'paysupport');
   const command: CommandName | 'unknown' = cmd && isCommand(cmd.name) ? cmd.name : 'unknown';
 
   let { value: user, failed: dbDown } = await soft<BotUser | null>('find user', () => findBotUser(from.id), null);
@@ -86,8 +88,8 @@ export async function handleBotMessage(msg: BotMessage, now = new Date()): Promi
   const copy = COPY[lang];
 
   // Оплати в Stars: /paysupport (підтримка) і /terms (умови) — вимоги Telegram до ботів з оплатами. Лише в особистому чаті.
-  if (priv && (cmd?.name === 'paysupport' || cmd?.name === 'terms')) {
-    if (cmd.name === 'paysupport') {
+  if (priv && (paySupport || cmd?.name === 'terms')) {
+    if (paySupport) {
       const opened = await soft('support', () => openSupport(from.id, user?.id ?? null, now), undefined);
       // База недоступна — звернення не збережеться: просимо написати пізніше, а не обіцяємо відповідь.
       await botApi('sendMessage', { chat_id: msg.chat.id, text: opened.failed ? copy.premium.supportFailed : copy.premium.paySupport });
