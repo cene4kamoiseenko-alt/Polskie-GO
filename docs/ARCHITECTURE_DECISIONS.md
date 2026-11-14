@@ -206,7 +206,7 @@ ADR-005 §12 требует: не списывать Złotki за вещь бе�
   - чужая или несуществующая вещь — `not_owned`;
   - откат пакета при сбое надевания (тестовый триггер D1);
   - отсутствие конфликтов при параллельных надеваниях.
-- `apps/server/test/game.test.ts` — два теста покупали `pending`-вещи (`cap-green`, `crown-gold`). Они переведены на `costume-winter`, `frame-gold` и `costume-dragon`.
+- `apps/server/test/game.test.ts` — два теста покупали `pending`-вещи (`cap-green`, `crown-gold`). Они переведены на `costume-winter`, `frame-gold` и `costume-dragon` (рамки убраны из игры 2026-11-14: проверка Premium теперь на `costume-dragon`).
 - Мутационная проверка: без `canPurchase` и правил ядра падают 7 из 13 новых тестов. При раздельных пакетах падает тест атомарности. При «снимке» падает тест параллельных надеваний.
 - `npm test` — код 0: shared 148 из 148, server 147 из 147 (23 файла).
 - `npm run typecheck` — shared, server и admin — код 0. web — код 2: ошибки в `apps/web/src/dev/Gallery.tsx`, это незакоммиченная работа по M1, этим решением не затронута.

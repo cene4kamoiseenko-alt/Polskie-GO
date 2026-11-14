@@ -95,12 +95,6 @@ describe('образ: конфлікти слотів', () => {
     expect(equip(['costume-barista'], 'scarf-pl').evicted).toEqual([]);
   });
 
-  it('рамка профілю не чіпає одяг і замінює іншу рамку', () => {
-    const r = equip(['frame-green', 'cap-red'], 'frame-gold');
-    expect(r.equipment).toEqual(['cap-red', 'frame-gold']);
-    expect(r.evicted).toEqual(['frame-green']);
-  });
-
   it('equip/unequip не мутують вхід; невідомі ключі зберігаються', () => {
     const current = Object.freeze(['cap-red', 'future-item']);
     const r = equip(current, 'beanie-blue');
@@ -220,11 +214,12 @@ describe('образ: resolveLook на поточних ассетах', () => {
     expect(a.key).toBe('look1|legacy-base|legacy-base|front|think|backpack-travel+hoodie-red');
   });
 
-  it('рамка — у профілі, не на Бобеку', () => {
-    const look = resolveLook(null, ['frame-gold', 'backpack-travel']);
-    expect(look.frame).toBe('frame-gold');
+  it('рамки профілю прибрані з гри: у старих даних вони — невідомі ключі, Бобека не ламають', () => {
+    const look = resolveLook(null, ['frame-gold', 'frame-green', 'backpack-travel']);
+    expect(look.unknown).toEqual(['frame-gold', 'frame-green']);
+    expect(look.equipped).not.toContain('frame-gold');
     expect(look.drawn).not.toContain('frame-gold');
-    expect(look.equipped).toContain('frame-gold');
+    expect(look.drawn).toContain('backpack-travel');
   });
 
   it('без фірмового образу худі з картинки позначено extraneous', () => {
@@ -284,7 +279,6 @@ describe('образ: політика покупки й показу', () => {
     expect(canPurchase({ id: 'i_cap-green', slot: 'HAT' })).toEqual({ ok: false, reason: 'visual-pending', status: 'pending' });
     expect(canPurchase({ id: 'i_cap-red', slot: 'HAT' })).toEqual({ ok: true, status: 'prerendered' });
     expect(canPurchase({ id: 'i_costume-artist', slot: 'COSTUME' })).toEqual({ ok: true, status: 'legacy-whole-look' });
-    expect(canPurchase({ id: 'i_frame-gold', slot: 'FRAME' })).toEqual({ ok: true, status: 'ready' });
   });
 
   it('домик, вже куплене, невідоме й розбіжність слота', () => {

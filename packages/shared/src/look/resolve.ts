@@ -124,7 +124,6 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
   const unknown: string[] = [];
   const seen = new Set<string>();
   const candidates: LookItem[] = [];
-  const frames: LookItem[] = [];
   for (const raw of sortedUniqueIds(rawList.map(toLookItemId).filter(Boolean))) {
     const it = findLookItem(raw, m);
     if (!it) {
@@ -137,7 +136,7 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
       note(it, false, 'not-owned');
       continue;
     }
-    (it.domain === 'profile-frame' ? frames : candidates).push(it);
+    candidates.push(it);
   }
 
   // 2. Конфлікти в старих даних: детермінований переможець (ширший предмет, пріоритет слота, id).
@@ -147,11 +146,6 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
     if (winner) note(it, false, 'slot-conflict', winner.id);
     else accepted.push(it);
   }
-  const framesSorted = [...frames].sort(lookPrecedence);
-  const frame = framesSorted[0] ?? null;
-  for (const f of framesSorted.slice(1)) note(f, false, 'slot-conflict', frame!.id);
-  // Рамка — домен профілю: «видна» там, на Бобека не впливає.
-  if (frame) note(frame, true, 'drawn');
 
   const wanted = emptySlots<string | null>(null);
   for (const it of accepted) for (const s of effectiveSlots(it)) wanted[s] = it.id;
@@ -292,7 +286,7 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
   }
 
   const items = [...outcomes.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  const drawn = sortedUniqueIds(items.filter((o) => o.drawn && o.id !== frame?.id).map((o) => o.id));
+  const drawn = sortedUniqueIds(items.filter((o) => o.drawn).map((o) => o.id));
   return {
     key: `look1|${mode}|${baseRef}|${view}|${pose}|${drawn.join('+')}`,
     mode,
@@ -303,15 +297,14 @@ export function resolveLook(inventory: LookInventory, equipment: LookEquipment |
     poseFallback,
     layers,
     slots,
-    equipped: sortedUniqueIds([...accepted.map((it) => it.id), ...(frame ? [frame.id] : [])]),
+    equipped: sortedUniqueIds(accepted.map((it) => it.id)),
     drawn,
     pending: [...pendingIds].sort(),
-    hidden: items.filter((o) => !o.drawn && o.reason !== 'visual-pending' && o.id !== frame?.id),
+    hidden: items.filter((o) => !o.drawn && o.reason !== 'visual-pending'),
     extraneous,
     defaults: defaults.sort(),
     unknown,
     items,
-    frame: frame?.id ?? null,
     legacy: mode !== 'layered',
     preview: options.preview === true,
   };
@@ -360,7 +353,7 @@ export function tryOn(current: LookEquipment | LookLegacyWear, candidate: string
     candidate: id,
     known: true,
     status: r.status,
-    candidateVisible: after.drawn.includes(id) || after.frame === id,
+    candidateVisible: after.drawn.includes(id),
     candidateReason: outcome?.reason ?? 'visual-pending',
     equipment: r.equipment,
     added: r.equipment.filter((x) => !currentList.includes(x)),

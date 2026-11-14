@@ -28,7 +28,7 @@ import { costumeAsset, costumeScene, itemIcon, travellerScene } from '../lib/ass
 import { resolveLook, toLookItemId, tryOn, unequip } from '@polski-go/shared';
 import { isVisualPending, shopVisualStatus, useWear } from '../lib/look';
 
-const WARDROBE_SLOTS = ['JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'HAT', 'GLASSES', 'SCARF', 'COSTUME', 'FRAME'];
+const WARDROBE_SLOTS = ['JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'HAT', 'GLASSES', 'SCARF', 'COSTUME'];
 const HOUSE_SLOTS = ['FURNITURE', 'DECOR', 'SOUVENIR'];
 /** Рівні готових образів: польська назва місця і підпис мовою інтерфейсу. «common» (стартовий образ) показується в першому рівні. */
 const TIERS = [
@@ -51,7 +51,6 @@ const SLOT_GLYPH: Record<string, ReactNode> = {
   GLASSES: <><circle cx="7" cy="13" r="3.2" /><circle cx="17" cy="13" r="3.2" /><path d="M10.2 13h3.6M3.8 12L3 9M20.2 12l.8-3" /></>,
   SCARF: <path d="M5 7c4 3 10 3 14 0v3c-4 3-10 3-14 0zM14 11v9l3-1v-8" />,
   COSTUME: <path d="M12 3l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.3 6.8 19l1-5.8L3.6 9.1l5.8-.8z" />,
-  FRAME: <><rect x="4" y="4" width="16" height="16" rx="3" /><rect x="8" y="8" width="8" height="8" rx="1" /></>,
   FURNITURE: <path d="M4 18v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6M4 15h16M6 18v2M18 18v2M7 10V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" />,
   DECOR: <path d="M12 20v-7M12 13c-4 0-6-3-6-7 4 0 6 3 6 7zm0 0c4 0 6-3 6-7-4 0-6 3-6 7zM8 20h8" />,
   SOUVENIR: <><rect x="4" y="9" width="16" height="11" rx="2" /><path d="M12 9v11M4 13h16M12 9c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1" /></>,
@@ -185,7 +184,6 @@ export default function ShopScreen() {
     () => all.map((i, n) => ({ i, n })).filter(({ i }) => isLook(i)).sort((a, b) => (b.i.outfit?.starter ? 1 : 0) - (a.i.outfit?.starter ? 1 : 0) || TIER_RANK[a.i.rarity] - TIER_RANK[b.i.rarity] || a.i.price - b.i.price || a.n - b.n).map(({ i }) => i),
     [all],
   );
-  const frames = useMemo(() => all.filter((i) => i.slot === 'FRAME' && !i.rewardOnly), [all]);
   const nameByAsset = useMemo(() => new Map(all.map((i) => [i.assetKey, tr(i.name)])), [all, tr]);
   /** Склад образу: «Червоне худі · Червона кепка · …» (худі — коли воно видно на картинці). */
   const pieces = (i: ShopItem) => [...(i.outfit?.hoodie ? ['hoodie-red'] : []), ...(i.outfit?.items ?? [])].map((k) => nameByAsset.get(k)).filter(Boolean).join(' · ');
@@ -225,7 +223,7 @@ export default function ShopScreen() {
     if (i) sfx.tap();
     setPickedId(i?.id ?? null);
   };
-  const stepList = tab === 'rewards' ? [...rewardCostumes, ...otherRewards] : houseMode ? items : [...looks, ...frames];
+  const stepList = tab === 'rewards' ? [...rewardCostumes, ...otherRewards] : houseMode ? items : looks;
   const step = (d: number) => {
     if (!stepList.length) return;
     const idx = picked ? stepList.findIndex((i) => i.id === picked.id) : -1;
@@ -530,12 +528,6 @@ export default function ShopScreen() {
               </section>
             );
           })}
-          {frames.length > 0 && (
-            <section className="mt-6" data-frames>
-              <h2 className="mx-4 text-[20px] font-black">{t('wardrobe_frames')}</h2>
-              <div className="mt-3 grid grid-cols-2 gap-3 px-4">{frames.map(itemCard)}</div>
-            </section>
-          )}
         </div>
       )}
       </div>

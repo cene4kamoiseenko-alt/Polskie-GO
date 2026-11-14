@@ -54,6 +54,30 @@ const REWARD_REBIND: ['achievements' | 'quests', string, string | null, string][
   ['quests', 's-krakow-mieszkanie', 'rug-red', 'obwarzanek'],
   ['quests', 's-warszawa-dworzec', 'scarf-pl', 'outfit-hoodie-scarf'],
 ];
+/**
+ * Предметы, убранные из игры. 2026-11-14: рамки профиля (золотая и зелёная) «ничего не дают» (владелец) — из каталога и образа удалены.
+ * На проде их строки остаются в БД, поэтому охраняемый seed: (1) возвращает Złotki тем, кто покупал предмет за Złotki (сумма — из журнала
+ * покупки `buy:<slug>`, один раз: запись возврата с ключом от id покупки; полученные в подарок или наградой не возвращаются — они бесплатные),
+ * (2) снимает надетые, (3) выключает предмет (магазин и подарок Premium выбирают только включённые). Строки инвентаря и журнал остаются.
+ * Порядок как у grantZlotki: сначала баланс там, где возврата ещё нет, потом запись возврата.
+ */
+export const RETIRED_ITEM_SLUGS = ['frame-green', 'frame-gold'] as const;
+export function retireItemsSql(slugs: readonly string[] = RETIRED_ITEM_SLUGS): string[] {
+  const list = slugs.map((s) => `'${s}'`).join(', ');
+  const reasons = slugs.map((s) => `'buy:${s}'`).join(', ');
+  const now = `CAST(unixepoch('subsec') * 1000 AS INTEGER)`;
+  // Возврат и снятие — только пока предмет ещё включён: после первого seed (он выключает предметы последним запросом) эти запросы
+  // ничего не читают, и каждый следующий деплой не сканирует журнал операций.
+  const live = `EXISTS (SELECT 1 FROM cosmetic_items WHERE slug IN (${list}) AND is_active = 1)`;
+  // Покупки за Złotki, по которым возврат ещё не записан.
+  const open = `FROM wallet_transactions t WHERE ${live} AND t.reason IN (${reasons}) AND t.amount < 0 AND NOT EXISTS (SELECT 1 FROM wallet_transactions r WHERE r.idempotency_key = 'retired-refund:' || t.id)`;
+  return [
+    `UPDATE game_wallets SET balance = balance + (SELECT COALESCE(SUM(-t.amount), 0) ${open} AND t.user_id = game_wallets.user_id), updated_at = ${now} WHERE ${live} AND EXISTS (SELECT 1 ${open} AND t.user_id = game_wallets.user_id);`,
+    `INSERT OR IGNORE INTO wallet_transactions (id, user_id, amount, reason, idempotency_key, created_at) SELECT lower(hex(randomblob(16))), t.user_id, -t.amount, 'refund:' || t.reason, 'retired-refund:' || t.id, ${now} ${open};`,
+    `UPDATE user_inventory SET equipped = 0 WHERE ${live} AND equipped = 1 AND item_id IN (SELECT id FROM cosmetic_items WHERE slug IN (${list}));`,
+    `UPDATE cosmetic_items SET is_active = 0 WHERE slug IN (${list}) AND is_active = 1;`,
+  ];
+}
 /** Переименования предметов: [slug, прежнее название по-русски (охрана), новое название]. */
 const ITEM_RENAMES: [string, string, I18n][] = [['costume-conductor', 'Костюм проводника', { uk: 'Костюм пілота', ru: 'Костюм пилота', en: 'Pilot uniform' }]];
 
@@ -344,6 +368,9 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
     out.push(`UPDATE user_inventory SET equipped = 0 WHERE equipped = 1 AND item_id IN (SELECT id FROM cosmetic_items WHERE slug = ${lit(slug)} AND slot = ${lit(from)});`);
     out.push(`UPDATE cosmetic_items SET slot = 'COSTUME' WHERE slug = ${lit(slug)} AND slot = ${lit(from)};`);
   }
+
+  // Убранные предметы (рамки профиля): возврат Złotki купившим, снятие надетых, выключение — ровно один раз (см. RETIRED_ITEM_SLUGS).
+  out.push(...retireItemsSql());
 
   for (const [slug, oldRu, name] of ITEM_RENAMES) {
     out.push(`UPDATE cosmetic_items SET name = ${lit(name)} WHERE slug = ${lit(slug)} AND json_extract(name, '$.ru') = ${lit(oldRu)};`);

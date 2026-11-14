@@ -2,7 +2,7 @@ import { BeaverPart } from './BeaverPart';
 import { itemIcon } from '../lib/assets';
 import { ITEM_PICTO, PictoTile } from './pictograms/Pictogram';
 
-export const WEAR_SLOTS = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME'];
+export const WEAR_SLOTS = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME'];
 
 /**
  * Превʼю предмета: одяг — значок самого предмета (без бобра: на Бобеку річ видно лише через resolveLook),

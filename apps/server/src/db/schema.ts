@@ -24,6 +24,7 @@ export const SESSION_STATUS = ['ACTIVE', 'FINISHED', 'ABANDONED'] as const;
 export const VOCAB_STATUS = ['NEW', 'LEARNING', 'LEARNED'] as const;
 export const QUEST_KIND = ['DAILY', 'WEEKLY', 'STORY', 'EVENT'] as const;
 export const QUEST_STATUS = ['ACTIVE', 'COMPLETED', 'CLAIMED'] as const;
+// FRAME — рамки профиля, убранные из игры 2026-11-14: их строки остались в БД выключенными (seed.ts → retireItemsSql), новых нет.
 export const ITEM_SLOT = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FURNITURE', 'DECOR', 'SOUVENIR', 'HOUSING', 'FRAME', 'OUTFIT'] as const;
 export const FRIENDSHIP_STATUS = ['PENDING', 'ACCEPTED'] as const;
 export const SUBSCRIPTION_STATUS = ['ACTIVE', 'CANCELLED', 'EXPIRED', 'REFUNDED'] as const;

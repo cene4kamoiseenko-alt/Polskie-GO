@@ -182,16 +182,15 @@ describe('Готові образи: гравець', () => {
     expect((await call('POST', '/api/shop/buy', { itemId: look.id })).body.error).toBe('already_owned');
   });
 
-  it('надягання образу: рівно набір (худі — за замовчуванням), костюм знімається, рамка лишається; «зняти» — назад у стартовий', async () => {
+  it('надягання образу: рівно набір (худі — за замовчуванням), костюм знімається; «зняти» — назад у стартовий', async () => {
     const { call, user } = await login();
     await grant(user.id, 'costume-artist', 'shop', true);
-    await grant(user.id, 'frame-green', 'shop', true);
     const m = await by(call);
     await setBalance(user.id, 2000);
     expect((await call('POST', '/api/shop/buy', { itemId: m.get('outfit-hoodie-cap-glasses-pack')!.id })).status).toBe(200);
     const r = await call('POST', '/api/inventory/equip', { itemId: m.get('outfit-hoodie-cap-glasses-pack')!.id, equipped: true });
     expect(r.status).toBe(200);
-    expect(r.body.wear).toEqual({ HAT: 'cap-red', GLASSES: 'glasses-round', BACKPACK: 'backpack-travel', FRAME: 'frame-green' });
+    expect(r.body.wear).toEqual({ HAT: 'cap-red', GLASSES: 'glasses-round', BACKPACK: 'backpack-travel' });
     const now = await by(call);
     expect(now.get('outfit-hoodie-cap-glasses-pack')!.equipped).toBe(true);
     expect(now.get(STARTER_OUTFIT)!.equipped).toBe(false);
@@ -200,11 +199,11 @@ describe('Готові образи: гравець', () => {
     // куртка-образ: худі не вдягається, куртка стає верхом
     expect((await call('POST', '/api/shop/buy', { itemId: m.get('outfit-rain-cap')!.id })).status).toBe(200);
     await call('POST', '/api/inventory/equip', { itemId: m.get('outfit-rain-cap')!.id, equipped: true });
-    expect(await wearOf(call)).toEqual({ JACKET: 'jacket-rain', HAT: 'cap-red', FRAME: 'frame-green' });
+    expect(await wearOf(call)).toEqual({ JACKET: 'jacket-rain', HAT: 'cap-red' });
 
     // зняти образ — стартовий «Podróżnik»
     await call('POST', '/api/inventory/equip', { itemId: m.get('outfit-rain-cap')!.id, equipped: false });
-    expect(await wearOf(call)).toEqual({ BACKPACK: 'backpack-travel', FRAME: 'frame-green' });
+    expect(await wearOf(call)).toEqual({ BACKPACK: 'backpack-travel' });
     expect((await by(call)).get(STARTER_OUTFIT)!.equipped).toBe(true);
   });
 

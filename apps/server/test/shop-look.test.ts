@@ -72,10 +72,11 @@ describe('Каталог магазину: visualStatus', () => {
     expect(by.get('backpack-travel')!.visualStatus).toBe('prerendered');
     for (const slug of ['cap-red', 'beanie-red', 'glasses-round', 'scarf-pl', 'jacket-denim', 'jacket-rain']) expect(by.get(slug)!.visualStatus, slug).toBe('prerendered');
     for (const slug of ['scarf-ua', 'glasses-sun', 'sneakers-white']) expect(by.get(slug)!.visualStatus, slug).toBe('pending');
-    expect(by.get('frame-green')!.visualStatus).toBe('ready');
+    // Рамки профиля убраны из игры (2026-11-14): в каталоге магазина их нет.
+    expect([...by.values()].filter((i) => i.slot === 'FRAME')).toEqual([]);
     expect(by.get('plant')!.visualStatus).toBe('not-wearable');
 
-    // Що клієнт може запропонувати купити за Złotki (2026-11-02): готові образи (OUTFIT), цілісні костюми й рамки. Речі наборів поштучно не продаються (outfit_only).
+    // Що клієнт може запропонувати купити за Złotki (2026-11-02): готові образи (OUTFIT) і цілісні костюми. Речі наборів поштучно не продаються (outfit_only).
     const sellable = [...by.values()]
       .filter((i) => !i.rewardOnly && (i.price as number) > 0 && i.visualStatus !== 'not-wearable' && i.visualStatus !== 'pending' && i.visualStatus !== 'unknown')
       .filter((i) => !OUTFIT_COMPONENTS.has(i.slug as string))
@@ -84,7 +85,7 @@ describe('Каталог магазину: visualStatus', () => {
     expect(sellable).toEqual(
       [
         // Повторы сняты с продажи (2026-11-03): costume-street-red, costume-puffer-stripes, costume-sherpa — их в каталоге магазина нет.
-        'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-street', 'costume-winter', 'frame-gold', 'frame-green',
+        'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-street', 'costume-winter',
         ...OUTFITS.filter((o) => !o.starter).map((o) => o.slug),
       ].sort(),
     );
@@ -136,12 +137,6 @@ describe('Покупка за ядром образу', () => {
     expect(again.body.error).toBe('already_owned');
     expect(await balance(user.id)).toBe(30);
     expect(await txCount(user.id, 'buy:')).toBe(1);
-
-    // Рамка (домен профілю, `ready`) теж продається.
-    await setBalance(user.id, 100);
-    expect((await call('POST', '/api/shop/buy', { itemId: itemId('frame-green') })).status).toBe(200);
-    expect(await balance(user.id)).toBe(0);
-    expect(await txCount(user.id, 'buy:')).toBe(2);
   });
 
   it('куплене до M3 і нагородне pending лишається у власності й надягається', async () => {
@@ -168,7 +163,7 @@ describe('Покупка за ядром образу', () => {
 
 describe('Надягання за ядром образу', () => {
   /** По одній речі на кожен слот каталогу, крім костюма; рюкзак — стартовий (уже надітий). */
-  const FULL_SET = ['cap-red', 'glasses-round', 'scarf-green', 'jacket-denim', 'sneakers-white', 'flag-pl', 'frame-green'];
+  const FULL_SET = ['cap-red', 'glasses-round', 'scarf-green', 'jacket-denim', 'sneakers-white', 'flag-pl'];
   const COSTUMES = LOOK_MANIFEST.items.filter((i) => i.catalogSlot === 'COSTUME').map((i) => i.id);
 
   it('костюм знімає надіті куртку й шапку, рюкзак лишається; інвентар цілий', async () => {

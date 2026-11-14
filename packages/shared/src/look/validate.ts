@@ -100,15 +100,10 @@ export function validateManifest(m: LookManifest = LOOK_MANIFEST): LookIssue[] {
     if (itemIds.has(it.id)) err('duplicate-id', it.id, 'Повторний id предмета.');
     itemIds.add(it.id);
     if ((it.occupies as readonly string[]).includes('base')) err('occupies-base', it.id, 'Слот base займає лише базова модель.');
-    if (it.domain === 'profile-frame') {
-      if (it.catalogSlot !== 'FRAME' || it.occupies.length) err('frame', it.id, 'Рамка не займає слотів Бобека.');
-      continue;
-    }
     if (!it.occupies.length) err('no-slots', it.id, 'Предмет на Бобеку має займати хоча б один слот.');
     if (it.catalogSlot === 'COSTUME' && it.occupies.includes('backpack'))
       err('costume-backpack', it.id, 'Костюм не займає слот backpack: рюкзак лишається за гравцем.');
-    if (it.catalogSlot === 'FRAME') err('frame', it.id, 'FRAME — лише домен profile-frame.');
-    else if (it.catalogSlot !== 'COSTUME') {
+    if (it.catalogSlot !== 'COSTUME') {
       const expected = LOOK_FROM_CATALOG[it.catalogSlot];
       if (it.occupies.length !== 1 || it.occupies[0] !== expected) err('slot-mismatch', it.id, `Слот каталогу ${it.catalogSlot} → ${expected}.`);
     }

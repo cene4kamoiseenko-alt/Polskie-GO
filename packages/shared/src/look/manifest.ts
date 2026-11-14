@@ -35,7 +35,7 @@ const BASE_POSES: readonly LookPose[] = [
 type ItemExtra = Partial<Pick<LookItem, 'occupies' | 'note' | 'hides' | 'replaces'>>;
 
 /** Звичайний предмет без живописного шару: не малюється, «скоро». */
-function pending(id: string, catalogSlot: Exclude<LookCatalogWearSlot, 'FRAME'>, rarity: LookRarity = 'common', extra: ItemExtra = {}): LookItem {
+function pending(id: string, catalogSlot: LookCatalogWearSlot, rarity: LookRarity = 'common', extra: ItemExtra = {}): LookItem {
   const occupies: readonly LookWearSlot[] = extra.occupies ?? (catalogSlot === 'COSTUME' ? [] : [LOOK_FROM_CATALOG[catalogSlot]]);
   return { id, catalogSlot, domain: 'beaver', occupies, rarity, status: 'pending', fallback: 'hide', compatibility: null, layers: [], ...extra };
 }
@@ -71,14 +71,6 @@ function legacyCostume(id: string, rarity: LookRarity, occupies: readonly LookWe
  */
 const SKIN_SLOTS: readonly LookWearSlot[] = ['headwear', 'glasses', 'neck', 'top', 'shoes', 'accessory'];
 const skin = (id: string, note: string): LookItem => legacyCostume(id, 'legendary', SKIN_SLOTS, { backpack: 'backpack-travel' }, note, false);
-
-function frame(id: string, rarity: LookRarity): LookItem {
-  return {
-    id, catalogSlot: 'FRAME', domain: 'profile-frame', occupies: [], rarity,
-    status: 'ready', fallback: 'hide', compatibility: null, layers: [],
-    note: 'Рамка аватара малюється інтерфейсом профілю; на Бобека не впливає.',
-  };
-}
 
 export const LOOK_ITEMS: readonly LookItem[] = [
   // Стартові: худі намальоване на кожному образі, рюкзак — частина стартового набору (legacy-base) і осі образів.
@@ -141,9 +133,6 @@ export const LOOK_ITEMS: readonly LookItem[] = [
   legacyCostume('hat-krasnal', 'epic', SKIN_SLOTS, {}, 'Червоний ковпак вроцлавського гнома; більше нічого.', false),
   legacyCostume('vest-krakowiak', 'epic', SKIN_SLOTS, {}, 'Чорна камізелька з квітковою вишивкою й золотими застібками.', false),
   legacyCostume('obwarzanek', 'common', SKIN_SLOTS, {}, 'Краківський обважанек з маком і кунжутом у лапі.', false),
-  // Рамки профілю
-  frame('frame-green', 'common'),
-  frame('frame-gold', 'legendary'),
 ];
 
 export const LOOK_MANIFEST: LookManifest = {

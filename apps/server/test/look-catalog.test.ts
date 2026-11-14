@@ -34,7 +34,7 @@ describe('образ ↔ каталог', () => {
     // цілісний костюм або рамку. Решта чекає наступної частини образів (ADR-008).
     expect(Object.entries(verdicts).filter(([, ok]) => ok).map(([s]) => s).sort()).toEqual([
       'beanie-red', 'cap-red', 'costume-artist', 'costume-dragon', 'costume-duffle', 'costume-puffer', 'costume-puffer-stripes', 'costume-sherpa', 'costume-street', 'costume-street-red',
-      'costume-winter', 'frame-gold', 'frame-green', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
+      'costume-winter', 'glasses-round', 'jacket-denim', 'jacket-rain', 'scarf-pl',
     ]);
   });
 

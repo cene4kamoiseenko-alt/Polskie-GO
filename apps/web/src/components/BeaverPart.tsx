@@ -485,7 +485,6 @@ export const BeaverPart = memo(function BeaverPart({ slot, kind, size = 96 }: { 
     : slot === 'SHOES' ? <Shoes kind={kind} />
     : slot === 'ACCESSORY' ? <HandItem kind={kind} />
     : slot === 'COSTUME' ? <><Costume kind={kind} /><CostumeHead kind={kind} /></>
-    : slot === 'FRAME' ? <circle cx="100" cy="100" r="60" fill="none" stroke={kind === 'frame-gold' ? '#FFC857' : '#25D79B'} strokeWidth="14" />
     : null;
   return (
     <svg viewBox={vb} width={size} height={size} aria-hidden style={{ overflow: 'visible' }}>

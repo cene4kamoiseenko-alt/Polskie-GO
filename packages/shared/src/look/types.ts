@@ -4,8 +4,8 @@
  * на сервері (Workers) і в скриптах пайплайна ассетів.
  */
 
-/** Слоти каталогу (`cosmetic_items.slot`), що стосуються образу. FRAME — рамка профілю, не одяг. */
-export const LOOK_CATALOG_WEAR_SLOTS = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME'] as const;
+/** Слоти каталогу (`cosmetic_items.slot`), що стосуються образу. */
+export const LOOK_CATALOG_WEAR_SLOTS = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME'] as const;
 export type LookCatalogWearSlot = (typeof LOOK_CATALOG_WEAR_SLOTS)[number];
 /** Слоти домика: не одяг, на образ не впливають. */
 /** Слоты домика: меблі, декор, сувеніри й житло (цільний фон кімнати, 2026-11-02). Бобек їх не вдягає, у маніфест образу вони не потрапляють. */
@@ -164,8 +164,8 @@ export type LookItem = {
   id: string;
   assetKey?: string;
   catalogSlot: LookCatalogWearSlot;
-  /** `beaver` — на персонажі; `profile-frame` — рамка аватара, на Бобека не впливає. */
-  domain: 'beaver' | 'profile-frame';
+  /** Предмет на персонажі. (Рамки профілю, домен `profile-frame`, прибрані з гри 2026-11-14.) */
+  domain: 'beaver';
   /** Слоти, які предмет займає ексклюзивно (конфлікти — див. LOOK_SLOT_RULES). */
   occupies: readonly LookWearSlot[];
   rarity: LookRarity;
@@ -342,7 +342,6 @@ export type ResolvedLook = {
   defaults: string[];
   unknown: string[];
   items: LookItemOutcome[];
-  frame: string | null;
   legacy: boolean;
   preview: boolean;
 };

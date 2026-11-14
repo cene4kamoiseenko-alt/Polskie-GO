@@ -66,10 +66,10 @@ async function main() {
       check(tiers.every((x) => x.n >= 5), `${tag}: в каждом уровне образы (${tiers.map((x) => x.n).join('/')})`);
       const first = u.page.locator('[data-looks] section[data-tier="rare"] [data-outfit]').first();
       check((await first.getAttribute('data-outfit')) === 'outfit-hoodie-pack' && (await first.getAttribute('data-outfit-state')) === 'wearing', `${tag}: «Podróżnik» первым и надет`);
-      check((await u.page.locator('[data-looks] .item-card').count()) === (await u.page.locator('[data-frames] .item-card').count()), `${tag}: поштучных вещей в продаже нет (только рамки)`);
+      check((await u.page.locator('[data-looks] .item-card').count()) === 0 && (await u.page.locator('[data-frames]').count()) === 0, `${tag}: поштучных вещей и рамок профиля в продаже нет`);
       check((await u.page.locator('.chip-tab', { hasText: 'Шапки' }).count()) === 0, `${tag}: категорий вещей нет`);
       // все картинки карточек загружаются (ленивые — после прокрутки)
-      await u.page.locator('[data-frames]').scrollIntoViewIfNeeded();
+      await u.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await u.page.waitForTimeout(900);
       for (const el of await u.page.locator('[data-outfit] img').all()) await el.scrollIntoViewIfNeeded();
       await u.page.waitForTimeout(900);

@@ -88,7 +88,7 @@ export default function ProfileScreen() {
         <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(70% 90% at 92% 10%, rgba(255,200,130,0.28), transparent 60%)' }} />
         <div className="relative flex items-center gap-3 p-3.5 pr-12">
           <button onClick={() => { haptic.tap(); nav('/shop'); }} className="relative shrink-0" aria-label={t('profile_wardrobe')}>
-            <span className={cx('block h-[84px] w-[84px] overflow-hidden rounded-full border-[3px] bg-gradient-to-b from-dawn-sky to-dawn-sand shadow-lg', me.outfit.wear.FRAME === 'frame-gold' ? 'border-xp' : me.outfit.wear.FRAME === 'frame-green' ? 'border-brand' : 'border-white')}>
+            <span className="block h-[84px] w-[84px] overflow-hidden rounded-full border-[3px] border-white bg-gradient-to-b from-dawn-sky to-dawn-sand shadow-lg">
               {me.photoUrl ? <img src={me.photoUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-end justify-center"><Beaver size={78} animate={false} /></span>}
             </span>
             <span className="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-sky text-night shadow">

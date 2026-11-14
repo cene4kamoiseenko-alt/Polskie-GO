@@ -169,7 +169,8 @@ describe('Магазин і гардероб', () => {
     await setBalance(user.id, 1000);
     const shop = await call('GET', '/api/shop');
     const reward = shop.body.items.find((i: { slug: string }) => i.slug === 'hat-krasnal');
-    const premium = shop.body.items.find((i: { slug: string }) => i.slug === 'frame-gold');
+    // Premium-предмет, который можно купить за Złotki (картинка есть): проверка Premium стоит после проверки «можно ли показать».
+    const premium = shop.body.items.find((i: { slug: string }) => i.slug === 'costume-dragon');
     expect((await call('POST', '/api/shop/buy', { itemId: reward.id })).body.error).toBe('reward_only');
     expect((await call('POST', '/api/shop/buy', { itemId: premium.id })).body.error).toBe('premium_required');
     expect((await call('POST', '/api/inventory/equip', { itemId: reward.id, equipped: true })).body.error).toBe('not_owned');

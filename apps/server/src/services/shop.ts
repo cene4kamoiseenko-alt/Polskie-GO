@@ -16,7 +16,7 @@ const DEFAULT_HOUSING = 'housing-opole';
 
 /**
  * Готові образи (content/outfits.ts, docs/OUTFITS.md): предмет слота OUTFIT — це набір речей. Сам рядок OUTFIT ніколи не «вдягнений»:
- * образ вдягнено, коли вдягнені речі збігаються з набором. Надягання образу знімає весь одяг (рамка профілю — не одяг, лишається).
+ * образ вдягнено, коли вдягнені речі збігаються з набором. Надягання образу знімає весь одяг.
  */
 const OUTFIT_SLOT = 'OUTFIT';
 const LOOK_WEAR: ('HAT' | 'GLASSES' | 'SCARF' | 'JACKET' | 'BACKPACK' | 'SHOES' | 'ACCESSORY' | 'COSTUME')[] = ['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME'];
@@ -41,7 +41,9 @@ function outfitWorn(o: Outfit, worn: ReadonlySet<string>): boolean {
 }
 
 /** Слоти, де одночасно може бути вдягнений лише один предмет. */
-const EXCLUSIVE = new Set(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME', 'FRAME']);
+const EXCLUSIVE = new Set(['HAT', 'GLASSES', 'SCARF', 'JACKET', 'BACKPACK', 'SHOES', 'ACCESSORY', 'COSTUME']);
+/** Слоты убранных из игры предметов (рамки профиля, 2026-11-14): строки в БД остались, но в образ игрока и в домик не попадают. */
+const RETIRED_SLOTS = new Set(['FRAME']);
 
 /**
  * Живописний стан предмета для магазину (ADR-005 §8, §12). Купити за Złotki можна лише
@@ -225,7 +227,7 @@ async function buyOutfit(userId: string, item: typeof cosmeticItems.$inferSelect
 }
 
 /**
- * Надягання готового образу: знімається весь одяг (костюм теж; рамка профілю лишається), вдягаються рівно речі набору.
+ * Надягання готового образу: знімається весь одяг (костюм теж), вдягаються рівно речі набору.
  * «Зняти» образ = повернутися до стартового «Podróżnik». Речі набору для купленого чи стартового образу дописуються, якщо їх раптом немає.
  */
 async function equipOutfit(userId: string, item: { id: string; slug: string }, equipped: boolean) {
@@ -310,6 +312,7 @@ export async function outfit(userId: string) {
   const house: string[] = [];
   let home = DEFAULT_HOUSING;
   for (const r of rows) {
+    if (RETIRED_SLOTS.has(r.slot)) continue;
     if (r.slot === HOUSING_SLOT) home = r.assetKey;
     else if (EXCLUSIVE.has(r.slot)) wear[r.slot] = r.assetKey;
     else house.push(r.assetKey);

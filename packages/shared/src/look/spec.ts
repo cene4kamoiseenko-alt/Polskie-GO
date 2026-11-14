@@ -68,7 +68,7 @@ export const LOOK_SLOT_RULES: readonly LookSlotRule[] = [
 ];
 
 /** Слот каталогу → слот образу для звичайних (не багатослотових) предметів. */
-export const LOOK_FROM_CATALOG: Readonly<Record<Exclude<LookCatalogWearSlot, 'COSTUME' | 'FRAME'>, LookWearSlot>> = {
+export const LOOK_FROM_CATALOG: Readonly<Record<Exclude<LookCatalogWearSlot, 'COSTUME'>, LookWearSlot>> = {
   HAT: 'headwear',
   GLASSES: 'glasses',
   SCARF: 'neck',
@@ -79,7 +79,7 @@ export const LOOK_FROM_CATALOG: Readonly<Record<Exclude<LookCatalogWearSlot, 'CO
 };
 
 /** Порядок пріоритету при розборі конфліктів у старих даних: ширший предмет перемагає. */
-export const LOOK_CATALOG_PRIORITY: readonly LookCatalogWearSlot[] = ['COSTUME', 'JACKET', 'HAT', 'BACKPACK', 'SHOES', 'GLASSES', 'SCARF', 'ACCESSORY', 'FRAME'];
+export const LOOK_CATALOG_PRIORITY: readonly LookCatalogWearSlot[] = ['COSTUME', 'JACKET', 'HAT', 'BACKPACK', 'SHOES', 'GLASSES', 'SCARF', 'ACCESSORY'];
 
 /**
  * Шаблони частин: що треба намалювати для слота. `perPose` — окремий малюнок на кожну позу
