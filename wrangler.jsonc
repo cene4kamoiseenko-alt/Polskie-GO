@@ -41,7 +41,7 @@
     { "name": "RL_ADMIN", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
     { "name": "RL_REPORT", "namespace_id": "1003", "simple": { "limit": 30, "period": 60 } }
   ],
-  // Нагадування та розсилки — кожні 15 хвилин.
+  // Нагадування та розсилки — кожні 15 хвилин; вопрос дня в боті — щохвилини, частинами (src/bot/daily/send.ts; без запуску з адмінки нічого не шле).
   "triggers": { "crons": ["*/15 * * * *", "* * * * *"] },
   // Несекретні налаштування. Секрети (TELEGRAM_BOT_TOKEN, SESSION_SECRET, ...) — у панелі Cloudflare.
   // AUDIO_GENERATION_MODE: платна генерація озвучки лише з адмінки (services/audio-policy.ts); off — вимкнути зовсім.
