@@ -7,7 +7,7 @@ import { config } from '../env';
 import { atomic, db } from '../db';
 import {
   aiConversations, aiUsage, botQuizPlayers, botQuizRounds, dailyActivity, gameWallets, languageSkills, learningSessions, notificationLog, paymentEvents, playerProgress, subscriptions,
-  userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions,
+  userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions, exerciseReports,
 } from '../db/schema';
 import { body, edgeRateLimit, query, rateLimit, type AppEnv } from '../hono';
 import { forgetUser } from '../auth';
@@ -193,7 +193,7 @@ me.get('/me/diary', async (c) => c.json(await getDiary(c.get('userId'))));
 /** Експорт усіх персональних даних (JSON). */
 me.get('/me/export', async (c) => {
   const id = c.get('userId');
-  const [user, settings, profile, progress, wallet, skills, vocabulary, achievements, inventory, quests, transactions, subs, payments, ai, activity, lessons, cities, sessions] =
+  const [user, settings, profile, progress, wallet, skills, vocabulary, achievements, inventory, quests, transactions, subs, payments, ai, activity, lessons, cities, sessions, reports] =
     await db.batch([
       db.select().from(users).where(eq(users.id, id)),
       db.select().from(userSettings).where(eq(userSettings.userId, id)),
@@ -219,11 +219,19 @@ me.get('/me/export', async (c) => {
         })
         .from(learningSessions)
         .where(eq(learningSessions.userId, id)),
+      // Сообщения игрока об ошибках в заданиях: что за задание, причина, комментарий, последний ответ, статус.
+      db
+        .select({
+          target: exerciseReports.target, source: exerciseReports.source, lessonSlug: exerciseReports.lessonSlug, reason: exerciseReports.reason, comment: exerciseReports.comment,
+          answer: exerciseReports.answer, status: exerciseReports.status, createdAt: exerciseReports.createdAt, updatedAt: exerciseReports.updatedAt,
+        })
+        .from(exerciseReports)
+        .where(eq(exerciseReports.userId, id)),
     ]);
   c.header('content-disposition', 'attachment; filename="polski-go-data.json"');
   return c.json({
     ...user[0], settings: settings[0], profile: profile[0], progress: progress[0], wallet: wallet[0], skills, vocabulary, achievements, inventory, quests,
-    transactions, subscriptions: subs, payments, aiConversations: ai, dailyActivity: activity, lessonProgress: lessons, cities, sessions,
+    transactions, subscriptions: subs, payments, aiConversations: ai, dailyActivity: activity, lessonProgress: lessons, cities, sessions, exerciseReports: reports,
   });
 });
 
@@ -236,6 +244,7 @@ me.delete('/me', async (c) => {
     db.update(paymentEvents).set({ userId: null }).where(eq(paymentEvents.userId, id)),
     db.delete(aiUsage).where(eq(aiUsage.userId, id)),
     db.delete(notificationLog).where(eq(notificationLog.userId, id)),
+    db.delete(exerciseReports).where(eq(exerciseReports.userId, id)),
     // Быстрые вопросы бота привязаны к Telegram id, а не к аккаунту: удаляем их отдельно.
     ...(tg ? [db.delete(botQuizRounds).where(eq(botQuizRounds.telegramId, tg.telegramId)), db.delete(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg.telegramId))] : []),
     db.delete(users).where(eq(users.id, id)),

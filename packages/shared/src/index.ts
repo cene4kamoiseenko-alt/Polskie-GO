@@ -10,7 +10,6 @@ export * from './dates';
 export * from './progression';
 export * from './speech';
 export * from './audioTexts';
-export * from './wav';
 export * from './pron';
 export * from './look';
 export * from './cityArt';

@@ -4,7 +4,7 @@ import { db } from '../src/db';
 import { cities, gameConfig, playerProgress, reviewSchedule, userAchievements, achievements } from '../src/db/schema';
 import { validateInitData, signInitData } from '../src/lib/telegram';
 import { resetRateLimits } from '../src/hono';
-import { correctAnswers, disposeEnv, lessonId, login, playSession, request, sessionItems } from './helpers';
+import { correctAnswers, disposeEnv, isGradable, lessonId, login, playSession, request, sessionItems } from './helpers';
 
 afterAll(disposeEnv);
 
@@ -88,7 +88,9 @@ describe('Уроки та нагороди', () => {
     const { call, user } = await login();
     const lid = await lessonId('waw-1-czesc');
     const start = await call('POST', '/api/sessions', { lessonId: lid });
-    const total = start.body.items.length;
+    // «Скажи вслух» не проверяется: шаг идёт без зачёта, без XP и не входит ни в «верно», ни в «всего».
+    const total = (await sessionItems(start.body.sessionId)).filter(isGradable).length;
+    expect(total).toBeLessThan(start.body.items.length);
     const fin = await playSession(call, start.body.sessionId);
     expect(fin.status).toBe(200);
     expect(fin.body).toMatchObject({ passed: true, perfect: true, correct: total, total });
@@ -177,7 +179,8 @@ describe('Уроки та нагороди', () => {
   it('непройдений урок (менше 50%) не дає XP, а помилки йдуть у «Мої помилки»', async () => {
     const { call, user } = await login();
     const s = await call('POST', '/api/sessions', { lessonId: await lessonId('waw-1-czesc') });
-    const wrong = Math.floor((await sessionItems(s.body.sessionId)).length / 2) + 1;
+    // Ошибиться можно только в проверяемых заданиях (шаг «Скажи вслух» ошибкой не бывает).
+    const wrong = Math.floor((await sessionItems(s.body.sessionId)).filter(isGradable).length / 2) + 1;
     const fin = await playSession(call, s.body.sessionId, { wrong });
     expect(fin.body.passed).toBe(false);
     expect(fin.body.xp).toBe(0);

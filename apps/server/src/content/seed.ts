@@ -78,6 +78,14 @@ export function retireItemsSql(slugs: readonly string[] = RETIRED_ITEM_SLUGS): s
     `UPDATE cosmetic_items SET is_active = 0 WHERE slug IN (${list}) AND is_active = 1;`,
   ];
 }
+/**
+ * Достижения, убранные из игры. 2026-11-14: проверки речи отключены (владелец), «Mistrz wymowy» (15 фраз, правильно распознанных в заданиях на вымову)
+ * больше не получить. Строка остаётся в БД выключенной: список достижений читает только включённые; полученные Złotki и запись о получении не трогаются.
+ */
+export const RETIRED_ACHIEVEMENT_SLUGS = ['mistrz-wymowy'] as const;
+export function retireAchievementsSql(slugs: readonly string[] = RETIRED_ACHIEVEMENT_SLUGS): string[] {
+  return [`UPDATE achievements SET is_active = 0 WHERE slug IN (${slugs.map((s) => `'${s}'`).join(', ')}) AND is_active = 1;`];
+}
 /** Переименования предметов: [slug, прежнее название по-русски (охрана), новое название]. */
 const ITEM_RENAMES: [string, string, I18n][] = [['costume-conductor', 'Костюм проводника', { uk: 'Костюм пілота', ru: 'Костюм пилота', en: 'Pilot uniform' }]];
 
@@ -371,6 +379,8 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
 
   // Убранные предметы (рамки профиля): возврат Złotki купившим, снятие надетых, выключение — ровно один раз (см. RETIRED_ITEM_SLUGS).
   out.push(...retireItemsSql());
+  // Убранные достижения («Mistrz wymowy»: проверки речи отключены).
+  out.push(...retireAchievementsSql());
 
   for (const [slug, oldRu, name] of ITEM_RENAMES) {
     out.push(`UPDATE cosmetic_items SET name = ${lit(name)} WHERE slug = ${lit(slug)} AND json_extract(name, '$.ru') = ${lit(oldRu)};`);

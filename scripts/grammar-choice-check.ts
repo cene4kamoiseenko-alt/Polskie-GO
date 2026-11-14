@@ -97,7 +97,7 @@ async function main() {
           continue;
         }
         // Остальные типы заданий в тренировке: просто проходим.
-        if (await page.locator('[data-action="skip"]').count()) { await page.locator('[data-action="skip"]').click(); await answered(); continue; }
+        if (await page.locator('[data-repeat]').count()) { await checkBtn.click(); await answered(); continue; }
         if (await page.locator('textarea').count()) { await page.fill('textarea', 'zzz'); await checkBtn.click(); await answered(); continue; }
         if (await page.locator('[data-token]').count()) {
           while (await page.locator('[data-token]').count()) await page.locator('[data-token]').first().click();

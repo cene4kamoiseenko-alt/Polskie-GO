@@ -906,6 +906,43 @@ export const playerReports = sqliteTable(
   (t) => [uniqueIndex('player_reports_pair_uq').on(t.reporterId, t.reportedId), index('player_reports_status_idx').on(t.status, t.createdAt), index('player_reports_reported_idx').on(t.reportedId)],
 );
 
+export const EXERCISE_REPORT_REASONS = ['answer_rejected', 'answer_accepted', 'polish_error', 'translation_error', 'unclear', 'too_easy', 'audio', 'other'] as const;
+export const EXERCISE_REPORT_STATUS = ['NEW', 'REVIEW', 'FIXED', 'REJECTED'] as const;
+export const EXERCISE_REPORT_SOURCES = ['lesson', 'practice', 'exam', 'placement', 'mission'] as const;
+
+/**
+ * «Сообщить об ошибке в задании» (2026-11-14): игрок жалуется на задание урока, повторения, экзамена, входного теста или миссии.
+ * Цель жалобы (`target`) — само задание (`exercise:<id>`, `item:<ключ>` для сгенерированных, `mission:<id шага>`), одна жалоба игрока на одно
+ * задание; жалобы разных игроков складываются в одну строку админки. Снимок задания и последний ответ сервер сохраняет сам.
+ */
+export const exerciseReports = sqliteTable(
+  'exercise_reports',
+  {
+    id: id(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    target: text('target').notNull(),
+    source: text('source', { enum: EXERCISE_REPORT_SOURCES }).notNull(),
+    exerciseId: text('exercise_id'),
+    lessonSlug: text('lesson_slug'),
+    itemType: text('item_type'),
+    reason: text('reason', { enum: EXERCISE_REPORT_REASONS }).notNull(),
+    comment: text('comment'),
+    answer: json<unknown>('answer'),
+    snapshot: json<unknown>('snapshot'),
+    uiLang: text('ui_lang'),
+    status: text('status', { enum: EXERCISE_REPORT_STATUS }).notNull().default('NEW'),
+    adminNote: text('admin_note'),
+    createdAt: createdAt(),
+    updatedAt: ts('updated_at'),
+    resolvedAt: ts('resolved_at'),
+  },
+  (t) => [
+    uniqueIndex('exercise_reports_user_target_uq').on(t.userId, t.target),
+    index('exercise_reports_status_idx').on(t.status, t.createdAt),
+    index('exercise_reports_target_idx').on(t.target),
+  ],
+);
+
 export const QUIZ_ROUND_STATUS = ['OPEN', 'ANSWERED'] as const;
 
 /** Одне надіслане питання: порядок варіантів, відповідь і нагорода. Відповідь приймається один раз (OPEN → ANSWERED). */

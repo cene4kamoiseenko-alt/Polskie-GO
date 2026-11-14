@@ -371,4 +371,3 @@ export const sfx = {
   coin: () => tone([988, 1319], 0.09, 'square', 0.03),
 };
 
-export { recognizePolish, speechRecognitionAvailable } from './recognition';

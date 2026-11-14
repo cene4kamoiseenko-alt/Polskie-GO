@@ -2,13 +2,8 @@
  * Браузерна перевірка на одноразовій локальній D1 і справжньому UI (Vite dev + API в одному процесі).
  * Порти вільні (0 → ОС обирає), тож перевірка не конфліктує з запущеним `npm run dev` чи стендом.
  *
- * Голос:
- *  - розпізнавання пристрою (SpeechRecognition підмінено подіями): тиша → стан «Тишина» без відповіді;
- *    фраза → відповідь іде як тренування (без XP і без помилки);
- *  - серверний запис: справжній getUserMedia + AudioWorklet на фейковому мікрофоні Chromium (WAV із тоном),
- *    Azure STT підмінено в цьому процесі. Немає мережі → стан «Нет сети» без запиту; відмова в дозволі →
- *    «Нужно разрешение»; тиша → «Тишина» без запиту до STT; запис → підписана спроба → зараховано з XP.
- * Це не перевірка реального мікрофона, iPhone чи Telegram.
+ * Вимова вголос (проверки речи в приложении нет, 2026-11-14): шаг «Повтори вслух» не просит микрофон, не создаёт SpeechRecognition,
+ * не шлёт голос на сервер; кнопка «Повторил(а) вслух» отправляет skipped — без XP и без ошибки; старые маршруты /api/speech/* → 404.
  *
  * Інтерфейс:
  *  - A2 головна, блок «Сегодня»: стани error (з повтором), empty, done, offline, active; скелетонів поза loading немає;
@@ -50,20 +45,6 @@ const require = createRequire(root + '/package.json');
 const OUT = resolve(root, 'test-results');
 const SCREENS = resolve(OUT, 'screens');
 
-/** Моно PCM16 WAV: тиша, потім тон (як голос), потім тиша — для фейкового мікрофона Chromium. */
-function toneWav(path: string, seconds = 6, rate = 48000) {
-  const n = seconds * rate;
-  const buf = Buffer.alloc(44 + n * 2);
-  buf.write('RIFF', 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write('WAVE', 8); buf.write('fmt ', 12);
-  buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22); buf.writeUInt32LE(rate, 24);
-  buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write('data', 36); buf.writeUInt32LE(n * 2, 40);
-  for (let i = 0; i < n; i++) {
-    const amp = 0.25 * (0.6 + 0.4 * Math.sin((2 * Math.PI * 3 * i) / rate));
-    buf.writeInt16LE(Math.round(amp * Math.sin((2 * Math.PI * 220 * i) / rate) * 32767), 44 + i * 2);
-  }
-  writeFileSync(path, buf);
-}
-
 function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`E2E: ${msg}`);
   console.log(`  ✓ ${msg}`);
@@ -90,34 +71,19 @@ async function main() {
   const { base, env, login, sessionItems, correctAnswers } = stand;
   mkdirSync(SCREENS, { recursive: true });
 
-  // Azure STT підмінено лише в цьому процесі: повертає фразу поточного завдання, лічить виклики.
-  let sttPhrase = '';
-  let sttCalls = 0;
-  const realFetch = globalThis.fetch;
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    if (url.includes('.stt.speech.microsoft.com')) {
-      sttCalls++;
-      return new Response(JSON.stringify({ RecognitionStatus: 'Success', DisplayText: sttPhrase }), { headers: { 'content-type': 'application/json' } });
-    }
-    return realFetch(input, init);
-  }) as typeof fetch;
-
   console.log(`UI ${base}`);
 
-  const wav = resolve(OUT, 'fake-mic.wav');
-  toneWav(wav);
   const executablePath = chromiumPath(chromium);
   const browser = await chromium.launch({
     headless: true,
     ...(executablePath ? { executablePath } : {}),
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${wav}`],
+    args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   });
   const results: Record<string, unknown>[] = [];
   const errors: string[] = [];
 
   /** Новий користувач (за замовчуванням — з пройденим онбордингом) і сторінка з його токеном. */
-  async function userPage(devUser: string, init?: () => void, opts: { onboarded?: boolean; touch?: boolean } = {}) {
+  async function userPage(devUser: string, init?: (() => void) | string, opts: { onboarded?: boolean; touch?: boolean } = {}) {
     const u = await login();
     if (opts.onboarded !== false) {
       await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
@@ -133,24 +99,22 @@ async function main() {
     return { ...u, page, context, url: (path: string) => `${base}${path}?devUser=${devUser}` };
   }
 
-  /** Відкрити урок на першому завданні на вимову (попередні завдання зараховано через API). */
+  /** Відкрити урок на першому кроці «Повтори вслух» (попередні завдання зараховано через API). */
   async function openPronunciation(u: Awaited<ReturnType<typeof userPage>>) {
     const lessonId = (await u.call('GET', '/api/journey')).body.nextLesson.id as string;
     const started = (await u.call('POST', '/api/sessions', { lessonId })).body;
     const items = await sessionItems(started.sessionId);
     const target = items.find((i: { type: string }) => i.type === 'PRONUNCIATION');
-    if (!target) throw new Error('у першому уроці немає завдання на вимову');
+    if (!target) throw new Error('у першому уроці немає кроку «Повтори вслух»');
     for (const item of items) {
       if (item === target) break;
       for (const a of correctAnswers(item)) await u.call('POST', `/api/sessions/${started.sessionId}/answer`, { key: item.key, answer: a });
     }
     await u.page.goto(u.url('/lesson/' + lessonId), { waitUntil: 'networkidle' });
-    await u.page.getByRole('button', { name: 'Нажми и говори', exact: true }).waitFor({ timeout: 20_000 });
-    // Підпис кнопки змінюється під час запису («Остановить запись»), тому шукаємо за будь-яким із них.
-    const mic = u.page.getByRole('button', { name: /^(Нажми и говори|Остановить запись)$/ });
-    return { mic, phrase: (target.data as { text: string }).text };
+    const done = u.page.getByRole('button', { name: 'Повторил(а) вслух', exact: true });
+    await done.waitFor({ timeout: 20_000 });
+    return { done, phrase: (target.data as { text: string }).text };
   }
-  const micState = (page: import('playwright').Page) => page.locator('[data-mic]').getAttribute('data-mic');
 
   try {
     // ── Головна й основні екрани на трьох ширинах: знімки й горизонтальне переповнення.
@@ -195,7 +159,7 @@ async function main() {
       const checkBtn = fp.locator('[data-action="check"]');
       // Після відповіді чекаємо на панель результату з «Далі» (запит перевірки ще може йти).
       const answered = () => fp.locator('[data-action="next"]').waitFor({ timeout: 15_000 });
-      if (await fp.locator('[data-action="skip"]').count()) { types.add('pronunciation'); await fp.locator('[data-action="skip"]').click(); await answered(); continue; }
+      if (await fp.locator('[data-repeat]').count()) { types.add('pronunciation'); await checkBtn.click(); await answered(); continue; }
       if (await fp.locator('textarea').count()) { types.add('text'); await fp.fill('textarea', 'Dziękuję'); await checkBtn.click(); await answered(); continue; }
       if (await fp.locator('[data-token]').count()) {
         types.add('order');
@@ -997,126 +961,89 @@ async function main() {
 
     results.push({ stage: 'A2/A3/A4/L1/M2', softFailures, softSkipped });
 
-    // ── Розпізнавання пристрою (сервер STT вимкнено): лише тренування.
-    console.log('Розпізнавання пристрою');
-    const device = await userPage('880002', () => {
-      (window as unknown as { SpeechRecognition: unknown }).SpeechRecognition = class {
-        lang = ''; onend: (() => void) | null = null; onerror: unknown = null; onresult: unknown = null;
-        start() { (window as unknown as { __rec: unknown }).__rec = this; }
-        stop() { this.onend?.(); }
-        abort() {}
-      };
+    // ── «Повтори вслух»: проверок речи нет. Микрофон не запрашивается, распознавание не создаётся, голос на сервер не уходит.
+    console.log('Повтор вслух (без проверки речи)');
+    // Скрипт строкой: tsx оборачивает именованные функции и классы в __name, которого на странице нет (pageerror «__name is not defined»).
+    const noMicrophone = `(() => {
+      window.__speech = [];
+      const Fake = function () { window.__speech.push('SpeechRecognition'); };
+      window.SpeechRecognition = Fake;
+      window.webkitSpeechRecognition = Fake;
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: { getUserMedia: () => { window.__speech.push('getUserMedia'); return Promise.reject(new DOMException('denied', 'NotAllowedError')); } },
+      });
+    })();`;
+    const repeat = await userPage('880002', noMicrophone);
+    const speechRequests: string[] = [];
+    const answerBodies: string[] = [];
+    repeat.page.on('request', (r) => {
+      if (/\/api\/speech\//.test(r.url())) speechRequests.push(r.url());
+      if (r.url().endsWith('/answer')) answerBodies.push(r.postData() ?? '');
     });
-    const answersA: string[] = [];
-    device.page.on('request', (r) => { if (r.url().endsWith('/answer')) answersA.push(r.url()); });
-    const a = await openPronunciation(device);
-    check(await micState(device.page) === 'ready', 'стан «Готово» до запису');
-    await a.mic.click();
-    await device.page.waitForFunction(() => !!(window as unknown as { __rec?: unknown }).__rec);
-    await device.page.evaluate(() => (window as unknown as { __rec: { onend: () => void } }).__rec.onend());
-    await device.page.locator('[data-mic="silence"]').waitFor();
-    check(answersA.length === 0, 'тиша не надсилається як відповідь');
-    await a.mic.click();
-    const practiceRes = device.page.waitForResponse((r) => r.url().endsWith('/answer'));
-    await device.page.evaluate((text) => (window as unknown as { __rec: { onresult: (e: unknown) => void } }).__rec.onresult({ results: [[{ transcript: text }]] }), a.phrase);
-    const practice = await (await practiceRes).json();
-    check(!practice.correct && practice.practice && practice.matched, 'транскрипт від пристрою — тренування без зарахування, збіг показано');
-    await device.page.getByText('Фраза распознана — это тренировка без XP').waitFor();
-    check(!(await device.page.getByText(/\+\d+ XP/).count()), 'за тренування XP не показано');
-    await device.page.waitForTimeout(700);
-    await device.page.screenshot({ path: `${SCREENS}/lesson-practice.png`, fullPage: true });
-    await device.context.close();
+    const rep = await openPronunciation(repeat);
+    check(await repeat.page.locator('[data-repeat]').count() === 1, 'шаг «Повтори вслух» показан');
+    check(!(await repeat.page.locator('[data-mic]').count()), 'панели записи нет');
+    check(!(await repeat.page.getByRole('button', { name: /Нажми и говори|Остановить запись|микрофон/i }).count()), 'кнопки микрофона и записи нет');
+    check(await repeat.page.locator('.speak-pill').count() === 2, 'образец фразы можно прослушать в двух скоростях');
+    // ── «Сообщить об ошибке в задании»: флажок в шапке урока → диалог → причина → комментарий → отправка.
+    const reportBtn = repeat.page.locator('[data-xr-open]');
+    check(await reportBtn.count() === 1, 'флажок «Сообщить об ошибке в задании» есть в шапке урока');
+    await reportBtn.click();
+    await repeat.page.locator('[data-xr-dialog]').waitFor();
+    check(await repeat.page.locator('[data-xr-reason]').count() === 8, 'в диалоге восемь причин');
+    check(await repeat.page.locator('[data-xr-send]').isDisabled(), 'без причины «Отправить» недоступна');
+    await repeat.page.locator('[data-xr-reason="other"]').click();
+    check(await repeat.page.locator('[data-xr-reason="other"]').getAttribute('aria-checked') === 'true', 'выбранная причина отмечена');
+    check(await repeat.page.locator('[data-xr-send]').isDisabled(), '«Другое» без текста отправить нельзя');
+    await repeat.page.locator('[data-xr-comment]').fill('Проверка отправки');
+    check(!(await repeat.page.locator('[data-xr-send]').isDisabled()), 'с текстом «Отправить» доступна');
+    check(!(await where(repeat.page)).overflow, 'диалог не даёт горизонтальной прокрутки');
+    await repeat.page.screenshot({ path: `${SCREENS}/lesson-report.png` });
+    const sent = repeat.page.waitForResponse((r) => r.url().endsWith('/api/exercise-reports') && r.request().method() === 'POST');
+    await repeat.page.locator('[data-xr-send]').click();
+    const sentRes = await sent;
+    const sentBody = JSON.parse(sentRes.request().postData() ?? '{}');
+    check(sentRes.status() === 200 && sentBody.reason === 'other' && sentBody.comment === 'Проверка отправки' && !!sentBody.sessionId && !!sentBody.key, 'жалоба ушла: ссылка на задание, причина, комментарий');
+    await repeat.page.getByText('Спасибо! Мы проверим задание.').waitFor();
+    await repeat.page.locator('[data-xr-dialog]').waitFor({ state: 'detached' });
+    check(true, 'диалог закрылся, игрок получил подтверждение');
+    const repeatRes = repeat.page.waitForResponse((r) => r.url().endsWith('/answer'));
+    await rep.done.click();
+    const repeated = await (await repeatRes).json();
+    check(repeated.skipped === true && !repeated.correct && repeated.similarity === undefined && repeated.practice === undefined, 'ответ сервера — skipped: без зачёта, без схожести и без «тренировки»');
+    check(answerBodies.length === 1 && JSON.parse(answerBodies[0]).answer.skipped === true, 'клиент отправил только «повторил(а)», без текста и записи');
+    await repeat.page.getByText('Хорошо, идём дальше').waitFor();
+    await repeat.page.getByText('произношение мы не оцениваем').waitFor();
+    check(!(await repeat.page.getByText(/\+\d+ XP/).count()), 'XP за шаг не показан');
+    check(!(await repeat.page.getByText('Правильный ответ').count()), '«правильного ответа» у шага нет');
+    const speechCalls = await repeat.page.evaluate(() => (window as unknown as { __speech: string[] }).__speech);
+    check(speechCalls.length === 0, `микрофон и распознавание не вызывались${speechCalls.length ? ': ' + speechCalls.join(',') : ''}`);
+    check(speechRequests.length === 0, 'запросов к /api/speech/* нет');
+    const status = await repeat.call('GET', '/api/speech/status');
+    const transcribe = await repeat.call('POST', '/api/speech/transcribe', {});
+    check(status.status === 404 && transcribe.status === 404, 'старые маршруты /api/speech/* сняты (404)');
+    await repeat.page.waitForTimeout(700);
+    await repeat.page.screenshot({ path: `${SCREENS}/lesson-repeat.png`, fullPage: true });
+    await repeat.page.getByRole('button', { name: 'Далее', exact: true }).click();
+    results.push({ pronunciation: 'repeat-aloud step: no microphone, no recognition, skipped answer without XP' });
+    await repeat.context.close();
 
-    // ── Серверне розпізнавання: справжній запис фейкового мікрофона → підписана спроба.
-    console.log('Серверне розпізнавання');
-    Object.assign(env, { AZURE_STT_ENABLED: 'true', AZURE_SPEECH_KEY: 'e2e-fake-key', AZURE_SPEECH_REGION: 'e2e' });
-    const server = await userPage('880003');
-    const transcribes: string[] = [];
-    server.page.on('request', (r) => { if (r.url().includes('/api/speech/transcribe')) transcribes.push(r.url()); });
-    const b = await openPronunciation(server);
-    sttPhrase = b.phrase;
-
-    await server.context.setOffline(true);
-    await server.page.locator('[data-mic="offline"]').waitFor();
-    await b.mic.click();
-    check(transcribes.length === 0 && await micState(server.page) === 'offline', 'без мережі — стан «Нет сети», запис не починається');
-    await server.context.setOffline(false);
-    await server.page.locator('[data-mic="ready"]').waitFor();
-
-    await server.page.evaluate(() => {
-      const md = navigator.mediaDevices as MediaDevices & { __real?: MediaDevices['getUserMedia'] };
-      md.__real = md.getUserMedia.bind(md);
-      md.getUserMedia = () => Promise.reject(new DOMException('denied', 'NotAllowedError'));
-    });
-    await b.mic.click();
-    await server.page.locator('[data-mic="permission"]').waitFor();
-    check(transcribes.length === 0, 'відмова в дозволі — стан «Нужно разрешение», без запиту');
-
-    // Тиша: потік із нульовим сигналом (генератор із нульовим підсиленням).
-    await server.page.evaluate(() => {
-      const md = navigator.mediaDevices as MediaDevices & { __real?: MediaDevices['getUserMedia'] };
-      md.getUserMedia = async () => {
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        gain.gain.value = 0;
-        const dest = ctx.createMediaStreamDestination();
-        osc.connect(gain).connect(dest);
-        osc.start();
-        return dest.stream;
-      };
-    });
-    await b.mic.click();
-    await server.page.locator('[data-mic="recording"]').waitFor();
-    await server.page.waitForTimeout(1200);
-    await b.mic.click();
-    await server.page.locator('[data-mic="silence"]').waitFor();
-    check(transcribes.length === 0 && sttCalls === 0, 'тиша — стан «Тишина», запис не надіслано до STT');
-
-    // Застосунок згорнули під час запису: доріжки мікрофона зупинені одразу, запис не надіслано.
-    await server.page.evaluate(() => {
-      const md = navigator.mediaDevices as MediaDevices & { __real?: MediaDevices['getUserMedia']; __last?: MediaStream };
-      md.getUserMedia = async (c) => (md.__last = await md.__real!(c));
-    });
-    await b.mic.click();
-    await server.page.locator('[data-mic="recording"]').waitFor();
-    // Рядком: tsx обгортає геттер у __name, якого на сторінці немає.
-    const hiddenTracks: string[] = await server.page.evaluate(`(() => {
-      Object.defineProperty(document, 'visibilityState', { configurable: true, get() { return 'hidden'; } });
-      document.dispatchEvent(new Event('visibilitychange'));
-      const states = navigator.mediaDevices.__last.getTracks().map((t) => t.readyState);
-      delete document.visibilityState;
-      document.dispatchEvent(new Event('visibilitychange'));
-      return states;
-    })()`);
-    await server.page.locator('[data-mic="ready"]').waitFor();
-    check(hiddenTracks.length > 0 && hiddenTracks.every((s) => s === 'ended') && transcribes.length === 0, `згорнули під час запису — мікрофон вимкнено (${hiddenTracks.join(',')}), запис не надіслано`);
-
-    // Випадкове коротке натискання: «Занадто коротко», не «Тиша», без запиту до STT.
-    await b.mic.click();
-    await server.page.locator('[data-mic="recording"]').waitFor();
-    await b.mic.click();
-    await server.page.locator('[data-mic="short"]').waitFor();
-    check(transcribes.length === 0 && sttCalls === 0, 'запис коротший за 0,5 с — стан «Слишком коротко», запис не надіслано');
-
-    await server.page.evaluate(() => {
-      const md = navigator.mediaDevices as MediaDevices & { __real?: MediaDevices['getUserMedia'] };
-      md.getUserMedia = md.__real!;
-    });
-    const answerRes = server.page.waitForResponse((r) => r.url().endsWith('/answer'));
-    await b.mic.click();
-    await server.page.locator('[data-mic="recording"]').waitFor();
-    await server.page.waitForTimeout(1500);
-    await b.mic.click();
-    const verified = await (await answerRes).json();
-    check(transcribes.length === 1 && /[?&]session=.+&item=/.test(transcribes[0]) && sttCalls === 1, 'запис прив’язано до сесії й завдання, STT викликано один раз');
-    check(verified.correct && verified.verified, 'підписана серверна спроба зарахована');
-    await server.page.getByText(/\+\d+ XP/).waitFor();
-    check(true, 'XP показано лише за підтверджену спробу');
-    await server.page.waitForTimeout(700);
-    await server.page.screenshot({ path: `${SCREENS}/lesson-verified.png`, fullPage: true });
-    results.push({ microphone: 'device recognition simulated by events; server path recorded from Chromium fake microphone (WAV tone), Azure STT stubbed', sttCalls });
-    await server.context.close();
+    // ── «Сообщить об ошибке» в миссии: флажок в шапке шага; ссылка — slug миссии и id шага.
+    console.log('Ошибка в задании: миссия');
+    const mis = await userPage('880004');
+    await mis.page.goto(mis.url('/life/zabka-first-order'), { waitUntil: 'networkidle' });
+    await mis.page.getByRole('button', { name: /Начать миссию|Продолжить/ }).first().click();
+    await mis.page.locator('[data-xr-open]').waitFor({ timeout: 20_000 });
+    await mis.page.locator('[data-xr-open]').click();
+    await mis.page.locator('[data-xr-reason="translation_error"]').click();
+    const missionSent = mis.page.waitForResponse((r) => r.url().endsWith('/api/exercise-reports') && r.request().method() === 'POST');
+    await mis.page.locator('[data-xr-send]').click();
+    const missionRes = await missionSent;
+    const missionBody = JSON.parse(missionRes.request().postData() ?? '{}');
+    check(missionRes.status() === 200 && missionBody.mission === 'zabka-first-order' && /^[\w-]+$/.test(missionBody.step ?? '') && missionBody.reason === 'translation_error', 'жалоба на шаг миссии ушла: slug миссии и id шага');
+    await mis.page.getByText('Спасибо! Мы проверим задание.').first().waitFor();
+    await mis.context.close();
 
     // Намірно зламаний чанк Shop.tsx: React у dev-режимі дублює помилку, перехоплену межею, у pageerror.
     const unexpected = errors.filter((e) => !e.includes('/src/screens/Shop.tsx'));
@@ -1129,7 +1056,6 @@ async function main() {
         : 'A2/A3/A4/L1/M2/B1: все сценарии пройдены',
     );
   } finally {
-    globalThis.fetch = realFetch;
     await browser.close();
     await stand.stop();
   }

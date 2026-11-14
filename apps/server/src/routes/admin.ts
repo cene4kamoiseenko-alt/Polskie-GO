@@ -22,6 +22,7 @@ import { atomic, db, isUniqueViolation } from '../db';
 import * as t from '../db/schema';
 import { forgetUser, requireAdmin } from '../auth';
 import { listReports, resolveReports } from '../services/reports';
+import { listExerciseReports, resolveExerciseReports } from '../services/exercise-reports';
 import { body, edgeRateLimit, query, rateLimit, type AppEnv } from '../hono';
 import { HttpError, badRequest, notFound } from '../lib/errors';
 import { hashPassword, verifyPassword, verifyPasswordDummy } from '../lib/password';
@@ -600,6 +601,20 @@ a.post('/reports/:userId/resolve', async (c) => {
   if (action === 'ban') forgetUser(userId);
   await audit(c, `report_${action}`, 'user', userId, { closed });
   return c.json({ ok: true, closed });
+});
+
+// ── Ошибки в заданиях: жалобы игроков на задания уроков, экзаменов и миссий (группы по заданию) ──
+a.get('/exercise-reports', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const { status } = z.object({ status: z.enum(t.EXERCISE_REPORT_STATUS).default('NEW') }).parse(query(c));
+  return c.json({ items: await listExerciseReports(status) });
+});
+a.post('/exercise-reports/resolve', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  const b = z.object({ target: z.string().min(1).max(160), status: z.enum(t.EXERCISE_REPORT_STATUS), note: z.string().max(500).optional() }).parse(await body(c));
+  const changed = await resolveExerciseReports(b.target, b.status, b.note);
+  await audit(c, `exercise_report_${b.status.toLowerCase()}`, 'exercise_report', b.target, { changed });
+  return c.json({ ok: true, changed });
 });
 
 // ── Бот: перевірка та налаштування (команди, меню, webhook із callback_query, серверний секрет) ──

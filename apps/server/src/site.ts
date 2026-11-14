@@ -34,7 +34,7 @@ type Doc = { title: string; updated: string; sections: { h: string; p: string[] 
 const PRIVACY: Record<Lang, (c: string) => Doc> = {
   uk: (c) => ({
     title: 'Політика конфіденційності — POLSKI GO',
-    updated: 'Оновлено 7 листопада 2026',
+    updated: 'Оновлено 14 листопада 2026',
     sections: [
       { h: 'Хто ми і про що цей документ', p: ['POLSKI GO — застосунок для вивчення польської мови: працює як Telegram Mini App і як застосунок для Android (Google Play). Цей документ пояснює, які дані ми збираємо, навіщо і як ними розпоряджатися.'] },
       { h: 'Які дані ми збираємо', p: [
@@ -42,12 +42,13 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
         'Акаунт «гість» (Android, веб): випадковий внутрішній номер і ключ пристрою. Ім’я, e-mail чи номер телефону не потрібні.',
         'Навчальні дані: прогрес, відповіді на завдання, словник, досягнення, віртуальна валюта й речі, серія днів, налаштування (мова, мета, час нагадування, часовий пояс). За вашим вибором: публічний профіль і рейтинг, друзі.',
         'Скарги: якщо ви скаржитеся на гравця, ми зберігаємо, хто, на кого, з якої причини й коли поскаржився. Гравець, на якого скаржаться, не дізнається, хто це зробив. Скарги видаляються разом з акаунтом.',
+        'Повідомлення про помилки в завданнях: якщо ви повідомляєте про помилку в завданні, ми зберігаємо, яке це завдання, причину, ваш коментар, вашу останню відповідь на нього, дату й стан розгляду. Повідомлення видаляються разом з акаунтом і входять в експорт ваших даних.',
+        'Мікрофон і камеру застосунок не використовує: голос не записується й не надсилається.',
         'Платежі: Premium у Telegram оплачується Telegram Stars; ми зберігаємо запис про платіж (сума, статус, ідентифікатор платежу), але не дані карток. Покупки в Android-версії проходитимуть через Google Play, який обробляє платіж.',
-        'Голос: під час вправ на вимову запис із мікрофона надсилається на наш сервер лише для перевірки й передається постачальнику розпізнавання мовлення (Microsoft Azure або Google, якщо увімкнено). Ми не зберігаємо аудіозаписи.',
         'Технічні дані: звіти про помилки (текст помилки, адреса екрана, версія застосунку — без імені й ідентифікаторів гравця), IP-адреса обробляється Cloudflare для захисту від зловживань і обмеження кількості запитів.',
       ] },
       { h: 'Навіщо ми це використовуємо', p: ['Щоб показувати ваш прогрес на всіх пристроях, нараховувати нагороди, надсилати нагадування в Telegram (лише якщо ви їх увімкнули), перевіряти платежі, захищати сервіс від зловживань і виправляти помилки. Ми не продаємо дані й не показуємо рекламу.'] },
-      { h: 'Хто ще обробляє дані', p: ['Cloudflare (хостинг, база даних, сховище звукових файлів), Telegram (вхід, платежі Stars, повідомлення), постачальники розпізнавання мовлення (див. вище) і Google Play (оплата в Android-версії).'] },
+      { h: 'Хто ще обробляє дані', p: ['Cloudflare (хостинг, база даних, сховище звукових файлів), Telegram (вхід, платежі Stars, повідомлення) і Google Play (оплата в Android-версії).'] },
       { h: 'Скільки ми зберігаємо', p: ['Дані акаунта зберігаються, поки існує акаунт. Журнал помилок — 30 днів. Одноразові коди входу — 10 хвилин. Записи про платежі після видалення акаунта знеособлюються й зберігаються лише в обсязі, потрібному за законом.'] },
       { h: 'Ваші права', p: ['Ви можете завантажити всі свої дані (Профіль → Налаштування → Експорт даних) і видалити акаунт разом з усіма даними (Профіль → Налаштування → Видалити акаунт). Інструкція — на сторінці /delete-account. Також можна просто написати нам.'] },
       { h: 'Діти', p: ['Застосунок не призначений для дітей до 13 років, і ми свідомо не збираємо їхні дані.'] },
@@ -56,7 +57,7 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
   }),
   ru: (c) => ({
     title: 'Политика конфиденциальности — POLSKI GO',
-    updated: 'Обновлено 7 ноября 2026',
+    updated: 'Обновлено 14 ноября 2026',
     sections: [
       { h: 'Кто мы и о чём этот документ', p: ['POLSKI GO — приложение для изучения польского языка: работает как Telegram Mini App и как приложение для Android (Google Play). Здесь описано, какие данные мы собираем, зачем и как ими управлять.'] },
       { h: 'Какие данные мы собираем', p: [
@@ -64,12 +65,13 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
         'Аккаунт «гость» (Android, веб): случайный внутренний номер и ключ устройства. Имя, e-mail и номер телефона не нужны.',
         'Учебные данные: прогресс, ответы на задания, словарь, достижения, виртуальная валюта и вещи, серия дней, настройки (язык, цель, время напоминания, часовой пояс). По вашему выбору: публичный профиль и рейтинг, друзья.',
         'Жалобы: если вы жалуетесь на игрока, мы храним, кто, на кого, по какой причине и когда пожаловался. Игрок, на которого жалуются, не узнает, кто это сделал. Жалобы удаляются вместе с аккаунтом.',
+        'Сообщения об ошибках в заданиях: если вы сообщаете об ошибке в задании, мы храним, какое это задание, причину, ваш комментарий, ваш последний ответ на него, дату и состояние рассмотрения. Сообщения удаляются вместе с аккаунтом и входят в экспорт ваших данных.',
+        'Микрофон и камеру приложение не использует: голос не записывается и не отправляется.',
         'Платежи: Premium в Telegram оплачивается Telegram Stars; мы храним запись о платеже (сумма, статус, идентификатор платежа), но не данные карт. Покупки в Android-версии будут проходить через Google Play, который обрабатывает платёж.',
-        'Голос: в упражнениях на произношение запись с микрофона отправляется на наш сервер только для проверки и передаётся поставщику распознавания речи (Microsoft Azure или Google, если включено). Аудиозаписи мы не сохраняем.',
         'Технические данные: отчёты об ошибках (текст ошибки, адрес экрана, версия приложения — без имени и идентификаторов игрока); IP-адрес обрабатывает Cloudflare для защиты от злоупотреблений и ограничения частоты запросов.',
       ] },
       { h: 'Зачем мы это используем', p: ['Чтобы показывать прогресс на всех устройствах, начислять награды, присылать напоминания в Telegram (только если вы их включили), проверять платежи, защищать сервис от злоупотреблений и исправлять ошибки. Мы не продаём данные и не показываем рекламу.'] },
-      { h: 'Кто ещё обрабатывает данные', p: ['Cloudflare (хостинг, база данных, хранилище звуковых файлов), Telegram (вход, платежи Stars, сообщения), поставщики распознавания речи (см. выше) и Google Play (оплата в Android-версии).'] },
+      { h: 'Кто ещё обрабатывает данные', p: ['Cloudflare (хостинг, база данных, хранилище звуковых файлов), Telegram (вход, платежи Stars, сообщения) и Google Play (оплата в Android-версии).'] },
       { h: 'Сколько мы храним', p: ['Данные аккаунта — пока существует аккаунт. Журнал ошибок — 30 дней. Одноразовые коды входа — 10 минут. Записи о платежах после удаления аккаунта обезличиваются и хранятся только в объёме, нужном по закону.'] },
       { h: 'Ваши права', p: ['Вы можете скачать все свои данные (Профиль → Настройки → Экспорт данных) и удалить аккаунт со всеми данными (Профиль → Настройки → Удалить аккаунт). Инструкция — на странице /delete-account. Можно и просто написать нам.'] },
       { h: 'Дети', p: ['Приложение не предназначено для детей младше 13 лет, мы сознательно не собираем их данные.'] },
@@ -78,7 +80,7 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
   }),
   en: (c) => ({
     title: 'Privacy Policy — POLSKI GO',
-    updated: 'Updated 7 November 2026',
+    updated: 'Updated 14 November 2026',
     sections: [
       { h: 'Who we are and what this covers', p: ['POLSKI GO is a Polish-language learning app that runs as a Telegram Mini App and as an Android app (Google Play). This page explains what data we collect, why, and how you can control it.'] },
       { h: 'What we collect', p: [
@@ -86,12 +88,13 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
         'Guest account (Android, web): a random internal ID and a device key. No name, e-mail address or phone number is required.',
         'Learning data: progress, exercise answers, vocabulary, achievements, virtual currency and items, daily streak, settings (language, goal, reminder time, time zone). Optionally: public profile, leaderboard, friends.',
         'Reports: if you report a player, we store who reported whom, the reason and the date. The reported player is not told who reported them. Reports are deleted together with the account.',
+        'Exercise reports: if you report a mistake in an exercise, we store which exercise it is, the reason, your comment, your last answer to it, the date and the review status. These reports are deleted together with the account and are included in your data export.',
+        'The app does not use the microphone or the camera: your voice is not recorded or sent anywhere.',
         'Payments: Premium in Telegram is paid with Telegram Stars; we keep a payment record (amount, status, payment ID) but never card data. Purchases in the Android version go through Google Play, which processes the payment.',
-        'Voice: in pronunciation exercises the microphone recording is sent to our server only to be checked and is passed to a speech-recognition provider (Microsoft Azure or Google, when enabled). We do not store audio recordings.',
         'Technical data: error reports (error text, screen address, app version — no name or player identifiers); your IP address is processed by Cloudflare for abuse protection and rate limiting.',
       ] },
       { h: 'Why we use it', p: ['To show your progress on all your devices, grant rewards, send Telegram reminders (only if you turn them on), verify payments, protect the service from abuse and fix bugs. We do not sell data and we show no ads.'] },
-      { h: 'Who else processes it', p: ['Cloudflare (hosting, database, audio file storage), Telegram (sign-in, Stars payments, messages), speech-recognition providers (see above) and Google Play (payments in the Android version).'] },
+      { h: 'Who else processes it', p: ['Cloudflare (hosting, database, audio file storage), Telegram (sign-in, Stars payments, messages) and Google Play (payments in the Android version).'] },
       { h: 'How long we keep it', p: ['Account data is kept while the account exists. The error log is kept for 30 days. One-time sign-in codes live for 10 minutes. Payment records are anonymised after the account is deleted and kept only as long as the law requires.'] },
       { h: 'Your rights', p: ['You can download all your data (Profile → Settings → Export data) and delete your account together with all its data (Profile → Settings → Delete account). Instructions are on /delete-account. You can also simply write to us.'] },
       { h: 'Children', p: ['The app is not directed to children under 13 and we do not knowingly collect their data.'] },

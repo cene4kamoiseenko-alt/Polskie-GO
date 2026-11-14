@@ -222,23 +222,3 @@ export async function downloadExport() {
 /** Полный адрес файла, загруженного в админке (/uploads/...), — он хранится на API-сервере. */
 export const assetUrl = (u: string) => (u.startsWith('/uploads/') ? `${API_BASE}${u}` : u);
 
-/** Розпізнаний сервером текст; attempt — підписана спроба для зарахування в уроці (лише з прив'язкою). */
-export type Transcription = { transcript: string; attempt?: string };
-
-/**
- * Authenticated short microphone clip. No automatic retry or duplicate paid request.
- * bind прив'язує запис до завдання на вимову в сесії: тоді сервер повертає підписану спробу.
- */
-export async function transcribeAudio(bytes: Uint8Array, signal: AbortSignal, bind?: { session: string; item: string }): Promise<Transcription> {
-  await ensureAuth();
-  const qs = bind ? `?${new URLSearchParams(bind)}` : '';
-  const res = await timedFetch(`${API_BASE}/api/speech/transcribe${qs}`, {
-    method: 'POST', signal,
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'audio/wav' },
-    body: new Blob([new Uint8Array(bytes)]),
-  }, 18_000);
-  const result = await res.json().catch(() => ({})) as { transcript?: string; attempt?: string; error?: string };
-  if (!res.ok) throw new ApiError(res.status, result.error ?? 'stt_unavailable');
-  if (!result.transcript?.trim()) throw new Error('no-speech');
-  return { transcript: result.transcript, attempt: result.attempt };
-}

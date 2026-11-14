@@ -61,6 +61,13 @@ async function main() {
   await say({ id: app2.telegramId, first_name: `User${app2.telegramId}`, language_code: 'uk' }, '/paysupport');
   await say({ id: app2.telegramId, first_name: `User${app2.telegramId}`, language_code: 'uk' }, 'Не пришёл Premium после оплаты');
   await db.update(schema.userSettings).set({ notificationsEnabled: true, uiLanguage: 'ru' }).where(eq(schema.userSettings.userId, app1.user.id));
+  // Жалобы на задания (2026-11-14): две жалобы на одно задание урока и одна на шаг миссии — для страницы «Ошибки в заданиях».
+  await db.insert(schema.exerciseReports).values([
+    { userId: app1.user.id, target: 'exercise:e_waw-1-czesc_3', source: 'lesson', exerciseId: 'e_waw-1-czesc_3', lessonSlug: 'waw-1-czesc', itemType: 'WORD_TRANSLATION', reason: 'too_easy', comment: 'Ответ понятен без польского', answer: { optionId: 'c', correct: true }, uiLang: 'ru',
+      snapshot: { type: 'WORD_TRANSLATION', where: 'урок', texts: ['Dzień dobry', 'Добрый день'], options: [{ text: 'Добрый день', correct: true }, { text: 'Спокойной ночи', correct: false }, { text: 'До свидания', correct: false }] } },
+    { userId: app2.user.id, target: 'exercise:e_waw-1-czesc_3', source: 'lesson', exerciseId: 'e_waw-1-czesc_3', lessonSlug: 'waw-1-czesc', itemType: 'WORD_TRANSLATION', reason: 'answer_rejected', comment: null, answer: { optionId: 'd0', correct: false }, uiLang: 'uk',
+      snapshot: { type: 'WORD_TRANSLATION', where: 'урок', texts: ['Dzień dobry', 'Добрый день'], options: [{ text: 'Добрый день', correct: true }, { text: 'Спокойной ночи', correct: false }, { text: 'До свидания', correct: false }] } },
+  ]);
   const rootLogin = await request('POST', '/api/admin/login', { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD });
   const asRoot = { authorization: `Bearer ${rootLogin.body.token}` };
   await request('POST', '/api/admin/admins', { email: 'support-screens@test.dev', name: 'Оксана', role: 'SUPPORT', password: 'support-password-123' }, asRoot);
@@ -219,8 +226,9 @@ async function main() {
       await p.screenshot({ path: `${OUT}/user-${width}.png`, fullPage: true });
 
       if (width < 600) await p.click('button:has-text("Меню")');
-      await p.click('nav a:has-text("Ошибки")');
-      await p.locator('h1', { hasText: 'Ошибки' }).waitFor({ timeout: 10_000 });
+      // «Ошибки» — журнал сбоев; рядом в меню «Ошибки в заданиях» (жалобы игроков на задания) — это другой раздел.
+      await p.locator('nav').getByRole('link', { name: /^Ошибки(?! в заданиях)/ }).click();
+      await p.locator('h1', { hasText: /^Ошибки$/ }).waitFor({ timeout: 10_000 });
       await p.locator('[data-error-row]').first().waitFor({ timeout: 10_000 });
       check((await p.locator('[data-error-row]').count()) >= 2, `${width}px «Ошибки»: запись приложения и CSP за сутки`);
       check((await p.locator('[data-error-hint]').first().innerText()).length > 20, `${width}px «Ошибки»: пояснение к известной записи`);
@@ -281,6 +289,25 @@ async function main() {
       await go('Жалобы', 'Жалобы на игроков');
       await noHScroll('жалобы');
       await axe('«Жалобы»');
+
+      // «Ошибки в заданиях»: число на меню, жалобы сгруппированы по заданию, снимок и ответ игрока, разбор.
+      check(((await p.locator('[data-nav-count="exerciseReports"]').textContent().catch(() => '')) ?? '').startsWith('1'), `${width}px меню: у «Ошибок в заданиях» число заданий с жалобами (1)`);
+      await go('Ошибки в заданиях', 'Ошибки в заданиях');
+      await p.locator('[data-exercise-report]').first().waitFor({ timeout: 10_000 });
+      const xr = await p.locator('[data-exercise-report]').first().innerText();
+      check(xr.includes('2 жалобы') && xr.includes('слишком лёгкое') && xr.includes('верный ответ не засчитан') && xr.includes('Dzień dobry') && xr.includes('Ответ понятен без польского'), `${width}px «Ошибки в заданиях»: две жалобы одной группой, причины, снимок задания и комментарий`);
+      check((await p.locator('[data-exercise-report] a', { hasText: 'Открыть задание' }).getAttribute('href')) === '/admin/r/exercises/e_waw-1-czesc_3' || (await p.locator('[data-exercise-report] a', { hasText: 'Открыть задание' }).count()) === 1, `${width}px «Ошибки в заданиях»: ссылка на редактор задания`);
+      check(!xr.includes(String(app1.telegramId)) && !xr.includes(app1.user.id), `${width}px «Ошибки в заданиях»: имени и id игрока нет`);
+      await noHScroll('ошибки в заданиях');
+      await axe('«Ошибки в заданиях»');
+      await p.screenshot({ path: `${OUT}/exercise-reports-${width}.png`, fullPage: true });
+      if (wide) {
+        await p.click('[data-exercise-report] button:has-text("Взять в работу")');
+        await toast('Взято в работу');
+        await p.locator('text=Новых жалоб на задания нет').waitFor({ timeout: 10_000 });
+        await p.waitForFunction(() => !document.querySelector('[data-nav-count="exerciseReports"]'), null, { timeout: 10_000 });
+        check(true, `${width}px «Ошибки в заданиях»: задание взято в работу, число на меню исчезло`);
+      }
 
       // «Рассылки»: охват, черновик с предпросмотром, пробное сообщение себе, отправка и остановка.
       await go('Рассылки', 'Рассылки');
@@ -466,7 +493,8 @@ async function main() {
       await p.locator('[data-editor-note]').waitFor({ timeout: 10_000 });
       await p.locator('text=Популярные уроки').waitFor({ timeout: 10_000 });
       check(true, `редактор: «Обзор» — сводка по урокам и пояснение, где аналитика`);
-      check((await p.locator('nav a', { hasText: 'Ошибки' }).count()) === 0 && (await p.locator('[data-nav-errors]').count()) === 0, `редактор: в меню нет «Ошибок» и счётчика`);
+      check((await p.locator('nav').getByRole('link', { name: /^Ошибки(?! в заданиях)/ }).count()) === 0 && (await p.locator('[data-nav-errors]').count()) === 0, `редактор: в меню нет «Ошибок» и счётчика`);
+      check((await p.locator('nav').getByRole('link', { name: /^Ошибки в заданиях/ }).count()) === 1, `редактор: «Ошибки в заданиях» в меню есть — это содержимое, его правят редакторы`);
       check((await p.locator('[data-kpi], [data-funnel-card], [data-app-errors]').count()) === 0, `редактор: графиков, воронки и ошибок на «Обзоре» нет`);
       await p.waitForTimeout(500);
       check(denied.length === 0, `редактор: админка не делает запросов, которые сервер отклоняет (${denied.join(', ')})`);

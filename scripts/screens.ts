@@ -18,10 +18,8 @@ const filter = process.argv[2] ?? '';
 async function main() {
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
-  const { base, env, login, sessionItems, correctAnswers } = stand;
+  const { base, login, sessionItems, correctAnswers } = stand;
   mkdirSync(OUT, { recursive: true });
-  // Серверне розпізнавання «увімкнено», щоб на екрані голосу була кнопка запису (провайдер не викликається).
-  Object.assign(env, { AZURE_STT_ENABLED: 'true', AZURE_SPEECH_KEY: 'screens-fake', AZURE_SPEECH_REGION: 'e2e' });
   const executablePath = chromiumPath(chromium);
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}), args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   let devUser = 990000;
@@ -95,7 +93,7 @@ async function main() {
           await c.context.close();
         }
         if (width === 430) continue;
-        // D — голосове завдання.
+        // D — крок «Повтори вслух» (проверок речи нет).
         if ('D-voice'.includes(filter) || !filter) {
           const d = await page(theme, width);
           const lessonId = (await d.call('GET', '/api/journey')).body.nextLesson.id as string;
@@ -106,7 +104,7 @@ async function main() {
             for (const a of correctAnswers(item)) await d.call('POST', `/api/sessions/${started.sessionId}/answer`, { key: item.key, answer: a });
           }
           await d.p.goto(d.url('/lesson/' + lessonId));
-          await d.p.locator('[data-mic]').waitFor({ timeout: 20_000 });
+          await d.p.locator('[data-repeat]').waitFor({ timeout: 20_000 });
           await settle(d.p);
           await shot(d.p, `D-voice-${tag}`, true);
           await d.context.close();

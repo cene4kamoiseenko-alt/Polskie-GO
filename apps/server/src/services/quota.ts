@@ -9,13 +9,13 @@ import { ttsSpend, usageCounters } from '../db/schema';
 import { getBindings } from '../env';
 import { HttpError } from '../lib/errors';
 
-export type QuotaKind = 'stt' | 'tts';
-/** Розпізнавання — за кожен запис; синтез — лише за фрази, яких ще немає в кеші. */
-export const QUOTA_DEFAULTS: Record<QuotaKind, number> = { stt: 60, tts: 300 };
+export type QuotaKind = 'tts';
+/** Синтез — лише за фрази, яких ще немає в кеші. (Розпізнавання мовлення в застосунку вимкнено, квоти `stt` немає; рядки `stt` у D1 — стара історія.) */
+export const QUOTA_DEFAULTS: Record<QuotaKind, number> = { tts: 300 };
 
 export function quotaLimit(kind: QuotaKind): number {
   const e = getBindings();
-  const raw = Number(kind === 'stt' ? e.STT_DAILY_LIMIT : e.TTS_DAILY_LIMIT);
+  const raw = Number(e.TTS_DAILY_LIMIT);
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : QUOTA_DEFAULTS[kind];
 }
 

@@ -50,19 +50,11 @@ export type Bindings = {
   TTS_PROVIDER?: string;
   GOOGLE_TTS_API_KEY?: string;
   GOOGLE_TTS_VOICE?: string;
-  /** Enable short microphone transcription explicitly; off by default. */
-  AZURE_STT_ENABLED?: string;
+  /** Ключ і регіон Azure Speech — лише для синтезу (TTS); розпізнавання мовлення в застосунку вимкнено. */
   AZURE_SPEECH_KEY?: string;
   AZURE_SPEECH_REGION?: string;
   AZURE_SPEECH_VOICE?: string;
-  /** Google Speech-to-Text: так само лише явно (`GOOGLE_STT_ENABLED=true`); ключ — окремий або ключ TTS. */
-  GOOGLE_STT_ENABLED?: string;
-  GOOGLE_STT_API_KEY?: string;
-  GOOGLE_STT_MODEL?: string;
-  /** auto (типово: Azure, потім Google), azure, google або off. */
-  STT_PROVIDER?: string;
-  /** Добові квоти на користувача (типово 60 записів і 300 нових фраз синтезу). */
-  STT_DAILY_LIMIT?: string;
+  /** Добова квота на користувача: нових фраз синтезу (типово 300). */
   TTS_DAILY_LIMIT?: string;
   /** Символів платного синтезу на запит гравців за добу UTC на весь проєкт (типово 30 000 ≈ безкоштовний 1 млн/міс Chirp 3: HD). */
   TTS_GLOBAL_DAILY_CHARS?: string;

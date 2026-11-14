@@ -12,7 +12,6 @@ import { learningSessions, lessons, users } from '../src/db/schema';
 import { setEnv, type Bindings } from '../src/env';
 import { buildSeedSql } from '../src/content/seed';
 import { signInitData } from '../src/lib/telegram';
-import { issueSpeechAttempt } from '../src/services/speech-attempts';
 
 export const BOT_TOKEN = '123456:TEST_TOKEN';
 
@@ -106,7 +105,7 @@ export function correctAnswers(item: ExerciseItem): unknown[] {
     case 'MATCH_PAIRS':
       return [{ pairs: (d as MatchData).pairs.map((p) => [p.l, p.r]) }];
     case 'PRONUNCIATION':
-      return [{ transcript: (d as PronunciationData).text }];
+      return [{ skipped: true }];
     case 'DIALOGUE':
     case 'SITUATION':
       return (d as DialogueData).steps.flatMap((s, i) => (s.options?.length ? [{ step: i, optionId: s.answer }] : []));
@@ -127,7 +126,7 @@ export function wrongAnswer(item: ExerciseItem): unknown {
     case 'MATCH_PAIRS':
       return { pairs: [] };
     case 'PRONUNCIATION':
-      return { transcript: 'zzz' };
+      return { skipped: true };
     case 'DIALOGUE':
     case 'SITUATION': {
       const s = (item.data as DialogueData).steps.findIndex((x) => x.options?.length);
@@ -146,20 +145,20 @@ export async function sessionItems(sessionId: string) {
   return s!.items as ExerciseItem[];
 }
 
-/** Відповідь на вимову так, ніби запис розпізнав серверний STT: підписана спроба, прив'язана до сесії й завдання. */
-export async function verifiedSpeech(sessionId: string, key: string, transcript: string) {
-  const s = await db.query.learningSessions.findFirst({ where: eq(learningSessions.id, sessionId) });
-  return { attempt: issueSpeechAttempt({ userId: s!.userId, sessionId, key, transcript }) };
-}
+/** Завдання, у яких можна помилитися: вимова вголос — крок без перевірки (skipped), ні зарахованим, ні помилкою він не буває. */
+export const isGradable = (item: ExerciseItem) => item.type !== 'PRONUNCIATION';
 
-/** Пройти сесію повністю (правильно або з помилками), обходячи анти-бот затримку. Вимова — через підписану спробу. */
+/**
+ * Пройти сесію повністю (правильно або з помилками), обходячи анти-бот затримку. Вимова — крок без перевірки ({ skipped: true }).
+ * `wrong` — скільки завдань, що перевіряються, виконати неправильно (кроки без перевірки не рахуються).
+ */
 export async function playSession(call: Awaited<ReturnType<typeof login>>['call'], sessionId: string, opts: { wrong?: number } = {}) {
   const items = await sessionItems(sessionId);
   let wrongLeft = opts.wrong ?? 0;
   for (const item of items) {
-    if (wrongLeft > 0) {
+    if (wrongLeft > 0 && isGradable(item)) {
       wrongLeft--;
-      const bad = item.type === 'PRONUNCIATION' ? await verifiedSpeech(sessionId, item.key, 'zzz') : wrongAnswer(item);
+      const bad = wrongAnswer(item);
       const w = await call('POST', `/api/sessions/${sessionId}/answer`, { key: item.key, answer: bad });
       if (w.status !== 200) throw new Error(JSON.stringify(w.body));
       if (item.type === 'DIALOGUE' || item.type === 'SITUATION') {
@@ -167,10 +166,9 @@ export async function playSession(call: Awaited<ReturnType<typeof login>>['call'
       }
       continue;
     }
-    const good = item.type === 'PRONUNCIATION' ? [await verifiedSpeech(sessionId, item.key, (item.data as PronunciationData).text)] : correctAnswers(item);
-    for (const a of good) {
+    for (const a of correctAnswers(item)) {
       const r = await call('POST', `/api/sessions/${sessionId}/answer`, { key: item.key, answer: a });
-      if (r.status !== 200 || !r.body.correct) throw new Error(`${item.type}: ${JSON.stringify(r.body)}`);
+      if (r.status !== 200 || (item.type !== 'PRONUNCIATION' && !r.body.correct)) throw new Error(`${item.type}: ${JSON.stringify(r.body)}`);
     }
   }
   await db.update(learningSessions).set({ startedAt: new Date(Date.now() - 10 * 60_000) }).where(eq(learningSessions.id, sessionId));

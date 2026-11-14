@@ -70,7 +70,7 @@ export function checkStagingConfig(stagingText, productionText) {
   const vars = stg.vars ?? {};
   if (vars.ENVIRONMENT !== 'staging') problems.push(`vars.ENVIRONMENT staging = «${vars.ENVIRONMENT}», нужно «staging»`);
   for (const k of Object.keys(vars)) if (SECRET_LIKE.test(k)) problems.push(`в vars staging секретоподобный ключ «${k}»: секреты кладутся через wrangler secret put -c ${STAGING_CONFIG}`);
-  for (const k of ['TTS_PROVIDER', 'STT_PROVIDER']) if (vars[k] !== 'off') problems.push(`vars.${k} staging должен быть «off» (платные сервисы)`);
+  for (const k of ['TTS_PROVIDER']) if (vars[k] !== 'off') problems.push(`vars.${k} staging должен быть «off» (платные сервисы)`);
   if (prod.vars?.ENVIRONMENT !== 'production') problems.push('в wrangler.jsonc ENVIRONMENT не «production»');
   // Код и так игнорирует DEV_AUTH в production (config.devAuth), но в боевом конфиге его быть не должно вовсе.
   if (prod.vars && 'DEV_AUTH' in prod.vars) problems.push('в wrangler.jsonc (production) задан DEV_AUTH: вход без Telegram в production запрещён');

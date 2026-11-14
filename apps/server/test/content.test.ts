@@ -33,7 +33,9 @@ describe('Навчальний контент', () => {
         const answers = correctAnswers(item);
         expect(answers.length, item.key).toBeGreaterThan(0);
         const results = answers.map((a) => checkAnswer(item, a as never));
-        expect(results.every((r) => r.correct), `${item.key} ${item.type}`).toBe(true);
+        // «Скажи вслух» не проверяется (решение владельца 2026-11-14): шаг всегда skipped — ни зачёта, ни ошибки.
+        if (item.type === 'PRONUNCIATION') expect(results.every((r) => r.skipped && !r.correct), `${item.key} ${item.type}`).toBe(true);
+        else expect(results.every((r) => r.correct), `${item.key} ${item.type}`).toBe(true);
         expect(results.at(-1)!.done, item.key).toBe(true);
         if ('options' in item.data && Array.isArray((item.data as ChoiceData).options)) {
           const texts = (item.data as ChoiceData).options.map((o) => JSON.stringify(o.text));

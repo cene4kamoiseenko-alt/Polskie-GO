@@ -1,4 +1,3 @@
-import { sttStatus } from './stt';
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
 import { addDays, dayKey, effectiveStreak, isUiLang, lastDays, levelFromXp, shieldReady, STREAK_SHIELD_DAYS, uiLangFor, type Cefr } from '@polski-go/shared';
 import { config } from '../env';
@@ -122,8 +121,8 @@ export async function getMe(userId: string) {
      * server: false: кнопки показують «Озвучка скоро появится», голосу пристрою й синтезу немає.
      */
     audio: libraryEnabled()
-      ? { server: true, library: true, provider: 'elevenlabs' as const, voice: 'Kamil', fingerprint: libraryFingerprint(libraryVoice()!), base: `/api/audio/${libraryFingerprint(libraryVoice()!)}/`, generation: audioGenerationMode(), recognition: { server: sttStatus().configured, ...sttStatus() } }
-      : { server: false, library: true, provider: null, voice: null, fingerprint: null, base: null, generation: audioGenerationMode(), recognition: { server: sttStatus().configured, ...sttStatus() } },
+      ? { server: true, library: true, provider: 'elevenlabs' as const, voice: 'Kamil', fingerprint: libraryFingerprint(libraryVoice()!), base: `/api/audio/${libraryFingerprint(libraryVoice()!)}/`, generation: audioGenerationMode() }
+      : { server: false, library: true, provider: null, voice: null, fingerprint: null, base: null, generation: audioGenerationMode() },
   };
 }
 

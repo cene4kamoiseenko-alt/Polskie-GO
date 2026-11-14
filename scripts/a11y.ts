@@ -20,7 +20,6 @@ type Found = { screen: string; theme: string; target: string; html: string; mess
 async function main() {
   const { chromium } = require('playwright') as typeof import('playwright');
   const stand = await startStand({ ui: 'dev' });
-  Object.assign(stand.env, { AZURE_STT_ENABLED: 'true', AZURE_SPEECH_KEY: 'a11y-fake', AZURE_SPEECH_REGION: 'e2e' });
   const executablePath = chromiumPath(chromium);
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}), args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const violations: Found[] = [];
@@ -67,7 +66,7 @@ async function main() {
         await settle(u.p);
         await audit(u.p, route, theme);
       }
-      // Голосове завдання (екран D).
+      // Крок «Повтори вслух» (екран D).
       const lessonId = (await u.call('GET', '/api/journey')).body.nextLesson.id as string;
       const started = (await u.call('POST', '/api/sessions', { lessonId })).body;
       for (const item of await stand.sessionItems(started.sessionId)) {
@@ -75,7 +74,7 @@ async function main() {
         for (const a of stand.correctAnswers(item)) await u.call('POST', `/api/sessions/${started.sessionId}/answer`, { key: item.key, answer: a });
       }
       await u.p.goto(u.url('/lesson/' + lessonId));
-      await u.p.locator('[data-mic]').waitFor({ timeout: 20_000 });
+      await u.p.locator('[data-repeat]').waitFor({ timeout: 20_000 });
       await u.p.waitForTimeout(800);
       await audit(u.p, 'voice-task', theme);
       // Заставка під час завантаження і «Немає зв'язку» (екрани A і B).

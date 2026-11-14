@@ -7,6 +7,7 @@ import { db } from '../db';
 import { adminAuditLogs, adminUsers, playerReports, supportRequests } from '../db/schema';
 import { REPORT_TZ, tzOffsetMs } from './admin-insights';
 import { recentErrors } from './error-log';
+import { newExerciseReportTargets } from './exercise-reports';
 
 const DAY_MS = 86_400_000;
 type Num = number | string | null;
@@ -102,13 +103,14 @@ export async function paymentsSummary(now: Date, days: number) {
  * Показывается числом на пунктах меню. Журнала ошибок может не быть до миграции 0015 — тогда 0.
  */
 export async function attention(now = new Date()) {
-  const [support, reports, errors] = await Promise.all([
+  const [support, reports, errors, exerciseReports] = await Promise.all([
     db.select({ n: count() }).from(supportRequests).where(eq(supportRequests.status, 'OPEN')),
     db.select({ n: sql<number>`count(DISTINCT ${playerReports.reportedId})` }).from(playerReports).where(eq(playerReports.status, 'OPEN')),
     recentErrors(now).catch(() => null),
+    newExerciseReportTargets().catch(() => 0),
   ]);
   const e = errors?.total;
-  return { support: num(support[0]?.n), reports: num(reports[0]?.n), errors: e ? (e.server ?? 0) + (e.client ?? 0) + (e.csp ?? 0) : 0 };
+  return { support: num(support[0]?.n), reports: num(reports[0]?.n), errors: e ? (e.server ?? 0) + (e.client ?? 0) + (e.csp ?? 0) : 0, exerciseReports };
 }
 
 export const AUDIT_PAGE = 100;

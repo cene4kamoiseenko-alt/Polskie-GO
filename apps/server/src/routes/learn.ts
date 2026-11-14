@@ -1,17 +1,15 @@
 /** Карта, уроки, навчальні сесії, словник, граматика, іспити. */
 import { Hono } from 'hono';
-import { readSpeechBody, sttStatus, transcribeSpeech } from '../services/stt';
 import { and, asc, count, desc, eq, exists, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { dayKey } from '@polski-go/shared';
 import { db } from '../db';
-import { exercises, languageSkills, learningSessions, lessons, reviewSchedule, userLessonProgress, userVocabulary, vocabularyEntries } from '../db/schema';
+import { EXERCISE_REPORT_REASONS, exercises, languageSkills, learningSessions, lessons, reviewSchedule, userLessonProgress, userVocabulary, vocabularyEntries } from '../db/schema';
 import { body, query, rateLimit, type AppEnv } from '../hono';
 import { HttpError, notFound } from '../lib/errors';
 import { getJourney, openRouteChest } from '../services/journey';
-import { answerItem, assertSpeechItem, finishSession, startSession } from '../services/sessions';
-import { issueSpeechAttempt } from '../services/speech-attempts';
-import { consumeQuota } from '../services/quota';
+import { answerItem, finishSession, startSession } from '../services/sessions';
+import { EXERCISE_REPORT_COMMENT_MAX, reportExercise } from '../services/exercise-reports';
 import { ttsStatus } from '../services/tts';
 import { libraryAudio, recordMiss } from '../services/audio-library';
 import { TOPICS } from '../content/topics';
@@ -41,13 +39,30 @@ r.post('/sessions/:id/answer', async (c) => {
         z.object({ text: z.string().max(500) }),
         z.object({ tokens: z.array(z.string().max(60)).max(40) }),
         z.object({ pairs: z.array(z.tuple([z.string().max(40), z.string().max(40)])).max(12) }),
-        // Підписана спроба має йти перед транскриптом: zod відкидає зайві ключі, і {attempt} збігся б із {}.
-        z.object({ attempt: z.string().min(20).max(2000) }),
-        z.object({ transcript: z.string().max(300).optional(), skipped: z.boolean().optional() }),
+        // Пропуск або крок без перевірки (вимова вголос). Старі клієнти можуть слати {transcript}/{attempt}: зайві ключі відкидаються, відповідь = {}.
+        z.object({ skipped: z.boolean().optional() }),
       ]),
     })
     .parse(await body(c));
   return c.json(await answerItem(c.get('userId'), id, b.key, b.answer));
+});
+
+// «Сообщить об ошибке в задании»: урок, повторение, экзамен, входной тест (сессия + ключ) или миссия (slug + id шага).
+// Тексты задания и последний ответ игрока сервер берёт сам; жалобу разбирает админка («Ошибки в заданиях»).
+r.post('/exercise-reports', rateLimit(30, 60_000, 'exercise-report'), async (c) => {
+  const b = z
+    .object({
+      sessionId: z.string().max(64).optional(),
+      key: z.string().max(100).optional(),
+      mission: z.string().max(60).optional(),
+      step: z.string().max(80).optional(),
+      reason: z.enum(EXERCISE_REPORT_REASONS),
+      comment: z.string().max(EXERCISE_REPORT_COMMENT_MAX).optional(),
+    })
+    .refine((x) => (x.sessionId && x.key) || (x.mission && x.step), 'exercise reference required')
+    .parse(await body(c));
+  const ref = b.sessionId && b.key ? { sessionId: b.sessionId, key: b.key } : { mission: b.mission!, step: b.step! };
+  return c.json(await reportExercise(c.get('userId'), { ref, reason: b.reason, comment: b.comment }));
 });
 
 r.post('/sessions/:id/finish', async (c) => c.json(await finishSession(c.get('userId'), c.req.param('id'))));
@@ -55,16 +70,6 @@ r.post('/sessions/:id/finish', async (c) => c.json(await finishSession(c.get('us
 // ── Озвучка (серверний синтез pl-PL, кеш у D1) ──
 r.post('/journey/routes/:id/chest', async (c) => c.json(await openRouteChest(c.get('userId'), c.req.param('id'))));
 r.get('/tts/status', (c) => c.json(ttsStatus()));
-r.get('/speech/status', (c) => c.json(sttStatus()));
-r.post('/speech/transcribe', rateLimit(6, 60_000, 'speech'), async (c) => {
-  // Для уроку запис прив'язується до сесії й завдання: у відповідь — підписана спроба для /answer.
-  const bind = z.object({ session: z.string().max(64), item: z.string().max(100) }).partial().parse(query(c));
-  const userId = c.get('userId');
-  if (bind.session && bind.item) await assertSpeechItem(userId, bind.session, bind.item);
-  const result = await transcribeSpeech(await readSpeechBody(c.req.raw), { meter: () => consumeQuota(userId, 'stt') });
-  if (!bind.session || !bind.item) return c.json(result);
-  return c.json({ ...result, attempt: issueSpeechAttempt({ userId, sessionId: bind.session, key: bind.item, transcript: result.transcript }) });
-});
 // Старі клієнти (до /api/audio/<відбиток>/<id>.mp3): лише готовий файл бібліотеки. Синтезу тут немає — ні ElevenLabs,
 // ні іншого провайдера, ні кешу D1 (там можуть бути записи старого жіночого голосу); немає файлу — 404.
 r.get('/tts', rateLimit(120, 60_000, 'tts'), async (c) => {

@@ -68,8 +68,6 @@ describe('перевірка відповідей', () => {
     expect(matchText('część', ['Cześć']).match).toBe('wrong');
     expect(matchText('zle', ['źle']).match).toBe('diacritics');
     expect(matchText('żle', ['źle']).match).toBe('wrong');
-    const item: ExerciseItem = { key: 'negative', type: 'PRONUNCIATION', skill: 's', data: { text: 'Nie lubię herbaty z mlekiem', translation: { uk: '...' } } };
-    expect(checkAnswer(item, { transcript: 'Lubię herbaty z mlekiem' }).correct).toBe(false);
   });
 
   it('складання речення з альтернативами', () => {
@@ -109,12 +107,14 @@ describe('перевірка відповідей', () => {
     expect(checkAnswer(item, { step: 1, optionId: '3' })).toMatchObject({ correct: true, done: true });
   });
 
-  it('вимова — схожість розпізнаного тексту', () => {
+  it('вимова вголос не перевіряється: будь-яка відповідь — пропуск без зарахування й без помилки', () => {
     expect(similarity('dzien dobry', 'Dzień dobry')).toBe(1);
     const item: ExerciseItem = { key: 'p', type: 'PRONUNCIATION', skill: 's', data: { text: 'Dziękuję', translation: { uk: 'Дякую' } } };
-    expect(checkAnswer(item, { transcript: 'dziękuję' }).correct).toBe(true);
-    expect(checkAnswer(item, { transcript: 'proszę' }).correct).toBe(false);
-    expect(checkAnswer(item, { skipped: true })).toMatchObject({ skipped: true });
+    // Навіть «правильний» текст, надісланий старим клієнтом, не зараховується: розпізнавання мовлення прибрано.
+    for (const answer of [{ skipped: true }, { transcript: 'dziękuję' }, { transcript: 'proszę' }, {}] as never[]) {
+      expect(checkAnswer(item, answer)).toMatchObject({ correct: false, skipped: true, done: true });
+    }
+    expect(checkAnswer(item, { skipped: true })).not.toHaveProperty('similarity');
   });
 });
 
@@ -244,37 +244,6 @@ describe('spreadByType', () => {
       run = out[k].type === out[k - 1].type ? run + 1 : 1;
       expect(run).toBeLessThanOrEqual(3);
     }
-  });
-});
-
-import { alignSpeechWords } from '../src/text';
-
-describe('alignSpeechWords: розмітка розпізнаних слів', () => {
-  const marks = (t: string, h: string) => alignSpeechWords(t, h).words.map((x) => `${x.w}:${x.st}`).join(' ');
-  it('усі слова на місці — усі зелені, пунктуація й регістр не заважають', () => {
-    expect(marks('Dzień dobry!', 'dzień dobry')).toBe('Dzień:ok dobry!:ok');
-  });
-  it('переставлені слова не позначаються всі зеленими', () => {
-    const r = alignSpeechWords('dzień dobry', 'dobry dzień');
-    expect(r.words.filter((x) => x.st === 'ok')).toHaveLength(1);
-    expect(r.words.filter((x) => x.st === 'miss')).toHaveLength(1);
-    expect(r.extra).toHaveLength(1);
-  });
-  it('повтор у фразі зараховується лише стільки разів, скільки почуто', () => {
-    expect(marks('tak tak', 'tak')).toBe('tak:ok tak:miss');
-    const r = alignSpeechWords('tak', 'tak tak');
-    expect(r.words.map((x) => x.st)).toEqual(['ok']);
-    expect(r.extra).toEqual(['tak']);
-  });
-  it('без польських знаків — «near», інше слово — «miss»', () => {
-    expect(marks('Cześć, Ania', 'czesc ania')).toBe('Cześć,:near Ania:ok');
-    expect(marks('Poproszę kawę', 'poproszę herbatę')).toBe('Poproszę:ok kawę:miss');
-  });
-  it('пропущене слово в середині не зсуває решту', () => {
-    expect(marks('Mam na imię Ola', 'mam imię ola')).toBe('Mam:ok na:miss imię:ok Ola:ok');
-  });
-  it('порожнє розпізнавання — усі слова не розпізнані', () => {
-    expect(marks('Do widzenia', '')).toBe('Do:miss widzenia:miss');
   });
 });
 

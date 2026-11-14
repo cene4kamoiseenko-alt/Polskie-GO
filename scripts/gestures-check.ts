@@ -241,15 +241,15 @@ async function main() {
     // ── D. Свайп влево как «Далее» ───────────────────────────────────────────────────────────────────────────────────────────────────
     {
       const { page, context, swipe } = await open('/practice/FIVE_MIN');
-      await page.locator('[data-action="start"]:visible, [data-action="skip"]:visible, [data-grammar-choice]:visible, button.option:visible, [data-token]:visible, [data-pair]:visible, textarea:visible').first().waitFor({ timeout: 30_000 }).catch(async (e) => {
+      await page.locator('[data-action="start"]:visible, [data-action="skip"]:visible, [data-repeat]:visible, [data-grammar-choice]:visible, button.option:visible, [data-token]:visible, [data-pair]:visible, textarea:visible').first().waitFor({ timeout: 30_000 }).catch(async (e) => {
         await page.screenshot({ path: `${OUT}/no-exercise.png` });
         console.log('на экране:', (await text(page)).replace(/\s+/g, ' ').slice(0, 300), '| путь:', new URL(page.url()).pathname);
         throw e;
       });
       const start = page.locator('[data-action="start"]:visible');
       if (await start.count()) await start.click();
-      // Первое задание практики случайное: бывает и «Произношение» (микрофон, его пропускаем кнопкой), поэтому ждём любое действие.
-      await page.waitForFunction(() => document.querySelector('[data-grammar-choice], textarea, button.option, [data-token], [data-pair], [data-action="skip"]'), null, { timeout: 30_000 });
+      // Первое задание практики случайное: бывает и «Повтори вслух» (без проверки, отвечаем кнопкой), поэтому ждём любое задание
+      await page.waitForFunction(() => document.querySelector('[data-grammar-choice], textarea, button.option, [data-token], [data-pair], [data-action="skip"], [data-repeat]'), null, { timeout: 30_000 });
       let done = false;
       for (let tries = 0; tries < 8 && !done; tries++) {
         await page.waitForTimeout(1100);
@@ -273,7 +273,8 @@ async function main() {
           break;
         }
         // другое задание: отвечаем как получится и идём дальше кнопкой
-        if (await page.locator('[data-action="skip"]').count()) await page.locator('[data-action="skip"]').click();
+        if (await page.locator('[data-repeat]').count()) await checkBtn.click();
+        else if (await page.locator('[data-action="skip"]').count()) await page.locator('[data-action="skip"]').click();
         else if (await page.locator('textarea').count()) { await page.fill('textarea', 'zzz'); await checkBtn.click(); }
         else if (await page.locator('[data-token]').count()) { while (await page.locator('[data-token]').count()) await page.locator('[data-token]').first().click(); await checkBtn.click(); }
         else if (await page.locator('[data-pair="left"]').count()) {

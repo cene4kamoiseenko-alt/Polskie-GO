@@ -17,6 +17,7 @@ import type { MissionAnswer, MissionFinish, MissionLine, MissionRun, MissionStep
 import { Confetti, ErrorState, ScreenSkeleton, SpeakButton, cx, useBackButton } from '../components/ui';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { Icon } from '../components/Icon';
+import { ReportExercise, type ExerciseReportRef } from '../components/ReportExercise';
 import { MissionScene, hasBakedBobek } from '../components/MissionScene';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 
@@ -72,7 +73,7 @@ export default function MissionScreen() {
   );
 }
 
-function TopBar({ onClose, value, max }: { onClose: () => void; value: number; max: number }) {
+function TopBar({ onClose, value, max, report }: { onClose: () => void; value: number; max: number; report?: ExerciseReportRef }) {
   return (
     <div className="flex items-center gap-3 px-4 pb-2 pt-3">
       <button onClick={onClose} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elev shadow" aria-label="close">
@@ -85,6 +86,7 @@ function TopBar({ onClose, value, max }: { onClose: () => void; value: number; m
           </div>
         ))}
       </div>
+      {report && <ReportExercise target={report} />}
     </div>
   );
 }
@@ -287,7 +289,7 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
   const revealed = !!feedback?.ok;
   return (
     <div ref={swipeNext} className="flex min-h-screen flex-col pb-56" data-swipe-next={revealed ? 'ready' : undefined}>
-      <TopBar onClose={onClose} value={idx + (feedback?.ok ? 1 : 0)} max={steps.length} />
+      <TopBar onClose={onClose} value={idx + (feedback?.ok ? 1 : 0)} max={steps.length} report={{ mission: run.mission.slug, step: step.id }} />
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div key={step.id} className="flex flex-1 flex-col gap-4 px-4 pt-2" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.2 }}>
           <div className="flex items-start gap-2">

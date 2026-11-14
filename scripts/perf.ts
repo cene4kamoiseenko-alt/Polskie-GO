@@ -175,8 +175,9 @@ async function main() {
       } else {
         // Інший тип завдання — пропускаємо, якщо можна, інакше зупиняємось.
         const skip = page.getByRole('button', { name: /Не могу сейчас|Не можу|Продолжить без/ });
-        if (!(await skip.count())) break;
-        await skip.first().click();
+        if (await page.locator('[data-repeat]').count()) await page.locator('[data-action="check"]').click();
+        else if (await skip.count()) await skip.first().click();
+        else break;
         await page.waitForSelector('.feedback-panel', { timeout: 30_000 });
       }
       await page.getByRole('button', { name: 'Далее' }).click();

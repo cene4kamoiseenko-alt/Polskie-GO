@@ -63,7 +63,7 @@ export type Me = {
   rewards?: { exerciseXp: number };
   /** server — серверна польська озвучка доступна. */
   /** Озвучка — лише готові MP3 бібліотеки: base — /api/audio/<відбиток>/ (null — озвучки ще немає). */
-  audio?: { server: boolean; library?: boolean; provider?: string | null; voice?: string | null; fingerprint?: string | null; base?: string | null; generation?: string; recognition?: { server: boolean; provider?: string | null } };
+  audio?: { server: boolean; library?: boolean; provider?: string | null; voice?: string | null; fingerprint?: string | null; base?: string | null; generation?: string };
 };
 
 export type LessonState = 'locked' | 'available' | 'completed';

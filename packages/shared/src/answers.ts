@@ -12,7 +12,7 @@ import {
   type PronunciationData,
   type TextData,
 } from './types';
-import { matchText, normalize, similarity, sameSpeechPolarityAndNumbers } from './text';
+import { matchText, normalize } from './text';
 import { grammarOptions } from './grammarOptions';
 import { sentenceTiles } from './sentenceTiles';
 import { diagnoseOrder, orderVariants } from './orderVariants';
@@ -22,13 +22,9 @@ export type AnswerPayload =
   | { text: string }
   | { tokens: string[] }
   | { pairs: [string, string][] }
-  | { transcript?: string; skipped?: boolean }
-  /** Підписана сервером спроба вимови (серверний STT). Лише вона дає зарахування. */
-  | { attempt: string }
+  /** Крок без перевірки (вимова вголос): клієнт надсилає `{ skipped: true }`, сервер не нараховує XP і не фіксує помилку. */
+  | { skipped?: boolean }
   | { step: number; optionId: string };
-
-/** Поріг схожості для зарахування вимови (розпізнавання мовлення, не фонетична оцінка). */
-export const SPEECH_THRESHOLD = 0.75;
 
 export function shuffle<T>(arr: T[], rnd: () => number = Math.random): T[] {
   const a = arr.slice();
@@ -171,13 +167,8 @@ export function checkAnswer(item: ExerciseItem, payload: AnswerPayload): CheckRe
     return { correct: ok, done: true, correctAnswer: Object.fromEntries(expected) };
   }
 
-  if (t === 'PRONUNCIATION') {
-    const d = item.data as PronunciationData;
-    if (p.skipped === true) return { correct: false, skipped: true, done: true, correctAnswer: d.text };
-    const transcript = typeof p.transcript === 'string' ? p.transcript.slice(0, 300) : '';
-    const sim = similarity(transcript, d.text);
-    return { correct: !!transcript.trim() && sim >= SPEECH_THRESHOLD && sameSpeechPolarityAndNumbers(transcript, d.text), similarity: Math.round(sim * 100) / 100, done: true, correctAnswer: d.text };
-  }
+  // Перевірки мовлення в застосунку немає: крок «послухай і повтори вголос» — без оцінки, без XP і без помилки.
+  if (t === 'PRONUNCIATION') return { correct: false, skipped: true, done: true, correctAnswer: (item.data as PronunciationData).text };
 
   if (DIALOGUE_TYPES.includes(t)) {
     const d = item.data as DialogueData;

@@ -10,6 +10,7 @@ import Campaigns from './Campaigns';
 import { DailyQuiz } from './DailyQuiz';
 import { ResourceEdit, ResourceList } from './Content';
 import { Reports, Support } from './Inbox';
+import { ExerciseReports } from './ExerciseReports';
 import { Admins, Audit, Bot, ROLE_RU, Rewards } from './System';
 import { useFeedback } from './feedback';
 
@@ -1034,7 +1035,7 @@ function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [strin
 
 type NavItem = [to: string, label: string, icon: string];
 
-type Attention = { support: number; reports: number; errors: number };
+type Attention = { support: number; reports: number; errors: number; exerciseReports: number };
 
 /** Меню по разделам; что видно — зависит от роли (как и раньше: сервер всё равно проверяет права сам). */
 function navGroups(role: Admin['role']): [string, NavItem[]][] {
@@ -1044,7 +1045,7 @@ function navGroups(role: Admin['role']): [string, NavItem[]][] {
     groups.push(['Игроки', [['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
     groups.push(['Деньги', [['/payments', 'Платежи', '⭐'], ...(role === 'SUPERADMIN' ? ([['/r/plans', 'Тарифы', '👑']] as NavItem[]) : [])]]);
   }
-  if (role !== 'SUPPORT') groups.push(['Контент', [...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
+  if (role !== 'SUPPORT') groups.push(['Контент', [['/exercise-reports', 'Ошибки в заданиях', '🛠'], ...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
   if (role === 'SUPERADMIN') {
     groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠'], ['/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
     groups.push(['Система', [['/audit', 'Журнал действий', '📜'], ['/admins', 'Администраторы', '🔐']]]);
@@ -1059,6 +1060,7 @@ const NAV_COUNT: Record<string, [keyof Attention, string]> = {
   '/errors': ['errors', 'ошибок за сутки'],
   '/support': ['support', 'открытых обращений'],
   '/reports': ['reports', 'игроков с жалобами'],
+  '/exercise-reports': ['exerciseReports', 'заданий с жалобами'],
 };
 
 function Brand() {
@@ -1179,6 +1181,7 @@ export function App() {
             <Route path="/payments" element={<Money superadmin={admin.role === 'SUPERADMIN'} />} />
             <Route path="/support" element={<Support superadmin={admin.role === 'SUPERADMIN'} onChange={loadAttention} />} />
             <Route path="/reports" element={<Reports onChange={loadAttention} />} />
+            <Route path="/exercise-reports" element={<ExerciseReports onChange={loadAttention} />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/bot" element={<Bot />} />
             <Route path="/campaigns" element={<Campaigns />} />

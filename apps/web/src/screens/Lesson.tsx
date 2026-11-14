@@ -10,6 +10,7 @@ import { CityBanner } from '../components/Scenery';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { AnswerResult, FinishResult, SessionStart } from '../lib/types';
 import { prefetchSpeech, sfx, stopSpeech } from '../lib/audio';
+import { ReportExercise } from '../components/ReportExercise';
 import { haptic } from '../lib/telegram';
 import { useSwipe } from '../lib/swipe';
 import { Beaver } from '../components/Beaver';
@@ -354,6 +355,7 @@ export default function LessonScreen() {
           <Icon name="alert" size={16} />
           <span className="text-[13px] font-black leading-none">{mistakes}</span>
         </div>
+        <ReportExercise target={{ sessionId: session.sessionId, key: item.key }} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-48 pt-4">
@@ -391,15 +393,12 @@ export default function LessonScreen() {
                 return r;
               }}
               onDialogueDone={() => setDialogueDone(true)}
-              sessionId={session.sessionId}
             />
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Нижня панель: перевірка / зворотний зв'язок. Для вимови до відповіді панелі немає зовсім:
-          порожня смуга фону перекривала кнопку запису на вузьких екранах. */}
-      {(isDialogue || result || item.type !== 'PRONUNCIATION') && (
+      {/* Нижня панель: перевірка / зворотний зв'язок. */}
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto max-w-xl">
         <AnimatePresence>
           {result && !speed && (
@@ -420,7 +419,7 @@ export default function LessonScreen() {
                 </motion.span>
                 <div className="min-w-0 flex-1">
                   <div className={cx('text-xl font-black', result.correct ? 'text-brand' : result.skipped ? 'text-sky' : 'text-coral')}>
-                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.practice ? t(result.matched ? 'lesson_practice_match' : 'lesson_practice_miss') : result.skipped ? t('lesson_skipped_ok') : t('lesson_wrong')}
+                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? t(item.type === 'PRONUNCIATION' ? 'lesson_repeat_ok' : 'lesson_skipped_ok') : t('lesson_wrong')}
                     {result.correct && !result.retry && session.lesson && me?.rewards && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-xp-ink">
                         +{me.rewards.exerciseXp} XP
@@ -432,7 +431,7 @@ export default function LessonScreen() {
                       <span className="muted">{t('lesson_correct_answer')}</span> {caText}
                     </div>
                   )}
-                  {result.practice && <div className="mt-1 text-sm font-semibold">{t('lesson_practice_note')}</div>}
+                  {item.type === 'PRONUNCIATION' && <div className="mt-1 text-sm font-semibold">{t('lesson_repeat_note')}</div>}
                   {result.explanation && (
                     <div className="mt-1 text-sm font-semibold">
                       <RichText text={tr(result.explanation)} />
@@ -470,12 +469,11 @@ export default function LessonScreen() {
             )
           ) : (
             <button className="btn btn-primary w-full text-lg" data-action="check" disabled={!payload || checking} aria-busy={checking} onClick={() => check()}>
-              {checking ? <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[3px] border-white border-t-transparent" /> : t('lesson_check')}
+              {checking ? <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[3px] border-white border-t-transparent" /> : t(item.type === 'PRONUNCIATION' ? 'lesson_repeated' : 'lesson_check')}
             </button>
           )}
         </div>
       </div>
-      )}
       <QuitModal open={quit} onStay={() => setQuit(false)} onQuit={goBack} />
     </div>
   );

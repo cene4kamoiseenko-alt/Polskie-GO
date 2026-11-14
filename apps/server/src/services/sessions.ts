@@ -20,7 +20,6 @@ import { HttpError, badRequest, forbidden, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { getRewards } from './gameConfig';
 import { getJourney, journeyFrom, journeyReads, lessonStateIn, type JourneyCity } from './journey';
-import { readSpeechAttempt } from './speech-attempts';
 import { activeSubWhere } from './premium';
 import { applyQuestEvents, questReads, type QuestEvents } from './quests';
 import { ctxFrom, ctxReads, dayCandidates, grantItem, grantXp, grantZlotki, touchActivity } from './rewards';
@@ -30,9 +29,8 @@ import { GRAMMAR } from '../content/grammar';
 type Mode = (typeof learningSessions.$inferSelect)['mode'];
 type SessionRow = typeof learningSessions.$inferSelect;
 
-type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[]; practice?: boolean };
-/** speechNonces — використані підтверджені спроби вимови (кожну приймаємо один раз). */
-type SessionState = { answers: Record<string, ItemState>; run: number; speechNonces?: string[] };
+type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[] };
+type SessionState = { answers: Record<string, ItemState>; run: number };
 
 /** Детермінований порядок варіантів для сесії (той самий після продовження). */
 const sessionSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 17);
@@ -418,14 +416,6 @@ function reviewStmts(userId: string, itemType: 'WORD' | 'EXERCISE', itemId: stri
   return stmts;
 }
 
-/** Перед серверним розпізнаванням: сесія користувача активна, завдання існує, це вимова й воно ще не виконане. */
-export async function assertSpeechItem(userId: string, sessionId: string, key: string) {
-  const s = await loadSession(userId, sessionId);
-  const item = (s.items as ExerciseItem[]).find((i) => i.key === key);
-  if (!item || item.type !== 'PRONUNCIATION') throw badRequest('unknown_item');
-  if ((s.state as unknown as SessionState).answers[key]?.done) throw badRequest('already_answered');
-}
-
 export async function answerItem(userId: string, sessionId: string, key: string, answer: AnswerPayload) {
   // Усе для перевірки й запису — одним пакетом читань: сесія, контекст, навичка, розклад повторень і квести.
   const now = new Date();
@@ -454,29 +444,11 @@ export async function answerItem(userId: string, sessionId: string, key: string,
     if (step !== expected) throw badRequest('wrong_step');
   }
 
-  // Вимова: зараховується лише текст, який розпізнав сервер (підписана спроба). Транскрипт від клієнта
-  // не підтверджено — тренування без XP і без помилки (див. services/speech-attempts.ts).
-  let practice = false;
-  let verified = false;
-  if (item.type === 'PRONUNCIATION') {
-    const a = answer as { attempt?: string; transcript?: string; skipped?: boolean };
-    if (a.attempt) {
-      const att = readSpeechAttempt(a.attempt, { userId, sessionId: s.id, key });
-      if (!att || state.speechNonces?.includes(att.nonce)) throw badRequest('speech_attempt_invalid');
-      state.speechNonces = [...(state.speechNonces ?? []), att.nonce].slice(-100);
-      answer = { transcript: att.transcript };
-      verified = true;
-    } else if (!a.skipped) {
-      practice = true;
-    }
-  }
+  // Вимова: перевірки мовлення в застосунку немає — крок «послухай і повтори вголос» просто закривається, без XP і без помилки.
+  if (item.type === 'PRONUNCIATION') answer = { skipped: true };
 
   const checked: CheckResult = checkAnswer(item, answer);
-  const result: CheckResult = practice
-    ? { correct: false, skipped: true, practice: true, matched: checked.correct, similarity: checked.similarity, done: true, correctAnswer: checked.correctAnswer }
-    : verified
-      ? { ...checked, verified: true }
-      : checked;
+  const result: CheckResult = checked;
 
   if (isDialogue) {
     if (!result.correct) st.mistakes += 1;
@@ -488,7 +460,6 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   } else if (!retry) {
     st.done = true;
     st.skipped = result.skipped;
-    if (practice) st.practice = true;
     st.firstCorrect = result.skipped ? null : result.correct;
     if (!result.correct && !result.skipped) st.mistakes += 1;
   } else if (result.correct) {
@@ -504,7 +475,7 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   const firstDone = !retry && st.done;
   const stmts: Stmt[] = [saveSession(s, { state: state as unknown as Record<string, unknown> })];
 
-  // Пропущена вимова (немає мікрофона) не є помилкою і не потрапляє в статистику.
+  // Пропущений крок (вимова вголос не перевіряється, або гравець пропустив аудіювання) не є помилкою і не потрапляє в статистику.
   if (firstDone && !st.skipped) {
     const ok = !!st.firstCorrect;
     const events: QuestEvents = { PERFECT_STREAK: state.run };

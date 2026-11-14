@@ -284,9 +284,6 @@ export const ACHIEVEMENTS: AchievementSeed[] = [
   { slug: 'polski-ziomek', icon: 'speech', metric: 'LESSONS_DONE:opo-1-siema,opo-2-reakcje,opo-3-ogarniac', threshold: 3, zlotki: 40,
     title: t('Polski ziomek', 'Polski ziomek', 'Polski ziomek'),
     description: t('Пройти три уроки «Żywy polski» в Ополі: привітання, реакції та ogarniać.', 'Пройти три урока «Żywy polski» в Ополе: приветствия, реакции и ogarniać.', 'Finish the three Żywy polski lessons in Opole.') },
-  { slug: 'mistrz-wymowy', icon: 'headphones', metric: 'TYPE_OK:PRONUNCIATION', threshold: 15, zlotki: 50,
-    title: t('Mistrz wymowy', 'Mistrz wymowy', 'Mistrz wymowy'),
-    description: t('15 різних фраз, які телефон правильно розпізнав у завданнях на вимову (перевірка розпізнаваності, не фонетична оцінка).', '15 разных фраз, правильно распознанных телефоном в заданиях на произношение (проверка распознаваемости, не фонетическая оценка).', '15 different phrases correctly recognised in speaking tasks.') },
   // ── Пропуск місяця: усі місії сезону (content/seasons.ts; тег місії season-<slug>) ──
   { slug: 'sezon-listopad', icon: 'season-rogal', metric: 'MISSIONS_TAG:season-listopad-poznan', threshold: 3, zlotki: 150,
     title: t('Листопад у Познані', 'Ноябрь в Познани', 'November in Poznań'),

@@ -104,7 +104,7 @@ async function main() {
           }
           const checkBtn = page.locator('[data-action="check"]');
           const answered = () => page.locator('[data-action="next"]').waitFor({ timeout: 15_000 });
-          if (await page.locator('[data-action="skip"]').count()) { await page.locator('[data-action="skip"]').click(); await answered(); continue; }
+          if (await page.locator('[data-repeat]').count()) { await checkBtn.click(); await answered(); continue; }
           if (await page.locator('textarea').count()) { await page.fill('textarea', 'zzz'); await checkBtn.click(); await answered(); continue; }
           if (await page.locator('[data-token]').count()) {
             while (await page.locator('[data-token]').count()) await page.locator('[data-token]').first().click();
