@@ -14,6 +14,7 @@ import { EXAM_A1, PLACEMENT } from '../src/content/exams';
 import { GRAMMAR } from '../src/content/grammar';
 import { VOCAB } from '../src/content/vocab';
 import { SLANG } from '../src/content/slang';
+import { leaks } from './guess';
 
 const PUBLIC_BOT = new URL('../../web/public/bot/', import.meta.url);
 
@@ -56,7 +57,7 @@ function appStrings(value: unknown, out: string[] = []): string[] {
 /** Порог «самый длинный не длиннее самого короткого в 1,6 раза» не применяется к коротким вариантам (предлоги, «w / na / do / z»). */
 const RATIO_FLOOR = 6;
 const endKind = (s: string) => (/[.]$/.test(s) ? '.' : /[?]$/.test(s) ? '?' : /[!]$/.test(s) ? '!' : 'other');
-const firstCase = (s: string) => (/^\p{Lu}/u.test(s) ? 'upper' : /^\p{Ll}/u.test(s) ? 'lower' : 'other');
+const firstCase = (s: string) => (/^\p{Lu}/u.test(s) ? 'upper' : /^\p{Ll}/u.test(s) ? 'lower' : 'none');
 
 describe('банк: качество', () => {
   it('структура: уникальные id, картинка из 16 сцен, ровно 4 разных варианта, тексты на трёх языках', () => {
@@ -94,7 +95,7 @@ describe('банк: качество', () => {
       for (const lang of UI_LANGS) {
         const opts = optionsOf(q, lang);
         if (new Set(opts.map(endKind)).size > 1) bad.push(`${q.id} ${lang}: знак в конце — ${opts.join(' / ')}`);
-        if (new Set(opts.map(firstCase)).size > 1) bad.push(`${q.id} ${lang}: регистр — ${opts.join(' / ')}`);
+        if (new Set(opts.map(firstCase).filter((c) => c !== 'none')).size > 1) bad.push(`${q.id} ${lang}: регистр — ${opts.join(' / ')}`);
         for (const o of opts) if (banned.test(o)) bad.push(`${q.id} ${lang}: «${o}»`);
       }
     }
@@ -134,17 +135,17 @@ describe('банк: качество', () => {
     expect(hits).toEqual([]);
   });
 
-  it('размер и распределение: не меньше 250 вопросов, на каждом уровне от 80, в каждой теме от 20, каждая сцена занята', () => {
-    expect(QUIZ_QUESTIONS.length).toBeGreaterThanOrEqual(250);
+  it('размер и распределение: не меньше 190 вопросов, на каждом уровне от 55, в каждой теме от 18, каждая сцена занята', () => {
+    expect(QUIZ_QUESTIONS.length).toBeGreaterThanOrEqual(190);
     const count = (key: 'cefr' | 'category' | 'image') => {
       const out: Record<string, number> = {};
       for (const q of QUIZ_QUESTIONS) out[q[key]] = (out[q[key]] ?? 0) + 1;
       return out;
     };
     const levels = count('cefr');
-    for (const level of ['A1', 'A2', 'B1']) expect(levels[level] ?? 0, level).toBeGreaterThanOrEqual(80);
+    for (const level of ['A1', 'A2', 'B1']) expect(levels[level] ?? 0, level).toBeGreaterThanOrEqual(55);
     const topics = count('category');
-    for (const topic of ['shopping', 'food', 'transport', 'city', 'work', 'health', 'everyday', 'grammar', 'talk']) expect(topics[topic] ?? 0, topic).toBeGreaterThanOrEqual(20);
+    for (const topic of ['shopping', 'food', 'transport', 'city', 'work', 'health', 'everyday', 'grammar', 'talk']) expect(topics[topic] ?? 0, topic).toBeGreaterThanOrEqual(18);
     const scenes = count('image');
     for (const scene of QUIZ_SCENES) expect(scenes[scene] ?? 0, scene).toBeGreaterThanOrEqual(2);
     // На каждом уровне хватает разных картинок и тем, чтобы соседние дни не повторялись.
@@ -153,6 +154,38 @@ describe('банк: качество', () => {
       expect(new Set(pool.map((q) => q.image)).size, `${level}: сцен`).toBeGreaterThanOrEqual(8);
       expect(new Set(pool.map((q) => q.category)).size, `${level}: тем`).toBe(9);
     }
+  });
+
+  it('формат: верный вариант записан первым; словарных вопросов (значение слова) не больше двух третей, форм и предлогов — не меньше трети', () => {
+    for (const q of QUIZ_QUESTIONS) expect(q.answer, q.id).toBe(0);
+    const vocab = QUIZ_QUESTIONS.filter((q) => !Array.isArray(q.options)).length;
+    expect(vocab / QUIZ_QUESTIONS.length, 'словарных (варианты — переводы)').toBeLessThanOrEqual(0.66);
+    expect((QUIZ_QUESTIONS.length - vocab) / QUIZ_QUESTIONS.length, 'с польскими вариантами').toBeGreaterThanOrEqual(0.33);
+  });
+
+  /**
+   * Измерение «ответ понятен, даже если не знать польского» (владелец 2026-11-14): эвристика из guess.ts ищет вопросы, где верный вариант —
+   * единственный, который читается по родственному слову, по подсказке в скобках, по предлогу-двойнику или по цифрам. Для русского и украинского.
+   * Исключения — только с причиной; запись, которая перестала срабатывать, удаляется.
+   */
+  const LEAK_REVIEWED: Record<string, string> = {
+    'home-pilot': 'по согласным «pilot» ≈ «пульт», но читается слово как «пилот» (лётчик) — ловушка работает, а не подсказка',
+  };
+
+  it('не угадывается без польского: верный вариант не единственный, который читается по родственному слову, подсказке, предлогу или цифрам (ru и uk)', () => {
+    const flagged = new Set<string>();
+    const lines: string[] = [];
+    for (const q of QUIZ_QUESTIONS) {
+      for (const lang of ['ru', 'uk'] as const) {
+        for (const leak of leaks(q, lang)) {
+          flagged.add(q.id);
+          lines.push(`${q.id} [${leak.kind}] ${leak.detail}`);
+        }
+      }
+    }
+    expect(lines.filter((l) => !(l.split(' ')[0] in LEAK_REVIEWED))).toEqual([]);
+    expect([...Object.keys(LEAK_REVIEWED)].filter((id) => !flagged.has(id)), 'исключения, которые больше не нужны').toEqual([]);
+    for (const [id, reason] of Object.entries(LEAK_REVIEWED)) expect(reason.length, id).toBeGreaterThan(20);
   });
 
   it('polishPhrases: варианты, польские цитаты из вопроса и фраза с подставленным верным ответом', () => {

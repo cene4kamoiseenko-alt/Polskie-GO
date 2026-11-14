@@ -66,9 +66,6 @@ function cases(): Case[] {
     const q = QUIZ_QUESTIONS.find((x) => x.category === category)!;
     push(`/quiz ${category}`, (lang) => [lang === 'ru' ? PROD_QUIZ_RU[category] : null, quizImage(q, lang)]);
   }
-  const loyalty = QUIZ_QUESTIONS.find((x) => x.id === 'shop-loyalty')!;
-  // В production вопрос shop-loyalty шёл без картинки у uk/pl/en; Biedronka была только в неопубликованных коммитах.
-  push('/quiz shop-loyalty', (lang) => [lang === 'ru' ? PROD_QUIZ_RU.shopping : null, quizImage(loyalty, lang)]);
   return all;
 }
 

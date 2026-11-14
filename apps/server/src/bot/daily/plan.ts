@@ -15,7 +15,7 @@ import { dailyQuizPlan, dailyQuizQuestions } from '../../db/schema';
 import { badRequest } from '../../lib/errors';
 import { QUESTION_BY_ID, QUIZ_QUESTIONS, type QuizQuestion } from '../quiz/questions';
 import { isQuizScene, type QuizScene } from '../quiz/scenes';
-import { addDays, DAILY_LEVELS, PLAN_DAYS, type DailyLevel } from './state';
+import { addDays, DAILY_LEVELS, isDayEditable, PLAN_DAYS, readDailyRun, warsawDay, type DailyLevel } from './state';
 
 export type PlanRow = typeof dailyQuizPlan.$inferSelect;
 export type PlanHistory = { day: string; questionId: string; image: string };
@@ -68,10 +68,20 @@ export async function planRange(from: string, n: number): Promise<PlanRow[]> {
 
 /** Дописать недостающие (день, уровень) с `from` на `days` дней вперёд; существующие строки не трогает. */
 export async function ensurePlan(from: string, days = PLAN_DAYS): Promise<void> {
-  const rows = await db
+  const all = await db
     .select({ day: dailyQuizPlan.day, level: dailyQuizPlan.level, questionId: dailyQuizPlan.questionId, image: dailyQuizPlan.image })
     .from(dailyQuizPlan)
     .where(and(gte(dailyQuizPlan.day, addDays(from, -HISTORY_DAYS)), lt(dailyQuizPlan.day, addDays(from, days))));
+  // Банк вопросов меняется (вопросы заменяют и убирают): строка плана, где вопроса уже нет в банке или он другого уровня, пересобирается,
+  // иначе рассылка в этот день не нашла бы вопрос. Только дни, которые ещё можно менять: прошедшие и уже идущие остаются как были.
+  const today = warsawDay(new Date());
+  const run = await readDailyRun();
+  const broken = all.filter((r) => r.day >= from && isDayEditable(r.day, today, run) && QUESTION_BY_ID.get(r.questionId)?.cefr !== r.level);
+  for (let i = 0; i < broken.length; i += 50) {
+    const chunk = broken.slice(i, i + 50);
+    await db.batch(chunk.map((r) => db.delete(dailyQuizPlan).where(and(eq(dailyQuizPlan.day, r.day), eq(dailyQuizPlan.level, r.level)))) as [never, ...never[]]);
+  }
+  const rows = broken.length ? all.filter((r) => !broken.includes(r)) : all;
   const have = new Set(rows.map((r) => `${r.day}|${r.level}`));
   const missing = (day: string) => DAILY_LEVELS.some((l) => !have.has(`${day}|${l}`));
   if (!Array.from({ length: days }, (_, i) => addDays(from, i)).some(missing)) return;

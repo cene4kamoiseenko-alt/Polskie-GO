@@ -98,6 +98,29 @@ describe('план на 30 дней', () => {
     await setQuestionDisabled(victim.questionId, false, null, '2026-12-01');
   });
 
+  it('строки плана с вопросом, которого уже нет в банке, или с вопросом другого уровня пересобираются; прошедшие дни остаются как были', async () => {
+    await ensurePlan('2027-03-01', 6);
+    const where = (day: string, level: 'A1' | 'A2' | 'B1') => and(eq(dailyQuizPlan.day, day), eq(dailyQuizPlan.level, level));
+    const b1 = QUIZ_QUESTIONS.find((q) => q.cefr === 'B1')!;
+    // Банк заменили: у одной строки вопроса больше нет, у другой id остался, но теперь это вопрос другого уровня, третью правил админ.
+    await db.update(dailyQuizPlan).set({ questionId: 'removed-long-ago' }).where(where('2027-03-02', 'A1'));
+    await db.update(dailyQuizPlan).set({ questionId: b1.id }).where(where('2027-03-03', 'A2'));
+    await db.update(dailyQuizPlan).set({ questionId: 'removed-edited', editedBy: null }).where(where('2027-03-04', 'B1'));
+    const untouched = (await planRange('2027-03-05', 1)).map((r) => r.questionId);
+    // Прошлый день: отправка могла уже идти — строку не трогаем.
+    const yesterday = addDays(warsawDay(new Date()), -1);
+    await db.insert(dailyQuizPlan).values({ day: yesterday, level: 'A1', questionId: 'removed-in-the-past', image: 'lidl' }).onConflictDoNothing();
+    await ensurePlan(addDays(warsawDay(new Date()), -2), 4);
+    await ensurePlan('2027-03-01', 6);
+    const rows = await planRange('2027-03-01', 6);
+    expect(rows).toHaveLength(18);
+    for (const r of rows) expect(levelOf(r.questionId), `${r.day} ${r.level}`).toBe(r.level);
+    expect(rows.map((r) => r.questionId)).not.toContain('removed-long-ago');
+    expect(rows.map((r) => r.questionId)).not.toContain('removed-edited');
+    expect((await planRange('2027-03-05', 1)).map((r) => r.questionId)).toEqual(untouched);
+    expect((await planRange(yesterday, 1)).find((r) => r.level === 'A1')?.questionId).toBe('removed-in-the-past');
+  });
+
   it('замена вопроса и картинки: только вопрос того же уровня и картинка из 16 сцен; пропуск дня отмечает все уровни', async () => {
     const other = QUIZ_QUESTIONS.find((q) => q.cefr === 'B1')!;
     await expect(replacePlanItem('2026-12-10', 'A1', { questionId: other.id }, null)).rejects.toThrow('wrong_level');
@@ -500,6 +523,28 @@ describe('одно сообщение в день', () => {
     expect(toChats(calls, [gets.telegramId])).toEqual([]);
     expect(toChats(calls, [optedOut.telegramId])).toHaveLength(1);
     expect(await reminderLog(gets.user.id, '2027-02-01')).toMatchObject({ status: 'SKIPPED', error: 'daily_quiz' });
+  });
+
+  it('напоминание в 12:00 тем, кому придёт вопрос дня, не уходит: за день человек получает одно сообщение — вопрос в 18:00', async () => {
+    const day = '2027-02-08';
+    const gets = await login();
+    const optedOut = await login();
+    for (const u of [gets, optedOut]) await db.update(userSettings).set({ notificationsEnabled: true, reminderHour: 12, timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, u.user.id));
+    await db.insert(botQuizPlayers).values({ telegramId: optedOut.telegramId, pushEnabled: false });
+    await launch(day);
+    const calls = fakeTelegram();
+    // 12:05 по Варшаве (зимой UTC+1) — час напоминания этих людей.
+    await sendReminders(at(day, '11:05'));
+    expect(toChats(calls, [gets.telegramId])).toEqual([]);
+    expect(toChats(calls, [optedOut.telegramId])).toHaveLength(1);
+    expect(await reminderLog(gets.user.id, day)).toMatchObject({ status: 'SKIPPED', error: 'daily_quiz' });
+    // 18:00 — вопрос дня; повторный запуск напоминаний (в том же часу) ничего не добавляет: сообщение дня одно.
+    await runDay(day);
+    await sendReminders(at(day, '11:20'));
+    const mine = toChats(calls, [gets.telegramId]);
+    expect(mine).toHaveLength(1);
+    expect(mine[0].method).toBe('sendPhoto');
+    expect(mine[0].params.caption).toContain('Pytanie dnia');
   });
 
   it('в пропущенный день и при выключенной рассылке напоминания идут всем', async () => {

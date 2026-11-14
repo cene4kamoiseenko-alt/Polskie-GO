@@ -10,7 +10,7 @@ import { MISSION_BACKGROUND_BRIEF, MISSION_SCENE_ART, SCENE_ART_SMALL } from '@p
 import { QUESTION_SCENE_IMAGES, SCENE_ART_FULL as SCENE_ART } from '@polski-go/shared/src/sceneArtNotes';
 import { MISSIONS, MISSIONS_SOON } from '../src/content/missions';
 import { quizImage } from '../src/bot/quiz/engine';
-import { QUESTION_BY_ID } from '../src/bot/quiz/questions';
+import { QUESTION_BY_ID, QUIZ_QUESTIONS } from '../src/bot/quiz/questions';
 import { pngSize, webpSize } from './image-size';
 
 const scenes = new URL('../../web/src/assets/scenes/', import.meta.url);
@@ -96,9 +96,9 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     expect(QUESTION_SCENE_IMAGES).toEqual({});
     expect(existsSync(new URL('scenes/stores/', botPublic)), 'scenes/stores/ снята с публикации').toBe(false);
     // Картинка вопроса — его сцена, одна на все языки (вопрос дня); вырезок магазинов среди них нет.
-    for (const lang of ['ru', 'uk', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('shop-loyalty')!, lang)).toBe('quiz/lidl.jpg');
-    // Кадр InPost выдал бы ответ «в постамате»: вопрос о посылке идёт с кадром квартиры.
-    expect(quizImage(QUESTION_BY_ID.get('home-paczkomat')!)).toBe('quiz/mieszkanie.jpg');
+    for (const lang of ['ru', 'uk', 'en'] as const) expect(quizImage(QUESTION_BY_ID.get('shop-bag')!, lang)).toBe('quiz/lidl.jpg');
+    // У каждого вопроса банка — одна из 16 полноразмерных сцен (`quiz/<сцена>.jpg`); других кадров, в том числе InPost, среди них нет.
+    for (const q of QUIZ_QUESTIONS) expect(quizImage(q), q.id).toBe(`quiz/${q.image}.jpg`);
   });
 
   it('для каждой из 47 миссий (14 + 6 сцен Premium + 27 миссий пропуска месяца) описан фон без Бобека и действие игрока', () => {

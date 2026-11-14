@@ -5,11 +5,6 @@
  * Качество (4 варианта одной формы, длины, «не из приложения», картинка, длина подписи) проверяет apps/server/test/quiz-bank.test.ts.
  */
 import type { UiLang } from '@polski-go/shared';
-import { A1_NEW } from './bank/a1';
-import { A1_NEW_B } from './bank/a1b';
-import { A2_NEW } from './bank/a2';
-import { B1_NEW } from './bank/b1';
-import { B1_NEW_B } from './bank/b1b';
 import { CITY } from './bank/city';
 import { EVERYDAY } from './bank/everyday';
 import { FOOD } from './bank/food';
@@ -35,7 +30,7 @@ export const CATEGORY_NAMES: Record<QuizCategory, L4> = {
   talk: { ru: 'Общение', uk: 'Спілкування', en: 'Small talk' },
 };
 
-export const QUIZ_QUESTIONS: QuizQuestion[] = [...SHOPPING, ...FOOD, ...TRANSPORT, ...CITY, ...WORK, ...HEALTH, ...EVERYDAY, ...GRAMMAR_Q, ...TALK, ...A1_NEW, ...A1_NEW_B, ...A2_NEW, ...B1_NEW, ...B1_NEW_B];
+export const QUIZ_QUESTIONS: QuizQuestion[] = [...SHOPPING, ...FOOD, ...TRANSPORT, ...CITY, ...WORK, ...HEALTH, ...EVERYDAY, ...GRAMMAR_Q, ...TALK];
 
 /** Вопрос по идентификатору (для ответа на отправленный раньше вопрос). */
 export const QUESTION_BY_ID = new Map(QUIZ_QUESTIONS.map((x) => [x.id, x]));
