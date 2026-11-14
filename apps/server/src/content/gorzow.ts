@@ -45,6 +45,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Tak, bardzo zimno i wieje wiatr.', t('Так, дуже холодно й дме вітер.', 'Да, очень холодно и дует ветер.', 'Yes, very cold and windy.')],
                   ['Tak, bardzo zimny i wieje wiatr.', t('(«zimny» — прикметник про предмет; про погоду — **zimno**)', '(«zimny» — прилагательное о предмете; о погоде — **zimno**)', '(«zimny» describes a thing; for weather say **zimno**)')],
+                  ['Tak, bardzo zimno i wieje wiatra.', t('(**wiać** — підмет у називному: wieje **wiatr**)', '(**wiać** — подлежащее в именительном: wieje **wiatr**)', '(**wieje** takes a nominative subject: **wiatr**)')],
                 ],
                 feedback: t('Про погоду — прислівник: **zimno**.', 'О погоде — наречие: **zimno**.', 'For weather use the adverb: **zimno**.'),
               },
@@ -54,6 +55,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['To wezmę parasol. Dziękuję!', t('Тоді візьму парасолю. Дякую!', 'Тогда возьму зонт. Спасибо!', 'Then I’ll take an umbrella. Thanks!')],
                   ['To wezmę okulary przeciwsłoneczne. Dziękuję!', t('(«będzie padać» — буде дощ; сонцезахисні окуляри не допоможуть)', '(«będzie padać» — будет дождь; солнцезащитные очки не помогут)', '(«będzie padać» means rain is coming)')],
+                  ['To wezmę parasol. Nie dziękuję!', t('(**Dziękuję!** — згода й подяка; **Nie dziękuję** — «ні, дякую», відмова, яка не пасує до «wezmę parasol»)', '(**Dziękuję!** — согласие и благодарность; **Nie dziękuję** — «нет, спасибо», отказ, который не вяжется с «wezmę parasol»)', '(**Dziękuję!** thanks; **Nie dziękuję** means “no, thank you”, which clashes with “wezmę parasol”)')],
                 ],
                 feedback: t('**Będzie padać** — буде дощ: потрібна парасоля.', '**Będzie padać** — будет дождь: нужен зонт.', '**Będzie padać** — it will rain.'),
               },
@@ -108,6 +110,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Lubię jesień, bo jest kolorowa.', t('Люблю осінь, бо вона барвиста.', 'Люблю осень, потому что она красочная.', 'I like autumn because it’s colourful.')],
                   ['Lubię jesienią, bo jest kolorowa.', t('(«jesienią» — «восени», коли?; що люблю? — **jesień**)', '(«jesienią» — «осенью», когда?; что люблю? — **jesień**)', '(«jesienią» = in autumn; what do I like? — **jesień**)')],
+                  ['Lubię jesieni, bo jest kolorowa.', t('(**lubić** + знахідний: **jesień**, а не родовий)', '(**lubić** + винительный: **jesień**, а не родительный)', '(**lubić** takes the accusative: **jesień**, not the genitive)')],
                 ],
                 feedback: t('Lubić + знахідний: lubię **jesień**.', 'Lubić + винительный: lubię **jesień**.', 'Lubić + accusative: **jesień**.'),
               },
@@ -117,6 +120,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Ja też! Latem jest gorąco i długo jasno.', t('Я теж! Влітку спекотно й довго світло.', 'Я тоже! Летом жарко и долго светло.', 'Me too! In summer it’s hot and light till late.')],
                   ['Ja też! W lato jest gorąco i długo jasno.', t('(«w lato» — помилка; кажуть **latem** або «w lecie»)', '(«w lato» — ошибка; говорят **latem** или «w lecie»)', '(«w lato» is wrong: **latem** or «w lecie»)')],
+                  ['Ja też! Latem jest gorąco i długo ciemno.', t('(літом **довго світло**, а не «ciemno» — «темно»)', '(летом **долго светло**, а не «ciemno» — «темно»)', '(in summer it stays light long, not “ciemno” (dark))')],
                 ],
                 feedback: t('Коли? — **latem** (орудний) або «w lecie».', 'Когда? — **latem** (творительный) или «w lecie».', 'When? — **latem** or «w lecie».'),
               },
@@ -178,6 +182,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Tak, jutro będzie padać cały dzień.', t('Так, завтра цілий день буде дощ.', 'Да, завтра весь день будет дождь.', 'Yes, it’ll rain all day tomorrow.')],
                   ['Tak, jutro będzie pada cały dzień.', t('(після **będzie** — інфінітив: będzie **padać**)', '(после **będzie** — инфинитив: będzie **padać**)', '(after **będzie** use the infinitive: **padać**)')],
+                  ['Tak, jutro padało cały dzień.', t('(**jutro** — майбутнє: **będzie padać**; **padało** — минуле)', '(**jutro** — будущее: **będzie padać**; **padało** — прошедшее)', '(**jutro** is future: **będzie padać**; **padało** is past)')],
                 ],
                 feedback: t('**będzie + інфінітив**: będzie **padać**.', '**będzie + инфинитив**: będzie **padać**.', '**będzie + infinitive**.'),
               },
@@ -187,6 +192,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Około pięciu stopni.', t('Близько п’яти градусів.', 'Около пяти градусов.', 'About five degrees.')],
                   ['Około pięć stopni.', t('(після **około** — родовий: około **pięciu**)', '(после **około** — родительный: około **pięciu**)', '(**około** + genitive: **pięciu**)')],
+                  ['Około pięcioma stopni.', t('(після **około** — родовий: **około pięciu**, а не орудний)', '(после **około** — родительный: **około pięciu**, а не творительный)', '(after **około** use the genitive: **około pięciu**, not the instrumental)')],
                 ],
                 feedback: t('**około** + родовий: около **pięciu** stopni.', '**około** + родительный: około **pięciu** stopni.', '**około** + genitive: **pięciu** stopni.'),
               },
@@ -241,6 +247,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Dzięki! Wezmę czapkę i rękawiczki.', t('Дякую! Візьму шапку й рукавички.', 'Спасибо! Возьму шапку и перчатки.', 'Thanks! I’ll take a hat and gloves.')],
                   ['Dzięki! Wezmę czapka i rękawiczki.', t('(візьму що? — знахідний: **czapkę**)', '(возьму что? — винительный: **czapkę**)', '(accusative: **czapkę**)')],
+                  ['Dzięki! Wezmę czapkę i rękawiczek.', t('(**wezmę** + знахідний множини: **rękawiczki**, а не родовий)', '(**wezmę** + винительный множественного: **rękawiczki**, а не родительный)', '(**wezmę** takes the accusative plural: **rękawiczki**, not the genitive)')],
                 ],
                 feedback: t('Wezmę (co?) — **czapkę**.', 'Wezmę (что?) — **czapkę**.', 'Wezmę + accusative: **czapkę**.'),
               },
@@ -250,6 +257,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Dobrze, wezmę. Dzięki!', t('Добре, візьму. Дякую!', 'Хорошо, возьму. Спасибо!', 'OK, I will. Thanks!')],
                   ['Dobrze, weź. Dzięki!', t('(«weź» — наказ іншому; про себе — **wezmę**)', '(«weź» — приказ другому; о себе — **wezmę**)', '(«weź» is an order to someone else; about yourself: **wezmę**)')],
+                  ['Dobrze, wezmę. Nie dzięki!', t('(**Nie dzięki** — «ні, дякую»: відмова не пасує до «wezmę»)', '(**Nie dzięki** — «нет, спасибо»: отказ не вяжется с «wezmę»)', '(**Nie dzięki** means “no, thanks”, which clashes with “wezmę”)')],
                 ],
                 feedback: t('Про себе — **wezmę** (я візьму).', 'О себе — **wezmę** (я возьму).', 'About yourself — **wezmę**.'),
               },
@@ -260,7 +268,7 @@ export const GORZOW: CityContent = {
               ['ubierz się', t('одягнися', 'оденься', 'get dressed')],
               ['nie zapomnij', t('не забудь', 'не забудь', 'don’t forget')],
             ]),
-            fillGap('grammar.imperative', 'Jeśli będzie padać, ___ parasol.', ['weź', 'wziąć', 'wziąłem'], t('Якщо буде дощ, візьми парасолю.', 'Если будет дождь, возьми зонт.', 'If it rains, take an umbrella.'),
+            fillGap('grammar.imperative', 'Jeśli będzie padać, ___ parasol.', ['weź', 'weźmy', 'wziąć'], t('Якщо буде дощ, візьми парасолю.', 'Если будет дождь, возьми зонт.', 'If it rains, take an umbrella.'),
               t('Порада іншому — наказовий спосіб: **weź**.', 'Совет другому — повелительное наклонение: **weź**.', 'Advice to someone: imperative **weź**.')),
             pictureChoice('vocab.clothes', 'parasol', [['☂️', t('парасоля', 'зонт', 'umbrella')], ['🧥', t('куртка', 'куртка', 'jacket')], ['🎒', t('рюкзак', 'рюкзак', 'backpack')], ['👓', t('окуляри', 'очки', 'glasses')]]),
             grammar('grammar.imperative', 'Jest zimno. ___ czapkę!', 'założyć', ['Załóż', 'załóż'], t('Холодно. Надінь шапку!', 'Холодно. Надень шапку!', 'It’s cold. Put on a hat!'),
@@ -312,6 +320,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Jadę nad morze!', t('Їду на море!', 'Еду на море!', 'I’m going to the seaside!')],
                   ['Jadę na morze!', t('(«na morze» — у відкрите море, на кораблі; до моря — **nad morze**)', '(«na morze» — в открытое море, на корабле; к морю — **nad morze**)', '(«na morze» = out to sea; the seaside is **nad morze**)')],
+                  ['Jadę do morze!', t('(**do** + родовий: **do morza**; «nad morze» — до берега моря)', '(**do** + родительный: **do morza**; «nad morze» — к берегу моря)', '(**do** takes the genitive: **do morza**; “nad morze” is “to the seaside”)')],
                 ],
                 feedback: t('До моря, озера, річки — **nad**: jadę **nad morze**.', 'К морю, озеру, реке — **nad**: jadę **nad morze**.', 'To the seaside: **nad morze**.'),
               },
@@ -321,6 +330,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Super, w lesie jest teraz pięknie.', t('Супер, у лісі зараз гарно.', 'Супер, в лесу сейчас красиво.', 'Great, the forest is beautiful now.')],
                   ['Super, w lasie jest teraz pięknie.', t('(місцевий від «las» — **w lesie**: а → е)', '(предложный от «las» — **w lesie**: а → е)', '(locative of «las» is **w lesie**)')],
+                  ['Super, w lesu jest teraz pięknie.', t('(місцевий від «las» — **w lesie**, а не «lesu»)', '(предложный от «las» — **w lesie**, а не «lesu»)', '(the locative of “las” is **w lesie**, not “lesu”)')],
                 ],
                 feedback: t('las → **w lesie** (як «у лісі»).', 'las → **w lesie** (как «в лесу»).', 'las → **w lesie**.'),
               },
@@ -376,6 +386,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Tak, dużo cieplej! Wczoraj było zimniej.', t('Так, набагато тепліше! Учора було холодніше.', 'Да, намного теплее! Вчера было холоднее.', 'Yes, much warmer! It was colder yesterday.')],
                   ['Tak, dużo cieplejszy! Wczoraj było zimniej.', t('(про погоду — прислівник **cieplej**; «cieplejszy» — про предмет)', '(о погоде — наречие **cieplej**; «cieplejszy» — о предмете)', '(for weather use **cieplej**; «cieplejszy» describes a thing)')],
+                  ['Tak, dużo ciepło! Wczoraj było zimniej.', t('(порівняння — **cieplej**; «ciepło» — звичайна форма)', '(сравнение — **cieplej**; «ciepło» — обычная форма)', '(a comparison needs **cieplej**; “ciepło” is the plain form)')],
                 ],
                 feedback: t('Погода — **cieplej**, річ — **cieplejszy** sweter.', 'Погода — **cieplej**, вещь — **cieplejszy** sweter.', 'Weather: **cieplej**; a thing: **cieplejszy**.'),
               },
@@ -385,6 +396,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Nad Wartą jest ładniej, bo jest długi bulwar.', t('Над Вартою гарніше, бо там довгий бульвар.', 'У Варты красивее, потому что там длинный бульвар.', 'By the Warta, because there’s a long boulevard.')],
                   ['Nad Wartą jest bardziej ładnie, bo jest długi bulwar.', t('(від **ładnie** — **ładniej**; «bardziej» — для довгих слів)', '(от **ładnie** — **ładniej**; «bardziej» — для длинных слов)', '(**ładnie** → **ładniej**; «bardziej» is for long words)')],
+                  ['Nad Wartą jest ładniejsza, bo jest długi bulwar.', t('(про «jest» без іменника — прислівник **ładniej**; «ładniejsza» — про жіночий іменник)', '(при «jest» без существительного — наречие **ładniej**; «ładniejsza» — о женском существительном)', '(with an impersonal “jest” use the adverb **ładniej**; “ładniejsza” goes with a feminine noun)')],
                 ],
                 feedback: t('ładnie → **ładniej**.', 'ładnie → **ładniej**.', 'ładnie → **ładniej**.'),
               },
@@ -448,6 +460,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Chętnie! Pojadę z wami.', t('Залюбки! Поїду з вами.', 'С удовольствием! Поеду с вами.', 'Gladly! I’ll come with you.')],
                   ['Chętnie! Pojadę z wy.', t('(після **z** — орудний: **z wami**)', '(после **z** — творительный: **z wami**)', '(after **z** use the instrumental: **z wami**)')],
+                  ['Chętnie! Pojadę z wasze.', t('(після **z** — орудний: **z wami**)', '(после **z** — творительный: **z wami**)', '(after **z** use the instrumental: **z wami**)')],
                 ],
                 feedback: t('**z wami** — з вами.', '**z wami** — с вами.', '**z wami** — with you.'),
               },
@@ -458,6 +471,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Nie mam, ale wypożyczę rower miejski.', t('Немає, але візьму міський напрокат.', 'Нет, но возьму городской напрокат.', 'No, but I’ll rent a city bike.')],
                   ['Nie mam, ale pożyczę rower miejski.', t('(міський велосипед беруть напрокат — **wypożyczyć**; «pożyczyć» — у знайомих)', '(городской велосипед берут напрокат — **wypożyczyć**; «pożyczyć» — у знакомых)', '(a city bike is rented: **wypożyczyć**)')],
+                  ['Nie mam, ale wypożyczę rowerem miejskim.', t('(**wypożyczyć** + знахідний: **rower miejski**, а не орудний)', '(**wypożyczyć** + винительный: **rower miejski**, а не творительный)', '(**wypożyczyć** takes the accusative: **rower miejski**, not the instrumental)')],
                 ],
                 feedback: t('**Wypożyczyć** — напрокат за гроші; **pożyczyć** — позичити в когось.', '**Wypożyczyć** — напрокат за деньги; **pożyczyć** — одолжить у кого-то.', '**Wypożyczyć** = rent; **pożyczyć** = borrow.'),
               },
@@ -511,6 +525,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Dziękuję! Gdzie wyrzucić butelkę po winie?', t('Дякую! Куди викинути пляшку з-під вина?', 'Спасибо! Куда выбросить бутылку из-под вина?', 'Thank you! Where does a wine bottle go?')],
                   ['Dziękuję! Gdzie wyrzucić butelka po winie?', t('(викинути що? — знахідний: **butelkę**)', '(выбросить что? — винительный: **butelkę**)', '(accusative: **butelkę**)')],
+                  ['Dziękuję! Gdzie wyrzucić butelkę po wino?', t('(**po** + місцевий: butelka po **winie**)', '(**po** + предложный: butelka po **winie**)', '(**po** + locative: butelka po **winie**)')],
                 ],
                 feedback: t('wyrzucić (co?) — **butelkę**.', 'wyrzucić (что?) — **butelkę**.', 'wyrzucić + accusative: **butelkę**.'),
               },
@@ -521,6 +536,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Do niebieskiego, bo to papier.', t('У синій, бо це папір.', 'В синий, потому что это бумага.', 'In the blue one, because it’s paper.')],
                   ['Do niebieski, bo to papier.', t('(після **do** — родовий: **do niebieskiego**)', '(после **do** — родительный: **do niebieskiego**)', '(after **do**: **niebieskiego**)')],
+                  ['Do niebieskiego, bo to szkło.', t('(газети — це **папір**, тому в синій: «bo to papier»; «szkło» — скло)', '(газеты — это **бумага**, поэтому в синий: «bo to papier»; «szkło» — стекло)', '(newspapers are **paper**, so the blue bin: “bo to papier”; “szkło” means glass)')],
                 ],
                 feedback: t('**do** + родовий: do **niebieskiego** (pojemnika).', '**do** + родительный: do **niebieskiego** (pojemnika).', '**do** + genitive: **niebieskiego**.'),
               },
@@ -580,6 +596,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Tak, w końcu świeci słońce!', t('Так, нарешті світить сонце!', 'Да, наконец светит солнце!', 'Yes, the sun is finally shining!')],
                   ['Tak, w końcu pada słońce!', t('(сонце не «падає»: **świeci** słońce)', '(солнце не «падает»: **świeci** słońce)', '(the sun **świeci**, it doesn’t “fall”)')],
+                  ['Tak, w końcu świeci księżyc!', t('(вдень — **słońce**; **księżyc** світить уночі)', '(днём — **słońce**; **księżyc** светит ночью)', '(by day it is **słońce**; **księżyc** (moon) shines at night)')],
                 ],
                 feedback: t('**Świeci słońce** — світить сонце.', '**Świeci słońce** — светит солнце.', '**Świeci słońce**.'),
               },
@@ -589,6 +606,7 @@ export const GORZOW: CityContent = {
                 choose: [
                   ['Tak, jadę z przyjaciółmi nad jezioro.', t('Так, їду з друзями на озеро.', 'Да, еду с друзьями на озеро.', 'Yes, I’m going to the lake with friends.')],
                   ['Tak, jadę z przyjaciółmi na jezioro.', t('(«na jezioro» — на саме озеро, на човні чи лід; на берег — **nad jezioro**)', '(«na jezioro» — на само озеро, на лодке или лёд; на берег — **nad jezioro**)', '(to the lakeside: **nad jezioro**)')],
+                  ['Tak, jadę z przyjaciółmi nad jeziorem.', t('(їдуть **до** озера — **nad jezioro**; **nad jeziorem** — «біля озера», де вже перебуваєш)', '(едут **к** озеру — **nad jezioro**; **nad jeziorem** — «у озера», где уже находишься)', '(you travel **to** the lake — **nad jezioro**; **nad jeziorem** means you are already there)')],
                 ],
                 feedback: t('До озера на берег — **nad jezioro**.', 'К озеру на берег — **nad jezioro**.', 'To the lakeside: **nad jezioro**.'),
               },

@@ -54,7 +54,10 @@ describe('Правки завдань і текстів уроків (TASK_EDITS
     // Свіжий seed уже вставив нові версії.
     expect(await applyEdits(env.DB)).toBe(0);
 
-    const [a, b] = TASK_EDITS;
+    // Берём правки заданий с единственной правкой: у задания с цепочкой (первая → вторая) повторное применение даёт сразу две замены.
+    const perTask = new Map<string, number>();
+    for (const e of TASK_EDITS) perTask.set(exerciseKey(e.lesson, e.n), (perTask.get(exerciseKey(e.lesson, e.n)) ?? 0) + 1);
+    const [a, b] = TASK_EDITS.filter((e) => perTask.get(exerciseKey(e.lesson, e.n)) === 1);
     const idA = exerciseKey(a.lesson, a.n);
     const idB = exerciseKey(b.lesson, b.n);
     expect(idA).not.toBe(idB);

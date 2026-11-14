@@ -45,6 +45,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Naprawdę? Sto lat!', t('Справді? Сто років!', 'Правда? Сто лет!', 'Really? Happy birthday!')],
                   ['Naprawdę? Gratuluję urodzin!', t('(«gratuluję» — за досягнення; на день народження — «Sto lat!», «Wszystkiego najlepszego!»)', '(«gratuluję» — за достижение; на день рождения — «Sto lat!», «Wszystkiego najlepszego!»)', '(«gratuluję» is for achievements; on a birthday say «Sto lat!»)')],
+                  ['Naprawdę? Wszystkiego najlepszego z okazji imienin!', t('(у нього **urodziny**, а не **imieniny**; побажання: **Wszystkiego najlepszego!**)', '(у него **urodziny**, а не **imieniny**; пожелание: **Wszystkiego najlepszego!**)', '(it is his **urodziny** (birthday), not **imieniny** (name day))')],
                 ],
                 feedback: t('На день народження: **Sto lat!** або **Wszystkiego najlepszego!**', 'На день рождения: **Sto lat!** или **Wszystkiego najlepszego!**', 'On a birthday: **Sto lat!** or **Wszystkiego najlepszego!**'),
               },
@@ -54,6 +55,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Jasne, chętnie przyjdę!', t('Звісно, охоче прийду!', 'Конечно, с удовольствием приду!', 'Sure, I’d love to come!')],
                   ['Jasne, chętnie przyjść!', t('(це інфінітив; «я прийду» — **przyjdę**)', '(это инфинитив; «я приду» — **przyjdę**)', '(that’s the infinitive; “I’ll come” is **przyjdę**)')],
+                  ['Jasne, chętnie przyszedłem!', t('(вечірка ввечері — майбутнє: **przyjdę**, а не минуле **przyszedłem**)', '(вечеринка вечером — будущее: **przyjdę**, а не прошедшее **przyszedłem**)', '(the party is this evening — future: **przyjdę**, not the past **przyszedłem**)')],
                 ],
                 feedback: t('Про себе в майбутньому: **przyjdę** — я прийду.', 'О себе в будущем: **przyjdę** — я приду.', 'About yourself in the future: **przyjdę** — I’ll come.'),
               },
@@ -108,6 +110,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Kupmy jej kwiaty i tort.', t('Купімо їй квіти й торт.', 'Давай купим ей цветы и торт.', 'Let’s buy her flowers and a cake.')],
                   ['Kupmy ją kwiaty i tort.', t('(«ją» — «її», кого?; кому? — **jej**)', '(«ją» — «её», кого?; кому? — **jej**)', '(«ją» answers “whom?”; “to whom?” is **jej**)')],
+                  ['Kupmy jemu kwiaty i tort.', t('(Kasia — «вона»: **jej**; «jemu» — «йому»)', '(Kasia — «она»: **jej**; «jemu» — «ему»)', '(Kasia is “she”: **jej**; “jemu” means “to him”)')],
                 ],
                 feedback: t('Кому? — **jej** (їй).', 'Кому? — **jej** (ей).', 'To whom? — **jej** (to her).'),
               },
@@ -117,6 +120,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Ja kupię. Ty kup kwiaty.', t('Я куплю. А ти купи квіти.', 'Я куплю. А ты купи цветы.', 'I will. You get the flowers.')],
                   ['Ja kupić. Ty kup kwiaty.', t('(це інфінітив; «я куплю» — **kupię**)', '(это инфинитив; «я куплю» — **kupię**)', '(that’s the infinitive; “I’ll buy” is **kupię**)')],
+                  ['Ja kupisz. Ty kup kwiaty.', t('(**ja** + **kupię**; **kupisz** — «ти купиш»)', '(**ja** + **kupię**; **kupisz** — «ты купишь»)', '(**ja** goes with **kupię**; **kupisz** means “you will buy”)')],
                 ],
                 feedback: t('Я куплю — **kupię**.', 'Я куплю — **kupię**.', 'I’ll buy — **kupię**.'),
               },
@@ -180,6 +184,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Bardzo dobrze! Byłem u rodziny w Krakowie.', t('Дуже добре! Я був у родини в Кракові.', 'Очень хорошо! Я был у родных в Кракове.', 'Very good! I was with family in Kraków.')],
                   ['Bardzo dobrze! Jestem u rodziny w Krakowie.', t('(це теперішній час, а питають про минулі свята)', '(это настоящее время, а спрашивают о прошедших праздниках)', '(that’s the present tense; she asks about the past)')],
+                  ['Bardzo dobrze! Będę u rodziny w Krakowie.', t('(спитали про свята, що минули: **byłem**, а не майбутнє **będę**)', '(спросили о прошедших праздниках: **byłem**, а не будущее **będę**)', '(the question is about the holidays that are over: **byłem**, not the future **będę**)')],
                 ],
                 feedback: t('Про минуле — **byłem / byłam**.', 'О прошлом — **byłem / byłam**.', 'About the past — **byłem / byłam**.'),
               },
@@ -189,6 +194,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Barszcz z uszkami, karpia i pierogi.', t('Борщ з вушками, коропа й вареники.', 'Борщ с ушками, карпа и вареники.', 'Beetroot soup with dumplings, carp and pierogi.')],
                   ['Barszcz z uszkami, karp i pierogi.', t('(їли кого? — **karpia**: короп — жива істота)', '(ели кого? — **karpia**: карп — живое существо)', '(carp is animate: **karpia**)')],
+                  ['Barszcz z uszkami, karpiem i pierogi.', t('(**jeść** + знахідний: **karpia**, а не орудний)', '(**jeść** + винительный: **karpia**, а не творительный)', '(**jeść** takes the accusative: **karpia**, not the instrumental)')],
                 ],
                 feedback: t('Jeść (kogo? co?) — **karpia**, як «бачу кота».', 'Jeść (kogo? co?) — **karpia**, как «вижу кота».', 'Jeść + accusative; animate karp → **karpia**.'),
               },
@@ -243,6 +249,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Będę na imprezie u Kacpra.', t('Буду на вечірці в Кацпера.', 'Буду на вечеринке у Кацпера.', 'I’ll be at Kacper’s party.')],
                   ['Byłem na imprezie u Kacpra.', t('(це минуле, а питають про плани)', '(это прошлое, а спрашивают о планах)', '(that’s the past; she asks about plans)')],
+                  ['Będę na imprezę u Kacpra.', t('(де? — **na** + місцевий: na **imprezie**)', '(где? — **na** + предложный: na **imprezie**)', '(where? — **na** + locative: na **imprezie**)')],
                 ],
                 feedback: t('Плани — майбутній час: **będę** na imprezie.', 'Планы — будущее время: **będę** na imprezie.', 'Plans — future: **będę**.'),
               },
@@ -252,6 +259,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Będziemy oglądać fajerwerki na rynku.', t('Будемо дивитися феєрверки на ринку.', 'Будем смотреть фейерверки на площади.', 'We’ll watch the fireworks in the square.')],
                   ['Będziemy oglądamy fajerwerki na rynku.', t('(після **będziemy** — інфінітив: oglądać)', '(после **będziemy** — инфинитив: oglądać)', '(after **będziemy** use the infinitive)')],
+                  ['Będziemy oglądać fajerwerków na rynku.', t('(**oglądać** + знахідний: **fajerwerki**, а не родовий)', '(**oglądać** + винительный: **fajerwerki**, а не родительный)', '(**oglądać** takes the accusative: **fajerwerki**, not the genitive)')],
                 ],
                 feedback: t('**będziemy + інфінітив**: będziemy **oglądać**.', '**będziemy + инфинитив**: będziemy **oglądać**.', '**będziemy + infinitive**.'),
               },
@@ -317,6 +325,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Chętnie! Co trzeba włożyć do koszyczka?', t('Охоче! Що треба покласти в кошик?', 'С удовольствием! Что нужно положить в корзинку?', 'Gladly! What do I need to put in the basket?')],
                   ['Chętnie! Co trzeba włożyć do koszyczek?', t('(після **do** — родовий: do **koszyczka**)', '(после **do** — родительный: do **koszyczka**)', '(after **do** use the genitive: do **koszyczka**)')],
+                  ['Chętnie! Co trzeba włożyć w koszyczku?', t('(куди покласти? — **do** + родовий: do **koszyczka**; **w koszyczku** — «у кошику», де лежить)', '(куда положить? — **do** + родительный: do **koszyczka**; **w koszyczku** — «в корзинке», где лежит)', '(put where to? — **do** + genitive: do **koszyczka**; **w koszyczku** means “inside the basket”)')],
                 ],
                 feedback: t('Куди? — **do** + родовий: do **koszyczka**.', 'Куда? — **do** + родительный: do **koszyczka**.', '**do** + genitive: do **koszyczka**.'),
               },
@@ -327,6 +336,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Tak, mam pięć pisanek.', t('Так, у мене п’ять писанок.', 'Да, у меня пять расписных яиц.', 'Yes, I have five painted eggs.')],
                   ['Tak, mam pięć pisanki.', t('(після «pięć» — родовий множини: **pięć pisanek**)', '(после «pięć» — родительный множественного: **pięć pisanek**)', '(after «pięć» use the genitive plural: **pisanek**)')],
+                  ['Tak, mam pięć pisankami.', t('(після «pięć» — родовий множини: **pięć pisanek**)', '(после «pięć» — родительный множественного: **pięć pisanek**)', '(after “pięć” use the genitive plural: **pięć pisanek**)')],
                 ],
                 feedback: t('Після **pięć** і більше — родовий множини: pisanka → **pięć pisanek**.', 'После **pięć** и больше — родительный множественного: pisanka → **pięć pisanek**.', 'After five and more: genitive plural **pisanek**.'),
               },
@@ -380,6 +390,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Tak, to święto, nie pracuję.', t('Так, це свято, я не працюю.', 'Да, это праздник, я не работаю.', 'Yes, it’s a holiday, I’m not working.')],
                   ['Tak, to święto, nie pracuje.', t('(«pracuje» — він працює; я — **pracuję**)', '(«pracuje» — он работает; я — **pracuję**)', '(«pracuje» = he works; I = **pracuję**)')],
+                  ['Nie, to święto, nie pracuję.', t('(**Nie** — «ні, не вихідний», а далі «не працюю» — суперечність; відповідь — **Tak**)', '(**Nie** — «нет, не выходной», а дальше «не работаю» — противоречие; ответ — **Tak**)', '(**Nie** says “no day off”, yet you then say you are not working — the answer is **Tak**)')],
                 ],
                 feedback: t('Я — **nie pracuję** (з -ę).', 'Я — **nie pracuję** (с -ę).', 'I — **nie pracuję**.'),
               },
@@ -389,6 +400,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Dobrze, pójdę do sklepu dziś wieczorem.', t('Добре, піду в магазин сьогодні ввечері.', 'Хорошо, пойду в магазин сегодня вечером.', 'OK, I’ll go to the shop this evening.')],
                   ['Dobrze, pójdę do sklepu jutro rano.', t('(завтра магазини зачинені — купи сьогодні)', '(завтра магазины закрыты — купи сегодня)', '(the shops are closed tomorrow)')],
+                  ['Dobrze, pójdę do sklepu wczoraj wieczorem.', t('(**wczoraj** — минуле; «pójdę» — майбутнє: **dziś wieczorem**)', '(**wczoraj** — прошлое; «pójdę» — будущее: **dziś wieczorem**)', '(**wczoraj** is yesterday; “pójdę” is future: **dziś wieczorem**)')],
                 ],
                 feedback: t('«Jutro sklepy będą zamknięte» — «Завтра магазини будуть зачинені».', '«Jutro sklepy będą zamknięte» — «Завтра магазины будут закрыты».', '“The shops will be closed tomorrow.”'),
               },
@@ -453,6 +465,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Nie, jeszcze nie byłem.', t('Ні, ще не був.', 'Нет, ещё не был.', 'No, not yet.')],
                   ['Nie, nigdy byłem.', t('(після **nigdy** потрібне **nie**: nigdy **nie** byłem)', '(после **nigdy** нужно **nie**: nigdy **nie** byłem)', '(after **nigdy** you need **nie**)')],
+                  ['Tak, jeszcze nie byłem.', t('(**Tak** — «так, був», а далі «jeszcze nie byłem» — суперечність; відповідь — **Nie**)', '(**Tak** — «да, был», а дальше «jeszcze nie byłem» — противоречие; ответ — **Nie**)', '(**Tak** means “yes, I have”, but “jeszcze nie byłem” means “not yet” — the answer is **Nie**)')],
                 ],
                 feedback: t('**Jeszcze nie byłem** або **nigdy nie byłem** — з «nie».', '**Jeszcze nie byłem** или **nigdy nie byłem** — с «nie».', 'With «nie»: **jeszcze nie byłem / nigdy nie byłem**.'),
               },
@@ -462,6 +475,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Super, chętnie pójdę!', t('Супер, охоче піду!', 'Супер, с удовольствием пойду!', 'Great, I’d love to!')],
                   ['Super, chętnie poszedłem!', t('(це минуле; про суботу — **pójdę**)', '(это прошлое; про субботу — **pójdę**)', '(that’s the past; for Saturday say **pójdę**)')],
+                  ['Super, niestety nie pójdę!', t('(**Super** — радість, а «niestety nie pójdę» — відмова; запрошення приймають: **chętnie pójdę**)', '(**Super** — радость, а «niestety nie pójdę» — отказ; приглашение принимают: **chętnie pójdę**)', '(**Super** is enthusiasm, but “niestety nie pójdę” is a refusal; to accept say **chętnie pójdę**)')],
                 ],
                 feedback: t('Субота попереду: **pójdę** — піду.', 'Суббота впереди: **pójdę** — пойду.', 'Saturday is ahead: **pójdę**.'),
               },
@@ -515,6 +529,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Kochana Babciu!', t('Люба бабусю!', 'Дорогая бабушка!', 'Dear Grandma!')],
                   ['Kochana Babcia!', t('(звертання — кличний відмінок: babcia → **Babciu**)', '(обращение — звательный падеж: babcia → **Babciu**)', '(address someone in the vocative: **Babciu**)')],
+                  ['Szanowna Babciu!', t('(**Szanowna** — офіційно, для листа в установу; бабусі — **Kochana**)', '(**Szanowna** — официально, для письма в учреждение; бабушке — **Kochana**)', '(**Szanowna** is formal, for an official letter; to a grandmother — **Kochana**)')],
                 ],
                 feedback: t('Звертаємось кличним: babcia → **Babciu**.', 'Обращаемся звательным: babcia → **Babciu**.', 'Vocative: **Babciu**.'),
               },
@@ -524,6 +539,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Całuję mocno, Bobek.', t('Міцно цілую, Бобек.', 'Крепко целую, Бобек.', 'Lots of love, Bobek.')],
                   ['Z poważaniem, Bobek.', t('(«Z poważaniem» — офіційно, як у листі до установи; бабусі — **Całuję** / **Ściskam**)', '(«Z poważaniem» — официально, как в письме в учреждение; бабушке — **Całuję** / **Ściskam**)', '(«Z poważaniem» is formal; for Grandma use **Całuję** / **Ściskam**)')],
+                  ['Do widzenia, Bobek.', t('(**Do widzenia** — усне прощання; у листівці бабусі — **Całuję** / **Ściskam**)', '(**Do widzenia** — устное прощание; в открытке бабушке — **Całuję** / **Ściskam**)', '(**Do widzenia** is a spoken farewell; on a card to a grandmother — **Całuję** / **Ściskam**)')],
                 ],
                 feedback: t('Близьким — **Całuję / Ściskam**, офіційно — **Z poważaniem**.', 'Близким — **Całuję / Ściskam**, официально — **Z poważaniem**.', 'Family: **Całuję / Ściskam**; formal: **Z poważaniem**.'),
               },
@@ -584,6 +600,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Tak! Bardzo ci dziękuję!', t('Так! Щиро тобі дякую!', 'Да! Большое тебе спасибо!', 'Yes! Thank you so much!')],
                   ['Tak! Nie ma za co!', t('(«Nie ma za co» — відповідь на «дякую»; на побажання кажуть «Dziękuję!»)', '(«Nie ma za co» — ответ на «спасибо»; на пожелание говорят «Dziękuję!»)', '(«Nie ma za co» answers “thank you”; to wishes say «Dziękuję!»)')],
+                  ['Tak! Bardzo ci dziękuje!', t('(**dziękuję** — 1-а особа; **dziękuje** — «він дякує»)', '(**dziękuję** — 1-е лицо; **dziękuje** — «он благодарит»)', '(**dziękuję** is 1st person; **dziękuje** means “he thanks”)')],
                 ],
                 feedback: t('На побажання відповідають: **Dziękuję!**', 'На пожелание отвечают: **Dziękuję!**', 'Answer wishes with **Dziękuję!**'),
               },
@@ -593,6 +610,7 @@ export const ZIELONA_GORA: CityContent = {
                 choose: [
                   ['Jeszcze nie. Pójdziemy razem?', t('Ще ні. Підемо разом?', 'Ещё нет. Пойдём вместе?', 'Not yet. Shall we go together?')],
                   ['Już nie. Pójdziemy razem?', t('(«już nie» — «вже ні, більше ні»; «ще ні» — **jeszcze nie**)', '(«już nie» — «уже нет, больше нет»; «ещё нет» — **jeszcze nie**)', '(«już nie» = no longer; “not yet” = **jeszcze nie**)')],
+                  ['Jeszcze nie. Poszliśmy razem?', t('(пропонуєш піти — майбутнє: **pójdziemy**; **poszliśmy** — минуле)', '(предлагаешь пойти — будущее: **pójdziemy**; **poszliśmy** — прошедшее)', '(you are suggesting going — future: **pójdziemy**; **poszliśmy** is past)')],
                 ],
                 feedback: t('«Ще ні» — **jeszcze nie**.', '«Ещё нет» — **jeszcze nie**.', '“Not yet” — **jeszcze nie**.'),
               },

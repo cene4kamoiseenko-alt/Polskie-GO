@@ -82,10 +82,10 @@ export const LODZ: CityContent = {
           exercises: [
             dialogue('dialogue.sounds', KASIA, [
               { npc: 'Cześć! Masz czas?', tr: t('Привіт! Маєш час?', 'Привет! Есть время?', 'Hi! Do you have time?'),
-                choose: [['Nie, idę do szkoły.', t('Ні, іду до школи.', 'Нет, иду в школу.', 'No, I\'m going to school.')], ['Nie, idę do szkoła.', t('Ні, іду до школи. (з помилкою)', 'Нет, иду в школу. (с ошибкой)', 'No, I\'m going to school. (a mistake)')]],
+                choose: [['Nie, idę do szkoły.', t('Ні, іду до школи.', 'Нет, иду в школу.', 'No, I\'m going to school.')], ['Nie, idę do szkoła.', t('Ні, іду до школи. (з помилкою)', 'Нет, иду в школу. (с ошибкой)', 'No, I\'m going to school. (a mistake)')], ['Nie, idę w szkole.', t('(куди? — **do** + родовий: **do szkoły**; **w szkole** — «у школі», де)', '(куда? — **do** + родительный: **do szkoły**; **w szkole** — «в школе», где)', '(where to? — **do** + genitive: **do szkoły**; **w szkole** means “at school”)')]],
                 feedback: t('Після **do** — родовий відмінок: szkoła → **do szkoły**.', 'После **do** — родительный падеж: szkoła → **do szkoły**.', 'After **do** use the genitive: szkoła → **do szkoły**.') },
               { npc: 'Szkoda! To zadzwoń wieczorem.', tr: t('Шкода! Тоді подзвони ввечері.', 'Жаль! Тогда позвони вечером.', 'Pity! Call in the evening then.'),
-                choose: [['Dobrze, zadzwonię!', t('Добре, подзвоню!', 'Хорошо, позвоню!', 'OK, I\'ll call!')], ['Dobrze, dzwonię!', t('Добре, дзвоню! (зараз)', 'Хорошо, звоню! (сейчас)', 'OK, I\'m calling! (now)')]],
+                choose: [['Dobrze, zadzwonię!', t('Добре, подзвоню!', 'Хорошо, позвоню!', 'OK, I\'ll call!')], ['Dobrze, dzwonię!', t('Добре, дзвоню! (зараз)', 'Хорошо, звоню! (сейчас)', 'OK, I\'m calling! (now)')], ['Dobrze, zadzwoniłem!', t('(подзвонити треба ввечері — майбутнє: **zadzwonię**; **zadzwoniłem** — «подзвонив»)', '(позвонить нужно вечером — будущее: **zadzwonię**; **zadzwoniłem** — «позвонил»)', '(the call is for the evening — future: **zadzwonię**; **zadzwoniłem** means “I called”)')]],
                 feedback: t('Просять подзвонити ввечері — відповідь у майбутньому: **zadzwonię** (подзвоню). **Dzwonię** — дзвоню зараз.', 'Просят позвонить вечером — ответ в будущем: **zadzwonię** (позвоню). **Dzwonię** — звоню сейчас.', 'She asks you to call tonight — answer in the future: **zadzwonię** (I\'ll call). **Dzwonię** means "I\'m calling now".') },
             ]),
             match('pronunciation.digraphs', [
@@ -137,10 +137,10 @@ export const LODZ: CityContent = {
           exercises: [
             dialogue('dialogue.zawody', MAREK, [
               { npc: 'Dzień dobry! Pan jest nowym sąsiadem?', tr: t('Добрий день! Ви новий сусід?', 'Добрый день! Вы новый сосед?', 'Hello! Are you the new neighbour?'),
-                choose: [['Tak, dzień dobry. Jestem Bobek.', t('Так, добрий день. Я Бобек.', 'Да, добрый день. Я Бобек.', 'Yes, hello. I\'m Bobek.')], ['Tak, jest Bobek.', t('(помилка у формі дієслова)', '(ошибка в форме глагола)', '(wrong verb form)')]],
+                choose: [['Tak, dzień dobry. Jestem Bobek.', t('Так, добрий день. Я Бобек.', 'Да, добрый день. Я Бобек.', 'Yes, hello. I\'m Bobek.')], ['Tak, jest Bobek.', t('(помилка у формі дієслова)', '(ошибка в форме глагола)', '(wrong verb form)')], ['Tak, dzień dobry. Jesteś Bobek.', t('(про себе — **jestem**; **jesteś** — «ти є»)', '(о себе — **jestem**; **jesteś** — «ты есть»)', '(about yourself — **jestem**; **jesteś** means “you are”)')]],
                 feedback: t('Про себе — **jestem**.', 'О себе — **jestem**.', 'About yourself — **jestem**.') },
               { npc: 'Miło mi. Czym się pan zajmuje?', tr: t('Приємно. Чим ви займаєтеся?', 'Приятно. Чем вы занимаетесь?', 'Nice to meet you. What do you do?'),
-                choose: [['Jestem programistą.', t('Я програміст.', 'Я программист.', 'I\'m a programmer.')], ['Jestem programista.', t('(після być потрібен орудний відмінок)', '(после być нужен творительный падеж)', '(być needs the instrumental)')]],
+                choose: [['Jestem programistą.', t('Я програміст.', 'Я программист.', 'I\'m a programmer.')], ['Jestem programista.', t('(після być потрібен орудний відмінок)', '(после być нужен творительный падеж)', '(być needs the instrumental)')], ['Jestem programistką.', t('(Бобек — чоловік: **programistą**; **programistką** — жінка-програмістка)', '(Бобек — мужчина: **programistą**; **programistką** — женщина-программист)', '(Bobek is a man: **programistą**; **programistką** is a woman programmer)')]],
                 feedback: t('Після **jestem** — narzędnik: programista → **programistą**.', 'После **jestem** — narzędnik: programista → **programistą**.', 'After **jestem** — instrumental: **programistą**.') },
               { npc: 'A ja jestem kierowcą autobusu.', tr: t('А я водій автобуса.', 'А я водитель автобуса.', 'And I\'m a bus driver.') },
             ]),
@@ -263,10 +263,10 @@ export const LODZ: CityContent = {
           exercises: [
             dialogue('situation.boss', KASIA, [
               { npc: 'Hej! To są moi znajomi: Ola i Piotr.', tr: t('Гей! Це мої знайомі: Оля і Пйотр.', 'Привет! Это мои знакомые: Оля и Пётр.', 'Hey! These are my friends Ola and Piotr.'),
-                choose: [['Miło mi! Oni są z Łodzi?', t('Приємно! Вони з Лодзі?', 'Приятно! Они из Лодзи?', 'Nice to meet you! Are they from Łódź?')], ['Miło mi! One są z Łodzi?', t('(у групі є чоловік)', '(в группе есть мужчина)', '(a man is in the group)')]],
+                choose: [['Miło mi! Oni są z Łodzi?', t('Приємно! Вони з Лодзі?', 'Приятно! Они из Лодзи?', 'Nice to meet you! Are they from Łódź?')], ['Miło mi! One są z Łodzi?', t('(у групі є чоловік)', '(в группе есть мужчина)', '(a man is in the group)')], ['Miło mi! On jest z Łodzi?', t('(двоє людей: **oni są**; **on jest** — «він є»)', '(двое людей: **oni są**; **on jest** — «он есть»)', '(two people: **oni są**; **on jest** means “he is”)')]],
                 feedback: t('Ola i Piotr — **oni**.', 'Ola i Piotr — **oni**.', 'Ola and Piotr — **oni**.') },
               { npc: 'Tak! Piotr jest lekarzem, a Ola jest studentką. A ty?', tr: t('Так! Пйотр лікар, а Оля студентка. А ти?', 'Да! Пётр врач, а Оля студентка. А ты?', 'Yes! Piotr is a doctor and Ola is a student. And you?'),
-                choose: [['Jestem programistą.', t('Я програміст.', 'Я программист.', 'I\'m a programmer.')], ['Jestem programista.', t('(потрібен орудний відмінок)', '(нужен творительный)', '(instrumental needed)')]],
+                choose: [['Jestem programistą.', t('Я програміст.', 'Я программист.', 'I\'m a programmer.')], ['Jestem programista.', t('(потрібен орудний відмінок)', '(нужен творительный)', '(instrumental needed)')], ['Jesteś programistą.', t('(про себе — **jestem**; **jesteś** — «ти»)', '(о себе — **jestem**; **jesteś** — «ты»)', '(about yourself — **jestem**; **jesteś** means “you are”)')]],
                 feedback: t('Після **jestem** — **programistą**.', 'После **jestem** — **programistą**.', 'After **jestem** — **programistą**.') },
             ], { situation: true, scene: t('Вечір на вулиці Пйотрковській', 'Вечер на улице Пётрковской', 'Evening on Piotrkowska Street') }),
             listen('pronunciation.boss', 'rzeka', ['rzeka', 'reka', 'rżeka']),

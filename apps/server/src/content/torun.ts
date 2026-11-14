@@ -47,6 +47,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['W sobotę będę sprzątać, a w niedzielę odpocznę.', t('У суботу прибиратиму, а в неділю відпочину.', 'В субботу буду убираться, а в воскресенье отдохну.', 'On Saturday I’ll be cleaning, and on Sunday I’ll rest.')],
                   ['W sobotę będę sprzątam, a w niedzielę odpocznę.', t('(після **będę** — інфінітив: **sprzątać**)', '(после **będę** — инфинитив: **sprzątać**)', '(after **będę** — infinitive: **sprzątać**)')],
+                  ['W sobotę sprzątałem, a w niedzielę odpocząłem.', t('(минулий час, а питання про майбутнє: **będę sprzątać**, **odpocznę**)', '(прошедшее время, а вопрос о будущем: **będę sprzątać**, **odpocznę**)', '(past tense, but the question is about the future: **będę sprzątać**, **odpocznę**)')],
                 ],
                 feedback: t('**będę** + інфінітив: będę sprzątać.', '**będę** + инфинитив: będę sprzątać.', '**będę** + infinitive.'),
               },
@@ -56,6 +57,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['W przyszłym tygodniu będę pracować z domu.', t('Наступного тижня я працюватиму з дому.', 'На следующей неделе я буду работать из дома.', 'Next week I’ll be working from home.')],
                   ['W przyszły tydzień będę pracować z domu.', t('(коли? — місцевий: **w przyszłym tygodniu**)', '(когда? — предложный: **w przyszłym tygodniu**)', '(when? — locative: **w przyszłym tygodniu**)')],
+                  ['W przyszłym tygodniu będziecie pracować z domu.', t('(**będziecie** — «ви будете»; про себе: **będę**)', '(**będziecie** — «вы будете»; о себе: **będę**)', '(**będziecie** means “you (plural) will”; about yourself: **będę**)')],
                 ],
                 feedback: t('**w przyszłym tygodniu**, **w przyszłym roku**.', '**w przyszłym tygodniu**, **w przyszłym roku**.', '**w przyszłym tygodniu** (locative).'),
               },
@@ -110,6 +112,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Tak, zrobię go po obiedzie.', t('Так, я зроблю його після обіду.', 'Да, я сделаю его после обеда.', 'Yes, I’ll do it after lunch.')],
                   ['Tak, będę zrobić go po obiedzie.', t('(доконаний — без będę: **zrobię**)', '(совершенный — без będę: **zrobię**)', '(perfective — no będę: **zrobię**)')],
+                  ['Tak, zrobisz go po obiedzie.', t('(**zrobisz** — «ти зробиш»; про себе: **zrobię**)', '(**zrobisz** — «ты сделаешь»; о себе: **zrobię**)', '(**zrobisz** means “you will do”; about yourself: **zrobię**)')],
                 ],
                 feedback: t('Результат — **zrobię**; процес — **będę robić**.', 'Результат — **zrobię**; процесс — **będę robić**.', 'Result — **zrobię**; process — **będę robić**.'),
               },
@@ -119,6 +122,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Jutro podejmę decyzję.', t('Завтра я ухвалю рішення.', 'Завтра я приму решение.', 'I’ll make a decision tomorrow.')],
                   ['Jutro zrobię decyzję.', t('(рішення ухвалюють: **podjąć decyzję**)', '(решение принимают: **podjąć decyzję**)', '(you **take** a decision: **podjąć decyzję**)')],
+                  ['Jutro podjąłem decyzję.', t('(**jutro** — майбутнє: **podejmę**, а не минуле **podjąłem**)', '(**jutro** — будущее: **podejmę**, а не прошедшее **podjąłem**)', '(**jutro** is future: **podejmę**, not the past **podjąłem**)')],
                 ],
                 feedback: t('**podjąć decyzję** — ухвалити рішення.', '**podjąć decyzję** — принять решение.', '**podjąć decyzję** — make a decision.'),
               },
@@ -181,6 +185,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Zamierzam skończyć kurs i znaleźć lepszą pracę.', t('Я маю намір закінчити курс і знайти кращу роботу.', 'Я собираюсь окончить курс и найти работу получше.', 'I intend to finish the course and find a better job.')],
                   ['Zamierzam skończę kurs i znajdę lepszą pracę.', t('(після **zamierzam** — інфінітив)', '(после **zamierzam** — инфинитив)', '(after **zamierzam** — infinitive)')],
+                  ['Skończyłem kurs i znalazłem lepszą pracę.', t('(це вже зроблено; про плани — **zamierzam** + інфінітив)', '(это уже сделано; о планах — **zamierzam** + инфинитив)', '(that is already done; for plans use **zamierzam** + infinitive)')],
                 ],
                 feedback: t('**zamierzam** + інфінітив: skończyć, znaleźć.', '**zamierzam** + инфинитив: skończyć, znaleźć.', '**zamierzam** + infinitive.'),
               },
@@ -190,6 +195,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Marzę o własnej firmie.', t('Я мрію про власну фірму.', 'Я мечтаю о собственной фирме.', 'I dream of my own company.')],
                   ['Marzę o własna firma.', t('(**o** + місцевий: o własnej firmie)', '(**o** + предложный: o własnej firmie)', '(**o** + locative)')],
+                  ['Pracuję w dużej firmie.', t('(це про теперішню роботу, а спитали про мрію: **marzyć o** + місцевий)', '(это про нынешнюю работу, а спросили о мечте: **marzyć o** + предложный)', '(that is about your current job, but the question is about a dream: **marzyć o** + locative)')],
                 ],
                 feedback: t('**marzyć o** + місцевий.', '**marzyć o** + предложный.', '**marzyć o** + locative.'),
               },
@@ -244,6 +250,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Chciałbym awansować i zostać kierownikiem.', t('Я хотів би отримати підвищення й стати керівником.', 'Я хотел бы получить повышение и стать руководителем.', 'I’d like to be promoted and become a manager.')],
                   ['Chciałbym awansować i zostać kierownik.', t('(**zostać** + орудний: kierownikiem)', '(**zostać** + творительный: kierownikiem)', '(**zostać** + instrumental)')],
+                  ['Pracuję tu od trzech lat jako asystent.', t('(це про минуле й теперішнє, а спитали про майбутнє: **chciałbym** + інфінітив)', '(это о прошлом и настоящем, а спросили о будущем: **chciałbym** + инфинитив)', '(that is about the past and present, but the question is about the future: **chciałbym** + infinitive)')],
                 ],
                 feedback: t('**zostać** + орудний: kierownikiem.', '**zostać** + творительный: kierownikiem.', '**zostać** + instrumental.'),
               },
@@ -253,6 +260,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Zdaję go w czerwcu i mam nadzieję, że zdam.', t('Я складаю його в червні й сподіваюся, що складу.', 'Я сдаю его в июне и надеюсь, что сдам.', 'I’m taking it in June and hope I’ll pass.')],
                   ['Zdam go w czerwcu i mam nadzieję, że zdaję.', t('(процес — **zdaję**, результат — **zdam**)', '(процесс — **zdaję**, результат — **zdam**)', '(process — **zdaję**; result — **zdam**)')],
+                  ['Zdałem go w czerwcu i mam nadzieję, że zdam.', t('(**zdałem** — уже склав, тоді «сподіваюся, що складу» не має сенсу; запланований іспит — **zdaję**)', '(**zdałem** — уже сдал, тогда «надеюсь, что сдам» не имеет смысла; запланированный экзамен — **zdaję**)', '(**zdałem** — already passed, so “I hope I will pass” makes no sense; a scheduled exam — **zdaję**)')],
                 ],
                 feedback: t('**zdawać** — складати, **zdać** — скласти успішно.', '**zdawać** — сдавать, **zdać** — сдать успешно.', '**zdawać** — sit; **zdać** — pass.'),
               },
@@ -315,6 +323,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['W lipcu polecimy samolotem do Hiszpanii.', t('У липні ми полетимо літаком до Іспанії.', 'В июле мы полетим самолётом в Испанию.', 'In July we’ll fly to Spain.')],
                   ['W lipcu polecimy samolot do Hiszpanii.', t('(чим? — орудний: **samolotem**)', '(на чём? — творительный: **samolotem**)', '(by what? — instrumental: **samolotem**)')],
+                  ['W lipcu polecicie samolotem do Hiszpanii.', t('(**polecicie** — «ви полетите»; про себе й родину: **polecimy**)', '(**polecicie** — «вы полетите»; о себе и семье: **polecimy**)', '(**polecicie** means “you (plural) will fly”; about your own family: **polecimy**)')],
                 ],
                 feedback: t('**samolotem**, **pociągiem**, **autobusem** — орудний.', '**samolotem**, **pociągiem**, **autobusem** — творительный.', 'Instrumental for transport.'),
               },
@@ -324,6 +333,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Od stycznia oszczędzam na wakacje.', t('З січня я заощаджую на відпустку.', 'С января я коплю на отпуск.', 'I’ve been saving for the holidays since January.')],
                   ['Od stycznia oszczędzam na wakacjach.', t('(на що? — знахідний: **na wakacje**)', '(на что? — винительный: **na wakacje**)', '(for what? — accusative: **na wakacje**)')],
+                  ['Wakacje są zawsze w lipcu i sierpniu.', t('(це не відповідь про гроші; сказати, що відкладаєш: **oszczędzam na** + знахідний)', '(это не ответ про деньги; сказать, что копишь: **oszczędzam na** + винительный)', '(that does not answer the question about money; to say you are saving: **oszczędzam na** + accusative)')],
                 ],
                 feedback: t('**oszczędzać na** + знахідний.', '**oszczędzać na** + винительный.', '**oszczędzać na** + accusative.'),
               },
@@ -376,6 +386,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Jeżeli będzie ładnie, na pewno pójdziemy.', t('Якщо буде гарна погода, ми точно підемо.', 'Если будет хорошая погода, мы точно пойдём.', 'If the weather’s nice, we’ll definitely go.')],
                   ['Jeżeli jest ładnie, na pewno pójdziemy.', t('(умова в майбутньому — **będzie**)', '(условие в будущем — **będzie**)', '(future condition — **będzie**)')],
+                  ['Jeżeli będzie ładnie, na pewno nie pójdziemy.', t('(логіка навпаки: за гарної погоди — **pójdziemy**; **nie pójdziemy** — якщо погана)', '(логика наоборот: в хорошую погоду — **pójdziemy**; **nie pójdziemy** — если плохая)', '(the logic is reversed: in nice weather — **pójdziemy**; **nie pójdziemy** — if it is bad)')],
                 ],
                 feedback: t('Майбутнє в обох частинах: **będzie** … **pójdziemy**.', 'Будущее в обеих частях: **będzie** … **pójdziemy**.', 'Future in both clauses.'),
               },
@@ -385,6 +396,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['To prawdopodobnie zostaniemy w domu.', t('Тоді, імовірно, ми залишимося вдома.', 'Тогда, вероятно, мы останемся дома.', 'Then we’ll probably stay at home.')],
                   ['To prawdopodobnie zostajemy w domu.', t('(майбутнє: **zostaniemy**)', '(будущее: **zostaniemy**)', '(future: **zostaniemy**)')],
+                  ['To prawdopodobnie zostaliśmy w domu.', t('(**zostaliśmy** — минулий час; про можливе майбутнє: **zostaniemy**)', '(**zostaliśmy** — прошедшее время; о возможном будущем: **zostaniemy**)', '(**zostaliśmy** is past tense; for a possible future: **zostaniemy**)')],
                 ],
                 feedback: t('**zostaniemy** — залишимося.', '**zostaniemy** — останемся.', '**zostaniemy** — we’ll stay.'),
               },
@@ -447,6 +459,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Jasne! Obiecuję, że przyjdę o dziesiątej.', t('Звісно! Обіцяю, що прийду о десятій.', 'Конечно! Обещаю, что приду в десять.', 'Sure! I promise I’ll come at ten.')],
                   ['Jasne! Obiecuję, czy przyjdę o dziesiątej.', t('(обіцянка — твердження: **że**)', '(обещание — утверждение: **że**)', '(a promise is a statement: **że**)')],
+                  ['Jasne! Obiecuję, że nie przyjdę o dziesiątej.', t('(**Jasne!** — «звісно», а **nie przyjdę** — «не прийду»: обіцянка суперечить згоді)', '(**Jasne!** — «конечно», а **nie przyjdę** — «не приду»: обещание противоречит согласию)', '(**Jasne!** means “sure”, but **nie przyjdę** means “I won’t come”: the promise contradicts the answer)')],
                 ],
                 feedback: t('**Obiecuję, że** + майбутній.', '**Obiecuję, że** + будущее.', '**Obiecuję, że** + future.'),
               },
@@ -456,6 +469,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Sprawdzę w kalendarzu i dam ci znać.', t('Перевірю в календарі й дам тобі знати.', 'Проверю в календаре и дам тебе знать.', 'I’ll check my calendar and let you know.')],
                   ['Sprawdzę w kalendarz i dam ci znać.', t('(де? — місцевий: **w kalendarzu**)', '(где? — предложный: **w kalendarzu**)', '(where? — locative: **w kalendarzu**)')],
+                  ['Sprawdzę w kalendarzu i dam panu znać.', t('(**panu** — ввічливо, для малознайомого; другові — **ci**)', '(**panu** — вежливо, для малознакомого; другу — **ci**)', '(**panu** is formal, for a stranger; to a friend say **ci**)')],
                 ],
                 feedback: t('**w kalendarzu** — місцевий.', '**w kalendarzu** — предложный.', 'Locative: **w kalendarzu**.'),
               },
@@ -510,6 +524,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Mikołaj Kopernik, słynny astronom!', t('Миколай Коперник, славетний астроном!', 'Николай Коперник, знаменитый астроном!', 'Nicolaus Copernicus, the famous astronomer!')],
                   ['Mikołaj Kopernik, słynny astronomem!', t('(хто? — називний: **astronom**)', '(кто? — именительный: **astronom**)', '(who? — nominative: **astronom**)')],
+                  ['Fryderyk Chopin, słynny kompozytor!', t('(Шопен народився в Желязовій Волі; у Торуні народився **Mikołaj Kopernik**)', '(Шопен родился в Желязовой Воле; в Торуни родился **Mikołaj Kopernik**)', '(Chopin was born in Żelazowa Wola; **Mikołaj Kopernik** was born in Toruń)')],
                 ],
                 feedback: t('Хто? — **astronom**; був ким? — **astronomem**.', 'Кто? — **astronom**; был кем? — **astronomem**.', 'Who? **astronom**; was what? **astronomem**.'),
               },
@@ -519,6 +534,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Pójdziemy do planetarium i obejrzymy gwiazdy.', t('Підемо в планетарій і подивимося на зірки.', 'Пойдём в планетарий и посмотрим на звёзды.', 'We’ll go to the planetarium and watch the stars.')],
                   ['Pójdziemy do planetarium i oglądaliśmy gwiazdy.', t('(план — майбутній: **obejrzymy**)', '(план — будущее: **obejrzymy**)', '(a plan — future: **obejrzymy**)')],
+                  ['Poszliśmy do planetarium i obejrzeliśmy gwiazdy.', t('(це минулий час; питання «що зробимо» — майбутнє: **pójdziemy**, **obejrzymy**)', '(это прошедшее время; вопрос «что сделаем» — о будущем: **pójdziemy**, **obejrzymy**)', '(that is past tense; the question “what will we do” is about the future: **pójdziemy**, **obejrzymy**)')],
                 ],
                 feedback: t('Обидві дії в майбутньому: **pójdziemy**, **obejrzymy**.', 'Оба действия в будущем: **pójdziemy**, **obejrzymy**.', 'Both actions in the future.'),
               },
@@ -577,6 +593,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Zamierzam zdać egzamin i zostać tłumaczem.', t('Я маю намір скласти іспит і стати перекладачем.', 'Я собираюсь сдать экзамен и стать переводчиком.', 'I intend to pass the exam and become a translator.')],
                   ['Zamierzam zdać egzamin i zostać tłumacz.', t('(**zostać** + орудний: tłumaczem)', '(**zostać** + творительный: tłumaczem)', '(**zostać** + instrumental)')],
+                  ['Zamierzasz zdać egzamin i zostać tłumaczem.', t('(**zamierzasz** — «ти збираєшся»; про себе: **zamierzam**)', '(**zamierzasz** — «ты собираешься»; о себе: **zamierzam**)', '(**zamierzasz** means “you intend”; about yourself: **zamierzam**)')],
                 ],
                 feedback: t('**zostać** + орудний.', '**zostać** + творительный.', '**zostać** + instrumental.'),
               },
@@ -586,6 +603,7 @@ export const TORUN: CityContent = {
                 choose: [
                   ['Jeżeli nie zdam, spróbuję jeszcze raz w czerwcu.', t('Якщо не складу, спробую ще раз у червні.', 'Если не сдам, попробую ещё раз в июне.', 'If I don’t pass, I’ll try again in June.')],
                   ['Jeżeli nie zdaję, spróbuję jeszcze raz w czerwcu.', t('(умова в майбутньому: **nie zdam**)', '(условие в будущем: **nie zdam**)', '(future condition: **nie zdam**)')],
+                  ['Jeżeli nie zdasz, spróbujesz jeszcze raz w czerwcu.', t('(**nie zdasz** — «ти не складеш»; про себе: **nie zdam**, **spróbuję**)', '(**nie zdasz** — «ты не сдашь»; о себе: **nie zdam**, **spróbuję**)', '(**nie zdasz** means “you won’t pass”; about yourself: **nie zdam**, **spróbuję**)')],
                 ],
                 feedback: t('Майбутнє в обох частинах: **nie zdam** … **spróbuję**.', 'Будущее в обеих частях: **nie zdam** … **spróbuję**.', 'Future in both clauses.'),
               },

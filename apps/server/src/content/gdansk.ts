@@ -47,6 +47,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Do Gdańska Głównego, na jutro rano.', t('До Гданська Головного, на завтра вранці.', 'До Гданьска Главного, на завтра утром.', 'To Gdańsk Główny, tomorrow morning.')],
                   ['Do Gdańsk Główny, na jutro rano.', t('(куди? — **do** + родовий: do **Gdańska Głównego**)', '(куда? — **do** + родительный: do **Gdańska Głównego**)', '(**do** + genitive: **Gdańska Głównego**)')],
+                  ['Z Gdańska Głównego, na jutro rano.', t('(**z** + родовий — «звідки»; на «dokąd?» — **do** Gdańska)', '(**z** + родительный — «откуда»; на «dokąd?» — **do** Gdańska)', '(**z** + genitive means “from”; for “dokąd?” use **do** Gdańska)')],
                 ],
                 feedback: t('**do** + родовий: do **Gdańska Głównego**.', '**do** + родительный: do **Gdańska Głównego**.', '**do** + genitive.'),
               },
@@ -56,6 +57,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Przepraszam, z którego peronu?', t('Перепрошую, з якої платформи?', 'Извините, с какой платформы?', 'Sorry, which platform?')],
                   ['Przepraszam, z który peron?', t('(**z** + родовий: z **którego peronu**?)', '(**z** + родительный: z **którego peronu**?)', '(**z** + genitive)')],
+                  ['Przepraszam, do którego peronu?', t('(**z** peronu — відправлення з платформи; **do** — «до», тобто йти до платформи)', '(**z** peronu — отправление с платформы; **do** — «к», то есть идти к платформе)', '(**z** peronu means the train leaves from the platform; **do** means “to”)')],
                 ],
                 feedback: t('**z którego peronu?** — з якої платформи?', '**z którego peronu?** — с какой платформы?', '**z którego peronu?**'),
               },
@@ -110,6 +112,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Dzień dobry, chciałbym zarezerwować pokój na trzy noce.', t('Добрий день, я хотів би забронювати номер на три ночі.', 'Добрый день, я хотел бы забронировать номер на три ночи.', 'Hello, I’d like to book a room for three nights.')],
                   ['Dzień dobry, chciałbym zarezerwować pokój na trzy nocy.', t('(2–4 — **noce**; «nocy» — після 5 і більше)', '(2–4 — **noce**; «nocy» — после 5 и больше)', '(2–4: **noce**; «nocy» after 5+)')],
+                  ['Dzień dobry, chciałbym zarezerwować pokoju na trzy noce.', t('(**zarezerwować** + знахідний: **pokój**, а не родовий)', '(**zarezerwować** + винительный: **pokój**, а не родительный)', '(**zarezerwować** takes the accusative: **pokój**, not the genitive)')],
                 ],
                 feedback: t('**na trzy noce**, але **na pięć nocy**.', '**na trzy noce**, но **na pięć nocy**.', '**trzy noce**, **pięć nocy**.'),
               },
@@ -119,6 +122,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Od piątku do poniedziałku.', t('З п’ятниці до понеділка.', 'С пятницы до понедельника.', 'From Friday to Monday.')],
                   ['Od piątek do poniedziałek.', t('(**od / do** + родовий: od **piątku** do **poniedziałku**)', '(**od / do** + родительный: od **piątku** do **poniedziałku**)', '(**od / do** + genitive)')],
+                  ['Dla trzech osób.', t('(це відповідь на «dla ilu osób?»; на «od kiedy do kiedy?» називають дати)', '(это ответ на «dla ilu osób?»; на «od kiedy do kiedy?» называют даты)', '(that answers “dla ilu osób?”; “od kiedy do kiedy?” asks for dates)')],
                 ],
                 feedback: t('**od** piątku **do** poniedziałku — родовий.', '**od** piątku **do** poniedziałku — родительный.', 'Genitive after od / do.'),
               },
@@ -182,6 +186,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['A co pan poleca? Co warto zobaczyć?', t('А що ви порадите? Що варто побачити?', 'А что вы посоветуете? Что стоит увидеть?', 'What do you recommend? What’s worth seeing?')],
                   ['A co pan poleca? Co warto zobaczę?', t('(після **warto** — інфінітив: warto **zobaczyć**)', '(после **warto** — инфинитив: warto **zobaczyć**)', '(after **warto** use the infinitive)')],
+                  ['A co pan polecił? Co warto było zobaczyć?', t('(минулий час, а ви плануєте сьогодні: **poleca**, **warto zobaczyć**)', '(прошедшее время, а вы планируете сегодня: **poleca**, **warto zobaczyć**)', '(past tense, but you are planning today: **poleca**, **warto zobaczyć**)')],
                 ],
                 feedback: t('**warto** + інфінітив.', '**warto** + инфинитив.', '**warto** + infinitive.'),
               },
@@ -191,6 +196,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Super! A gdzie jest najlepszy widok na miasto?', t('Супер! А звідки найкращий вид на місто?', 'Супер! А откуда лучший вид на город?', 'Great! And where’s the best view of the town?')],
                   ['Super! A gdzie jest najdobry widok na miasto?', t('(dobry → **najlepszy**: неправильна форма)', '(dobry → **najlepszy**: неправильная форма)', '(dobry → **najlepszy**)')],
+                  ['Super! A gdzie jest najlepsze widok na miasto?', t('(**widok** — чоловічий рід: **najlepszy widok**)', '(**widok** — мужской род: **najlepszy widok**)', '(**widok** is masculine: **najlepszy widok**)')],
                 ],
                 feedback: t('dobry → lepszy → **najlepszy**.', 'dobry → lepszy → **najlepszy**.', 'dobry → **najlepszy**.'),
               },
@@ -245,6 +251,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Nie teraz, wisi czerwona flaga.', t('Не зараз, висить червоний прапор.', 'Не сейчас, висит красный флаг.', 'Not now, the red flag is up.')],
                   ['Nie teraz, wisi biała flaga.', t('(біла — купатися **можна**; заборона — при **червоній**)', '(белый — купаться **можно**; запрет — при **красном**)', '(white means swimming is allowed)')],
+                  ['Dobrze, wisi czerwona flaga, więc idziemy.', t('(**czerwona flaga** — купатися **не можна**, тож «więc idziemy» суперечить)', '(**czerwona flaga** — купаться **нельзя**, так что «więc idziemy» противоречит)', '(**czerwona flaga** means no swimming, so “więc idziemy” contradicts it)')],
                 ],
                 feedback: t('**Czerwona flaga** — купатися не можна.', '**Czerwona flaga** — купаться нельзя.', '**Czerwona flaga** — no swimming.'),
               },
@@ -254,6 +261,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Dobrze, ale najpierw krem z filtrem!', t('Добре, але спершу крем із фільтром!', 'Хорошо, но сначала крем с фильтром!', 'OK, but sunscreen first!')],
                   ['Dobrze, ale najpierw krem z filtra!', t('(**z** + орудний: z **filtrem**)', '(**z** + творительный: z **filtrem**)', '(**z** + instrumental: **filtrem**)')],
+                  ['Dobrze, ale najpierw krem bez filtra!', t('(**bez filtra** — «без фільтра»; для засмаги потрібен **z filtrem**)', '(**bez filtra** — «без фильтра»; для загара нужен **z filtrem**)', '(**bez filtra** means “without SPF”; for sunbathing you need **z filtrem**)')],
                 ],
                 feedback: t('krem **z filtrem** — орудний.', 'krem **z filtrem** — творительный.', '**z filtrem**.'),
               },
@@ -315,6 +323,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Zgubiłem czarny plecak w tramwaju numer osiem.', t('Я загубив чорний рюкзак у трамваї номер вісім.', 'Я потерял чёрный рюкзак в трамвае номер восемь.', 'I lost a black backpack on tram number eight.')],
                   ['Zgubiłem czarnego plecak w tramwaju numer osiem.', t('(рюкзак — неживий: знахідний = називний: **czarny** plecak)', '(рюкзак — неодушевлённый: винительный = именительный: **czarny** plecak)', '(inanimate: **czarny** plecak)')],
+                  ['Zgubiłem czarny plecak w tramwaj numer osiem.', t('(**w** + місцевий: w **tramwaju**)', '(**w** + предложный: w **tramwaju**)', '(**w** + locative: w **tramwaju**)')],
                 ],
                 feedback: t('Річ чоловічого роду — **czarny plecak**.', 'Вещь мужского рода — **czarny plecak**.', '**czarny plecak**.'),
               },
@@ -324,6 +333,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Laptop, portfel i niebieska kurtka.', t('Ноутбук, гаманець і синя куртка.', 'Ноутбук, кошелёк и синяя куртка.', 'A laptop, a wallet and a blue jacket.')],
                   ['Laptopa, portfela i niebieską kurtkę.', t('(«що було?» — називний: laptop, portfel, niebieska kurtka)', '(«что было?» — именительный: laptop, portfel, niebieska kurtka)', '(“what was there?” — nominative)')],
+                  ['Laptop, portfel i niebieski kurtka.', t('(**kurtka** — жіночий рід: **niebieska** kurtka)', '(**kurtka** — женский род: **niebieska** kurtka)', '(**kurtka** is feminine: **niebieska** kurtka)')],
                 ],
                 feedback: t('Co było? — **називний**: niebieska kurtka.', 'Co było? — **именительный**: niebieska kurtka.', 'Nominative after «było».'),
               },
@@ -378,6 +388,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Proszę bardzo. Czy lot jest na czas?', t('Прошу. Рейс вчасно?', 'Пожалуйста. Рейс вовремя?', 'Here you are. Is the flight on time?')],
                   ['Proszę bardzo. Czy lot jest na czasie?', t('(«na czasie» — «модний, актуальний» 🙂; вчасно — **na czas**)', '(«na czasie» — «модный, актуальный» 🙂; вовремя — **na czas**)', '(«na czasie» means trendy; on time = **na czas**)')],
+                  ['Proszę bardzo. Czy lot jest w czasie?', t('(**w czasie** — «під час»; вчасно — **na czas**)', '(**w czasie** — «во время»; вовремя — **na czas**)', '(**w czasie** means “during”; “on time” is **na czas**)')],
                 ],
                 feedback: t('Вчасно — **na czas**.', 'Вовремя — **na czas**.', 'On time — **na czas**.'),
               },
@@ -387,6 +398,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Rozumiem. Do której bramki mam iść?', t('Зрозуміло. До якого виходу мені йти?', 'Понятно. К какому выходу мне идти?', 'I see. Which gate should I go to?')],
                   ['Rozumiem. Do który bramka mam iść?', t('(**do** + родовий: do **której bramki**)', '(**do** + родительный: do **której bramki**)', '(**do** + genitive)')],
+                  ['Rozumiem. Z której bramki mam iść?', t('(йдуть **до** виходу: do **której bramki**; **z** — «з»)', '(идут **к** выходу: do **której bramki**; **z** — «из»)', '(you walk **to** a gate: do **której bramki**; **z** means “from”)')],
                 ],
                 feedback: t('**do której bramki?**', '**do której bramki?**', '**do której bramki?**'),
               },
@@ -450,6 +462,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Tak, Solidarność.', t('Так, «Солідарність».', 'Да, «Солидарность».', 'Yes, Solidarity.')],
                   ['Tak, Solidarnością.', t('(«nazywać się» + **називний**: Solidarność)', '(«nazywać się» + **именительный**: Solidarność)', '(«nazywać się» + nominative)')],
+                  ['Tak, Solidarności.', t('(**nazywać się** + називний: **Solidarność**, а не родовий)', '(**nazywać się** + именительный: **Solidarność**, а не родительный)', '(**nazywać się** takes the nominative: **Solidarność**, not the genitive)')],
                 ],
                 feedback: t('nazywać się + називний: **Solidarność**.', 'nazywać się + именительный: **Solidarność**.', 'Nominative: **Solidarność**.'),
               },
@@ -459,6 +472,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['W dwa tysiące czwartym roku.', t('У дві тисячі четвертому році.', 'В две тысячи четвёртом году.', 'In 2004.')],
                   ['W dwa tysiące cztery roku.', t('(рік — порядковий: w dwa tysiące **czwartym** roku)', '(год — порядковое: w dwa tysiące **czwartym** roku)', '(years are ordinal: **czwartym**)')],
+                  ['W dwa tysiące czwarty rok.', t('(**w którym roku?** — місцевий: w **czwartym roku**)', '(**w którym roku?** — предложный: w **czwartym roku**)', '(**w którym roku?** takes the locative: w **czwartym roku**)')],
                 ],
                 feedback: t('Останнє слово — порядкове в місцевому: **czwartym**.', 'Последнее слово — порядковое в предложном: **czwartym**.', 'Last word ordinal: **czwartym**.'),
               },
@@ -513,6 +527,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Jasne! Jak się tam jedzie?', t('Звісно! Як туди доїхати?', 'Конечно! Как туда доехать?', 'Sure! How do you get there?')],
                   ['Jasne! Jak się tam jedziesz?', t('(безособово — 3-тя особа: **jak się jedzie**)', '(безлично — 3-е лицо: **jak się jedzie**)', '(impersonal: **jak się jedzie**)')],
+                  ['Jasne! Jak się tam jechać?', t('(безособова форма — 3-я особа: **jak się jedzie**)', '(безличная форма — 3-е лицо: **jak się jedzie**)', '(the impersonal form uses the 3rd person: **jak się jedzie**)')],
                 ],
                 feedback: t('**Jak się jedzie?** — «як їдуть (загалом)».', '**Jak się jedzie?** — «как едут (вообще)».', '**Jak się jedzie?**'),
               },
@@ -522,6 +537,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Super, to spotkajmy się na stacji o dziesiątej.', t('Супер, тоді зустріньмося на станції о десятій.', 'Супер, тогда встретимся на станции в десять.', 'Great, let’s meet at the station at ten.')],
                   ['Super, to spotkajmy się na stacja o dziesiątej.', t('(**na** + місцевий: na **stacji**)', '(**na** + предложный: na **stacji**)', '(**na stacji** — locative)')],
+                  ['Super, to spotkajmy się o stacji o dziesiątej.', t('(де? — **na** stacji; **o stacji** — «про станцію»)', '(где? — **na** stacji; **o stacji** — «о станции»)', '(where? — **na** stacji; **o stacji** means “about the station”)')],
                 ],
                 feedback: t('**na stacji** — місцевий.', '**na stacji** — предложный.', '**na stacji**.'),
               },
@@ -582,6 +598,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Tak, na trzy noce, na nazwisko Bobek.', t('Так, на три ночі, на прізвище Бобек.', 'Да, на три ночи, на фамилию Бобек.', 'Yes, three nights, in the name of Bobek.')],
                   ['Tak, na trzy nocy, na nazwisko Bobek.', t('(2–4 — **noce**)', '(2–4 — **noce**)', '(2–4: **noce**)')],
+                  ['Tak, na trzy noce, na nazwiska Bobek.', t('(**na** + знахідний: na **nazwisko** Bobek)', '(**na** + винительный: na **nazwisko** Bobek)', '(**na** + accusative: na **nazwisko** Bobek)')],
                 ],
                 feedback: t('**na trzy noce**.', '**na trzy noce**.', '**na trzy noce**.'),
               },
@@ -591,6 +608,7 @@ export const GDANSK: CityContent = {
                 choose: [
                   ['Tak. Co warto zobaczyć w Gdańsku?', t('Так. Що варто побачити в Гданську?', 'Да. Что стоит посмотреть в Гданьске?', 'Yes. What’s worth seeing in Gdańsk?')],
                   ['Tak. Co warto zobaczę w Gdańsku?', t('(після **warto** — інфінітив: **zobaczyć**)', '(после **warto** — инфинитив: **zobaczyć**)', '(after **warto**: infinitive)')],
+                  ['Tak. Co warto zobaczyć na Gdańsku?', t('(місто — **w** Gdańsku, а не **na**)', '(город — **w** Gdańsku, а не **na**)', '(a city takes **w** Gdańsku, not **na**)')],
                 ],
                 feedback: t('**warto zobaczyć**.', '**warto zobaczyć**.', '**warto zobaczyć**.'),
               },

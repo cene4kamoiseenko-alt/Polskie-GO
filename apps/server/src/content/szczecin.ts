@@ -47,6 +47,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Tak, firma szuka ludzi do pracy w magazynie.', t('Так, фірма шукає людей на склад.', 'Да, фирма ищет людей на склад.', 'Yes, the company is looking for warehouse staff.')],
                   ['Tak, magazynierzy szukają pracy w tej firmie.', t('(навпаки: **zatrudnimy** — «візьмемо на роботу», роботу пропонує фірма)', '(наоборот: **zatrudnimy** — «примем на работу», работу предлагает фирма)', '(the other way round: the company is hiring)')],
+                  ['Tak, firma szuka ludzi do pracy w magazyn.', t('(**w** + місцевий: w **magazynie**)', '(**w** + предложный: w **magazynie**)', '(**w** + locative: w **magazynie**)')],
                 ],
                 feedback: t('**Zatrudnimy** — фірма бере людей на роботу.', '**Zatrudnimy** — фирма принимает людей на работу.', '**Zatrudnimy** — the company is hiring.'),
               },
@@ -56,6 +57,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Czyli mogę zacząć od razu.', t('Тобто можу почати одразу.', 'То есть могу начать сразу.', 'So I can start right away.')],
                   ['Czyli praca jest tylko rano.', t('(«od zaraz» — негайно, а не «з ранку» — od rana)', '(«od zaraz» — сразу, а не «с утра» — od rana)', '(«od zaraz» means immediately, not “in the morning”)')],
+                  ['Czyli muszę zacząć dopiero za miesiąc.', t('(**od zaraz** — одразу, просто зараз; «dopiero za miesiąc» — «лише через місяць»)', '(**od zaraz** — сразу, прямо сейчас; «dopiero za miesiąc» — «только через месяц»)', '(**od zaraz** means “immediately”; “dopiero za miesiąc” means “only in a month”)')],
                 ],
                 feedback: t('**Od zaraz** — з цього ж дня, негайно.', '**Od zaraz** — сразу, с сегодняшнего дня.', '**Od zaraz** — starting immediately.'),
               },
@@ -112,6 +114,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Pracowałem jako kierowca przez dwa lata.', t('Я працював водієм два роки.', 'Я работал водителем два года.', 'I worked as a driver for two years.')],
                   ['Pracowałem jako kierowcą przez dwa lata.', t('(після **jako** — називний: jako **kierowca**; орудний — після «być»)', '(после **jako** — именительный: jako **kierowca**; творительный — после «być»)', '(after **jako** use the nominative)')],
+                  ['Pracowałem jako kierowca przez dwa lat.', t('(2–4 — **lata**: **dwa lata**; **lat** — від 5)', '(2–4 — **lata**: **dwa lata**; **lat** — от 5)', '(2–4 take **lata**: **dwa lata**; **lat** is for 5 and more)')],
                 ],
                 feedback: t('**jako kierowca**, але **jestem kierowcą**.', '**jako kierowca**, но **jestem kierowcą**.', '**jako kierowca** but **jestem kierowcą**.'),
               },
@@ -121,6 +124,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Od dwóch lat.', t('Уже два роки.', 'Уже два года.', 'For two years now.')],
                   ['Przez dwa lata.', t('(«przez dwa lata» — протягом двох років, і це вже минуло; «відколи» — **od dwóch lat**)', '(«przez dwa lata» — в течение двух лет, и это уже прошло; «с каких пор» — **od dwóch lat**)', '(«przez» = for a finished period; “since” = **od**)')],
+                  ['Do dwóch lat.', t('(**od** — «з / вже»; **do** — «до»)', '(**od** — «с / уже»; **do** — «до»)', '(**od** means “since / for”; **do** means “until”)')],
                 ],
                 feedback: t('Досі триває — **od** + родовий: od dwóch lat.', 'Всё ещё длится — **od** + родительный: od dwóch lat.', 'Still going on — **od dwóch lat**.'),
               },
@@ -185,6 +189,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Tak, mam trzy lata doświadczenia.', t('Так, маю три роки досвіду.', 'Да, у меня три года опыта.', 'Yes, I have three years’ experience.')],
                   ['Tak, ma pan trzy lata doświadczenia.', t('(«ma pan» — про співрозмовника; про себе — **mam**)', '(«ma pan» — о собеседнике; о себе — **mam**)', '(«ma pan» is about the other person; about yourself — **mam**)')],
+                  ['Tak, mam trzy lata doświadczenie.', t('(**trzy lata** + родовий: **doświadczenia**)', '(**trzy lata** + родительный: **doświadczenia**)', '(**trzy lata** takes the genitive: **doświadczenia**)')],
                 ],
                 feedback: t('Про себе — **mam** (я маю).', 'О себе — **mam** (у меня есть).', 'About yourself — **mam**.'),
               },
@@ -194,6 +199,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Jestem punktualny i odpowiedzialny.', t('Я пунктуальний і відповідальний.', 'Я пунктуальный и ответственный.', 'I’m punctual and responsible.')],
                   ['Jestem punktualnie i odpowiedzialnie.', t('(після **jestem** — прикметник: punktualny; «punktualnie» — про дію)', '(после **jestem** — прилагательное: punktualny; «punktualnie» — о действии)', '(after **jestem** use an adjective)')],
+                  ['Jestem punktualna i odpowiedzialna.', t('(Бобек — чоловік: **punktualny**, **odpowiedzialny**; «punktualna» — про жінку)', '(Бобек — мужчина: **punktualny**, **odpowiedzialny**; «punktualna» — о женщине)', '(Bobek is a man: **punktualny**, **odpowiedzialny**; “punktualna” is feminine)')],
                 ],
                 feedback: t('**Jestem** + прикметник: punktualny / punktualna.', '**Jestem** + прилагательное: punktualny / punktualna.', '**Jestem** + adjective.'),
               },
@@ -249,6 +255,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Rozumiem. A potem umowa na czas nieokreślony?', t('Зрозуміло. А потім безстроковий договір?', 'Понятно. А потом бессрочный договор?', 'I see. And then a permanent contract?')],
                   ['Rozumiem. A potem umowa na czas nieokreślona?', t('(**czas** — чоловічий рід: na czas **nieokreślony**)', '(**czas** — мужской род: na czas **nieokreślony**)', '(**czas** is masculine: **nieokreślony**)')],
+                  ['Rozumiem. A potem umowa na czas nieokreślonym?', t('(**na** + знахідний: na czas **nieokreślony**)', '(**na** + винительный: na czas **nieokreślony**)', '(**na** + accusative: na czas **nieokreślony**)')],
                 ],
                 feedback: t('na czas **nieokreślony** — узгоджуємо з «czas».', 'na czas **nieokreślony** — согласуем с «czas».', 'Agree with «czas»: **nieokreślony**.'),
               },
@@ -258,6 +265,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['A ile to będzie netto, na rękę?', t('А скільки це буде нетто, на руки?', 'А сколько это будет нетто, на руки?', 'And how much is that net, take-home?')],
                   ['A ile to będzie brutto, na rękę?', t('(«na rękę» — після податків, тобто **netto**)', '(«na rękę» — после налогов, то есть **netto**)', '(«na rękę» means after tax: **netto**)')],
+                  ['A ile to będzie netto, przed podatkiem?', t('(**netto** — після податку; **przed podatkiem** — це **brutto**)', '(**netto** — после налога; **przed podatkiem** — это **brutto**)', '(**netto** is after tax; “przed podatkiem” would be **brutto**)')],
                 ],
                 feedback: t('**Netto** — «на руки», після податків.', '**Netto** — «на руки», после налогов.', '**Netto** = take-home.'),
               },
@@ -322,6 +330,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['W porcie w Gdyni.', t('У порту в Гдині.', 'В порту в Гдыне.', 'At the port in Gdynia.')],
                   ['W portu w Gdyni.', t('(де? — місцевий: **w porcie**)', '(где? — предложный: **w porcie**)', '(where? — locative **w porcie**)')],
+                  ['Do portu w Gdyni.', t('(**gdzie?** — **w porcie**; **do portu** — «до порту», напрямок)', '(**gdzie?** — **w porcie**; **do portu** — «в порт», направление)', '(**gdzie?** — **w porcie**; **do portu** means “to the port”, a direction)')],
                 ],
                 feedback: t('port → **w porcie**.', 'port → **w porcie**.', 'port → **w porcie**.'),
               },
@@ -331,6 +340,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Byłem operatorem dźwigu.', t('Я був кранівником.', 'Я был крановщиком.', 'I was a crane operator.')],
                   ['Byłem operator dźwigu.', t('(після **być** — орудний: **operatorem**)', '(после **być** — творительный: **operatorem**)', '(after **być** use the instrumental)')],
+                  ['Byłem operatorem dźwig.', t('(**operator** + родовий: **dźwigu**)', '(**operator** + родительный: **dźwigu**)', '(**operator** takes the genitive: **dźwigu**)')],
                 ],
                 feedback: t('**byłem** + орудний: **operatorem**.', '**byłem** + творительный: **operatorem**.', '**byłem** + instrumental.'),
               },
@@ -385,6 +395,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Słuchaj, mógłbyś zamienić się ze mną zmianą w sobotę?', t('Слухай, чи не міг би ти помінятися зі мною зміною в суботу?', 'Слушай, не мог бы ты поменяться со мной сменой в субботу?', 'Listen, could you swap shifts with me on Saturday?')],
                   ['Słuchaj, mogłabyś zamienić się ze mną zmianą w sobotę?', t('(Марек — чоловік: **mógłbyś**; «mogłabyś» — до жінки)', '(Марек — мужчина: **mógłbyś**; «mogłabyś» — к женщине)', '(Marek is a man: **mógłbyś**)')],
+                  ['Słuchaj, mógłby pan zamienić się ze mną zmianą w sobotę?', t('(з колегою на «ти»: **mógłbyś**; «mógłby pan» — офіційно)', '(с коллегой на «ты»: **mógłbyś**; «mógłby pan» — официально)', '(to a colleague on first-name terms: **mógłbyś**; “mógłby pan” is formal)')],
                 ],
                 feedback: t('До чоловіка — **mógłbyś**, до жінки — **mogłabyś**.', 'К мужчине — **mógłbyś**, к женщине — **mogłabyś**.', 'To a man **mógłbyś**, to a woman **mogłabyś**.'),
               },
@@ -394,6 +405,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Pewnie, dzięki wielkie!', t('Звісно, щиро дякую!', 'Конечно, большое спасибо!', 'Sure, thanks a lot!')],
                   ['Pewnie, dziękuję panu bardzo!', t('(з колегою на «ти»: **dzięki / dziękuję ci**; «panu» — офіційно)', '(с коллегой на «ты»: **dzięki / dziękuję ci**; «panu» — официально)', '(with a colleague say **dzięki**; «panu» is formal)')],
+                  ['Pewnie, dzięki wielki!', t('(**dzięki** — множина: **dzięki wielkie**)', '(**dzięki** — множественное число: **dzięki wielkie**)', '(**dzięki** is plural: **dzięki wielkie**)')],
                 ],
                 feedback: t('З колегою на «ти» — **dzięki!**', 'С коллегой на «ты» — **dzięki!**', 'With a colleague — **dzięki!**'),
               },
@@ -456,6 +468,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Dzień dobry, tu Bobek. Spóźnię się dwadzieścia minut, bo tramwaj stoi.', t('Добрий день, це Бобек. Я спізнюся на двадцять хвилин, бо трамвай стоїть.', 'Добрый день, это Бобек. Я опоздаю на двадцать минут, потому что трамвай стоит.', 'Hello, it’s Bobek. I’ll be twenty minutes late, the tram is stuck.')],
                   ['Dzień dobry, tu Bobek. Spóźniłem się dwadzieścia minut, bo tramwaj stoi.', t('(ти ще в дорозі — майбутнє: **spóźnię się**)', '(ты ещё в пути — будущее: **spóźnię się**)', '(you’re still on your way: **spóźnię się**)')],
+                  ['Siema, tu Bobek. Spóźnię się dwadzieścia minut, bo tramwaj stoi.', t('(**siema** — для друзів; керівникові — **dzień dobry**)', '(**siema** — для друзей; руководителю — **dzień dobry**)', '(**siema** is for friends; to a manager say **dzień dobry**)')],
                 ],
                 feedback: t('Ще не прийшов — **spóźnię się** (майбутнє).', 'Ещё не пришёл — **spóźnię się** (будущее).', 'Not there yet: **spóźnię się**.'),
               },
@@ -465,6 +478,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Przepraszam za spóźnienie!', t('Вибачте за спізнення!', 'Извините за опоздание!', 'Sorry for being late!')],
                   ['Przepraszam za spóźnieniem!', t('(**za** + знахідний: za **spóźnienie**)', '(**za** + винительный: za **spóźnienie**)', '(**za** + accusative)')],
+                  ['Przepraszam na spóźnienie!', t('(**przepraszać za** + знахідний: za **spóźnienie**)', '(**przepraszać za** + винительный: za **spóźnienie**)', '(**przepraszać za** + accusative: za **spóźnienie**)')],
                 ],
                 feedback: t('przepraszam **za** + знахідний: za **spóźnienie**.', 'przepraszam **za** + винительный: za **spóźnienie**.', 'przepraszam **za spóźnienie**.'),
               },
@@ -519,6 +533,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Chciałbym porozmawiać o podwyżce.', t('Я хотів би поговорити про підвищення зарплати.', 'Я хотел бы поговорить о повышении зарплаты.', 'I’d like to talk about a pay rise.')],
                   ['Chciałbym porozmawiać o podwyżka.', t('(**o** + місцевий: **o podwyżce**)', '(**o** + предложный: **o podwyżce**)', '(**o** + locative: **o podwyżce**)')],
+                  ['Chciałbym porozmawiać z podwyżką.', t('(поговорити **про** що — **o podwyżce**; **z podwyżką** — «з підвищенням»)', '(поговорить **о** чём — **o podwyżce**; **z podwyżką** — «с повышением»)', '(to talk **about** something — **o podwyżce**; **z podwyżką** means “with a raise”)')],
                 ],
                 feedback: t('rozmawiać **o** + місцевий: o **podwyżce**.', 'rozmawiać **o** + предложный: o **podwyżce**.', 'rozmawiać o + locative.'),
               },
@@ -528,6 +543,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Wolałbym pracować na zmianie dziennej.', t('Я волів би працювати на денній зміні.', 'Я предпочёл бы работать в дневную смену.', 'I’d rather work days.')],
                   ['Wolałbym pracuję na zmianie dziennej.', t('(після **wolałbym** — інфінітив: pracować)', '(после **wolałbym** — инфинитив: pracować)', '(after **wolałbym** use the infinitive)')],
+                  ['Wolałbym pracować na zmianie dzienna.', t('(**na** + місцевий: na zmianie **dziennej**)', '(**na** + предложный: na zmianie **dziennej**)', '(**na** + locative: na zmianie **dziennej**)')],
                 ],
                 feedback: t('**wolałbym** + інфінітив.', '**wolałbym** + инфинитив.', '**wolałbym** + infinitive.'),
               },
@@ -590,6 +606,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Tak, dzień dobry. Miło mi.', t('Так, добрий день. Приємно познайомитися.', 'Да, добрый день. Приятно познакомиться.', 'Yes, good morning. Nice to meet you.')],
                   ['Tak, siema! Miło mi.', t('(«siema» — для друзів; на співбесіді — **dzień dobry**)', '(«siema» — для друзей; на собеседовании — **dzień dobry**)', '(«siema» is for friends)')],
+                  ['Tak, dzień dobry. Do widzenia.', t('(**Do widzenia** — прощання; при зустрічі — **dzień dobry**, **miło mi**)', '(**Do widzenia** — прощание; при встрече — **dzień dobry**, **miło mi**)', '(**Do widzenia** is a farewell; when meeting say **dzień dobry**, **miło mi**)')],
                 ],
                 feedback: t('На співбесіді — офіційно: **Dzień dobry**.', 'На собеседовании — официально: **Dzień dobry**.', 'Be formal: **Dzień dobry**.'),
               },
@@ -599,6 +616,7 @@ export const SZCZECIN: CityContent = {
                 choose: [
                   ['Przez dwa lata w porcie w Gdyni.', t('Два роки в порту в Гдині.', 'Два года в порту в Гдыне.', 'Two years at the port in Gdynia.')],
                   ['Przez dwa lata w port w Gdyni.', t('(де? — **w porcie**)', '(где? — **w porcie**)', '(where? — **w porcie**)')],
+                  ['Od dwóch lat w porcie w Gdyni.', t('(**od dwóch lat** — «вже два роки й досі»; про минуле місце — **przez dwa lata**)', '(**od dwóch lat** — «уже два года и до сих пор»; о прежнем месте — **przez dwa lata**)', '(**od dwóch lat** means “for two years and still”; about a previous job — **przez dwa lata**)')],
                 ],
                 feedback: t('port → **w porcie**.', 'port → **w porcie**.', 'port → **w porcie**.'),
               },

@@ -57,6 +57,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['Przyjadę w piątek wieczorem.', t('Приїду в п\'ятницю ввечері.', 'Приеду в пятницу вечером.', 'I\'ll come on Friday evening.')],
                 ['Wyjadę w piątek wieczorem.', t('(це «виїду», а не «приїду»)', '(это «уеду», а не «приеду»)', '(that means "I\'ll leave")')],
+                ['Przyjechałem w piątek wieczorem.', t('(питають про майбутнє: **przyjadę**; **przyjechałem** — «приїхав»)', '(спрашивают о будущем: **przyjadę**; **przyjechałem** — «приехал»)', '(the question is about the future: **przyjadę**; **przyjechałem** means “I arrived”)')],
               ],
               feedback: t('**przy-** — прибуття: przyjadę. **wy-** — відправлення.', '**przy-** — прибытие: przyjadę. **wy-** — отправление.', '**przy-** is arriving: przyjadę. **wy-** is leaving.'),
             },
@@ -66,6 +67,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['Podróż trwa pół godziny.', t('Поїздка триває пів години.', 'Поездка длится полчаса.', 'The trip takes half an hour.')],
                 ['Podróż idzie pół godziny.', t('(тут потрібне trwa)', '(здесь нужно trwa)', '(use trwa here)')],
+                ['Podróż trwa pół godzinę.', t('(**pół** + родовий: **pół godziny**)', '(**pół** + родительный: **pół godziny**)', '(**pół** takes the genitive: **pół godziny**)')],
               ],
               feedback: t('Тривалість — **trwa**: podróż trwa pół godziny.', 'Длительность — **trwa**: podróż trwa pół godziny.', 'For duration use **trwa**.'),
             },
@@ -151,6 +153,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['Na lotnisko, proszę.', t('В аеропорт, будь ласка.', 'В аэропорт, пожалуйста.', 'To the airport, please.')],
                 ['Z lotniska, proszę.', t('(це «з аеропорту»)', '(это «из аэропорта»)', '(that means "from the airport")')],
+                ['Na lotnisku, proszę.', t('(**dokąd?** — **na** + знахідний: na **lotnisko**; **na lotnisku** — «в аеропорту», де)', '(**dokąd?** — **na** + винительный: na **lotnisko**; **na lotnisku** — «в аэропорту», где)', '(**dokąd?** — **na** + accusative: na **lotnisko**; **na lotnisku** means “at the airport”)')],
               ],
               feedback: t('Куди? — **na lotnisko**. **Z lotniska** — звідки.', 'Куда? — **na lotnisko**. **Z lotniska** — откуда.', 'Where to? — **na lotnisko**. **Z lotniska** means "from".'),
             },
@@ -160,6 +163,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['Dziękuję. Reszty nie trzeba.', t('Дякую. Решти не треба.', 'Спасибо. Сдачи не надо.', 'Thank you. Keep the change.')],
                 ['Dziękuję. Reszta nie trzeba.', t('(після «nie trzeba» — родовий)', '(после «nie trzeba» — родительный)', '(use the genitive after "nie trzeba")')],
+                ['Dziękuję. Reszty nie ma.', t('(**Reszty nie trzeba** — «решти не треба» (лишити собі); **nie ma** — «немає»)', '(**Reszty nie trzeba** — «сдачи не надо» (оставить себе); **nie ma** — «нет»)', '(**Reszty nie trzeba** means “keep the change”; **nie ma** means “there isn’t any”)')],
               ],
               feedback: t('Після заперечення **nie trzeba** — родовий: reszta → **reszty**.', 'После отрицания **nie trzeba** — родительный: reszta → **reszty**.', 'After the negation **nie trzeba** use the genitive: **reszty**.'),
             },
@@ -281,6 +285,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['A czy media są w cenie?', t('А комунальні входять у ціну?', 'А коммунальные входят в цену?', 'And are utilities included?')],
                 ['A czy media jest w cenie?', t('(media — множина: są)', '(media — множественное число: są)', '(media is plural: są)')],
+                ['A czy media są na cenie?', t('(у ціні — **w** cenie, а не **na**)', '(в цене — **w** cenie, а не **na**)', '(“included in the price” is **w** cenie, not **na**)')],
               ],
               feedback: t('**Media** — множина: media **są**.', '**Media** — множественное число: media **są**.', '**Media** is plural: **są**.'),
             },
@@ -290,6 +295,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['Mogę przyjść jutro po pracy.', t('Можу прийти завтра після роботи.', 'Могу прийти завтра после работы.', 'I can come tomorrow after work.')],
                 ['Mogę przyjść wczoraj po pracy.', t('(«wczoraj» — це вчора)', '(«wczoraj» — это вчера)', '("wczoraj" means yesterday)')],
+                ['Może pan przyjść jutro po pracy.', t('(про себе: **mogę**; **może pan** — «ви можете»)', '(о себе: **mogę**; **może pan** — «вы можете»)', '(about yourself: **mogę**; **może pan** means “you can”)')],
               ],
               feedback: t('Про майбутнє — **jutro** (завтра), а не wczoraj.', 'О будущем — **jutro** (завтра), а не wczoraj.', 'For the future say **jutro**, not wczoraj.'),
             },
@@ -340,6 +346,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['Ogrzewanie nie działa. Kiedy ktoś to naprawi?', t('Опалення не працює. Коли хтось це полагодить?', 'Отопление не работает. Когда кто-то это починит?', 'The heating isn\'t working. When will someone fix it?')],
                 ['Ogrzewanie nie działa. Kiedy ktoś to naprawię?', t('(naprawię — це «я полагоджу»)', '(naprawię — это «я починю»)', '(naprawię means "I will fix")')],
+                ['Ogrzewanie nie działa. Kiedy ktoś to naprawił?', t('(питання про майбутнє: **naprawi**; **naprawił** — «поремонтував»)', '(вопрос о будущем: **naprawi**; **naprawił** — «починил»)', '(the question is about the future: **naprawi**; **naprawił** means “fixed”)')],
               ],
               feedback: t('**Ktoś** (хтось) — 3-тя особа: **naprawi**.', '**Ktoś** (кто-то) — 3-е лицо: **naprawi**.', '**Ktoś** (someone) is third person: **naprawi**.'),
             },
@@ -349,6 +356,7 @@ export const KATOWICE_ROUTES_5_13: RouteSeed[] = [
               choose: [
                 ['Dziękuję. Będę w domu.', t('Дякую. Я буду вдома.', 'Спасибо. Я буду дома.', 'Thank you. I\'ll be at home.')],
                 ['Dziękuję. Będę w dom.', t('(де? — місцевий: w domu)', '(где? — предложный: w domu)', '(where? use the locative: w domu)')],
+                ['Dziękuję. Będę do domu.', t('(де? — **w** + місцевий: w **domu**; **do domu** — «додому»)', '(где? — **w** + предложный: w **domu**; **do domu** — «домой»)', '(where? — **w** + locative: w **domu**; **do domu** means “homeward”)')],
               ],
               feedback: t('Де? — місцевий: dom → **w domu**.', 'Где? — предложный: dom → **w domu**.', 'Where? — locative: **w domu**.'),
             },

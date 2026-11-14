@@ -49,6 +49,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Tak, gram w piłkę prawie w każdą sobotę.', t('Так, граю у футбол майже щосуботи.', 'Да, играю в футбол почти каждую субботу.', 'Yes, I play football almost every Saturday.')],
                   ['Tak, gram na piłkę prawie w każdą sobotę.', t('(спорт і ігри — **w** + знахідний: grać **w piłkę**)', '(спорт и игры — **w** + винительный: grać **w piłkę**)', '(games: **w** + accusative)')],
+                  ['Tak, gram z piłką prawie w każdą sobotę.', t('(гра — **w** + знахідний: **w piłkę**; **z piłką** — «з м’ячем»)', '(игра — **w** + винительный: **w piłkę**; **z piłką** — «с мячом»)', '(a game takes **w** + accusative: **w piłkę**; **z piłką** means “with a ball”)')],
                 ],
                 feedback: t('grać **w piłkę**, **w tenisa**, **w szachy**.', 'grać **w piłkę**, **w tenisa**, **w szachy**.', 'grać **w** + games.'),
               },
@@ -58,6 +59,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Gram na gitarze, od trzech lat.', t('Я граю на гітарі, вже три роки.', 'Я играю на гитаре, уже три года.', 'I play the guitar — for three years now.')],
                   ['Gram w gitarę, od trzech lat.', t('(інструмент — **na** + місцевий: **na gitarze**)', '(инструмент — **na** + предложный: **na gitarze**)', '(instrument: **na** + locative)')],
+                  ['Gram na gitarę, od trzech lat.', t('(інструмент — **na** + місцевий: **na gitarze**, а не знахідний)', '(инструмент — **na** + предложный: **na gitarze**, а не винительный)', '(an instrument takes **na** + locative: **na gitarze**, not the accusative)')],
                 ],
                 feedback: t('Інструмент — **na gitarze**, **na pianinie**.', 'Инструмент — **na gitarze**, **na pianinie**.', 'Instruments: **na** + locative.'),
               },
@@ -112,6 +114,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Tak, chodzę na basen i na jogę.', t('Так, ходжу в басейн і на йогу.', 'Да, хожу в бассейн и на йогу.', 'Yes, I go swimming and to yoga.')],
                   ['Tak, chodzę na basenie i na jodze.', t('(куди? — **na** + знахідний: **na basen**, **na jogę**)', '(куда? — **na** + винительный: **na basen**, **na jogę**)', '(where to? — accusative: **na basen**, **na jogę**)')],
+                  ['Tak, chodzę na basenu i na jogi.', t('(куди? — **na** + знахідний: **na basen**, **na jogę**)', '(куда? — **na** + винительный: **na basen**, **na jogę**)', '(where to? — **na** + accusative: **na basen**, **na jogę**)')],
                 ],
                 feedback: t('chodzić **na basen**, **na jogę** — знахідний.', 'chodzić **na basen**, **na jogę** — винительный.', 'chodzić na + accusative.'),
               },
@@ -121,6 +124,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Zimą jeżdżę na nartach w górach.', t('Взимку я катаюся на лижах у горах.', 'Зимой я катаюсь на лыжах в горах.', 'In winter I ski in the mountains.')],
                   ['Zimą jeżdżę na narty w górach.', t('(кататися на чому? — **na** + місцевий: **na nartach**)', '(кататься на чём? — **na** + предложный: **na nartach**)', '(**na** + locative: **na nartach**)')],
+                  ['Zimą jeżdżę z nartami w górach.', t('(кататися **на** + місцевий: **na nartach**; **z nartami** — «з лижами»)', '(кататься **на** + предложный: **na nartach**; **z nartami** — «с лыжами»)', '(riding or skiing takes **na** + locative: **na nartach**; **z nartami** means “with skis”)')],
                 ],
                 feedback: t('jeździć **na nartach**, **na rowerze** — місцевий.', 'jeździć **na nartach**, **na rowerze** — предложный.', 'jeździć na + locative.'),
               },
@@ -181,6 +185,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Dwa razy w tygodniu, we wtorki i w piątki.', t('Двічі на тиждень, у вівторки й п’ятниці.', 'Два раза в неделю, по вторникам и пятницам.', 'Twice a week, on Tuesdays and Fridays.')],
                   ['Dwa raz w tygodniu, we wtorki i w piątki.', t('(один — **raz**, далі — **razy**: **dwa razy**)', '(один — **raz**, дальше — **razy**: **dwa razy**)', '(**raz**, but **dwa razy**)')],
+                  ['Dwa razy na tydzień, we wtorki i w piątki.', t('(частота — **w tygodniu**: **dwa razy w tygodniu**)', '(частота — **w tygodniu**: **dwa razy w tygodniu**)', '(frequency uses **w tygodniu**: **dwa razy w tygodniu**)')],
                 ],
                 feedback: t('**raz**, але **dwa razy**, **pięć razy**.', '**raz**, но **dwa razy**, **pięć razy**.', '**raz** → **razy**.'),
               },
@@ -190,6 +195,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Nigdy nie chodzę na basen, nie umiem pływać.', t('Я ніколи не ходжу в басейн, не вмію плавати.', 'Я никогда не хожу в бассейн, не умею плавать.', 'I never go swimming — I can’t swim.')],
                   ['Nigdy chodzę na basen, nie umiem pływać.', t('(з **nigdy** потрібне **nie**: nigdy **nie** chodzę)', '(с **nigdy** нужно **nie**: nigdy **nie** chodzę)', '(**nigdy** needs **nie**)')],
+                  ['Nigdy nie chodzę na basen, ponieważ uwielbiam pływać.', t('(**nie umiem pływać** — причина, чому не ходиш; «uwielbiam pływać» суперечить)', '(**nie umiem pływać** — причина, почему не ходишь; «uwielbiam pływać» противоречит)', '(**nie umiem pływać** is the reason you don’t go; “uwielbiam pływać” contradicts it)')],
                 ],
                 feedback: t('nigdy **nie** chodzę — заперечення подвійне.', 'nigdy **nie** chodzę — отрицание двойное.', 'Double negative: nigdy **nie**.'),
               },
@@ -244,6 +250,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Chciałbym kupić karnet na miesiąc.', t('Я хотів би купити абонемент на місяць.', 'Я хотел бы купить абонемент на месяц.', 'I’d like a one-month pass.')],
                   ['Chciałbym kupić karnet na miesiącu.', t('(на який термін? — **na** + знахідний: **na miesiąc**)', '(на какой срок? — **na** + винительный: **na miesiąc**)', '(for how long? **na miesiąc**)')],
+                  ['Chciałbym kupić karnet za miesiąc.', t('(**za miesiąc** — «через місяць»; на який термін — **na miesiąc**)', '(**za miesiąc** — «через месяц»; на какой срок — **na miesiąc**)', '(**za miesiąc** means “in a month”; for how long — **na miesiąc**)')],
                 ],
                 feedback: t('karnet **na miesiąc**, **na rok** — знахідний.', 'karnet **na miesiąc**, **na rok** — винительный.', '**na** + accusative.'),
               },
@@ -253,6 +260,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Dziękuję. Czy mogę też umówić się z trenerem?', t('Дякую. А можна ще записатися до тренера?', 'Спасибо. А можно ещё записаться к тренеру?', 'Thanks. Can I also book a trainer?')],
                   ['Dziękuję. Czy mogę też umówić się z trener?', t('(з ким? — **z** + орудний: **z trenerem**)', '(с кем? — **z** + творительный: **z trenerem**)', '(**z** + instrumental: **trenerem**)')],
+                  ['Dziękuję. Czy mogę też umówić się z trenera?', t('(**z** у значенні «з ким» + орудний: z **trenerem**)', '(**z** в значении «с кем» + творительный: z **trenerem**)', '(**z** meaning “with” takes the instrumental: z **trenerem**)')],
                 ],
                 feedback: t('**z trenerem** — орудний.', '**z trenerem** — творительный.', '**z trenerem**.'),
               },
@@ -315,6 +323,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Kibicuję Arce, oczywiście!', t('Я вболіваю за «Арку», звісно!', 'Я болею за «Арку», конечно!', 'Arka, of course!')],
                   ['Kibicuję za Arkę, oczywiście!', t('(**kibicować** + давальний без «za»: kibicuję **Arce**)', '(**kibicować** + дательный без «za»: kibicuję **Arce**)', '(**kibicować** + dative, no «za»)')],
+                  ['Kibicuję Arkę, oczywiście!', t('(**kibicować** + давальний: kibicuję **Arce**, а не знахідний)', '(**kibicować** + дательный: kibicuję **Arce**, а не винительный)', '(**kibicować** takes the dative: kibicuję **Arce**, not the accusative)')],
                 ],
                 feedback: t('kibicuję **Arce** — давальний, без прийменника.', 'kibicuję **Arce** — дательный, без предлога.', 'Dative, no preposition.'),
               },
@@ -324,6 +333,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Dwa do jednego dla Arki.', t('Два — один на користь «Арки».', 'Два — один в пользу «Арки».', 'Two–one to Arka.')],
                   ['Dwa na jeden dla Arki.', t('(рахунок — **do**: **dwa do jednego**)', '(счёт — **do**: **dwa do jednego**)', '(score: **dwa do jednego**)')],
+                  ['Dwa do jeden dla Arki.', t('(після **do** — родовий: **dwa do jednego**)', '(после **do** — родительный: **dwa do jednego**)', '(after **do** use the genitive: **dwa do jednego**)')],
                 ],
                 feedback: t('Рахунок: **dwa do jednego**.', 'Счёт: **dwa do jednego**.', 'Score: **dwa do jednego**.'),
               },
@@ -379,6 +389,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Tak, bardzo chcę się nauczyć żeglować!', t('Так, дуже хочу навчитися ходити під вітрилом!', 'Да, очень хочу научиться ходить под парусом!', 'Yes, I’d love to learn to sail!')],
                   ['Tak, bardzo chcę się nauczyć żeglowanie!', t('(навчитися **що робити** — інфінітив: **żeglować**)', '(научиться **что делать** — инфинитив: **żeglować**)', '(learn **to do** — infinitive)')],
+                  ['Tak, bardzo chcę się nauczył żeglować!', t('(після **chcę** — інфінітив: **nauczyć się**)', '(после **chcę** — инфинитив: **nauczyć się**)', '(after **chcę** use the infinitive: **nauczyć się**)')],
                 ],
                 feedback: t('nauczyć się **żeglować** (можна й «żeglowania», але не «żeglowanie»).', 'nauczyć się **żeglować** (можно и «żeglowania», но не «żeglowanie»).', 'nauczyć się **żeglować**.'),
               },
@@ -388,6 +399,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Nie mam. Czy mogę wypożyczyć kamizelkę?', t('Не маю. Можна взяти жилет напрокат?', 'Нет. Можно взять жилет напрокат?', 'No. Can I rent one?')],
                   ['Nie mam. Czy mogę wypożyczyć kamizelka?', t('(що? — знахідний: **kamizelkę**)', '(что? — винительный: **kamizelkę**)', '(accusative: **kamizelkę**)')],
+                  ['Mam. Czy mogę wypożyczyć kamizelkę?', t('(**Mam** — «є»; але далі просиш на прокат: на «Ma pan…?» без жилета — **Nie mam**)', '(**Mam** — «есть»; но дальше просишь напрокат: на «Ma pan…?» без жилета — **Nie mam**)', '(**Mam** means “I have one”, yet you then ask to rent one: without a vest say **Nie mam**)')],
                 ],
                 feedback: t('wypożyczyć **kamizelkę** — знахідний.', 'wypożyczyć **kamizelkę** — винительный.', 'Accusative: **kamizelkę**.'),
               },
@@ -450,6 +462,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Boli mnie kolano, od wczorajszego meczu.', t('Болить коліно, від учорашнього матчу.', 'Болит колено, со вчерашнего матча.', 'My knee — since yesterday’s match.')],
                   ['Boli mi kolano, od wczorajszego meczu.', t('(кажуть **boli mnie**, не «boli mi»)', '(говорят **boli mnie**, не «boli mi»)', '(**boli mnie**, not «mi»)')],
+                  ['Boli mnie kolana, od wczorajszego meczu.', t('(**kolano** — однина: **boli** mnie kolano; багато — **bolą** mnie kolana)', '(**kolano** — единственное число: **boli** mnie kolano; много — **bolą** mnie kolana)', '(**kolano** is singular: **boli** mnie kolano; for many — **bolą** mnie kolana)')],
                 ],
                 feedback: t('**boli mnie** kolano.', '**boli mnie** kolano.', '**boli mnie**.'),
               },
@@ -459,6 +472,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Rozumiem. Muszę odpocząć.', t('Зрозумів. Мені треба відпочити.', 'Понял. Мне нужно отдохнуть.', 'I see. I need to rest.')],
                   ['Rozumiem. Muszę odpoczywam.', t('(після **muszę** — інфінітив: **odpocząć**)', '(после **muszę** — инфинитив: **odpocząć**)', '(**muszę** + infinitive)')],
+                  ['Rozumiem. Jutro będę biegać.', t('(лікар сказав: тиждень **не можна** бігати; «jutro będę biegać» суперечить)', '(врач сказал: неделю **нельзя** бегать; «jutro będę biegać» противоречит)', '(the doctor said no running for a week; “jutro będę biegać” contradicts that)')],
                 ],
                 feedback: t('**muszę odpocząć** — інфінітив.', '**muszę odpocząć** — инфинитив.', 'Infinitive after **muszę**.'),
               },
@@ -513,6 +527,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Gotuję, czytam i fotografuję statki w porcie.', t('Готую, читаю й фотографую кораблі в порту.', 'Готовлю, читаю и фотографирую корабли в порту.', 'I cook, read and photograph ships in the port.')],
                   ['Gotuję, czytam i fotografować statki w porcie.', t('(усі дієслова в одній особі: **fotografuję**)', '(все глаголы в одном лице: **fotografuję**)', '(same person: **fotografuję**)')],
+                  ['Gotuję, czytam i fotografuje statki w porcie.', t('(**fotografuję** — 1-а особа, як **gotuję**, **czytam**)', '(**fotografuję** — 1-е лицо, как **gotuję**, **czytam**)', '(**fotografuję** is 1st person, like **gotuję** and **czytam**)')],
                 ],
                 feedback: t('ja **gotuję**, **czytam**, **fotografuję**.', 'ja **gotuję**, **czytam**, **fotografuję**.', 'ja: **fotografuję**.'),
               },
@@ -522,6 +537,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Chętnie! Spotkajmy się o dziesiątej przy molo.', t('Залюбки! Зустріньмося о десятій біля молу.', 'С удовольствием! Встретимся в десять у мола.', 'Sure! Let’s meet at ten by the pier.')],
                   ['Chętnie! Spotkajcie się o dziesiątej przy molo.', t('(«давай ми» — **spotkajmy się**; «spotkajcie się» — наказ іншим)', '(«давай мы» — **spotkajmy się**; «spotkajcie się» — приказ другим)', '(«let’s» = **spotkajmy się**)')],
+                  ['Chętnie! Spotkajmy się o dziesiątą przy molo.', t('(час — **o** + місцевий: **o dziesiątej**)', '(время — **o** + предложный: **o dziesiątej**)', '(time uses **o** + locative: **o dziesiątej**)')],
                 ],
                 feedback: t('**-my**: spotkajmy się, chodźmy, zagrajmy.', '**-my**: spotkajmy się, chodźmy, zagrajmy.', '**-my** = let’s.'),
               },
@@ -582,6 +598,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Niestety nie, ale gram w tenisa i na gitarze.', t('На жаль, ні, але я граю в теніс і на гітарі.', 'К сожалению, нет, но я играю в теннис и на гитаре.', 'Sadly not, but I play tennis and the guitar.')],
                   ['Niestety nie, ale gram w tenisa i w gitarę.', t('(інструмент — **na gitarze**)', '(инструмент — **na gitarze**)', '(instrument: **na gitarze**)')],
+                  ['Niestety nie, ale gram na tenisa i na gitarze.', t('(гра — **w** + знахідний: **w tenisa**; на інструменті — **na gitarze**)', '(игра — **w** + винительный: **w tenisa**; на инструменте — **na gitarze**)', '(a game takes **w** + accusative: **w tenisa**; an instrument — **na gitarze**)')],
                 ],
                 feedback: t('**w** tenisa, **na** gitarze.', '**w** tenisa, **na** gitarze.', '**w** + games, **na** + instruments.'),
               },
@@ -591,6 +608,7 @@ export const GDYNIA: CityContent = {
                 choose: [
                   ['Dwa razy w tygodniu, we wtorki i w czwartki.', t('Двічі на тиждень, у вівторки й четверги.', 'Два раза в неделю, по вторникам и четвергам.', 'Twice a week, on Tuesdays and Thursdays.')],
                   ['Dwa raz w tygodniu, we wtorki i w czwartki.', t('(**dwa razy**)', '(**dwa razy**)', '(**dwa razy**)')],
+                  ['Dwa razy w tygodniu, w wtorki i w czwartki.', t('(перед **w-** / **f-** — **we**: **we wtorki**)', '(перед **w-** / **f-** — **we**: **we wtorki**)', '(before **w-** / **f-** use **we**: **we wtorki**)')],
                 ],
                 feedback: t('**raz**, але **dwa razy**.', '**raz**, но **dwa razy**.', '**raz** → **razy**.'),
               },

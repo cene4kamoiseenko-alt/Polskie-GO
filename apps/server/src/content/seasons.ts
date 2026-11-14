@@ -355,7 +355,7 @@ const SWIETA: Mission[] = [
         [
           T(t('Для несподіваного гостя', 'Для неожиданного гостя', 'An unexpected guest'), true),
           T(t('Для Святого Миколая', 'Для Деда Мороза', 'Santa Claus'), false, t('Niespodziewany gość — несподіваний гість, мандрівник.', 'Niespodziewany gość — неожиданный гость, путник.', 'Niespodziewany gość = an unexpected guest.')),
-          T(t('Для собаки', 'Для собаки', 'The dog'), false, t('Gość — гість. Місце залишають для людини, яка може постукати в двері.', 'Gość — гость. Место оставляют для человека, который может постучать в дверь.', 'Gość = guest: the seat is for a person who might knock.')),
+          T(t('Для родича, що запізнився', 'Для опоздавшего родственника', 'A relative who is running late'), false, t('Niespodziewany gość — несподіваний гість, а не знайомий, що просто запізнився.', 'Niespodziewany gość — неожиданный гость, а не знакомый, который просто опоздал.', 'Niespodziewany gość = an unexpected guest, not someone who is merely late.')),
         ],
         { hint: t('Gość — гість; niespodziewany — несподіваний.', 'Gość — гость; niespodziewany — неожиданный.', 'Gość = guest; niespodziewany = unexpected.'),
           explain: t('Додаткове місце за столом — для несподіваного гостя: «tak każe tradycja» — так велить традиція.', 'Дополнительное место за столом — для неожиданного гостя: «tak każe tradycja» — так велит традиция.', 'The extra place is for an unexpected guest — «tak każe tradycja».'), words: ['gość', 'tradycja'] }),

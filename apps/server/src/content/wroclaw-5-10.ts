@@ -51,6 +51,7 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Moja kurtka jest czarna.', t('Моя куртка чорна.', 'Моя куртка чёрная.', 'My jacket is black.')],
                 ['Moja kurtka jest czarny.', t('(куртка — жіночий рід: czarna)', '(куртка — женский род: czarna)', '(kurtka is feminine: czarna)')],
+                ['Moja kurtka jest czarne.', t('(**kurtka** — жіночий рід: **czarna**)', '(**kurtka** — женский род: **czarna**)', '(**kurtka** is feminine: **czarna**)')],
               ],
               feedback: t('**Kurtka** — жіночий рід, тому **czarna**.', '**Kurtka** — женский род, поэтому **czarna**.', '**Kurtka** is feminine, so **czarna**.'),
             },
@@ -60,6 +61,7 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Moje buty są białe.', t('Мої черевики білі.', 'Мои ботинки белые.', 'My shoes are white.')],
                 ['Moje buty są biały.', t('(buty — множина: białe)', '(buty — множественное число: białe)', '(buty is plural: białe)')],
+                ['Moje buty są białych.', t('(**są** + називний множини: **białe**)', '(**są** + именительный множественного: **białe**)', '(**są** takes the nominative plural: **białe**)')],
               ],
               feedback: t('**Buty** — множина, тому **białe**.', '**Buty** — множественное число, поэтому **białe**.', '**Buty** is plural, so **białe**.'),
             },
@@ -106,6 +108,7 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Jest trochę za duża.', t('Вона трохи завелика.', 'Она немного великовата.', 'It is a bit too big.')],
                 ['Jest trochę za duży.', t('(куртка — жіночий рід: za duża)', '(куртка — женский род: za duża)', '(kurtka is feminine: za duża)')],
+                ['Jest trochę za duże.', t('(**kurtka** — жіночий рід: **za duża**)', '(**kurtka** — женский род: **za duża**)', '(**kurtka** is feminine: **za duża**)')],
               ],
               feedback: t('**Kurtka** — жіночий рід: **za duża**.', '**Kurtka** — женский род: **za duża**.', '**Kurtka** is feminine: **za duża**.'),
             },
@@ -115,6 +118,7 @@ export const WROCLAW_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Tak, poproszę większy rozmiar.', t('Так, більший розмір, будь ласка.', 'Да, больший размер, пожалуйста.', 'Yes, a bigger size, please.')],
                 ['Tak, poproszę większego rozmiar.', t('(форма більшого не пасує до rozmiar)', '(форма большего не подходит к rozmiar)', '(the form większego does not fit rozmiar)')],
+                ['Tak, poproszę większy rozmiarze.', t('(**poprosić** + знахідний: **większy rozmiar**)', '(**poprosić** + винительный: **większy rozmiar**)', '(**poproszę** takes the accusative: **większy rozmiar**)')],
               ],
               feedback: t('**Poproszę** + знахідний; **rozmiar** — неживий чоловічий рід, тож **większy rozmiar**.', '**Poproszę** + винительный; **rozmiar** — неодушевлённый мужской род, значит **większy rozmiar**.', '**Poproszę** + accusative; **rozmiar** is a masculine inanimate noun, so **większy rozmiar**.'),
             },

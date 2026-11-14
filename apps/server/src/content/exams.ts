@@ -66,7 +66,7 @@ export const EXAM_A1: LessonSeed = {
     // Читання
     reading('reading.exam', 'Ogłoszenie: Wynajmę pokój w Krakowie. Pokój jest duży, kuchnia i łazienka są wspólne. Cena: 1200 zł miesięcznie. Telefon: 600 100 200.',
       t('Що є спільним?', 'Что является общим?', 'What is shared?'),
-      [t('Кухня і ванна', 'Кухня и ванная', 'Kitchen and bathroom'), t('Кімната', 'Комната', 'The room'), t('Телефон', 'Телефон', 'The phone')],
+      [t('Кухня і ванна', 'Кухня и ванная', 'Kitchen and bathroom'), t('Кімната і кухня', 'Комната и кухня', 'The room and the kitchen'), t('Ванна і балкон', 'Ванная и балкон', 'The bathroom and a balcony')],
       t('**kuchnia i łazienka są wspólne** — кухня і ванна спільні.', '**kuchnia i łazienka są wspólne** — кухня и ванная общие.', '**kuchnia i łazienka są wspólne** — shared kitchen and bathroom.')),
     reading('reading.exam', 'Ogłoszenie: Wynajmę pokój w Krakowie. Pokój jest duży, kuchnia i łazienka są wspólne. Cena: 1200 zł miesięcznie. Telefon: 600 100 200.',
       t('Скільки коштує кімната?', 'Сколько стоит комната?', 'How much is the room?'),

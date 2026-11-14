@@ -217,6 +217,7 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
               choose: [
                 ['Dla mamy. Podoba mi się ten szalik.', t('Для мами. Мені подобається цей шарф.', 'Для мамы. Мне нравится этот шарф.', 'For my mum. I like this scarf.')],
                 ['Dla mama. Podoba mi się ten szalik.', t('(після dla — родовий: dla mamy)', '(после dla — родительный: dla mamy)', '(after dla use the genitive: dla mamy)')],
+                ['Dla mamie. Podoba mi się ten szalik.', t('(**dla** + родовий: **dla mamy**)', '(**dla** + родительный: **dla mamy**)', '(**dla** takes the genitive: **dla mamy**)')],
               ],
               feedback: t('**Dla** + родовий: **dla mamy**.', '**Dla** + родительный: **dla mamy**.', '**Dla** + genitive: **dla mamy**.'),
             },
@@ -260,6 +261,7 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
               choose: [
                 ['Ta czerwona jest tańsza niż ta czarna.', t('Червона дешевша, ніж чорна.', 'Красная дешевле, чем чёрная.', 'The red one is cheaper than the black one.')],
                 ['Ta czerwona jest tańszy niż ta czarna.', t('(куртка — жіночий рід: tańsza)', '(куртка — женский род: tańsza)', '(kurtka is feminine: tańsza)')],
+                ['Ta czerwona jest tańsza od ta czarna.', t('(**od** + родовий: **od tej czarnej**; з **niż** — **ta czarna**)', '(**od** + родительный: **od tej czarnej**; с **niż** — **ta czarna**)', '(**od** takes the genitive: **od tej czarnej**; with **niż** — **ta czarna**)')],
               ],
               feedback: t('**Kurtka** — жіночий рід: **tańsza**.', '**Kurtka** — женский род: **tańsza**.', '**Kurtka** is feminine: **tańsza**.'),
             },
@@ -269,6 +271,7 @@ export const WROCLAW_ROUTES_11_16: RouteSeed[] = [
               choose: [
                 ['Kupię tę czerwoną, bo jest tańsza.', t('Куплю червону, бо вона дешевша.', 'Куплю красную, потому что она дешевле.', 'I\'ll buy the red one because it is cheaper.')],
                 ['Kupię ta czerwona, bo jest tańsza.', t('(після kupić — знахідний: tę czerwoną)', '(после kupić — винительный: tę czerwoną)', '(after kupić use the accusative: tę czerwoną)')],
+                ['Kupię tej czerwonej, bo jest tańsza.', t('(**kupić** + знахідний: **tę czerwoną**)', '(**kupić** + винительный: **tę czerwoną**)', '(**kupić** takes the accusative: **tę czerwoną**)')],
               ],
               feedback: t('**Kupić** + знахідний: **tę czerwoną**.', '**Kupić** + винительный: **tę czerwoną**.', '**Kupić** + accusative: **tę czerwoną**.'),
             },

@@ -44,6 +44,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Jestem z Krakowa.', t('Я з Кракова.', 'Я из Кракова.', 'I\'m from Kraków.')],
                   ['Jestem w Krakowie.', t('(«w Krakowie» — «у Кракові», а питали «звідки»)', '(«w Krakowie» — «в Кракове», а спрашивали «откуда»)', '("w Krakowie" means "in Kraków", but the question was "from where")')],
+                  ['Jestem z Krakowem.', t('(**z** («звідки») + родовий: z **Krakowa**; **z Krakowem** — «з Краковом»)', '(**z** («откуда») + родительный: z **Krakowa**; **z Krakowem** — «с Краковом»)', '(**z** (“from”) takes the genitive: z **Krakowa**; **z Krakowem** means “with Kraków”)')],
                 ],
                 feedback: t('**Skąd?** → **z** + родовий: z Krakowa.', '**Skąd?** → **z** + родительный: z Krakowa.', '**Skąd?** → **z** + genitive: z Krakowa.'),
               },
@@ -53,6 +54,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Mieszkam w Poznaniu.', t('Я живу в Познані.', 'Я живу в Познани.', 'I live in Poznań.')],
                   ['Mieszkam do Poznania.', t('(«do» — це «куди», а не «де»)', '(«do» — это «куда», а не «где»)', '("do" means "to", not "in")')],
+                  ['Mieszkam z Poznania.', t('(**gdzie?** — **w** + місцевий: w **Poznaniu**; **z Poznania** — «з Познані»)', '(**gdzie?** — **w** + предложный: w **Poznaniu**; **z Poznania** — «из Познани»)', '(**gdzie?** — **w** + locative: w **Poznaniu**; **z Poznania** means “from Poznań”)')],
                 ],
                 feedback: t('**Gdzie?** → **w** + місцевий: w Poznaniu.', '**Gdzie?** → **w** + предложный: w Poznaniu.', '**Gdzie?** → **w** + locative: w Poznaniu.'),
               },
@@ -121,6 +123,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Ile razy trykają się koziołki?', t('Скільки разів б\'ються козлики?', 'Сколько раз бодаются козлики?', 'How many times do the goats butt heads?')],
                   ['Ile czasu trykają się koziołki?', t('Скільки часу б\'ються козлики?', 'Сколько времени бодаются козлики?', 'For how long do the goats butt heads?')],
+                  ['Ile raz trykają się koziołki?', t('(**ile** + множина: **ile razy**)', '(**ile** + множественное число: **ile razy**)', '(**ile** goes with the plural: **ile razy**)')],
                 ],
                 feedback: t('Про кількість повторів питають **Ile razy?** — скільки разів. **Ile czasu?** — як довго.', 'О количестве повторов спрашивают **Ile razy?** — сколько раз. **Ile czasu?** — как долго.', 'To ask how many times use **Ile razy?**; **Ile czasu?** asks how long.'),
               },
@@ -130,6 +133,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Codziennie? To super!', t('Щодня? Це супер!', 'Каждый день? Это супер!', 'Every day? That\'s great!')],
                   ['Raz w tygodniu? To super!', t('Раз на тиждень? Це супер!', 'Раз в неделю? Это супер!', 'Once a week? That\'s great!')],
+                  ['Co godzinę? To super!', t('(гід сказала **codziennie w południe** — щодня опівдні, а не **co godzinę**)', '(гид сказала **codziennie w południe** — каждый день в полдень, а не **co godzinę**)', '(the guide said **codziennie w południe** — daily at noon, not **co godzinę** (every hour))')],
                 ],
                 feedback: t('Гідка сказала **codziennie** — щодня, а не «raz w tygodniu» (раз на тиждень).', 'Гид сказала **codziennie** — каждый день, а не «raz w tygodniu» (раз в неделю).', 'The guide said **codziennie** — every day, not "raz w tygodniu" (once a week).'),
               },
@@ -225,6 +229,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Dziesiątego listopada. A co?', t('Десяте листопада. А що?', 'Десятое ноября. А что?', 'The tenth of November. Why?')],
                   ['Jest dziesiąta godzina.', t('(це про годину, а не про дату)', '(это о времени, а не о дате)', '(that\'s the time, not the date)')],
+                  ['Dziesiąty listopada. A co?', t('(дата — родовий: **dziesiątego** listopada)', '(дата — родительный: **dziesiątego** listopada)', '(a date uses the genitive: **dziesiątego** listopada)')],
                 ],
                 feedback: t('Дата — порядковий у родовому: **dziesiątego listopada**.', 'Дата — порядковое в родительном: **dziesiątego listopada**.', 'A date is the ordinal in the genitive: **dziesiątego listopada**.'),
               },
@@ -234,6 +239,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Rogale świętomarcińskie? Z białym makiem?', t('Святомартинські рогалики? З білим маком?', 'Рогалики святого Мартина? С белым маком?', 'St Martin\'s croissants? With white poppy seed?')],
                   ['Rogale? W lipcu?', t('(свято в листопаді, а не в липні)', '(праздник в ноябре, а не в июле)', '(the holiday is in November, not July)')],
+                  ['Rogale świętomarcińskie? Z białym mak?', t('(**z** («з чим») + орудний: z białym **makiem**)', '(**z** («с чем») + творительный: z białym **makiem**)', '(**z** (“with”) takes the instrumental: z białym **makiem**)')],
                 ],
                 feedback: t('11 листопада в Познані їдять **rogale świętomarcińskie** з білим маком.', '11 ноября в Познани едят **rogale świętomarcińskie** с белым маком.', 'On 11 November Poznań eats **rogale świętomarcińskie** with white poppy seed.'),
               },
@@ -296,6 +302,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Zajmuję się logistyką.', t('Я займаюся логістикою.', 'Я занимаюсь логистикой.', 'I work in logistics.')],
                   ['Zajmuję się logistyka.', t('(потрібен орудний: logistyką)', '(нужен творительный: logistyką)', '(needs the instrumental: logistyką)')],
+                  ['Zajmujesz się logistyką.', t('(про себе: **zajmuję się**; **zajmujesz się** — «ти займаєшся»)', '(о себе: **zajmuję się**; **zajmujesz się** — «ты занимаешься»)', '(about yourself: **zajmuję się**; **zajmujesz się** means “you do”)')],
                 ],
                 feedback: t('**zajmować się** + орудний: logistyk**ą**.', '**zajmować się** + творительный: logistyk**ą**.', '**zajmować się** + instrumental: logistyk**ą**.'),
               },
@@ -305,6 +312,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Interesuję się fotografią.', t('Я цікавлюся фотографією.', 'Я интересуюсь фотографией.', 'I\'m into photography.')],
                   ['Interesuję fotografię.', t('(потрібні «się» і орудний)', '(нужны «się» и творительный)', '(needs "się" and the instrumental)')],
+                  ['Interesuje się fotografią.', t('(про себе: **interesuję się**; **interesuje się** — «він цікавиться»)', '(о себе: **interesuję się**; **interesuje się** — «он интересуется»)', '(about yourself: **interesuję się**; **interesuje się** means “he is interested”)')],
                 ],
                 feedback: t('**interesować się** + орудний: fotografi**ą**.', '**interesować się** + творительный: fotografi**ą**.', '**interesować się** + instrumental: fotografi**ą**.'),
               },
@@ -357,6 +365,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Dzień dobry. Czym zajmuje się pana firma?', t('Добрий день. Чим займається ваша фірма?', 'Добрый день. Чем занимается ваша фирма?', 'Good morning. What does your company do?')],
                   ['Siema! Co tam?', t('(занадто розмовно для ділової розмови)', '(слишком разговорно для деловой беседы)', '(too casual for a business talk)')],
+                  ['Dzień dobry. Czym zajmuje się twoja firma?', t('(у діловій розмові — **pana firma**; «twoja» — на «ти»)', '(в деловом разговоре — **pana firma**; «twoja» — на «ты»)', '(in a business conversation say **pana firma**; “twoja” is informal)')],
                 ],
                 feedback: t('На ярмарку — ввічливо: **pan / pani**.', 'На ярмарке — вежливо: **pan / pani**.', 'At a fair, be polite: **pan / pani**.'),
               },
@@ -366,6 +375,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Dziękuję. Czy mogę prosić o wizytówkę?', t('Дякую. Можна попросити візитівку?', 'Спасибо. Можно попросить визитку?', 'Thank you. May I have your business card?')],
                   ['Dziękuję. Czy mogę prosić o wizytówka?', t('(після «prosić o» — знахідний: wizytówkę)', '(после «prosić o» — винительный: wizytówkę)', '(after "prosić o" use the accusative: wizytówkę)')],
+                  ['Dziękuję. Czy mogę prosić o rachunek?', t('(на стенді просять **wizytówkę** (візитку); **rachunek** — рахунок у ресторані)', '(на стенде просят **wizytówkę** (визитку); **rachunek** — счёт в ресторане)', '(at a stand you ask for a **wizytówka** (business card); **rachunek** is a restaurant bill)')],
                 ],
                 feedback: t('**prosić o** + знахідний: wizytówk**ę**.', '**prosić o** + винительный: wizytówk**ę**.', '**prosić o** + accusative: wizytówk**ę**.'),
               },
@@ -426,6 +436,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Dziś nie mogę, bo muszę pracować.', t('Сьогодні не можу, бо мушу працювати.', 'Сегодня не могу, потому что должен работать.', 'I can\'t today, I have to work.')],
                   ['Dziś nie muszę, bo mogę pracować.', t('(«не мушу, бо можу працювати» — без сенсу)', '(«не обязан, потому что могу работать» — без смысла)', '("I don\'t have to because I can work" — makes no sense)')],
+                  ['Dziś nie mogę, bo chcę pracować.', t('(**nie mogę** — є перешкода: **muszę pracować**; «chcę» — не причина відмови)', '(**nie mogę** — есть помеха: **muszę pracować**; «chcę» — не причина отказа)', '(**nie mogę** needs an obstacle: **muszę pracować**; “chcę” is not a reason to refuse)')],
                 ],
                 feedback: t('Відмова: **nie mogę, bo muszę…**', 'Отказ: **nie mogę, bo muszę…**', 'Refusing: **nie mogę, bo muszę…**'),
               },
@@ -435,6 +446,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Jutro mogę. Chcę zobaczyć jezioro!', t('Завтра можу. Хочу побачити озеро!', 'Завтра могу. Хочу увидеть озеро!', 'Tomorrow I can. I want to see the lake!')],
                   ['Jutro muszę. Chcę zobaczyć jezioro!', t('(«мушу» — не відповідь на «можеш?»)', '(«должен» — не ответ на «можешь?»)', '("I must" doesn\'t answer "can you?")')],
+                  ['Jutro nie mogę. Chcę zobaczyć jezioro!', t('(**nie mogę** — відмова, а далі «chcę zobaczyć jezioro» — згода)', '(**nie mogę** — отказ, а дальше «chcę zobaczyć jezioro» — согласие)', '(**nie mogę** is a refusal, yet “chcę zobaczyć jezioro” shows you want to go)')],
                 ],
                 feedback: t('На «Możesz?» відповідають **mogę** або **nie mogę**.', 'На «Możesz?» отвечают **mogę** или **nie mogę**.', 'Answer "Możesz?" with **mogę** or **nie mogę**.'),
               },
@@ -488,6 +500,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Chętnie! Możemy jeździć na rowerze wokół jeziora.', t('Залюбки! Можемо кататися на велосипеді навколо озера.', 'С удовольствием! Можем покататься на велосипеде вокруг озера.', 'Gladly! We can cycle around the lake.')],
                   ['Chętnie! Możemy jeździć na rowerze w jezioro.', t('(«w jezioro» — у воду; навколо — **wokół jeziora**)', '(«w jezioro» — в воду; вокруг — **wokół jeziora**)', '("w jezioro" means into the water; around is **wokół jeziora**)')],
+                  ['Chętnie! Możemy jeździć na rowerze wokół jezioro.', t('(**wokół** + родовий: wokół **jeziora**)', '(**wokół** + родительный: wokół **jeziora**)', '(**wokół** takes the genitive: wokół **jeziora**)')],
                 ],
                 feedback: t('**wokół** + родовий: wokół jezior**a**.', '**wokół** + родительный: wokół jezior**a**.', '**wokół** + genitive: wokół jezior**a**.'),
               },
@@ -497,6 +510,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Pyry? To znaczy ziemniaki?', t('«Пири»? Тобто картопля?', '«Пыры»? То есть картошка?', '"Pyry"? You mean potatoes?')],
                   ['Pyry? To znaczy ryby?', t('(pyry — не риба, а картопля)', '(pyry — не рыба, а картошка)', '(pyry are potatoes, not fish)')],
+                  ['Pyry? To znaczy pierogi?', t('(**pyry** — картопля (**ziemniaki**), а не **pierogi** — вареники)', '(**pyry** — картофель (**ziemniaki**), а не **pierogi** — вареники)', '(**pyry** means potatoes (**ziemniaki**), not **pierogi** (dumplings))')],
                 ],
                 feedback: t('У Познані **pyry** = ziemniaki.', 'В Познани **pyry** = ziemniaki.', 'In Poznań **pyry** = ziemniaki.'),
               },
@@ -557,6 +571,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Tak, pierwszy raz. Jestem z Opola.', t('Так, уперше. Я з Ополя.', 'Да, впервые. Я из Ополе.', 'Yes, the first time. I\'m from Opole.')],
                   ['Tak, pierwszy raz. Jestem w Opola.', t('(звідки? — **z** Opola)', '(откуда? — **z** Opola)', '(from where? — **z** Opola)')],
+                  ['Tak, pierwszy raz. Jestem z Opolu.', t('(**z** + родовий: z **Opola**)', '(**z** + родительный: z **Opola**)', '(**z** takes the genitive: z **Opola**)')],
                 ],
                 feedback: t('**Skąd?** → **z** + родовий: z Opola.', '**Skąd?** → **z** + родительный: z Opola.', '**Skąd?** → **z** + genitive: z Opola.'),
               },
@@ -566,6 +581,7 @@ export const POZNAN: CityContent = {
                 choose: [
                   ['Tak! Koziołki trykają się dwanaście razy.', t('Так! Козлики б\'ються рогами дванадцять разів.', 'Да! Козлики бодаются двенадцать раз.', 'Yes! The goats butt heads twelve times.')],
                   ['Tak! Koziołki trykają się dwanaście raz.', t('(від двох — **razy**)', '(начиная с двух — **razy**)', '(from two on — **razy**)')],
+                  ['Tak! Koziołki trykają się dwa razy.', t('(козлики бодаються **dwanaście razy** — стільки, скільки годин, а не **dwa razy**)', '(козлики бодаются **dwanaście razy** — сколько часов, а не **dwa razy**)', '(the goats butt **dwanaście razy** — once per hour of noon — not **dwa razy**)')],
                 ],
                 feedback: t('**dwanaście razy**.', '**dwanaście razy**.', '**dwanaście razy**.'),
               },

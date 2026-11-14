@@ -52,6 +52,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['W sobotę pójdę na spacer.', t('У суботу піду на прогулянку.', 'В субботу пойду на прогулку.', 'On Saturday I\'ll go for a walk.')],
                 ['W sobotę poszedłem na spacer.', t('(це про минуле, а питання — про плани)', '(это о прошлом, а вопрос — о планах)', '(that is the past; the question is about plans)')],
+                ['W sobotę pójdę na spacerze.', t('(куди? — **na** + знахідний: na **spacer**)', '(куда? — **na** + винительный: na **spacer**)', '(where to? — **na** + accusative: na **spacer**)')],
               ],
               feedback: t('Плани — майбутній час: **pójdę**.', 'Планы — будущее время: **pójdę**.', 'Plans use the future: **pójdę**.'),
             },
@@ -61,6 +62,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Dobrze, w niedzielę o dwunastej.', t('Добре, у неділю о дванадцятій.', 'Хорошо, в воскресенье в двенадцать.', 'OK, on Sunday at twelve.')],
                 ['Dobrze, w niedzielę dwunasta.', t('(після o потрібен місцевий: o dwunastej)', '(после o нужен предложный: o dwunastej)', '(after o use the locative: o dwunastej)')],
+                ['Dobrze, w niedzielę o dwunastą.', t('(**o** + місцевий: **o dwunastej**)', '(**o** + предложный: **o dwunastej**)', '(**o** + locative: **o dwunastej**)')],
               ],
               feedback: t('Година — **o** + місцевий відмінок: **o dwunastej**.', 'Время — **o** + предложный падеж: **o dwunastej**.', 'A clock time is **o** + locative: **o dwunastej**.'),
             },
@@ -115,6 +117,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Dziękuję za zaproszenie! Niestety nie dam rady.', t('Дякую за запрошення! На жаль, не зможу.', 'Спасибо за приглашение! К сожалению, не смогу.', 'Thanks for the invitation! Unfortunately I can\'t make it.')],
                 ['Dziękuję zaproszenie! Niestety nie dam rady.', t('(бракує za: dziękuję za zaproszenie)', '(не хватает za: dziękuję za zaproszenie)', '(za is missing: dziękuję za zaproszenie)')],
+                ['Dziękuję na zaproszenie! Niestety nie dam rady.', t('(**dziękować za** + знахідний: za **zaproszenie**)', '(**dziękować za** + винительный: za **zaproszenie**)', '(**dziękować za** + accusative: za **zaproszenie**)')],
               ],
               feedback: t('**Dziękować za** + знахідний: dziękuję za zaproszenie.', '**Dziękować za** + винительный: dziękuję za zaproszenie.', '**Dziękować za** + accusative: dziękuję za zaproszenie.'),
             },
@@ -124,6 +127,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Może innym razem. Dobrej zabawy!', t('Може, іншим разом. Гарної забави!', 'Может, в другой раз. Хорошо повеселиться!', 'Maybe another time. Have fun!')],
                 ['Może inny raz. Dobrej zabawy!', t('(у фразі потрібна форма innym razem)', '(во фразе нужна форма innym razem)', '(the phrase needs the form innym razem)')],
+                ['Może innym razie. Dobrej zabawy!', t('(**razem** — орудний: **innym razem**)', '(**razem** — творительный: **innym razem**)', '(**razem** is instrumental: **innym razem**)')],
               ],
               feedback: t('Застигла фраза: **innym razem** («іншим разом»).', 'Застывшая фраза: **innym razem** («в другой раз»).', 'A fixed phrase: **innym razem** ("another time").'),
             },
@@ -257,6 +261,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Zaczyna się o dwudziestej.', t('Починається о двадцятій.', 'Начинается в двадцать часов.', 'It starts at eight in the evening.')],
                 ['Zaczyna się dwudziesta.', t('(після o потрібен місцевий: o dwudziestej)', '(после o нужен предложный: o dwudziestej)', '(use the locative after o: o dwudziestej)')],
+                ['Zaczyna się o dwadzieścia.', t('(година — порядковий числівник: **o dwudziestej**, а не **dwadzieścia**)', '(час — порядковое числительное: **o dwudziestej**, а не **dwadzieścia**)', '(clock time uses an ordinal: **o dwudziestej**, not **dwadzieścia**)')],
               ],
               feedback: t('Година — **o** + місцевий: **o dwudziestej**.', 'Время — **o** + предложный: **o dwudziestej**.', 'A clock time is **o** + locative: **o dwudziestej**.'),
             },
@@ -266,6 +271,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Zespół jest już na scenie.', t('Гурт уже на сцені.', 'Группа уже на сцене.', 'The band is already on stage.')],
                 ['Zespół jest już na scenę.', t('(де? — місцевий: na scenie)', '(где? — предложный: na scenie)', '(where? — locative: na scenie)')],
+                ['Zespół jest już w scenie.', t('(сцена — **na** scenie, а не **w**)', '(сцена — **na** scenie, а не **w**)', '(a stage takes **na** scenie, not **w**)')],
               ],
               feedback: t('Де? — **na scenie**. Куди? — **na scenę**.', 'Где? — **na scenie**. Куда? — **na scenę**.', 'Where? **na scenie**. To where? **na scenę**.'),
             },
@@ -396,6 +402,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Głosuję na Anię, ma najlepszy głos.', t('Голосую за Аню, у неї найкращий голос.', 'Голосую за Аню, у неё лучший голос.', 'I\'m voting for Ania, she has the best voice.')],
                 ['Głosuję za Anię, ma najlepszy głos.', t('(za не підходить: głosować na kogoś)', '(za не подходит: głosować na kogoś)', '(za is wrong here: głosować na kogoś)')],
+                ['Głosuję na Ania, ma najlepszy głos.', t('(**głosować na** + знахідний: **Anię**)', '(**głosować na** + винительный: **Anię**)', '(**głosować na** + accusative: **Anię**)')],
               ],
               feedback: t('**Głosować na** + знахідний: **na Anię**.', '**Głosować na** + винительный: **na Anię**.', '**Głosować na** + accusative: **na Anię**.'),
             },
@@ -405,6 +412,7 @@ export const OPOLE_ROUTES_5_10: RouteSeed[] = [
               choose: [
                 ['Moim zdaniem wygra Ania.', t('На мою думку, виграє Аня.', 'По-моему, выиграет Аня.', 'In my opinion Ania will win.')],
                 ['Moim zdaniem wygrała Ania.', t('(це минулий час, а фінал ще не відбувся)', '(это прошедшее время, а финал ещё не состоялся)', '(that is the past, but the final has not happened yet)')],
+                ['Moim zdaniem wygrają Ania.', t('(Ania — одна: **wygra**; **wygrają** — «виграють» (кілька))', '(Ania — одна: **wygra**; **wygrają** — «выиграют» (несколько))', '(Ania is one person: **wygra**; **wygrają** is plural)')],
               ],
               feedback: t('Про майбутній результат — **wygra**.', 'О будущем результате — **wygra**.', 'For a future result use **wygra**.'),
             },

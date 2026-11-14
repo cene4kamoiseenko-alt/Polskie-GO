@@ -50,6 +50,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Super! Byliśmy z mężem nad Brdą.', t('Супер! Ми з чоловіком були над Брдою.', 'Супер! Мы с мужем были на Брде.', 'Great! My husband and I were by the Brda.')],
                   ['Super! Byłyśmy z mężem nad Brdą.', t('(у групі є чоловік — **-liśmy**: **byliśmy**)', '(в группе есть мужчина — **-liśmy**: **byliśmy**)', '(a man in the group: **byliśmy**)')],
+                  ['Super! Byli z mężem nad Brdą.', t('(про себе й чоловіка — «ми»: **byliśmy**; **byli** — «вони були»)', '(о себе и муже — «мы»: **byliśmy**; **byli** — «они были»)', '(about yourselves — “we”: **byliśmy**; **byli** means “they were”)')],
                 ],
                 feedback: t('Є чоловік у групі — **byliśmy**; лише жінки — **byłyśmy**.', 'Есть мужчина в группе — **byliśmy**; только женщины — **byłyśmy**.', 'Mixed group — **byliśmy**; women only — **byłyśmy**.'),
               },
@@ -59,6 +60,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['W niedzielę wieczorem, bardzo zmęczeni.', t('У неділю ввечері, дуже втомлені.', 'В воскресенье вечером, очень уставшие.', 'On Sunday evening, very tired.')],
                   ['W niedzielę wieczorem, bardzo zmęczony.', t('(нас двоє — прикметник у множині: **zmęczeni**)', '(нас двое — прилагательное во множественном: **zmęczeni**)', '(plural adjective: **zmęczeni**)')],
+                  ['W niedzielę wieczorem, bardzo zmęczone.', t('(у групі є чоловік: **zmęczeni**; «zmęczone» — лише жінки)', '(в группе есть мужчина: **zmęczeni**; «zmęczone» — только женщины)', '(the group includes a man: **zmęczeni**; “zmęczone” is for women only)')],
                 ],
                 feedback: t('byliśmy **zmęczeni** — прикметник у множині.', 'byliśmy **zmęczeni** — прилагательное во множественном.', 'byliśmy **zmęczeni** — plural.'),
               },
@@ -113,6 +115,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Długo oglądałem serial, a potem czytałem.', t('Довго дивився серіал, а потім читав.', 'Долго смотрел сериал, а потом читал.', 'I watched a series for a long time, then read.')],
                   ['Długo obejrzałem serial, a potem czytałem.', t('(«długo» — процес: недоконаний **oglądałem**)', '(«długo» — процесс: несовершенный **oglądałem**)', '(«długo» = process: **oglądałem**)')],
+                  ['Długo będę oglądał serial, a potem czytałem.', t('(вчора — минуле: **oglądałem**; **będę oglądał** — майбутнє)', '(вчера — прошедшее: **oglądałem**; **będę oglądał** — будущее)', '(yesterday is past: **oglądałem**; **będę oglądał** is future)')],
                 ],
                 feedback: t('Процес — **oglądałem**, результат — **obejrzałem**.', 'Процесс — **oglądałem**, результат — **obejrzałem**.', 'Process — **oglądałem**; result — **obejrzałem**.'),
               },
@@ -122,13 +125,14 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Tak, przeczytałem ją do końca.', t('Так, я прочитав її до кінця.', 'Да, я прочитал её до конца.', 'Yes, I read it to the end.')],
                   ['Tak, czytałem ją do końca.', t('(«do końca» — результат: доконаний **przeczytałem**)', '(«do końca» — результат: совершенный **przeczytałem**)', '(«do końca» = result: **przeczytałem**)')],
+                  ['Tak, przeczytam ją do końca.', t('(питають про вже зроблене: **przeczytałem**; **przeczytam** — «прочитаю»)', '(спрашивают о уже сделанном: **przeczytałem**; **przeczytam** — «прочитаю»)', '(the question is about what is done: **przeczytałem**; **przeczytam** means “I will read”)')],
                 ],
                 feedback: t('Є результат — доконаний: **przeczytałem**.', 'Есть результат — совершенный: **przeczytałem**.', 'Result — perfective: **przeczytałem**.'),
               },
             ]),
             wordChoice('vocab.aspect', 'obejrzeć', [t('подивитися (до кінця)', 'посмотреть (до конца)', 'to watch (to the end)'), t('оглядатися', 'оглядываться', 'to look back'), t('прочитати', 'прочитать', 'to read through')]),
-            fillGap('grammar.aspect', 'Wczoraj ___ cały film i poszedłem spać.', ['obejrzałem', 'oglądałem', 'oglądam'], t('Учора я подивився весь фільм і пішов спати.', 'Вчера я посмотрел весь фильм и пошёл спать.', 'Yesterday I watched the whole film and went to bed.'),
-              t('Дія завершилася, потім наступна — доконаний: **obejrzałem**.', 'Действие закончилось, потом следующее — совершенный: **obejrzałem**.', 'Finished, then the next action: **obejrzałem**.')),
+            fillGap('grammar.aspect', 'Wczoraj ___ cały film i poszedłem spać.', ['obejrzałem', 'oglądałem', 'obejrzę'], t('Учора я подивився весь фільм і пішов спати.', 'Вчера я посмотрел весь фильм и пошёл спать.', 'Yesterday I watched the whole film and went to bed.'),
+              t('Дія завершилася, потім наступна — доконаний вид, минулий час: **obejrzałem** (**obejrzę** — майбутнє, а тут «вчора»).', 'Действие закончилось, потом следующее — совершенный вид, прошедшее время: **obejrzałem** (**obejrzę** — будущее, а тут «вчера»).', 'Finished, then the next action — perfective past: **obejrzałem** (**obejrzę** is future, but here it is “yesterday”).')),
             match('vocab.aspect', [
               ['czytać — przeczytać', t('читати — прочитати', 'читать — прочитать', 'to read — to read through')],
               ['pisać — napisać', t('писати — написати', 'писать — написать', 'to write — to finish writing')],
@@ -183,6 +187,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Na wsi, niedaleko Lublina.', t('У селі, недалеко від Любліна.', 'В деревне, недалеко от Люблина.', 'In a village near Lublin.')],
                   ['W wsi, niedaleko Lublina.', t('(у селі — **na wsi**)', '(в деревне — **na wsi**)', '(**na wsi**)')],
+                  ['Na wieś, niedaleko Lublina.', t('(де? — **na wsi** (місцевий); **na wieś** — «у село», напрямок)', '(где? — **na wsi** (предложный); **na wieś** — «в деревню», направление)', '(where? — **na wsi** (locative); **na wieś** means “to the village”, a direction)')],
                 ],
                 feedback: t('Kraj, miasto — **w**, але село — **na wsi**.', 'Страна, город — **w**, но деревня — **na wsi**.', 'Village: **na wsi**.'),
               },
@@ -192,6 +197,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Całe dnie bawiliśmy się na podwórku.', t('Цілими днями ми гралися у дворі.', 'Целыми днями мы играли во дворе.', 'We played in the yard all day long.')],
                   ['Całe dnie pobawiliśmy się na podwórku.', t('(повторювана дія — недоконаний: **bawiliśmy się**)', '(повторяющееся действие — несовершенный: **bawiliśmy się**)', '(repeated action: **bawiliśmy się**)')],
+                  ['Całe dnie bawiliście się na podwórku.', t('(про себе — «ми»: **bawiliśmy się**; **bawiliście** — «ви»)', '(о себе — «мы»: **bawiliśmy się**; **bawiliście** — «вы»)', '(about yourselves — “we”: **bawiliśmy się**; **bawiliście** means “you (plural)”)')],
                 ],
                 feedback: t('Звичка в минулому — недоконаний вид.', 'Привычка в прошлом — несовершенный вид.', 'Past habit — imperfective.'),
               },
@@ -244,6 +250,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Nie, przyjechałem tu dwa lata temu.', t('Ні, я приїхав сюди два роки тому.', 'Нет, я приехал сюда два года назад.', 'No, I came here two years ago.')],
                   ['Nie, przyjechałem tu przed dwa lata.', t('(«тому» — **temu** після часу: dwa lata **temu**)', '(«назад» — **temu** после срока: dwa lata **temu**)', '(“ago” — **temu**)')],
+                  ['Nie, przyjechałem tu od dwóch lat.', t('(**od dwóch lat** — «вже два роки» (триває); подія в минулому — **dwa lata temu**)', '(**od dwóch lat** — «уже два года» (длится); событие в прошлом — **dwa lata temu**)', '(**od dwóch lat** means “for two years” (still going); a past event — **dwa lata temu**)')],
                 ],
                 feedback: t('dwa lata **temu**, tydzień **temu**.', 'dwa lata **temu**, tydzień **temu**.', 'dwa lata **temu**.'),
               },
@@ -253,6 +260,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Tak, w zeszłym miesiącu pojechałem pociągiem do Torunia.', t('Так, минулого місяця я поїхав потягом до Торуня.', 'Да, в прошлом месяце я поехал на поезде в Торунь.', 'Yes, last month I took the train to Toruń.')],
                   ['Tak, w zeszłym miesiącu poszedłem pociągiem do Torunia.', t('(транспортом — **pojechałem**)', '(на транспорте — **pojechałem**)', '(by transport — **pojechałem**)')],
+                  ['Tak, w zeszłym miesiącu pojechałem pociąg do Torunia.', t('(чим? — орудний: **pociągiem**)', '(чем? — творительный: **pociągiem**)', '(by what? — instrumental: **pociągiem**)')],
                 ],
                 feedback: t('Пішки — **poszedłem**, транспортом — **pojechałem**.', 'Пешком — **poszedłem**, на транспорте — **pojechałem**.', 'On foot — **poszedłem**; by transport — **pojechałem**.'),
               },
@@ -315,6 +323,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Był wypadek. Samochód nagle wjechał na chodnik.', t('Сталася аварія. Машина раптом заїхала на тротуар.', 'Была авария. Машина вдруг заехала на тротуар.', 'There was an accident. A car suddenly drove onto the pavement.')],
                   ['Był wypadek. Samochód nagle wjeżdżał na chodnik.', t('(одна раптова подія — доконаний: **wjechał**)', '(одно внезапное событие — совершенный: **wjechał**)', '(a single sudden event: **wjechał**)')],
+                  ['Był wypadek. Samochód nagle wjechał na chodnika.', t('(**chodnik** — неживий: знахідний = називний: **na chodnik**)', '(**chodnik** — неодушевлённый: винительный = именительный: **na chodnik**)', '(**chodnik** is inanimate: the accusative equals the nominative — **na chodnik**)')],
                 ],
                 feedback: t('«Nagle» + одна подія — доконаний вид.', '«Nagle» + одно событие — совершенный вид.', '«Nagle» + one event — perfective.'),
               },
@@ -324,6 +333,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Na szczęście nikomu nic się nie stało.', t('На щастя, ніхто не постраждав.', 'К счастью, никто не пострадал.', 'Luckily, nobody was hurt.')],
                   ['Na szczęście nikt nic się nie stało.', t('(кому? — давальний: **nikomu**)', '(кому? — дательный: **nikomu**)', '(to whom? — dative: **nikomu**)')],
+                  ['Na szczęście nikogo nic się nie stało.', t('(**stać się** + давальний: **nikomu** się nie stało)', '(**stać się** + дательный: **nikomu** się nie stało)', '(**stać się** takes the dative: **nikomu** się nie stało)')],
                 ],
                 feedback: t('**Nikomu** nic się nie stało — «нікому нічого не сталося».', '**Nikomu** nic się nie stało — «никому ничего не случилось».', '**Nikomu** nic się nie stało.'),
               },
@@ -376,6 +386,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Urodziłem się w Kijowie w 1995 roku.', t('Я народився в Києві в 1995 році.', 'Я родился в Киеве в 1995 году.', 'I was born in Kyiv in 1995.')],
                   ['Urodziłem się w Kijowie w 1995 rok.', t('(рік — **w … roku**, місцевий)', '(год — **w … roku**, предложный)', '(year — **w … roku**)')],
+                  ['Urodziłem się w Kijów w 1995 roku.', t('(де? — **w** + місцевий: w **Kijowie**)', '(где? — **w** + предложный: w **Kijowie**)', '(where? — **w** + locative: w **Kijowie**)')],
                 ],
                 feedback: t('**w** 1995 **roku**, **w** zeszłym **roku**.', '**w** 1995 **roku**, **w** zeszłym **roku**.', '**w** + year + **roku**.'),
               },
@@ -385,6 +396,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Przeprowadziłem się tu po studiach, pięć lat temu.', t('Я переїхав сюди після навчання, п’ять років тому.', 'Я переехал сюда после учёбы, пять лет назад.', 'I moved here after university, five years ago.')],
                   ['Przeprowadziłem tu po studiach, pięć lat temu.', t('(переїхати — **przeprowadzić się**, з «się»)', '(переехать — **przeprowadzić się**, с «się»)', '(**przeprowadzić się** needs «się»)')],
+                  ['Przeprowadziłem się tu po studiach, za pięć lat.', t('(**za pięć lat** — «через п’ять років» (майбутнє); минуле — **pięć lat temu**)', '(**za pięć lat** — «через пять лет» (будущее); прошлое — **pięć lat temu**)', '(**za pięć lat** means “in five years” (future); the past is **pięć lat temu**)')],
                 ],
                 feedback: t('**Przeprowadziłem się** — переїхав; без «się» — «перевів (когось)».', '**Przeprowadziłem się** — переехал; без «się» — «перевёл (кого-то)».', '**przeprowadzić się** — to move house.'),
               },
@@ -447,6 +459,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Tak, wczoraj powiedział mi, że gra w operze.', t('Так, учора він сказав мені, що грає в опері.', 'Да, вчера он сказал мне, что играет в опере.', 'Yes, yesterday he told me he plays at the opera.')],
                   ['Tak, wczoraj powiedział mi, czy gra w operze.', t('(твердження — **że**)', '(утверждение — **że**)', '(statement — **że**)')],
+                  ['Tak, wczoraj powiedziałem mu, że gra w operze.', t('(це **він сказав мені**: **powiedział mi**; **powiedziałem mu** — «я сказав йому»)', '(это **он сказал мне**: **powiedział mi**; **powiedziałem mu** — «я сказал ему»)', '(it was **he who told me**: **powiedział mi**; **powiedziałem mu** means “I told him”)')],
                 ],
                 feedback: t('Powiedział, **że**…', 'Powiedział, **że**…', 'Powiedział, **że**…'),
               },
@@ -456,6 +469,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Zapytałem, ale odpowiedział, że jeszcze nie wie.', t('Спитав, але він відповів, що ще не знає.', 'Спросил, но он ответил, что ещё не знает.', 'I asked, but he said he doesn’t know yet.')],
                   ['Zapytałem, ale odpowiedział, czy jeszcze nie wie.', t('(відповідь — твердження: **że**)', '(ответ — утверждение: **że**)', '(an answer is a statement: **że**)')],
+                  ['Zapytałem, ale odpowiedziałem, że jeszcze nie wie.', t('(відповів **він**: **odpowiedział**; **odpowiedziałem** — «я відповів»)', '(ответил **он**: **odpowiedział**; **odpowiedziałem** — «я ответил»)', '(**he** answered: **odpowiedział**; **odpowiedziałem** means “I answered”)')],
                 ],
                 feedback: t('Питання — **czy**, відповідь — **że**.', 'Вопрос — **czy**, ответ — **że**.', 'Question — **czy**; answer — **że**.'),
               },
@@ -510,6 +524,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Nie, proszę nam ją opowiedzieć!', t('Ні, розкажіть її нам, будь ласка!', 'Нет, расскажите её нам, пожалуйста!', 'No, please tell us!')],
                   ['Nie, proszę nam ją powiedzieć!', t('(легенду **opowiada się** — розповідають; «powiedzieć» — сказати)', '(легенду **opowiada się** — рассказывают; «powiedzieć» — сказать)', '(a story is **opowiedzieć**, not «powiedzieć»)')],
+                  ['Nie, opowiedz nam ją!', t('(**państwo** — ввічлива форма: **proszę opowiedzieć**; «opowiedz» — на «ти»)', '(**państwo** — вежливая форма: **proszę opowiedzieć**; «opowiedz» — на «ты»)', '(**państwo** is the polite form: **proszę opowiedzieć**; “opowiedz” is informal)')],
                 ],
                 feedback: t('Історію, легенду — **opowiedzieć**; фразу — **powiedzieć**.', 'Историю, легенду — **opowiedzieć**; фразу — **powiedzieć**.', 'A story — **opowiedzieć**; a sentence — **powiedzieć**.'),
               },
@@ -519,6 +534,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Z diabłem! Słyszałem o tym.', t('З дияволом! Я чув про це.', 'С дьяволом! Я слышал об этом.', 'With the devil! I’ve heard about it.')],
                   ['Z diabeł! Słyszałem o tym.', t('(z + орудний: **z diabłem**)', '(z + творительный: **z diabłem**)', '(z + instrumental: **z diabłem**)')],
+                  ['Z diabła! Słyszałem o tym.', t('(**z** («з ким») + орудний: z **diabłem**; **z diabła** — «з диявола», звідки)', '(**z** («с кем») + творительный: z **diabłem**; **z diabła** — «из дьявола», откуда)', '(**z** (“with”) takes the instrumental: z **diabłem**; **z diabła** means “out of the devil”)')],
                 ],
                 feedback: t('**z** + орудний: z **diabłem**.', '**z** + творительный: z **diabłem**.', '**z diabłem**.'),
               },
@@ -577,6 +593,7 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Świetnie! Byłyśmy w operze i na Wyspie Młyńskiej.', t('Чудово! Ми були в опері й на Млиновому острові.', 'Отлично! Мы были в опере и на Мельничном острове.', 'Great! We went to the opera and Mill Island.')],
                   ['Świetnie! Byliśmy w operze i na Wyspie Młyńskiej.', t('(лише дівчата — **byłyśmy**)', '(только девушки — **byłyśmy**)', '(women only — **byłyśmy**)')],
+                  ['Świetnie! Były w operze i na Wyspie Młyńskiej.', t('(про себе — «ми»: **byłyśmy**; **były** — «вони були»)', '(о себе — «мы»: **byłyśmy**; **były** — «они были»)', '(about yourselves — “we”: **byłyśmy**; **były** means “they were”)')],
                 ],
                 feedback: t('Лише жінки — **byłyśmy**.', 'Только женщины — **byłyśmy**.', 'Women only — **byłyśmy**.'),
               },
@@ -586,12 +603,13 @@ export const BYDGOSZCZ: CityContent = {
                 choose: [
                   ['Tak, pojawiła się w oknie dokładnie o 13:13.', t('Так, вона з’явилася у вікні рівно о 13:13.', 'Да, она появилась в окне ровно в 13:13.', 'Yes, it appeared in the window at exactly 13:13.')],
                   ['Tak, pojawiała się w oknie dokładnie o 13:13.', t('(одна подія — доконаний: **pojawiła się**)', '(одно событие — совершенный: **pojawiła się**)', '(one event — perfective: **pojawiła się**)')],
+                  ['Tak, pojawi się w oknie dokładnie o 13:13.', t('(питають про побачене: **pojawiła się**; **pojawi się** — «з’явиться»)', '(спрашивают о увиденном: **pojawiła się**; **pojawi się** — «появится»)', '(the question is about what you saw: **pojawiła się**; **pojawi się** means “will appear”)')],
                 ],
                 feedback: t('Одна подія в конкретний момент — **pojawiła się**.', 'Одно событие в конкретный момент — **pojawiła się**.', 'One event — **pojawiła się**.'),
               },
             ], { situation: true, scene: t('Старий Ринок у Бидгощі', 'Старый Рынок в Быдгоще', 'The Old Market Square in Bydgoszcz') }),
-            fillGap('grammar.boss', 'Wczoraj ___ cały film do końca.', ['obejrzałem', 'oglądałem', 'oglądam'], t('Учора я подивився весь фільм до кінця.', 'Вчера я посмотрел весь фильм до конца.', 'Yesterday I watched the whole film to the end.'),
-              t('«Do końca» — результат: **obejrzałem**.', '«Do końca» — результат: **obejrzałem**.', 'Result — **obejrzałem**.')),
+            fillGap('grammar.boss', 'Wczoraj ___ cały film do końca.', ['obejrzałem', 'oglądałem', 'obejrzę'], t('Учора я подивився весь фільм до кінця.', 'Вчера я посмотрел весь фильм до конца.', 'Yesterday I watched the whole film to the end.'),
+              t('«Do końca» — результат, «wczoraj» — минулий час: **obejrzałem** (не **obejrzę**).', '«Do końca» — результат, «вчера» — прошедшее время: **obejrzałem** (не **obejrzę**).', 'Result + “yesterday” = perfective past: **obejrzałem** (not **obejrzę**).')),
             match('vocab.boss', [
               ['dwa lata temu', t('два роки тому', 'два года назад', 'two years ago')],
               ['w dzieciństwie', t('у дитинстві', 'в детстве', 'in childhood')],
