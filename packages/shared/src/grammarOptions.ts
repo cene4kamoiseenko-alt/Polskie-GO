@@ -122,6 +122,16 @@ export const GRAMMAR_DISTRACTORS: Readonly<Record<string, readonly [string, stri
   'Piotr|Piotrze': ['Piotr', 'Piotra', 'Piotrem'],
   'wiedzieć|wiedzą': ['wiem', 'wie', 'wiecie'],
   'osiemdziesiąt|osiemdziesiątym': ['osiemdziesiąty', 'osiemdziesiątego', 'osiemdziesiątemu'],
+  // Lublin (B1): документи та установи
+  'załatwić|załatwiłem': ['załatwię', 'załatwiam', 'załatwić'],
+  'podpisany|podpisaną': ['podpisany', 'podpisana', 'podpisanej'],
+  'dwudziesty|dwudziestego': ['dwudziesty', 'dwudziestym', 'dwudziestej'],
+  'ważny|ważna': ['ważny', 'ważne', 'ważną'],
+  'wtorek|wtorku': ['wtorek', 'wtorkiem', 'wtorki'],
+  'wpłacić|wpłaciłem': ['wpłacę', 'wpłacam', 'wpłacić'],
+  'czynsz|czynszu': ['czynsz', 'czynszem', 'czynsze'],
+  'zbudować|zbudowano': ['zbudowany', 'zbudowana', 'zbudować'],
+  'złożyć|złożyłem': ['złożę', 'składam', 'złożyć'],
 };
 
 /** Ключ записи таблицы для задания: основа и первая принятая форма. */

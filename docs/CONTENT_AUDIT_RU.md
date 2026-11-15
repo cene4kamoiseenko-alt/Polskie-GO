@@ -529,6 +529,22 @@ pełny etat, nadgodziny, doświadczenie, zamienić się, apteczka (A2 или B1)
 - Контент-линт: 16 срабатываний диакритики разобраны вручную (именительный падеж, третье лицо, умышленно неверные варианты) и внесены в `PLAIN_OK` с причиной.
 - Нужна проверка носителем.
 
+## Lublin — «Документы и учреждения», B1 (2026-11-15)
+- Файлы: `lublin.ts` (уроки 1–4, маршруты), `lublin-5-8.ts` (уроки 5–8 и экзамен), `vocab-lublin.ts` (50 новых слов). 4 темы: 8 уроков и экзамен `lub-boss`, по 12 заданий.
+  - L1 `lub-1-sprawa`: дело в учреждении — **w sprawie** + родительный, **załatwić sprawę**, **pobrać numerek**, **do którego okienka**, **od … do** (часы приёма).
+  - L2 `lub-2-wniosek`: заявление и приложения — **złożyć wniosek o** + винительный, **załącznik, kopia, podpis, pieczątka**, причастия-прилагательные **wymagany / wypełniony / podpisany**.
+  - L3 `lub-3-dane`: анкета и даты — **stan cywilny, nazwisko panieńskie, miejsce urodzenia, PESEL**; дата в родительном: **piątego maja tysiąc dziewięćset dziewięćdziesiątego roku**.
+  - L4 `lub-4-pobyt`: карта побыта — **ważny do** + родительный, **przedłużyć / wygasnąć**, **w ciągu** + родительный, **zezwolenie na pobyt**, **odciski palców**.
+  - L5 `lub-5-poczta`: почта — **awizo, nadawca / adresat, kod pocztowy**, **list polecony za potwierdzeniem odbioru**, **od / do** + родительный.
+  - L6 `lub-6-bank`: банк — **wpłacić / wypłacić** (вид), **numer konta, saldo, zablokować kartę**, вежливо: **chciałbym…, czy mógłbym…?**
+  - L7 `lub-7-umowa`: договор — **zawrzeć / wypowiedzieć umowę, okres wypowiedzenia, zobowiązać się do** + родительный, **na podstawie, w razie** + родительный.
+  - L8 `lub-8-unia`: Люблин и уния 1569 года — безличные формы на **-no / -to** (**zawarto, podpisano, zbudowano**), **w 1569 roku**, **Stare Miasto**, **cebularz**.
+  - Экзамен `lub-boss`: 12 заданий, ситуация — городская управа в Люблине.
+- Правила качества соблюдены: три варианта в шагах диалога (неверные — разной природы, с пояснением), верный вариант самый длинный не чаще половины шагов, чтение «на вывод», «лишнее слово» по грамматической разнице. `scripts/exercise-quality.ts --strict lublin` — без замечаний; `scripts/lesson-render-check.ts lublin` — 96 заданий × 4 ширины × ru / uk, замечаний нет.
+- Контент-линт: 12 срабатываний диакритики разобраны вручную (именительный падеж, третье лицо, родительный названия месяца) и внесены в `PLAIN_OK` с причиной.
+- Факты и юридические детали проверить носителем и источниками: Люблинская уния заключена в 1569 г. и объединила Корону и Великое княжество Литовское; памятник унии стоит на пл. Литовской; цебуляж — люблинская лепёшка с луком. Названия «Bank Lubelski», суммы, сроки («w ciągu trzydziestu dni»), структура анкеты и договора **учебные** и не заменяют консультацию по реальным правилам.
+- Нужна проверка носителем (все новые польские тексты и неверные варианты).
+
 ## 2026-11-14 — проверки речи отключены: судьба заданий «Скажи вслух» (решение владельца)
 Владелец: «Проверки речи отключаем». В приложении больше нет микрофона, записи, распознавания (Azure/Google STT и `SpeechRecognition` браузера) и оценки произношения.
 - **Ни одно задание не удалено и не перенесено.** Все 120 заданий `PRONUNCIATION` (из 1767 заданий уроков; Toruń, Poznań, Opole, Olsztyn, Łódź, Gdynia, Bydgoszcz, Białystok — по 9, Wrocław и Warszawa — по 8, Kraków — 7, Zielona Góra — 6, Katowice, Gorzów и Gdańsk — по 5, Szczecin — 4) остаются в своих уроках на своих местах, тексты и переводы не менялись.

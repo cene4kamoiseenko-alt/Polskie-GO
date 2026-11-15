@@ -27,6 +27,8 @@ import { OLSZTYN } from '../src/content/olsztyn';
 import { OLSZTYN_VOCAB } from '../src/content/vocab-olsztyn';
 import { BIALYSTOK } from '../src/content/bialystok';
 import { BIALYSTOK_VOCAB } from '../src/content/vocab-bialystok';
+import { LUBLIN } from '../src/content/lublin';
+import { LUBLIN_VOCAB } from '../src/content/vocab-lublin';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -167,6 +169,17 @@ citySuite({
   routes: ['bia-dzien', 'bia-zdrowie', 'bia-uslugi', 'bia-podlasie', 'bia-egzamin'],
   lessons: ['bia-1-spiesze-sie', 'bia-2-cieszy-sie', 'bia-3-boli', 'bia-4-apteka', 'bia-5-fryzjer', 'bia-6-serwis', 'bia-7-puszcza', 'bia-8-zamenhof'],
   boss: 'bia-boss',
+  levels: ['B1'],
+  richDialogues: true,
+});
+
+citySuite({
+  label: 'Lublin',
+  content: LUBLIN,
+  vocab: LUBLIN_VOCAB,
+  routes: ['lub-urzad', 'lub-dokumenty', 'lub-poczta-bank', 'lub-umowa-unia', 'lub-egzamin'],
+  lessons: ['lub-1-sprawa', 'lub-2-wniosek', 'lub-3-dane', 'lub-4-pobyt', 'lub-5-poczta', 'lub-6-bank', 'lub-7-umowa', 'lub-8-unia'],
+  boss: 'lub-boss',
   levels: ['B1'],
   richDialogues: true,
 });

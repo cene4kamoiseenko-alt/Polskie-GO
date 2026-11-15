@@ -166,6 +166,10 @@ const PLAIN_OK: Record<string, string[]> = {
     'bia-3-boli#0 czuje', 'bia-4-apteka#0 jedna', 'bia-4-apteka#0 tabletka', 'bia-5-fryzjer#6 niedziele', 'bia-7-puszcza#0 jedna',
     'bia-7-puszcza#9 jedna', 'bia-boss#5 czuje', 'bia-boss#5 jedna', 'bia-boss#5 tabletka', 'bia-boss#9 jedna',
   ],
+  'Люблін (і один рядок Познані): називний (nadawca, paczka, nowa karta, niedziele — множина), родовий місяця (trzeciego maja), 3-тя особа однини (chce pan, zostaje, interesuje się) — форми на -ę / -ą тут були б помилкою': [
+    'pzn-5-zajmuje-sie#0 interesuje', 'lub-1-sprawa#6 niedziele', 'lub-3-dane#2 maja', 'lub-3-dane#9 maja', 'lub-5-poczta#0 nadawca', 'lub-5-poczta#3 nadawca',
+    'lub-5-poczta#6 nadawca', 'lub-5-poczta#9 paczka', 'lub-6-bank#0 chce', 'lub-6-bank#6 nowa', 'lub-7-umowa#0 zostaje', 'lub-7-umowa#6 zostaje',
+  ],
   'Вправа на розрізнення літер: варіант без діакритики — навмисний дистрактор (ż / z, rz / r)': [
     'lodz-1-alfabet#6 zaba', 'lodz-2-dwuznaki#2 reka', 'lodz-boss#1 reka',
   ],
