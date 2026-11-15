@@ -28,10 +28,14 @@ export function HouseCard() {
   const left = Math.max(0, (st?.goalXp ?? me.today.goalXp) - (st?.xp ?? me.today.xp));
   const status = isNight() ? t('house_state_night') : st?.goalDone ? t('house_state_done') : t('house_state_wait', { n: left });
   const bonusReady = !!st && st.goalDone && !st.claimed;
+  // Дом откликается на серию: с серией — тёплый свет, серия прервалась — дом «остыл» (приглашение вернуться, а не упрёк).
+  const streak = me.progress.streak;
+  const warm = streak >= 3;
+  const cold = streak === 0;
   return (
     <button type="button" onClick={() => { haptic.tap(); nav('/house'); }} className="card mx-4 block w-[calc(100%-2rem)] overflow-hidden text-left" data-home-house>
       <span ref={box} className="relative block aspect-[2/1] bg-muted">
-        {small && seen && <img src={small} alt="" decoding="async" draggable={false} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: '50% 40%' }} />}
+        {small && seen && <img src={small} alt="" decoding="async" draggable={false} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: '50% 40%', filter: warm ? 'saturate(1.12) brightness(1.04)' : cold ? 'saturate(0.7) brightness(0.92)' : undefined }} />}
         <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-night/75 px-2.5 py-1 text-[12px] font-black text-white backdrop-blur-sm">
           <Icon name="home" size={14} /> {t('house_title')}
         </span>
@@ -45,6 +49,7 @@ export function HouseCard() {
         <span className="min-w-0 flex-1">
           <span className="block text-[16px] font-black leading-tight" lang="pl">{HOMES[slug]?.pl ?? t('house_title')}</span>
           <span className="muted block text-[13px] font-bold leading-snug" data-home-house-status>{bonusReady ? t('house_bonus_ready_d', { n: st.bonus }) : status}</span>
+          <span className={`mt-1 block text-[12px] font-black ${warm ? 'text-coral' : 'muted'}`} data-home-house-streak>{cold ? t('house_streak_cold') : t('house_streak_warm', { n: streak })}</span>
           {st?.next && HOMES[st.next.slug] && (
             <span className="mt-2 block">
               <span className="muted mb-1 block text-[11.5px] font-black">{t('house_next', { name: HOMES[st.next.slug].pl, have: num(Math.min(me.zlotki, st.next.price)), price: num(st.next.price) })}</span>

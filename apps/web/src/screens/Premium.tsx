@@ -11,8 +11,8 @@ import { useMe } from '../lib/queries';
 import { Beaver } from '../components/Beaver';
 import { Card, Confetti, ScreenHeader, ScreenSkeleton, cx, useToast } from '../components/ui';
 import { Art } from '../components/GameArt';
-import { artImage } from '../lib/assets';
 import { missionsQuery } from '../components/MissionCard';
+import { todayBanner } from '../lib/premiumBanner';
 import { useNavigate } from 'react-router-dom';
 
 type Plan = { code: string; months: number; priceStars: number; recurring: boolean; title: never };
@@ -38,21 +38,6 @@ const FEATURES: [LineIconName, TKey, TKey][] = [
   ['gift', 'prem_gift', 'prem_gift_d'],
   ['crown', 'prem_items', 'prem_items_d'],
 ];
-
-/** Баннери власника (2026-11-02, scripts/build-premium-art.mjs): змінюються раз на день за місцевою датою. Немає файлу — намальована шапка, як раніше. */
-const BANNERS = [
-  { file: 'premium-oldtown', width: 1200 },
-  { file: 'premium-mountains', width: 756 },
-];
-export function todayBanner(now = new Date()): { file: string; src: string; srcSet: string | undefined } | null {
-  const list = BANNERS.flatMap((b) => {
-    const art = artImage('premium', b);
-    return art ? [{ file: b.file, ...art }] : [];
-  });
-  if (!list.length) return null;
-  const day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000);
-  return list[day % list.length];
-}
 
 /** Перший день наступного місяця (місяць подарунка — «YYYY-MM»). */
 const nextMonthStart = (month: string) => {

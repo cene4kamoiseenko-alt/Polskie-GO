@@ -1,5 +1,5 @@
 import { motion } from '../lib/motion';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
@@ -15,10 +15,13 @@ import { HouseCard } from '../components/HouseCard';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
-import { haptic } from '../lib/telegram';
+import { botCanMessage, haptic, requestWriteAccessResult } from '../lib/telegram';
+import { store } from '../lib/storage';
 import { missionsQuery } from '../components/MissionCard';
 import { Scene } from '../components/Illustrations';
 import { SeasonCover } from '../components/MissionScene';
+import { readLastCity, rememberCity } from '../lib/lastCity';
+import { todayBanner } from '../lib/premiumBanner';
 
 export const RANKS: [number, string][] = [
   [40, 'Mistrz polszczyzny'],
@@ -74,9 +77,16 @@ export function TopStats({ compact, left }: { compact?: boolean; /** Вмест�
       <button onClick={() => nav('/shop')} aria-label="Złotki" className="hud-pill">
         <Art name="coin" size={22} /> <span className="text-xp">{me.zlotki}</span>
       </button>
-      <button onClick={() => nav('/premium')} aria-label="Premium" className={round}>
-        <Art name="crown" size={24} />
-      </button>
+      {me.premium.active ? (
+        <button onClick={() => nav('/premium')} aria-label="Premium" className={round}>
+          <Art name="crown" size={24} />
+        </button>
+      ) : (
+        // Золотая плашка с подписью: одна иконка-корона игроки не замечали (владелец 2026-11-15).
+        <button onClick={() => { haptic.tap(); nav('/premium'); }} aria-label="Premium" className="premium-pill" data-premium-pill>
+          <Art name="crown" size={22} /> <span className="premium-pill-label">Premium</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -100,6 +110,78 @@ function CitySign({ name }: { name: string }) {
   );
 }
 
+const WA_KEY = 'pg:write-access';
+const WA_ASK_AGAIN_MS = 4 * 86_400_000;
+/** Спрашивать ли разрешение писать в личные: бот не может написать, пока игрок его не разрешил или не нажал /start в чате с ботом. */
+function shouldAskWriteAccess() {
+  if (botCanMessage() !== false) return false;
+  const v = store.get(WA_KEY);
+  if (v === 'granted') return false;
+  const asked = Number(v?.startsWith('later:') ? v.slice(6) : 0);
+  return !asked || Date.now() - asked > WA_ASK_AGAIN_MS;
+}
+
+/** Плашка «разреши Бобеку писать»: без неё вопрос дня и напоминания не доходят до тех, кто открыл игру по ссылке и не нажимал /start. */
+function WriteAccessCard() {
+  const { t } = useT();
+  const toast = useToast();
+  const [show, setShow] = useState(shouldAskWriteAccess);
+  if (!show) return null;
+  const allow = async () => {
+    haptic.tap();
+    const r = await requestWriteAccessResult();
+    if (r === 'allowed') {
+      store.set(WA_KEY, 'granted');
+      toast(t('wa_done'), '🦫');
+    } else store.set(WA_KEY, `later:${Date.now()}`);
+    setShow(false);
+  };
+  const later = () => {
+    store.set(WA_KEY, `later:${Date.now()}`);
+    setShow(false);
+  };
+  return (
+    <div className="card mx-4 flex items-center gap-3 p-3.5" data-write-access>
+      <Beaver mood="happy" size={52} />
+      <div className="min-w-0 flex-1">
+        <div className="text-[15px] font-black leading-tight">{t('wa_title')}</div>
+        <div className="muted mt-0.5 text-[12.5px] font-bold leading-snug">{t('wa_body')}</div>
+        <div className="mt-2 flex gap-2">
+          <button className="btn btn-red !min-h-[40px] flex-1 !px-3 text-[13.5px]" onClick={() => void allow()}>{t('wa_allow')}</button>
+          <button className="btn btn-ghost !min-h-[40px] !px-3 text-[13px]" onClick={later}>{t('wa_later')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Узкий баннер Premium на главной — только для тех, у кого его нет: картинка дня владельца, что даёт подписка и кнопка «Открыть». */
+function PremiumTeaser() {
+  const { t } = useT();
+  const nav = useNavigate();
+  const me = useMe().data;
+  if (!me || me.premium.active) return null;
+  const banner = todayBanner();
+  return (
+    <button
+      onClick={() => { haptic.tap(); nav('/premium'); }}
+      className="relative mx-4 block w-[calc(100%-2rem)] overflow-hidden rounded-[24px] border-2 border-[#F5C451]/70 bg-night text-left shadow-[var(--shadow-card)] active:scale-[0.99]"
+      data-premium-teaser
+    >
+      {banner && <img src={banner.src} srcSet={banner.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" draggable={false} />}
+      <span className="absolute inset-0 bg-gradient-to-r from-night/90 via-night/60 to-night/10" aria-hidden />
+      <span className="relative flex items-center gap-3 px-3.5 py-3.5">
+        <Art name="crown" size={36} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-black text-white">Premium</span>
+          <span className="block text-[12px] font-bold leading-snug text-white/90">{t('home_premium_teaser')}</span>
+        </span>
+        <span className="shrink-0 rounded-full bg-[#F5C451] px-3 py-1.5 text-[12.5px] font-black text-[#5A3B00]">{t('home_premium_open')} →</span>
+      </span>
+    </button>
+  );
+}
+
 export function HomeScreen() {
   const { t } = useT();
   const nav = useNavigate();
@@ -109,6 +191,13 @@ export function HomeScreen() {
 
   const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
   const next = journey.data?.nextLesson;
+  // Пока приходит маршрут, баннер рисуется по последнему городу этого устройства (а не «Варшавой» с последующей подменой кадра).
+  const loadingJourney = !journey.data;
+  const [last] = useState(readLastCity);
+  const shown = current ?? (loadingJourney ? last : null);
+  useEffect(() => {
+    if (current) rememberCity({ slug: current.slug, color: current.color, namePl: current.namePl });
+  }, [current?.slug, current?.color, current?.namePl]); // eslint-disable-line react-hooks/exhaustive-deps
   const rank = rankFor(me.progress.level);
   // Розмір бобра — від ширини екрана (360 → 176, 430 → 200), щоб картки праворуч не перекривали персонажа.
   const heroBeaver = 188;
@@ -121,12 +210,12 @@ export function HomeScreen() {
 
       {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія */}
       <div className="hero-card mx-4">
-        <CityHero slug={current?.slug ?? 'warszawa'} color={current?.color ?? '#36B9FF'} name={current?.namePl ?? 'Warszawa'} height={256} eager>
+        <CityHero slug={shown?.slug ?? 'warszawa'} color={shown?.color ?? '#36B9FF'} name={shown?.namePl ?? 'Warszawa'} height={256} eager>
           <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.38), transparent 55%)' }} />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-night/45 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-night/50 to-transparent" />
           {/* Покажчик міста позаду бобра */}
-          <CitySign name={current?.namePl ?? 'Warszawa'} />
+          {shown && <CitySign name={shown.namePl} />}
           {/* Бобек у поточному образі — головний персонаж банера, картки його не закривають */}
           <motion.div className="home-hero-beaver absolute bottom-0 -left-1" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
             <Beaver mood="happy" size={heroBeaver} />
@@ -136,7 +225,7 @@ export function HomeScreen() {
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-black text-mist">{t('home_cur_city')}</div>
                 <div className="flex min-w-0 items-center gap-1 text-[18px] font-black leading-tight text-white">
-                  <Icon name="pin" size={17} className="shrink-0 text-coral" filled /> <span className="min-w-0" lang="pl" style={{ fontSize: (current?.namePl.length ?? 0) > 10 ? 15 : undefined }}>{current?.namePl ?? '—'}</span>
+                  <Icon name="pin" size={17} className="shrink-0 text-coral" filled /> <span className="min-w-0" lang="pl" style={{ fontSize: (shown?.namePl.length ?? 0) > 10 ? 15 : undefined }}>{shown?.namePl ?? '—'}</span>
                 </div>
               </div>
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/25 text-white"><Icon name="chevron-right" size={16} /></span>
@@ -155,16 +244,22 @@ export function HomeScreen() {
           <motion.button
             whileTap={{ scale: 0.96 }}
             whileHover={{ y: -1 }}
-            onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : '/map'); }}
+            onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : loadingJourney ? '/learn' : '/map'); }}
             className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[57%] !min-h-[50px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
           >
-            <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{next ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
+            <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{next || loadingJourney ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
           </motion.button>
         </CityHero>
       </div>
 
       {/* Сьогодні: щоденні завдання + велика нагорода */}
       <TodayTasks lessonId={next?.id} />
+
+      {/* Разрешение боту писать: без него не доходят вопрос дня и напоминания */}
+      <WriteAccessCard />
+
+      {/* Premium: для тех, у кого его нет — заметный баннер (раньше был только значок-корона в шапке) */}
+      <PremiumTeaser />
 
       {/* Пропуск місяця: сезонна локація з власними місіями */}
       <PassCard />

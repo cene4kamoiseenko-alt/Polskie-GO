@@ -2237,3 +2237,33 @@ html.reduced-motion .map-here-ring { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .pg-pass * { transition: none !important; animation: none !important; }
 }
+
+
+/* Premium в шапке главной: золотая плашка с подписью (владелец 2026-11-15: значок-корону не замечали). */
+.premium-pill {
+  display: inline-flex;
+  height: 38px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  border: 1.5px solid #e0a82a;
+  background: linear-gradient(180deg, #ffe7a3, #f5c451);
+  padding: 0 11px 0 7px;
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #5a3b00;
+  box-shadow: 0 0 0 0 rgb(245 196 81 / 0.55);
+  animation: premium-glow 2.8s ease-in-out infinite;
+}
+@keyframes premium-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(245 196 81 / 0.5); }
+  50% { box-shadow: 0 0 0 6px rgb(245 196 81 / 0); }
+}
+@media (max-width: 339px) {
+  .premium-pill { padding: 0 7px; }
+  .premium-pill-label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .premium-pill { animation: none; }
+}

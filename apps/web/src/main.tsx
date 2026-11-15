@@ -7,6 +7,7 @@ import { initTelegram, tg } from './lib/telegram';
 import { guessLang, preloadLang } from './i18n';
 import { installErrorReporting } from './lib/errorReport';
 import { isStandalone } from './lib/platform';
+import { preloadLastCity } from './lib/lastCity';
 import './index.css';
 
 installErrorReporting();
@@ -17,6 +18,8 @@ if (isStandalone && import.meta.env.PROD && 'serviceWorker' in navigator) {
 }
 // Словник мови користувача вантажиться одразу, паралельно з авторизацією.
 void preloadLang(guessLang(tg?.initDataUnsafe.user?.language_code));
+// Картинка последнего города грузится во время заставки: главная не показывает её «по кусочкам».
+preloadLastCity();
 
 const queryClient = new QueryClient({
   // Дані кешуються на хвилину; після навчальних подій потрібні ключі інвалідовуються явно.

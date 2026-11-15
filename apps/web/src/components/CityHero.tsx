@@ -3,7 +3,7 @@
  * заставки (Вавель, Маріацький костел, кам'яниці, Żabka); для інших міст — вулиця старого
  * міста з великою пам'яткою цього міста. Дорожній вказівник з назвою міста.
  */
-import { memo, type ReactNode } from 'react';
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { CityLayers } from './CityScenes';
 import { cityArtImage } from '../lib/assets';
 import { FarCityArt, MidCityArt, PlazaArt } from './SplashWorld';
@@ -20,6 +20,35 @@ function Signpost({ name }: { name: string }) {
   );
 }
 
+/** Фото города: появляется плавно, когда загружено целиком (а не сверху вниз по кусочкам); пока грузится — фон цвета города. */
+function HeroPhoto({ src, srcSet, sizes, eager }: { src: string; srcSet?: string; sizes?: string; eager?: boolean }) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const img = ref.current;
+    if (!img) return;
+    if (img.complete) setReady(true);
+    // decode() ждёт, пока кадр будет готов к показу; при ошибке показываем как есть.
+    else void img.decode?.().then(() => setReady(true), () => setReady(true));
+  }, [src]);
+  return (
+    <img
+      ref={ref}
+      src={src}
+      srcSet={srcSet}
+      sizes={sizes}
+      alt=""
+      className="absolute inset-0 h-full w-full object-cover"
+      style={{ opacity: ready ? 1 : 0, transition: 'opacity 220ms ease-out' }}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      draggable={false}
+      onLoad={() => setReady(true)}
+      onError={() => setReady(true)}
+    />
+  );
+}
+
 export const CityHero = memo(function CityHero({ slug, color, name, height = 236, className = '', children, evening, sign = true, skyline, eager, sizes = '100vw' }: { slug: string; color: string; name: string; height?: number; className?: string; children?: ReactNode; evening?: boolean; sign?: boolean; /** Невисока картка: панорама з пам'ятками праворуч (без площі на передньому плані). */ skyline?: boolean; /** Перший екран (банер головної, уроків): без lazy. */ eager?: boolean; /** Ширина на екрані для вибору варіанта з srcset. */ sizes?: string }) {
   const krakow = slug === 'krakow';
   const photo = cityArtImage(slug);
@@ -27,8 +56,8 @@ export const CityHero = memo(function CityHero({ slug, color, name, height = 236
   const pos = /\babsolute\b/.test(className) ? '' : 'relative';
   if (photo) {
     return (
-      <div className={`${pos} overflow-hidden ${className}`} style={{ height }}>
-        <img src={photo.src} srcSet={photo.srcSet} sizes={photo.srcSet ? sizes : undefined} alt="" className="absolute inset-0 h-full w-full object-cover" loading={eager ? 'eager' : 'lazy'} decoding="async" draggable={false} />
+      <div className={`${pos} overflow-hidden ${className}`} style={{ height, backgroundColor: color, backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.30), rgba(8,18,48,0.35))' }}>
+        <HeroPhoto src={photo.src} srcSet={photo.srcSet} sizes={photo.srcSet ? sizes : undefined} eager={eager} />
         {children}
       </div>
     );

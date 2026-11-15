@@ -3,7 +3,7 @@ type HapticStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft';
 
 export type TgWebApp = {
   initData: string;
-  initDataUnsafe: { user?: { id: number; first_name: string; photo_url?: string; language_code?: string }; start_param?: string };
+  initDataUnsafe: { user?: { id: number; first_name: string; photo_url?: string; language_code?: string; allows_write_to_pm?: boolean }; start_param?: string };
   version: string;
   platform: string;
   colorScheme: 'light' | 'dark';
@@ -75,28 +75,50 @@ export const haptic = {
  * и браузер (там нечего спрашивать) и зависшее окно считаются «можно». Отказ ничего не ломает — напоминание останется выбранным
  * и заработает, как только игрок напишет боту.
  */
-export function requestBotWriteAccess(): Promise<boolean> {
+export type WriteAccessResult = 'allowed' | 'denied' | 'unsupported';
+
+/** То же окно, но с подробным ответом: «разрешил», «отказал» или «нечего спрашивать» (старый клиент, браузер, окно не закрыли). */
+export function requestWriteAccessResult(): Promise<WriteAccessResult> {
   return new Promise((resolve) => {
-    if (!tg || typeof tg.requestWriteAccess !== 'function') return resolve(true);
+    if (!tg || typeof tg.requestWriteAccess !== 'function') return resolve('unsupported');
     try {
-      if (!tg.isVersionAtLeast('6.9')) return resolve(true);
+      if (!tg.isVersionAtLeast('6.9')) return resolve('unsupported');
     } catch {
-      return resolve(true);
+      return resolve('unsupported');
     }
     let done = false;
-    const finish = (ok: boolean) => {
+    const finish = (r: WriteAccessResult) => {
       if (done) return;
       done = true;
-      resolve(ok);
+      resolve(r);
     };
     try {
-      tg.requestWriteAccess((allowed) => finish(allowed !== false));
+      tg.requestWriteAccess((allowed) => finish(allowed === false ? 'denied' : 'allowed'));
     } catch {
-      finish(true);
+      finish('unsupported');
     }
     // Окно могут не закрыть ни «разрешить», ни «отклонить» (свернули приложение): интерфейс не должен ждать вечно.
-    setTimeout(() => finish(true), 60_000);
+    setTimeout(() => finish('unsupported'), 60_000);
   });
+}
+
+export async function requestBotWriteAccess(): Promise<boolean> {
+  return (await requestWriteAccessResult()) !== 'denied';
+}
+
+/**
+ * Может ли бот писать этому игроку в личные сообщения: Telegram передаёт `allows_write_to_pm` в данных запуска. Если нет (человек открыл
+ * Mini App по ссылке и не нажимал /start), вопрос дня и напоминания до него не дойдут. Вне Telegram и в старых клиентах — null («не знаем»).
+ */
+export function botCanMessage(): boolean | null {
+  const user = tg?.initDataUnsafe.user;
+  if (!tg || !user) return null;
+  try {
+    if (!tg.isVersionAtLeast('6.9')) return null;
+  } catch {
+    return null;
+  }
+  return user.allows_write_to_pm === true;
 }
 
 export function startParam(): string | undefined {
