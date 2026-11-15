@@ -15,6 +15,7 @@ import { HouseCard } from '../components/HouseCard';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { HeroBeaver } from '../components/HeroBeaver';
+import { StreakCard, StreakIndicator } from '../components/StreakCard';
 import { RewardModal } from '../components/game';
 import { sfx } from '../lib/audio';
 import { botCanMessage, haptic, requestWriteAccessResult } from '../lib/telegram';
@@ -73,22 +74,15 @@ export function TopStats({ compact, left }: { compact?: boolean; /** Вмест�
           <Wordmark size={19} />
         </button>
       )}
-      <button onClick={() => nav('/profile')} aria-label={t('profile_streak')} className="hud-pill">
-        <Art name="flame" size={22} /> <span className="text-coral">{me.progress.streak}</span>
-      </button>
+      {/* Огонёк серии открывает панель серии (календарь недели, рекорд, ближайшая цель), а не профиль (владелец 2026-11-15). */}
+      <StreakIndicator />
       <button onClick={() => nav('/shop')} aria-label="Złotki" className="hud-pill">
         <Art name="coin" size={22} /> <span className="text-xp">{me.zlotki}</span>
       </button>
-      {me.premium.active ? (
-        <button onClick={() => nav('/premium')} aria-label="Premium" className={round}>
-          <Art name="crown" size={24} />
-        </button>
-      ) : (
-        // Золотая плашка с подписью: одна иконка-корона игроки не замечали (владелец 2026-11-15).
-        <button onClick={() => { haptic.tap(); nav('/premium'); }} aria-label="Premium" className="premium-pill" data-premium-pill>
-          <Art name="crown" size={22} /> <span className="premium-pill-label">Premium</span>
-        </button>
-      )}
+      {/* Золотая плашка с подписью — и без подписки, и с ней: одну круглую корону не замечали (владелец 2026-11-15, дважды). */}
+      <button onClick={() => { haptic.tap(); nav('/premium'); }} aria-label="Premium" className={cx('premium-pill', me.premium.active && 'is-active')} data-premium-pill>
+        <Art name="crown" size={22} /> <span className="premium-pill-label">Premium</span>
+      </button>
     </div>
   );
 }
@@ -169,7 +163,6 @@ type WeekDay = { day: string; xp: number };
  */
 function WeekStrip() {
   const { t, lang } = useT();
-  const nav = useNavigate();
   const me = useMe().data!;
   const reduce = useReducedMotion();
   const stats = useQuery({ queryKey: ['stats', 7], queryFn: () => api<{ days: WeekDay[] }>('/me/stats?days=7') });
@@ -177,6 +170,8 @@ function WeekStrip() {
   const goalDone = me.today.xp >= me.today.goalXp;
   const streak = me.progress.streak;
   const [picked, setPicked] = useState<number | null>(null);
+  // Раньше нажатие вело в профиль, где о серии почти ничего нет (владелец 2026-11-15) — теперь панель серии прямо здесь.
+  const [streakOpen, setStreakOpen] = useState(false);
   const toast = useToast();
   const fmt = (day: string, weekday: 'short' | 'long') => new Intl.DateTimeFormat(lang, { weekday, timeZone: 'UTC' }).format(new Date(`${day}T12:00:00Z`));
   const letter = (day: string) => fmt(day, 'short').slice(0, 2);
@@ -209,7 +204,8 @@ function WeekStrip() {
   return (
     <div className="week-card mx-4" data-home-week>
       <Confetti run={party} />
-      <button type="button" onClick={() => { haptic.tap(); nav('/profile'); }} className="flex w-full items-center gap-3 text-left" aria-label={`${streak > 0 ? t('home_week_streak', { n: streak }) : t('home_week_start')}. ${t('home_week_open_stats')}`}>
+      <Sheet open={streakOpen} onClose={() => setStreakOpen(false)} label={t('streak_title')}><div className="-mx-4"><StreakCard /></div></Sheet>
+      <button type="button" onClick={() => { haptic.tap(); setStreakOpen(true); }} className="flex w-full items-center gap-3 text-left" aria-haspopup="dialog" aria-expanded={streakOpen} aria-label={`${streak > 0 ? t('home_week_streak', { n: streak }) : t('home_week_start')}. ${t('home_week_open_stats')}`} data-open-streak-card>
         <motion.span
           className="shrink-0"
           animate={party ? { scale: [1, 1.35, 0.95, 1.12, 1], rotate: [0, -8, 6, -3, 0] } : streak > 0 && !reduce ? { scale: [1, 1.08, 1] } : { scale: 1 }}

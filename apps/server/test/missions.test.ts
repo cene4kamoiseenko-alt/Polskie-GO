@@ -268,4 +268,17 @@ describe('Місії: XP у завданнях і денна мета', () => {
     expect(day.xp).toBe(goal - 1);
     expect(await mine(user.id)).not.toContain('siedem-dni');
   });
+
+  it('пройденная миссия засчитывается в «Поговори» (диалог) — задание без проверки речи вслух (2026-11-15)', async () => {
+    const { call, user } = await login();
+    await db.update(userSettings).set({ timezone: 'Europe/Warsaw' }).where(eq(userSettings.userId, user.id));
+    const today = dayKey(new Date(), 'Europe/Warsaw');
+    const talk = (await db.select().from(quests).where(eq(quests.slug, 'd-dialogue-1')))[0];
+    expect(talk.description).toMatchObject({ ru: 'Заверши диалог в уроке или пройди миссию' });
+    await db.insert(userQuests).values({ userId: user.id, questId: talk.id, periodKey: today, progress: 0, status: 'ACTIVE', state: {} }).onConflictDoNothing();
+    await playMission(call, zabka);
+    const quest = (await db.select().from(userQuests).where(and(eq(userQuests.userId, user.id), eq(userQuests.questId, talk.id), eq(userQuests.periodKey, today))))[0];
+    expect(quest.progress).toBe(1);
+    expect(quest.status).toBe('COMPLETED');
+  });
 });

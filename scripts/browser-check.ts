@@ -524,6 +524,19 @@ async function main() {
         });
         check(Math.abs(pg.ratio - 16 / 9) < 0.05 && pg.ctaIn && pg.texts <= 1, `R5 постер Premium целиком 16:9, кнопка внутри (${pg.ratio.toFixed(2)})`);
       }
+      // Серия (владелец 2026-11-15: «нажимаешь на серию — перекидывает в профиль и всё»): карточка недели и огонёк в шапке
+      // открывают панель серии здесь же; плашка Premium — с подписью.
+      await p.locator('[data-open-streak-card]').scrollIntoViewIfNeeded();
+      await p.locator('[data-open-streak-card]').click();
+      check(await p.locator('[role="dialog"] [data-streak-card]').waitFor({ timeout: 5_000 }).then(() => true, () => false) && new URL(p.url()).pathname === '/', 'R5 тап по серии на главной — панель серии (календарь, рекорд), без ухода в профиль');
+      await p.keyboard.press('Escape');
+      await p.locator('[role="dialog"] [data-streak-card]').waitFor({ state: 'detached', timeout: 5_000 }).catch(() => {});
+      await p.evaluate(() => window.scrollTo(0, 0));
+      await p.locator('[data-open-streak]').click();
+      check(await p.locator('[role="dialog"] [data-streak-card]').waitFor({ timeout: 5_000 }).then(() => true, () => false), 'R5 огонёк в шапке — та же панель серии');
+      await p.keyboard.press('Escape');
+      await p.locator('[role="dialog"] [data-streak-card]').waitFor({ state: 'detached', timeout: 5_000 }).catch(() => {});
+      check(((await p.locator('[data-premium-pill] .premium-pill-label').textContent()) ?? '').includes('Premium'), 'R5 в шапке золотая плашка «Premium» с подписью');
       // «Учёба»: переключатель «Уроки | Карта», вкладка помнит последний вид.
       await p.locator('nav a[data-tab="study"]').click();
       await p.waitForURL((u) => new URL(u).pathname === '/learn', { timeout: 10_000 });

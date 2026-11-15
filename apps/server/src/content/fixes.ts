@@ -5,12 +5,24 @@
 import { t } from './builders';
 import type { I18n } from '@polski-go/shared';
 
-export type TextFix = { table: 'city_routes' | 'lessons'; slug: string; column: 'title' | 'description' | 'icon' | 'topic' | 'explanation'; from: I18n | string; to: I18n | string };
+export type TextFix = { table: 'city_routes' | 'lessons' | 'quests'; slug: string; column: 'title' | 'description' | 'icon' | 'topic' | 'explanation'; from: I18n | string; to: I18n | string };
 
 /** Перенесення уроку між локаціями — лише якщо урок досі в старій локації (ручне перенесення з адмінки не чіпаємо). */
 export type LessonMove = { lesson: string; from: string; to: string; order: number };
 
 export const TEXT_FIXES: TextFix[] = [
+  // Задания «Поговори» / «Балакун»: «разговорные практики» звучали как проверка речи вслух, которой в игре нет (владелец 2026-11-15).
+  // Засчитываются диалоги в уроках и пройденные миссии (services/missions.ts).
+  {
+    table: 'quests', slug: 'd-dialogue-1', column: 'description',
+    from: t('Заверши розмовний діалог', 'Заверши разговорный диалог', 'Complete a dialogue'),
+    to: t('Заверши діалог в уроці або пройди місію', 'Заверши диалог в уроке или пройди миссию', 'Finish a dialogue in a lesson or a mission'),
+  },
+  {
+    table: 'quests', slug: 'w-dialogues-3', column: 'description',
+    from: t('Проведи 3 розмовні практики', 'Проведи 3 разговорные практики', 'Complete 3 dialogues'),
+    to: t('Пройди 3 діалоги в уроках або місіях', 'Пройди 3 диалога в уроках или миссиях', 'Complete 3 dialogues in lessons or missions'),
+  },
   // Катовіце: назви перших двох уроків були польськими в усіх мовах (аудит 2026-10-27).
   {
     table: 'lessons', slug: 'kat-1-transport', column: 'title',

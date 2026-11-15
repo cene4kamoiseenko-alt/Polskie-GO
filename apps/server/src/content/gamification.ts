@@ -40,7 +40,7 @@ export const DAILY_QUESTS: QuestSeed[] = [
   { slug: 'd-words-10', kind: 'DAILY', title: t('Нові слова', 'Новые слова', 'New words'), description: t('Вивчи 10 нових слів', 'Выучи 10 новых слов', 'Learn 10 new words'), metric: 'NEW_WORDS', target: 10, xp: 30, zlotki: 10, icon: '📖' },
   { slug: 'd-perfect-5', kind: 'DAILY', title: t('Без помилок', 'Без ошибок', 'Flawless'), description: t('Виконай 5 завдань поспіль без помилки', 'Выполни 5 заданий подряд без ошибки', 'Answer 5 in a row correctly'), metric: 'PERFECT_STREAK', target: 5, xp: 30, zlotki: 10, icon: '🎯' },
   { slug: 'd-reviews-15', kind: 'DAILY', title: t('Повторення', 'Повторение', 'Review'), description: t('Повтори 15 старих слів', 'Повтори 15 старых слов', 'Review 15 words'), metric: 'REVIEWS', target: 15, xp: 30, zlotki: 10, icon: '🔁' },
-  { slug: 'd-dialogue-1', kind: 'DAILY', title: t('Поговори', 'Поговори', 'Chat'), description: t('Заверши розмовний діалог', 'Заверши разговорный диалог', 'Complete a dialogue'), metric: 'DIALOGUES', target: 1, xp: 30, zlotki: 10, icon: '💬' },
+  { slug: 'd-dialogue-1', kind: 'DAILY', title: t('Поговори', 'Поговори', 'Chat'), description: t('Заверши діалог в уроці або пройди місію', 'Заверши диалог в уроке или пройди миссию', 'Finish a dialogue in a lesson or a mission'), metric: 'DIALOGUES', target: 1, xp: 30, zlotki: 10, icon: '💬' },
   { slug: 'd-listening-5', kind: 'DAILY', title: t('Слухай уважно', 'Слушай внимательно', 'Listen up'), description: t('Виконай 5 вправ на аудіювання', 'Выполни 5 упражнений на аудирование', 'Do 5 listening exercises'), metric: 'LISTENING', target: 5, xp: 30, zlotki: 10, icon: '🎧' },
 ];
 
@@ -49,7 +49,7 @@ export const WEEKLY_QUESTS: QuestSeed[] = [
   { slug: 'w-words-50', kind: 'WEEKLY', title: t('Словниковий запас', 'Словарный запас', 'Word hoard'), description: t('Вивчи 50 нових слів', 'Выучи 50 новых слов', 'Learn 50 new words'), metric: 'NEW_WORDS', target: 50, xp: 100, zlotki: 40, icon: '🧠' },
   { slug: 'w-city-1', kind: 'WEEKLY', title: t('Нове місто', 'Новый город', 'New city'), description: t('Пройди іспит міста', 'Пройди экзамен города', 'Pass a city exam'), metric: 'CITY_COMPLETED', target: 1, xp: 100, zlotki: 50, icon: '🗺️' },
   { slug: 'w-listening-20', kind: 'WEEKLY', title: t('Аудіо-тиждень', 'Аудио-неделя', 'Audio week'), description: t('Виконай 20 аудіювань', 'Выполни 20 аудирований', 'Do 20 listening exercises'), metric: 'LISTENING', target: 20, xp: 100, zlotki: 30, icon: '🎧' },
-  { slug: 'w-dialogues-3', kind: 'WEEKLY', title: t('Балакун', 'Болтун', 'Chatterbox'), description: t('Проведи 3 розмовні практики', 'Проведи 3 разговорные практики', 'Complete 3 dialogues'), metric: 'DIALOGUES', target: 3, xp: 100, zlotki: 30, icon: '🗣️' },
+  { slug: 'w-dialogues-3', kind: 'WEEKLY', title: t('Балакун', 'Болтун', 'Chatterbox'), description: t('Пройди 3 діалоги в уроках або місіях', 'Пройди 3 диалога в уроках или миссиях', 'Complete 3 dialogues in lessons or missions'), metric: 'DIALOGUES', target: 3, xp: 100, zlotki: 30, icon: '🗣️' },
 ];
 
 const BEAVER = { speaker: 'beaver' as const, name: 'Bobek', emoji: '🦫' };
