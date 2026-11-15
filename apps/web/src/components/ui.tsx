@@ -396,12 +396,12 @@ export function StatPill({ icon, value, color, onClick, label }: { icon: string;
 }
 
 // ───────── Нижня навігація ─────────
-const TABS: { to: string; icon: LineIconName; key: TKey }[] = [
+const TABS: { to: string; icon: IconName; key: TKey }[] = [
   { to: '/', icon: 'home', key: 'nav_home' },
   { to: '/map', icon: 'map', key: 'nav_map' },
-  { to: '/learn', icon: 'book', key: 'nav_learn' },
-  { to: '/quests', icon: 'target', key: 'nav_quests' },
-  { to: '/profile', icon: 'user', key: 'nav_profile' },
+  { to: '/learn', icon: 'lessons', key: 'nav_learn' },
+  { to: '/quests', icon: 'quests', key: 'nav_quests' },
+  { to: '/profile', icon: 'profile', key: 'nav_profile' },
 ];
 
 export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }) {
@@ -425,7 +425,7 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
               <span className="relative grid h-9 w-12 place-items-center">
                 {active && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--color-pl-red)_12%,transparent)]" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
                 <motion.span className="relative" animate={{ scale: active ? 1.08 : 1, y: active ? -1 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 24 }}>
-                  <Icon name={tab.icon} size={24} strokeWidth={active ? 2.4 : 2} />
+                  <GameIcon name={tab.icon} size={30} className="nav-raster" />
                 </motion.span>
               </span>
               <span className={cx('text-[11px] leading-none', active ? 'font-black' : 'font-bold')}>{t(tab.key)}</span>

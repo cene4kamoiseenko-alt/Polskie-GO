@@ -265,6 +265,10 @@ const ITEMS: Record<ItemName, ReactNode> = {
 };
 
 export const Item = memo(function Item({ name, size = 48, className }: { name: ItemName; size?: number; className?: string }) {
+  // Only exact existing subjects: a generic food icon must not replace a vocabulary illustration.
+  const rasterKey: Partial<Record<ItemName, string>> = { gift: 'gift', headphones: 'listening', speech: 'dialog', map: 'map' };
+  const raster = rasterKey[name] ? iconAsset(rasterKey[name]!) : null;
+  if (raster) return <img src={raster} alt="" width={size} height={size} className={className} style={{ objectFit: 'contain' }} loading="lazy" decoding="async" draggable={false} />;
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} className={className} aria-hidden>
       {ITEMS[name]}
@@ -409,6 +413,7 @@ const TIER_COLORS: Record<Tier, [string, string, string]> = {
  * їм теж підбираємо власний символ, щоб жоден значок не був заглушкою.
  */
 const BADGE_RASTER: Record<string, string> = {
+  '⭐': 'star', '💯': 'achievements', '🎓': 'achievements', '🧠': 'dictionary',
   'snack-bag': 'shopping', basket: 'shopping', 'pierogi-plate': 'food', 'coffee-cup': 'cafe', 'backpack-patches': 'profile',
   'map-pins': 'map', headphones: 'listening', 'book-clock': 'dictionary', speech: 'dialog', dragon: 'dragon', gnome: 'gnome',
   explore: 'explore', mic: 'pronunciation', writing: 'writing', gift: 'gift', trophy: 'leaderboard', passport: 'passport', house: 'house',
@@ -419,6 +424,12 @@ const BADGE_VECTOR: Record<string, ArtName> = { '🐾': 'sprout', '🎓': 'grad'
 
 export const Badge = memo(function Badge({ icon, unlocked, size = 72, tier }: { icon: string; unlocked: boolean; size?: number; tier?: Tier }) {
   const raster = BADGE_RASTER[icon] ? iconAsset(BADGE_RASTER[icon]) : null;
+  if (raster) return (
+    <span className={`raster-badge ${unlocked ? 'is-unlocked' : ''}`} data-tier={tier} style={{ width: size, height: size }}>
+      <img src={raster} alt="" width={size} height={size} loading="lazy" decoding="async" draggable={false} />
+      {!unlocked && <span className="raster-badge-lock" aria-hidden="true"><Art name="lock" size={14} /></span>}
+    </span>
+  );
   const art = raster ? undefined : BADGE_ART[icon];
   // Невідомий значок — векторна зірка (емодзі в інтерфейсі не показуємо).
   const vector = raster || art ? undefined : (BADGE_VECTOR[icon] ?? 'star');

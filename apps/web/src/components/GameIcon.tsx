@@ -14,6 +14,7 @@ export type IconName =
 
 /** Розділи без однойменного файлу → найближча іконка з листа «Іконки без емодзі». */
 const ICON_RASTER: Partial<Record<IconName, string>> = {
+  home: 'house',
   grammar: 'writing', ai: 'pronunciation', story: 'dialog', city: 'shopping', exam: 'achievements', wardrobe: 'suitcase',
   mic: 'pronunciation', fire: 'streak', coin: 'zlotki', diary: 'writing', rewards: 'gift',
 };
@@ -268,7 +269,7 @@ export const GameIcon = memo(function GameIcon({ name, size = 48, color, inactiv
   const uid = useId().replace(/:/g, '');
   const raster = iconAsset(ICON_RASTER[name] ?? name, size);
   const base = inactive ? '#B9C4CE' : color ?? ICON_COLORS[name];
-  if (raster && !inactive) return <img src={raster} alt="" width={size} height={size} className={className} draggable={false} />;
+  if (raster) return <img src={raster} alt="" width={size} height={size} className={className} style={{ objectFit: 'contain', ...(inactive ? { filter: 'grayscale(1)', opacity: 0.55 } : {}) }} draggable={false} />;
   return (
     <svg viewBox="0 0 48 52" width={size} height={size * (52 / 48)} className={className} aria-hidden>
       <defs>

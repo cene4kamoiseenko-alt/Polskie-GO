@@ -1,6 +1,21 @@
 import type { Dict } from './uk';
 
 export const en: Dict = {
+  streak_title: "Your daily rhythm",
+  streak_done: "Your flame is lit today. Keep it going!",
+  streak_keep: "One small step keeps your streak alive.",
+  streak_start: "One lesson. The start of a bigger story.",
+  streak_record: "Best",
+  streak_last_seven: "Last 7 days",
+  streak_today_done: "Today complete",
+  streak_today_wait: "Your turn today",
+  streak_day_done: "studied",
+  streak_day_empty: "no activity",
+  streak_retry: "Could not load activity · Try again",
+  streak_next: "Next milestone — {n} days",
+  streak_no_rush: "Your pace. Every day.",
+  streak_learn: "Learn",
+
   slogan: 'Learn Polish. Travel. Win!',
   loading: 'Loading…',
   error_title: 'Oops! Something went wrong',

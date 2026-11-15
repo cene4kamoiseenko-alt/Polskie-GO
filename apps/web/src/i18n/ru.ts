@@ -1,6 +1,21 @@
 import type { Dict } from './uk';
 
 export const ru: Dict = {
+  streak_title: "Твой ритм",
+  streak_done: "Сегодня огонь уже горит. Так держать!",
+  streak_keep: "Ещё один маленький шаг — и серия продолжится.",
+  streak_start: "Один урок — начало большой истории.",
+  streak_record: "Рекорд",
+  streak_last_seven: "Последние 7 дней",
+  streak_today_done: "Сегодня готово",
+  streak_today_wait: "Сегодня твой ход",
+  streak_day_done: "занимался",
+  streak_day_empty: "без занятий",
+  streak_retry: "Не удалось загрузить дни · Повторить",
+  streak_next: "Следующая отметка — {n} дн.",
+  streak_no_rush: "В своём темпе. Каждый день.",
+  streak_learn: "К уроку",
+
   slogan: 'Учи польский. Путешествуй. Побеждай!',
   loading: 'Загрузка…',
   error_title: 'Ой! Что-то пошло не так',

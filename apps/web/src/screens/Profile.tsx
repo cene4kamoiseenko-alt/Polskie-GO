@@ -19,6 +19,7 @@ import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { LEVEL_COLORS } from './Onboarding';
 import { XpChart } from '../components/XpChart';
+import { StreakCard } from '../components/StreakCard';
 import { EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
 import { rankFor, TopStats } from './Home';
 import { inkOn } from '../lib/color';
@@ -123,6 +124,8 @@ export default function ProfileScreen() {
         </span>
         <Art name="book" size={44} />
       </button>
+
+      <StreakCard />
 
       {/* Лічильники */}
       <div className="grid grid-cols-4 gap-2 px-4">

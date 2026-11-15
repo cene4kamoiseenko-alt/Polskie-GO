@@ -12,6 +12,7 @@ import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon } from '../components/Icon';
 import { Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
 import { HouseCard } from '../components/HouseCard';
+import { StreakCard } from '../components/StreakCard';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
@@ -100,12 +101,11 @@ const TASK_ART: Record<string, ArtName> = {
 /** Рисунки со своей плиткой (значки владельца, 2026-11-02): им плашка не нужна. Остальные ложатся на плашку того же цвета (.icon-plate). */
 const TILE_TASK_ART = new Set<ArtName>(['book', 'star', 'target']);
 
-/** Дерев'яний покажчик з назвою поточного міста (як на макеті головної). */
+/** Localized label over the original city artwork. */
 function CitySign({ name }: { name: string }) {
   return (
-    <span className="city-sign" aria-hidden>
-      <span className="city-sign-post" />
-      <span className="city-sign-board" lang="pl">{name.toUpperCase()}</span>
+    <span className="city-caption" aria-hidden>
+      <span lang="pl">{name}</span>
     </span>
   );
 }
@@ -251,6 +251,8 @@ export function HomeScreen() {
           </motion.button>
         </CityHero>
       </div>
+
+      <StreakCard />
 
       {/* Сьогодні: щоденні завдання + велика нагорода */}
       <TodayTasks lessonId={next?.id} />

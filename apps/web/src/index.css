@@ -1,6 +1,69 @@
 @import 'tailwindcss';
 @import './fonts.css';
 
+/* Raster-led collectibles and daily rhythm. These surfaces frame the original art;
+   the flame, crown and medals are WebP illustrations, not CSS drawings. */
+.streak-card {
+  --track: #0d1728;
+  --border: #685343;
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid #a66b4159;
+  border-radius: 28px;
+  background: radial-gradient(ellipse at 8% 0%, #78401f66, transparent 62%), linear-gradient(145deg, #292131, #152237 75%);
+  box-shadow: inset 0 1px 0 #ffe7bf18, 0 12px 28px -18px #000b;
+  color: #fff8ee;
+}
+.streak-card-top { display: flex; align-items: center; gap: 10px; }
+.streak-flame { flex: 0 0 86px; margin: -8px 0 -5px -12px; }
+.streak-flame img { width: 104px; height: 104px; max-width: none; filter: drop-shadow(0 5px 15px #ff79152b); }
+.streak-card[data-state='new'] .streak-flame img { filter: saturate(.7); }
+.streak-eyebrow { color: #f3c7a0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 900; }
+.streak-count { display: flex; align-items: baseline; gap: 7px; line-height: 1.05; margin: 3px 0 5px; }
+.streak-count strong { font-size: clamp(36px, 10vw, 46px); font-weight: 900; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.streak-count > span { color: #e9bb98; font-size: 13px; font-weight: 800; }
+.streak-caption { color: #e0cfc4; font-size: 11px; line-height: 1.4; font-weight: 700; }
+.streak-record { display: flex; align-items: center; align-self: flex-start; gap: 5px; border: 1px solid #efc59526; background: #ffffff08; padding: 7px; border-radius: 12px; margin-top: 2px; }
+.streak-record > span { display: flex; flex-direction: column; font-size: 9px; font-weight: 800; color: #dbc9b9; }
+.streak-record b { font-size: 16px; color: #ffe2ac; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.streak-week-heading { display: flex; justify-content: space-between; gap: 8px; margin: 18px 0 12px; font-size: 10px; font-weight: 800; color: #dccfc6; }
+.streak-today-status { display: flex; align-items: center; gap: 4px; text-align: right; color: #ffcf93; }
+.streak-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; list-style: none; padding: 0; margin: 0 0 19px; }
+.streak-week li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; color: #bfc9d8; font-size: 10px; font-weight: 800; }
+.streak-day-icon { width: 100%; aspect-ratio: 1; max-width: 48px; display: grid; place-items: center; border: 1px solid #ffffff14; border-radius: 13px; background: #07182c42; }
+.streak-week li[data-active='true'] .streak-day-icon { border-color: #ffb65866; background: #ff9a2314; box-shadow: inset 0 1px 0 #ffd7a51a; }
+.streak-week li[data-today='true'] .streak-day-icon { outline: 1px solid #ffd098; outline-offset: 2px; }
+.streak-day-number { color: #b5c0d0; font-variant-numeric: tabular-nums; font-size: 12px; }
+.streak-today-dot { position: absolute; bottom: -7px; width: 3px; height: 3px; border-radius: 50%; background: #ffd098; }
+.streak-next { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: #d8c9be; font-weight: 700; margin-bottom: 8px; }
+.streak-next b { color: #ffe0a7; font-variant-numeric: tabular-nums; }
+.streak-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 10px; color: #c7bfb9; font-weight: 700; }
+.streak-footer button { display: flex; align-items: center; justify-content: flex-end; gap: 5px; min-height: 44px; color: #ffe0a7; font-size: 12px; font-weight: 900; }
+.streak-shield { display: flex; align-items: flex-start; gap: 6px; padding-top: 12px; margin-top: 10px; border-top: 1px solid #ffffff12; color: #badcf3; font-size: 11px; font-weight: 700; }
+.streak-shield svg { flex-shrink: 0; margin-top: 2px; }
+.streak-week-loading { height: 66px; margin-bottom: 19px; border-radius: 13px; background: #ffffff08; }
+.streak-retry { width: 100%; min-height: 66px; margin-bottom: 19px; color: #ffcf93; font-size: 12px; font-weight: 800; }
+.streak-card[data-state='active'] .streak-flame { animation: streak-arrive 650ms ease-out both; }
+@keyframes streak-arrive { from { opacity: 0; transform: translateY(6px) scale(.94); } to { opacity: 1; transform: none; } }
+html.reduced-motion .streak-card .streak-flame { animation: none; }
+@media (prefers-reduced-motion: reduce) { .streak-card[data-state] .streak-flame { animation: none; } }
+@media (max-width: 359px) {
+  .streak-card { padding: 14px; }
+  .streak-flame { flex-basis: 62px; margin-left: -10px; }
+  .streak-flame img { width: 80px; height: 80px; }
+  .streak-record { padding: 5px; gap: 2px; }
+  .streak-record > img { width: 18px; height: 18px; }
+}
+.raster-badge { position: relative; display: inline-grid; place-items: center; flex-shrink: 0; }
+.raster-badge > img { width: 100%; height: 100%; object-fit: contain; filter: grayscale(1); opacity: .45; }
+.raster-badge.is-unlocked > img { filter: drop-shadow(0 4px 6px #0003); opacity: 1; }
+.raster-badge.is-unlocked[data-tier='gold'] > img { filter: drop-shadow(0 3px 9px #ffba4745); }
+.raster-badge.is-unlocked[data-tier='legendary'] > img { filter: drop-shadow(0 3px 9px #b894ff66); }
+.raster-badge-lock { position: absolute; bottom: 0; right: 0; width: 23px; height: 23px; display: grid; place-items: center; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 50%; }
+.city-caption { position: absolute; top: 14px; left: 14px; z-index: 1; max-width: 42%; padding: 7px 11px; border: 1px solid #ffffff38; border-radius: 10px; background: #07182cb3; color: #fff4df; font-size: 12px; font-weight: 900; letter-spacing: .03em; pointer-events: none; backdrop-filter: blur(10px); }
+.nav-raster { object-fit: contain; filter: drop-shadow(0 2px 2px #0002); }
+
 /* ───────── Дизайн-система POLSKI GO ───────── */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -1357,41 +1420,6 @@ html.reduced-motion .splash *::after {
   text-shadow: 0 0.06em 0 #7a4300;
 }
 
-/* Покажчик міста на банері головної: дерев'яна дошка-стрілка на стовпчику */
-.city-sign {
-  position: absolute;
-  left: 14px;
-  top: 12px;
-  z-index: 1;
-  transform: rotate(-7deg);
-  transform-origin: 18px 100%;
-  pointer-events: none;
-}
-.city-sign-post {
-  position: absolute;
-  left: 16px;
-  top: 14px;
-  width: 7px;
-  height: 92px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #6b4423, #9a6a3a 45%, #5a361a);
-  box-shadow: 1px 0 0 rgb(0 0 0 / 0.25);
-}
-.city-sign-board {
-  position: relative;
-  display: block;
-  padding: 5px 22px 5px 10px;
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
-  color: #3d220d;
-  background: linear-gradient(180deg, #e2b071 0%, #c88a4a 60%, #a96d33 100%);
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
-  border-radius: 4px 0 0 4px;
-  text-shadow: 0 1px 0 rgb(255 230 190 / 0.6);
-  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 0.35));
-}
 .light .task-card.is-done {
   background: linear-gradient(180deg, #e3f9ef 0%, #cdf2e1 100%);
   border-color: #25b884;
