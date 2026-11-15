@@ -5,10 +5,10 @@
  * Неделя — по Варшаве для всех (`leagueWeek`). Порядок мест: XP недели по убыванию, при равенстве выше тот, кто набрал раньше.
  * Скрытые из рейтинга (настройка) и заблокированные не видны и призов не получают.
  */
-import { and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
-import { LEAGUE_MIN_XP, LEAGUE_PRIZE_MIN_XP, LEAGUE_TZ, leaguePrize, leagueWeek, localHour } from '@polski-go/shared';
+import { and, asc, desc, eq, gt, gte, inArray, isNull, sql } from 'drizzle-orm';
+import { LEAGUE_MIN_XP, LEAGUE_PRIZE_MIN_XP, LEAGUE_TZ, leaguePrize, leagueWeek, leagueWeekEndsAt, localHour } from '@polski-go/shared';
 import { atomic, db, type Stmt } from '../db';
-import { leaderboards, leagueAwards, leagueWeeks, userSettings, users } from '../db/schema';
+import { leaderboards, leagueAwards, leagueWeeks, userSettings, users, walletTransactions } from '../db/schema';
 import { sendCard } from '../bot/send';
 import { notMuted } from '../bot/mute';
 import { grantZlotki } from './rewards';
@@ -149,4 +149,68 @@ export async function unseenLeagueAward(userId: string, now = new Date()) {
 
 export async function markLeagueAwardSeen(userId: string, week: string, now = new Date()) {
   await db.update(leagueAwards).set({ seenAt: now }).where(and(eq(leagueAwards.userId, userId), eq(leagueAwards.week, week), isNull(leagueAwards.seenAt)));
+}
+
+/**
+ * Лига в админке (владелец 2026-11-16: «закончилась неделя — проверь, начислились ли злотувки»): текущая неделя (кто сейчас
+ * в призах и сколько получит, если неделя кончится сейчас), подведена ли прошлая неделя и по каждой подведённой неделе —
+ * призёры: место, XP, приз, зачислен ли приз в кошелёк (запись в журнале кошелька по ключу итогов), обработал ли бот
+ * поздравление и видел ли игрок окно награды.
+ */
+export async function leagueAdminReport(now = new Date()) {
+  const current = leagueWeek(now);
+  const previous = leagueWeek(new Date(now.getTime() - 7 * 86_400_000));
+  const weeks = await db.select().from(leagueWeeks).orderBy(desc(leagueWeeks.week)).limit(6);
+  const keys = weeks.map((w) => w.week);
+  const awards = keys.length
+    ? await db
+        .select({ a: leagueAwards, name: users.firstName, username: users.username })
+        .from(leagueAwards)
+        .innerJoin(users, eq(users.id, leagueAwards.userId))
+        .where(inArray(leagueAwards.week, keys))
+        .orderBy(desc(leagueAwards.week), asc(leagueAwards.rank))
+    : [];
+  const txKeys = awards.map((r) => `league:${r.a.week}:${r.a.userId}`);
+  const credited = new Set(
+    txKeys.length ? (await db.select({ k: walletTransactions.idempotencyKey }).from(walletTransactions).where(inArray(walletTransactions.idempotencyKey, txKeys))).map((r) => r.k) : [],
+  );
+  const top = await rankedWeek(current, 10);
+  const names = top.length
+    ? new Map((await db.select({ id: users.id, name: users.firstName, username: users.username }).from(users).where(inArray(users.id, top.map((r) => r.userId)))).map((u) => [u.id, u]))
+    : new Map<string, { id: string; name: string | null; username: string | null }>();
+  return {
+    now: now.getTime(),
+    rules: { minXp: LEAGUE_MIN_XP, prizeMinXp: LEAGUE_PRIZE_MIN_XP, prizes: Array.from({ length: 10 }, (_, i) => leaguePrize(i + 1)) },
+    current: {
+      week: current,
+      endsAt: leagueWeekEndsAt(now).getTime(),
+      rows: top.map((r, i) => ({
+        rank: i + 1,
+        userId: r.userId,
+        name: names.get(r.userId)?.name ?? '',
+        username: names.get(r.userId)?.username ?? null,
+        xp: r.xp,
+        prize: r.xp >= LEAGUE_PRIZE_MIN_XP ? leaguePrize(i + 1) : 0,
+      })),
+    },
+    previous: { week: previous, settled: keys.includes(previous) },
+    weeks: weeks.map((w) => ({
+      week: w.week,
+      settledAt: w.settledAt.getTime(),
+      players: w.players,
+      awards: awards
+        .filter((r) => r.a.week === w.week)
+        .map((r) => ({
+          rank: r.a.rank,
+          userId: r.a.userId,
+          name: r.name ?? '',
+          username: r.username,
+          xp: r.a.xp,
+          zlotki: r.a.zlotki,
+          credited: credited.has(`league:${r.a.week}:${r.a.userId}`),
+          notifiedAt: r.a.notifiedAt?.getTime() ?? null,
+          seenAt: r.a.seenAt?.getTime() ?? null,
+        })),
+    })),
+  };
 }

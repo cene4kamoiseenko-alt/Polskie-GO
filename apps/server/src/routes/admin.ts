@@ -6,6 +6,7 @@ import { emptyIfNoTable, recentErrors } from '../services/error-log';
 import { INSIGHT_DAYS, adminInsights, retentionReport, sourceKey } from '../services/admin-insights';
 import { attention, auditLog, paymentsSummary } from '../services/admin-ops';
 import { campaignAudience, campaignText, findTelegramPlayer, sendBotText } from '../services/campaigns';
+import { leagueAdminReport } from '../services/league';
 import { engagementFor, engagementReport, segmentWhere, SEGMENTS, type Segment } from '../services/admin-engagement';
 import { DAY_FILTERS, dailyOverview, dailyQuestions, dayReport, explainPerson, userDailyQuiz } from '../services/daily-quiz-admin';
 import { replacePlanItem, setDaySkipped, setQuestionDisabled } from '../bot/daily/plan';
@@ -379,6 +380,11 @@ a.put('/config/rewards', async (c) => {
 });
 
 // ── Користувачі ──
+// Лига: текущая неделя, подведена ли прошлая, призёры с отметкой «зачислено в кошелёк» (services/league.ts).
+a.get('/league', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  return c.json(await leagueAdminReport(new Date()));
+});
 // Вовлечённость: сегменты, липкость, глубина, интерес к разделам, когда играют, «лестница» уроков (services/admin-engagement.ts).
 a.get('/engagement', async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');

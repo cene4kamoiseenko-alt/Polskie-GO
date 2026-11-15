@@ -213,6 +213,15 @@ async function main() {
       await noHScroll('вовлечённость');
       await axe('«Вовлечённость»');
       await p.screenshot({ path: `${OUT}/engagement-${width}.png`, fullPage: true });
+      // «Лига» (2026-11-16): итоги недель, приз зачислен ли в кошелёк, текущая таблица.
+      await go('Лига', 'Лига');
+      await p.locator('[data-league-current]').waitFor({ timeout: 10_000 });
+      check(/Сейчас: неделя/.test(await p.locator('main').innerText()), `${width}px «Лига»: текущая неделя и итоги прошлых`);
+      await noHScroll('лига');
+      await axe('«Лига»');
+      await p.screenshot({ path: `${OUT}/league-${width}.png`, fullPage: true });
+      await go('Вовлечённость', 'Вовлечённость');
+      await p.locator('[data-engagement-segments]').waitFor({ timeout: 10_000 });
       await p.locator('[data-segment-link="never"]').click();
       await p.waitForFunction(() => /filter=never/.test(location.search) && /Найдено: \d/.test(document.body.innerText), null, { timeout: 10_000 });
       check((await p.locator('[data-user-segment="never"][aria-pressed="true"]').count()) === 1, `${width}px группа «Не начали» → список игроков, отбор «Не начали» включён`);

@@ -9,6 +9,7 @@ import Money, { PaymentLog } from './Money';
 import Campaigns from './Campaigns';
 import { DailyQuiz } from './DailyQuiz';
 import { Engagement, ScoreBadge, SEG_META, SEG_ORDER } from './Engagement';
+import { League } from './League';
 import { ResourceEdit, ResourceList } from './Content';
 import { Reports, Support } from './Inbox';
 import { ExerciseReports } from './ExerciseReports';
@@ -1102,7 +1103,7 @@ function navGroups(role: Admin['role']): [string, NavItem[]][] {
   const content = RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns').map((d): NavItem => [`/r/${d.name}`, d.title, '•']);
   const groups: [string, NavItem[]][] = [['Главное', [['/', 'Обзор', '📊'], ...(role !== 'EDITOR' ? ([['/errors', 'Ошибки', '⚠️']] as NavItem[]) : [])]]];
   if (role !== 'EDITOR') {
-    groups.push(['Игроки', [['/engagement', 'Вовлечённость', '📈'], ['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
+    groups.push(['Игроки', [['/engagement', 'Вовлечённость', '📈'], ['/league', 'Лига', '🏆'], ['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
     groups.push(['Деньги', [['/payments', 'Платежи', '⭐'], ...(role === 'SUPERADMIN' ? ([['/r/plans', 'Тарифы', '👑']] as NavItem[]) : [])]]);
   }
   if (role !== 'SUPPORT') groups.push(['Контент', [['/exercise-reports', 'Ошибки в заданиях', '🛠'], ...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
@@ -1239,6 +1240,7 @@ export function App() {
             ))}
             <Route path="/audience" element={<Audience />} />
             <Route path="/engagement" element={<Engagement />} />
+            <Route path="/league" element={<League />} />
             <Route path="/users" element={<Users />} />
             <Route path="/users/:id" element={<UserDetail admin={admin} />} />
             <Route path="/payments" element={<Money superadmin={admin.role === 'SUPERADMIN'} />} />

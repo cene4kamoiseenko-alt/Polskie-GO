@@ -196,4 +196,6 @@ describe('итоги недели', () => {
     await sendLeagueAwardMessages(new Date('2031-08-11T07:20:00Z'), 50); // Варшава 09:20
     expect([got(warsaw), got(tokyo), got(newYork)]).toEqual([1, 1, 1]);
   });
+
 });
+
