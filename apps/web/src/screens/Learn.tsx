@@ -1,5 +1,4 @@
 import { motion, useReducedMotion } from '../lib/motion';
-import { LearningShortcuts } from '../components/LearningShortcuts';
 import { isMissionSlug } from '@polski-go/shared';
 import { Art } from '../components/GameArt';
 import { Scene } from '../components/Illustrations';
@@ -7,7 +6,10 @@ import { sceneForRoute } from '../components/LessonStage';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
+import { StudySwitch } from '../components/StudySwitch';
+import { rememberStudyView } from '../lib/studyView';
 import { homeShot } from '../lib/homeArt';
+import { locationThumb } from '../lib/assets';
 import { useJourney, useMe } from '../lib/queries';
 import type { JourneyLesson } from '../lib/types';
 import { Beaver } from '../components/Beaver';
@@ -82,6 +84,9 @@ function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson;
 }
 
 export default function LearnScreen() {
+  // Вкладка «Учёба» откроется в этом виде в следующий раз.
+  useEffect(() => rememberStudyView('lessons'), []);
+  const reduced = useReducedMotion();
   const { t, tr } = useT();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -91,21 +96,19 @@ export default function LearnScreen() {
   const nextRef = useRef<HTMLDivElement>(null);
   /** Миниатюра маршрута «квартира» — фото Бобра с ключами в прихожей вместо векторной MIESZKANIE. */
   const keysShot = homeShot('keys');
-  const reduced = useReducedMotion();
-  const chosenCity = params.get('city');
 
   const cities = journey.data?.cities.filter((c) => c.unlocked && c.hasContent) ?? [];
-  const cityId = chosenCity ?? journey.data?.currentCityId ?? cities[0]?.id;
+  const cityId = params.get('city') ?? journey.data?.currentCityId ?? cities[0]?.id;
   const city = journey.data?.cities.find((c) => c.id === cityId) ?? cities[0];
   const nextId = useMemo(() => city?.routes.flatMap((r) => r.lessons).find((l) => l.state === 'available')?.id, [city]);
 
   useEffect(() => {
-    if (chosenCity) nextRef.current?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
-  }, [nextId, chosenCity, reduced]);
+    nextRef.current?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  }, [nextId, reduced]);
 
-  if (journey.isLoading) return <div className="space-y-4"><LearningShortcuts /><ScreenSkeleton /></div>;
-  if (journey.error) return <div className="space-y-4"><TopStats compact /><LearningShortcuts /><ErrorState error={journey.error} onRetry={() => journey.refetch()} /></div>;
-  if (!city) return <div className="space-y-4"><TopStats compact /><LearningShortcuts /><EmptyState text={t('learn_no_content')} /></div>;
+  if (journey.isLoading) return <ScreenSkeleton />;
+  if (journey.error) return <ErrorState error={journey.error} onRetry={() => journey.refetch()} />;
+  if (!city) return <EmptyState text={t('learn_no_content')} />;
 
   const allLessons = city.routes.flatMap((r) => r.lessons);
   const doneCount = allLessons.filter((l) => l.state === 'completed').length;
@@ -113,17 +116,16 @@ export default function LearnScreen() {
   return (
     <div className="space-y-4">
       <TopStats compact />
+      {/* «Учёба»: уроки и карта — два вида одного пути */}
       <div className="px-4">
-        <h1 className="text-2xl font-black">{t('learn_title')}</h1>
-        <p className="muted text-sm font-bold">{t('learn_subtitle')}</p>
+        <h1 className="sr-only">{t('learn_title')}</h1>
+        <StudySwitch view="lessons" />
       </div>
-
-      <LearningShortcuts />
 
       {/* Перемикач міст */}
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4">
         {cities.map((c) => (
-          <button key={c.id} onClick={() => { haptic.select(); setParams({ city: c.id }); }} className={cx('chip shrink-0 px-4 py-2', c.id === city.id && 'bg-pl-red text-white')}>
+          <button key={c.id} onClick={() => { haptic.select(); setParams({ city: c.id }); }} className={cx('chip shrink-0 px-4 py-2', c.id === city.id && 'chip-on')}>
             {c.namePl}
           </button>
         ))}
@@ -150,10 +152,14 @@ export default function LearnScreen() {
       {city.routes.map((r, ri) => (
         <section key={r.id} className="space-y-6 pb-4">
           <div className="location-card mx-4 flex items-center gap-3 overflow-hidden p-2 pr-3">
-            <span className="relative h-[64px] w-[92px] shrink-0 overflow-hidden rounded-xl">
-              {sceneForRoute(r.slug) === 'flat' && keysShot ? (
-                <img src={keysShot.src} srcSet={keysShot.srcSet} sizes="92px" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: keysShot.pos }} decoding="async" draggable={false} />
-              ) : sceneForRoute(r.slug) ? <Scene name={sceneForRoute(r.slug)!} className="absolute inset-0 h-full w-full" /> : <span className="grid h-full place-items-center bg-night"><GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={40} /></span>}
+            <span className="relative h-[72px] w-[104px] shrink-0 overflow-hidden rounded-2xl">
+              {(() => {
+                // Только растровые картинки: «квартира» — кадр «Бобек дома», иначе сцена владельца или панорама города; векторная сценка — лишь если нет ни того, ни другого.
+                const scene = sceneForRoute(r.slug);
+                const thumb = scene === 'flat' && keysShot ? { src: keysShot.src, srcSet: keysShot.srcSet, pos: keysShot.pos } : locationThumb(scene, city.slug, ri);
+                if (thumb) return <img src={thumb.src} srcSet={'srcSet' in thumb ? thumb.srcSet : undefined} sizes="104px" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: thumb.pos }} decoding="async" draggable={false} data-location-thumb />;
+                return scene ? <Scene name={scene} className="absolute inset-0 h-full w-full" /> : <span className="grid h-full place-items-center bg-night"><GameIcon name={ROUTE_ICONS[ri % ROUTE_ICONS.length]} size={40} /></span>;
+              })()}
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-black uppercase tracking-wide text-sky">{t('learn_location_n', { n: ri + 1 })}</div>

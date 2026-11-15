@@ -19,7 +19,6 @@ import { HomeScreen } from './screens/Home';
 const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Welcome = lazy(() => import('./screens/Welcome'));
 const MapScreen = lazy(() => import('./screens/Map'));
-const WorldScreen = lazy(() => import('./screens/World'));
 const LearnScreen = lazy(() => import('./screens/Learn'));
 const LessonScreen = lazy(() => import('./screens/Lesson'));
 const QuestsScreen = lazy(() => import('./screens/Quests'));
@@ -43,7 +42,7 @@ const PassScreen = lazy(() => import('./screens/Pass'));
 // «Потянуть вниз — обновить»: отдельный чанк, подключается уже после старта (бюджет JS холодного старта).
 const PullToRefresh = lazy(() => import('./components/PullToRefresh'));
 
-const TAB_ROUTES = ['/', '/learn', '/world', '/map', '/quests', '/profile'];
+const TAB_ROUTES = ['/', '/learn', '/map', '/life', '/quests', '/profile'];
 
 function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
   const [systemDark, setSystemDark] = useState(() => (tg ? tg.colorScheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches));
@@ -159,7 +158,7 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('reduced-motion', !!reduced);
   }, [reduced]);
-  const badges = useMemo(() => ({ '/quests': 0, '/profile': me.data?.counters.unseenAchievements ?? 0 }), [me.data]);
+  const badges = useMemo(() => ({ quests: 0, profile: me.data?.counters.unseenAchievements ?? 0 }), [me.data]);
 
   useEffect(() => {
     if (me.data) bootMark('profile');
@@ -222,9 +221,9 @@ export function App() {
         {/* Новий екран з'являється одразу (без очікування анімації виходу попереднього). */}
         <motion.main
             key={loc.pathname}
-            initial={{ opacity: 0.4 }}
+            initial={{ opacity: 0.15 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.12 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             className={showNav ? 'nav-pad' : ''}
           >
             <ScreenBoundary resetKey={loc.pathname}>
@@ -234,7 +233,8 @@ export function App() {
               <Routes location={loc}>
                 <Route path="/" element={<HomeScreen />} />
                 <Route path="/map" element={<MapScreen />} />
-                <Route path="/world" element={<WorldScreen />} />
+                {/* Старый адрес вкладки «Мир» (сборка 2026-11-15 утром) — теперь это карта во вкладке «Учёба». */}
+                <Route path="/world" element={<Navigate to="/map" replace />} />
                 <Route path="/learn" element={<LearnScreen />} />
                 <Route path="/lesson/:lessonId" element={<LessonScreen />} />
                 <Route path="/practice/:mode" element={<LessonScreen />} />

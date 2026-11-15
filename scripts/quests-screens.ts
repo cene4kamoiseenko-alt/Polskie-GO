@@ -94,10 +94,8 @@ async function main() {
       check(parts.title && parts.chips.length >= 2 && parts.chips.every(Boolean), `${tag}: заголовок и плашки внутри баннера (${parts.chips.length} плашки)`);
       check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
 
-      await u.page.locator('[data-quest-art="life"]').scrollIntoViewIfNeeded();
-      await u.page.waitForTimeout(500);
-      const life = await loaded(u.page, '[data-quest-art="life"]');
-      check(life.ok, `${tag}: миниатюра «Польский в жизни» — Sklep 24h загружена (${life.src})`);
+      // «Польский в жизни» — отдельная вкладка нижней панели (2026-11-15); кадр Sklep 24h теперь её герой, а не карточка в квестах.
+      check(await u.page.locator('[data-quest-art="life"]').count() === 0, `${tag}: в квестах нет дубля входа в миссии (это вкладка «Миссии»)`);
       // Вкладки «Ежедневные / Недельные / Особые»: значки владельца (мишень, звезда, карта) 30 px над подписью, загружены, подписи целиком в своей вкладке.
       const tabImgs = await u.page.locator('[role=tab] img').evaluateAll((els) => els.map((e) => ({ ok: (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0, w: Math.round(e.getBoundingClientRect().width), src: (e as HTMLImageElement).currentSrc.split('/').pop() })));
       check(tabImgs.length === 3 && tabImgs.every((i) => i.ok && i.w === 30), `${tag}: значки вкладок — плитки владельца 30 px (${tabImgs.map((i) => i.src).join(', ')})`);
@@ -131,11 +129,12 @@ async function main() {
       await u.page.screenshot({ path: `${OUT}/quests-special-${w}.png`, fullPage: true });
 
       if (w === 390) {
-        // нажатие на «Польский в жизни»
-        await u.page.getByRole('tab', { name: 'Ежедневные' }).click();
-        await u.page.locator('[data-quest-art="life"]').click();
+        // «Польский в жизни» — вкладка «Миссии» нижней панели (2026-11-15); кадр Sklep 24h — в её шапке.
+        await u.page.locator('nav a[data-tab="life"]').click();
         await u.page.waitForURL(/\/life$/, { timeout: 15_000 });
-        check(true, '390px: «Польский в жизни» открывает /life');
+        await u.page.locator('[data-quest-art="life"]').waitFor({ timeout: 15_000 });
+        const life = await loaded(u.page, '[data-quest-art="life"]');
+        check(life.ok, `390px: вкладка «Миссии» открывает /life, кадр Sklep 24h загружен (${life.src})`);
       }
       await u.context.close();
     }

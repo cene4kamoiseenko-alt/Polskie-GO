@@ -134,7 +134,7 @@ async function main() {
     await page.waitForTimeout(2000);
     let calls: string[] = [];
     page.on('request', (r) => { if (r.url().includes('/api/')) calls.push(r.url().replace(/^.*\/api/, '').split('?')[0]); });
-    for (const path of ['/map', '/learn', '/quests', '/profile', '/', '/map', '/']) {
+    for (const path of ['/learn', '/life', '/quests', '/profile', '/', '/learn', '/']) {
       calls = [];
       t = Date.now();
       const frames = page.evaluate(`(${FRAMES})(1000)`);

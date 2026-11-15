@@ -1,8 +1,10 @@
 /** Базові компоненти дизайн-системи. */
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from '../lib/motion';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
+import { studyHref } from '../lib/studyView';
+import { pick } from '../lib/assets';
 import { tg, haptic } from '../lib/telegram';
 import { useGoBack } from '../lib/back';
 import { EDGE_ZONE } from '../lib/swipe';
@@ -123,7 +125,7 @@ export function ScreenHeader({ title, subtitle, right, onBack }: { title: string
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-2xl font-black leading-tight">{title}</h1>
+        <h1 className="screen-title truncate">{title}</h1>
         {subtitle && <p className="muted line-clamp-2 text-sm font-semibold leading-tight">{subtitle}</p>}
       </div>
       {right}
@@ -396,41 +398,59 @@ export function StatPill({ icon, value, color, onClick, label }: { icon: string;
 }
 
 // ───────── Нижня навігація ─────────
-const TABS: { to: string; icon: IconName; key: TKey }[] = [
-  { to: '/', icon: 'home', key: 'nav_home' },
-  { to: '/learn', icon: 'lessons', key: 'nav_learn' },
-  { to: '/world', icon: 'map', key: 'nav_world' },
-  { to: '/quests', icon: 'quests', key: 'nav_quests' },
-  { to: '/profile', icon: 'profile', key: 'nav_profile' },
+/**
+ * Вкладки (2026-11-15): «Сегодня» → «Учёба» (уроки и карта — один путь, переключатель вверху) → «Миссии» («Польский в жизни»)
+ * → «Квесты» (задания дня, недели, сюжетные) → «Профиль». Раньше «Карта» и «Уроки» были двумя вкладками к одним урокам,
+ * а миссии прятались внутри квестов. `match` — какие адреса подсвечивают вкладку; «Учёба» ведёт в последний открытый вид.
+ */
+const TABS: { id: string; to: () => string; match: (p: string) => boolean; icon: LineIconName; /** Значок владельца (assets/nav, уменьшенная копия assets/icons). */ art: string; plate?: boolean; key: TKey }[] = [
+  { id: 'home', to: () => '/', match: (p) => p === '/', icon: 'home', art: 'house', plate: true, key: 'nav_home' },
+  { id: 'study', to: studyHref, match: (p) => p.startsWith('/learn') || p.startsWith('/map'), icon: 'book', art: 'lessons', key: 'nav_study' },
+  { id: 'life', to: () => '/life', match: (p) => p === '/life', icon: 'compass', art: 'explore', plate: true, key: 'nav_life' },
+  { id: 'quests', to: () => '/quests', match: (p) => p.startsWith('/quests'), icon: 'target', art: 'quests', key: 'nav_quests' },
+  { id: 'profile', to: () => '/profile', match: (p) => p.startsWith('/profile'), icon: 'user', art: 'profile', key: 'nav_profile' },
 ];
+
+/** Уменьшенная копия значка владельца для нижней панели (96 px, assets/nav). */
+const navArt = (name: string) => pick('nav', name);
 
 export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }) {
   const { t } = useT();
   const loc = useLocation();
+  const reduce = useReducedMotion();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-soft" style={{ paddingBottom: "var(--safe-b)", background: "linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev))", boxShadow: "0 -8px 20px -12px rgb(0 0 0 / 0.6)" }}>
-      <div className="mx-auto flex max-w-xl justify-around px-1" style={{ height: 'var(--nav-h)' }}>
+    <nav className="app-nav fixed inset-x-0 bottom-0 z-40">
+      <div className="app-nav-dock mx-auto flex max-w-xl justify-around px-1">
         {TABS.map((tab) => {
-          const active = tab.to === '/' ? loc.pathname === '/' : tab.to === '/world' ? ['/world', '/map'].includes(loc.pathname) : loc.pathname.startsWith(tab.to);
+          const active = tab.match(loc.pathname);
+          const to = tab.to();
           return (
-            <Link
-              key={tab.to}
-              to={tab.to}
+            <NavLink
+              key={tab.id}
+              to={to}
+              data-tab={tab.id}
               onClick={() => haptic.select()}
               className={cx('nav-tab relative flex min-w-[62px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl transition-colors active:scale-95', active ? 'text-pl-red' : 'muted')}
               aria-current={active ? 'page' : undefined}
             >
               {/* Активний пункт видно не лише за кольором: смужка-індикатор, плашка, товщий контур і жирний підпис. */}
               {active && <motion.span layoutId="nav-bar" className="nav-indicator" transition={{ type: 'spring', stiffness: 500, damping: 36 }} aria-hidden />}
-              <span className="relative grid h-9 w-12 place-items-center">
-                {active && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--color-pl-red)_12%,transparent)]" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
-                <motion.span className="relative" animate={{ scale: active ? 1.08 : 1, y: active ? -1 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 24 }}>
-                  <GameIcon name={tab.icon} size={30} className="nav-raster" />
+              <span className="relative grid h-10 w-12 place-items-center">
+                {active && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--color-pl-red)_14%,transparent)]" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
+                {/* Значки владельца (растр), как во всей игре; неактивные приглушены, активный — в цвете, приподнят и «подпрыгивает» при выборе. */}
+                <motion.span
+                  key={active ? 'on' : 'off'}
+                  className={cx('nav-art relative', tab.plate && 'icon-plate', active ? 'is-on' : 'is-off')}
+                  initial={active && !reduce ? { scale: 0.82, y: 2 } : false}
+                  animate={{ scale: active ? 1.06 : 1, y: active ? -2 : 0 }}
+                  transition={{ type: 'spring', stiffness: 520, damping: 15 }}
+                >
+                  {navArt(tab.art) ? <img src={navArt(tab.art)!} alt="" width={30} height={30} decoding="async" draggable={false} /> : <Icon name={tab.icon} size={24} strokeWidth={active ? 2.4 : 2} />}
                 </motion.span>
               </span>
               <span className={cx('text-[11px] leading-none', active ? 'font-black' : 'font-bold')}>{t(tab.key)}</span>
-              {!!badge?.[tab.to] && <span className="absolute right-[22%] top-2 h-2.5 w-2.5 rounded-full bg-pl-red ring-2 ring-[var(--bg-elev)]" />}
-            </Link>
+              {!!badge?.[tab.id] && <span className="absolute right-[22%] top-2 h-2.5 w-2.5 rounded-full bg-pl-red ring-2 ring-[var(--bg-elev)]" />}
+            </NavLink>
           );
         })}
       </div>
@@ -441,8 +461,8 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
 export function Section({ title, action, children, className }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={cx('px-4', className)}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-black">{title}</h2>
+      <div className="mb-2.5 flex items-end justify-between gap-3">
+        <h2 className="section-title">{title}</h2>
         {action}
       </div>
       {children}
@@ -609,10 +629,9 @@ function SlowIcon({ size }: { size: number }) {
 }
 
 export function Confetti({ run }: { run: boolean }) {
-  const reduced = useReducedMotion();
   const pieces = Array.from({ length: 36 });
   const colors = ['#45C486', '#FFC857', '#E5484D', '#69C7F4', '#9B6BFF'];
-  if (!run || reduced) return null;
+  if (!run) return null;
   return (
     <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">
       {pieces.map((_, i) => (

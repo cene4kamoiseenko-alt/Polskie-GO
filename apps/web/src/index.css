@@ -1262,9 +1262,8 @@ html.reduced-motion .splash *::after {
 }
 
 /* Hero proportions stay inside the app container on phones and wide browser windows. */
-.home-hero-beaver { width: 49%; max-width: 205px; }
-.home-hero-beaver > * { max-width: 100%; height: auto; }
-.home-hero-beaver img { display: block; width: 100%; height: auto; aspect-ratio: 220 / 260; object-fit: contain; }
+/* Бобек на банері головної: розмір задає HeroBeaver (size), обгортка лише позиціонує. */
+.home-hero-beaver { z-index: 1; }
 @media (prefers-reduced-motion: reduce) {
   .home-hero-beaver, .qs-tile { animation: none !important; }
 }
@@ -2385,4 +2384,406 @@ html.reduced-motion .map-here-ring { animation: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .premium-pill { animation: none; }
+}
+
+
+/* ═════════ Редизайн 2026-11-15: спокойные поверхности, навигация-док, сгруппированные списки ═════════
+   Растровые иллюстрации не трогаются: меняются только рамки, отступы, композиция и движение. */
+:root,
+.dark {
+  --hairline: rgb(255 255 255 / 0.08);
+  --surface-ring: rgb(120 170 230 / 0.16);
+}
+.light {
+  --hairline: rgb(31 51 70 / 0.09);
+  --surface-ring: rgb(31 51 70 / 0.08);
+}
+
+/* Нижняя навигация — плавающий док: скруглённая панель над краем экрана, контент уходит под неё с затуханием. */
+.app-nav {
+  padding: 0 10px calc(max(var(--safe-b), 8px));
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--bg) 88%, transparent) 30%, var(--bg) 62%);
+  pointer-events: none;
+}
+.app-nav-dock {
+  pointer-events: auto;
+  height: calc(var(--nav-h) - 8px);
+  border-radius: 26px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-elev-2) 94%, transparent), color-mix(in srgb, var(--bg-elev) 96%, transparent));
+  border: 1px solid var(--surface-ring);
+  box-shadow: 0 14px 30px -14px rgb(0 0 0 / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.07);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+.light .app-nav-dock {
+  box-shadow: 0 12px 28px -14px rgb(31 51 70 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.9);
+}
+/* Индикатор активной вкладки — точка под подписью (форма, не только цвет), а не полоса у края панели. */
+.app-nav .nav-indicator {
+  top: auto;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 999px;
+}
+.app-nav .nav-tab { gap: 2px; padding-bottom: 6px; }
+
+/* «Сегодня»: одна карточка со строками вместо четырёх отдельных рамок. */
+.today-group {
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--surface-ring);
+  box-shadow: var(--shadow-deep);
+}
+.today-group .task-card,
+.light .today-group .task-card {
+  position: relative;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.today-group .task-card + .task-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 14px;
+  left: 72px;
+  height: 1px;
+  background: var(--hairline);
+}
+.today-group .task-card:active,
+.today-group .chest-card:active {
+  transform: none;
+  background-color: rgb(255 255 255 / 0.05);
+}
+.today-group .task-card.is-done,
+.light .today-group .task-card.is-done {
+  border: 0;
+  box-shadow: none;
+  background: linear-gradient(90deg, rgb(37 215 155 / 0.14), transparent 70%);
+}
+.today-group .chest-card,
+.today-group .chest-card.is-ready {
+  padding: 12px 14px;
+  border: 0;
+  border-top: 1px solid rgb(255 200 87 / 0.35);
+  border-radius: 0;
+  box-shadow: none;
+}
+.today-group .chest-card.is-ready {
+  background: radial-gradient(120% 120% at 50% 0%, #5a4a8a 0%, #2a2f68 55%, #1a2552 100%);
+  border-top-color: #ffc857;
+}
+
+/* Крупные карточки: тоньше рамка, мягче свечение — меньше визуального шума вокруг иллюстраций. */
+.hero-card {
+  border: 1.5px solid rgb(120 190 255 / 0.3);
+  box-shadow: 0 18px 34px -20px rgb(0 0 0 / 0.95), 0 0 30px -16px rgb(54 185 255 / 0.55);
+}
+.location-card {
+  border-radius: 22px;
+  border: 1px solid var(--surface-ring);
+}
+.task-card {
+  border-width: 1px;
+  border-color: var(--surface-ring);
+}
+.stat-card,
+.section-tile {
+  border-color: var(--surface-ring);
+}
+
+/* Профиль: четыре показателя — одна полоса с тонкими разделителями вместо четырёх разноцветных рамок. */
+.stat-strip {
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--surface-ring);
+  box-shadow: var(--shadow-deep);
+}
+.stat-strip-cell {
+  position: relative;
+  background: radial-gradient(90% 70% at 50% 0%, color-mix(in srgb, var(--tint) 20%, transparent), transparent 75%);
+}
+.stat-strip-cell + .stat-strip-cell::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 1px;
+  background: var(--hairline);
+}
+/* Пустая статистика не занимает пол-экрана. */
+.stats-empty > * { padding-top: 14px; padding-bottom: 14px; }
+.stats-empty img { max-height: 84px; width: auto; }
+
+/* Типографика заголовков: одна шкала для всех экранов. */
+.screen-title {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+}
+.section-title {
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+}
+
+/* Выбранный фильтр-чип: один вид на всех экранах (в тёмной теме прежний «тёмный на тёмном» у миссий был неразличим). */
+.chip.chip-on {
+  background: linear-gradient(180deg, var(--fill-coral-top), var(--fill-coral));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 14px -8px rgb(212 45 67 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+/* Неделя на главной: серия, цель дня, семь дней. */
+.week-card {
+  padding: 14px 14px 12px;
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(255 177 61 / 0.16), transparent 60%),
+    linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--surface-ring);
+  box-shadow: var(--shadow-deep);
+  transition: transform 0.12s;
+}
+.week-card > button:first-of-type:active { transform: scale(0.985); }
+.week-dot {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--track);
+  border: 1.5px solid var(--hairline);
+  color: #5a3d00;
+}
+.week-dot.is-on {
+  background: linear-gradient(180deg, #ffd98a, #ffb13d);
+  border-color: #ffc857;
+  box-shadow: 0 4px 10px -4px rgb(255 177 61 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.55);
+}
+.week-dot.is-today:not(.is-on) {
+  border: 2px dashed #ffc857;
+  animation: week-today 1.8s ease-in-out infinite;
+}
+@keyframes week-today {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(255 200 87 / 0.45); }
+  50% { box-shadow: 0 0 0 5px rgb(255 200 87 / 0); }
+}
+/* Урок: верные ответы подряд. */
+.combo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px 2px 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffd98a, #ffb13d);
+  color: #5a3d00;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  box-shadow: 0 4px 10px -4px rgb(255 177 61 / 0.9);
+}
+@media (prefers-reduced-motion: reduce) {
+  .week-dot.is-today:not(.is-on) { animation: none; }
+}
+html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
+
+/* ── Редизайн 5 (2026-11-15): живий Бобек на банері, картка «місто + рівень» ── */
+.hero-beaver-wrap { position: relative; }
+.hero-beaver-hit {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.hero-beaver-hit:focus-visible { outline: 3px solid var(--color-sky); outline-offset: 2px; border-radius: 24px; }
+/* М'яка тінь під лапами: Бобек стоїть на бруківці, а не висить у кадрі. */
+.hero-beaver-shadow {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: -2px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(8 18 48 / 0.55), rgb(8 18 48 / 0));
+  pointer-events: none;
+}
+/* Хмаринка з фразою: над головою, у порожній верхній частині полотна Бобека (≈18 % висоти блока). */
+.beaver-bubble {
+  position: absolute;
+  z-index: 2;
+  left: 4%;
+  right: 4%;
+  bottom: 80%;
+  padding: 7px 10px 8px;
+  border-radius: 16px;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 22px -8px rgb(0 0 0 / 0.55), 0 0 0 1px var(--hairline);
+  transform-origin: 50% 100%;
+}
+.beaver-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: inherit;
+  border-radius: 0 0 3px 0;
+  transform: rotate(45deg);
+  box-shadow: 1px 1px 0 0 var(--hairline);
+}
+.beaver-bubble-listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #fff;
+  background: var(--color-sky-dark, #1f8fd6);
+}
+.home-hero-info { padding: 0; }
+.home-hero-info > button { -webkit-tap-highlight-color: transparent; }
+/* Постер Premium на головній: цілий кадр власника, золота рамка й кнопка в куті (не на написах постера). */
+.premium-poster {
+  box-shadow: 0 0 0 2px rgb(245 196 81 / 0.75), 0 14px 30px -14px rgb(245 196 81 / 0.45), var(--shadow-card);
+  -webkit-tap-highlight-color: transparent;
+}
+.premium-poster-cta {
+  color: #4a3000;
+  background: linear-gradient(180deg, #ffe08a, #f5c451);
+  box-shadow: 0 3px 0 #c9922a, 0 8px 18px -6px rgb(0 0 0 / 0.55);
+}
+
+/* ── Вкладка «Учёба»: переключатель «Уроки | Карта» ── */
+.study-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1px var(--hairline, rgb(255 255 255 / 0.08)), var(--shadow-card);
+}
+.study-switch.is-overlay {
+  width: min(280px, 100%);
+  background: rgb(10 22 52 / 0.62);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  backdrop-filter: blur(12px) saturate(1.3);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 8px 20px -10px rgb(0 0 0 / 0.6);
+  color: #fff;
+}
+.study-switch-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+  -webkit-tap-highlight-color: transparent;
+  transition: color 160ms ease-out;
+}
+.study-switch.is-overlay .study-switch-item { color: rgb(255 255 255 / 0.72); }
+.study-switch-item.is-on { color: #fff; font-weight: 900; }
+.study-switch-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff5a63, var(--color-pl-red));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--color-pl-red) 65%, black), 0 6px 14px -6px rgb(232 38 46 / 0.6);
+}
+.study-switch-item:focus-visible { outline: 3px solid var(--color-sky); outline-offset: 2px; }
+
+/* Миссии: счётчик пройденных рядом с заголовком */
+.life-progress-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--color-brand, #25d79b);
+  background: color-mix(in srgb, var(--color-brand, #25d79b) 14%, transparent);
+}
+.life-hero { box-shadow: var(--shadow-card); }
+/* Неделя: выбранный день и подпись под точками */
+.week-card > div button { -webkit-tap-highlight-color: transparent; }
+.week-dot.is-picked { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-sky) 55%, transparent); }
+.week-caption {
+  overflow: hidden;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 900;
+  background: color-mix(in srgb, var(--color-sky) 12%, transparent);
+  color: var(--text);
+}
+/* Урок: вспышка похвалы за серию (польское слово + перевод) */
+.combo-burst {
+  position: fixed;
+  z-index: 45;
+  left: 50%;
+  top: calc(var(--safe-t, 0px) + 72px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: -90px;
+  width: 180px;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: #4a2a00;
+  background: linear-gradient(180deg, #ffe08a, #ffb13d);
+  box-shadow: 0 4px 0 #c9822a, 0 14px 30px -10px rgb(255 159 41 / 0.8);
+  pointer-events: none;
+}
+
+/* Нижняя панель: растровые значки владельца (2026-11-15). Неактивные — приглушены, активный — в цвете. */
+.nav-art {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  transition: filter 160ms ease-out, opacity 160ms ease-out;
+}
+.nav-art img { display: block; width: 30px; height: 30px; object-fit: contain; }
+.nav-art.icon-plate img { width: 25px; height: 25px; }
+.nav-art.is-off { opacity: 0.8; filter: saturate(0.7); transform-origin: 50% 60%; }
+.nav-art.is-on { opacity: 1; filter: drop-shadow(0 3px 5px rgb(0 0 0 / 0.35)); }
+.light .nav-art.is-off { opacity: 0.85; filter: saturate(0.75); }
+
+/* Свайп по вкладкам экрана (квесты, миссии, лига…) работает по всей видимой области, а не только по высоте содержимого:
+   на коротком списке палец под последней карточкой раньше попадал мимо зоны (2026-11-15). Высота — как у .map-screen. */
+[data-tab-swipe] {
+  min-height: calc(var(--tg-viewport-stable-height, 100dvh) - var(--safe-t) - var(--nav-h) - var(--safe-b) - 20px);
 }

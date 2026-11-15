@@ -133,3 +133,17 @@ export const TILE_ICON_MIN_PX = 28;
 export const isTileIcon = (name: string) => TILE_ICONS.has(name);
 export const iconAsset = (name: string, _size = TILE_ICON_MIN_PX) => pick('icons', name);
 export const brandAsset = (name: string) => pick('brand', name);
+
+const THUMB_SPOTS = ['22% 62%', '52% 48%', '80% 58%', '36% 72%', '66% 40%'];
+/**
+ * Картинка локации в списке уроков — только растровая (редизайн 2026-11-15: плоские векторные сценки выбивались из стиля игры).
+ * Сначала сцена владельца, которая соответствует сцене маршрута (SCENE_ART.fallbackScene), иначе панорама города с разным кадром
+ * для каждой локации. null — у города нет ни сцены, ни панорамы (тогда остаётся прежняя картинка).
+ */
+export function locationThumb(scene: string | null, citySlug: string, index: number): { src: string; pos: string } | null {
+  const art = scene ? Object.values(SCENE_ART).find((a) => a.fallbackScene === scene) : undefined;
+  const sceneSrc = art ? (files[`../assets/scenes/${art.file}@${SCENE_ART_SMALL}.webp`] ?? pick('scenes', art.file)) : null;
+  if (art && sceneSrc) return { src: sceneSrc, pos: art.focus };
+  const city = cityArtImage(citySlug);
+  return city ? { src: city.small, pos: THUMB_SPOTS[index % THUMB_SPOTS.length] } : null;
+}

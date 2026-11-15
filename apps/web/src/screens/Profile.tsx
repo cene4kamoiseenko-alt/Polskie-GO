@@ -125,17 +125,18 @@ export default function ProfileScreen() {
       </button>
 
       {/* Лічильники */}
-      <div className="grid grid-cols-3 gap-2 px-4">
+      <div className="stat-strip mx-4 grid grid-cols-4" data-profile-stats>
         {(
           [
+            ['flame', me.progress.streak, t('profile_streak'), '#FF8A3D'],
             ['book', me.progress.lessonsCompleted, t('profile_lessons'), '#25D79B'],
             ['star', me.progress.wordsLearned, t('profile_words'), '#FFC857'],
             ['trophy', citiesDone, t('profile_cities'), '#FF5265'],
           ] as [ArtName, number, string, string][]
         ).map(([art, v, l, c]) => (
-          <div key={l} className="relative overflow-hidden rounded-[18px] border px-1 pb-2 pt-2.5 text-center" style={{ borderColor: `${c}55`, background: `linear-gradient(180deg, ${c}26 0%, var(--bg-elev) 70%)`, boxShadow: `0 0 16px -8px ${c}` }}>
-            <div className="flex justify-center"><Art name={art} size={30} /></div>
-            <div className="text-[20px] font-black leading-tight">{v}</div>
+          <div key={l} className="stat-strip-cell px-1 pb-2.5 pt-3 text-center" style={{ ['--tint' as string]: c }}>
+            <div className="flex justify-center"><Art name={art} size={32} /></div>
+            <div className="mt-0.5 text-[21px] font-black leading-tight tabular-nums">{v}</div>
             <div className="muted text-[10.5px] font-bold leading-tight">{l}</div>
           </div>
         ))}
@@ -248,7 +249,7 @@ export default function ProfileScreen() {
             </div>
           </div>
         ) : (
-          <div className="stat-card !block"><EmptyState text={t('stats_empty')} /></div>
+          <div className="stat-card stats-empty !block"><EmptyState text={t('stats_empty')} /></div>
         )}
       </Section>
 

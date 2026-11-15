@@ -2,6 +2,8 @@ import { motion } from '../lib/motion';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
+import { StudySwitch } from '../components/StudySwitch';
+import { rememberStudyView } from '../lib/studyView';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
 import type { JourneyCity } from '../lib/types';
 import { IllustratedMap, MEDALLIONS, type MapHandle, type SpotState } from '../components/IllustratedMap';
@@ -34,6 +36,8 @@ function useHeight<T extends HTMLElement>() {
 const keyForCity = (slug: string | undefined) => (slug ? Object.keys(MAP_SPOTS).find((k) => MAP_SPOTS[k].city === slug) ?? null : null);
 
 export default function MapScreen() {
+  // Вкладка «Учёба» откроется в этом виде в следующий раз.
+  useEffect(() => rememberStudyView('map'), []);
   const { t } = useT();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -132,6 +136,9 @@ export default function MapScreen() {
               </h1>
             }
           />
+          <div className="flex justify-center px-4 pt-1.5">
+            <StudySwitch view="map" overlay />
+          </div>
         </div>
       </div>
 
