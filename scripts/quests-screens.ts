@@ -129,11 +129,12 @@ async function main() {
       await u.page.screenshot({ path: `${OUT}/quests-special-${w}.png`, fullPage: true });
 
       if (w === 390) {
-        // нажатие на «Польский в жизни»
-        await u.page.getByRole('tab', { name: 'Ежедневные' }).click();
-        await u.page.locator('[data-quest-art="life"]').click();
+        // «Польский в жизни» — вкладка «Миссии» нижней панели (2026-11-15); кадр Sklep 24h — в её шапке.
+        await u.page.locator('nav a[data-tab="life"]').click();
         await u.page.waitForURL(/\/life$/, { timeout: 15_000 });
-        check(true, '390px: «Польский в жизни» открывает /life');
+        await u.page.locator('[data-quest-art="life"]').waitFor({ timeout: 15_000 });
+        const life = await loaded(u.page, '[data-quest-art="life"]');
+        check(life.ok, `390px: вкладка «Миссии» открывает /life, кадр Sklep 24h загружен (${life.src})`);
       }
       await u.context.close();
     }
