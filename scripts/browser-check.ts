@@ -9,7 +9,7 @@
  *  - A2 головна, блок «Сегодня»: стани error (з повтором), empty, done, offline, active; скелетонів поза loading немає;
  *  - A3 шторка міста на /map (360/390/430): остання тема й CTA у viewport, прокрутка не закриває, ✕ / Escape / drag за ручку
  *    закривають; знімки — test-results/screens/sheet-{ширина}.png.
- *    A3.8 (390): три окремі стани міста в шторці — оформлення (CITY_ART), уроки, доступ; Kielce (малюнок готовий, уроків ще немає; Gorzów і Toruń отримали уроки),
+ *    A3.8 (390): три окремі стани міста в шторці — оформлення (CITY_ART), уроки, доступ; Kielce (малюнок і уроки готові, але місто ще закрите: попередні не пройдено; з 2026-11-15 уроки є в усіх 20 міст),
  *    без кнопки «Учить»; Łódź — тимчасовий малюнок lazy зі srcset 640w. Знімки — sheet-status-{kielce,lodz}-390.png.
  *  - A4 ілюстрована карта /map (ADR-012; 360/390/430): 21 прозора кнопка міста збігається з намальованою табличкою (рамки MAP_SPOTS
  *    відносно картинки), кільце «ти тут» — на поточному місті у видимому вікні, подорож /map?travel=from,to з prefers-reduced-motion —
@@ -591,9 +591,9 @@ async function main() {
       check(cur.art === 'true' && cur.lessons === 'true' && cur.access === 'true', `A3.8 текущий город: оформление, уроки и доступ готовы ${JSON.stringify(cur)}`);
       await openCity('Kielce');
       const gw = await state();
-      check(gw.art === 'true' && gw.lessons === 'false' && gw.access === 'false', `A3.8 Kielce: рисунок готов (final), уроков нет, город закрыт ${JSON.stringify(gw)}`);
+      check(gw.art === 'true' && gw.lessons === 'true' && gw.access === 'false', `A3.8 Kielce: рисунок готов (final), уроки есть, город ещё закрыт ${JSON.stringify(gw)}`);
       check(await dialog.locator('[data-city-art="final"] img').count() === 1, 'A3.8 Kielce: баннер — настоящий рисунок, а не общая сцена');
-      check(await dialog.locator('[data-city-go]').count() === 0, 'A3.8 Kielce: кнопки «Учить» нет — пустой маршрут не открывается');
+      check(await dialog.locator('[data-city-go]').count() === 0, 'A3.8 Kielce: кнопки «Учить» нет — город закрыт, пока не пройдены предыдущие');
       await sp.screenshot({ path: `${SHEETS}/sheet-status-kielce-390.png` });
       // Katowice — город с уроками и панорамой владельца 2026-10-28 (final).
       await openCity('Katowice');

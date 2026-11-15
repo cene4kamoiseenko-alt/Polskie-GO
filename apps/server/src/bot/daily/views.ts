@@ -35,10 +35,13 @@ export function dailyQuestionView(q: QuizQuestion, order: number[], lang: UiLang
     ...(short ? [] : ['', ...shown.map((o, i) => `<b>${LETTERS[i]}</b> — ${h(o)}`)]),
     '',
     h(copy.choose),
+    '',
+    h(copy.invite),
   ].join('\n');
   const button = (i: number): Button => ({ text: short ? `${LETTERS[i]} · ${shown[i]}` : LETTERS[i], callback_data: `qa:${roundId}:${i}` });
   const rows: Button[][] = short ? shown.map((_, i) => [button(i)]) : [shown.map((_, i) => button(i))];
-  if (streak) rows.push([{ text: copy.lesson, web_app: { url: screenUrl('learn') } }]);
+  // Кнопка в игру — под каждым вопросом (раньше только у тех, у кого серия ≥ 2): рассылка должна приглашать в игру, а не только спрашивать.
+  rows.push([extra.hasUser ? { text: copy.lesson, web_app: { url: screenUrl('learn') } } : { text: copy.startApp, web_app: { url: screenUrl('home') } }]);
   return { text, keyboard: { inline_keyboard: rows } };
 }
 

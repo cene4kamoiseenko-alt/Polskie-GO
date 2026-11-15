@@ -9,6 +9,8 @@ export type TelegramUser = {
   language_code?: string;
   photo_url?: string;
   is_premium?: boolean;
+  /** Telegram передаёт true, если игрок разрешил боту писать ему (нажал Start или согласился в окне requestWriteAccess). */
+  allows_write_to_pm?: boolean;
 };
 
 export type InitData = { user: TelegramUser; authDate: number; startParam?: string; queryId?: string };

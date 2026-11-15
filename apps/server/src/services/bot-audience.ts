@@ -5,7 +5,7 @@
  */
 import { sql, type SQL } from 'drizzle-orm';
 import { db } from '../db';
-import { botContacts } from '../db/schema';
+import { botContacts, botWriteAccess } from '../db/schema';
 
 export type TgFrom = { id: number; first_name?: string; last_name?: string; username?: string; language_code?: string; is_bot?: boolean };
 
@@ -31,6 +31,15 @@ export async function recordBotContact(from: TgFrom, info: { command?: string | 
         blockedAt: null,
       },
     });
+}
+
+/** Telegram сообщил при входе, что игрок разрешил боту писать. Запись обновляется не чаще раза в 6 часов: лишнего расхода на каждый вход нет. */
+export async function recordWriteAccess(telegramId: number, now = new Date()) {
+  if (!Number.isSafeInteger(telegramId) || telegramId <= 0) return;
+  await db
+    .insert(botWriteAccess)
+    .values({ telegramId, allowedAt: now })
+    .onConflictDoUpdate({ target: botWriteAccess.telegramId, set: { allowedAt: now }, setWhere: sql`${botWriteAccess.allowedAt} < ${now.getTime() - 6 * 3600_000}` });
 }
 
 /** my_chat_member в личном чате: kicked — бот заблокирован, member — снова доступен. */

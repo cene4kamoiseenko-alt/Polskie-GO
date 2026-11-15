@@ -6,7 +6,7 @@
  *  • banned — заблокирован админом;
  *  • opted_out — «🔕 Не присылать вопрос дня», /stop или выключатель в приложении (bot_quiz_players.push_enabled = 0);
  *  • blocked — заблокировал бота (bot_contacts.blocked_at; снимается, когда снова пишет боту);
- *  • no_chat — Telegram отказал «нет чата с ботом», и с тех пор человек боту не писал;
+ *  • no_chat — Telegram отказал «нет чата с ботом», и с тех пор человек боту не писал и не разрешал писать в приложении (bot_write_access);
  *  • paused — 3 вопроса подряд без ответа, и с последней отправки человек не писал боту и не открывал приложение.
  * Напоминания в приложении («уведомления») на вопрос дня не влияют: владелец решил «всем».
  */
@@ -27,6 +27,7 @@ export type DailyPerson = {
   blockedAt: Date | null;
   contactSeenAt: Date | null;
   appSeenAt: Date | null;
+  writeAllowedAt: Date | null;
   pushEnabled: boolean | null;
   ignored: number;
   lastSentAt: Date | null;
@@ -50,7 +51,8 @@ export function dailyEligibility(p: DailyPerson): Eligibility {
   if (p.banned) return 'banned';
   if (p.pushEnabled === false) return 'opted_out';
   if (p.blockedAt) return 'blocked';
-  if (p.noChatAt && ms(p.contactSeenAt) <= ms(p.noChatAt)) return 'no_chat';
+  // «Нет чата с ботом» снимается, когда человек написал боту или Telegram сообщил при входе, что писать ему можно.
+  if (p.noChatAt && Math.max(ms(p.contactSeenAt), ms(p.writeAllowedAt)) <= ms(p.noChatAt)) return 'no_chat';
   if (p.ignored >= DAILY_IGNORED_MAX && p.lastSentAt && Math.max(ms(p.contactSeenAt), ms(p.appSeenAt)) <= ms(p.lastSentAt)) return 'paused';
   return 'ok';
 }
@@ -77,6 +79,7 @@ const toPerson = (r: Raw): DailyPerson => ({
   blockedAt: date(r.blocked_at),
   contactSeenAt: date(r.contact_seen_at),
   appSeenAt: date(r.app_seen_at),
+  writeAllowedAt: date(r.write_allowed_at),
   pushEnabled: r.push_enabled === null || r.push_enabled === undefined ? null : Number(r.push_enabled) === 1,
   ignored: Number(r.ignored ?? 0),
   lastSentAt: date(r.last_sent_at),
@@ -103,7 +106,7 @@ function selectPeople(after: number, limit: number) {
       SELECT telegram_id FROM (SELECT telegram_id FROM users WHERE telegram_id > ${after} ORDER BY telegram_id LIMIT ${limit})
       ORDER BY telegram_id LIMIT ${limit}
     )
-    SELECT ids.telegram_id AS telegram_id, u.id AS user_id, u.is_banned AS banned, u.last_seen_at AS app_seen_at, u.first_name AS u_first, u.username AS u_username,
+    SELECT ids.telegram_id AS telegram_id, u.id AS user_id, u.is_banned AS banned, u.last_seen_at AS app_seen_at, w.allowed_at AS write_allowed_at, u.first_name AS u_first, u.username AS u_username,
       s.ui_language AS ui_language, s.timezone AS timezone,
       c.language_code AS contact_lang, c.blocked_at AS blocked_at, c.last_seen_at AS contact_seen_at, c.first_name AS c_first, c.username AS c_username,
       q.push_enabled AS push_enabled, d.ignored AS ignored, d.last_sent_at AS last_sent_at, d.no_chat_at AS no_chat_at,
@@ -113,6 +116,7 @@ function selectPeople(after: number, limit: number) {
     LEFT JOIN users u ON u.telegram_id = ids.telegram_id
     LEFT JOIN user_settings s ON s.user_id = u.id
     LEFT JOIN bot_contacts c ON c.telegram_id = ids.telegram_id
+    LEFT JOIN bot_write_access w ON w.telegram_id = ids.telegram_id
     LEFT JOIN bot_quiz_players q ON q.telegram_id = ids.telegram_id
     LEFT JOIN daily_quiz_people d ON d.telegram_id = ids.telegram_id
     LEFT JOIN player_progress p ON p.user_id = u.id

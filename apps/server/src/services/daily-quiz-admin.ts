@@ -10,7 +10,7 @@ import { botImageUrl } from '../bot/catalog';
 import { dailyAudience } from '../bot/daily/audience';
 import { ensurePlan, planRange } from '../bot/daily/plan';
 import { DAILY_PER_RUN } from '../bot/daily/send';
-import { addDays, DAILY_LEVELS, isDayEditable, PLAN_DAYS, readDailyRun, readDailyState, warsawDay, type DailyLevel } from '../bot/daily/state';
+import { addDays, DAILY_LEVELS, dailyDiag, isDayEditable, PLAN_DAYS, readDailyRun, readDailyState, readDailyTick, warsawDay, type DailyLevel } from '../bot/daily/state';
 import { dailyQuestionView, plainText } from '../bot/daily/views';
 import { CATEGORY_NAMES, optionsOf, QUESTION_BY_ID, QUIZ_QUESTIONS, type QuizQuestion } from '../bot/quiz/questions';
 import { isQuizScene, QUIZ_SCENES, quizSceneFile, SCENE_LABELS, type QuizScene } from '../bot/quiz/scenes';
@@ -67,9 +67,10 @@ export async function dailyOverview(lang: UiLang, now = new Date()) {
   const today = warsawDay(now);
   await ensurePlan(today);
   const from = addDays(today, -HISTORY_DAYS);
-  const [state, run, audience, rows, stats] = await Promise.all([
+  const [state, run, tickAt, audience, rows, stats] = await Promise.all([
     readDailyState(),
     readDailyRun(),
+    readDailyTick(),
     dailyAudience(),
     planRange(from, HISTORY_DAYS + PLAN_DAYS),
     sendStats(and(gte(dailyQuizSends.day, from), lt(dailyQuizSends.day, today))!),
@@ -106,7 +107,7 @@ export async function dailyOverview(lang: UiLang, now = new Date()) {
     };
   });
   const scenes = QUIZ_SCENES.map((id) => ({ id, label: SCENE_LABELS[id][lang], imageUrl: imageUrlOf(id) }));
-  return { state, run, today, rate: { perRun: DAILY_PER_RUN, perHour: DAILY_PER_RUN * 60 }, audience, scenes, plan, history };
+  return { state, run, today, diag: dailyDiag(state, run, tickAt, now), rate: { perRun: DAILY_PER_RUN, perHour: DAILY_PER_RUN * 60 }, audience, scenes, plan, history };
 }
 
 /** Банк вопросов со статистикой: сколько раз был вопросом дня, сколько ответов (вопрос дня + /quiz за 30 дней) и % верных. */

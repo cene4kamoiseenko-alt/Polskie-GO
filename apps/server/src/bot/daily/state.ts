@@ -19,7 +19,8 @@ export type DailyRun = { day: string; cursor: number; done: boolean; startedAt: 
 
 const STATE_KEY = 'daily_quiz';
 const RUN_KEY = 'daily_quiz_run';
-export const DEFAULT_STATE: DailyState = { enabled: false, sendAt: '18:00', startDay: null };
+/** Время по умолчанию — 12:00 по Варшаве (владелец 2026-11-15: рассылку ждут в 12). Рассылка выключена, пока её не запустят из админки. */
+export const DEFAULT_STATE: DailyState = { enabled: false, sendAt: '12:00', startDay: null };
 export const SEND_AT_RE = /^([01]\d|2[0-3]):(00|15|30|45)$/;
 export const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -55,6 +56,17 @@ export async function writeDailyRun(run: DailyRun) {
   await writeKey(RUN_KEY, run);
 }
 
+const TICK_KEY = 'daily_quiz_tick';
+/** Пульс минутного cron: пишется раз в 5 минут, чтобы админка показывала, работает ли расписание вообще (раньше это было не видно). */
+export async function recordDailyTick(at: Date) {
+  if (at.getUTCMinutes() % 5 !== 0) return;
+  await writeKey(TICK_KEY, { at: at.getTime() });
+}
+export async function readDailyTick(): Promise<number | null> {
+  const v = await readKey<{ at?: number }>(TICK_KEY);
+  return typeof v?.at === 'number' ? v.at : null;
+}
+
 export const warsawDay = (now: Date) => dayKey(now, DAILY_TZ);
 
 export function addDays(day: string, n: number): string {
@@ -88,6 +100,30 @@ export function sendWindow(state: Pick<DailyState, 'sendAt'>, day: string): { fr
 /** Рассылка в этот день идёт: включена и день не раньше дня запуска. Пропуск дня проверяется по плану. */
 export function isSendingDay(state: DailyState, day: string): boolean {
   return state.enabled && state.startDay !== null && day >= state.startDay;
+}
+
+export type DailyDiag = {
+  /** Последний пульс cron (мс) или null — расписание не срабатывало ни разу. */
+  tickAt: number | null;
+  /** Окно отправки сегодня: с времени рассылки на 4 часа (мс). */
+  window: { from: number; to: number; phase: 'before' | 'open' | 'closed' };
+  /** Когда уйдёт ближайшая рассылка (мс), null — рассылка выключена. */
+  nextSendAt: number | null;
+  /** Включена, но сегодня уже не уйдёт: окно закрылось, а отправка не начиналась (запустили слишком поздно). */
+  missedToday: boolean;
+};
+
+export function dailyDiag(state: DailyState, run: DailyRun | null, tickAt: number | null, now: Date): DailyDiag {
+  const today = warsawDay(now);
+  const { from, to } = sendWindow(state, today);
+  const phase = now < from ? 'before' : now < to ? 'open' : 'closed';
+  let nextSendAt: number | null = null;
+  if (state.enabled && state.startDay) {
+    const first = state.startDay > today ? state.startDay : today;
+    nextSendAt = first > today || phase !== 'closed' ? zonedTime(first, state.sendAt).getTime() : zonedTime(addDays(today, 1), state.sendAt).getTime();
+  }
+  const sendingToday = isSendingDay(state, today);
+  return { tickAt, window: { from: from.getTime(), to: to.getTime(), phase }, nextSendAt, missedToday: sendingToday && phase === 'closed' && run?.day !== today };
 }
 
 /** Будущий день менять можно; сегодняшний — пока отправка не началась; прошедшие — только смотреть. */

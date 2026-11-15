@@ -24,6 +24,7 @@ type Overview = {
   state: { enabled: boolean; sendAt: string; startDay: string | null };
   run: { day: string; cursor: number; done: boolean } | null;
   today: string;
+  diag: { tickAt: number | null; window: { from: number; to: number; phase: 'before' | 'open' | 'closed' }; nextSendAt: number | null; missedToday: boolean };
   rate: { perRun: number; perHour: number };
   audience: { total: number; byLevel: Record<Level, number>; byLang: Record<string, number>; excluded: Record<Exclusion, number> };
   scenes: { id: string; label: string; imageUrl: string }[];
@@ -96,6 +97,37 @@ function Bubble({ imageUrl, text, buttons }: { imageUrl: string; text: string; b
   );
 }
 
+const warsawStamp = (ms: number) => new Date(ms).toLocaleString('ru-RU', { timeZone: 'Europe/Warsaw', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const warsawClock = (ms: number) => new Date(ms).toLocaleTimeString('ru-RU', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+
+/** Почему вопрос мог не прийти: расписание живо? когда ближайшая отправка? не закрыто ли окно сегодня? */
+function Diag({ o }: { o: Overview }) {
+  const d = o.diag;
+  const age = d.tickAt === null ? null : Math.round((Date.now() - d.tickAt) / 60_000);
+  const cronDead = d.tickAt === null || (age ?? 0) > 15;
+  return (
+    <div className="space-y-1" data-daily-diag>
+      {o.state.enabled && d.nextSendAt !== null && (
+        <p className="text-xs text-slate-600">
+          {d.window.phase === 'open' && d.nextSendAt <= Date.now() ? <>Окно отправки открыто до {warsawClock(d.window.to)} (Варшава).</> : <>Ближайшая отправка: <b>{warsawStamp(d.nextSendAt)}</b> по Варшаве.</>}
+        </p>
+      )}
+      {d.missedToday && (
+        <p className="text-xs font-semibold text-[#7a4d00]" data-daily-missed>
+          Сегодня вопрос не уйдёт: окно отправки ({warsawClock(d.window.from)}–{warsawClock(d.window.to)}) уже закрылось, а отправка не начиналась. Следующая — завтра в {warsawClock(d.window.from)}.
+        </p>
+      )}
+      {o.state.enabled && cronDead ? (
+        <p className="text-xs font-semibold text-[#9a2b00]" data-daily-cron="dead">
+          {d.tickAt === null ? 'Расписание (cron раз в минуту) ещё не срабатывало: проверьте «Triggers → Cron» у Worker в Cloudflare.' : `Расписание молчит ${age} мин: последний запуск ${warsawStamp(d.tickAt)} по Варшаве. Проверьте Cron-триггеры Worker.`}
+        </p>
+      ) : (
+        d.tickAt !== null && <p className="text-xs text-slate-500" data-daily-cron="ok">Расписание работает: последний запуск {age} мин назад.</p>
+      )}
+    </div>
+  );
+}
+
 function Header({ o, bank, superadmin, reload }: { o: Overview; bank: BankQ[] | null; superadmin: boolean; reload: () => void }) {
   const { confirm, run } = useFeedback();
   const tomorrow = o.plan[1]?.day ?? o.today;
@@ -127,6 +159,7 @@ function Header({ o, bank, superadmin, reload }: { o: Overview; bank: BankQ[] | 
             Получат <b className="text-night">{fmt(a.total)}</b> чел. (A1 {fmt(a.byLevel.A1)} · A2 {fmt(a.byLevel.A2)} · B1 {fmt(a.byLevel.B1)}), отправка {est}.
             {excluded.length > 0 && <span className="text-slate-500"> Не получат: {excluded.map((k) => `${EXCLUDED[k]} — ${fmt(a.excluded[k])}`).join(', ')}.</span>}
           </p>
+          <Diag o={o} />
           {tooLong && <p className="text-xs font-semibold text-[#7a4d00]">Отправка дольше 4 часов: после окна в 4 часа вопрос в этот день остальным не уйдёт.</p>}
           {off > 0 && <p className="text-xs text-slate-500">Выключено вопросов: {off}.</p>}
         </div>

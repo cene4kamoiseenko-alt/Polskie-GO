@@ -9,6 +9,7 @@ import { bindDb } from './db';
 import { setEnv, type Bindings } from './env';
 import { runScheduled } from './jobs';
 import { DAILY_CRON, runDailyQuizTick } from './bot/daily/send';
+import { recordDailyTick } from './bot/daily/state';
 
 const app = buildApp();
 
@@ -18,6 +19,10 @@ export default {
     setEnv(env);
     bindDb(env.DB);
     const at = new Date(controller.scheduledTime);
-    ctx.waitUntil(controller.cron === DAILY_CRON ? runDailyQuizTick(at).then(() => undefined) : runScheduled(at));
+    ctx.waitUntil(
+      controller.cron === DAILY_CRON
+        ? recordDailyTick(at).catch(() => undefined).then(() => runDailyQuizTick(at)).then(() => undefined)
+        : runScheduled(at),
+    );
   },
 } satisfies ExportedHandler<Bindings>;

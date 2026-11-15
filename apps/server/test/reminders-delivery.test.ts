@@ -6,7 +6,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { botContacts, notificationLog, playerProgress, userSettings } from '../src/db/schema';
+import { botContacts, botWriteAccess, notificationLog, playerProgress, userSettings } from '../src/db/schema';
 import { NOTIFY_MAX_ATTEMPTS, pickReminderKind, reminderCard, runScheduled, sendReminders } from '../src/jobs';
 import { BOT_TOKEN, disposeEnv, getEnv, login, request } from './helpers';
 import { resetRateLimits } from '../src/hono';
@@ -217,6 +217,22 @@ describe('ошибка Telegram не оставляет ложного «отп�
     expect(to(quiet, u.telegramId)).toHaveLength(0);
     // Нажал Start после отказа — на следующий день напоминание приходит.
     await contact(u.telegramId, new Date('2026-11-11T20:00:00Z'));
+    const after = fakeTelegram();
+    await sendReminders(at('2026-11-12'));
+    expect(to(after, u.telegramId)).toHaveLength(1);
+  });
+
+  it('403 → тишина снимается, когда Telegram сообщил при входе, что бот может писать (игрок разрешил в окне приложения) после отказа', async () => {
+    const u = await mk();
+    refuse403();
+    await sendReminders(at('2026-11-10'));
+    // Разрешение, полученное ДО отказа, повода ждать сообщений не даёт.
+    const allow = (allowedAt: Date) => db.insert(botWriteAccess).values({ telegramId: u.telegramId, allowedAt }).onConflictDoUpdate({ target: botWriteAccess.telegramId, set: { allowedAt } });
+    await allow(new Date('2026-11-09T10:00:00Z'));
+    const quiet = fakeTelegram();
+    await sendReminders(at('2026-11-11'));
+    expect(to(quiet, u.telegramId)).toHaveLength(0);
+    await allow(new Date('2026-11-11T20:00:00Z'));
     const after = fakeTelegram();
     await sendReminders(at('2026-11-12'));
     expect(to(after, u.telegramId)).toHaveLength(1);

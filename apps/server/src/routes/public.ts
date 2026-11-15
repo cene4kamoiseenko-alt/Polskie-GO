@@ -7,8 +7,7 @@ import { config } from '../env';
 import { atomic, db } from '../db';
 import {
   aiConversations, aiUsage, botQuizPlayers, botQuizRounds, dailyActivity, gameWallets, languageSkills, learningSessions, notificationLog, paymentEvents, playerProgress, subscriptions,
-  userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions, exerciseReports,
-} from '../db/schema';
+  userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions, exerciseReports, botWriteAccess } from '../db/schema';
 import { body, edgeRateLimit, query, rateLimit, type AppEnv } from '../hono';
 import { forgetUser } from '../auth';
 import { HttpError, badRequest } from '../lib/errors';
@@ -246,7 +245,7 @@ me.delete('/me', async (c) => {
     db.delete(notificationLog).where(eq(notificationLog.userId, id)),
     db.delete(exerciseReports).where(eq(exerciseReports.userId, id)),
     // Быстрые вопросы бота привязаны к Telegram id, а не к аккаунту: удаляем их отдельно.
-    ...(tg ? [db.delete(botQuizRounds).where(eq(botQuizRounds.telegramId, tg.telegramId)), db.delete(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg.telegramId))] : []),
+    ...(tg ? [db.delete(botQuizRounds).where(eq(botQuizRounds.telegramId, tg.telegramId)), db.delete(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg.telegramId)), db.delete(botWriteAccess).where(eq(botWriteAccess.telegramId, tg.telegramId))] : []),
     db.delete(users).where(eq(users.id, id)),
   ]);
   forgetUser(id);

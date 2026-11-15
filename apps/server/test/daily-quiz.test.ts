@@ -32,10 +32,10 @@ afterEach(() => vi.unstubAllGlobals());
 const levelOf = (id: string) => QUESTION_BY_ID.get(id)!.cefr;
 
 describe('состояние рассылки', () => {
-  it('по умолчанию выключена, 18:00, без даты старта; запись частичная', async () => {
-    expect(await readDailyState()).toEqual({ enabled: false, sendAt: '18:00', startDay: null });
+  it('по умолчанию выключена, 12:00, без даты старта; запись частичная', async () => {
+    expect(await readDailyState()).toEqual({ enabled: false, sendAt: '12:00', startDay: null });
     expect(await writeDailyState({ sendAt: '19:15' })).toEqual({ enabled: false, sendAt: '19:15', startDay: null });
-    await writeDailyState({ sendAt: '18:00' });
+    await writeDailyState({ sendAt: '12:00' });
   });
 
   it('день по Варшаве и окно отправки 4 часа: летом 18:00 = 16:00 UTC, зимой = 17:00 UTC', () => {
@@ -155,7 +155,7 @@ async function appPlayer(placement: 'A1' | 'A2' | 'B1' | null = null) {
 }
 
 const person = (p: Partial<DailyPerson>): DailyPerson => ({
-  telegramId: 1, userId: null, banned: false, uiLanguage: null, contactLang: 'uk', blockedAt: null, contactSeenAt: longAgo, appSeenAt: null,
+  telegramId: 1, userId: null, banned: false, uiLanguage: null, contactLang: 'uk', blockedAt: null, contactSeenAt: longAgo, appSeenAt: null, writeAllowedAt: null,
   pushEnabled: null, ignored: 0, lastSentAt: null, noChatAt: null, languageLevel: null, placementLevel: null, selfLevel: null,
   streakCurrent: null, lastActiveDay: null, timezone: null, firstName: '', username: null, ...p,
 });
@@ -169,6 +169,9 @@ describe('кто получает', () => {
     const t = new Date('2027-01-01T17:00:00Z');
     expect(dailyEligibility(person({ noChatAt: t }))).toBe('no_chat');
     expect(dailyEligibility(person({ noChatAt: t, contactSeenAt: new Date(t.getTime() + 1) }))).toBe('ok');
+    // Игрок открыл приложение по ссылке, бот не мог писать; потом Telegram сообщил при входе, что писать можно.
+    expect(dailyEligibility(person({ noChatAt: t, contactSeenAt: null, writeAllowedAt: new Date(t.getTime() + 1) }))).toBe('ok');
+    expect(dailyEligibility(person({ noChatAt: t, contactSeenAt: null, writeAllowedAt: new Date(t.getTime() - 1) }))).toBe('no_chat');
     expect(dailyEligibility(person({ ignored: 3, lastSentAt: t }))).toBe('paused');
     expect(dailyEligibility(person({ ignored: 2, lastSentAt: t }))).toBe('ok');
     expect(dailyEligibility(person({ ignored: 3, lastSentAt: t, appSeenAt: new Date(t.getTime() + 1) }))).toBe('ok');

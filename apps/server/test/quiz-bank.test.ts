@@ -220,14 +220,15 @@ describe('вопрос дня: вид сообщения', () => {
     }
   });
 
-  it('вопрос: заголовок «Pytanie dnia», 4 варианта кнопками, без таймера; кнопка урока — только со строкой серии', () => {
+  it('вопрос: заголовок «Pytanie dnia», 4 варианта кнопками, без таймера; кнопка в игру — под каждым вопросом (с серией — ещё и строка серии)', () => {
     const q = QUIZ_QUESTIONS[0];
     const plain = dailyQuestionView(q, [0, 1, 2, 3], 'ru', roundId, { streak: null, returning: false, hasUser: true });
     expect(plain.text).toContain('🧠 Pytanie dnia');
     expect(plain.text).not.toMatch(/секунд/);
     const answers = plain.keyboard.inline_keyboard.flat().filter((b) => 'callback_data' in b && b.callback_data.startsWith('qa:'));
     expect(answers).toHaveLength(4);
-    expect(plain.keyboard.inline_keyboard.flat().some((b) => 'web_app' in b)).toBe(false);
+    expect(plain.keyboard.inline_keyboard.flat().filter((b) => 'web_app' in b)).toHaveLength(1);
+    expect(plain.text).toContain('🎮');
     const streak = dailyQuestionView(q, [0, 1, 2, 3], 'ru', roundId, { streak: 5, returning: false, hasUser: true });
     expect(streak.text).toMatch(/🔥 .*5/);
     expect(streak.keyboard.inline_keyboard.flat().filter((b) => 'web_app' in b)).toHaveLength(1);

@@ -863,6 +863,15 @@ export const botContacts = sqliteTable(
   (t) => [index('bot_contacts_first_seen_idx').on(t.firstSeenAt)],
 );
 
+/**
+ * Разрешение боту писать игроку: Telegram присылает allows_write_to_pm при каждом входе в Mini App. Отдельная таблица, а не колонка users:
+ * запись нужна только тем, кто разрешил, и копии данных старых миграций (migration-00xx.test.ts) входят в приложение на старой схеме.
+ */
+export const botWriteAccess = sqliteTable('bot_write_access', {
+  telegramId: integer('telegram_id').primaryKey(),
+  allowedAt: ts('allowed_at').notNull(),
+});
+
 export const SUPPORT_STATUS = ['AWAITING', 'OPEN', 'DONE'] as const;
 
 /**

@@ -4,6 +4,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { atomic, db, isUniqueViolation } from '../db';
 import { cities, cosmeticItems, friendships, gameWallets, newId, playerProgress, userCities, userInventory, userProfiles, userSettings, users } from '../db/schema';
 import type { TelegramUser } from '../lib/telegram';
+import { recordWriteAccess } from './bot-audience';
 
 function newReferralCode() {
   return randomBytes(5).toString('base64url').replace(/[-_]/g, 'x').slice(0, 8);
@@ -11,6 +12,8 @@ function newReferralCode() {
 
 /** Знайти або створити користувача за підтвердженими даними Telegram. */
 export async function upsertTelegramUser(tg: TelegramUser, startParam?: string): Promise<typeof users.$inferSelect> {
+  // Бот может писать игроку (Telegram сообщает при каждом входе): вопрос дня и напоминания дойдут — см. bot/daily/audience.ts, bot/mute.ts.
+  if (tg.allows_write_to_pm === true) await recordWriteAccess(tg.id).catch(() => undefined);
   const telegramId = tg.id;
   const existing = await db.query.users.findFirst({ where: eq(users.telegramId, telegramId) });
   if (existing) {

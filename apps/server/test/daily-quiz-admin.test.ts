@@ -62,7 +62,7 @@ describe('план публикаций до запуска', () => {
   it('30 дней по 3 уровня: вопрос, картинка, «как увидит игрок»; охват и скорость отправки; рассылка выключена', async () => {
     const r = await root('GET', '/daily-quiz?lang=ru');
     expect(r.status).toBe(200);
-    expect(r.body.state).toEqual({ enabled: false, sendAt: '18:00', startDay: null });
+    expect(r.body.state).toEqual({ enabled: false, sendAt: '12:00', startDay: null });
     expect(r.body.rate).toEqual({ perRun: 40, perHour: 2400 });
     expect(r.body.scenes).toHaveLength(16);
     expect(r.body.plan).toHaveLength(30);

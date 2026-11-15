@@ -7,6 +7,8 @@ import type { UiLang } from '@polski-go/shared';
 export type DailyCopy = {
   header: (category: string, cefr: string) => string;
   choose: string;
+  /** Приглашение в игру под вопросом: рассылка зовёт не только ответить, но и зайти. */
+  invite: string;
   streakLine: (days: number) => string;
   returnLine: string;
   percentLine: (pct: number, level: string) => string;
@@ -29,6 +31,7 @@ const ukDays = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? 'день' : n %
 const ru: DailyCopy = {
   header: (c, l) => `🧠 Pytanie dnia · ${c} · ${l}`,
   choose: 'Выбери вариант 👇 Время не ограничено — подумай.',
+  invite: '🎮 Ответил? Дальше — урок на 5 минут: XP, серия и новые города ждут в игре.',
   streakLine: (n) => `🔥 Серия ${n} ${ruDays(n)} — пройди урок сегодня, чтобы её не потерять.`,
   returnLine: '👋 Давно не виделись — вот вопрос на разминку.',
   percentLine: (p, l) => `📊 Сегодня верно ответили ${p} % игроков уровня ${l}.`,
@@ -48,6 +51,7 @@ const ru: DailyCopy = {
 const uk: DailyCopy = {
   header: (c, l) => `🧠 Pytanie dnia · ${c} · ${l}`,
   choose: 'Обери варіант 👇 Час не обмежений — подумай.',
+  invite: '🎮 Відповів? Далі — урок на 5 хвилин: XP, серія й нові міста чекають у грі.',
   streakLine: (n) => `🔥 Серія ${n} ${ukDays(n)} — пройди урок сьогодні, щоб її не втратити.`,
   returnLine: '👋 Давно не бачилися — ось питання на розминку.',
   percentLine: (p, l) => `📊 Сьогодні правильно відповіли ${p} % гравців рівня ${l}.`,
@@ -67,6 +71,7 @@ const uk: DailyCopy = {
 const en: DailyCopy = {
   header: (c, l) => `🧠 Pytanie dnia · ${c} · ${l}`,
   choose: 'Pick an answer 👇 No time limit — think it through.',
+  invite: '🎮 Answered? Next up is a 5-minute lesson: XP, your streak and new cities are waiting in the game.',
   streakLine: (n) => `🔥 ${n}-day streak — do a lesson today so you don't lose it.`,
   returnLine: "👋 Long time no see — here's a warm-up question.",
   percentLine: (p, l) => `📊 ${p}% of ${l} players got it right today.`,

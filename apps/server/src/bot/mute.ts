@@ -6,6 +6,7 @@
  * Теперь игроку не пишем, пока у него нет повода ждать сообщения:
  *  • с отказа (запись BLOCKED в notification_log — и у напоминаний, и у приглашений к быстрым вопросам) прошло меньше 30 дней,
  *  • и после отказа игрок не писал боту (bot_contacts.last_seen_at),
+ *  • и не давал боту разрешение писать (bot_write_access: Telegram сообщает allows_write_to_pm при каждом входе — окно из приложения),
  *  • и не сохранял настройки (user_settings.updated_at: тот же жест, что выбор времени напоминания, а при выборе времени приложение
  *    заново просит у Telegram разрешение писать — `requestBotWriteAccess`, apps/web/src/lib/telegram.ts);
  * а также пока бот помечен заблокированным (bot_contacts.blocked_at: событие my_chat_member; снимается, когда игрок пишет снова).
@@ -13,7 +14,7 @@
  */
 import { and, gt, isNotNull, not, notExists, eq, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { botContacts, notificationLog, userSettings, users } from '../db/schema';
+import { botContacts, botWriteAccess, notificationLog, userSettings, users } from '../db/schema';
 
 export const MUTE_MS = 30 * 86_400_000;
 
@@ -38,6 +39,8 @@ export function notMuted(now: Date) {
             sql`${failedAt} > ${since}`,
             // не снята: настройки не сохранялись после отказа …
             not(gt(userSettings.updatedAt, failedAt)),
+            // … и Telegram не сообщал при входе, что бот может писать (игрок согласился в окне разрешения) …
+            sql`coalesce((SELECT ${botWriteAccess.allowedAt} FROM ${botWriteAccess} WHERE ${botWriteAccess.telegramId} = ${users.telegramId}), 0) <= ${failedAt}`,
             // … и игрок не писал боту после отказа
             notExists(db.select({ x: sql`1` }).from(botContacts).where(and(eq(botContacts.telegramId, users.telegramId), gt(botContacts.lastSeenAt, failedAt)))),
           ),
