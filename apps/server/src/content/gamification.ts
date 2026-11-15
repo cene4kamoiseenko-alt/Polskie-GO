@@ -49,7 +49,7 @@ export const WEEKLY_QUESTS: QuestSeed[] = [
   { slug: 'w-words-50', kind: 'WEEKLY', title: t('Словниковий запас', 'Словарный запас', 'Word hoard'), description: t('Вивчи 50 нових слів', 'Выучи 50 новых слов', 'Learn 50 new words'), metric: 'NEW_WORDS', target: 50, xp: 100, zlotki: 40, icon: '🧠' },
   { slug: 'w-city-1', kind: 'WEEKLY', title: t('Нове місто', 'Новый город', 'New city'), description: t('Пройди іспит міста', 'Пройди экзамен города', 'Pass a city exam'), metric: 'CITY_COMPLETED', target: 1, xp: 100, zlotki: 50, icon: '🗺️' },
   { slug: 'w-listening-20', kind: 'WEEKLY', title: t('Аудіо-тиждень', 'Аудио-неделя', 'Audio week'), description: t('Виконай 20 аудіювань', 'Выполни 20 аудирований', 'Do 20 listening exercises'), metric: 'LISTENING', target: 20, xp: 100, zlotki: 30, icon: '🎧' },
-  { slug: 'w-dialogues-3', kind: 'WEEKLY', title: t('Балакун', 'Болтун', 'Chatterbox'), description: t('Пройди 3 діалоги в уроках або місіях', 'Пройди 3 диалога в уроках или миссиях', 'Complete 3 dialogues in lessons or missions'), metric: 'DIALOGUES', target: 3, xp: 100, zlotki: 30, icon: '🗣️' },
+  { slug: 'w-dialogues-3', kind: 'WEEKLY', title: t('Співрозмовник', 'Собеседник', 'Conversationalist'), description: t('Пройди 3 діалоги в уроках або місіях', 'Пройди 3 диалога в уроках или миссиях', 'Complete 3 dialogues in lessons or missions'), metric: 'DIALOGUES', target: 3, xp: 100, zlotki: 30, icon: '🗣️' },
 ];
 
 const BEAVER = { speaker: 'beaver' as const, name: 'Bobek', emoji: '🦫' };

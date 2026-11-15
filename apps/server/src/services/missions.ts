@@ -291,7 +291,7 @@ async function finishMission(userId: string, run: Run, m: Mission, lastFirstTry:
   const elapsed = Math.min(Math.round((now.getTime() - run.startedAt.getTime()) / 1000), 1800);
   const activity = touchActivity(ctx, { exercises: m.steps.length + run.mistakes, correct: m.steps.length, seconds: elapsed });
   // XP миссии засчитывается в задания «Получи N XP» так же, как XP урока. Миссия — это диалог с жителем города, поэтому
-  // она засчитывается и в задания «Поговори» / «Балакун» (раньше считались только диалоги в уроках; владелец 2026-11-15 решил,
+  // она засчитывается и в задания «Поговори» / «Собеседник» (раньше считались только диалоги в уроках; владелец 2026-11-15 решил,
   // что задание требует говорить вслух, хотя проверки речи в игре нет).
   const quests = await applyQuestEvents(ctx, { XP: xp.granted, DIALOGUES: 1 });
 

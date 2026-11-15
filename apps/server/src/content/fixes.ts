@@ -11,12 +11,18 @@ export type TextFix = { table: 'city_routes' | 'lessons' | 'quests'; slug: strin
 export type LessonMove = { lesson: string; from: string; to: string; order: number };
 
 export const TEXT_FIXES: TextFix[] = [
-  // Задания «Поговори» / «Балакун»: «разговорные практики» звучали как проверка речи вслух, которой в игре нет (владелец 2026-11-15).
+  // Задания «Поговори» / «Собеседник»: «разговорные практики» звучали как проверка речи вслух, которой в игре нет (владелец 2026-11-15).
   // Засчитываются диалоги в уроках и пройденные миссии (services/missions.ts).
   {
     table: 'quests', slug: 'd-dialogue-1', column: 'description',
     from: t('Заверши розмовний діалог', 'Заверши разговорный диалог', 'Complete a dialogue'),
     to: t('Заверши діалог в уроці або пройди місію', 'Заверши диалог в уроке или пройди миссию', 'Finish a dialogue in a lesson or a mission'),
+  },
+  // Название «Балакун» / «Болтун» владельцу не понравилось (2026-11-15): «Співрозмовник» / «Собеседник».
+  {
+    table: 'quests', slug: 'w-dialogues-3', column: 'title',
+    from: t('Балакун', 'Болтун', 'Chatterbox'),
+    to: t('Співрозмовник', 'Собеседник', 'Conversationalist'),
   },
   {
     table: 'quests', slug: 'w-dialogues-3', column: 'description',

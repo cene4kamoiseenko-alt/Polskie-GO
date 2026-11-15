@@ -275,6 +275,8 @@ describe('Місії: XP у завданнях і денна мета', () => {
     const today = dayKey(new Date(), 'Europe/Warsaw');
     const talk = (await db.select().from(quests).where(eq(quests.slug, 'd-dialogue-1')))[0];
     expect(talk.description).toMatchObject({ ru: 'Заверши диалог в уроке или пройди миссию' });
+    const weekly = (await db.select().from(quests).where(eq(quests.slug, 'w-dialogues-3')))[0];
+    expect(weekly.title).toEqual({ uk: 'Співрозмовник', ru: 'Собеседник', en: 'Conversationalist' });
     await db.insert(userQuests).values({ userId: user.id, questId: talk.id, periodKey: today, progress: 0, status: 'ACTIVE', state: {} }).onConflictDoNothing();
     await playMission(call, zabka);
     const quest = (await db.select().from(userQuests).where(and(eq(userQuests.userId, user.id), eq(userQuests.questId, talk.id), eq(userQuests.periodKey, today))))[0];
