@@ -5,7 +5,7 @@
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from '../lib/motion';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGoBack } from '../lib/back';
 import { useT, type TKey } from '../i18n';
@@ -23,8 +23,13 @@ import { ReportButton, ReportDialog, type ReportTarget } from '../components/Rep
 import { Progress, Skeleton, cx, useBackButton, useToast } from '../components/ui';
 import { rankFor } from './Home';
 
-type Row = { rank: number; userId: string; name: string; photoUrl: string | null; xp: number; level: number; premium?: boolean; isMe: boolean };
-type Board = { week: string; league: string; rows: Row[]; me?: { xpTotal: number; next: { league: string; at: number } | null } };
+type Row = { rank: number; userId: string; name: string; photoUrl: string | null; xp: number; level: number; premium?: boolean; isMe: boolean; league?: string; prize?: number };
+type Board = {
+  week: string; endsAt?: string; league: string; minXp?: number; prizeMinXp?: number; prizes?: number[]; rows: Row[];
+  me?: { xpTotal: number; weekXp?: number; rank?: number; toJoin?: number; toPodium?: number; next: { league: string; at: number } | null };
+  lastWeek?: { rank: number; xp: number; zlotki: number; name: string; photoUrl: string | null; isMe: boolean }[];
+};
+const LEAGUE_COLOR: Record<string, string> = { bronze: '#E39A6B', silver: '#C9D6E6', gold: '#FFC857', diamond: '#7FE3FF' };
 type Friend = { id: string; status: string; incoming: boolean; user: { id: string; name: string; photoUrl: string | null; level: number | null; xp: number | null; streak: number | null; languageLevel: string | null } };
 
 const PLACE = { 1: { ring: '#FFC857', ped: 'linear-gradient(180deg,#8A5A2B,#4A2E14)', h: 86 }, 2: { ring: '#C9D6E6', ped: 'linear-gradient(180deg,#4F5F7A,#2A3448)', h: 64 }, 3: { ring: '#E39A6B', ped: 'linear-gradient(180deg,#7A4630,#3E2216)', h: 52 } } as const;
@@ -116,6 +121,73 @@ function Podium({ rows }: { rows: Row[] }) {
   );
 }
 
+/** До конца недели: «2 д 5 ч» или «5 ч 12 мин»; обновляется раз в 30 секунд. */
+function useWeekLeft(endsAt?: string) {
+  const { t } = useT();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(i);
+  }, []);
+  if (!endsAt) return '';
+  const ms = Math.max(0, new Date(endsAt).getTime() - now);
+  const d = Math.floor(ms / 86_400_000);
+  const h = Math.floor((ms % 86_400_000) / 3_600_000);
+  return d > 0 ? t('time_dh', { d, h }) : t('time_hm', { h, m: Math.floor((ms % 3_600_000) / 60_000) });
+}
+
+/** Призы недели: 1–3 места медалями, 4–10 — одной плашкой; условие начисления — мелкой строкой. */
+function PrizeStrip({ board }: { board: Board }) {
+  const { t } = useT();
+  const prizes = board.prizes ?? [];
+  if (!prizes.length) return null;
+  return (
+    <div className="lb-prizes mx-4" data-lb-prizes>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[13px] font-black uppercase tracking-[0.06em] text-[var(--text-muted)]">{t('lb_prizes_title')}</span>
+      </div>
+      <div className="mt-2 grid grid-cols-4 gap-1.5">
+        {(['medal-gold', 'medal-silver', 'medal-bronze'] as const).map((m, i) => (
+          <div key={m} className="lb-prize">
+            <Art name={m} size={30} label={String(i + 1)} />
+            <span className="text-[14px] font-black tabular-nums">+{prizes[i]}</span>
+            <span className="text-[10px] font-black text-[var(--text-muted)]">zł</span>
+          </div>
+        ))}
+        <div className="lb-prize">
+          <span className="text-[11px] font-black leading-tight text-[var(--text-muted)]">{t('lb_prize_rest')}</span>
+          <span className="text-[14px] font-black tabular-nums">+{prizes[3]}</span>
+          <span className="text-[10px] font-black text-[var(--text-muted)]">zł</span>
+        </div>
+      </div>
+      <p className="mt-2 text-[11.5px] font-bold leading-snug text-[var(--text-muted)]">{t('lb_prize_note', { xp: board.prizeMinXp ?? 100 })}</p>
+    </div>
+  );
+}
+
+/** Победители прошлой недели: соцдоказательство, что призы настоящие. */
+function LastWeek({ board }: { board: Board }) {
+  const { t } = useT();
+  const list = board.lastWeek ?? [];
+  if (!list.length) return null;
+  return (
+    <section className="px-4" data-lb-last-week>
+      <h2 className="section-title mb-2">{t('lb_last_week')}</h2>
+      <div className="stat-card !block divide-y divide-[var(--hairline)] !p-0">
+        {list.map((w) => (
+          <div key={w.rank} className="flex items-center gap-2.5 px-3 py-2">
+            <Art name={w.rank === 1 ? 'medal-gold' : w.rank === 2 ? 'medal-silver' : 'medal-bronze'} size={26} label={String(w.rank)} />
+            <UserAvatar url={w.photoUrl} seed={w.name} size={30} />
+            <span className={cx('min-w-0 flex-1 truncate text-[14px] font-black', w.isMe && 'text-xp')}>{w.name}</span>
+            <span className="shrink-0 text-[12px] font-bold text-[var(--text-muted)]">{w.xp} XP</span>
+            <span className="shrink-0 rounded-full bg-xp/20 px-2 py-0.5 text-[12px] font-black text-xp">+{w.zlotki} zł</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const TABS = ['league', 'friends'] as const;
 
 export default function SocialScreen() {
@@ -163,6 +235,18 @@ export default function SocialScreen() {
   const others = rows.filter((r) => r.xp > 0 && !r.isMe);
   const next = lb.data?.me?.next;
   const xpTotal = lb.data?.me?.xpTotal ?? 0;
+  const weekLeft = useWeekLeft(lb.data?.endsAt);
+  const myRank = lb.data?.me?.rank ?? mine?.rank ?? 0;
+  const myPrize = mine?.prize ?? 0;
+  const prizeMin = lb.data?.prizeMinXp ?? 100;
+  // Что сейчас важнее всего игроку: попасть в таблицу, приз за текущее место или сколько до 3-го места.
+  const weekLine = !lb.data?.me ? '' : myRank === 0
+    ? t('lb_to_join', { xp: lb.data.me.toJoin ?? 0 })
+    : myPrize > 0
+      ? `${t('lb_in_prizes', { zl: myPrize })}${myRank > 3 && lb.data.me.toPodium ? ` · ${t('lb_to_podium', { xp: lb.data.me.toPodium })}` : ''}`
+      : (mine?.xp ?? 0) < prizeMin
+        ? t('lb_need_prize_min', { xp: prizeMin })
+        : t('lb_to_podium', { xp: lb.data.me.toPodium ?? 0 });
 
   const MyCard = ({ gold }: { gold?: boolean }) =>
     mine ? (
@@ -174,8 +258,17 @@ export default function SocialScreen() {
             <div className="line-clamp-2 text-[17px] font-black leading-tight text-white">{mine.name} <span className="text-xp">({t('lb_you')})</span></div>
             <div className="text-[13px] font-bold text-mist">{t('lb_level_n', { n: mine.level })} · <span className="text-sky">{rankFor(mine.level)}</span></div>
           </div>
-          <div className="text-right text-[18px] font-black text-white">{mine.xp} XP</div>
+          <div className="text-right text-[18px] font-black text-white">{mine.xp} XP{gold && myPrize > 0 && <div className="text-[12px] font-black text-xp">+{myPrize} zł</div>}</div>
         </div>
+        {gold && weekLine && (
+          <div className="mt-2.5 flex items-center gap-2 rounded-2xl bg-xp/15 px-3 py-2" data-lb-week-status>
+            <Art name={myRank > 0 && myRank <= 3 ? 'trophy' : 'target'} size={30} />
+            <span className="min-w-0 flex-1 text-[13px] font-black leading-snug text-white">{weekLine}</span>
+            {myRank === 0 && (
+              <button onClick={() => { haptic.tap(); nav('/learn'); }} className="btn btn-red min-h-0 shrink-0 px-3 py-1.5 text-[12.5px]">{t('lb_play')}</button>
+            )}
+          </div>
+        )}
         <div className="mt-2.5 flex items-center gap-2 rounded-2xl bg-night/55 px-3 py-2">
           <div className="min-w-0 flex-1">
             <div className="text-[12px] font-black text-mist">{next ? t('lb_to_next', { league: t(`league_${next.league}` as TKey) }) : t('lb_max_league')}</div>
@@ -196,9 +289,10 @@ export default function SocialScreen() {
       {/* Заголовок і вкладки */}
       <div className="flex items-start gap-2 px-4 pt-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-[30px] font-black leading-none">{t('lb_title')}</h1>
+          <h1 className="text-[28px] font-black leading-none">{tab === 'league' ? t('lb_week_title') : t('lb_title')}</h1>
           <div className="mt-1 flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">
-            <Art name="medal-bronze" size={18} /> <span className="leading-tight">{leagueName}{lb.data ? ` · ${t('lb_week_n', { n: Number(lb.data.week.split('W')[1] ?? 0) || lb.data.week })}` : ''}</span>
+            <Icon name="clock" size={15} className="shrink-0" />
+            <span className="leading-tight" data-lb-ends>{weekLeft ? t('lb_ends_in', { t: weekLeft }) : leagueName}</span>
           </div>
         </div>
         <div className="flex shrink-0 rounded-full border border-[var(--border)] bg-elev p-1">
@@ -222,6 +316,7 @@ export default function SocialScreen() {
           <>
             <Podium rows={rows} />
             <MyCard gold />
+            {lb.data && <PrizeStrip board={lb.data} />}
             <section className="px-4">
               <h2 className="mb-2 text-lg font-black">{t('lb_top')}</h2>
               {others.length === 0 ? (
@@ -238,15 +333,22 @@ export default function SocialScreen() {
                           <span className="truncate">{r.name}</span>
                           {r.premium && <Icon name="crown" size={15} filled className="shrink-0 text-xp" aria-label="Premium" />}
                         </div>
-                        <div className="text-[12px] font-bold text-sky">{t('lb_level_n', { n: r.level })}</div>
+                        <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[12px] font-bold text-sky">
+                          {r.league && <span className="lb-league-chip shrink-0" style={{ '--chip': LEAGUE_COLOR[r.league] ?? '#36B9FF' } as React.CSSProperties}>{t(`league_short_${r.league}` as TKey)}</span>}
+                          <span className="truncate">{t('lb_level_n', { n: r.level })}</span>
+                        </div>
                       </div>
-                      <span className="relative text-[16px] font-black text-white">{r.xp} XP</span>
+                      <span className="relative flex flex-col items-end leading-tight">
+                        <span className="text-[16px] font-black text-white">{r.xp} XP</span>
+                        {!!r.prize && <span className="text-[11.5px] font-black text-xp">+{r.prize} zł</span>}
+                      </span>
                       <ReportButton target={{ id: r.userId, name: r.name }} onOpen={setReporting} />
                     </motion.div>
                   ))}
                 </div>
               )}
             </section>
+            {lb.data && <LastWeek board={lb.data} />}
             <button onClick={() => nav('/learn')} className="stat-card mx-4 w-[calc(100%-2rem)] !gap-3 !p-3">
               <Art name="trophy" size={40} />
               <span className="flex-1 text-left text-[13px] font-bold leading-snug text-mist">{t('lb_footer')}</span>

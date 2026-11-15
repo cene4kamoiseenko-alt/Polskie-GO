@@ -14,6 +14,7 @@ import { libraryEnabled, libraryFingerprint, libraryVoice } from './audio-librar
 import { audioGenerationMode } from './audio-policy';
 import { activeSubWhere } from './premium';
 import { outfit } from './shop';
+import { unseenLeagueAward } from './league';
 
 export { goalXpFor as goalXp } from './goal';
 import { goalXpFor as goalXp } from './goal';
@@ -51,6 +52,8 @@ export async function getMe(userId: string) {
       .where(eq(botQuizPlayers.telegramId, sql`(SELECT telegram_id FROM users WHERE id = ${userId})`))
       .catch(() => [] as { pushEnabled: boolean }[]),
   ]);
+  // Итоги недели лиги: непросмотренная награда — окно на главной. Мягко: на старой схеме (тесты миграций) профиль обязан открываться.
+  const leagueAward = await unseenLeagueAward(userId, now).catch(() => null);
   const sub = subRow[0] ?? null;
   const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0], currentCity: cityRow[0] ?? null } };
   const tz = user.settings?.timezone ?? 'Europe/Warsaw';
@@ -114,6 +117,7 @@ export async function getMe(userId: string) {
       : { active: false },
     outfit: look,
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
+    leagueAward,
     rewards: { exerciseXp: cfg.exerciseXp },
     /**
      * Озвучка — лише готові MP3 голосу бібліотеки (Kamil): клієнт рахує audio_id = sha256(audioNorm(текст)) і бере

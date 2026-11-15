@@ -15,6 +15,8 @@ export const BOT_SCREENS = {
   achievements: '/achievements',
   settings: '/settings',
   grammar: '/grammar',
+  // Рейтинг недели (поздравление призёров в боте, 2026-11-15).
+  league: '/social',
 } as const;
 
 export type BotScreen = keyof typeof BOT_SCREENS;

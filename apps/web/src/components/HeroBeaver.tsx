@@ -8,22 +8,24 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from '../lib/motion';
+import { BOBEK_SAYS } from '@polski-go/shared';
 import { useT, type TKey } from '../i18n';
 import { haptic } from '../lib/telegram';
 import { audioIdOf, speak } from '../lib/audio';
 import { Beaver, type BeaverMood } from './Beaver';
 import { Icon } from './Icon';
 
+// Польские фразы — из shared (BOBEK_SAYS): тот же список попадает в каталог озвучки сервера, и у каждой фразы есть запись.
 const PHRASES: { pl: string; key: TKey; mood: BeaverMood }[] = [
-  { pl: 'Cześć!', key: 'bobek_say_hi', mood: 'wave' },
-  { pl: 'Dzień dobry!', key: 'bobek_say_morning', mood: 'wave' },
-  { pl: 'Do dzieła!', key: 'bobek_say_go', mood: 'cheer' },
-  { pl: 'Dasz radę!', key: 'bobek_say_can', mood: 'cheer' },
-  { pl: 'Powodzenia!', key: 'bobek_say_luck', mood: 'happy' },
-  { pl: 'Miłego dnia!', key: 'bobek_say_day', mood: 'wave' },
-  { pl: 'Brawo!', key: 'bobek_say_bravo', mood: 'celebrate' },
+  { pl: BOBEK_SAYS.hi, key: 'bobek_say_hi', mood: 'wave' },
+  { pl: BOBEK_SAYS.morning, key: 'bobek_say_morning', mood: 'wave' },
+  { pl: BOBEK_SAYS.go, key: 'bobek_say_go', mood: 'cheer' },
+  { pl: BOBEK_SAYS.can, key: 'bobek_say_can', mood: 'cheer' },
+  { pl: BOBEK_SAYS.luck, key: 'bobek_say_luck', mood: 'happy' },
+  { pl: BOBEK_SAYS.day, key: 'bobek_say_day', mood: 'wave' },
+  { pl: BOBEK_SAYS.bravo, key: 'bobek_say_bravo', mood: 'celebrate' },
 ];
-const TICKLE = { pl: 'Łaskocze!', key: 'bobek_say_tickle' as TKey, mood: 'celebrate' as BeaverMood };
+const TICKLE = { pl: BOBEK_SAYS.tickle, key: 'bobek_say_tickle' as TKey, mood: 'celebrate' as BeaverMood };
 /** Сколько тапов подряд (с паузой меньше TAP_GAP_MS) нужно для «щекотки». */
 const TICKLE_TAPS = 5;
 const TAP_GAP_MS = 900;

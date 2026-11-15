@@ -3,7 +3,7 @@ import { BOT_SCREENS, botScreenRoute, isBotScreen, resolveLaunchRoute, withBotSc
 
 describe('переходы из Telegram-бота (bot_screen)', () => {
   it('белый список: девять экранов + главная, всё остальное отвергается', () => {
-    expect(Object.values(BOT_SCREENS).sort()).toEqual(['/', '/achievements', '/dictionary', '/grammar', '/learn', '/map', '/profile', '/quests', '/settings', '/slang']);
+    expect(Object.values(BOT_SCREENS).sort()).toEqual(['/', '/achievements', '/dictionary', '/grammar', '/learn', '/map', '/profile', '/quests', '/settings', '/slang', '/social']);
     for (const bad of ['premium', 'admin', '../map', '/map', 'constructor', '__proto__', 'toString', '', 'MAP']) {
       expect(isBotScreen(bad), bad).toBe(false);
       expect(botScreenRoute(bad), bad).toBeNull();

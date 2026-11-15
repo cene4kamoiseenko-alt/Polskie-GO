@@ -6,7 +6,7 @@
  */
 import { createHash } from 'node:crypto';
 import { asc, eq } from 'drizzle-orm';
-import { AUDIO_LIBRARY_VERSION, CEFR_LEVELS, audioKind, audioNorm, exerciseSpeakables, isLoneLetter, speechText, type SpeakRole } from '@polski-go/shared';
+import { AUDIO_LIBRARY_VERSION, CEFR_LEVELS, audioKind, audioNorm, exerciseSpeakables, isLoneLetter, speechText, type SpeakRole, BOBEK_SAYS } from '@polski-go/shared';
 import { db } from '../db';
 import { cities, cityRoutes, exercises, lessons, questSteps, quests, vocabularyEntries } from '../db/schema';
 import { GRAMMAR } from '../content/grammar';
@@ -34,6 +34,8 @@ export type AudioGroup = keyof typeof AUDIO_GROUPS;
 export const UI_PHRASES = [
   { text: 'Cześć! Jestem Bobek. Razem nauczymy się polskiego!', usage: 'ui:onboarding' },
   { text: 'Dzień dobry! Dziękuję, do widzenia.', usage: 'ui:settings-voice-check' },
+  // Бобек на главной говорит по тапу короткую фразу (HeroBeaver.tsx): кнопка «Послушать» появляется, когда запись готова.
+  ...Object.values(BOBEK_SAYS).map((text) => ({ text, usage: 'ui:home-bobek' })),
 ];
 
 type Use = { text: string; group: AudioGroup; sub: number; order: number; usage: string; role?: SpeakRole };

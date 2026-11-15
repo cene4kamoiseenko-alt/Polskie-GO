@@ -449,6 +449,31 @@ async function main() {
     });
     await today.context.close();
 
+    // ── R6: недельная лига (вариант А, 2026-11-15): общая таблица недели с порогом 20 XP, призы за места, счётчик до конца недели.
+    await soft('R6 рейтинг недели: игрок с XP в таблице, призы и счётчик', async () => {
+      const r6 = await userPage('880070');
+      const lessonId = (await r6.call('GET', '/api/journey')).body.nextLesson.id as string;
+      const started = (await r6.call('POST', '/api/sessions', { lessonId })).body;
+      // XP начисляется за каждое верное задание: нескольких хватает, чтобы перейти порог таблицы (20 XP).
+      for (const item of (await sessionItems(started.sessionId)).slice(0, 6)) {
+        for (const a of correctAnswers(item)) await r6.call('POST', `/api/sessions/${started.sessionId}/answer`, { key: item.key, answer: a });
+      }
+      const board = (await r6.call('GET', '/api/leaderboard?scope=league')).body;
+      const mine = board.rows.find((x: { isMe: boolean }) => x.isMe);
+      check(board.me.weekXp >= 20 && mine && mine.rank >= 1, `R6 игрок с ${board.me.weekXp} XP за неделю — в таблице недели (место ${mine?.rank})`);
+      check(JSON.stringify(board.prizes.slice(0, 4)) === '[300,200,100,25]' && board.minXp === 20 && board.prizeMinXp === 100, 'R6 призы 300 / 200 / 100 / 25 zł, порог 20 XP, приз от 100 XP');
+      check(new Date(board.endsAt).getTime() > Date.now(), 'R6 конец недели — в будущем');
+      const p = r6.page;
+      await p.goto(r6.url('/social'), { waitUntil: 'networkidle' });
+      await p.locator('[data-lb-prizes]').waitFor({ timeout: 20_000 });
+      check(/До конца недели/.test((await p.locator('[data-lb-ends]').textContent()) ?? ''), 'R6 в шапке — сколько осталось до конца недели');
+      check((await p.locator('[data-lb-prizes] .lb-prize').count()) === 4, 'R6 полоса призов: три медали и «4–10 место»');
+      check(((await p.locator('[data-lb-week-status]').textContent()) ?? '').trim().length > 0, 'R6 в карточке игрока — что нужно для приза');
+      check(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'R6 экран рейтинга без горизонтальной прокрутки');
+      await p.screenshot({ path: `${SCREENS}/r6-league-390.png`, fullPage: true });
+      await r6.context.close();
+    });
+
     // ── R5: редизайн 2026-11-15 — пять вкладок, «Учёба» = уроки + карта, «Миссии» — вкладка; герой главной без наложений; живой Бобек.
     await soft('R5 вкладки, герой главной и Бобек по тапу', async () => {
       const r5 = await userPage('880050');

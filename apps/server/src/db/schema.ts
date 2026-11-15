@@ -539,6 +539,32 @@ export const leaderboards = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.periodKey] }), index('leaderboards_period_xp_idx').on(t.periodKey, t.xp)],
 );
 
+/**
+ * Итоги недельной лиги (2026-11-15): неделя подведена (захват строкой — повторный запуск cron ничего не делает).
+ * `players` — сколько игроков было в таблице недели (с порогом входа).
+ */
+export const leagueWeeks = sqliteTable('league_weeks', {
+  week: text('week').primaryKey(),
+  settledAt: ts('settled_at').notNull(),
+  players: integer('players').notNull().default(0),
+});
+
+/** Приз за место в неделе: Złotki начислены (ключ `league:<неделя>:<игрок>`), бот поздравил (`notified_at`), игрок видел окно (`seen_at`). */
+export const leagueAwards = sqliteTable(
+  'league_awards',
+  {
+    week: text('week').notNull(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    xp: integer('xp').notNull(),
+    zlotki: integer('zlotki').notNull(),
+    createdAt: ts('created_at').notNull(),
+    notifiedAt: ts('notified_at'),
+    seenAt: ts('seen_at'),
+  },
+  (t) => [primaryKey({ columns: [t.week, t.userId] }), index('league_awards_user_idx').on(t.userId, t.seenAt), index('league_awards_notify_idx').on(t.notifiedAt)],
+);
+
 // ───────────────────────── Монетизація ─────────────────────────
 
 export const subscriptionPlans = sqliteTable('subscription_plans', {

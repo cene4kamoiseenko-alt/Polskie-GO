@@ -1,12 +1,12 @@
 import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { brandAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
-import type { PassSeason } from '../lib/types';
+import type { Me, PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon } from '../components/Icon';
@@ -15,6 +15,7 @@ import { HouseCard } from '../components/HouseCard';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { HeroBeaver } from '../components/HeroBeaver';
+import { RewardModal } from '../components/game';
 import { sfx } from '../lib/audio';
 import { botCanMessage, haptic, requestWriteAccessResult } from '../lib/telegram';
 import { store } from '../lib/storage';
@@ -318,6 +319,30 @@ function PremiumTeaser() {
   );
 }
 
+/**
+ * Итоги недели лиги: призёру при входе — окно с наградой (Złotki уже начислены сервером в понедельник ночью).
+ * Закрытие отмечает награду просмотренной; если отметка не дошла, в этой сессии окно больше не всплывает.
+ */
+function LeagueAwardModal() {
+  const { t } = useT();
+  const qc = useQueryClient();
+  const award = useMe().data?.leagueAward ?? null;
+  const [closed, setClosed] = useState<string | null>(null);
+  const open = award && closed !== award.week ? award : null;
+  return (
+    <RewardModal
+      reward={open ? { title: t('league_award_title', { rank: open.rank }), xp: 0, zlotki: open.zlotki, extra: [{ icon: 'trophy', text: t('league_award_xp', { xp: open.xp }) }] } : null}
+      onClose={() => {
+        if (!open) return;
+        setClosed(open.week);
+        void api('/leaderboard/award/seen', { body: { week: open.week } })
+          .then(() => qc.setQueryData<Me>(['me'], (m) => (m ? { ...m, leagueAward: null } : m)))
+          .catch(() => {});
+      }}
+    />
+  );
+}
+
 export function HomeScreen() {
   const { t } = useT();
   const nav = useNavigate();
@@ -343,6 +368,7 @@ export function HomeScreen() {
   return (
     <div className="space-y-5 pb-2">
       <TopStats />
+      <LeagueAwardModal />
 
       {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія.
           Композиція (2026-11-15): Бобек цілком у кадрі (хвіст і лапи не обрізані), праворуч одна скляна картка

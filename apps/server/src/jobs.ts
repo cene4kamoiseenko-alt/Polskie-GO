@@ -16,6 +16,7 @@
  *     ключа ідемпотентності, тому таке нагадування не повторюється автоматично (краще пропустити день, ніж надіслати двічі).
  */
 import { purgeErrors } from './services/error-log';
+import { sendLeagueAwardMessages, settleDueLeagueWeek } from './services/league';
 import { purgeLinkCodes } from './services/standalone-auth';
 import { campaignMarkup, campaignRecipients, campaignText } from './services/campaigns';
 import { and, asc, eq, gt, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from 'drizzle-orm';
@@ -303,9 +304,17 @@ export async function runScheduled(now = new Date()) {
     .catch((e) => console.warn('quiz rounds cleanup failed', (e as Error).message));
   // План вопроса дня на 30 днів уперед: дописується сам, навіть поки розсилка вимкнена (адмінка показує його до запуску).
   await ensurePlan(warsawDay(now)).catch((e) => console.warn('daily quiz plan failed', (e as Error).message));
+  // Итоги недельной лиги: в понедельник ночью (по Варшаве) прошедшая неделя подводится один раз — призы в кошельки (сервисы/league.ts).
+  await settleDueLeagueWeek(now).catch((e) => console.warn('league settle failed', (e as Error).message));
   if (!config.botToken) return;
   // Бюджет — виклики Bot API за запуск: самоперевірка бота, розсилка, нагадування, запрошення до питань.
   let left = SEND_BUDGET - (await maintainBot(now).catch(() => 0));
+  // Поздравления призёров недели — до напоминаний: их немного (до десяти в неделю), и они важнее.
+  {
+    const st = { calls: 0 };
+    await sendLeagueAwardMessages(now, Math.max(0, Math.min(left, 20)), st).catch((e) => console.warn('league messages failed', (e as Error).message));
+    left -= st.calls;
+  }
   left -= await sendCampaignChunk(Math.max(0, left));
   const stats = { calls: 0 };
   await sendReminders(now, left, stats);

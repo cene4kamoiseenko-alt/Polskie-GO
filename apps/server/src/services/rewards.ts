@@ -5,7 +5,7 @@
  * запити пакета нічого не змінюють.
  */
 import { eq, sql } from 'drizzle-orm';
-import { dayKey, levelFromXp, updateStreak, weekKey } from '@polski-go/shared';
+import { dayKey, leagueWeek, levelFromXp, updateStreak, weekKey } from '@polski-go/shared';
 import { db, type Stmt } from '../db';
 import { dailyActivity, gameWallets, playerProgress, subscriptions, userSettings } from '../db/schema';
 import { OUTFITS } from '../content/outfits';
@@ -81,7 +81,8 @@ export function grantXp(ctx: UserCtx, amount: number, reason: string, key: strin
       WHERE user_id = ${userId} AND ${notGranted('xp_events', key)}`),
     db.run(sql`INSERT INTO daily_activity (user_id, day, xp) SELECT ${userId}, ${day}, ${amount} WHERE ${notGranted('xp_events', key)}
       ON CONFLICT (user_id, day) DO UPDATE SET xp = xp + excluded.xp`),
-    db.run(sql`INSERT INTO leaderboards (user_id, period_key, league, xp, updated_at) SELECT ${userId}, ${week}, ${league}, ${amount}, ${nowMs}
+    // Неделя лиги — по Варшаве для всех (общая граница недели), а не по поясу игрока: иначе час на стыке недель уходил «не в ту» неделю.
+    db.run(sql`INSERT INTO leaderboards (user_id, period_key, league, xp, updated_at) SELECT ${userId}, ${leagueWeek(ctx.now)}, ${league}, ${amount}, ${nowMs}
       WHERE ${notGranted('xp_events', key)}
       ON CONFLICT (user_id, period_key) DO UPDATE SET xp = xp + excluded.xp, league = excluded.league, updated_at = excluded.updated_at`),
     db.run(sql`INSERT OR IGNORE INTO xp_events (id, user_id, amount, reason, idempotency_key, day, week, created_at)

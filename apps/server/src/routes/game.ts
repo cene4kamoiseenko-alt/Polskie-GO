@@ -11,6 +11,7 @@ import { advanceStory, claimDailyChest, claimQuest, listQuests, startStory, stor
 import { buyItem, equipItem, listShop, outfit } from '../services/shop';
 import { claimHouseBonus, houseState } from '../services/house';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
+import { markLeagueAwardSeen } from '../services/league';
 import { reportPlayer } from '../services/reports';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
@@ -103,6 +104,12 @@ r.get('/wallet/transactions', async (c) =>
 r.get('/leaderboard', async (c) => {
   const { scope } = z.object({ scope: z.enum(['league', 'friends', 'all']).default('league') }).parse(query(c));
   return c.json(await leaderboard(c.get('userId'), scope));
+});
+// Окно «Итоги недели» показано: награда больше не всплывает (Złotki начислены при подведении недели).
+r.post('/leaderboard/award/seen', async (c) => {
+  const { week } = z.object({ week: z.string().regex(/^\d{4}-W\d{2}$/) }).parse(await body(c));
+  await markLeagueAwardSeen(c.get('userId'), week);
+  return c.json({ ok: true });
 });
 r.get('/friends', async (c) => {
   const me = await db.query.users.findFirst({ where: eq(users.id, c.get('userId')) });

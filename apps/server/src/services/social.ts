@@ -1,13 +1,14 @@
 /** Таблиця лідерів, тижневі ліги, друзі. Приватність: show_in_leaderboard / public_profile. */
-import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { dayKey, weekKey } from '@polski-go/shared';
+import { LEAGUE_MIN_XP, LEAGUE_PRIZE_MIN_XP, LEAGUE_PRIZES, leaguePrize, leagueWeek, leagueWeekEndsAt } from '@polski-go/shared';
 import { atomic, db } from '../db';
 import { friendships, leaderboards, playerProgress, userProfiles, userSettings, users } from '../db/schema';
 import { badRequest, notFound } from '../lib/errors';
 import { evaluateAchievements } from './achievements';
 import { leagueFor } from './rewards';
 import { isPremium } from './premium';
+import { visibleInLeague, weekWinners } from './league';
 
 function displayName(u: { firstName: string; username: string | null; displayName: string | null }) {
   return u.displayName || u.firstName || u.username || 'Bóbr';
@@ -18,10 +19,17 @@ export async function friendIds(userId: string): Promise<string[]> {
   return rows.map((r) => (r.requesterId === userId ? r.addresseeId : r.requesterId));
 }
 
-export async function leaderboard(userId: string, scope: 'league' | 'friends' | 'all') {
-  const week = weekKey(dayKey(new Date()));
+/**
+ * Рейтинг недели (вариант А, 2026-11-15). `league` (и прежний `all`) — одна общая таблица недели для всех, у кого за неделю от
+ * LEAGUE_MIN_XP: раньше игроки делились на четыре лиги по опыту за всё время, и в каждой оказывалось по 3–5 человек.
+ * Значок лиги у строки остаётся (по общему XP). `friends` — друзья и я, у кого есть XP за неделю.
+ * Неделя — по Варшаве (`leagueWeek`). Порядок: XP по убыванию, при равенстве — кто набрал раньше.
+ */
+export async function leaderboard(userId: string, scope: 'league' | 'friends' | 'all', now = new Date()) {
+  const week = leagueWeek(now);
   const me = await db.query.playerProgress.findFirst({ where: eq(playerProgress.userId, userId) });
-  const league = leagueFor(me?.xpTotal ?? 0);
+  const xpTotal = me?.xpTotal ?? 0;
+  const league = leagueFor(xpTotal);
   const friends = scope === 'friends' ? [...(await friendIds(userId)), userId] : undefined;
   const entries = await db
     .select({
@@ -32,39 +40,74 @@ export async function leaderboard(userId: string, scope: 'league' | 'friends' | 
       photoUrl: users.photoUrl,
       displayName: userProfiles.displayName,
       level: playerProgress.playerLevel,
+      xpTotal: playerProgress.xpTotal,
       // Значок Premium у рейтингу: активна (або скасована, але ще оплачена) підписка.
-      premium: sql<number>`EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = ${leaderboards.userId} AND s.status IN ('ACTIVE', 'CANCELLED') AND s.expires_at > ${Date.now()})`,
+      premium: sql<number>`EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = ${leaderboards.userId} AND s.status IN ('ACTIVE', 'CANCELLED') AND s.expires_at > ${now.getTime()})`,
     })
     .from(leaderboards)
     .innerJoin(users, eq(users.id, leaderboards.userId))
     .leftJoin(userProfiles, eq(userProfiles.userId, leaderboards.userId))
     .leftJoin(playerProgress, eq(playerProgress.userId, leaderboards.userId))
-    .leftJoin(userSettings, eq(userSettings.userId, leaderboards.userId))
+    .innerJoin(userSettings, eq(userSettings.userId, leaderboards.userId))
     .where(
       and(
         eq(leaderboards.periodKey, week),
-        scope === 'league' ? eq(leaderboards.league, league) : undefined,
-        friends ? inArray(leaderboards.userId, friends) : undefined,
+        friends ? and(inArray(leaderboards.userId, friends), gt(leaderboards.xp, 0)) : gte(leaderboards.xp, LEAGUE_MIN_XP),
         // Користувачі, що приховали себе з рейтингів, не показуються (крім самого себе).
-        or(eq(leaderboards.userId, userId), and(eq(userSettings.showInLeaderboard, true), eq(users.isBanned, false))),
+        or(eq(leaderboards.userId, userId), visibleInLeague),
       ),
     )
-    .orderBy(desc(leaderboards.xp))
+    .orderBy(desc(leaderboards.xp), asc(leaderboards.updatedAt))
     .limit(50);
-  const rows = entries.map((e, i) => ({ rank: i + 1, userId: e.userId, name: displayName(e), photoUrl: e.photoUrl, xp: e.xp, level: e.level ?? 1, premium: !!e.premium, isMe: e.userId === userId }));
+  const rows = entries.map((e, i) => ({
+    rank: i + 1, userId: e.userId, name: displayName(e), photoUrl: e.photoUrl, xp: e.xp, level: e.level ?? 1, premium: !!e.premium, isMe: e.userId === userId,
+    league: leagueFor(e.xpTotal ?? 0),
+    // Приз, который место даст в конце недели (если набрано от LEAGUE_PRIZE_MIN_XP); в таблице друзей мест-призов нет.
+    prize: scope !== 'friends' && e.xp >= LEAGUE_PRIZE_MIN_XP ? leaguePrize(i + 1) : 0,
+  }));
+  const mineRow = await db.select().from(leaderboards).where(and(eq(leaderboards.userId, userId), eq(leaderboards.periodKey, week)));
+  const weekXp = mineRow[0]?.xp ?? 0;
   if (!rows.some((r) => r.isMe)) {
-    const [mine, user, premium] = await Promise.all([
-      db.select().from(leaderboards).where(and(eq(leaderboards.userId, userId), eq(leaderboards.periodKey, week))),
+    const [user, premium] = await Promise.all([
       db.select({ firstName: users.firstName, username: users.username, photoUrl: users.photoUrl, displayName: userProfiles.displayName }).from(users).leftJoin(userProfiles, eq(userProfiles.userId, users.id)).where(eq(users.id, userId)),
       isPremium(userId),
     ]);
-    rows.push({ rank: 0, userId, name: displayName(user[0]), photoUrl: user[0].photoUrl, xp: mine[0]?.xp ?? 0, level: me?.playerLevel ?? 1, premium, isMe: true });
+    rows.push({ rank: 0, userId, name: displayName(user[0]), photoUrl: user[0].photoUrl, xp: weekXp, level: me?.playerLevel ?? 1, premium, isMe: true, league, prize: 0 });
   }
+  const myRank = rows.find((r) => r.isMe)?.rank ?? 0;
+  // Сколько не хватает: до порога таблицы и до 3-го места (обогнать: при равенстве выше тот, кто набрал раньше).
+  const onPodium = myRank > 0 && myRank <= 3;
+  // Чтобы стать третьим, надо обогнать третьего из остальных игроков; если их меньше трёх — достаточно призового порога.
+  const third = rows.filter((r) => !r.isMe && r.rank > 0)[2];
+  const toPodium = onPodium || scope === 'friends' ? 0 : Math.max((third?.xp ?? 0) + 1, LEAGUE_PRIZE_MIN_XP) - weekXp;
   // Наступна ліга — за загальним XP (пороги як у leagueFor).
-  const xpTotal = me?.xpTotal ?? 0;
   const ladder: [string, number][] = [['silver', 500], ['gold', 2000], ['diamond', 5000]];
   const nxt = ladder.find(([, at]) => xpTotal < at);
-  return { week, league, scope, rows, me: { xpTotal, next: nxt ? { league: nxt[0], at: nxt[1] } : null } };
+  const lastWeek = leagueWeek(new Date(now.getTime() - 7 * 86_400_000));
+  const winners = scope === 'friends' ? [] : await weekWinners(lastWeek).catch(() => []);
+  const winnerNames = winners.length
+    ? await db.select({ id: users.id, firstName: users.firstName, username: users.username, photoUrl: users.photoUrl, displayName: userProfiles.displayName }).from(users).leftJoin(userProfiles, eq(userProfiles.userId, users.id)).where(inArray(users.id, winners.map((w) => w.userId)))
+    : [];
+  return {
+    week,
+    endsAt: leagueWeekEndsAt(now).toISOString(),
+    league,
+    scope,
+    minXp: LEAGUE_MIN_XP,
+    prizeMinXp: LEAGUE_PRIZE_MIN_XP,
+    prizes: [...LEAGUE_PRIZES],
+    rows,
+    me: {
+      xpTotal, weekXp, rank: myRank,
+      toJoin: Math.max(0, LEAGUE_MIN_XP - weekXp),
+      toPodium: Math.max(0, toPodium),
+      next: nxt ? { league: nxt[0], at: nxt[1] } : null,
+    },
+    lastWeek: winners.map((w) => {
+      const u = winnerNames.find((n) => n.id === w.userId);
+      return { rank: w.rank, xp: w.xp, zlotki: w.zlotki, name: u ? displayName(u) : 'Bóbr', photoUrl: u?.photoUrl ?? null, isMe: w.userId === userId };
+    }),
+  };
 }
 
 export async function listFriends(userId: string) {

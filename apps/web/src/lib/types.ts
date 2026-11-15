@@ -58,6 +58,8 @@ export type Me = {
   };
   outfit: Outfit;
   counters: { dueReviews: number; mistakes: number; unseenAchievements: number };
+  /** Итоги недели лиги: непросмотренная награда (окно на главной), иначе null. */
+  leagueAward?: { week: string; rank: number; xp: number; zlotki: number } | null;
   /** configured — ШІ-співрозмовник підключений на сервері (є ключ); інакше його входи в застосунку приховано. */
   /** Може бути відсутнім, якщо сервер старіший за клієнт. */
   rewards?: { exerciseXp: number };
