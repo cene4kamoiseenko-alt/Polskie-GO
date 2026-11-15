@@ -2267,3 +2267,161 @@ html.reduced-motion .map-here-ring { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .premium-pill { animation: none; }
 }
+
+
+/* ═════════ Редизайн 2026-11-15: спокойные поверхности, навигация-док, сгруппированные списки ═════════
+   Растровые иллюстрации не трогаются: меняются только рамки, отступы, композиция и движение. */
+:root,
+.dark {
+  --hairline: rgb(255 255 255 / 0.08);
+  --surface-ring: rgb(120 170 230 / 0.16);
+}
+.light {
+  --hairline: rgb(31 51 70 / 0.09);
+  --surface-ring: rgb(31 51 70 / 0.08);
+}
+
+/* Нижняя навигация — плавающий док: скруглённая панель над краем экрана, контент уходит под неё с затуханием. */
+.app-nav {
+  padding: 0 10px calc(max(var(--safe-b), 8px));
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--bg) 88%, transparent) 30%, var(--bg) 62%);
+  pointer-events: none;
+}
+.app-nav-dock {
+  pointer-events: auto;
+  height: calc(var(--nav-h) - 8px);
+  border-radius: 26px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-elev-2) 94%, transparent), color-mix(in srgb, var(--bg-elev) 96%, transparent));
+  border: 1px solid var(--surface-ring);
+  box-shadow: 0 14px 30px -14px rgb(0 0 0 / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.07);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+.light .app-nav-dock {
+  box-shadow: 0 12px 28px -14px rgb(31 51 70 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.9);
+}
+/* Индикатор активной вкладки — точка под подписью (форма, не только цвет), а не полоса у края панели. */
+.app-nav .nav-indicator {
+  top: auto;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 999px;
+}
+.app-nav .nav-tab { gap: 2px; padding-bottom: 6px; }
+
+/* «Сегодня»: одна карточка со строками вместо четырёх отдельных рамок. */
+.today-group {
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--surface-ring);
+  box-shadow: var(--shadow-deep);
+}
+.today-group .task-card,
+.light .today-group .task-card {
+  position: relative;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.today-group .task-card + .task-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 14px;
+  left: 72px;
+  height: 1px;
+  background: var(--hairline);
+}
+.today-group .task-card:active,
+.today-group .chest-card:active {
+  transform: none;
+  background-color: rgb(255 255 255 / 0.05);
+}
+.today-group .task-card.is-done,
+.light .today-group .task-card.is-done {
+  border: 0;
+  box-shadow: none;
+  background: linear-gradient(90deg, rgb(37 215 155 / 0.14), transparent 70%);
+}
+.today-group .chest-card,
+.today-group .chest-card.is-ready {
+  padding: 12px 14px;
+  border: 0;
+  border-top: 1px solid rgb(255 200 87 / 0.35);
+  border-radius: 0;
+  box-shadow: none;
+}
+.today-group .chest-card.is-ready {
+  background: radial-gradient(120% 120% at 50% 0%, #5a4a8a 0%, #2a2f68 55%, #1a2552 100%);
+  border-top-color: #ffc857;
+}
+
+/* Крупные карточки: тоньше рамка, мягче свечение — меньше визуального шума вокруг иллюстраций. */
+.hero-card {
+  border: 1.5px solid rgb(120 190 255 / 0.3);
+  box-shadow: 0 18px 34px -20px rgb(0 0 0 / 0.95), 0 0 30px -16px rgb(54 185 255 / 0.55);
+}
+.location-card {
+  border-radius: 22px;
+  border: 1px solid var(--surface-ring);
+}
+.task-card {
+  border-width: 1px;
+  border-color: var(--surface-ring);
+}
+.stat-card,
+.section-tile {
+  border-color: var(--surface-ring);
+}
+
+/* Профиль: четыре показателя — одна полоса с тонкими разделителями вместо четырёх разноцветных рамок. */
+.stat-strip {
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--surface-ring);
+  box-shadow: var(--shadow-deep);
+}
+.stat-strip-cell {
+  position: relative;
+  background: radial-gradient(90% 70% at 50% 0%, color-mix(in srgb, var(--tint) 20%, transparent), transparent 75%);
+}
+.stat-strip-cell + .stat-strip-cell::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 1px;
+  background: var(--hairline);
+}
+/* Пустая статистика не занимает пол-экрана. */
+.stats-empty > * { padding-top: 14px; padding-bottom: 14px; }
+.stats-empty img { max-height: 84px; width: auto; }
+
+/* Типографика заголовков: одна шкала для всех экранов. */
+.screen-title {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+}
+.section-title {
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+}
+
+/* Выбранный фильтр-чип: один вид на всех экранах (в тёмной теме прежний «тёмный на тёмном» у миссий был неразличим). */
+.chip.chip-on {
+  background: linear-gradient(180deg, var(--fill-coral-top), var(--fill-coral));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 14px -8px rgb(212 45 67 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.25);
+}

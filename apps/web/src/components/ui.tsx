@@ -123,7 +123,7 @@ export function ScreenHeader({ title, subtitle, right, onBack }: { title: string
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-2xl font-black leading-tight">{title}</h1>
+        <h1 className="screen-title truncate">{title}</h1>
         {subtitle && <p className="muted line-clamp-2 text-sm font-semibold leading-tight">{subtitle}</p>}
       </div>
       {right}
@@ -408,8 +408,8 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
   const { t } = useT();
   const loc = useLocation();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-soft" style={{ paddingBottom: "var(--safe-b)", background: "linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev))", boxShadow: "0 -8px 20px -12px rgb(0 0 0 / 0.6)" }}>
-      <div className="mx-auto flex max-w-xl justify-around px-1" style={{ height: 'var(--nav-h)' }}>
+    <nav className="app-nav fixed inset-x-0 bottom-0 z-40">
+      <div className="app-nav-dock mx-auto flex max-w-xl justify-around px-1">
         {TABS.map((tab) => {
           const active = tab.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(tab.to);
           return (
@@ -441,8 +441,8 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
 export function Section({ title, action, children, className }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={cx('px-4', className)}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-black">{title}</h2>
+      <div className="mb-2.5 flex items-end justify-between gap-3">
+        <h2 className="section-title">{title}</h2>
         {action}
       </div>
       {children}

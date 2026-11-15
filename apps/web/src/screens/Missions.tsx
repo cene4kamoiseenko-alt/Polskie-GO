@@ -44,7 +44,7 @@ export default function MissionsScreen() {
       <div className="mt-3"><PassCard /></div>
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
         {CATS.map((c) => (
-          <button key={c.id} onClick={() => { haptic.select(); setCat(c.id); }} className={cx('chip shrink-0 !py-1.5 transition-colors', cat === c.id && '!bg-ink text-white')} aria-pressed={cat === c.id}>
+          <button key={c.id} onClick={() => { haptic.select(); setCat(c.id); }} className={cx('chip shrink-0 !py-1.5 transition-colors', cat === c.id && 'chip-on')} aria-pressed={cat === c.id}>
             {t(c.key)}
           </button>
         ))}

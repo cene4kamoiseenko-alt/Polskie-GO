@@ -15,7 +15,8 @@ import { GameIcon, type IconName } from '../components/GameIcon';
 import { RewardModal, XPBadge, type Reward } from '../components/game';
 import { Skyline } from '../components/Scenery';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, cx, useToast } from '../components/ui';
-import { TopStats } from './Home';
+import { TASK_ART, TILE_TASK_ART, TopStats } from './Home';
+import { Art } from '../components/GameArt';
 import { inkOn } from '../lib/color';
 import { useTabSwipe } from '../lib/swipe';
 
@@ -50,7 +51,16 @@ export function QuestCard({ q, onClaim, busy }: { q: Quest; onClaim: (q: Quest) 
   const claimed = q.status === 'CLAIMED';
   return (
     <div className={cx('card flex items-center gap-3 p-3', done && 'ring-2 ring-xp', claimed && 'opacity-60')}>
-      <GameIcon name={claimed ? 'check' : questIcon(q.slug)} size={50} />
+      {/* Те же рисунки, что у этих заданий на главной: одно задание — одна картинка на всех экранах. */}
+      {!claimed && TASK_ART[q.slug] ? (
+        TILE_TASK_ART.has(TASK_ART[q.slug]) ? (
+          <Art name={TASK_ART[q.slug]} size={50} className="shrink-0" />
+        ) : (
+          <span className="icon-plate grid h-[50px] w-[50px] shrink-0 place-items-center"><Art name={TASK_ART[q.slug]} size={36} /></span>
+        )
+      ) : (
+        <GameIcon name={claimed ? 'check' : questIcon(q.slug)} size={50} />
+      )}
       <div className="min-w-0 flex-1">
         <div className="line-clamp-2 font-black leading-tight">{tr(q.title)}</div>
         <div className="muted line-clamp-2 text-xs font-bold leading-tight">{tr(q.description)}</div>

@@ -64,7 +64,7 @@ export default function DictionaryScreen() {
         </label>
         <div className="no-scrollbar flex gap-2 overflow-x-auto">
           {FILTERS.map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={cx('chip shrink-0', filter === f && 'bg-pl-red text-white')}>
+            <button key={f} onClick={() => setFilter(f)} className={cx('chip shrink-0', filter === f && 'chip-on')}>
               {t(`dict_filter_${f}` as TKey)}
             </button>
           ))}

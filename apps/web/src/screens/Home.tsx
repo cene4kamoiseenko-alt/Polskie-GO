@@ -92,13 +92,13 @@ export function TopStats({ compact, left }: { compact?: boolean; /** Вмест�
 }
 
 /** Ілюстрація щоденного завдання за типом. */
-const TASK_ART: Record<string, ArtName> = {
+export const TASK_ART: Record<string, ArtName> = {
   'd-lesson-1': 'book', 'd-lessons-3': 'book', 'd-xp-100': 'star', 'd-words-10': 'chat', 'd-perfect-5': 'target',
   'd-reviews-15': 'books', 'd-dialogue-1': 'chat', 'd-listening-5': 'headphones',
 };
 
 /** Рисунки со своей плиткой (значки владельца, 2026-11-02): им плашка не нужна. Остальные ложатся на плашку того же цвета (.icon-plate). */
-const TILE_TASK_ART = new Set<ArtName>(['book', 'star', 'target']);
+export const TILE_TASK_ART = new Set<ArtName>(['book', 'star', 'target']);
 
 /** Дерев'яний покажчик з назвою поточного міста (як на макеті головної). */
 function CitySign({ name }: { name: string }) {
@@ -459,7 +459,7 @@ function TodayTasks({ lessonId }: { lessonId?: string }) {
   } else {
     body = (
       <>
-        <div className="grid gap-2" data-today={allDone ? 'done' : 'active'}>
+        <div className="today-group" data-today={allDone ? 'done' : 'active'}>
           {daily.map((q, i) => {
             const done = isDone(q.status);
             return (
@@ -469,12 +469,12 @@ function TodayTasks({ lessonId }: { lessonId?: string }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 * i }}
                 onClick={() => { haptic.tap(); nav(done ? '/quests' : taskAction(q.slug)); }}
-                className={cx('task-card flex w-full items-center gap-3 px-3 py-2.5 text-left', done && 'is-done')}
+                className={cx('task-card flex w-full items-center gap-3 text-left', done && 'is-done')}
               >
                 {TILE_TASK_ART.has(TASK_ART[q.slug] ?? 'star') ? (
-                  <Art name={TASK_ART[q.slug] ?? 'star'} size={52} className="shrink-0" />
+                  <Art name={TASK_ART[q.slug] ?? 'star'} size={46} className="shrink-0" />
                 ) : (
-                  <span className="icon-plate grid h-[52px] w-[52px] shrink-0 place-items-center"><Art name={TASK_ART[q.slug] ?? 'star'} size={38} /></span>
+                  <span className="icon-plate grid h-[46px] w-[46px] shrink-0 place-items-center"><Art name={TASK_ART[q.slug] ?? 'star'} size={34} /></span>
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-black leading-tight">{tr(q.title)}</span>
@@ -485,7 +485,7 @@ function TodayTasks({ lessonId }: { lessonId?: string }) {
                 ) : (
                   <span className="flex shrink-0 items-center gap-1.5">
                     <span className="text-[13px] font-black tabular-nums">{Math.min(q.progress, q.target)}/{q.target}</span>
-                    <span className="grid h-7 w-7 place-items-center rounded-full border border-[var(--border)]"><Icon name="chevron-right" size={16} /></span>
+                    <Icon name="chevron-right" size={18} className="opacity-50" />
                   </span>
                 )}
               </motion.button>
@@ -496,7 +496,7 @@ function TodayTasks({ lessonId }: { lessonId?: string }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}
             onClick={() => (chest?.ready && !chest.claimed ? void claimChest() : nav('/quests'))}
-            className={cx('chest-card flex w-full items-center gap-3 px-3 py-2.5 text-left', chest?.ready && !chest.claimed && 'is-ready')}
+            className={cx('chest-card flex w-full items-center gap-3 text-left', chest?.ready && !chest.claimed && 'is-ready')}
             aria-label={t('home_big_reward')}
           >
             <motion.span className="shrink-0" animate={chest?.ready && !chest.claimed ? { rotate: [0, -8, 8, -4, 0], scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 1.6, repeatDelay: 0.6 }}>

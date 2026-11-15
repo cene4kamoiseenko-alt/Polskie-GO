@@ -221,9 +221,9 @@ export function App() {
         {/* Новий екран з'являється одразу (без очікування анімації виходу попереднього). */}
         <motion.main
             key={loc.pathname}
-            initial={{ opacity: 0.4 }}
+            initial={{ opacity: 0.15 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.12 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             className={showNav ? 'nav-pad' : ''}
           >
             <ScreenBoundary resetKey={loc.pathname}>
