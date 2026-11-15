@@ -454,10 +454,15 @@ async function main() {
       const r6 = await userPage('880070');
       const lessonId = (await r6.call('GET', '/api/journey')).body.nextLesson.id as string;
       const started = (await r6.call('POST', '/api/sessions', { lessonId })).body;
-      // XP начисляется за каждое верное задание: нескольких хватает, чтобы перейти порог таблицы (20 XP).
-      for (const item of (await sessionItems(started.sessionId)).slice(0, 6)) {
+      // XP за урок начисляется при завершении (finishSession), не за каждый ответ; завершить быстрее 1 с на задание нельзя (too_fast).
+      const t0 = Date.now();
+      const items = await sessionItems(started.sessionId);
+      for (const item of items) {
         for (const a of correctAnswers(item)) await r6.call('POST', `/api/sessions/${started.sessionId}/answer`, { key: item.key, answer: a });
       }
+      await r6.page.waitForTimeout(Math.max(0, items.length * 1000 + 500 - (Date.now() - t0)));
+      const fin = await r6.call('POST', `/api/sessions/${started.sessionId}/finish`);
+      check(fin.status === 200, `R6 урок завершён (${fin.status})`);
       const board = (await r6.call('GET', '/api/leaderboard?scope=league')).body;
       const mine = board.rows.find((x: { isMe: boolean }) => x.isMe);
       check(board.me.weekXp >= 20 && mine && mine.rank >= 1, `R6 игрок с ${board.me.weekXp} XP за неделю — в таблице недели (место ${mine?.rank})`);
