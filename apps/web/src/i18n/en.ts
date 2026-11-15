@@ -935,4 +935,8 @@ export const en: Dict = {
   league_short_diamond: "Diamond",
   league_award_title: "Place #{rank} on the weekly leaderboard!",
   league_award_xp: "This week: {xp} XP",
+  invite_f_lessons: "Interactive lessons",
+  invite_f_quests: "Quests in real places in Poland",
+  invite_f_rewards: "Leagues, rewards and achievements",
+  lb_level_short: "Lv {n}",
 };

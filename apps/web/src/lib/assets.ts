@@ -133,6 +133,8 @@ export const TILE_ICON_MIN_PX = 28;
 export const isTileIcon = (name: string) => TILE_ICONS.has(name);
 export const iconAsset = (name: string, _size = TILE_ICON_MIN_PX) => pick('icons', name);
 export const brandAsset = (name: string) => pick('brand', name);
+/** Детали недельной лиги владельца (scripts/build-league-art.mjs): короны, медали 1–3, пьедесталы, кубки, Бобек с кубком и телефоном, иконки приглашения. */
+export const leagueArt = (name: string) => pick('league', name);
 
 const THUMB_SPOTS = ['22% 62%', '52% 48%', '80% 58%', '36% 72%', '66% 40%'];
 /**

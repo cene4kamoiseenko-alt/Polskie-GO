@@ -11,7 +11,7 @@ import { gameWallets, leaderboards, leagueAwards, leagueWeeks, playerProgress, u
 import { leaderboard } from '../src/services/social';
 import { sendLeagueAwardMessages, settleDueLeagueWeek, settleLeagueWeek } from '../src/services/league';
 import { grantXp } from '../src/services/rewards';
-import { login } from './helpers';
+import { getEnv, login } from './helpers';
 import { fakeTelegram } from './tg-fake';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -124,6 +124,9 @@ describe('итоги недели', () => {
   });
 
   it('бот поздравляет призёра один раз; награда видна в /me, пока не отмечена «видел»', async () => {
+    const { env } = await getEnv();
+    // Telegram скачивает фото сам и только по HTTPS (bot/send.ts): адрес приложения — как в продакшене.
+    env.WEB_APP_URL = 'https://polski.example/';
     const week = '2031-W30';
     const winner = await player(week, 640, { at: new Date('2031-07-22T10:00:00Z') });
     await db.update(userSettings).set({ notificationsEnabled: true, uiLanguage: 'ru' }).where(eq(userSettings.userId, winner.user.id));
@@ -131,9 +134,12 @@ describe('итоги недели', () => {
 
     const calls = fakeTelegram();
     await sendLeagueAwardMessages(new Date('2031-07-28T00:20:00Z'), 50);
-    const mine = calls.filter((c) => c.method === 'sendMessage' && Number(c.params.chat_id) === winner.telegramId);
+    // Призёр 1–3 места с русским интерфейсом — постер своего места (надписи на постере по-русски) с подписью и кнопкой.
+    const mine = calls.filter((c) => Number(c.params.chat_id) === winner.telegramId);
     expect(mine).toHaveLength(1);
-    expect(String(mine[0].params.text)).toContain('300');
+    expect(mine[0].method).toBe('sendPhoto');
+    expect(String(mine[0].params.photo)).toContain('/bot/league/ru/place-1.jpg');
+    expect(String(mine[0].params.caption)).toContain('300');
     expect(mine[0].params.reply_markup?.inline_keyboard?.[0]?.[0]?.web_app?.url).toContain('bot_screen=league');
     await sendLeagueAwardMessages(new Date('2031-07-28T00:35:00Z'), 50);
     expect(calls.filter((c) => Number(c.params.chat_id) === winner.telegramId)).toHaveLength(1);
@@ -144,5 +150,29 @@ describe('итоги недели', () => {
     expect((await winner.call('GET', '/api/me')).body.leagueAward).toBeNull();
     const row = (await db.select().from(leagueAwards).where(and(eq(leagueAwards.week, week), eq(leagueAwards.userId, winner.user.id))))[0];
     expect(row.seenAt).not.toBeNull();
+  });
+
+  it('постер на языке игрока: 2-е место по-украински — украинский постер; английский интерфейс и 4-е место — текстом', async () => {
+    const { env } = await getEnv();
+    env.WEB_APP_URL = 'https://polski.example/';
+    const week = '2031-W31';
+    const at = (m: number) => new Date(Date.UTC(2031, 6, 30, 10, m));
+    const first = await player(week, 900, { at: at(0) });
+    const second = await player(week, 800, { at: at(1) });
+    const third = await player(week, 700, { at: at(2) });
+    const fourth = await player(week, 600, { at: at(3) });
+    const langs: [Player, string][] = [[first, 'en'], [second, 'uk'], [third, 'ru'], [fourth, 'ru']];
+    for (const [p, lang] of langs) await db.update(userSettings).set({ notificationsEnabled: true, uiLanguage: lang }).where(eq(userSettings.userId, p.user.id));
+    await settleLeagueWeek(week, new Date('2031-08-04T00:05:00Z'));
+    const calls = fakeTelegram();
+    await sendLeagueAwardMessages(new Date('2031-08-04T00:20:00Z'), 50);
+    const to = (p: Player) => calls.filter((c) => Number(c.params.chat_id) === p.telegramId);
+    expect(to(first).map((c) => c.method)).toEqual(['sendMessage']);
+    expect(to(second).map((c) => c.method)).toEqual(['sendPhoto']);
+    expect(String(to(second)[0].params.photo)).toContain('/bot/league/uk/place-2.jpg');
+    expect(String(to(second)[0].params.caption)).toMatch(/місце/);
+    expect(String(to(third)[0].params.photo)).toContain('/bot/league/ru/place-3.jpg');
+    expect(to(fourth).map((c) => c.method)).toEqual(['sendMessage']);
+    expect(String(to(fourth)[0].params.text)).toContain('25');
   });
 });

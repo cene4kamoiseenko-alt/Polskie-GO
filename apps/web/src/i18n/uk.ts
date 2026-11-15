@@ -967,6 +967,10 @@ export const uk = {
   league_short_diamond: "Діамант",
   league_award_title: "Місце {rank} у рейтингу тижня!",
   league_award_xp: "За тиждень: {xp} XP",
+  invite_f_lessons: "Інтерактивні уроки",
+  invite_f_quests: "Квести в справжніх місцях Польщі",
+  invite_f_rewards: "Ліги, нагороди та досягнення",
+  lb_level_short: "Рів. {n}",
 };
 
 export type Dict = Record<keyof typeof uk, string>;

@@ -2820,3 +2820,56 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
   background: color-mix(in srgb, var(--chip) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip) 45%, transparent);
 }
+
+/* ── Лига на растровых деталях владельца (2026-11-15): подиум, короны, медали, строки ── */
+.league-crown {
+  position: relative;
+  z-index: 1;
+  margin-bottom: -10px;
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.45));
+}
+.league-name {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1.5px solid;
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #fff;
+  background: rgb(10 22 52 / 0.82);
+  box-shadow: 0 4px 10px -4px rgb(0 0 0 / 0.6);
+}
+.league-prize-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #4a2a00;
+  background: linear-gradient(180deg, #ffe08a, #f5b942);
+  box-shadow: 0 2px 0 #b97f1e;
+}
+.league-rank-num {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-weight: 900;
+  color: #fff;
+  background: radial-gradient(circle at 35% 30%, #3a5c9a, #1a2f5c);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.18), 0 2px 4px rgb(0 0 0 / 0.35);
+}
+.lb-row.is-gold {
+  background: linear-gradient(90deg, #4a3a14 0%, #22243e 100%);
+  border-color: rgb(255 200 87 / 0.75);
+  box-shadow: 0 0 18px -6px rgb(255 200 87 / 0.6), var(--shadow-deep);
+}
+.invite-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+  background: rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}

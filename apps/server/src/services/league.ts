@@ -9,8 +9,7 @@ import { and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 import { LEAGUE_MIN_XP, LEAGUE_PRIZE_MIN_XP, leaguePrize, leagueWeek } from '@polski-go/shared';
 import { atomic, db, type Stmt } from '../db';
 import { leaderboards, leagueAwards, leagueWeeks, userSettings, users } from '../db/schema';
-import { botApi } from '../lib/telegram';
-import { buildKeyboard } from '../bot/send';
+import { sendCard } from '../bot/send';
 import { notMuted } from '../bot/mute';
 import { grantZlotki } from './rewards';
 
@@ -76,6 +75,11 @@ const AWARD_TEXT: Record<string, (a: { rank: number; xp: number; zlotki: number 
     button: 'Open the leaderboard',
   }),
 };
+/** Постер призёру (apps/web/public/bot/league, scripts/build-league-art.mjs): только 1–3 место и только ru / uk — на постере надписи на этом языке. */
+export function leaguePoster(rank: number, lang: string): string | null {
+  return rank >= 1 && rank <= 3 && (lang === 'ru' || lang === 'uk') ? `league/${lang}/place-${rank}.jpg` : null;
+}
+
 /** Поздравляем только со свежими итогами: старые (после простоя) остаются в игре окном, без сообщения. */
 const NOTIFY_WINDOW_MS = 3 * 86_400_000;
 
@@ -105,9 +109,10 @@ export async function sendLeagueAwardMessages(now = new Date(), budget = 50, sta
     await db.update(leagueAwards).set({ notifiedAt: now }).where(and(eq(leagueAwards.week, a.week), eq(leagueAwards.userId, a.userId)));
     if (!a.reachable) continue;
     const copy = (AWARD_TEXT[a.lang] ?? AWARD_TEXT.uk)(a);
-    stats.calls++;
     try {
-      await botApi('sendMessage', { chat_id: a.telegramId, text: copy.text, reply_markup: buildKeyboard([{ label: copy.button, screen: 'league' }]) });
+      // 1–3 место с русским или украинским интерфейсом — постер владельца своего места (надписи на постере на языке игрока);
+      // фото не ушло из-за самой картинки — тот же текст сообщением (sendCard). Остальным — текст.
+      await sendCard({ chatId: Number(a.telegramId), stats }, { text: copy.text, buttons: [{ label: copy.button, screen: 'league' }] }, leaguePoster(a.rank, a.lang));
       sent++;
     } catch {
       /* игрок мог заблокировать бота — награда уже в кошельке и в окне игры */

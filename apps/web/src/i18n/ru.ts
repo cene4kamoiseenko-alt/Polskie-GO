@@ -935,4 +935,8 @@ export const ru: Dict = {
   league_short_diamond: "Алмаз",
   league_award_title: "Место {rank} в рейтинге недели!",
   league_award_xp: "За неделю: {xp} XP",
+  invite_f_lessons: "Интерактивные уроки",
+  invite_f_quests: "Квесты в настоящих местах Польши",
+  invite_f_rewards: "Лиги, награды и достижения",
+  lb_level_short: "Ур. {n}",
 };

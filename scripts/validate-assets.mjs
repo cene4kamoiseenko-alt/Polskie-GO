@@ -41,9 +41,13 @@ for (const file of files) {
   const bytes = readFileSync(file);
   const meta = await sharp(bytes).metadata();
   const isSmall = rel.endsWith('@640.jpg');
+  // Постеры призёрам недельной лиги (scripts/build-league-art.mjs) — вертикальные, ширина 1080: правило 16:9 к ним не относится.
+  const poster = rel.startsWith('league/');
   const [w, h] = isSmall ? [640, 360] : [1280, 720];
   if (meta.format !== 'jpeg') errors.push(`${rel}: не JPEG`);
-  if (meta.width !== w || meta.height !== h) errors.push(`${rel}: ${meta.width}×${meta.height}, нужно ${w}×${h}`);
+  if (poster ? meta.width !== 1080 || meta.height < 1000 || meta.height > 1600 : meta.width !== w || meta.height !== h) {
+    errors.push(`${rel}: ${meta.width}×${meta.height}, нужно ${poster ? '1080×(1000…1600)' : `${w}×${h}`}`);
+  }
   if (meta.hasAlpha) errors.push(`${rel}: есть альфа-канал`);
   if (bytes.length > MAX_BYTES) errors.push(`${rel}: больше 10 МБ`);
   if (!isSmall) versions[rel] = contentVersion(bytes);
@@ -59,7 +63,9 @@ for (const file of files) {
   }
 
   const q = await analyseImage(bytes);
-  for (const p of qualityProblems(q, { softAllowed: soft.has(rel) })) errors.push(`${rel}: ${p}`);
+  // Полосы ловят кадры 16:9, у которых фон растянули по бокам; у вертикального постера своя композиция (размытые огни по краю — часть рисунка),
+  // поэтому для постеров проверяем только увеличение маленькой картинки.
+  for (const p of qualityProblems(q, { softAllowed: soft.has(rel) })) if (!(poster && /полоса/.test(p))) errors.push(`${rel}: ${p}`);
   if (soft.has(rel)) warnings.push(`${rel}: мягкий запасной кадр (детали ${q.detail}), нужен исходник — см. soft_fallback`);
   console.log(
     `${rel.padEnd(30)} ${meta.width}×${meta.height} ${(bytes.length / 1024).toFixed(0).padStart(4)} KB  полосы ${q.bandLeft}/${q.bandRight} px  края ${q.edgeLeft}%/${q.edgeRight}%  детали ${q.detail.toFixed(2)}`,
