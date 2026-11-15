@@ -12,6 +12,7 @@ import { buyItem, equipItem, listShop, outfit } from '../services/shop';
 import { claimHouseBonus, houseState } from '../services/house';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
 import { markLeagueAwardSeen } from '../services/league';
+import { inviteLink, prepareInvite } from '../services/invite';
 import { reportPlayer } from '../services/reports';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
@@ -116,9 +117,11 @@ r.get('/friends', async (c) => {
   return c.json({
     friends: await listFriends(c.get('userId')),
     referralCode: me!.referralCode,
-    inviteLink: `https://t.me/${config.botUsername}/${config.appShortName}?startapp=ref_${me!.referralCode}`,
+    inviteLink: inviteLink(me!.referralCode),
   });
 });
+// Приглашение картинкой: сообщение, сохранённое у бота, приложение отдаёт в Telegram.WebApp.shareMessage (services/invite.ts).
+r.post('/friends/invite/prepare', rateLimit(20, 60_000, 'invite'), async (c) => c.json(await prepareInvite(c.get('userId'))));
 r.post('/friends', async (c) => c.json(await addFriendByCode(c.get('userId'), z.object({ code: z.string().min(4).max(16) }).parse(await body(c)).code)));
 r.post('/friends/:id/respond', async (c) => {
   const { accept } = z.object({ accept: z.boolean() }).parse(await body(c));

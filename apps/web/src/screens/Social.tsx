@@ -11,7 +11,8 @@ import { useGoBack } from '../lib/back';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { useMe } from '../lib/queries';
-import { haptic, share } from '../lib/telegram';
+import { haptic } from '../lib/telegram';
+import { shareInvite } from '../lib/invite';
 import { copyText } from '../lib/clipboard';
 import { useTabSwipe } from '../lib/swipe';
 import { Icon } from '../components/Icon';
@@ -170,7 +171,7 @@ function LastWeek({ board }: { board: Board }) {
 const TABS = ['league', 'friends'] as const;
 
 export default function SocialScreen() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const nav = useNavigate();
   const me = useMe().data;
   const [params, setParams] = useSearchParams();
@@ -344,7 +345,12 @@ export default function SocialScreen() {
                   <div className="flex items-center gap-2 text-[22px] font-black text-white"><Art name="plane" size={28} /> {t('friends_invite')}</div>
                   <p className="mt-1 text-[14px] font-bold leading-snug text-mist">{t('friends_invite_desc')}</p>
                 </div>
-                {leagueArt('bobek-phone') ? <img src={leagueArt('bobek-phone')!} alt="" className="-mb-2 -mr-2 -mt-2 w-[104px] shrink-0 drop-shadow-[0_8px_10px_rgb(0_0_0/0.4)]" draggable={false} /> : <Beaver size={86} mood="wave" />}
+                {/* Картинка, которую получит друг (та же, что в сообщении-приглашении; у английского — Бобек без надписи). */}
+                {leagueArt(`invite-${lang}`) ? (
+                  <img src={leagueArt(`invite-${lang}`)!} alt="" data-invite-poster className="-mr-1 w-[92px] shrink-0 rotate-[4deg] rounded-[14px] border-2 border-white/25 shadow-[0_10px_18px_rgb(0_0_0/0.45)]" draggable={false} />
+                ) : (
+                  <Beaver size={86} mood="wave" />
+                )}
               </div>
               <ul className="space-y-1.5" data-invite-features>
                 {([['icon-book', 'invite_f_lessons'], ['icon-location', 'invite_f_quests'], ['trophy-small', 'invite_f_rewards']] as const).map(([icon, key]) => (
@@ -355,7 +361,7 @@ export default function SocialScreen() {
                   </li>
                 ))}
               </ul>
-              <button className="btn btn-sky w-full text-[17px]" onClick={() => share(friends.data!.inviteLink, t('friends_invite_text'))}>
+              <button className="btn btn-sky w-full text-[17px]" onClick={() => void shareInvite(friends.data!.inviteLink, t('friends_invite_text'))}>
                 <Art name="plane" size={22} /> {t('friends_invite')}
               </button>
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-night/60 px-3 py-2">

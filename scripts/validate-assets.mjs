@@ -41,12 +41,14 @@ for (const file of files) {
   const bytes = readFileSync(file);
   const meta = await sharp(bytes).metadata();
   const isSmall = rel.endsWith('@640.jpg');
-  // Постеры призёрам недельной лиги (scripts/build-league-art.mjs) — вертикальные, ширина 1080: правило 16:9 к ним не относится.
-  const poster = rel.startsWith('league/');
+  // Постеры призёрам недельной лиги (scripts/build-league-art.mjs) — вертикальные, ширина 1080; картинки приглашения друга
+  // (invite/<язык>.jpg, исходники docs/design/invite) — 1024×1536, как прислал владелец. Правило 16:9 к ним не относится.
+  const poster = rel.startsWith('league/') || rel.startsWith('invite/');
   const [w, h] = isSmall ? [640, 360] : [1280, 720];
+  const [pw, phMin, phMax] = rel.startsWith('invite/') ? [1024, 1536, 1536] : [1080, 1000, 1600];
   if (meta.format !== 'jpeg') errors.push(`${rel}: не JPEG`);
-  if (poster ? meta.width !== 1080 || meta.height < 1000 || meta.height > 1600 : meta.width !== w || meta.height !== h) {
-    errors.push(`${rel}: ${meta.width}×${meta.height}, нужно ${poster ? '1080×(1000…1600)' : `${w}×${h}`}`);
+  if (poster ? meta.width !== pw || meta.height < phMin || meta.height > phMax : meta.width !== w || meta.height !== h) {
+    errors.push(`${rel}: ${meta.width}×${meta.height}, нужно ${poster ? `${pw}×(${phMin}…${phMax})` : `${w}×${h}`}`);
   }
   if (meta.hasAlpha) errors.push(`${rel}: есть альфа-канал`);
   if (bytes.length > MAX_BYTES) errors.push(`${rel}: больше 10 МБ`);

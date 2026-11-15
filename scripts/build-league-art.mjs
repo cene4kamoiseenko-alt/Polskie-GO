@@ -106,7 +106,7 @@ await sprite('icon_location.png', 'icon-location');
 await sprite('icon_home.png', 'icon-home');
 await sprite('icon_check.png', 'icon-check');
 await sprite('bobek_rating_large_trophy.webp', 'bobek-trophy', { width: 300 });
-await sprite('bobek_invitation_exact_with_phone.webp', 'bobek-phone', { width: 440 });
+// Бобек с телефоном (bobek_invitation_exact_with_phone.webp) снят 2026-11-15: рваные края вырезки; в карточке приглашения — картинка владельца invite-<язык>.
 
 // ── Лист: три пьедестала (нижний ряд, слева направо — серебро, золото, бронза) и большой кубок
 {
