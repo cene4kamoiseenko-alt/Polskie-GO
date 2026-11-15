@@ -462,10 +462,14 @@ async function main() {
       check(navImgs.length === 5 && navImgs.every(Boolean), `R5 значки вкладок — растровые картинки владельца, все загружены (${navImgs.filter(Boolean).length}/5)`);
       check(await p.locator('nav a[data-tab] svg').count() === 0, 'R5 во вкладках нет SVG-иконок');
       type Box = { x: number; y: number; r: number; b: number } | null;
-      const geo = await p.evaluate(() => {
-        const box = (sel: string) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, r: b.right, b: b.bottom }; };
-        return { hero: box('.home-hero'), beaver: box('.hero-beaver-hit'), info: box('.home-hero-info'), cta: box('.home-continue'), sign: document.querySelectorAll('.city-sign').length };
-      });
+      // Без именованных функций внутри evaluate: tsx оборачивает их в __name, которого нет в странице.
+      const [hero, beaver, info, cta] = await p.evaluate((sels) => sels.map((sel) => {
+        const e = document.querySelector(sel);
+        if (!e) return null;
+        const b = e.getBoundingClientRect();
+        return { x: b.x, y: b.y, r: b.right, b: b.bottom };
+      }), ['.home-hero', '.hero-beaver-hit', '.home-hero-info', '.home-continue']);
+      const geo = { hero, beaver, info, cta, sign: await p.locator('.city-sign').count() };
       const inter = (a: Box, b: Box) => !!a && !!b && a.x < b.r - 0.5 && b.x < a.r - 0.5 && a.y < b.b - 0.5 && b.y < a.b - 0.5;
       const inside = (a: Box, o: Box) => !!a && !!o && a.x >= o.x - 0.5 && a.r <= o.r + 0.5 && a.y >= o.y - 0.5 && a.b <= o.b + 0.5;
       check(inside(geo.beaver, geo.hero), `R5 Бобек целиком в банере — хвост и лапы не обрезаны (${JSON.stringify(geo.beaver)} в ${JSON.stringify(geo.hero)})`);
@@ -938,11 +942,12 @@ async function main() {
       await settled(u.page);
       await u.page.screenshot({ path: `${SCREENS}/bot-screen-quests-390.png` });
       // Маршрут из бота применяется один раз: обычная навигация по приложению его не возвращает.
-      // Вкладка «Учёба» (уроки и карта в одном разделе, 2026-11-15): новый игрок попадает в уроки.
+      // Вкладка «Учёба» (уроки и карта в одном разделе, 2026-11-15) ведёт в последний открытый вид: здесь игрок уже открывал карту по кнопке бота.
+      const studyHref = (await u.page.locator('nav a[data-tab="study"]').getAttribute('href')) ?? '';
       await u.page.locator('nav a[data-tab="study"]').click();
-      await u.page.waitForFunction(() => location.pathname === '/learn', undefined, { timeout: 10_000 });
+      await u.page.waitForFunction((to) => location.pathname === to, studyHref, { timeout: 10_000 });
       await u.page.waitForTimeout(500);
-      check((await where(u.page)).path === '/learn', 'B1.1 после перехода из бота обычная навигация (во вкладку «Учёба») не перебивается повторным bot_screen');
+      check(['/learn', '/map'].includes(studyHref) && (await where(u.page)).path === studyHref, `B1.1 после перехода из бота обычная навигация (во вкладку «Учёба», ${studyHref}) не перебивается повторным bot_screen`);
       // Повторное открытие без bot_screen (devUser нужен только стенду: в Telegram вход идёт через initData): второго перехода нет.
       await u.page.goto(`${base}/quests?devUser=880020`, { waitUntil: 'domcontentloaded' });
       await settled(u.page);

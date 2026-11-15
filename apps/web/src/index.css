@@ -2627,3 +2627,9 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
 .nav-art.is-off { opacity: 0.8; filter: saturate(0.7); transform-origin: 50% 60%; }
 .nav-art.is-on { opacity: 1; filter: drop-shadow(0 3px 5px rgb(0 0 0 / 0.35)); }
 .light .nav-art.is-off { opacity: 0.85; filter: saturate(0.75); }
+
+/* Свайп по вкладкам экрана (квесты, миссии, лига…) работает по всей видимой области, а не только по высоте содержимого:
+   на коротком списке палец под последней карточкой раньше попадал мимо зоны (2026-11-15). Высота — как у .map-screen. */
+[data-tab-swipe] {
+  min-height: calc(var(--tg-viewport-stable-height, 100dvh) - var(--safe-t) - var(--nav-h) - var(--safe-b) - 20px);
+}

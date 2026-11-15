@@ -101,10 +101,10 @@ export const TASK_ART: Record<string, ArtName> = {
 /** Рисунки со своей плиткой (значки владельца, 2026-11-02): им плашка не нужна. Остальные ложатся на плашку того же цвета (.icon-plate). */
 export const TILE_TASK_ART = new Set<ArtName>(['book', 'star', 'target']);
 
-/** Розмір Бобека на банері: 46% ширини банера (екран мінус поля 2×16, не ширше колонки 576), у межах 150–186 px. */
+/** Розмір Бобека на банері: 44% ширини банера (екран мінус поля 2×16, не ширше колонки 576), у межах 144–186 px; праворуч колонка 50% — між ними зазор на 360–430. */
 function heroBeaverFor(width: number) {
   const banner = Math.min(width, 576) - 32;
-  return Math.round(Math.min(186, Math.max(150, banner * 0.46)));
+  return Math.round(Math.min(186, Math.max(144, banner * 0.44)));
 }
 function useHeroBeaverSize() {
   const [size, setSize] = useState(() => heroBeaverFor(typeof window === 'undefined' ? 390 : window.innerWidth));
@@ -335,7 +335,7 @@ export function HomeScreen() {
     if (current) rememberCity({ slug: current.slug, color: current.color, namePl: current.namePl });
   }, [current?.slug, current?.color, current?.namePl]); // eslint-disable-line react-hooks/exhaustive-deps
   const rank = rankFor(me.progress.level);
-  // Розмір Бобека: блок 46% ширини банера (min 150, max 186), щоб праворуч лишалось місце карткам і кнопці без накладання.
+  // Розмір Бобека: блок 44% ширини банера (144–186 px), щоб праворуч лишалось місце карткам і кнопці без накладання.
   const heroBeaver = useHeroBeaverSize();
 
   // Головна (варіант A): один головний крок — «Продовжити урок»; далі «Сьогодні», пропуск місяця й «Учитися далі».
@@ -356,7 +356,7 @@ export function HomeScreen() {
           <motion.div className="home-hero-beaver absolute bottom-1.5 left-1.5" initial={{ x: -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
             <HeroBeaver size={heroBeaver} />
           </motion.div>
-          <div className="glass-card home-hero-info absolute right-2.5 top-2.5 w-[52%] overflow-hidden">
+          <div className="glass-card home-hero-info absolute right-2.5 top-2.5 w-[50%] overflow-hidden">
             <button onClick={() => { haptic.tap(); nav('/map'); }} className="flex w-full items-center gap-1.5 px-2.5 pb-1.5 pt-2 text-left active:bg-white/10">
               <span className="min-w-0 flex-1">
                 <span className="block text-[10.5px] font-black uppercase tracking-[0.08em] text-white/70">{t('home_cur_city')}</span>
@@ -382,7 +382,7 @@ export function HomeScreen() {
           <motion.button
             whileTap={{ scale: 0.96 }}
             onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : loadingJourney ? '/learn' : '/map'); }}
-            className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[52%] !min-h-[52px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
+            className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[50%] !min-h-[52px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
           >
             <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{next || loadingJourney ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
           </motion.button>
