@@ -25,7 +25,7 @@ const KNOWN: Known[] = [
   { test: (e) => /dynamically imported module|ChunkLoadError|Importing a module script failed/i.test(e.message), tone: 'info', text: 'Игрок открыл старую версию приложения сразу после выкладки. Проходит после перезапуска Mini App.' },
 ];
 
-const TONE = { ok: ['✓ ', 'bg-brand-soft text-[#13784f]'], info: ['ℹ︎ ', 'bg-sky-soft text-[#0f6aa6]'], warn: ['⚠︎ ', 'bg-coral-soft text-[#b42336]'] } as const;
+const TONE = { ok: ['✓ ', 'bg-brand-soft text-[#5eeab0]'], info: ['ℹ︎ ', 'bg-sky-soft text-[#8fd3ff]'], warn: ['⚠︎ ', 'bg-coral-soft text-[#ff9aa8]'] } as const;
 
 function Hint({ e }: { e: Item }) {
   const k = KNOWN.find((x) => x.test(e));
@@ -80,7 +80,7 @@ export default function Errors() {
           </>
         }
       />
-      {error && <p className="rounded-xl bg-coral-soft px-4 py-3 text-sm text-[#b42336]">{error}</p>}
+      {error && <p className="rounded-xl bg-coral-soft px-4 py-3 text-sm text-[#ff9aa8]">{error}</p>}
       {data && (
         <div className="flex flex-wrap gap-2 text-sm" data-error-totals>
           <span className="badge badge-red">сервер {fmt(data.total.server)}</span>

@@ -23,7 +23,7 @@ function topRounded(x: number, y: number, w: number, h: number, r: number) {
   return `M${x},${y + h}V${y + rr}Q${x},${y} ${x + rr},${y}H${x + w - rr}Q${x + w},${y} ${x + w},${y + rr}V${y + h}Z`;
 }
 
-const AXIS = '#64748b'; // подписи осей — контраст 4.7:1 на белом (slate-400 давал 2.9:1)
+const AXIS = '#9eadd0'; // подписи осей — светлые на тёмной панели (контраст ≥ 6:1)
 
 /**
  * Столбики по дням; несколько рядов — стопкой (между частями зазор 2 px). Пустые дни — ноль, а не пропуск.
@@ -73,7 +73,7 @@ export function DayBars({ days, series, unit, label }: { days: string[]; series:
       >
         {ticks.map((t) => (
           <g key={t}>
-            <line x1={PAD.l} x2={W - PAD.r} y1={y(t)} y2={y(t)} stroke="#e6eaf2" strokeDasharray={t ? '3 4' : undefined} />
+            <line x1={PAD.l} x2={W - PAD.r} y1={y(t)} y2={y(t)} stroke="#22325c" strokeDasharray={t ? '3 4' : undefined} />
             <text x={PAD.l - 6} y={y(t) + 4} textAnchor="end" fontSize="10" fill={AXIS}>
               {Number.isInteger(t) ? fmt(t) : t.toFixed(1)}
             </text>
@@ -85,7 +85,7 @@ export function DayBars({ days, series, unit, label }: { days: string[]; series:
           const parts = series.map((s) => ({ s, v: s.values[i] ?? 0 })).filter((p) => p.v > 0);
           return (
             <g key={d} onMouseEnter={() => setHover(i)} onTouchStart={() => setHover(i)}>
-              <rect x={PAD.l + step * i} y={PAD.t} width={step} height={ih} fill={hover === i ? '#f1f5f9' : 'transparent'} />
+              <rect x={PAD.l + step * i} y={PAD.t} width={step} height={ih} fill={hover === i ? 'rgb(91 95 247 / 0.12)' : 'transparent'} />
               {parts.map(({ s, v }, k) => {
                 const h = Math.max(1.5, (v / max) * ih);
                 const top = base - h;
@@ -182,7 +182,7 @@ export function Funnel({ steps }: { steps: { label: string; value: number; base?
 }
 
 /** Горизонтальные полосы с долей от суммы: источники, город после теста, язык. */
-export function Bars({ items, color = '#1d8fd6', empty }: { items: { label: ReactNode; value: number; color?: string; key?: string }[]; color?: string; empty?: ReactNode }) {
+export function Bars({ items, color = '#38b6ff', empty }: { items: { label: ReactNode; value: number; color?: string; key?: string }[]; color?: string; empty?: ReactNode }) {
   const total = items.reduce((s, x) => s + x.value, 0);
   if (!total) return <p className="text-sm text-slate-500">{empty ?? 'Пока нет данных'}</p>;
   const max = Math.max(...items.map((x) => x.value));

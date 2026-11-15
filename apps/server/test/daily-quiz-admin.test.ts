@@ -6,7 +6,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { adminAuditLogs, botContacts, botQuizPlayers, botQuizRounds, dailyQuizSends } from '../src/db/schema';
+import { adminAuditLogs, botContacts, botQuizPlayers, botQuizRounds, dailyQuizSends, notificationLog } from '../src/db/schema';
 import { QUESTION_BY_ID, QUIZ_QUESTIONS } from '../src/bot/quiz/questions';
 import { runDailyQuizTick } from '../src/bot/daily/send';
 import { addDays, warsawDay, writeDailyRun, writeDailyState } from '../src/bot/daily/state';
@@ -186,6 +186,54 @@ describe('отчёт по дню и карточка игрока', () => {
     // Карточка игрока приложения: блок «Вопросы дня».
     const card = (await root('GET', `/users/${app.user.id}`)).body;
     expect(card.dailyQuiz).toEqual([expect.objectContaining({ day, status: 'SENT', questionId: expect.any(String), prompt: expect.any(String) })]);
+  });
+});
+
+describe('кому пришёл и почему нет (владелец 2026-11-15)', () => {
+  const contact = async (telegramId: number, firstName: string, username?: string) =>
+    db.insert(botContacts).values({ telegramId, firstName, username: username ?? null, languageCode: 'ru', firstSeenAt: new Date('2026-10-01'), lastSeenAt: new Date('2026-10-01') });
+
+  it('рассылка выключена: вопрос не приходит никому, а игроку пришло обычное напоминание — так и написано', async () => {
+    const day = '2027-04-05';
+    await writeDailyState({ enabled: false });
+    const app = await login();
+    await db.insert(notificationLog).values({ userId: app.user.id, kind: 'daily_reminder', day, status: 'SENT', template: 'lesson', lang: 'ru', attempts: 1, sentAt: new Date(`${day}T08:00:00Z`) });
+    const r = await root('GET', `/daily-quiz/person?who=${app.telegramId}&day=${day}`);
+    expect(r.status).toBe(200);
+    const me = r.body.people[0];
+    expect(me.verdict).toMatch(/рассылка вопроса дня выключена/);
+    expect(me.steps.join(' ')).toMatch(/обычное напоминание о занятии «пора на урок» в 10:00/);
+    // В отчёте по дню — вкладка «Не получили»: причина «рассылка выключена» и что пришло вместо вопроса.
+    const report = (await root('GET', `/daily-quiz/day/${day}?filter=not_sent&after=${app.telegramId - 1}`)).body;
+    const row = report.rows.find((x: { telegramId: number }) => x.telegramId === app.telegramId);
+    expect(row).toMatchObject({ status: 'NOT_SENT', reason: 'off' });
+    expect(row.instead[0]).toMatchObject({ kind: 'reminder', status: 'SENT', template: 'lesson' });
+    expect(report.summary).toMatchObject({ enabled: false, sending: false });
+    expect(report.summary.notSentBy.off).toBeGreaterThanOrEqual(1);
+  });
+
+  it('рассылка идёт: выключил вопрос дня — причина; получил и ответил верно — так и написано; поиск по @нику', async () => {
+    const day = '2027-04-06';
+    await writeDailyState({ enabled: true, sendAt: '12:00', startDay: '2027-04-06' });
+    await contact(9_610_001, 'Optout', 'optout_pl');
+    await db.insert(botQuizPlayers).values({ telegramId: 9_610_001, pushEnabled: false }).onConflictDoUpdate({ target: botQuizPlayers.telegramId, set: { pushEnabled: false } });
+    await contact(9_610_002, 'Solver', 'solver_pl');
+    const q = QUIZ_QUESTIONS.find((x) => x.cefr === 'A1')!;
+    await db.insert(dailyQuizSends).values({ day, telegramId: 9_610_002, level: 'A1', lang: 'ru', questionId: q.id, status: 'SENT', sentAt: new Date(`${day}T10:01:00Z`), answeredAt: new Date(`${day}T10:05:00Z`), chosen: q.answer, correct: true });
+
+    const opt = (await root('GET', `/daily-quiz/person?who=@optout_pl&day=${day}`)).body.people[0];
+    expect(opt).toMatchObject({ telegramId: 9_610_001, eligibility: 'opted_out', tone: 'red' });
+    expect(opt.verdict).toMatch(/сам выключил вопрос дня/);
+    const solver = (await root('GET', `/daily-quiz/person?who=solver&day=${day}`)).body.people[0];
+    expect(solver.verdict).toMatch(/ответил\(а\) верно/);
+    expect(solver.steps.join(' ')).toMatch(/ушёл в 12:01.*Ответ в 12:05: верно/);
+
+    const notSent = (await root('GET', `/daily-quiz/day/${day}?filter=not_sent&after=9610000`)).body;
+    expect(notSent.rows.find((x: { telegramId: number }) => x.telegramId === 9_610_001)).toMatchObject({ reason: 'opted_out' });
+    expect(notSent.rows.find((x: { telegramId: number }) => x.telegramId === 9_610_002)).toBeUndefined();
+    expect(notSent.summary.sending).toBe(true);
+    expect((await root('GET', '/daily-quiz/person?who=nobody-such-person')).body.people).toEqual([]);
+    await writeDailyState({ enabled: false });
   });
 });
 

@@ -205,6 +205,18 @@ async function main() {
       check(taras.includes('по приглашению') && taras.includes('не открывал'), `${width}px поиск @taras: пришёл по приглашению, приложение не открывал`);
       await p.screenshot({ path: `${OUT}/audience-search-${width}.png` });
 
+      // «Вовлечённость» (2026-11-15): сегменты, липкость, глубина, разделы, часы, «лестница», самые вовлечённые и под угрозой.
+      await go('Вовлечённость', 'Вовлечённость');
+      await p.locator('[data-engagement-segments]').waitFor({ timeout: 10_000 });
+      const eng = await p.locator('main').innerText();
+      check(/Ядро/i.test(eng) && /Под угрозой/i.test(eng) && /Не начали/i.test(eng) && /Липкость/i.test(eng) && /Когда играют/i.test(eng) && /Лестница/i.test(eng), `${width}px «Вовлечённость»: группы, липкость, когда играют, «лестница» уроков`);
+      await noHScroll('вовлечённость');
+      await axe('«Вовлечённость»');
+      await p.screenshot({ path: `${OUT}/engagement-${width}.png`, fullPage: true });
+      await p.locator('[data-segment-link="never"]').click();
+      await p.waitForFunction(() => /filter=never/.test(location.search) && /Найдено: \d/.test(document.body.innerText), null, { timeout: 10_000 });
+      check((await p.locator('[data-user-segment="never"][aria-pressed="true"]').count()) === 1, `${width}px группа «Не начали» → список игроков, отбор «Не начали» включён`);
+
       if (width < 600) await p.click('button:has-text("Меню")');
       await p.click('nav a:has-text("Пользователи")');
       await p.locator('h1', { hasText: 'Пользователи приложения' }).waitFor({ timeout: 10_000 });
@@ -382,6 +394,16 @@ async function main() {
       await p.locator('table:has(caption:text("Получатели вопроса дня")) tbody tr:not([data-loading]):not([data-empty])').first().waitFor({ timeout: 10_000 });
       const dayText = await p.locator('main').innerText();
       check(/дошло/.test(dayText) && /✓ верно/.test(dayText), `${width}px «Вопрос дня» → «День»: доставка и верный ответ по каждому человеку`);
+      // Кто не получил и почему; «Почему не пришло?» по человеку (2026-11-15).
+      check((await p.locator('[data-daily-summary]').count()) === 1, `${width}px «Вопрос дня» → «День»: сводка «людей / отправлено / не получили»`);
+      await p.getByRole('group', { name: 'Отбор получателей' }).getByRole('button', { name: 'Не получили' }).click();
+      await p.waitForFunction(() => document.querySelectorAll('[data-daily-status-cell="NOT_SENT"]').length > 0 || /Вопрос получили все/.test(document.body.innerText), null, { timeout: 10_000 });
+      check(true, `${width}px «Вопрос дня» → «Не получили»: причина у каждого`);
+      await p.fill('#daily-who', 'taras');
+      await p.locator('[data-daily-person] button:has-text("Проверить")').click();
+      await p.locator('[data-daily-verdict]').first().waitFor({ timeout: 10_000 });
+      check(((await p.locator('[data-daily-verdict]').first().innerText()) ?? '').length > 10, `${width}px «Почему не пришло?»: итог по человеку одной фразой`);
+      await p.getByRole('group', { name: 'Отбор получателей' }).getByRole('button', { name: 'Все' }).click();
       await p.waitForTimeout(400); // переключатель вкладок плавно меняет цвет — проверяем контраст после перехода
       await noHScroll('вопрос дня: день');
       await axe('«Вопрос дня» (день)');

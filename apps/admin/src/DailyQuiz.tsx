@@ -3,7 +3,8 @@
  *  • Шапка: включена ли рассылка, время, сколько человек получат и сколько займёт отправка; «Запустить с …» и «Остановить».
  *  • «План»: 30 дней вперёд, по каждому уровню — картинка, вопрос, варианты (верный отмечен), пояснение, «как увидит игрок»;
  *    заменить вопрос или картинку, пропустить день, прислать себе. Прошедшие 7 дней — только смотреть.
- *  • «День»: как прошла рассылка — по уровням и по каждому человеку (дошло, ответил, что выбрал, верно ли).
+ *  • «День»: как прошла рассылка — по уровням и по каждому человеку (дошло, ответил, что выбрал, верно ли); кто не получил и почему,
+ *    что пришло вместо вопроса; «Почему не пришло?» — разбор по одному человеку (2026-11-15).
  *  • «Вопросы»: весь банк, сколько раз был вопросом дня, % верных, выключатель.
  * Менять план, запускать и выключать вопросы может только суперадмин (сервер проверяет сам).
  */
@@ -32,9 +33,13 @@ type Overview = {
   history: HistDay[];
 };
 type BankQ = QCard & { disabled: boolean; timesDaily: number; lastDaily: string | null; answered: number; correctPct: number | null };
-type DayRow = { telegramId: number; userId: string | null; name: string; username: string | null; level: Level; lang: string; status: string; error: string | null; sentAt: number | null; answeredAt: number | null; chosenText: string | null; correct: boolean | null };
+type NotSentReason = Exclusion | 'off' | 'waiting';
+type Instead = { kind: 'reminder' | 'quiz_invite'; status: string; template: string | null; at: number | null; replacedByDaily: boolean };
+type DayRow = { telegramId: number; userId: string | null; name: string; username: string | null; level: Level; lang: string; status: string; reason: NotSentReason | null; error: string | null; sentAt: number | null; answeredAt: number | null; chosenText: string | null; correct: boolean | null; instead: Instead[] };
 type DayLevel = { level: Level; questionId: string | null; prompt: string | null; imageUrl: string | null; skipped: boolean; sent: number; delivered: number; blocked: number; noChat: number; failed: number; answered: number; correct: number };
-type DayReport = { day: string; levels: DayLevel[]; rows: DayRow[]; more: number | null };
+type DaySummary = { people: number; sent: number; notSent: number; notSentBy: Record<NotSentReason, number>; sending: boolean; enabled: boolean; startDay: string | null };
+type DayReport = { day: string; levels: DayLevel[]; summary: DaySummary; rows: DayRow[]; more: number | null };
+type Explained = { telegramId: number; userId: string | null; name: string; username: string | null; level: Level; lang: string; verdict: string; tone: Tone; steps: string[] };
 
 const LANGS: [Lang, string][] = [
   ['ru', 'Русский'],
@@ -43,6 +48,111 @@ const LANGS: [Lang, string][] = [
 ];
 const LEVELS: Level[] = ['A1', 'A2', 'B1'];
 const EXCLUDED: Record<Exclusion, string> = { blocked: 'заблокировали бота', opted_out: 'выключили вопрос дня', paused: 'пауза (3 без ответа)', no_chat: 'нет чата с ботом', banned: 'заблокированы админом' };
+/** Почему вопрос в этот день не отправлялся (вкладка «Не получили»). */
+const NOT_SENT: Record<NotSentReason, [string, Tone]> = {
+  off: ['рассылка не шла', 'gray'],
+  waiting: ['очередь не дошла', 'sky'],
+  opted_out: ['выключил вопрос дня', 'gold'],
+  blocked: ['заблокировал бота', 'red'],
+  no_chat: ['нет чата с ботом', 'gold'],
+  paused: ['пауза: 3 без ответа', 'gold'],
+  banned: ['заблокирован админом', 'red'],
+};
+const TEMPLATE: Record<string, string> = { lesson: '«пора на урок»', streak: '«не потеряй серию»', return: '«давно не виделись»', quiz: 'быстрый вопрос' };
+function InsteadCell({ list }: { list: Instead[] }) {
+  if (!list.length) return <span className="text-slate-500">—</span>;
+  return (
+    <span className="flex flex-col gap-1">
+      {list.map((m, i) => (
+        <span key={i} className="text-xs">
+          {m.kind === 'quiz_invite' ? (
+            <Badge tone={m.status === 'SENT' ? 'sky' : 'gray'}>приглашение к быстрому вопросу{m.status === 'SENT' && m.at ? ` · ${warsawClock(m.at)}` : m.status === 'SENT' ? '' : ' · не дошло'}</Badge>
+          ) : m.replacedByDaily ? (
+            <Badge tone="gray">напоминание заменено вопросом</Badge>
+          ) : (
+            <Badge tone={m.status === 'SENT' ? 'gold' : 'gray'}>
+              напоминание {m.template ? (TEMPLATE[m.template] ?? m.template) : ''}
+              {m.status === 'SENT' && m.at ? ` · ${warsawClock(m.at)}` : m.status === 'SENT' ? '' : ' · не дошло'}
+            </Badge>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** «Почему не пришло?» — разбор по одному человеку за выбранный день (имя, @ник или telegram id). */
+function PersonCheck({ day }: { day: string }) {
+  const [who, setWho] = useState('');
+  const [res, setRes] = useState<Explained[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const check = async () => {
+    if (!who.trim()) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      setRes((await api<{ people: Explained[] }>(`/daily-quiz/person?who=${encodeURIComponent(who.trim())}&day=${day}`)).people);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card title="Почему не пришло?" subtitle={`Имя, @ник или Telegram ID — покажем, что этому человеку пришло ${dayTitle(day)} и почему`} data-daily-person>
+      <form
+        className="flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void check();
+        }}
+      >
+        <label className="sr-only" htmlFor="daily-who">
+          Кого проверить
+        </label>
+        <input id="daily-who" className="inp min-w-0 flex-1" placeholder="например, @senya или 123456789" value={who} onChange={(e) => setWho(e.target.value)} />
+        <button className="btn-p" disabled={busy || !who.trim()}>
+          {busy ? 'Проверяю…' : 'Проверить'}
+        </button>
+      </form>
+      {err && <p className="mt-2 text-sm font-semibold text-[#ff9aa8]">{err}</p>}
+      {res && res.length === 0 && <p className="mt-3 text-sm text-slate-600">Никого не нашли — проверьте написание или вставьте Telegram ID.</p>}
+      {res && res.length > 0 && (
+        <ul className="mt-3 space-y-2" data-daily-person-results>
+          {res.map((p) => (
+            <li key={p.telegramId} className={cx('verdict-card', `verdict-${p.tone}`)}>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                {p.userId ? (
+                  <Link className="link" to={`/users/${p.userId}`}>
+                    {p.name || p.telegramId}
+                  </Link>
+                ) : (
+                  <b>{p.name || p.telegramId}</b>
+                )}
+                <span className="text-xs text-slate-500">
+                  {p.username ? `@${p.username} · ` : ''}
+                  {p.telegramId} · {p.level} · {p.userId ? 'приложение' : 'только бот'}
+                </span>
+              </div>
+              <p className="mt-1 text-[15px] font-bold text-night" data-daily-verdict>
+                {p.verdict}
+              </p>
+              {p.steps.length > 0 && (
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-slate-600">
+                  {p.steps.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 const DELIVERY: Record<string, [string, Tone]> = {
   SENT: ['дошло', 'green'],
   PENDING: ['отправляется', 'sky'],
@@ -84,11 +194,11 @@ function Bubble({ imageUrl, text, buttons }: { imageUrl: string; text: string; b
     <div className="rounded-2xl bg-[#d7e6f2] p-3" data-daily-preview>
       <div className="max-w-sm overflow-hidden rounded-2xl rounded-bl-md bg-white shadow-sm">
         <img src={imageUrl} alt="" className="aspect-video w-full object-cover" loading="lazy" />
-        <div className="whitespace-pre-wrap break-words px-3.5 py-2.5 text-[13px] leading-snug text-slate-900">{text}</div>
+        <div className="whitespace-pre-wrap break-words px-3.5 py-2.5 text-[13px] leading-snug text-[#111827]">{text}</div>
       </div>
       <div className="mt-1 grid max-w-sm gap-1">
         {buttons.map((b, i) => (
-          <div key={i} className="rounded-xl bg-white/70 px-2 py-1.5 text-center text-[12.5px] font-semibold text-[#2a6fb0] shadow-sm">
+          <div key={i} className="rounded-xl bg-white/70 px-2 py-1.5 text-center text-[12.5px] font-semibold text-[#1f5f9e] shadow-sm">
             {b}
           </div>
         ))}
@@ -113,12 +223,12 @@ function Diag({ o }: { o: Overview }) {
         </p>
       )}
       {d.missedToday && (
-        <p className="text-xs font-semibold text-[#7a4d00]" data-daily-missed>
+        <p className="text-xs font-semibold text-[#ffd27a]" data-daily-missed>
           Сегодня вопрос не уйдёт: окно отправки ({warsawClock(d.window.from)}–{warsawClock(d.window.to)}) уже закрылось, а отправка не начиналась. Следующая — завтра в {warsawClock(d.window.from)}.
         </p>
       )}
       {o.state.enabled && cronDead ? (
-        <p className="text-xs font-semibold text-[#9a2b00]" data-daily-cron="dead">
+        <p className="text-xs font-semibold text-[#ffb08a]" data-daily-cron="dead">
           {d.tickAt === null ? 'Расписание (cron раз в минуту) ещё не срабатывало: проверьте «Triggers → Cron» у Worker в Cloudflare.' : `Расписание молчит ${age} мин: последний запуск ${warsawStamp(d.tickAt)} по Варшаве. Проверьте Cron-триггеры Worker.`}
         </p>
       ) : (
@@ -160,7 +270,7 @@ function Header({ o, bank, superadmin, reload }: { o: Overview; bank: BankQ[] | 
             {excluded.length > 0 && <span className="text-slate-500"> Не получат: {excluded.map((k) => `${EXCLUDED[k]} — ${fmt(a.excluded[k])}`).join(', ')}.</span>}
           </p>
           <Diag o={o} />
-          {tooLong && <p className="text-xs font-semibold text-[#7a4d00]">Отправка дольше 4 часов: после окна в 4 часа вопрос в этот день остальным не уйдёт.</p>}
+          {tooLong && <p className="text-xs font-semibold text-[#ffd27a]">Отправка дольше 4 часов: после окна в 4 часа вопрос в этот день остальным не уйдёт.</p>}
           {off > 0 && <p className="text-xs text-slate-500">Выключено вопросов: {off}.</p>}
         </div>
         {superadmin && (
@@ -251,7 +361,7 @@ function ItemRow({ it, day, o, bank, lang, editable, reload }: { it: Item; day: 
         {q && (
           <ol className="grid gap-0.5 text-[13px] sm:grid-cols-2">
             {q.options.map((opt, i) => (
-              <li key={i} className={cx('rounded-lg px-2 py-0.5', i === q.answer ? 'bg-[#e6f6ee] font-semibold text-[#0f6b48]' : 'text-slate-700')}>
+              <li key={i} className={cx('rounded-lg px-2 py-0.5', i === q.answer ? 'bg-brand-soft font-semibold text-[#5eeab0]' : 'text-slate-700')}>
                 {i === q.answer ? '✓ ' : ''}
                 {opt}
                 {i === q.answer && <span className="sr-only"> (верный)</span>}
@@ -261,7 +371,7 @@ function ItemRow({ it, day, o, bank, lang, editable, reload }: { it: Item; day: 
         )}
         {q && it.preview && (
           <details className="text-[13px]">
-            <summary className="cursor-pointer font-semibold text-[#2a6fb0]">Пояснение и как увидит игрок</summary>
+            <summary className="cursor-pointer font-semibold text-[#8fd3ff]">Пояснение и как увидит игрок</summary>
             <div className="mt-2 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
               <p className="text-slate-700">{q.explain}</p>
               <Bubble imageUrl={it.imageUrl} text={it.preview.text} buttons={it.preview.buttons} />
@@ -371,7 +481,7 @@ function PlanTab({ o, bank, lang, superadmin, reload }: { o: Overview; bank: Ban
 
 function DayTab({ o, lang }: { o: Overview; lang: Lang }) {
   const [day, setDay] = useState(o.today);
-  const [filter, setFilter] = useState<'all' | 'answered' | 'not_answered' | 'wrong' | 'failed'>('all');
+  const [filter, setFilter] = useState<'all' | 'answered' | 'not_answered' | 'wrong' | 'failed' | 'not_sent'>('all');
   const [extra, setExtra] = useState<DayRow[]>([]);
   const [more, setMore] = useState<number | null>(null);
   const { data, error, loading, reload } = useLoad(async () => {
@@ -398,7 +508,7 @@ function DayTab({ o, lang }: { o: Overview; lang: Lang }) {
       render: (r) => (
         <span>
           {r.userId ? (
-            <Link className="font-semibold text-[#2a6fb0] hover:underline" to={`/users/${r.userId}`}>
+            <Link className="font-semibold text-[#8fd3ff] hover:underline" to={`/users/${r.userId}`}>
               {r.name || r.telegramId}
             </Link>
           ) : (
@@ -417,6 +527,14 @@ function DayTab({ o, lang }: { o: Overview; lang: Lang }) {
       key: 'st',
       label: 'Доставка',
       render: (r) => {
+        if (r.reason) {
+          const [t, tone] = NOT_SENT[r.reason];
+          return (
+            <Badge tone={tone} data-daily-status-cell="NOT_SENT">
+              не отправлялся: {t}
+            </Badge>
+          );
+        }
         const [t, tone] = DELIVERY[r.status] ?? [r.status, 'gray' as Tone];
         return (
           <Badge tone={tone} data-daily-status-cell={r.status}>
@@ -427,8 +545,11 @@ function DayTab({ o, lang }: { o: Overview; lang: Lang }) {
     },
     { key: 'ans', label: 'Ответил', render: (r) => (r.answeredAt ? <Time v={r.answeredAt} /> : <span className="text-slate-500">нет</span>) },
     { key: 'ch', label: 'Выбрал', render: (r) => r.chosenText ?? '—' },
-    { key: 'ok', label: 'Верно', render: (r) => (r.correct === null ? '—' : r.correct ? <span className="font-bold text-[#0f6b48]">✓ верно</span> : <span className="font-bold text-[#b42336]">✗ неверно</span>) },
+    { key: 'ok', label: 'Верно', render: (r) => (r.correct === null ? '—' : r.correct ? <span className="font-bold text-[#5eeab0]">✓ верно</span> : <span className="font-bold text-[#ff9aa8]">✗ неверно</span>) },
+    { key: 'inst', label: 'Что ещё пришло', render: (r) => <InsteadCell list={r.instead ?? []} /> },
   ];
+  const sum = data?.summary;
+  const reasons = sum ? (Object.keys(NOT_SENT) as NotSentReason[]).filter((k) => sum.notSentBy[k] > 0) : [];
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -441,6 +562,36 @@ function DayTab({ o, lang }: { o: Overview; lang: Lang }) {
         </button>
       </div>
       {error && <LoadError error={error} retry={reload} />}
+      {sum && (
+        <div className={cx('day-summary', !sum.sending && 'is-off')} data-daily-summary>
+          {!sum.sending && (
+            <p className="mb-2 text-sm font-bold text-night" data-daily-day-off>
+              {!sum.enabled
+                ? 'В этот день рассылка вопроса дня была выключена — вопрос не уходил никому. Вместо него бот слал обычные напоминания о занятии и приглашения к быстрому вопросу (колонка «Что ещё пришло»).'
+                : sum.startDay && day < sum.startDay
+                  ? `Рассылка начинается с ${shortDay(sum.startDay)} — в этот день вопрос ещё не отправлялся.`
+                  : 'Этот день пропущен в плане — вопрос не отправлялся.'}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+            <span>
+              Людей в боте и приложении: <b className="text-night">{fmt(sum.people)}</b>
+            </span>
+            <span>
+              Отправлено: <b className="text-night">{fmt(sum.sent)}</b>
+            </span>
+            <span>
+              Не получили: <b className="text-night">{fmt(sum.notSent)}</b>
+            </span>
+            {reasons.map((k) => (
+              <Badge key={k} tone={NOT_SENT[k][1]}>
+                {NOT_SENT[k][0]} — {fmt(sum.notSentBy[k])}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      <PersonCheck day={day} />
       <div className="grid gap-3 lg:grid-cols-3">
         {(data?.levels ?? []).map((l) => (
           <Card key={l.level} data-daily-level={l.level}>
@@ -487,11 +638,15 @@ function DayTab({ o, lang }: { o: Overview; lang: Lang }) {
               ['not_answered', 'Не ответили'],
               ['wrong', 'Ошиблись'],
               ['failed', 'Не дошло'],
+              ['not_sent', 'Не получили'],
             ]}
           />
         }
       >
-        <DataTable caption="Получатели вопроса дня" cols={cols} rows={data ? [...data.rows, ...extra] : null} loading={loading} rowKey={(r) => String(r.telegramId)} empty="В этот день вопрос дня никому не отправлялся" />
+        <p className="mb-3 text-xs text-slate-500">
+          «Не получили» — люди, которым в этот день вопрос не отправлялся, и почему (для прошлых дней причина — нынешняя). «Что ещё пришло» — напоминание о занятии или приглашение к быстрому вопросу в тот же день.
+        </p>
+        <DataTable caption="Получатели вопроса дня" cols={cols} rows={data ? [...data.rows, ...extra] : null} loading={loading} rowKey={(r) => String(r.telegramId)} empty={filter === 'not_sent' ? 'Вопрос получили все' : 'В этот день вопрос дня никому не отправлялся'} />
         {more !== null && (
           <div className="mt-3 text-center">
             <button className="btn-s" onClick={() => void loadMore()}>
@@ -555,7 +710,7 @@ function QuestionsTab({ bank, superadmin, reload }: { bank: BankQ[] | null; supe
             role="switch"
             aria-checked={!r.disabled}
             aria-label={`${r.disabled ? 'Включить' : 'Выключить'} вопрос: ${r.prompt}`}
-            className={cx('btn-s h-8 px-2.5 py-0.5 text-xs', !r.disabled && 'border-[#127a53] text-[#0f6b48]')}
+            className={cx('btn-s h-8 px-2.5 py-0.5 text-xs', !r.disabled && 'border-brand text-[#5eeab0]')}
             onClick={() => void run(() => api(`/daily-quiz/questions/${r.id}`, { method: 'PATCH', body: { disabled: !r.disabled } }), r.disabled ? 'Вопрос включён' : 'Вопрос выключен и убран из плана').then((ok) => ok && reload())}
             data-daily-toggle={r.id}
           >

@@ -8,6 +8,7 @@ import Errors from './Errors';
 import Money, { PaymentLog } from './Money';
 import Campaigns from './Campaigns';
 import { DailyQuiz } from './DailyQuiz';
+import { Engagement, ScoreBadge, SEG_META, SEG_ORDER } from './Engagement';
 import { ResourceEdit, ResourceList } from './Content';
 import { Reports, Support } from './Inbox';
 import { ExerciseReports } from './ExerciseReports';
@@ -31,7 +32,7 @@ function Login({ onLogin }: { onLogin: (a: Admin) => void }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   return (
-    <div className="grid min-h-screen place-items-center bg-[radial-gradient(900px_500px_at_20%_-10%,#1d8fd6_0%,transparent_60%),radial-gradient(700px_500px_at_110%_110%,#1fb57e_0%,transparent_55%),#07182c] p-4">
+    <div className="grid min-h-screen place-items-center p-4">
       <form
         className="panel w-full max-w-sm space-y-4 p-7 shadow-2xl"
         onSubmit={async (e) => {
@@ -45,15 +46,14 @@ function Login({ onLogin }: { onLogin: (a: Admin) => void }) {
           }
         }}
       >
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">
-            <span className="text-coral">POLSKI</span> <span className="text-gold">GO</span>
-          </h1>
-          <p className="text-sm text-slate-500">Вход в админку</p>
+        <div className="space-y-3">
+          <Brand />
+          <div className="neon-line" />
+          <h1 className="text-lg font-bold text-night">Вход в центр управления</h1>
         </div>
         <input className="inp" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
         <input className="inp" type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <p className="text-sm font-semibold text-[#ff9aa8]">{error}</p>}
         <button className="btn-p w-full">Войти</button>
       </form>
     </div>
@@ -770,6 +770,15 @@ function Users() {
           </button>
         ))}
       </div>
+      {/* Группы вовлечённости (страница «Вовлечённость»): кто играет каждый день, кто пропал, кто так и не начал. */}
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Вовлечённость">
+        <span className="eyebrow mr-1">Вовлечённость:</span>
+        {SEG_ORDER.map((k) => (
+          <button key={k} type="button" aria-pressed={filter === k} title={SEG_META[k].hint} className={cx('chip', filter === k && 'chip-on')} onClick={() => set({ filter: k })} data-user-segment={k}>
+            <span className="h-2 w-2 rounded-full" style={{ background: SEG_META[k].color }} aria-hidden /> {SEG_META[k].label}
+          </button>
+        ))}
+      </div>
       <form onSubmit={(e) => { e.preventDefault(); set({ q: search.trim() }); }} className="flex max-w-xl gap-2">
         <input className="inp" placeholder="Имя, @username или Telegram ID" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button className="btn-p">Найти</button>
@@ -779,7 +788,7 @@ function Users() {
         <table className="w-full">
           <thead className="border-b border-line">
             <tr>
-              {['Пользователь', 'Telegram ID', 'Уровень', 'XP', 'Польский', 'Premium', 'Создан', 'Был', ''].map((h) => (
+              {['Пользователь', 'Вовлечённость', 'Telegram ID', 'Уровень', 'XP', 'Польский', 'Premium', 'Создан', 'Был', ''].map((h) => (
                 <th key={h} className="th">{h}</th>
               ))}
             </tr>
@@ -791,6 +800,7 @@ function Users() {
                   <span className="font-semibold text-night">{u.firstName || '—'}</span> {u.username && <span className="text-slate-500">@{u.username}</span>}{' '}
                   {u.isBanned && <span className="badge badge-red">заблокирован</span>} {u.telegramId < 0 && <span className="badge badge-sky">вне Telegram</span>}
                 </td>
+                <td className="td"><ScoreBadge e={u.engagement} /></td>
                 <td className="td font-mono text-xs">{u.telegramId}</td>
                 <td className="td">{u.progress?.playerLevel}</td>
                 <td className="td">{u.progress?.xpTotal}</td>
@@ -833,7 +843,7 @@ function MessagePlayer({ id, name, blocked }: { id: string; name: string; blocke
   const [busy, setBusy] = useState(false);
   return (
     <Card title="Написать игроку" subtitle="сообщение придёт от бота в чат с игроком; игрок может ответить только через /paysupport" data-message-player>
-      {blocked && <p className="mb-3 text-sm text-[#b42336]">Игрок заблокировал бота — сообщение не дойдёт.</p>}
+      {blocked && <p className="mb-3 text-sm text-[#ff9aa8]">Игрок заблокировал бота — сообщение не дойдёт.</p>}
       <form
         className="space-y-2"
         onSubmit={async (e) => {
@@ -857,6 +867,53 @@ function MessagePlayer({ id, name, blocked }: { id: string; name: string; blocke
     </Card>
   );
 }
+
+/** Вовлечённость игрока: оценка, группа, разделы за 14 дней и полоса активности за 5 недель (насыщенность — XP за день). */
+function EngagementBlock({ e, activity }: { e: any; activity: { day: string; xp: number; lessons: number; seconds: number }[] }) {
+  if (!e) return null;
+  const byDay = new Map(activity.map((a) => [a.day, a]));
+  const today = new Date();
+  const days = Array.from({ length: 35 }, (_, i) => {
+    const d = new Date(today.getTime() - (34 - i) * 86_400_000);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  });
+  const maxXp = Math.max(1, ...activity.map((a) => a.xp));
+  const minutes = Math.round(activity.reduce((s, a) => s + a.seconds, 0) / 60);
+  return (
+    <Card title="Вовлечённость" subtitle={`${SEG_META[e.segment as keyof typeof SEG_META].hint}. Оценка: дни за 14 (до 60) + серия (до 20) + разнообразие разделов (до 20).`} data-user-engagement>
+      <div className="flex flex-wrap items-center gap-5">
+        <ScoreBadge e={e} />
+        <div className="text-sm text-slate-600">
+          Активных дней: <b className="text-night">{e.activeDays7}</b> из 7 · <b className="text-night">{e.activeDays14}</b> из 14 · за 5 недель {activity.length} дн., {minutes} мин
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {['lessons', 'missions', 'daily_quiz', 'league'].map((k) => (
+            <span key={k} className={cx('badge', e.features.includes(k) ? 'badge-green' : 'badge-gray')}>
+              {e.features.includes(k) ? '✓' : '·'} {FEATURE_LABEL[k]}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4 grid max-w-[280px] grid-cols-7 gap-1.5" role="list" aria-label="Активность за 5 недель">
+        {days.map((d) => {
+          const a = byDay.get(d);
+          return (
+            <span
+              key={d}
+              role="listitem"
+              className="heat-cell"
+              title={`${d.slice(8, 10)}.${d.slice(5, 7)}: ${a ? `${a.xp} XP, уроков ${a.lessons}, ${Math.round(a.seconds / 60)} мин` : 'не занимался'}`}
+              aria-label={`${d.slice(8, 10)}.${d.slice(5, 7)}: ${a ? `${a.xp} XP` : 'не занимался'}`}
+              style={{ background: a ? `rgb(47 211 154 / ${0.25 + (0.75 * a.xp) / maxXp})` : 'rgb(255 255 255 / 0.05)', boxShadow: a && a.xp === maxXp ? '0 0 10px rgb(47 211 154 / 0.8)' : undefined }}
+            />
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[11px] text-slate-500">5 недель: слева направо, сверху вниз — последняя клетка сегодня; ярче — больше XP за день.</p>
+    </Card>
+  );
+}
+const FEATURE_LABEL: Record<string, string> = { lessons: 'уроки', missions: 'миссии', daily_quiz: 'вопрос дня', league: 'лига' };
 
 function UserDetail({ admin }: { admin: Admin }) {
   const { id } = useParams();
@@ -904,6 +961,8 @@ function UserDetail({ admin }: { admin: Admin }) {
         <Stat label="Złotki" value={u.wallet?.balance} />
       </div>
 
+      <EngagementBlock e={u.engagement} activity={u.activity ?? []} />
+
       <Card title="Профиль" data-user-facts>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
           <Fact label="Зарегистрирован">{new Date(u.createdAt).toLocaleString('ru')}</Fact>
@@ -930,13 +989,13 @@ function UserDetail({ admin }: { admin: Admin }) {
                 <span className="min-w-0 flex-1">{d.prompt}</span>
                 <span className="text-xs">
                   {d.status !== 'SENT' ? (
-                    <span className="text-[#b42336]">не дошёл</span>
+                    <span className="text-[#ff9aa8]">не дошёл</span>
                   ) : !d.answeredAt ? (
                     <span className="text-slate-500">без ответа</span>
                   ) : d.correct ? (
-                    <span className="font-semibold text-[#0f6b48]">✓ верно</span>
+                    <span className="font-semibold text-[#5eeab0]">✓ верно</span>
                   ) : (
-                    <span className="font-semibold text-[#b42336]">✗ неверно</span>
+                    <span className="font-semibold text-[#ff9aa8]">✗ неверно</span>
                   )}
                 </span>
               </li>
@@ -1015,7 +1074,8 @@ function UserDetail({ admin }: { admin: Admin }) {
 function Table({ title, rows, cols }: { title: string; rows: any[]; cols: [string, string][] }) {
   const fmt = (v: any) => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT/.test(v) ? new Date(v).toLocaleString('ru') : show(v));
   return (
-    <div className="panel overflow-x-auto">
+    // Прокручиваемая таблица доступна с клавиатуры (WCAG 2.1.1: scrollable-region-focusable).
+    <div className="panel overflow-x-auto" tabIndex={0} role="region" aria-label={title}>
       <h2 className="flex items-center justify-between border-b px-4 py-3 text-[15px] font-bold text-night">
         {title} <span className="text-xs font-semibold text-slate-500">{rows?.length ?? 0}</span>
       </h2>
@@ -1042,7 +1102,7 @@ function navGroups(role: Admin['role']): [string, NavItem[]][] {
   const content = RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns').map((d): NavItem => [`/r/${d.name}`, d.title, '•']);
   const groups: [string, NavItem[]][] = [['Главное', [['/', 'Обзор', '📊'], ...(role !== 'EDITOR' ? ([['/errors', 'Ошибки', '⚠️']] as NavItem[]) : [])]]];
   if (role !== 'EDITOR') {
-    groups.push(['Игроки', [['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
+    groups.push(['Игроки', [['/engagement', 'Вовлечённость', '📈'], ['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
     groups.push(['Деньги', [['/payments', 'Платежи', '⭐'], ...(role === 'SUPERADMIN' ? ([['/r/plans', 'Тарифы', '👑']] as NavItem[]) : [])]]);
   }
   if (role !== 'SUPPORT') groups.push(['Контент', [['/exercise-reports', 'Ошибки в заданиях', '🛠'], ...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
@@ -1065,13 +1125,15 @@ const NAV_COUNT: Record<string, [keyof Attention, string]> = {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2.5">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-coral to-gold text-sm font-black text-white shadow-lg shadow-coral/30">PG</span>
+    <div className="flex items-center gap-3">
+      <span className="relative grid h-10 w-10 place-items-center rounded-xl text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #5b5ff7, #22d3ee)', boxShadow: '0 0 22px -4px rgb(34 211 238 / 0.85), 0 0 0 1px rgb(255 255 255 / 0.15) inset' }}>
+        PG
+      </span>
       <span className="leading-tight">
         <span className="block text-[15px] font-black tracking-tight">
-          <span className="text-[#ff7a88]">POLSKI</span> <span className="text-[#ffc857]">GO</span>
+          <span className="text-[#ff8a9a]">POLSKI</span> <span className="text-[#ffd27a]">GO</span>
         </span>
-        <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/60">админка</span>
+        <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[#8fd3ff]">центр управления</span>
       </span>
     </div>
   );
@@ -1109,24 +1171,24 @@ export function App() {
   if (!admin) return <Login onLogin={setAdmin} />;
   return (
     <div className="min-h-screen md:flex">
-      <a href="#main" className="sr-only z-50 rounded-xl bg-white px-4 py-2 font-semibold text-night shadow focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
+      <a href="#main" className="sr-only z-50 rounded-xl bg-surface px-4 py-2 font-semibold text-night shadow focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
         Перейти к содержимому
       </a>
       {/* На телефоне меню прячется за кнопкой, на широком экране — тёмная колонка слева. */}
-      <header className="sticky top-0 z-20 flex items-center justify-between bg-night px-4 py-2.5 text-white shadow-md md:hidden">
+      <header className="admin-sidebar sticky top-0 z-20 flex items-center justify-between px-4 py-2.5 text-white shadow-md md:hidden">
         <Brand />
         <button className="rounded-xl border border-white/20 px-3 py-1.5 text-sm font-semibold text-white" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
           {menu ? '✕ Закрыть' : '☰ Меню'}
         </button>
       </header>
-      <aside className={cx(menu ? 'block' : 'hidden', 'shrink-0 bg-night text-white md:sticky md:top-0 md:block md:h-screen md:w-60 md:overflow-y-auto')}>
+      <aside className={cx(menu ? 'block' : 'hidden', 'admin-sidebar shrink-0 text-white md:sticky md:top-0 md:block md:h-screen md:w-60 md:overflow-y-auto')}>
         <div className="hidden px-5 pb-4 pt-5 md:block">
           <Brand />
         </div>
         <nav className="space-y-3 px-3 py-3 md:py-0">
           {groups.map(([title, items]) => (
             <div key={title}>
-              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-white/60">{title}</div>
+              <div className="px-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#8291b8]">{title}</div>
               <div className="space-y-0.5">
                 {items.map(([to, label, icon]) => (
                   <NavLink
@@ -1135,14 +1197,14 @@ export function App() {
                     end={to === '/'}
                     onClick={() => setMenu(false)}
                     className={({ isActive }) =>
-                      cx('flex items-center gap-2.5 rounded-xl px-3 py-[5px] text-[13.5px] transition', isActive ? 'bg-white/12 font-semibold text-white shadow-inner' : 'text-white/70 hover:bg-white/6 hover:text-white')
+                      cx('nav-item flex items-center gap-2.5 rounded-xl px-3 py-[6px] text-[13.5px] transition', isActive ? 'is-active font-semibold text-white' : 'text-[#b5c1df] hover:bg-white/5 hover:text-white')
                     }
                   >
                     <span className="w-5 text-center text-[13px] opacity-80" aria-hidden>{icon}</span>
                     {label}
                     {NAV_COUNT[to] && attention && attention[NAV_COUNT[to][0]] > 0 && (
                       <span
-                        className={cx('ml-auto rounded-full px-1.5 py-px text-[11px] font-bold', to === '/errors' ? 'bg-coral text-white' : 'bg-gold text-night')}
+                        className={cx('ml-auto rounded-full px-1.5 py-px text-[11px] font-bold', to === '/errors' ? 'bg-coral text-white' : 'bg-gold text-ink')}
                         data-nav-count={NAV_COUNT[to][0]}
                         {...(to === '/errors' ? { 'data-nav-errors': '' } : {})}
                       >
@@ -1156,7 +1218,7 @@ export function App() {
             </div>
           ))}
         </nav>
-        <div className="m-3 rounded-xl bg-white/6 p-3 text-xs text-white/70">
+        <div className="m-3 rounded-xl border border-line p-3 text-xs text-[#b5c1df]" style={{ background: 'rgb(255 255 255 / 0.03)' }}>
           <div className="truncate font-semibold text-white">{admin.email}</div>
           <div>{ROLE_RU[admin.role] ?? admin.role}</div>
           <button className="mt-2 font-semibold text-[#ff7a88] hover:underline" onClick={() => { setToken(null); location.reload(); }}>
@@ -1176,6 +1238,7 @@ export function App() {
               <Route key={`${d.name}-e`} path={`/r/${d.name}/:id`} element={<ResourceEdit key={d.name} def={d} />} />
             ))}
             <Route path="/audience" element={<Audience />} />
+            <Route path="/engagement" element={<Engagement />} />
             <Route path="/users" element={<Users />} />
             <Route path="/users/:id" element={<UserDetail admin={admin} />} />
             <Route path="/payments" element={<Money superadmin={admin.role === 'SUPERADMIN'} />} />

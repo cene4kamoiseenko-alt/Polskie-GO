@@ -147,7 +147,7 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
         subtitle={!analytics ? 'Сводка по урокам и заданиям' : i ? `${days} дн.: ${i.from.split('-').reverse().join('.')} — ${i.to.split('-').reverse().join('.')} · дни по Варшаве` : 'Загрузка…'}
         actions={analytics && <Segmented label="Период" value={days} onChange={setDays} options={[[7, '7 дней'], [30, '30 дней'], [90, '90 дней']]} />}
       />
-      {error && <p className="rounded-xl bg-coral-soft px-4 py-3 text-sm text-[#b42336]">{error}</p>}
+      {error && <p className="rounded-xl bg-coral-soft px-4 py-3 text-sm text-[#ff9aa8]">{error}</p>}
       {i ? (
         <div className={`grid grid-cols-2 gap-3 transition-opacity xl:grid-cols-4 ${ins.loading ? 'opacity-60' : ''}`} data-kpi>
           <Kpi label="Новые игроки" icon="🆕" tone="brand" value={fmt(i.totals.signups.now)} now={i.totals.signups.now} prev={i.totals.signups.prev} hint={`к прошлым ${days} дн.`} />
@@ -158,7 +158,7 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
       ) : analytics ? (
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{[0, 1, 2, 3].map((k) => <Skeleton key={k} className="h-[118px]" />)}</div>
       ) : (
-        <p className="rounded-xl bg-sky-soft px-4 py-3 text-sm text-[#0f6aa6]" data-editor-note>
+        <p className="rounded-xl bg-sky-soft px-4 py-3 text-sm text-[#8fd3ff]" data-editor-note>
           Графики, воронка новичков, источники и журнал ошибок доступны главному администратору и поддержке.
         </p>
       )}
@@ -185,16 +185,16 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
         <div className={`space-y-5 transition-opacity ${ins.loading ? 'opacity-60' : ''}`}>
           <div className="grid gap-4 xl:grid-cols-2">
             <Card title="Новые игроки по дням" subtitle="регистрации в приложении (Telegram и вне его)">
-              <DayBars label="Регистрации" days={i.daily.days} series={[{ label: 'новые', color: '#1fb57e', values: i.daily.signups }]} unit="новых" />
+              <DayBars label="Регистрации" days={i.daily.days} series={[{ label: 'новые', color: '#2fd39a', values: i.daily.signups }]} unit="новых" />
             </Card>
             <Card title="Активные игроки по дням" subtitle="кто хоть раз занимался в этот день">
-              <DayBars label="Активные игроки" days={i.daily.days} series={[{ label: 'активные', color: '#1d8fd6', values: i.daily.active }]} unit="игроков" />
+              <DayBars label="Активные игроки" days={i.daily.days} series={[{ label: 'активные', color: '#38b6ff', values: i.daily.active }]} unit="игроков" />
             </Card>
             <Card title="Пройдено уроков по дням">
-              <DayBars label="Уроки" days={i.daily.days} series={[{ label: 'уроки', color: '#0e2746', values: i.daily.lessons }]} unit="уроков" />
+              <DayBars label="Уроки" days={i.daily.days} series={[{ label: 'уроки', color: '#a78bfa', values: i.daily.lessons }]} unit="уроков" />
             </Card>
             <Card title="Доход по дням" subtitle="успешные платежи Telegram Stars">
-              <DayBars label="Доход" days={i.daily.days} series={[{ label: 'Stars', color: '#e39a14', values: i.daily.stars }]} unit="⭐" />
+              <DayBars label="Доход" days={i.daily.days} series={[{ label: 'Stars', color: '#f5b83d', values: i.daily.stars }]} unit="⭐" />
             </Card>
           </div>
 
@@ -223,9 +223,9 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
             <Card title="Входной тест" subtitle="где оказались новички после теста" data-placement-card>
               <Bars
                 items={[
-                  { key: 'w', label: 'Варшава (ниже 50 %)', value: i.placement.warszawa, color: '#1fb57e' },
-                  { key: 'l', label: 'Лодзь (50–79 %)', value: i.placement.lodz, color: '#1d8fd6' },
-                  { key: 'k', label: 'Краков (80 % и выше)', value: i.placement.krakow, color: '#e39a14' },
+                  { key: 'w', label: 'Варшава (ниже 50 %)', value: i.placement.warszawa, color: '#2fd39a' },
+                  { key: 'l', label: 'Лодзь (50–79 %)', value: i.placement.lodz, color: '#38b6ff' },
+                  { key: 'k', label: 'Краков (80 % и выше)', value: i.placement.krakow, color: '#f5b83d' },
                 ]}
                 empty="Никто из новичков не проходил тест"
               />
@@ -234,10 +234,10 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
               </p>
             </Card>
             <Card title="Заявленный уровень" subtitle="ответ на шаге знакомства">
-              <Bars items={i.selfLevels.map((x) => ({ key: x.key, label: LEVEL[x.key] ?? x.key, value: x.count, color: '#0e2746' }))} empty="Нет данных" />
+              <Bars items={i.selfLevels.map((x) => ({ key: x.key, label: LEVEL[x.key] ?? x.key, value: x.count, color: '#a78bfa' }))} empty="Нет данных" />
             </Card>
             <Card title="Язык интерфейса" subtitle="новички периода">
-              <Bars items={i.languages.map((x) => ({ key: x.key, label: LANG[x.key] ?? x.key, value: x.count, color: '#e5485b' }))} empty="Нет данных" />
+              <Bars items={i.languages.map((x) => ({ key: x.key, label: LANG[x.key] ?? x.key, value: x.count, color: '#ff5d73' }))} empty="Нет данных" />
             </Card>
           </div>
 
@@ -251,17 +251,17 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
                 label="Напоминания"
                 days={i.reminders.days.map((r) => r.day)}
                 series={[
-                  { label: 'доставлено', color: '#1fb57e', values: i.reminders.days.map((r) => r.sent) },
-                  { label: 'не доставлено', color: '#e39a14', values: i.reminders.days.map((r) => r.failed) },
-                  { label: 'бот заблокирован', color: '#e5485b', values: i.reminders.days.map((r) => r.blocked) },
+                  { label: 'доставлено', color: '#2fd39a', values: i.reminders.days.map((r) => r.sent) },
+                  { label: 'не доставлено', color: '#f5b83d', values: i.reminders.days.map((r) => r.failed) },
+                  { label: 'бот заблокирован', color: '#ff5d73', values: i.reminders.days.map((r) => r.blocked) },
                 ]}
               />
               <dl className="grid content-start gap-3 text-sm">
                 {(
                   [
-                    ['Доставлено за период', i.reminders.days.reduce((s, r) => s + r.sent, 0), 'text-[#13784f]'],
-                    ['Не доставлено', i.reminders.days.reduce((s, r) => s + r.failed, 0), 'text-[#9a6200]'],
-                    ['Бот заблокирован', i.reminders.days.reduce((s, r) => s + r.blocked, 0), 'text-[#b42336]'],
+                    ['Доставлено за период', i.reminders.days.reduce((s, r) => s + r.sent, 0), 'text-[#5eeab0]'],
+                    ['Не доставлено', i.reminders.days.reduce((s, r) => s + r.failed, 0), 'text-[#ffd27a]'],
+                    ['Бот заблокирован', i.reminders.days.reduce((s, r) => s + r.blocked, 0), 'text-[#ff9aa8]'],
                     ['Пропущено (уже позанимались)', i.reminders.days.reduce((s, r) => s + r.skipped, 0), 'text-slate-600'],
                   ] as [string, number, string][]
                 ).map(([k, v, c]) => (

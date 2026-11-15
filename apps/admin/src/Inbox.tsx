@@ -88,7 +88,7 @@ function SupportCard({ r, superadmin, onDone }: { r: SupportItem; superadmin: bo
         <p className="max-w-2xl whitespace-pre-wrap rounded-2xl rounded-tl-md bg-slate-100 px-4 py-3 text-sm text-slate-800">{r.text}</p>
         {r.reply && (
           <div className="ml-auto max-w-2xl rounded-2xl rounded-tr-md bg-brand-soft px-4 py-3 text-sm text-slate-800">
-            <div className="mb-1 text-xs font-semibold text-[#13784f]">Ответ поддержки · <Time v={r.updatedAt} /></div>
+            <div className="mb-1 text-xs font-semibold text-[#5eeab0]">Ответ поддержки · <Time v={r.updatedAt} /></div>
             <p className="whitespace-pre-wrap">{r.reply}</p>
           </div>
         )}
@@ -102,7 +102,7 @@ function SupportCard({ r, superadmin, onDone }: { r: SupportItem; superadmin: bo
                   <Badge tone={EVENT[p.type]?.[1] ?? 'gray'}>{EVENT[p.type]?.[0] ?? p.type}</Badge>
                   <span>{p.planCode ?? '—'}</span>
                   <b className="tabular-nums">{p.amount != null ? `${fmt(p.amount)} ⭐` : ''}</b>
-                  {payError(p.error) && <span className="text-xs text-[#b42336]">{payError(p.error)}</span>}
+                  {payError(p.error) && <span className="text-xs text-[#ff9aa8]">{payError(p.error)}</span>}
                   {p.type === 'SUCCESSFUL_PAYMENT' && refunded.has(p.chargeId) && <Badge tone="red">возвращено</Badge>}
                   {superadmin && p.type === 'SUCCESSFUL_PAYMENT' && !p.error && p.chargeId && !refunded.has(p.chargeId) && (
                     <span className="ml-auto">
@@ -141,7 +141,7 @@ function SupportCard({ r, superadmin, onDone }: { r: SupportItem; superadmin: bo
               >
                 Закрыть без ответа
               </button>
-              <span className={cx('ml-auto text-xs', reply.length > 3300 ? 'text-[#b42336]' : 'text-slate-500')}>{reply.length} / 3500</span>
+              <span className={cx('ml-auto text-xs', reply.length > 3300 ? 'text-[#ff9aa8]' : 'text-slate-500')}>{reply.length} / 3500</span>
             </div>
           </form>
         )}
@@ -202,7 +202,7 @@ export function Reports({ onChange }: { onChange?: () => void }) {
         <div className="space-y-3">
           {data.items.map((r) => (
             <div key={r.userId} className="panel flex flex-wrap items-center gap-3 p-4" data-report>
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-coral-soft text-lg font-black text-[#b42336]" aria-hidden>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-coral-soft text-lg font-black text-[#ff9aa8]" aria-hidden>
                 {r.count}
               </span>
               <div className="min-w-0 flex-1">

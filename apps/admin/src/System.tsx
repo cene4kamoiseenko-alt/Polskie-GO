@@ -122,7 +122,7 @@ export function Rewards() {
           </Card>
         ))}
       </div>
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-white/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(16_24_40/0.2)] backdrop-blur md:left-60">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(16_24_40/0.2)] backdrop-blur md:left-60">
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-3">
           <button className="btn-p" disabled={!dirty.length} onClick={save}>
             Сохранить{dirty.length ? ` (${dirty.length})` : ''}
@@ -172,7 +172,7 @@ function Steps({ steps }: { steps: Step[] }) {
       {steps.map((s, i) => (
         <li key={i} className="flex flex-wrap items-baseline gap-2">
           <span aria-hidden>{s.ok ? '✅' : '❌'}</span>
-          <span className={s.ok ? 'text-slate-700' : 'font-semibold text-[#b42336]'}>{stepName(s.step)}</span>
+          <span className={s.ok ? 'text-slate-700' : 'font-semibold text-[#ff9aa8]'}>{stepName(s.step)}</span>
           <span className="sr-only">{s.ok ? 'выполнено' : 'ошибка'}</span>
           {s.error && <span className="text-xs text-slate-500">{s.error}</span>}
         </li>
@@ -244,7 +244,7 @@ export function Bot() {
             />
           </div>
           {wh?.lastError && (
-            <p role="alert" className="panel border-gold/40 bg-gold-soft/50 p-3 text-sm text-[#7a4d00]">
+            <p role="alert" className="panel border-gold/40 bg-gold-soft/50 p-3 text-sm text-[#ffd27a]">
               Последняя ошибка доставки: {wh.lastError} <span className="text-xs">({wh.lastErrorAt})</span>
             </p>
           )}
@@ -537,7 +537,7 @@ export function Admins({ me }: { me: string }) {
           {a.id !== me &&
             (a.isActive ? (
               <button
-                className="btn-s !py-1.5 text-xs text-[#b42336]"
+                className="btn-s !py-1.5 text-xs text-[#ff9aa8]"
                 onClick={async () => {
                   if (await confirm({ title: `Отключить «${a.name}»?`, body: 'Вход перестанет работать сразу, даже если админка у него открыта. Включить обратно можно здесь же.', confirm: 'Отключить', danger: true }))
                     await patch(a, { isActive: false }, 'Доступ отключён');

@@ -219,7 +219,7 @@ function I18nInput({ id, value, onChange, multiline }: { id: string; value: any;
       {LANG_LABEL.map(([l, name]) => (
         <label key={l} className="text-xs font-semibold text-slate-500">
           {name}
-          {l === 'uk' && <span className="text-[#b42336]"> *</span>}
+          {l === 'uk' && <span className="text-[#ff9aa8]"> *</span>}
           {multiline ? (
             <textarea className="inp mt-1 min-h-24" value={v[l] ?? ''} onChange={(e) => onChange({ ...v, [l]: e.target.value })} />
           ) : (
@@ -256,7 +256,7 @@ function JsonInput({ id, value, onChange }: { id: string; value: any; onChange: 
         spellCheck={false}
         aria-invalid={!!err}
         aria-describedby={err ? `${id}-err` : undefined}
-        className={cx('inp min-h-48 font-mono text-xs leading-relaxed', err && '!border-[#c9334a]')}
+        className={cx('inp min-h-48 font-mono text-xs leading-relaxed', err && '!border-coral')}
         value={text}
         onChange={(e) => {
           setText(e.target.value);
@@ -270,7 +270,7 @@ function JsonInput({ id, value, onChange }: { id: string; value: any; onChange: 
       />
       <div className="mt-1 flex flex-wrap items-center gap-3 text-xs">
         {err ? (
-          <span id={`${id}-err`} className="text-[#b42336]">
+          <span id={`${id}-err`} className="text-[#ff9aa8]">
             Ошибка в JSON: {err}
           </span>
         ) : (
@@ -470,13 +470,13 @@ export function ResourceEdit({ def }: { def: ResourceDef }) {
           );
         })}
       </Card>
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-white/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(16_24_40/0.2)] backdrop-blur md:left-60">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(16_24_40/0.2)] backdrop-blur md:left-60">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
           <button className="btn-p" disabled={busy || (!dirty && !isNew)} onClick={save} data-save>
             {busy ? 'Сохранение…' : isNew ? 'Создать' : 'Сохранить'}
           </button>
           {!isNew && (
-            <button className="btn-s text-[#b42336]" onClick={remove}>
+            <button className="btn-s text-[#ff9aa8]" onClick={remove}>
               Удалить
             </button>
           )}

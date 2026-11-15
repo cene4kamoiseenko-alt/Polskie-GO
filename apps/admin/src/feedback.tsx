@@ -74,7 +74,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             data-toast={t.tone}
             className={cx(
               'pointer-events-auto max-w-md rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-xl ring-1',
-              t.tone === 'error' ? 'bg-[#8f1d2f] text-white ring-black/10' : 'bg-night text-white ring-white/10',
+              t.tone === 'error' ? 'bg-[#8f1d2f] text-white ring-black/10' : 'bg-ink text-white ring-white/10',
             )}
           >
             {t.tone === 'error' ? '⚠️ ' : '✓ '}
@@ -99,7 +99,7 @@ function Dialog({ pending, onClose }: { pending: Pending; onClose: (v: string | 
     <dialog
       ref={ref}
       aria-labelledby="dlg-title"
-      className="m-auto w-[min(92vw,440px)] rounded-2xl border border-line bg-white p-0 text-left shadow-2xl backdrop:bg-night/50"
+      className="m-auto w-[min(92vw,440px)] rounded-2xl border border-line bg-surface p-0 text-left text-slate-800 shadow-2xl backdrop:bg-ink/70"
       onCancel={(e) => {
         e.preventDefault();
         onClose(null);

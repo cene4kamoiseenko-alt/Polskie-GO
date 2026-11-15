@@ -45,10 +45,10 @@ function Preview({ text }: { text: string }) {
   return (
     <div className="rounded-2xl bg-[#d7e6f2] p-4" data-campaign-preview>
       <div className="max-w-sm">
-        <div className="whitespace-pre-wrap break-words rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-[14px] leading-snug text-slate-900 shadow-sm">
-          {text || <span className="text-slate-400">Текст сообщения появится здесь</span>}
+        <div className="whitespace-pre-wrap break-words rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-[14px] leading-snug text-[#111827] shadow-sm">
+          {text || <span className="text-[#6b7280]">Текст сообщения появится здесь</span>}
         </div>
-        <div className="mt-1 rounded-xl bg-white/70 py-2 text-center text-[13px] font-semibold text-[#2a6fb0] shadow-sm">🚀 POLSKI GO</div>
+        <div className="mt-1 rounded-xl bg-white/70 py-2 text-center text-[13px] font-semibold text-[#1f5f9e] shadow-sm">🚀 POLSKI GO</div>
       </div>
     </div>
   );
@@ -121,12 +121,12 @@ function Editor({ initial, audience, onClose }: { initial: Campaign | null; audi
             />
             <div className="mt-1 flex flex-wrap justify-between gap-2 text-xs text-slate-500">
               <span>Обычный текст: ссылки и эмодзи можно, разметки нет.</span>
-              <span className={cx(f.message[lang].length > MAX - 200 && 'font-semibold text-[#b42336]')}>
+              <span className={cx(f.message[lang].length > MAX - 200 && 'font-semibold text-[#ff9aa8]')}>
                 {fmt(f.message[lang].length)} / {fmt(MAX)}
               </span>
             </div>
             {missing.length > 0 && (
-              <p className="mt-2 text-xs text-[#7a4d00]">
+              <p className="mt-2 text-xs text-[#ffd27a]">
                 Нет перевода: {missing.map(([l, t]) => `${t} (${fmt(audience.byLang[l] ?? 0)} чел.)`).join(', ')} — они получат украинский текст.
               </p>
             )}
@@ -239,7 +239,7 @@ function CampaignCard({ c, audience, onEdit, onChange }: { c: Campaign; audience
               Изменить
             </button>
             <button
-              className="btn-s text-[#b42336]"
+              className="btn-s text-[#ff9aa8]"
               onClick={async () => {
                 if ((await confirm({ title: `Удалить черновик «${c.title}»?`, confirm: 'Удалить', danger: true })) && (await run(() => api(`/resources/campaigns/${c.id}`, { method: 'DELETE' }), 'Черновик удалён')))
                   onChange();

@@ -6,7 +6,8 @@ import { emptyIfNoTable, recentErrors } from '../services/error-log';
 import { INSIGHT_DAYS, adminInsights, retentionReport, sourceKey } from '../services/admin-insights';
 import { attention, auditLog, paymentsSummary } from '../services/admin-ops';
 import { campaignAudience, campaignText, findTelegramPlayer, sendBotText } from '../services/campaigns';
-import { DAY_FILTERS, dailyOverview, dailyQuestions, dayReport, userDailyQuiz } from '../services/daily-quiz-admin';
+import { engagementFor, engagementReport, segmentWhere, SEGMENTS, type Segment } from '../services/admin-engagement';
+import { DAY_FILTERS, dailyOverview, dailyQuestions, dayReport, explainPerson, userDailyQuiz } from '../services/daily-quiz-admin';
 import { replacePlanItem, setDaySkipped, setQuestionDisabled } from '../bot/daily/plan';
 import { sendDailyTest } from '../bot/daily/send';
 import { addDays, DAILY_LEVELS, isDayEditable, readDailyRun, readDailyState, SEND_AT_RE, warsawDay, writeDailyState } from '../bot/daily/state';
@@ -378,10 +379,15 @@ a.put('/config/rewards', async (c) => {
 });
 
 // ── Користувачі ──
+// Вовлечённость: сегменты, липкость, глубина, интерес к разделам, когда играют, «лестница» уроков (services/admin-engagement.ts).
+a.get('/engagement', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  return c.json(await engagementReport(new Date()));
+});
 a.get('/users', async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');
   const q = z
-    .object({ search: z.string().optional(), skip: z.coerce.number().default(0), filter: z.enum(['all', 'new', 'active', 'premium', 'guests', 'banned']).default('all') })
+    .object({ search: z.string().optional(), skip: z.coerce.number().default(0), filter: z.enum(['all', 'new', 'active', 'premium', 'guests', 'banned', ...SEGMENTS]).default('all') })
     .parse(query(c));
   const s = q.search ? `%${q.search.toLowerCase()}%` : null;
   const found = s
@@ -400,7 +406,9 @@ a.get('/users', async (c) => {
             ? eq(t.users.isBanned, true)
             : q.filter === 'premium'
               ? sql`EXISTS (SELECT 1 FROM subscriptions x WHERE x.user_id = ${t.users.id} AND x.status IN ('ACTIVE', 'CANCELLED') AND x.expires_at > ${Date.now()})`
-              : undefined;
+              : (SEGMENTS as readonly string[]).includes(q.filter)
+                ? segmentWhere(q.filter as Segment)
+                : undefined;
   const where = and(found, filtered);
   const [rows, total] = await Promise.all([
     db.select({ u: t.users, progress: t.playerProgress }).from(t.users).leftJoin(t.playerProgress, eq(t.playerProgress.userId, t.users.id)).where(where).orderBy(desc(t.users.createdAt)).limit(50).offset(q.skip),
@@ -410,7 +418,8 @@ a.get('/users', async (c) => {
   const subs = ids.length
     ? await db.select().from(t.subscriptions).where(and(inArray(t.subscriptions.userId, ids), inArray(t.subscriptions.status, ['ACTIVE', 'CANCELLED']), gt(t.subscriptions.expiresAt, new Date())))
     : [];
-  return c.json({ items: rows.map((r) => ({ ...r.u, progress: r.progress, subscriptions: subs.filter((x) => x.userId === r.u.id) })), total: total[0]?.n ?? 0 });
+  const engagement = await engagementFor(ids);
+  return c.json({ items: rows.map((r) => ({ ...r.u, progress: r.progress, subscriptions: subs.filter((x) => x.userId === r.u.id), engagement: engagement.get(r.u.id) ?? null })), total: total[0]?.n ?? 0 });
 });
 
 // Аудитория бота: кто писал боту и кто открывал приложение, одним списком; счётчики за день, 7 и 30 дней.
@@ -458,10 +467,20 @@ a.get('/users/:id', async (c) => {
     .where(eq(t.botContacts.telegramId, user[0].telegramId));
   // Вопросы дня за 14 дней (таблицы из миграции 0018: до неё — пусто).
   const dailyQuiz = await userDailyQuiz(user[0].telegramId, 'ru').catch(() => []);
+  // Вовлечённость и активность по дням за 35 дней (тепловая полоса в карточке).
+  const [engagement, activity] = await Promise.all([
+    engagementFor([id]),
+    db
+      .select({ day: t.dailyActivity.day, xp: t.dailyActivity.xp, lessons: t.dailyActivity.lessons, seconds: t.dailyActivity.seconds })
+      .from(t.dailyActivity)
+      .where(and(eq(t.dailyActivity.userId, id), gte(t.dailyActivity.day, new Date(Date.now() - 35 * 86_400_000).toISOString().slice(0, 10)))),
+  ]);
   return c.json({
     ...user[0],
     bot: bot[0] ?? null,
     dailyQuiz,
+    engagement: engagement.get(id) ?? null,
+    activity,
     source: sourceKey(user[0], bot[0]?.startParam),
     settings: settings[0] ?? null,
     profile: profile[0] ?? null,
@@ -960,6 +979,12 @@ a.get('/daily-quiz/day/:day', async (c) => {
   const day = dqDay.parse(c.req.param('day'));
   const q = z.object({ filter: z.enum(DAY_FILTERS).catch('all'), after: z.coerce.number().int().positive().optional() }).parse(query(c));
   return c.json(await dayReport(day, dqLang(c), q.filter, q.after ?? null));
+});
+// «Почему не пришёл вопрос дня?» — разбор по человеку (telegram id, @ник или имя) за день.
+a.get('/daily-quiz/person', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const q = z.object({ who: z.string().trim().min(1).max(64), day: dqDay.optional() }).parse(query(c));
+  return c.json(await explainPerson(q.who, q.day ?? warsawDay(new Date()), dqLang(c)));
 });
 a.patch('/daily-quiz/state', async (c) => {
   needRole(c, 'SUPERADMIN');

@@ -66,7 +66,7 @@ export function RefundButton({ chargeId, who, amount, onDone }: { chargeId: stri
   const [busy, setBusy] = useState(false);
   return (
     <button
-      className="btn-s !px-2.5 !py-1 text-xs text-[#b42336]"
+      className="btn-s !px-2.5 !py-1 text-xs text-[#ff9aa8]"
       disabled={busy}
       onClick={async () => {
         const ok = await confirm({
@@ -128,11 +128,11 @@ export default function Money({ superadmin }: { superadmin: boolean }) {
           </div>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <Card title="Выручка по дням" subtitle="успешные оплаты; автовозвраты сюда не входят">
-              <DayBars label="Выручка, звёзды" unit="⭐" days={s.daily.days} series={[{ label: 'Звёзды', color: '#e39a14', values: s.daily.stars }]} />
+              <DayBars label="Выручка, звёзды" unit="⭐" days={s.daily.days} series={[{ label: 'Звёзды', color: '#f5b83d', values: s.daily.stars }]} />
             </Card>
             <div className="space-y-4">
               <Card title="По тарифам" subtitle="оплаты за период">
-                <Bars color="#e39a14" empty="Оплат за период не было" items={s.plans.map((p) => ({ key: p.plan, label: `${planName(p.plan, p.title)} · ${p.count} опл.`, value: p.stars }))} />
+                <Bars color="#f5b83d" empty="Оплат за период не было" items={s.plans.map((p) => ({ key: p.plan, label: `${planName(p.plan, p.title)} · ${p.count} опл.`, value: p.stars }))} />
               </Card>
               <Card title="На что обратить внимание">
                 <ul className="space-y-2 text-sm" data-money-watch>
@@ -145,7 +145,7 @@ export default function Money({ superadmin }: { superadmin: boolean }) {
                   </li>
                   <li className="flex justify-between gap-2">
                     <span>Платёж не прошёл проверку</span>
-                    <b className={s.totals.failed ? 'text-[#b42336]' : 'text-night'}>{fmt(s.totals.failed)}</b>
+                    <b className={s.totals.failed ? 'text-[#ff9aa8]' : 'text-night'}>{fmt(s.totals.failed)}</b>
                   </li>
                   <li className="flex justify-between gap-2">
                     <span>Отменили автопродление</span>
@@ -218,7 +218,7 @@ export function PaymentLog({ superadmin, onRefund, user }: { superadmin: boolean
       label: 'Подробности',
       render: (e) => (
         <span className="flex flex-wrap items-center gap-2">
-          {payError(e.error) && <span className="text-xs text-[#b42336]">{payError(e.error)}</span>}
+          {payError(e.error) && <span className="text-xs text-[#ff9aa8]">{payError(e.error)}</span>}
           {superadmin && e.type === 'SUCCESSFUL_PAYMENT' && !e.error && !e.refunded && e.chargeId && (
             <RefundButton chargeId={e.chargeId} amount={e.amount} who={e.user?.firstName || 'без имени'} onDone={done} />
           )}

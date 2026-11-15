@@ -41,7 +41,7 @@ export function PageHeader({ title, subtitle, actions }: { title: ReactNode; sub
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[26px] font-black leading-tight tracking-tight text-night">{title}</h1>
+        <h1 className="neon-num text-[26px] font-black leading-tight tracking-tight">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-slate-600">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -77,10 +77,10 @@ export function Delta({ now, prev, invert }: { now: number; prev: number; invert
 }
 
 const TONES = {
-  brand: 'from-brand/15 text-[#13784f]',
-  sky: 'from-sky/15 text-[#0f6aa6]',
-  gold: 'from-gold/20 text-[#9a6200]',
-  coral: 'from-coral/15 text-[#b42336]',
+  brand: 'from-brand/15 text-[#5eeab0]',
+  sky: 'from-sky/15 text-[#8fd3ff]',
+  gold: 'from-gold/20 text-[#ffd27a]',
+  coral: 'from-coral/15 text-[#ff9aa8]',
   night: 'from-night/10 text-night',
 } as const;
 
@@ -99,9 +99,9 @@ export function Kpi({ label, value, icon, tone = 'brand', now, prev, hint, inver
       <div className={cx('pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b to-transparent', TONES[tone].split(' ')[0])} />
       <div className="relative flex items-start justify-between gap-2">
         <div className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">{label}</div>
-        {icon && <span className={cx('grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white text-base shadow-sm', TONES[tone].split(' ')[1])} aria-hidden>{icon}</span>}
+        {icon && <span className={cx('grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-surface-2 text-base shadow-sm', TONES[tone].split(' ')[1])} aria-hidden>{icon}</span>}
       </div>
-      <div className="relative mt-1 text-[28px] font-black leading-none tracking-tight text-night">{value}</div>
+      <div className="neon-num relative mt-1 text-[28px] font-black leading-none tracking-tight">{value}</div>
       <div className="relative mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
         {now !== undefined && prev !== undefined && <Delta now={now} prev={prev} invert={invert} />}
         {hint}
@@ -113,9 +113,9 @@ export function Kpi({ label, value, icon, tone = 'brand', now, prev, hint, inver
 export function Segmented<T extends string | number>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
   return (
     // flex-wrap: на узком экране длинный переключатель переносится, а не обрезается краем карточки.
-    <div role="group" aria-label={label} className="inline-flex max-w-full flex-wrap rounded-xl border border-line bg-white p-0.5 shadow-sm">
+    <div role="group" aria-label={label} className="inline-flex max-w-full flex-wrap rounded-xl border border-line bg-surface-2/70 p-0.5 shadow-sm">
       {options.map(([v, text]) => (
-        <button key={String(v)} type="button" aria-pressed={v === value} onClick={() => onChange(v)} className={cx('min-h-10 rounded-[10px] px-3 py-1.5 text-sm font-semibold transition md:min-h-0', v === value ? 'bg-night text-white shadow' : 'text-slate-600 hover:bg-slate-100')}>
+        <button key={String(v)} type="button" aria-pressed={v === value} onClick={() => onChange(v)} className={cx('min-h-10 rounded-[10px] px-3 py-1.5 text-sm font-semibold transition md:min-h-0', v === value ? 'bg-accent text-white shadow-[0_0_18px_-6px_rgb(91_95_247/0.9)]' : 'text-slate-600 hover:bg-white/5 hover:text-slate-900')}>
           {text}
         </button>
       ))}
@@ -254,7 +254,7 @@ export function DataTable<T>({ cols, rows, rowKey, empty = 'Пусто', loading
 /** Ошибка загрузки страницы с кнопкой «Повторить». */
 export function LoadError({ error, retry }: { error: string; retry?: () => void }) {
   return (
-    <div role="alert" className="panel flex flex-wrap items-center justify-between gap-3 border-coral/30 bg-coral-soft/50 p-4 text-sm text-[#8f1d2f]">
+    <div role="alert" className="panel flex flex-wrap items-center justify-between gap-3 border-coral/30 bg-coral-soft/50 p-4 text-sm text-[#ff9aa8]">
       <span>Не удалось загрузить: {error}</span>
       {retry && (
         <button className="btn-s" onClick={retry}>
