@@ -298,7 +298,7 @@ function art(name: ArtName, u: (s: string) => string, label?: string): ReactNode
 
 /** Растрові ілюстрації (src/assets/icons) для назв, які мають готовий ассет. */
 const RASTER: Partial<Record<ArtName, string>> = {
-  crown: 'premium', shield: 'level', grad: 'achievements',
+  crown: 'premium', shield: 'level', grad: 'achievements', clock: 'timer',
   gift: 'gift', book: 'lessons', chat: 'dialog', scroll: 'scroll', 'map-pin': 'map', flame: 'streak', coin: 'zlotki', star: 'star', target: 'quests',
   trophy: 'leaderboard', 'medal-gold': 'achievements', passport: 'passport', house: 'house', diary: 'writing', books: 'dictionary', suitcase: 'suitcase',
   headphones: 'listening', mic: 'pronunciation', cafe: 'cafe', food: 'food', tram: 'transport', basket: 'shopping', explore: 'explore',

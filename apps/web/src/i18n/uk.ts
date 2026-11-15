@@ -1,5 +1,28 @@
 /** Українська — основна мова інтерфейсу. Ключі використовуються всіма мовами. */
 export const uk = {
+  nav_world: "Світ",
+  compact_hello: "Привіт, {name}!",
+  compact_journey: "Твоя подорож",
+  compact_next_step: "Наступний крок",
+  compact_repeat: "Повернутися до уроку",
+  compact_daily_goal: "Мета дня",
+  compact_choose_lesson: "Обрати урок",
+  compact_explore_lessons: "Продовжимо вчитися?",
+  compact_at_bobeks: "У Бобека сьогодні",
+  compact_ready: "Можна забрати",
+  compact_reward_ready: "Нагорода чекає на тебе",
+  compact_season_invite: "Історії та завдання цього сезону",
+  compact_house_invite: "Твоя квартира й домашні нагороди",
+  compact_visit_bobek: "Завітай до Бобека",
+  compact_tasks_open: "Завдання й нагороди",
+  compact_open: "Відкрити",
+  compact_search: "Знайти розділ…",
+  compact_no_results: "Такого розділу не знайдено. Спробуй іншу назву.",
+  compact_learning_tools: "Практика й інструменти",
+  world_title: "Світ Бобека",
+  world_subtitle: "Подорожуй, облаштовуйся, відкривай історії.",
+  compact_open_map: "На мапу",
+
   streak_title: "Твій ритм",
   streak_done: "Сьогодні вогонь уже горить. Так тримати!",
   streak_keep: "Ще один маленький крок — і серія триватиме.",
@@ -72,8 +95,8 @@ export const uk = {
 
   nav_home: 'Головна',
   nav_map: 'Карта',
-  nav_learn: 'Уроки',
-  nav_quests: 'Квести',
+  nav_learn: 'Навчання',
+  nav_quests: 'Завдання',
   nav_profile: 'Профіль',
 
   // Онбординг

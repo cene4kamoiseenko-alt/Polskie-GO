@@ -1,7 +1,7 @@
 /** Базові компоненти дизайн-системи. */
-import { AnimatePresence, motion, useDragControls } from '../lib/motion';
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from '../lib/motion';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { tg, haptic } from '../lib/telegram';
 import { useGoBack } from '../lib/back';
@@ -398,8 +398,8 @@ export function StatPill({ icon, value, color, onClick, label }: { icon: string;
 // ───────── Нижня навігація ─────────
 const TABS: { to: string; icon: IconName; key: TKey }[] = [
   { to: '/', icon: 'home', key: 'nav_home' },
-  { to: '/map', icon: 'map', key: 'nav_map' },
   { to: '/learn', icon: 'lessons', key: 'nav_learn' },
+  { to: '/world', icon: 'map', key: 'nav_world' },
   { to: '/quests', icon: 'quests', key: 'nav_quests' },
   { to: '/profile', icon: 'profile', key: 'nav_profile' },
 ];
@@ -411,9 +411,9 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-soft" style={{ paddingBottom: "var(--safe-b)", background: "linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev))", boxShadow: "0 -8px 20px -12px rgb(0 0 0 / 0.6)" }}>
       <div className="mx-auto flex max-w-xl justify-around px-1" style={{ height: 'var(--nav-h)' }}>
         {TABS.map((tab) => {
-          const active = tab.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(tab.to);
+          const active = tab.to === '/' ? loc.pathname === '/' : tab.to === '/world' ? ['/world', '/map'].includes(loc.pathname) : loc.pathname.startsWith(tab.to);
           return (
-            <NavLink
+            <Link
               key={tab.to}
               to={tab.to}
               onClick={() => haptic.select()}
@@ -430,7 +430,7 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
               </span>
               <span className={cx('text-[11px] leading-none', active ? 'font-black' : 'font-bold')}>{t(tab.key)}</span>
               {!!badge?.[tab.to] && <span className="absolute right-[22%] top-2 h-2.5 w-2.5 rounded-full bg-pl-red ring-2 ring-[var(--bg-elev)]" />}
-            </NavLink>
+            </Link>
           );
         })}
       </div>
@@ -609,9 +609,10 @@ function SlowIcon({ size }: { size: number }) {
 }
 
 export function Confetti({ run }: { run: boolean }) {
+  const reduced = useReducedMotion();
   const pieces = Array.from({ length: 36 });
   const colors = ['#45C486', '#FFC857', '#E5484D', '#69C7F4', '#9B6BFF'];
-  if (!run) return null;
+  if (!run || reduced) return null;
   return (
     <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">
       {pieces.map((_, i) => (

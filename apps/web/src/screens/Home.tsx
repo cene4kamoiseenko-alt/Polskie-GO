@@ -4,17 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
-import { brandAsset } from '../lib/assets';
+import { brandAsset, cityArtImage } from '../lib/assets';
+import { HomeEvent } from '../components/HomeEvent';
+import { SectionDirectory } from '../components/SectionDirectory';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import type { PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
-import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon } from '../components/Icon';
 import { Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
-import { HouseCard } from '../components/HouseCard';
-import { StreakCard } from '../components/StreakCard';
+import { StreakIndicator } from '../components/StreakCard';
 import { Art, type ArtName } from '../components/GameArt';
-import { CityHero } from '../components/CityHero';
 import { sfx } from '../lib/audio';
 import { botCanMessage, haptic, requestWriteAccessResult } from '../lib/telegram';
 import { store } from '../lib/storage';
@@ -22,7 +21,6 @@ import { missionsQuery } from '../components/MissionCard';
 import { Scene } from '../components/Illustrations';
 import { SeasonCover } from '../components/MissionScene';
 import { readLastCity, rememberCity } from '../lib/lastCity';
-import { todayBanner } from '../lib/premiumBanner';
 
 export const RANKS: [number, string][] = [
   [40, 'Mistrz polszczyzny'],
@@ -36,21 +34,7 @@ export const rankFor = (level: number) => RANKS.find(([l]) => level >= l)![1];
 /** Логотип-вордмарк для шапки: POLSKI GO з прапорцем. */
 export function Wordmark({ size = 22 }: { size?: number }) {
   const logo = brandAsset('logo');
-  if (logo) return <img src={logo} alt="POLSKI GO" height={size * 1.36} style={{ height: size * 1.36, width: 'auto' }} draggable={false} />;
-  return (
-    <svg viewBox="0 0 150 30" height={size * 1.36} aria-label="POLSKI GO" role="img">
-      <g fontFamily="Nunito, ui-rounded, system-ui, sans-serif" fontWeight="900" fontStyle="italic" fontSize="24" letterSpacing="-0.6">
-        <text x="2" y="24" fill="#0E2758" stroke="#0E2758" strokeWidth="5" strokeLinejoin="round">POLSKI</text>
-        <text x="2" y="22" fill="#FFFFFF" stroke="#2B6CD6" strokeWidth="1.2" paintOrder="stroke">POLSKI</text>
-        <text x="91" y="24" fill="#0E2758" stroke="#0E2758" strokeWidth="5" strokeLinejoin="round">GO</text>
-        <text x="91" y="22" fill="#FF5265" stroke="#FFFFFF" strokeWidth="1.4" paintOrder="stroke">GO</text>
-      </g>
-      <g transform="translate(126 6)">
-        <path d="M0 2 Q6 -1 12 2 T22 2 V14 Q16 17 12 14 T0 14 Z" fill="#E5383B" stroke="#0E2758" strokeWidth="1.6" strokeLinejoin="round" />
-        <path d="M0 2 Q6 -1 12 2 T22 2 V8 Q16 11 12 8 T0 8 Z" fill="#fff" />
-      </g>
-    </svg>
-  );
+  return logo ? <img src={logo} alt="POLSKI GO" height={size * 1.36} style={{ height: size * 1.36, width: 'auto' }} draggable={false} /> : <span className="font-black tracking-tight">POLSKI GO</span>;
 }
 
 /** Шапка вкладок: логотип, серія, Złotki, Premium. Налаштування — у профілі (без дубля в шапці). */
@@ -62,23 +46,20 @@ export function TopStats({ compact, left }: { compact?: boolean; /** Вмест�
   const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data;
-  void compact;
   if (!me) return <div className="h-14" />;
   const round = 'grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-[var(--border)] bg-elev shadow-[var(--shadow-card)]';
   return (
     <div className="flex items-center gap-1.5 px-4 pt-2">
       {left ?? (
         <button onClick={() => nav('/')} aria-label="POLSKI GO" className="mr-auto min-w-0 shrink">
-          <Wordmark size={19} />
+          <Wordmark size={compact ? 17 : 19} />
         </button>
       )}
-      <button onClick={() => nav('/profile')} aria-label={t('profile_streak')} className="hud-pill">
-        <Art name="flame" size={22} /> <span className="text-coral">{me.progress.streak}</span>
-      </button>
+      <StreakIndicator />
       <button onClick={() => nav('/shop')} aria-label="Złotki" className="hud-pill">
         <Art name="coin" size={22} /> <span className="text-xp">{me.zlotki}</span>
       </button>
-      {me.premium.active ? (
+      {me.premium.active && !compact ? (
         <button onClick={() => nav('/premium')} aria-label="Premium" className={round}>
           <Art name="crown" size={24} />
         </button>
@@ -100,15 +81,6 @@ const TASK_ART: Record<string, ArtName> = {
 
 /** Рисунки со своей плиткой (значки владельца, 2026-11-02): им плашка не нужна. Остальные ложатся на плашку того же цвета (.icon-plate). */
 const TILE_TASK_ART = new Set<ArtName>(['book', 'star', 'target']);
-
-/** Localized label over the original city artwork. */
-function CitySign({ name }: { name: string }) {
-  return (
-    <span className="city-caption" aria-hidden>
-      <span lang="pl">{name}</span>
-    </span>
-  );
-}
 
 const WA_KEY = 'pg:write-access';
 const WA_ASK_AGAIN_MS = 4 * 86_400_000;
@@ -155,202 +127,66 @@ function WriteAccessCard() {
   );
 }
 
-/** Узкий баннер Premium на главной — только для тех, у кого его нет: картинка дня владельца, что даёт подписка и кнопка «Открыть». */
-function PremiumTeaser() {
-  const { t } = useT();
-  const nav = useNavigate();
-  const me = useMe().data;
-  if (!me || me.premium.active) return null;
-  const banner = todayBanner();
-  return (
-    <button
-      onClick={() => { haptic.tap(); nav('/premium'); }}
-      className="relative mx-4 block w-[calc(100%-2rem)] overflow-hidden rounded-[24px] border-2 border-[#F5C451]/70 bg-night text-left shadow-[var(--shadow-card)] active:scale-[0.99]"
-      data-premium-teaser
-    >
-      {banner && <img src={banner.src} srcSet={banner.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" draggable={false} />}
-      <span className="absolute inset-0 bg-gradient-to-r from-night/90 via-night/60 to-night/10" aria-hidden />
-      <span className="relative flex items-center gap-3 px-3.5 py-3.5">
-        <Art name="crown" size={36} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-black text-white">Premium</span>
-          <span className="block text-[12px] font-bold leading-snug text-white/90">{t('home_premium_teaser')}</span>
-        </span>
-        <span className="shrink-0 rounded-full bg-[#F5C451] px-3 py-1.5 text-[12.5px] font-black text-[#5A3B00]">{t('home_premium_open')} →</span>
-      </span>
-    </button>
-  );
-}
-
 export function HomeScreen() {
-  const { t } = useT();
+  const { t, tr } = useT();
   const nav = useNavigate();
   const me = useMe().data!;
   const journey = useJourney();
-  const [sheet, setSheet] = useState<null | 'practice' | 'sections'>(null);
-
-  const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
+  const quests = useQuests();
+  const [sheet, setSheet] = useState<null | 'today' | 'sections'>(null);
+  const current = journey.data?.cities.find(city => city.id === journey.data?.currentCityId);
   const next = journey.data?.nextLesson;
-  // Пока приходит маршрут, баннер рисуется по последнему городу этого устройства (а не «Варшавой» с последующей подменой кадра).
-  const loadingJourney = !journey.data;
   const [last] = useState(readLastCity);
-  const shown = current ?? (loadingJourney ? last : null);
+  const shown = current ?? (!journey.data ? me.progress.currentCity ?? last : null);
   useEffect(() => {
     if (current) rememberCity({ slug: current.slug, color: current.color, namePl: current.namePl });
-  }, [current?.slug, current?.color, current?.namePl]); // eslint-disable-line react-hooks/exhaustive-deps
-  const rank = rankFor(me.progress.level);
-  // Розмір бобра — від ширини екрана (360 → 176, 430 → 200), щоб картки праворуч не перекривали персонажа.
-  const heroBeaver = 188;
+  }, [current?.slug, current?.color, current?.namePl]);
+  const citySlug = shown?.slug ?? 'warszawa';
+  const photo = cityArtImage(citySlug);
+  const goal = Math.min(me.today.xp, me.today.goalXp);
+  const chest = quests.data?.chest;
+  const daily = quests.data?.daily ?? [];
+  const done = chest?.done ?? daily.filter(task => task.status === 'COMPLETED' || task.status === 'CLAIMED').length;
+  const total = chest?.total ?? daily.length;
+  const ready = !!chest?.ready && !chest.claimed;
+  const retryJourney = journey.isError && !journey.data;
+  const waitingForJourney = !journey.data && journey.isFetching;
+  const continueLearning = () => {
+    haptic.tap();
+    if (retryJourney) void journey.refetch();
+    else nav(next ? `/lesson/${next.id}` : '/learn');
+  };
 
-  // Головна (варіант A): один головний крок — «Продовжити урок»; далі «Сьогодні», пропуск місяця й «Учитися далі».
-  // Решта розділів — у шторці «Усі розділи» та в нижній панелі (без дублів на головній).
-  return (
-    <div className="space-y-5 pb-2">
-      <TopStats />
+  return <div className="compact-home" data-compact-home>
+    <TopStats compact />
+    <div className="compact-heading home-heading mx-4"><div><span className="compact-kicker">{t('compact_journey')}</span><h1><button type="button" lang="pl" onClick={() => nav('/map')}>{shown?.namePl ?? 'Warszawa'} <span aria-hidden="true">›</span></button></h1></div><button type="button" onClick={() => setSheet('sections')} data-open-directory>{t('home_all_sections')} <span aria-hidden="true">›</span></button></div>
 
-      {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія */}
-      <div className="hero-card mx-4">
-        <CityHero slug={shown?.slug ?? 'warszawa'} color={shown?.color ?? '#36B9FF'} name={shown?.namePl ?? 'Warszawa'} height={256} eager>
-          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.38), transparent 55%)' }} />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-night/45 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-night/50 to-transparent" />
-          {/* Покажчик міста позаду бобра */}
-          {shown && <CitySign name={shown.namePl} />}
-          {/* Бобек у поточному образі — головний персонаж банера, картки його не закривають */}
-          <motion.div className="home-hero-beaver absolute bottom-0 -left-1" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
-            <Beaver mood="happy" size={heroBeaver} />
-          </motion.div>
-          <div className="absolute right-2.5 top-2.5 w-[52%] space-y-2">
-            <button onClick={() => { haptic.tap(); nav('/map'); }} className="glass-card flex w-full items-center gap-1.5 px-2.5 py-2 text-left">
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black text-mist">{t('home_cur_city')}</div>
-                <div className="flex min-w-0 items-center gap-1 text-[18px] font-black leading-tight text-white">
-                  <Icon name="pin" size={17} className="shrink-0 text-coral" filled /> <span className="min-w-0" lang="pl" style={{ fontSize: (shown?.namePl.length ?? 0) > 10 ? 15 : undefined }}>{shown?.namePl ?? '—'}</span>
-                </div>
-              </div>
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/25 text-white"><Icon name="chevron-right" size={16} /></span>
-            </button>
-            <button onClick={() => { haptic.tap(); nav('/profile'); }} className="glass-card flex w-full items-center gap-2 px-2 py-2 text-left">
-              <Art name="shield" size={34} label={String(me.progress.level)} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[12.5px] font-black leading-tight text-white">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rank}</span></div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={7} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
-                  <span className="shrink-0 text-[10.5px] font-black text-mist">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
-                </div>
-              </div>
-            </button>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            whileHover={{ y: -1 }}
-            onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : loadingJourney ? '/learn' : '/map'); }}
-            className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[57%] !min-h-[50px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
-          >
-            <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{next || loadingJourney ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
-          </motion.button>
-        </CityHero>
+    <section className="compact-journey mx-4" aria-label={t('compact_journey')} data-home-journey>
+      {photo && <img className="compact-journey-photo" src={photo.src} srcSet={photo.srcSet} sizes="(min-width:576px) 544px,calc(100vw - 32px)" width={1440} height={720} alt="" decoding="async" loading="eager" draggable={false} />}
+      <div className="journey-action-panel">
+        <div className="journey-lesson-row">
+          <button type="button" className="journey-look" onClick={() => nav('/profile')} aria-label={t('profile_current_look')}><Beaver size={48} mood="happy" animate={false} /></button>
+          <div className="journey-lesson-copy"><span className="compact-kicker">{t(next?.state === 'completed' ? 'compact_repeat' : 'compact_next_step')}</span><h2>{next ? tr(next.title) : t(journey.isError ? 'compact_choose_lesson' : journey.data ? 'compact_explore_lessons' : 'loading')}</h2></div>
+        </div>
+        <div className="journey-daily-goal"><span>{t('compact_daily_goal')}</span><Progress value={goal} max={me.today.goalXp} height={5} color="linear-gradient(90deg,#71e4bf,#25d79b)" /><b>{goal}/{me.today.goalXp} XP</b></div>
+        <button type="button" className="compact-continue btn btn-red" onClick={continueLearning} disabled={waitingForJourney} aria-busy={waitingForJourney} data-home-continue>{t(waitingForJourney ? 'loading' : retryJourney ? 'error_retry' : next ? 'home_continue_lesson' : 'compact_choose_lesson')} <span aria-hidden="true">→</span></button>
+        {(me.counters.dueReviews > 0 || me.counters.mistakes > 0) && <div className="home-practice-actions" data-home-practice>
+          {me.counters.dueReviews > 0 && <button type="button" onClick={() => nav('/practice/REVIEW')}>{t('home_review_words')} <b>{me.counters.dueReviews}</b><span aria-hidden="true">›</span></button>}
+          {me.counters.mistakes > 0 && <button type="button" onClick={() => nav('/practice/MISTAKES')}>{t('home_fix_mistakes')} <b>{me.counters.mistakes}</b><span aria-hidden="true">›</span></button>}
+        </div>}
       </div>
+    </section>
 
-      <StreakCard />
-
-      {/* Сьогодні: щоденні завдання + велика нагорода */}
-      <TodayTasks lessonId={next?.id} />
-
-      {/* Разрешение боту писать: без него не доходят вопрос дня и напоминания */}
-      <WriteAccessCard />
-
-      {/* Premium: для тех, у кого его нет — заметный баннер (раньше был только значок-корона в шапке) */}
-      <PremiumTeaser />
-
-      {/* Пропуск місяця: сезонна локація з власними місіями */}
-      <PassCard />
-
-      {/* Домик Бобека: день игрока (ждёт урок / отдыхает / спит), домашний бонус за цель дня и накопление на следующую квартиру */}
-      <HouseCard />
-
-      {/* Учитися далі: тренування, «Польська в житті», граматика, словник; решта — у шторці */}
-      <Section
-        title={t('home_learn_more')}
-        action={<button className="flex items-center gap-1 text-sm font-black text-sky" onClick={() => { haptic.tap(); setSheet('sections'); }}>{t('home_all_sections')} <Icon name="arrow-right" size={16} /></button>}
-      >
-        <div className="grid grid-cols-4 gap-2">
-          <SectionTile icon="review" label={t('home_practice')} badge={me.counters.mistakes + me.counters.dueReviews} onClick={() => setSheet('practice')} />
-          <SectionTile icon="city" label={t('home_tile_life')} onClick={() => nav('/life')} />
-          <SectionTile icon="grammar" label={t('home_tile_grammar')} onClick={() => nav('/grammar')} />
-          <SectionTile icon="dictionary" label={t('home_tile_dict')} onClick={() => nav('/dictionary')} />
-        </div>
-      </Section>
-
-      {/* Подарунок місяця Premium — лише коли його можна забрати */}
-      {me.premium.active && me.premium.giftReady && (
-        <button onClick={() => { haptic.tap(); nav('/premium'); }} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 p-3.5 text-left ring-4 ring-xp">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-xp/30 text-xp-dark"><Icon name="gift" size={24} /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-black">{t('home_gift_ready')}</span>
-            <span className="muted block text-sm font-bold">{t('home_gift_ready_d')}</span>
-          </span>
-          <Icon name="chevron-right" size={20} className="shrink-0 opacity-60" />
-        </button>
-      )}
-
-      <Sheet open={sheet === 'practice'} onClose={() => setSheet(null)} label={t('home_practice')}>
-        <h2 className="mb-3 text-xl font-black">{t('home_practice')}</h2>
-        <div className="grid grid-cols-2 gap-2.5" data-home-sheet="practice">
-          <SheetTile icon="mistakes" title={t('home_fix_mistakes')} sub={me.counters.mistakes ? t('home_mistakes_n', { n: me.counters.mistakes }) : t('home_nothing')} badge={me.counters.mistakes} onClick={() => nav('/practice/MISTAKES')} />
-          <SheetTile icon="review" title={t('home_review_words')} sub={me.counters.dueReviews ? t('home_review_due', { n: me.counters.dueReviews }) : t('home_review_none')} badge={me.counters.dueReviews} onClick={() => nav('/practice/REVIEW')} />
-          <SheetTile icon="timer" title={t('home_five')} sub={t('home_five_d')} onClick={() => nav('/practice/FIVE_MIN')} />
-          <SheetTile icon="speed" title={t('home_speed')} sub={t('home_speed_d')} onClick={() => nav('/practice/SPEED')} />
-        </div>
-      </Sheet>
-
-      <Sheet open={sheet === 'sections'} onClose={() => setSheet(null)} label={t('home_all_sections')}>
-        <h2 className="mb-3 text-xl font-black">{t('home_all_sections')}</h2>
-        <div className="grid grid-cols-3 gap-2" data-home-sheet="sections">
-          {(
-            [
-              ['story', 'home_tile_slang', '/slang'],
-              ['exam', 'home_tile_exams', '/exams'],
-              ['wardrobe', 'home_shop', '/shop'],
-              ['house', 'home_tile_house', '/house'],
-              ['map', 'home_passport', '/passport'],
-              ['rewards', 'home_achievements', '/achievements'],
-              ['leaderboard', 'home_leaderboard', '/social'],
-              ['premium', 'home_tile_premium', '/premium'],
-              ['settings', 'profile_settings', '/settings'],
-            ] as [IconName, TKey, string][]
-          ).map(([icon, key, to]) => (
-            <SectionTile key={to} icon={icon} label={t(key)} onClick={() => nav(to)} />
-          ))}
-        </div>
-      </Sheet>
+    <div className="home-today-summary mx-4">
+      <button type="button" onClick={() => setSheet('today')} data-open-today><Art name={ready ? 'gift' : 'target'} size={34} /><strong>{t('home_today')}{quests.data && total > 0 ? ` · ${done}/${total}` : ''}</strong><span>{t(ready ? 'compact_reward_ready' : 'compact_tasks_open')}</span><b aria-hidden="true">›</b></button>
     </div>
-  );
-}
 
-/** Плитка розділу: велика ігрова іконка й підпис; бейдж — скільки чекає (помилки, повторення). */
-function SectionTile({ icon, label, badge, onClick }: { icon: IconName; label: string; badge?: number; onClick: () => void }) {
-  return (
-    <button onClick={() => { haptic.tap(); onClick(); }} className="section-tile relative flex min-h-[88px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2.5 transition active:scale-95">
-      <GameIcon name={icon} size={40} />
-      <span className="text-center text-[11.5px] font-black leading-tight">{label}</span>
-      {!!badge && <span className="absolute right-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] font-black text-white">{badge > 99 ? '99+' : badge}</span>}
-    </button>
-  );
-}
+    <HomeEvent />
+    <WriteAccessCard />
 
-/** Режим тренування в шторці: іконка, назва, підказка й бейдж. */
-function SheetTile({ icon, title, sub, badge, onClick }: { icon: IconName; title: string; sub: string; badge?: number; onClick: () => void }) {
-  return (
-    <button onClick={() => { haptic.tap(); onClick(); }} className="section-tile relative flex min-h-[72px] items-center gap-2.5 rounded-2xl p-2.5 text-left transition active:scale-[0.97]">
-      <GameIcon name={icon} size={36} />
-      <span className="min-w-0">
-        <span className="block text-[13.5px] font-black leading-tight">{title}</span>
-        <span className="muted block text-[11.5px] font-bold leading-tight">{sub}</span>
-      </span>
-      {!!badge && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-pl-red px-1 text-[11px] font-black text-white">{badge}</span>}
-    </button>
-  );
+    <Sheet open={sheet === 'today'} onClose={() => setSheet(null)} label={t('home_today')}><div className="-mx-4"><TodayTasks lessonId={next?.id} /></div></Sheet>
+    <Sheet open={sheet === 'sections'} onClose={() => setSheet(null)} label={t('home_all_sections')}><h2 className="mb-3 text-xl font-black">{t('home_all_sections')}</h2><SectionDirectory /></Sheet>
+  </div>;
 }
 
 /**

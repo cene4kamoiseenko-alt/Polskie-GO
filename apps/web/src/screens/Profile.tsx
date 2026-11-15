@@ -19,7 +19,6 @@ import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
 import { LEVEL_COLORS } from './Onboarding';
 import { XpChart } from '../components/XpChart';
-import { StreakCard } from '../components/StreakCard';
 import { EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
 import { rankFor, TopStats } from './Home';
 import { inkOn } from '../lib/color';
@@ -125,13 +124,10 @@ export default function ProfileScreen() {
         <Art name="book" size={44} />
       </button>
 
-      <StreakCard />
-
       {/* Лічильники */}
-      <div className="grid grid-cols-4 gap-2 px-4">
+      <div className="grid grid-cols-3 gap-2 px-4">
         {(
           [
-            ['flame', me.progress.streak, t('profile_streak'), '#FF8A3D'],
             ['book', me.progress.lessonsCompleted, t('profile_lessons'), '#25D79B'],
             ['star', me.progress.wordsLearned, t('profile_words'), '#FFC857'],
             ['trophy', citiesDone, t('profile_cities'), '#FF5265'],

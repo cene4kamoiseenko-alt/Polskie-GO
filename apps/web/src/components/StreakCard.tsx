@@ -1,11 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
 import { useMe } from '../lib/queries';
 import { Art } from './GameArt';
 import { Icon } from './Icon';
-import { Progress } from './ui';
+import { Progress, Sheet } from './ui';
+import { haptic } from '../lib/telegram';
+
+/** The full calendar is mounted only when requested, including its stats query. */
+export function StreakIndicator() {
+  const { t } = useT();
+  const me = useMe().data;
+  const [open, setOpen] = useState(false);
+  if (!me) return null;
+  return <>
+    <button type="button" className="hud-pill streak-indicator" data-open-streak aria-label={t('streak_days', { n: me.progress.streak })} aria-expanded={open} aria-haspopup="dialog" onClick={() => { haptic.select(); setOpen(true); }}>
+      <Art name="flame" size={22} /><span>{me.progress.streak}</span>
+    </button>
+    <Sheet open={open} onClose={() => setOpen(false)} label={t('streak_title')}><div className="-mx-4"><StreakCard /></div></Sheet>
+  </>;
+}
 
 type Activity = { days: { day: string; xp: number; lessons: number; exercises: number }[] };
 const MILESTONES = [3, 7, 14, 30, 60, 100];

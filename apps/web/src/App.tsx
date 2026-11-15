@@ -19,6 +19,7 @@ import { HomeScreen } from './screens/Home';
 const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Welcome = lazy(() => import('./screens/Welcome'));
 const MapScreen = lazy(() => import('./screens/Map'));
+const WorldScreen = lazy(() => import('./screens/World'));
 const LearnScreen = lazy(() => import('./screens/Learn'));
 const LessonScreen = lazy(() => import('./screens/Lesson'));
 const QuestsScreen = lazy(() => import('./screens/Quests'));
@@ -42,7 +43,7 @@ const PassScreen = lazy(() => import('./screens/Pass'));
 // «Потянуть вниз — обновить»: отдельный чанк, подключается уже после старта (бюджет JS холодного старта).
 const PullToRefresh = lazy(() => import('./components/PullToRefresh'));
 
-const TAB_ROUTES = ['/', '/map', '/learn', '/quests', '/profile'];
+const TAB_ROUTES = ['/', '/learn', '/world', '/map', '/quests', '/profile'];
 
 function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
   const [systemDark, setSystemDark] = useState(() => (tg ? tg.colorScheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches));
@@ -233,6 +234,7 @@ export function App() {
               <Routes location={loc}>
                 <Route path="/" element={<HomeScreen />} />
                 <Route path="/map" element={<MapScreen />} />
+                <Route path="/world" element={<WorldScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />
                 <Route path="/lesson/:lessonId" element={<LessonScreen />} />
                 <Route path="/practice/:mode" element={<LessonScreen />} />

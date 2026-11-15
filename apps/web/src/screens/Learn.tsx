@@ -1,4 +1,5 @@
-import { motion } from '../lib/motion';
+import { motion, useReducedMotion } from '../lib/motion';
+import { LearningShortcuts } from '../components/LearningShortcuts';
 import { isMissionSlug } from '@polski-go/shared';
 import { Art } from '../components/GameArt';
 import { Scene } from '../components/Illustrations';
@@ -90,19 +91,21 @@ export default function LearnScreen() {
   const nextRef = useRef<HTMLDivElement>(null);
   /** Миниатюра маршрута «квартира» — фото Бобра с ключами в прихожей вместо векторной MIESZKANIE. */
   const keysShot = homeShot('keys');
+  const reduced = useReducedMotion();
+  const chosenCity = params.get('city');
 
   const cities = journey.data?.cities.filter((c) => c.unlocked && c.hasContent) ?? [];
-  const cityId = params.get('city') ?? journey.data?.currentCityId ?? cities[0]?.id;
+  const cityId = chosenCity ?? journey.data?.currentCityId ?? cities[0]?.id;
   const city = journey.data?.cities.find((c) => c.id === cityId) ?? cities[0];
   const nextId = useMemo(() => city?.routes.flatMap((r) => r.lessons).find((l) => l.state === 'available')?.id, [city]);
 
   useEffect(() => {
-    nextRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }, [nextId]);
+    if (chosenCity) nextRef.current?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  }, [nextId, chosenCity, reduced]);
 
-  if (journey.isLoading) return <ScreenSkeleton />;
-  if (journey.error) return <ErrorState error={journey.error} onRetry={() => journey.refetch()} />;
-  if (!city) return <EmptyState text={t('learn_no_content')} />;
+  if (journey.isLoading) return <div className="space-y-4"><LearningShortcuts /><ScreenSkeleton /></div>;
+  if (journey.error) return <div className="space-y-4"><TopStats compact /><LearningShortcuts /><ErrorState error={journey.error} onRetry={() => journey.refetch()} /></div>;
+  if (!city) return <div className="space-y-4"><TopStats compact /><LearningShortcuts /><EmptyState text={t('learn_no_content')} /></div>;
 
   const allLessons = city.routes.flatMap((r) => r.lessons);
   const doneCount = allLessons.filter((l) => l.state === 'completed').length;
@@ -114,6 +117,8 @@ export default function LearnScreen() {
         <h1 className="text-2xl font-black">{t('learn_title')}</h1>
         <p className="muted text-sm font-bold">{t('learn_subtitle')}</p>
       </div>
+
+      <LearningShortcuts />
 
       {/* Перемикач міст */}
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4">

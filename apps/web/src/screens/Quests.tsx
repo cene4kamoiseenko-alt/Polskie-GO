@@ -15,7 +15,7 @@ import { GameIcon, type IconName } from '../components/GameIcon';
 import { RewardModal, XPBadge, type Reward } from '../components/game';
 import { Skyline } from '../components/Scenery';
 import { EmptyState, ErrorState, Progress, ScreenSkeleton, cx, useToast } from '../components/ui';
-import { TopStats } from './Home';
+import { TopStats, PassCard } from './Home';
 import { inkOn } from '../lib/color';
 import { useTabSwipe } from '../lib/swipe';
 
@@ -132,6 +132,7 @@ export default function QuestsScreen() {
   return (
     <div ref={swipe.ref} className="space-y-4 pb-4" data-tab-swipe="quests">
       <TopStats compact />
+      <PassCard />
 
       {/* Герой-сцена: кадр владельца (Бобек-бариста на площади в Кракове), без файла — прежняя SVG-сцена */}
       <div className="relative mx-4 h-40 overflow-hidden rounded-[28px] shadow-[var(--shadow-card)]" style={{ background: `linear-gradient(180deg, #8ED3F7 0%, #DDF2FF 60%, ${active.color}66 100%)` }}>
