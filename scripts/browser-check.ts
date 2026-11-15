@@ -962,13 +962,19 @@ async function main() {
         await u.page.locator('nav a[href="/"]').waitFor({ timeout: 20_000 });
         check((await where(u.page)).path === '/', `B1.2 bot_screen=${bad || '(пусто)'} — остаёмся на главной`);
       }
-      await u.page.goto(`${base}/?devUser=880021&startapp=screen_quests`, { waitUntil: 'domcontentloaded' });
+      // Переходы по startapp — в свежей вкладке. После шести перезагрузок подряд в одной вкладке dev-сервер Vite (каждая картинка — отдельный
+      // модуль, ~600 запросов на загрузку) упирается в лимит Chromium: ERR_INSUFFICIENT_RESOURCES, часть модулей не грузится, переход не случается
+      // (≈1 раз из 10, 2026-11-15). В боевой сборке картинки в бандле — та же последовательность 20/20; в свежей вкладке в dev — тоже 20/20.
+      await u.context.close();
+      const u2 = await userPage('880022');
+      Object.assign(u, { page: u2.page, context: u2.context });
+      await u.page.goto(`${base}/?devUser=880022&startapp=screen_quests`, { waitUntil: 'domcontentloaded' });
       await u.page.waitForFunction(() => location.pathname === '/quests', undefined, { timeout: 20_000 });
       check(true, 'B1.2 startapp=screen_quests (чат без web_app-кнопок) открывает /quests');
-      await u.page.goto(`${base}/?devUser=880021&startapp=ref_abc123&bot_screen=profile`, { waitUntil: 'domcontentloaded' });
+      await u.page.goto(`${base}/?devUser=880022&startapp=ref_abc123&bot_screen=profile`, { waitUntil: 'domcontentloaded' });
       await u.page.waitForFunction(() => location.pathname === '/profile', undefined, { timeout: 20_000 });
       check(true, 'B1.2 startapp=ref_… вместе с bot_screen=profile: реферальный параметр не мешает переходу');
-      await u.page.goto(`${base}/?devUser=880021&startapp=premium`, { waitUntil: 'domcontentloaded' });
+      await u.page.goto(`${base}/?devUser=880022&startapp=premium`, { waitUntil: 'domcontentloaded' });
       await u.page.waitForFunction(() => location.pathname === '/premium', undefined, { timeout: 20_000 });
       check(true, 'B1.2 startapp=premium по-прежнему открывает /premium');
       await u.context.close();
