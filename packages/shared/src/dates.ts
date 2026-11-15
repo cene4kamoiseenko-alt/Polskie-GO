@@ -47,6 +47,15 @@ export function nextDayStart(now: Date, timeZone = 'Europe/Warsaw'): Date {
   return zonedDayStart(addDays(dayKey(now, timeZone), 1), timeZone);
 }
 
+/** Місцева година (0–23) у поясі користувача; невідомий пояс — null. */
+export function localHour(date: Date, timeZone = 'Europe/Warsaw'): number | null {
+  try {
+    return Number(new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(date));
+  } catch {
+    return null;
+  }
+}
+
 /** Різниця в днях між двома ключами дня. */
 export function dayDiff(fromKey: string, toKey: string): number {
   const a = Date.UTC(+fromKey.slice(0, 4), +fromKey.slice(5, 7) - 1, +fromKey.slice(8, 10));

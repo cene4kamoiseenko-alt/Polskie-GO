@@ -9,7 +9,7 @@
  * Само приглашение — текст и кнопка «Начать», вопрос приходит по нажатию (`qz:go`), без картинки.
  */
 import { and, eq, gt, inArray, lt, sql } from 'drizzle-orm';
-import { dayKey, type UiLang } from '@polski-go/shared';
+import { dayKey, localHour, type UiLang } from '@polski-go/shared';
 import { db } from '../../db';
 import { botQuizPlayers, notificationLog, userSettings, users } from '../../db/schema';
 import { botApi, TelegramError } from '../../lib/telegram';
@@ -24,14 +24,6 @@ const IGNORED_MAX = 2;
 /** Час приглашения: 13:00, а если ежедневное напоминание стоит на 12–14 часов — 17:00. */
 export function inviteHour(reminderHour: number | null): number {
   return reminderHour !== null && reminderHour >= 12 && reminderHour <= 14 ? INVITE_HOURS.alt : INVITE_HOURS.main;
-}
-
-function localHour(now: Date, timeZone: string): number | null {
-  try {
-    return Number(new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(now));
-  } catch {
-    return null;
-  }
 }
 
 export function inviteView(lang: UiLang) {

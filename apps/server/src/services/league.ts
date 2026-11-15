@@ -6,7 +6,7 @@
  * Скрытые из рейтинга (настройка) и заблокированные не видны и призов не получают.
  */
 import { and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
-import { LEAGUE_MIN_XP, LEAGUE_PRIZE_MIN_XP, leaguePrize, leagueWeek } from '@polski-go/shared';
+import { LEAGUE_MIN_XP, LEAGUE_PRIZE_MIN_XP, LEAGUE_TZ, leaguePrize, leagueWeek, localHour } from '@polski-go/shared';
 import { atomic, db, type Stmt } from '../db';
 import { leaderboards, leagueAwards, leagueWeeks, userSettings, users } from '../db/schema';
 import { sendCard } from '../bot/send';
@@ -84,15 +84,27 @@ export function leaguePoster(rank: number, lang: string): string | null {
 const NOTIFY_WINDOW_MS = 3 * 86_400_000;
 
 /**
+ * Поздравление — только днём по времени игрока (владелец, 2026-11-15: «не нужно присылать ночью, лучше утром, чтобы не будить»).
+ * Итоги подводятся в понедельник около полуночи и Złotki приходят сразу, а сообщение ждёт 9:00 у игрока (пояс из настроек).
+ * Окно до 21:00 — запас, если расписание пропустило утро; ночью сообщение не уходит никогда.
+ */
+export const LEAGUE_NOTIFY_HOURS = { from: 9, to: 21 } as const;
+export function leagueNotifyDaytime(now: Date, timeZone: string | null): boolean {
+  const h = localHour(now, timeZone ?? LEAGUE_TZ) ?? localHour(now, LEAGUE_TZ) ?? 12;
+  return h >= LEAGUE_NOTIFY_HOURS.from && h < LEAGUE_NOTIFY_HOURS.to;
+}
+
+/**
  * Поздравить призёров в боте (порция в пределах `budget` вызовов Bot API). Каждый призёр — один раз (`notified_at`).
  * Как у напоминаний: только те, кому бот может писать (не гость, уведомления включены, без паузы после 403).
+ * Только днём по времени игрока (`leagueNotifyDaytime`): ночью призёр пропускается без отметки и получит сообщение утром.
  */
 export async function sendLeagueAwardMessages(now = new Date(), budget = 50, stats = { calls: 0 }) {
   if (budget <= 0) return 0;
   const due = await db
     .select({
       week: leagueAwards.week, userId: leagueAwards.userId, rank: leagueAwards.rank, xp: leagueAwards.xp, zlotki: leagueAwards.zlotki,
-      telegramId: users.telegramId, lang: userSettings.uiLanguage,
+      telegramId: users.telegramId, lang: userSettings.uiLanguage, tz: userSettings.timezone,
       // Как у напоминаний: не гость, не заблокирован, уведомления включены, нет паузы после отказа Telegram (bot/mute.ts).
       reachable: sql<number>`CASE WHEN ${and(eq(users.isBanned, false), gt(users.telegramId, 0), eq(userSettings.notificationsEnabled, true), notMuted(now))} THEN 1 ELSE 0 END`,
     })
@@ -101,10 +113,12 @@ export async function sendLeagueAwardMessages(now = new Date(), budget = 50, sta
     .innerJoin(userSettings, eq(userSettings.userId, leagueAwards.userId))
     .where(and(isNull(leagueAwards.notifiedAt), gt(leagueAwards.createdAt, new Date(now.getTime() - NOTIFY_WINDOW_MS))))
     .orderBy(asc(leagueAwards.rank))
-    .limit(budget);
+    // Призёров за неделю не больше десяти, окно — три дня: запас, чтобы ночные (пропущенные) не заняли место дневных.
+    .limit(Math.max(budget, 100));
   let sent = 0;
   for (const a of due) {
     if (stats.calls >= budget) break;
+    if (!leagueNotifyDaytime(now, a.tz)) continue;
     // Отметка до отправки: при сбое посередине сообщение не уйдёт второй раз (поздравление — не обязательство, окно в игре всё равно покажет награду).
     await db.update(leagueAwards).set({ notifiedAt: now }).where(and(eq(leagueAwards.week, a.week), eq(leagueAwards.userId, a.userId)));
     if (!a.reachable) continue;

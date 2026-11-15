@@ -133,7 +133,12 @@ describe('итоги недели', () => {
     await settleLeagueWeek(week, new Date('2031-07-28T00:05:00Z'));
 
     const calls = fakeTelegram();
+    // Итоги подведены ночью (02:05 по Варшаве), Złotki уже в кошельке, но бот ночью не пишет — ждёт утра.
     await sendLeagueAwardMessages(new Date('2031-07-28T00:20:00Z'), 50);
+    expect(calls.filter((c) => Number(c.params.chat_id) === winner.telegramId)).toHaveLength(0);
+    await sendLeagueAwardMessages(new Date('2031-07-28T06:50:00Z'), 50); // 08:50 — ещё рано
+    expect(calls.filter((c) => Number(c.params.chat_id) === winner.telegramId)).toHaveLength(0);
+    await sendLeagueAwardMessages(new Date('2031-07-28T07:05:00Z'), 50); // 09:05 по Варшаве
     // Призёр 1–3 места с русским интерфейсом — постер своего места (надписи на постере по-русски) с подписью и кнопкой.
     const mine = calls.filter((c) => Number(c.params.chat_id) === winner.telegramId);
     expect(mine).toHaveLength(1);
@@ -141,7 +146,7 @@ describe('итоги недели', () => {
     expect(String(mine[0].params.photo)).toContain('/bot/league/ru/place-1.jpg');
     expect(String(mine[0].params.caption)).toContain('300');
     expect(mine[0].params.reply_markup?.inline_keyboard?.[0]?.[0]?.web_app?.url).toContain('bot_screen=league');
-    await sendLeagueAwardMessages(new Date('2031-07-28T00:35:00Z'), 50);
+    await sendLeagueAwardMessages(new Date('2031-07-28T07:20:00Z'), 50);
     expect(calls.filter((c) => Number(c.params.chat_id) === winner.telegramId)).toHaveLength(1);
 
     const me = (await winner.call('GET', '/api/me')).body;
@@ -165,7 +170,7 @@ describe('итоги недели', () => {
     for (const [p, lang] of langs) await db.update(userSettings).set({ notificationsEnabled: true, uiLanguage: lang }).where(eq(userSettings.userId, p.user.id));
     await settleLeagueWeek(week, new Date('2031-08-04T00:05:00Z'));
     const calls = fakeTelegram();
-    await sendLeagueAwardMessages(new Date('2031-08-04T00:20:00Z'), 50);
+    await sendLeagueAwardMessages(new Date('2031-08-04T07:20:00Z'), 50);
     const to = (p: Player) => calls.filter((c) => Number(c.params.chat_id) === p.telegramId);
     expect(to(first).map((c) => c.method)).toEqual(['sendMessage']);
     expect(to(second).map((c) => c.method)).toEqual(['sendPhoto']);
@@ -174,5 +179,21 @@ describe('итоги недели', () => {
     expect(String(to(third)[0].params.photo)).toContain('/bot/league/ru/place-3.jpg');
     expect(to(fourth).map((c) => c.method)).toEqual(['sendMessage']);
     expect(String(to(fourth)[0].params.text)).toContain('25');
+  });
+  it('поздравление приходит утром по времени игрока: Варшава — в 9:00, Токио и Нью-Йорк — в свои 9:00', async () => {
+    const week = '2031-W32';
+    const at = (m: number) => new Date(Date.UTC(2031, 7, 6, 10, m));
+    const warsaw = await player(week, 900, { at: at(0) });
+    const tokyo = await player(week, 800, { at: at(1) });
+    const newYork = await player(week, 700, { at: at(2) });
+    const zones: [Player, string][] = [[warsaw, 'Europe/Warsaw'], [tokyo, 'Asia/Tokyo'], [newYork, 'America/New_York']];
+    for (const [p, timezone] of zones) await db.update(userSettings).set({ notificationsEnabled: true, uiLanguage: 'en', timezone }).where(eq(userSettings.userId, p.user.id));
+    await settleLeagueWeek(week, new Date('2031-08-11T00:05:00Z'));
+    const calls = fakeTelegram();
+    const got = (p: Player) => calls.filter((c) => Number(c.params.chat_id) === p.telegramId).length;
+    await sendLeagueAwardMessages(new Date('2031-08-11T00:20:00Z'), 50); // Варшава 02:20, Токио 09:20, Нью-Йорк 20:20 (вс)
+    expect([got(warsaw), got(tokyo), got(newYork)]).toEqual([0, 1, 1]);
+    await sendLeagueAwardMessages(new Date('2031-08-11T07:20:00Z'), 50); // Варшава 09:20
+    expect([got(warsaw), got(tokyo), got(newYork)]).toEqual([1, 1, 1]);
   });
 });
