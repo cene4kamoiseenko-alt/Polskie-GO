@@ -2425,3 +2425,57 @@ html.reduced-motion .map-here-ring { animation: none; }
   color: #fff;
   box-shadow: 0 6px 14px -8px rgb(212 45 67 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.25);
 }
+
+/* Неделя на главной: серия, цель дня, семь дней. */
+.week-card {
+  padding: 14px 14px 12px;
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(255 177 61 / 0.16), transparent 60%),
+    linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  border: 1px solid var(--surface-ring);
+  box-shadow: var(--shadow-deep);
+  transition: transform 0.12s;
+}
+.week-card:active { transform: scale(0.985); }
+.week-dot {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--track);
+  border: 1.5px solid var(--hairline);
+  color: #5a3d00;
+}
+.week-dot.is-on {
+  background: linear-gradient(180deg, #ffd98a, #ffb13d);
+  border-color: #ffc857;
+  box-shadow: 0 4px 10px -4px rgb(255 177 61 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.55);
+}
+.week-dot.is-today:not(.is-on) {
+  border: 2px dashed #ffc857;
+  animation: week-today 1.8s ease-in-out infinite;
+}
+@keyframes week-today {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(255 200 87 / 0.45); }
+  50% { box-shadow: 0 0 0 5px rgb(255 200 87 / 0); }
+}
+/* Урок: верные ответы подряд. */
+.combo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px 2px 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffd98a, #ffb13d);
+  color: #5a3d00;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  box-shadow: 0 4px 10px -4px rgb(255 177 61 / 0.9);
+}
+@media (prefers-reduced-motion: reduce) {
+  .week-dot.is-today:not(.is-on) { animation: none; }
+}
+html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }

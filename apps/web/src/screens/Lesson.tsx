@@ -15,6 +15,7 @@ import { haptic } from '../lib/telegram';
 import { useSwipe } from '../lib/swipe';
 import { Beaver } from '../components/Beaver';
 import { Icon, type LineIconName } from '../components/Icon';
+import { Art } from '../components/GameArt';
 import { Badge, Stamp } from '../components/Illustrations';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton, useToast } from '../components/ui';
@@ -57,6 +58,8 @@ export default function LessonScreen() {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [resumed, setResumed] = useState(0);
   const [mistakes, setMistakes] = useState(0);
+  // Верные ответы подряд — только на экране (на XP и награды не влияет): с трёх показывается «огонёк ×N».
+  const [combo, setCombo] = useState(0);
   const started = useRef(false);
 
   useEffect(() => {
@@ -167,9 +170,11 @@ export default function LessonScreen() {
       if (r.correct) {
         sfx.correct();
         haptic.success();
+        setCombo((n) => n + 1);
       } else if (!r.skipped) {
         sfx.wrong();
         haptic.error();
+        setCombo(0);
         if (!r.retry) setMistakes((n) => n + 1);
         // Помилку повторимо в кінці уроку (без впливу на оцінку).
         if (!r.retry && !NO_RETRY.has(item.type) && !speed && !retried.has(item.key)) {
@@ -346,7 +351,14 @@ export default function LessonScreen() {
             {timeLeft !== null ? (
               <span className="flex shrink-0 items-center gap-1 text-[15px] font-black text-xp"><Icon name="clock" size={14} /> {timeLeft}</span>
             ) : (
-              <span className="shrink-0 text-[15px] font-black tabular-nums">{Math.min(firstDone + 1, session.items.length)} / {session.items.length}</span>
+              <span className="flex shrink-0 items-center gap-2">
+                {combo >= 3 && (
+                  <motion.span key={combo} initial={{ scale: 1.5, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} className="combo-chip" aria-label={t('lesson_combo', { n: combo })} data-combo={combo}>
+                    <Art name="flame" size={16} /> ×{combo}
+                  </motion.span>
+                )}
+                <span className="text-[15px] font-black tabular-nums">{Math.min(firstDone + 1, session.items.length)} / {session.items.length}</span>
+              </span>
             )}
           </div>
           <Progress value={firstDone} max={session.items.length} height={12} color="linear-gradient(90deg, var(--color-sky), var(--color-brand))" />

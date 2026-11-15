@@ -155,6 +155,50 @@ function WriteAccessCard() {
   );
 }
 
+type WeekDay = { day: string; xp: number };
+/**
+ * Неделя игрока под баннером: серия, цель дня и семь последних дней (занимался / нет / сегодня). Данные — та же статистика, что в профиле
+ * (кеш общий). Пока данных нет, блок держит высоту и рисует пустые кружки: главная не прыгает.
+ */
+function WeekStrip() {
+  const { t, lang } = useT();
+  const nav = useNavigate();
+  const me = useMe().data!;
+  const stats = useQuery({ queryKey: ['stats', 7], queryFn: () => api<{ days: WeekDay[] }>('/me/stats?days=7') });
+  const days: (WeekDay | null)[] = stats.data?.days.slice(-7) ?? Array.from({ length: 7 }, () => null);
+  const goalDone = me.today.xp >= me.today.goalXp;
+  const streak = me.progress.streak;
+  const letter = (day: string) => new Intl.DateTimeFormat(lang, { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day}T12:00:00Z`)).slice(0, 2);
+  return (
+    <button type="button" onClick={() => { haptic.tap(); nav('/profile'); }} className="week-card mx-4 block w-[calc(100%-2rem)] text-left" data-home-week>
+      <span className="flex items-center gap-3">
+        <motion.span className="shrink-0" animate={streak > 0 ? { scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 2.2 }}>
+          <Art name="flame" size={40} className={streak > 0 ? undefined : 'opacity-45 grayscale'} />
+        </motion.span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[16px] font-black leading-tight">{streak > 0 ? t('home_week_streak', { n: streak }) : t('home_week_start')}</span>
+          <span className="mt-1 flex items-center gap-2">
+            <Progress value={Math.min(me.today.xp, me.today.goalXp)} max={me.today.goalXp} height={7} color={goalDone ? 'linear-gradient(90deg,#25D79B,#7CF0C3)' : 'linear-gradient(90deg,#FFB13D,#FFD98A)'} />
+            <span className="muted shrink-0 text-[11.5px] font-black tabular-nums">{goalDone ? t('home_goal_done') : t('home_goal_today', { xp: me.today.xp, goal: me.today.goalXp })}</span>
+          </span>
+        </span>
+      </span>
+      <span className="mt-3 grid grid-cols-7 gap-1" aria-hidden>
+        {days.map((d, i) => {
+          const today = i === days.length - 1;
+          const on = !!d && d.xp > 0;
+          return (
+            <span key={d?.day ?? i} className="flex flex-col items-center gap-1">
+              <span className={cx('week-dot', on && 'is-on', today && 'is-today')}>{on && <Icon name="check" size={14} strokeWidth={3.4} />}</span>
+              <span className={cx('text-[10.5px] font-black uppercase leading-none', today ? 'text-[var(--text)]' : 'muted')}>{d ? letter(d.day) : '·'}</span>
+            </span>
+          );
+        })}
+      </span>
+    </button>
+  );
+}
+
 /** Узкий баннер Premium на главной — только для тех, у кого его нет: картинка дня владельца, что даёт подписка и кнопка «Открыть». */
 function PremiumTeaser() {
   const { t } = useT();
@@ -251,6 +295,9 @@ export function HomeScreen() {
           </motion.button>
         </CityHero>
       </div>
+
+      {/* Неделя: серия, цель дня и семь последних дней */}
+      <WeekStrip />
 
       {/* Сьогодні: щоденні завдання + велика нагорода */}
       <TodayTasks lessonId={next?.id} />
