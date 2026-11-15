@@ -170,6 +170,15 @@ const PLAIN_OK: Record<string, string[]> = {
     'pzn-5-zajmuje-sie#0 interesuje', 'lub-1-sprawa#6 niedziele', 'lub-3-dane#2 maja', 'lub-3-dane#9 maja', 'lub-5-poczta#0 nadawca', 'lub-5-poczta#3 nadawca',
     'lub-5-poczta#6 nadawca', 'lub-5-poczta#9 paczka', 'lub-6-bank#0 chce', 'lub-6-bank#6 nowa', 'lub-7-umowa#0 zostaje', 'lub-7-umowa#6 zostaje',
   ],
+  'Жешув, Кельце, Закопане (і «rzeka» в Лодзі після появи rzeką у словнику): називний (rzeka, refundacja, kolejka linowa, gwara, zaleta, Miejska, jaka), 3-тя особа однини (dostaje, podaje, kupuje, pije, chce, interesuje, potrzebuje — у zak-7 навмисно неправильний дистрактор), множина hale, іменник pomoc (не pomóc)': [
+    'lodz-2-dwuznaki#2 rzeka', 'lodz-boss#1 rzeka', 'rze-1-przychodnia#1 refundacja', 'rze-1-przychodnia#6 dostaje', 'rze-1-przychodnia#6 podaje',
+    'rze-5-mandat#6 kupuje', 'rze-5-mandat#11 kupuje', 'rze-6-policja#6 miejska', 'rze-6-policja#6 pomoc', 'rze-8-rzeszow#0 interesuje',
+    'kie-6-liczebniki#0 jaka', 'kie-6-liczebniki#6 chce', 'zak-1-gory#3 kolejka', 'zak-1-gory#3 linowa', 'zak-1-gory#6 kolejka',
+    'zak-1-gory#6 linowa', 'zak-1-gory#8 kolejka', 'zak-1-gory#8 linowa', 'zak-2-gorale#0 pije', 'zak-2-gorale#3 gwara', 'zak-2-gorale#6 hale',
+    'zak-2-gorale#9 pije', 'zak-4-witkacy#0 interesuje', 'zak-5-narty#0 chce', 'zak-5-narty#0 pomoc', 'zak-5-narty#9 pomoc', 'zak-5-narty#11 pomoc',
+    'zak-7-opinia#0 potrzebuje', 'zak-7-opinia#3 zaleta', 'zak-8-pozegnanie#0 pomoc', 'zak-8-pozegnanie#9 pomoc', 'zak-8-pozegnanie#10 pomoc',
+    'zak-boss#7 zaleta',
+  ],
   'Вправа на розрізнення літер: варіант без діакритики — навмисний дистрактор (ż / z, rz / r)': [
     'lodz-1-alfabet#6 zaba', 'lodz-2-dwuznaki#2 reka', 'lodz-boss#1 reka',
   ],

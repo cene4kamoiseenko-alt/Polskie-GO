@@ -31,7 +31,7 @@ describe('сборка предложения из плашек в задани�
 
   it('верный ответ собирается из плашек в порядке фразы, и сервер его принимает', async () => {
     const items = (await rows()).filter((i) => i.type === 'SENTENCE_TRANSLATION' || i.type === 'DICTATION');
-    expect(items.length).toBe(144);
+    expect(items.length).toBe(171);
     for (const item of items) {
       const d = item.data as TextData;
       const tiles = sentenceTiles(d);

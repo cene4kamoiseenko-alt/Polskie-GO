@@ -29,6 +29,12 @@ import { BIALYSTOK } from '../src/content/bialystok';
 import { BIALYSTOK_VOCAB } from '../src/content/vocab-bialystok';
 import { LUBLIN } from '../src/content/lublin';
 import { LUBLIN_VOCAB } from '../src/content/vocab-lublin';
+import { RZESZOW } from '../src/content/rzeszow';
+import { RZESZOW_VOCAB } from '../src/content/vocab-rzeszow';
+import { KIELCE } from '../src/content/kielce';
+import { KIELCE_VOCAB } from '../src/content/vocab-kielce';
+import { ZAKOPANE } from '../src/content/zakopane';
+import { ZAKOPANE_VOCAB } from '../src/content/vocab-zakopane';
 import { citySuite } from './city-suite';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -181,5 +187,38 @@ citySuite({
   lessons: ['lub-1-sprawa', 'lub-2-wniosek', 'lub-3-dane', 'lub-4-pobyt', 'lub-5-poczta', 'lub-6-bank', 'lub-7-umowa', 'lub-8-unia'],
   boss: 'lub-boss',
   levels: ['B1'],
+  richDialogues: true,
+});
+
+citySuite({
+  label: 'Rzeszów',
+  content: RZESZOW,
+  vocab: RZESZOW_VOCAB,
+  routes: ['rze-zdrowie', 'rze-podatki-szkola', 'rze-porzadek', 'rze-konsument-miasto', 'rze-egzamin'],
+  lessons: ['rze-1-przychodnia', 'rze-2-zus', 'rze-3-pit', 'rze-4-szkola', 'rze-5-mandat', 'rze-6-policja', 'rze-7-reklamacja', 'rze-8-rzeszow'],
+  boss: 'rze-boss',
+  levels: ['B2'],
+  richDialogues: true,
+});
+
+citySuite({
+  label: 'Kielce',
+  content: KIELCE,
+  vocab: KIELCE_VOCAB,
+  routes: ['kie-miasto', 'kie-historia', 'kie-legendy', 'kie-zasady', 'kie-egzamin'],
+  lessons: ['kie-1-przypadki', 'kie-2-aspekt', 'kie-3-czasy', 'kie-4-warunkowy', 'kie-5-zlozone', 'kie-6-liczebniki', 'kie-7-bezosobowe', 'kie-8-legenda'],
+  boss: 'kie-boss',
+  levels: ['B2'],
+  richDialogues: true,
+});
+
+citySuite({
+  label: 'Zakopane',
+  content: ZAKOPANE,
+  vocab: ZAKOPANE_VOCAB,
+  routes: ['zak-gory', 'zak-kultura', 'zak-zima', 'zak-finisz', 'zak-egzamin'],
+  lessons: ['zak-1-gory', 'zak-2-gorale', 'zak-3-krupowki', 'zak-4-witkacy', 'zak-5-narty', 'zak-6-podroz', 'zak-7-opinia', 'zak-8-pozegnanie'],
+  boss: 'zak-boss',
+  levels: ['B2'],
   richDialogues: true,
 });

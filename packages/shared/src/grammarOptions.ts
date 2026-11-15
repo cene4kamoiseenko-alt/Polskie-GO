@@ -132,6 +132,35 @@ export const GRAMMAR_DISTRACTORS: Readonly<Record<string, readonly [string, stri
   'czynsz|czynszu': ['czynsz', 'czynszem', 'czynsze'],
   'zbudować|zbudowano': ['zbudowany', 'zbudowana', 'zbudować'],
   'złożyć|złożyłem': ['złożę', 'składam', 'złożyć'],
+  // Rzeszów (B2): державні послуги
+  'specjalista|specjalisty': ['specjalista', 'specjalistę', 'specjalistą'],
+  'wypłacić|wypłacony': ['wypłacić', 'wypłacił', 'wypłacany'],
+  'złożyć|złożone': ['złożony', 'złożona', 'złożyło'],
+  'żeby|żebym': ['żebyśmy', 'żebyście', 'że'],
+  'sto|stu': ['sto', 'stoma', 'setny'],
+  'żaden|żadnego': ['żaden', 'żadna', 'żadnym'],
+  'mieć|miał': ['ma', 'miałby', 'mieć'],
+  'który|których': ['którą', 'którzy', 'którego'],
+  // Kielce (B2): закріплення знань
+  'skała|skałami': ['skały', 'skale', 'skałom'],
+  'odkryć|odkryliśmy': ['odkrywaliśmy', 'odkryjemy', 'odkrywamy'],
+  'bywać|bywali': ['bywały', 'bywają', 'bywać'],
+  'mieć|mieli': ['mieliśmy', 'mamy', 'mieć'],
+  'który|którą': ['który', 'która', 'której'],
+  'kilometr|kilometrów': ['kilometry', 'kilometra', 'kilometr'],
+  'prowadzić|prowadzenia': ['prowadzić', 'prowadzenie', 'prowadząc'],
+  'ukryć|ukryty': ['ukrytą', 'ukryte', 'ukrytego'],
+  'wejść|weszliśmy': ['wchodziliśmy', 'wejdziemy', 'wchodzimy'],
+  // Zakopane (B2): культура і подорожі
+  'iść|Idąc': ['Iść', 'Idący', 'Szedłem'],
+  'gwara|gwarą': ['gwara', 'gwarę', 'gwary'],
+  'on|nim': ['niego', 'jego', 'go'],
+  'namalować|namalowany': ['namalowana', 'namalowane', 'namalowanego'],
+  'upadek|upadku': ['upadek', 'upadkiem', 'upadki'],
+  'choroba|choroby': ['chorobę', 'chorobą', 'chorobie'],
+  'mieszkaniec|mieszkańcy': ['mieszkańców', 'mieszkańcom', 'mieszkańcami'],
+  'spełnić|spełniłem': ['spełnię', 'spełniam', 'spełnić'],
+  'lawina|lawiny': ['lawina', 'lawinę', 'lawiną'],
 };
 
 /** Ключ записи таблицы для задания: основа и первая принятая форма. */

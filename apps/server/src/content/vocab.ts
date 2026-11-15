@@ -22,6 +22,9 @@ import { TORUN_VOCAB } from './vocab-torun';
 import { OLSZTYN_VOCAB } from './vocab-olsztyn';
 import { BIALYSTOK_VOCAB } from './vocab-bialystok';
 import { LUBLIN_VOCAB } from './vocab-lublin';
+import { RZESZOW_VOCAB } from './vocab-rzeszow';
+import { KIELCE_VOCAB } from './vocab-kielce';
+import { ZAKOPANE_VOCAB } from './vocab-zakopane';
 import { LODZ_VOCAB } from './vocab-lodz';
 import { WROCLAW_VOCAB } from './vocab-wroclaw';
 
@@ -335,5 +338,8 @@ export const VOCAB: VocabSeed[] = [
   ...OLSZTYN_VOCAB,
   ...BIALYSTOK_VOCAB,
   ...LUBLIN_VOCAB,
+  ...RZESZOW_VOCAB,
+  ...KIELCE_VOCAB,
+  ...ZAKOPANE_VOCAB,
   ...WROCLAW_VOCAB,
 ];

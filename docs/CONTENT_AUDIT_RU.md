@@ -545,6 +545,50 @@ pełny etat, nadgodziny, doświadczenie, zamienić się, apteczka (A2 или B1)
 - Факты и юридические детали проверить носителем и источниками: Люблинская уния заключена в 1569 г. и объединила Корону и Великое княжество Литовское; памятник унии стоит на пл. Литовской; цебуляж — люблинская лепёшка с луком. Названия «Bank Lubelski», суммы, сроки («w ciągu trzydziestu dni»), структура анкеты и договора **учебные** и не заменяют консультацию по реальным правилам.
 - Нужна проверка носителем (все новые польские тексты и неверные варианты).
 
+## Rzeszów — «Государственные услуги», B2 (2026-11-15)
+- Файлы: `rzeszow.ts` (уроки 1–4, маршруты), `rzeszow-5-8.ts` (уроки 5–8 и экзамен), `vocab-rzeszow.ts` (51 новое слово). 4 темы: 8 уроков и экзамен `rze-boss`, по 12 заданий.
+  - L1 `rze-1-przychodnia`: врач и NFZ — **skierowanie do specjalisty**, **e-recepta**, **refundacja**, **mieć prawo do** + родительный, **za trzy miesiące**, **w trybie pilnym**; **lekarz wystawił mi** (подлежащее + дательный).
+  - L2 `rze-2-zus`: ZUS — **przysługiwać** + дательный, **ubiegać się o** + винительный, **zasiłek chorobowy**, пассив **zostanie wypłacony** (однократно) и **będzie wypłacany** (регулярно).
+  - L3 `rze-3-pit`: налоги — **zeznanie podatkowe**, **ulga**, **zwrot podatku**, существительные от глаголов (**termin na złożenie zeznania**), **zeznanie zostało złożone**.
+  - L4 `rze-4-szkola`: школа и детский сад — косвенная речь (**powiedział, że…**, **poprosił, żebym…**, **zapytał, czy…**), **usprawiedliwić nieobecność**, **dziennik elektroniczny**, **zebranie**.
+  - L5 `rze-5-mandat`: штраф — **zostać ukarany mandatem**, **przekroczyć prędkość o** + винительный, **w wysokości stu złotych**, **odwołać się od** + родительный, **nie zauważyłem znaku** (родительный после отрицания), парковка и **abonament**.
+  - L6 `rze-6-policja`: полиция — **skradziono mi portfel** (безличное **-no** + дательный), **zgłosić kradzież**, **nie widziałem żadnego…**, номера 112 / 997 / 998 / 999.
+  - L7 `rze-7-reklamacja`: рекламация — **rękojmia ≠ gwarancja**, **odstąpić od umowy** в 14 дней, **gdyby miał… mógłbym…** (без двойного **-by**), **chyba że**, **o ile**.
+  - L8 `rze-8-rzeszow`: город — Dolina Lotnicza, Podziemna Trasa, определительные придаточные (**miasto, w którym…**, **piwnice, w których…**), **znany z**, **położony nad**.
+  - Экзамен `rze-boss`: 12 заданий, ситуация — городская управа в Жешуве.
+- Задания по правилам качества: три варианта в шагах диалога, чтение «на вывод» (числа и сроки), «лишнее слово» по грамматической разнице. Повторы одной фразы в 3+ заданиях убраны.
+- Факты проверить носителем и источниками: список врачей, к которым направление не нужно; четырёхзначный код e-recepty; сроки и суммы (PIT до 30 апреля — верно, штраф «сто злотых и два пункта», окно отзыва 14 дней — учебные); различие rękojmia (по закону, два года) и gwarancja; Podziemna Trasa Turystyczna и Dolina Lotnicza — реальные названия, но детали маршрута (длина, 40 минут) приблизительны. Тексты о выплатах и налогах **учебные**, не юридическая консультация.
+- Нужна проверка носителем.
+
+## Kielce — «Закрепление знаний», B2 (2026-11-15)
+- Файлы: `kielce.ts` (уроки 1–4, маршруты), `kielce-5-8.ts` (уроки 5–8 и экзамен), `vocab-kielce.ts` (44 новых слова). 4 темы: 8 уроков и экзамен `kie-boss`, по 12 заданий. Город собирает пройденное на материале Свентокшиского края.
+  - L1 `kie-1-przypadki`: падежи на одном маршруте — **do kamieniołomu**, **w amfiteatrze**, **przez wąwóz**, **nad skałami**, **ze szczytu** (**ze**, не **z**); **wzdłuż**, **mimo**, **dzięki**, **wbrew**.
+  - L2 `kie-2-aspekt`: вид глагола (пещера Рай) — **przez godzinę** / **w godzinę** / **od godziny** / **za godzinę**, **zacząć zwiedzać**, **nie wchodzić**, **nagle odkryć**.
+  - L3 `kie-3-czasy`: рассказ о прошлом (дворец и музей игрушек) — **od** + родительный + настоящее время, **w siedemnastym wieku**, **dawniej / kiedyś / dopiero co / do tej pory**, родительный после отрицания, **biskupi bywali**.
+  - L4 `kie-4-warunkowy`: условное наклонение — **gdybym miał → pojechałbym**, **gdyby nie** + именительный, **żeby** + инфинитив, **pojechalibyśmy / pojechałybyśmy**.
+  - L5 `kie-5-zlozone`: сложные предложения (легенды Лысой горы) — **który** в разных падежах (**której się bali**, **w którym**, **którą**, **o której**), **ponieważ / dlatego / chociaż / zanim**.
+  - L6 `kie-6-liczebniki`: числительные — **wynosi** + числительное, **22 kilometry** ≠ **25 kilometrów**, **kilkanaście / kilkadziesiąt / kilkaset** + родительный.
+  - L7 `kie-7-bezosobowe`: правила в заповеднике — **nie wolno**, **należy**, **nie trzeba / nie musisz ≠ nie wolno**, **obowiązuje zakaz / nakaz** + отглагольное существительное.
+  - L8 `kie-8-legenda`: легенда на уровне B2 — **pewnego razu**, **według legendy**, косвенная речь (**powiedział, że**, **zapytał, czy**, **kazał, żeby**), **został ukryty**.
+  - Экзамен `kie-boss`: 12 заданий, ситуация — туристический центр в Кельцах.
+- Факты проверить носителем и источниками: Kadzielnia — бывший известняковый карьер с заповедником и амфитеатром; Pałac Biskupów Krakowskich XVII века; Dąb Bartek в Bartkowie возле Zagnańska (возраст приведён как «по разным оценкам»); Łysica 612 м; детали пещеры Raj (около 40 минут, группы до 15 человек) приблизительны; музей игрушек и правила заповедника в уроках **учебные**; легенды пересказаны свободно.
+- Нужна проверка носителем.
+
+## Zakopane — «Фінал: культура и путешествия», B2 (2026-11-15)
+- Файлы: `zakopane.ts` (уроки 1–4, маршруты), `zakopane-5-8.ts` (уроки 5–8 и экзамен), `vocab-zakopane.ts` (50 новых слов). 4 темы: 8 уроков и финальный экзамен `zak-boss`, по 12 заданий.
+  - L1 `zak-1-gory`: деепричастие на **-ąc** (**idąc**, **wiedząc**, **nie patrząc**; одно подлежащее; не **idący**), **ostrzeżenie przed lawiną**, **halny**, **kolejka linowa**.
+  - L2 `zak-2-gorale`: безличное **się** (**mówi się gwarą**, **robi się oscypki**, **używa się ciupagi** + родительный; не **jemy się**), baca, bacówka, redyk.
+  - L3 `zak-3-krupowki`: мнение и согласие — **moim zdaniem**, **zgadzam się z** + творительный, **mam wątpliwości co do**, **targować się o cenę**, **jeśli kupię** ≠ **gdybym kupił**.
+  - L4 `zak-4-witkacy`: причастия — **obraz namalowany przez Witkacego**, **zainspirowany górami**, **uznawany za**, **znany jako**, согласование в роде.
+  - L5 `zak-5-narty`: глаголы с предлогами — **zwrócić uwagę na**, **brać udział w**, **przygotować się do**, **obawiać się** + родительный, **liczyć na**.
+  - L6 `zak-6-podroz`: бронирование и официальное письмо — **w związku z** + творительный, **z powodu** + родительный, **prosimy o potwierdzenie rezerwacji**, **anulować rezerwację**, **zwrot opłaty**.
+  - L7 `zak-7-opinia`: дискуссия о туризме — **z jednej strony… z drugiej strony…**, **owszem… niemniej…**, **nie tylko… lecz także**, **zarówno… jak i**, **szkodzić / przynosić korzyść** + дательный, **mieć wpływ na**.
+  - L8 `zak-8-pozegnanie`: прощание — **podziękować** + дательный **za** + винительный, **wdzięczny za**, **dzięki** + дательный, **tęsknić za** + творительный, **spełnić marzenie**.
+  - Экзамен `zak-boss`: 12 заданий, ситуация — вокзал в Закопане (финал пути).
+- Факты проверить носителем и источниками: Witkacy (Stanisław Ignacy Witkiewicz) — художник, писатель и философ, связанный с Закопане; его отец Stanisław Witkiewicz — создатель стиля закопанского; Muzeum Tatrzańskie; oscypek из овечьего молока, redyk, ciupaga, baca, bacówka; канатная дорога на Kasprowy Wierch и пятиступенчатая лавинная шкала; **учебные** — пороги ветра для канатной дороги, цены ски-пассов, сроки отмены брони, число туристов («несколько миллионов в год»).
+- Нужна проверка носителем.
+- Итог по плану владельца: теперь **у всех 20 городов есть уроки** (по 8 уроков и экзамену, по 12 заданий). Польский во всех четырёх новых городах (Lublin, Rzeszów, Kielce, Zakopane) носитель не вычитывал.
+
 ## 2026-11-14 — проверки речи отключены: судьба заданий «Скажи вслух» (решение владельца)
 Владелец: «Проверки речи отключаем». В приложении больше нет микрофона, записи, распознавания (Azure/Google STT и `SpeechRecognition` браузера) и оценки произношения.
 - **Ни одно задание не удалено и не перенесено.** Все 120 заданий `PRONUNCIATION` (из 1767 заданий уроков; Toruń, Poznań, Opole, Olsztyn, Łódź, Gdynia, Bydgoszcz, Białystok — по 9, Wrocław и Warszawa — по 8, Kraków — 7, Zielona Góra — 6, Katowice, Gorzów и Gdańsk — по 5, Szczecin — 4) остаются в своих уроках на своих местах, тексты и переводы не менялись.

@@ -117,7 +117,7 @@ describe('миссии: шаги «build»', () => {
 describe('уроки: BUILD_SENTENCE и WORD_ORDER', () => {
   it('запись допустимых порядков есть почти у каждого подходящего задания; ни один ключ таблицы не повис без задания', async () => {
     const items = await lessonOrderItems();
-    expect(items.length).toBe(115);
+    expect(items.length).toBe(142);
     const answers = new Set([...items.map((i) => normalize((i.data as OrderData).answer.join(' '))), ...builds.map(({ step }) => normalize(tokensOf(step.answer!).join(' ')))]);
     const orphan = orderSpecAnswers().filter((k) => !answers.has(k));
     expect(orphan, `Записи без задания:\n${orphan.join('\n')}`).toEqual([]);
