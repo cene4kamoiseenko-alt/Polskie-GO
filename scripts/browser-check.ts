@@ -458,6 +458,9 @@ async function main() {
       await p.evaluate(() => document.fonts.ready);
       const tabs = await p.locator('nav a[data-tab]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tab')));
       check(tabs.join(',') === 'home,study,life,quests,profile', `R5 пять вкладок: Главная, Учёба, Миссии, Квесты, Профиль (${tabs.join(',')})`);
+      const navImgs = await p.locator('nav a[data-tab] img').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0));
+      check(navImgs.length === 5 && navImgs.every(Boolean), `R5 значки вкладок — растровые картинки владельца, все загружены (${navImgs.filter(Boolean).length}/5)`);
+      check(await p.locator('nav a[data-tab] svg').count() === 0, 'R5 во вкладках нет SVG-иконок');
       type Box = { x: number; y: number; r: number; b: number } | null;
       const geo = await p.evaluate(() => {
         const box = (sel: string) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, r: b.right, b: b.bottom }; };

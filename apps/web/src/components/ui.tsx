@@ -1,9 +1,10 @@
 /** Базові компоненти дизайн-системи. */
-import { AnimatePresence, motion, useDragControls } from '../lib/motion';
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from '../lib/motion';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { studyHref } from '../lib/studyView';
+import { pick } from '../lib/assets';
 import { tg, haptic } from '../lib/telegram';
 import { useGoBack } from '../lib/back';
 import { EDGE_ZONE } from '../lib/swipe';
@@ -402,17 +403,21 @@ export function StatPill({ icon, value, color, onClick, label }: { icon: string;
  * → «Квесты» (задания дня, недели, сюжетные) → «Профиль». Раньше «Карта» и «Уроки» были двумя вкладками к одним урокам,
  * а миссии прятались внутри квестов. `match` — какие адреса подсвечивают вкладку; «Учёба» ведёт в последний открытый вид.
  */
-const TABS: { id: string; to: () => string; match: (p: string) => boolean; icon: LineIconName; key: TKey }[] = [
-  { id: 'home', to: () => '/', match: (p) => p === '/', icon: 'home', key: 'nav_home' },
-  { id: 'study', to: studyHref, match: (p) => p.startsWith('/learn') || p.startsWith('/map'), icon: 'book', key: 'nav_study' },
-  { id: 'life', to: () => '/life', match: (p) => p === '/life', icon: 'compass', key: 'nav_life' },
-  { id: 'quests', to: () => '/quests', match: (p) => p.startsWith('/quests'), icon: 'target', key: 'nav_quests' },
-  { id: 'profile', to: () => '/profile', match: (p) => p.startsWith('/profile'), icon: 'user', key: 'nav_profile' },
+const TABS: { id: string; to: () => string; match: (p: string) => boolean; icon: LineIconName; /** Значок владельца (assets/nav, уменьшенная копия assets/icons). */ art: string; plate?: boolean; key: TKey }[] = [
+  { id: 'home', to: () => '/', match: (p) => p === '/', icon: 'home', art: 'house', plate: true, key: 'nav_home' },
+  { id: 'study', to: studyHref, match: (p) => p.startsWith('/learn') || p.startsWith('/map'), icon: 'book', art: 'lessons', key: 'nav_study' },
+  { id: 'life', to: () => '/life', match: (p) => p === '/life', icon: 'compass', art: 'explore', plate: true, key: 'nav_life' },
+  { id: 'quests', to: () => '/quests', match: (p) => p.startsWith('/quests'), icon: 'target', art: 'quests', key: 'nav_quests' },
+  { id: 'profile', to: () => '/profile', match: (p) => p.startsWith('/profile'), icon: 'user', art: 'profile', key: 'nav_profile' },
 ];
+
+/** Уменьшенная копия значка владельца для нижней панели (96 px, assets/nav). */
+const navArt = (name: string) => pick('nav', name);
 
 export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }) {
   const { t } = useT();
   const loc = useLocation();
+  const reduce = useReducedMotion();
   return (
     <nav className="app-nav fixed inset-x-0 bottom-0 z-40">
       <div className="app-nav-dock mx-auto flex max-w-xl justify-around px-1">
@@ -430,10 +435,17 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
             >
               {/* Активний пункт видно не лише за кольором: смужка-індикатор, плашка, товщий контур і жирний підпис. */}
               {active && <motion.span layoutId="nav-bar" className="nav-indicator" transition={{ type: 'spring', stiffness: 500, damping: 36 }} aria-hidden />}
-              <span className="relative grid h-9 w-12 place-items-center">
-                {active && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--color-pl-red)_12%,transparent)]" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
-                <motion.span className="relative" animate={{ scale: active ? 1.08 : 1, y: active ? -1 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 24 }}>
-                  <Icon name={tab.icon} size={24} strokeWidth={active ? 2.4 : 2} />
+              <span className="relative grid h-10 w-12 place-items-center">
+                {active && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--color-pl-red)_14%,transparent)]" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
+                {/* Значки владельца (растр), как во всей игре; неактивные приглушены, активный — в цвете, приподнят и «подпрыгивает» при выборе. */}
+                <motion.span
+                  key={active ? 'on' : 'off'}
+                  className={cx('nav-art relative', tab.plate && 'icon-plate', active ? 'is-on' : 'is-off')}
+                  initial={active && !reduce ? { scale: 0.82, y: 2 } : false}
+                  animate={{ scale: active ? 1.06 : 1, y: active ? -2 : 0 }}
+                  transition={{ type: 'spring', stiffness: 520, damping: 15 }}
+                >
+                  {navArt(tab.art) ? <img src={navArt(tab.art)!} alt="" width={30} height={30} decoding="async" draggable={false} /> : <Icon name={tab.icon} size={24} strokeWidth={active ? 2.4 : 2} />}
                 </motion.span>
               </span>
               <span className={cx('text-[11px] leading-none', active ? 'font-black' : 'font-bold')}>{t(tab.key)}</span>

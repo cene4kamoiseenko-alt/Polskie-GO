@@ -2401,7 +2401,7 @@ html.reduced-motion .map-here-ring { animation: none; }
   box-shadow: var(--shadow-deep);
   transition: transform 0.12s;
 }
-.week-card:active { transform: scale(0.985); }
+.week-card > button:first-of-type:active { transform: scale(0.985); }
 .week-dot {
   display: grid;
   width: 30px;
@@ -2613,3 +2613,17 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
   box-shadow: 0 4px 0 #c9822a, 0 14px 30px -10px rgb(255 159 41 / 0.8);
   pointer-events: none;
 }
+
+/* Нижняя панель: растровые значки владельца (2026-11-15). Неактивные — приглушены, активный — в цвете. */
+.nav-art {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  transition: filter 160ms ease-out, opacity 160ms ease-out;
+}
+.nav-art img { display: block; width: 30px; height: 30px; object-fit: contain; }
+.nav-art.icon-plate img { width: 25px; height: 25px; }
+.nav-art.is-off { opacity: 0.8; filter: saturate(0.7); transform-origin: 50% 60%; }
+.nav-art.is-on { opacity: 1; filter: drop-shadow(0 3px 5px rgb(0 0 0 / 0.35)); }
+.light .nav-art.is-off { opacity: 0.85; filter: saturate(0.75); }
