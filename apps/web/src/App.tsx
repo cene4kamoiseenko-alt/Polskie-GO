@@ -42,7 +42,7 @@ const PassScreen = lazy(() => import('./screens/Pass'));
 // «Потянуть вниз — обновить»: отдельный чанк, подключается уже после старта (бюджет JS холодного старта).
 const PullToRefresh = lazy(() => import('./components/PullToRefresh'));
 
-const TAB_ROUTES = ['/', '/map', '/learn', '/quests', '/profile'];
+const TAB_ROUTES = ['/', '/learn', '/map', '/life', '/quests', '/profile'];
 
 function useTheme(pref: 'auto' | 'light' | 'dark' | undefined) {
   const [systemDark, setSystemDark] = useState(() => (tg ? tg.colorScheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches));
@@ -158,7 +158,7 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('reduced-motion', !!reduced);
   }, [reduced]);
-  const badges = useMemo(() => ({ '/quests': 0, '/profile': me.data?.counters.unseenAchievements ?? 0 }), [me.data]);
+  const badges = useMemo(() => ({ quests: 0, profile: me.data?.counters.unseenAchievements ?? 0 }), [me.data]);
 
   useEffect(() => {
     if (me.data) bootMark('profile');

@@ -6,6 +6,8 @@ import { sceneForRoute } from '../components/LessonStage';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../i18n';
+import { StudySwitch } from '../components/StudySwitch';
+import { rememberStudyView } from '../lib/studyView';
 import { homeShot } from '../lib/homeArt';
 import { locationThumb } from '../lib/assets';
 import { useJourney, useMe } from '../lib/queries';
@@ -82,6 +84,8 @@ function LessonNode({ lesson, index, onClick, isNext }: { lesson: JourneyLesson;
 }
 
 export default function LearnScreen() {
+  // Вкладка «Учёба» откроется в этом виде в следующий раз.
+  useEffect(() => rememberStudyView('lessons'), []);
   const { t, tr } = useT();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -111,9 +115,10 @@ export default function LearnScreen() {
   return (
     <div className="space-y-4">
       <TopStats compact />
+      {/* «Учёба»: уроки и карта — два вида одного пути */}
       <div className="px-4">
-        <h1 className="text-2xl font-black">{t('learn_title')}</h1>
-        <p className="muted text-sm font-bold">{t('learn_subtitle')}</p>
+        <h1 className="sr-only">{t('learn_title')}</h1>
+        <StudySwitch view="lessons" />
       </div>
 
       {/* Перемикач міст */}

@@ -32,6 +32,14 @@ import { inkOn } from '../lib/color';
 type Phase = 'loading' | 'intro' | 'play' | 'finishing' | 'result' | 'error';
 const NO_RETRY = new Set(['DIALOGUE', 'SITUATION', 'PRONUNCIATION']);
 
+/** Похвала за серию верных ответов: польское слово (учит заодно) и перевод на язык интерфейса. */
+const COMBO_PRAISE: Record<number, [string, TKey]> = {
+  3: ['Dobrze!', 'combo_good'],
+  5: ['Świetnie!', 'combo_great'],
+  10: ['Rewelacja!', 'combo_amazing'],
+  15: ['Mistrz!', 'combo_master'],
+};
+
 export default function LessonScreen() {
   const { lessonId, mode } = useParams();
   const [search] = useSearchParams();
@@ -60,6 +68,14 @@ export default function LessonScreen() {
   const [mistakes, setMistakes] = useState(0);
   // Верные ответы подряд — только на экране (на XP и награды не влияет): с трёх показывается «огонёк ×N».
   const [combo, setCombo] = useState(0);
+  // Вспышка на 3/5/10/15 верных подряд: польская похвала с переводом (держится ~1,6 с).
+  const [burst, setBurst] = useState<number | null>(null);
+  useEffect(() => {
+    if (!COMBO_PRAISE[combo]) return;
+    setBurst(combo);
+    const tm = setTimeout(() => setBurst(null), 1600);
+    return () => clearTimeout(tm);
+  }, [combo]);
   const started = useRef(false);
 
   useEffect(() => {
@@ -370,6 +386,26 @@ export default function LessonScreen() {
         <ReportExercise target={{ sessionId: session.sessionId, key: item.key }} />
       </div>
 
+      <AnimatePresence>
+        {burst !== null && COMBO_PRAISE[burst] && (
+          <motion.div
+            key={burst}
+            className="combo-burst"
+            role="status"
+            initial={{ opacity: 0, y: -12, scale: 0.7 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 460, damping: 20 }}
+            data-combo-burst={burst}
+          >
+            <Art name="flame" size={22} />
+            <span className="leading-tight">
+              <span className="block text-[15px] font-black" lang="pl">{COMBO_PRAISE[burst][0]} ×{burst}</span>
+              <span className="block text-[11.5px] font-bold opacity-80">{t(COMBO_PRAISE[burst][1])}</span>
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex-1 overflow-y-auto px-4 pb-48 pt-4">
         {resumed > 0 && pos === 0 && !result && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-2 flex items-center justify-center gap-1.5 rounded-2xl bg-sky/15 px-3 py-1.5 text-sm font-black text-sky-dark">

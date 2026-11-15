@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useDragControls } from '../lib/motion';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
+import { studyHref } from '../lib/studyView';
 import { tg, haptic } from '../lib/telegram';
 import { useGoBack } from '../lib/back';
 import { EDGE_ZONE } from '../lib/swipe';
@@ -396,12 +397,17 @@ export function StatPill({ icon, value, color, onClick, label }: { icon: string;
 }
 
 // ───────── Нижня навігація ─────────
-const TABS: { to: string; icon: LineIconName; key: TKey }[] = [
-  { to: '/', icon: 'home', key: 'nav_home' },
-  { to: '/map', icon: 'map', key: 'nav_map' },
-  { to: '/learn', icon: 'book', key: 'nav_learn' },
-  { to: '/quests', icon: 'target', key: 'nav_quests' },
-  { to: '/profile', icon: 'user', key: 'nav_profile' },
+/**
+ * Вкладки (2026-11-15): «Сегодня» → «Учёба» (уроки и карта — один путь, переключатель вверху) → «Миссии» («Польский в жизни»)
+ * → «Квесты» (задания дня, недели, сюжетные) → «Профиль». Раньше «Карта» и «Уроки» были двумя вкладками к одним урокам,
+ * а миссии прятались внутри квестов. `match` — какие адреса подсвечивают вкладку; «Учёба» ведёт в последний открытый вид.
+ */
+const TABS: { id: string; to: () => string; match: (p: string) => boolean; icon: LineIconName; key: TKey }[] = [
+  { id: 'home', to: () => '/', match: (p) => p === '/', icon: 'home', key: 'nav_home' },
+  { id: 'study', to: studyHref, match: (p) => p.startsWith('/learn') || p.startsWith('/map'), icon: 'book', key: 'nav_study' },
+  { id: 'life', to: () => '/life', match: (p) => p === '/life', icon: 'compass', key: 'nav_life' },
+  { id: 'quests', to: () => '/quests', match: (p) => p.startsWith('/quests'), icon: 'target', key: 'nav_quests' },
+  { id: 'profile', to: () => '/profile', match: (p) => p.startsWith('/profile'), icon: 'user', key: 'nav_profile' },
 ];
 
 export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }) {
@@ -411,11 +417,13 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
     <nav className="app-nav fixed inset-x-0 bottom-0 z-40">
       <div className="app-nav-dock mx-auto flex max-w-xl justify-around px-1">
         {TABS.map((tab) => {
-          const active = tab.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(tab.to);
+          const active = tab.match(loc.pathname);
+          const to = tab.to();
           return (
             <NavLink
-              key={tab.to}
-              to={tab.to}
+              key={tab.id}
+              to={to}
+              data-tab={tab.id}
               onClick={() => haptic.select()}
               className={cx('nav-tab relative flex min-w-[62px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl transition-colors active:scale-95', active ? 'text-pl-red' : 'muted')}
               aria-current={active ? 'page' : undefined}
@@ -429,7 +437,7 @@ export function BottomNav({ badge }: { badge?: Partial<Record<string, number>> }
                 </motion.span>
               </span>
               <span className={cx('text-[11px] leading-none', active ? 'font-black' : 'font-bold')}>{t(tab.key)}</span>
-              {!!badge?.[tab.to] && <span className="absolute right-[22%] top-2 h-2.5 w-2.5 rounded-full bg-pl-red ring-2 ring-[var(--bg-elev)]" />}
+              {!!badge?.[tab.id] && <span className="absolute right-[22%] top-2 h-2.5 w-2.5 rounded-full bg-pl-red ring-2 ring-[var(--bg-elev)]" />}
             </NavLink>
           );
         })}

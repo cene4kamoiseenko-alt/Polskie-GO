@@ -1,4 +1,4 @@
-import { motion } from '../lib/motion';
+import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -10,10 +10,11 @@ import type { PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon } from '../components/Icon';
-import { Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
+import { Confetti, Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
 import { HouseCard } from '../components/HouseCard';
 import { Art, type ArtName } from '../components/GameArt';
 import { CityHero } from '../components/CityHero';
+import { HeroBeaver } from '../components/HeroBeaver';
 import { sfx } from '../lib/audio';
 import { botCanMessage, haptic, requestWriteAccessResult } from '../lib/telegram';
 import { store } from '../lib/storage';
@@ -100,14 +101,19 @@ export const TASK_ART: Record<string, ArtName> = {
 /** Рисунки со своей плиткой (значки владельца, 2026-11-02): им плашка не нужна. Остальные ложатся на плашку того же цвета (.icon-plate). */
 export const TILE_TASK_ART = new Set<ArtName>(['book', 'star', 'target']);
 
-/** Дерев'яний покажчик з назвою поточного міста (як на макеті головної). */
-function CitySign({ name }: { name: string }) {
-  return (
-    <span className="city-sign" aria-hidden>
-      <span className="city-sign-post" />
-      <span className="city-sign-board" lang="pl">{name.toUpperCase()}</span>
-    </span>
-  );
+/** Розмір Бобека на банері: 46% ширини банера (екран мінус поля 2×16, не ширше колонки 576), у межах 150–186 px. */
+function heroBeaverFor(width: number) {
+  const banner = Math.min(width, 576) - 32;
+  return Math.round(Math.min(186, Math.max(150, banner * 0.46)));
+}
+function useHeroBeaverSize() {
+  const [size, setSize] = useState(() => heroBeaverFor(typeof window === 'undefined' ? 390 : window.innerWidth));
+  useEffect(() => {
+    const on = () => setSize(heroBeaverFor(window.innerWidth));
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  return size;
 }
 
 const WA_KEY = 'pg:write-access';
@@ -164,16 +170,51 @@ function WeekStrip() {
   const { t, lang } = useT();
   const nav = useNavigate();
   const me = useMe().data!;
+  const reduce = useReducedMotion();
   const stats = useQuery({ queryKey: ['stats', 7], queryFn: () => api<{ days: WeekDay[] }>('/me/stats?days=7') });
   const days: (WeekDay | null)[] = stats.data?.days.slice(-7) ?? Array.from({ length: 7 }, () => null);
   const goalDone = me.today.xp >= me.today.goalXp;
   const streak = me.progress.streak;
-  const letter = (day: string) => new Intl.DateTimeFormat(lang, { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day}T12:00:00Z`)).slice(0, 2);
+  const [picked, setPicked] = useState<number | null>(null);
+  const toast = useToast();
+  const fmt = (day: string, weekday: 'short' | 'long') => new Intl.DateTimeFormat(lang, { weekday, timeZone: 'UTC' }).format(new Date(`${day}T12:00:00Z`));
+  const letter = (day: string) => fmt(day, 'short').slice(0, 2);
+
+  // Пик дня: цель выполнена — один раз за день конфетти и вибрация, когда игрок видит главную (обычно сразу после урока).
+  const [party, setParty] = useState(false);
+  useEffect(() => {
+    if (!goalDone) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (store.get(GOAL_PARTY_KEY) === today) return;
+    store.set(GOAL_PARTY_KEY, today);
+    haptic.success();
+    toast(t('home_week_goal_hit'), '✨');
+    if (reduce) return;
+    setParty(true);
+    const tm = setTimeout(() => setParty(false), 3200);
+    return () => clearTimeout(tm);
+  }, [goalDone, reduce]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const caption = (() => {
+    if (picked === null) return null;
+    const d = days[picked];
+    if (!d) return null;
+    const name = fmt(d.day, 'long');
+    const day = name.charAt(0).toUpperCase() + name.slice(1);
+    if (picked === days.length - 1) return goalDone ? t('home_week_today_done', { xp: me.today.xp }) : t('home_week_today_left', { xp: me.today.goalXp - me.today.xp });
+    return d.xp > 0 ? t('home_week_day_xp', { day, xp: d.xp }) : t('home_week_day_none', { day });
+  })();
+
   return (
-    <button type="button" onClick={() => { haptic.tap(); nav('/profile'); }} className="week-card mx-4 block w-[calc(100%-2rem)] text-left" data-home-week>
-      <span className="flex items-center gap-3">
-        <motion.span className="shrink-0" animate={streak > 0 ? { scale: [1, 1.08, 1] } : undefined} transition={{ repeat: Infinity, duration: 2.2 }}>
-          <Art name="flame" size={40} className={streak > 0 ? undefined : 'opacity-45 grayscale'} />
+    <div className="week-card mx-4" data-home-week>
+      <Confetti run={party} />
+      <button type="button" onClick={() => { haptic.tap(); nav('/profile'); }} className="flex w-full items-center gap-3 text-left" aria-label={`${streak > 0 ? t('home_week_streak', { n: streak }) : t('home_week_start')}. ${t('home_week_open_stats')}`}>
+        <motion.span
+          className="shrink-0"
+          animate={party ? { scale: [1, 1.35, 0.95, 1.12, 1], rotate: [0, -8, 6, -3, 0] } : streak > 0 && !reduce ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+          transition={party ? { duration: 0.9 } : { repeat: streak > 0 ? Infinity : 0, duration: 2.2 }}
+        >
+          <Art name="flame" size={40} className={streak > 0 || goalDone ? undefined : 'opacity-45 grayscale'} />
         </motion.span>
         <span className="min-w-0 flex-1">
           <span className="block text-[16px] font-black leading-tight">{streak > 0 ? t('home_week_streak', { n: streak }) : t('home_week_start')}</span>
@@ -182,22 +223,57 @@ function WeekStrip() {
             <span className="muted shrink-0 text-[11.5px] font-black tabular-nums">{goalDone ? t('home_goal_done') : t('home_goal_today', { xp: me.today.xp, goal: me.today.goalXp })}</span>
           </span>
         </span>
-      </span>
-      <span className="mt-3 grid grid-cols-7 gap-1" aria-hidden>
+        <Icon name="chevron-right" size={18} className="shrink-0 text-[var(--text-muted)]" />
+      </button>
+      {/* Семь дней: нажатие показывает, сколько XP было в тот день */}
+      <div className="mt-3 grid grid-cols-7 gap-1">
         {days.map((d, i) => {
           const today = i === days.length - 1;
           const on = !!d && d.xp > 0;
+          const sel = picked === i;
           return (
-            <span key={d?.day ?? i} className="flex flex-col items-center gap-1">
-              <span className={cx('week-dot', on && 'is-on', today && 'is-today')}>{on && <Icon name="check" size={14} strokeWidth={3.4} />}</span>
-              <span className={cx('text-[10.5px] font-black uppercase leading-none', today ? 'text-[var(--text)]' : 'muted')}>{d ? letter(d.day) : '·'}</span>
-            </span>
+            <button
+              key={d?.day ?? i}
+              type="button"
+              disabled={!d}
+              onClick={() => { haptic.select(); setPicked(sel ? null : i); }}
+              className="flex flex-col items-center gap-1 rounded-xl py-0.5"
+              aria-pressed={sel}
+              aria-label={d ? `${fmt(d.day, 'long')}: ${d.xp} XP` : undefined}
+            >
+              <motion.span
+                className={cx('week-dot', on && 'is-on', today && 'is-today', sel && 'is-picked')}
+                initial={reduce || !d ? false : { scale: 0.55, opacity: 0 }}
+                animate={{ scale: sel ? 1.12 : 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 520, damping: 22, delay: stats.data && !sel ? i * 0.045 : 0 }}
+              >
+                {on && <Icon name="check" size={14} strokeWidth={3.4} />}
+              </motion.span>
+              <span className={cx('text-[10.5px] font-black uppercase leading-none', today || sel ? 'text-[var(--text)]' : 'muted')}>{d ? letter(d.day) : '·'}</span>
+            </button>
           );
         })}
-      </span>
-    </button>
+      </div>
+      <AnimatePresence initial={false}>
+        {caption && (
+          <motion.div
+            key={caption}
+            className="week-caption"
+            role="status"
+            initial={{ opacity: 0, y: -4, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            {caption}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
+
+const GOAL_PARTY_KEY = 'pg:goal-party';
 
 /** Узкий баннер Premium на главной — только для тех, у кого его нет: картинка дня владельца, что даёт подписка и кнопка «Открыть». */
 function PremiumTeaser() {
@@ -206,14 +282,30 @@ function PremiumTeaser() {
   const me = useMe().data;
   if (!me || me.premium.active) return null;
   const banner = todayBanner();
+  // Постер владельца — готовая реклама со своими надписями: показываем его целиком (верх кадра, 16:9), без нашего текста поверх.
+  // Раньше подпись ложилась на надписи постера («Пропуск месяца», «Длинные сцены») — текст на тексте.
+  if (banner) {
+    return (
+      <motion.button
+        whileTap={{ scale: 0.985 }}
+        onClick={() => { haptic.tap(); nav('/premium'); }}
+        className="premium-poster relative mx-4 block w-[calc(100%-2rem)] overflow-hidden rounded-[24px] text-left"
+        aria-label={`Premium. ${t('home_premium_teaser')}`}
+        data-premium-teaser
+      >
+        <img src={banner.src} srcSet={banner.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="block aspect-[16/9] w-full object-cover object-top" loading="lazy" decoding="async" draggable={false} />
+        <span className="premium-poster-cta absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-black">
+          {t('home_premium_open')} <Icon name="arrow-right" size={15} strokeWidth={2.6} />
+        </span>
+      </motion.button>
+    );
+  }
   return (
     <button
       onClick={() => { haptic.tap(); nav('/premium'); }}
       className="relative mx-4 block w-[calc(100%-2rem)] overflow-hidden rounded-[24px] border-2 border-[#F5C451]/70 bg-night text-left shadow-[var(--shadow-card)] active:scale-[0.99]"
       data-premium-teaser
     >
-      {banner && <img src={banner.src} srcSet={banner.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" draggable={false} />}
-      <span className="absolute inset-0 bg-gradient-to-r from-night/90 via-night/60 to-night/10" aria-hidden />
       <span className="relative flex items-center gap-3 px-3.5 py-3.5">
         <Art name="crown" size={36} />
         <span className="min-w-0 flex-1">
@@ -243,8 +335,8 @@ export function HomeScreen() {
     if (current) rememberCity({ slug: current.slug, color: current.color, namePl: current.namePl });
   }, [current?.slug, current?.color, current?.namePl]); // eslint-disable-line react-hooks/exhaustive-deps
   const rank = rankFor(me.progress.level);
-  // Розмір бобра — від ширини екрана (360 → 176, 430 → 200), щоб картки праворуч не перекривали персонажа.
-  const heroBeaver = 188;
+  // Розмір Бобека: блок 46% ширини банера (min 150, max 186), щоб праворуч лишалось місце карткам і кнопці без накладання.
+  const heroBeaver = useHeroBeaverSize();
 
   // Головна (варіант A): один головний крок — «Продовжити урок»; далі «Сьогодні», пропуск місяця й «Учитися далі».
   // Решта розділів — у шторці «Усі розділи» та в нижній панелі (без дублів на головній).
@@ -252,44 +344,45 @@ export function HomeScreen() {
     <div className="space-y-5 pb-2">
       <TopStats />
 
-      {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія */}
-      <div className="hero-card mx-4">
-        <CityHero slug={shown?.slug ?? 'warszawa'} color={shown?.color ?? '#36B9FF'} name={shown?.namePl ?? 'Warszawa'} height={256} eager>
-          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.38), transparent 55%)' }} />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-l from-night/45 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-night/50 to-transparent" />
-          {/* Покажчик міста позаду бобра */}
-          {shown && <CitySign name={shown.namePl} />}
-          {/* Бобек у поточному образі — головний персонаж банера, картки його не закривають */}
-          <motion.div className="home-hero-beaver absolute bottom-0 -left-1" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
-            <Beaver mood="happy" size={heroBeaver} />
+      {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія.
+          Композиція (2026-11-15): Бобек цілком у кадрі (хвіст і лапи не обрізані), праворуч одна скляна картка
+          «місто + рівень», кнопка під нею — ніщо не накриває персонажа. Дерев'яний покажчик прибрано: він заходив у вухо Бобека. */}
+      <div className="hero-card home-hero mx-4">
+        <CityHero slug={shown?.slug ?? 'warszawa'} color={shown?.color ?? '#36B9FF'} name={shown?.namePl ?? 'Warszawa'} height={272} eager>
+          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 12% -10%, rgba(255,196,120,0.34), transparent 55%)' }} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-[60%] bg-gradient-to-l from-night/55 via-night/25 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-night/55 to-transparent" />
+          {/* Бобек у поточному образі: тап — стрибок і фраза польською */}
+          <motion.div className="home-hero-beaver absolute bottom-1.5 left-1.5" initial={{ x: -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
+            <HeroBeaver size={heroBeaver} />
           </motion.div>
-          <div className="absolute right-2.5 top-2.5 w-[52%] space-y-2">
-            <button onClick={() => { haptic.tap(); nav('/map'); }} className="glass-card flex w-full items-center gap-1.5 px-2.5 py-2 text-left">
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black text-mist">{t('home_cur_city')}</div>
-                <div className="flex min-w-0 items-center gap-1 text-[18px] font-black leading-tight text-white">
-                  <Icon name="pin" size={17} className="shrink-0 text-coral" filled /> <span className="min-w-0" lang="pl" style={{ fontSize: (shown?.namePl.length ?? 0) > 10 ? 15 : undefined }}>{shown?.namePl ?? '—'}</span>
-                </div>
-              </div>
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/25 text-white"><Icon name="chevron-right" size={16} /></span>
+          <div className="glass-card home-hero-info absolute right-2.5 top-2.5 w-[52%] overflow-hidden">
+            <button onClick={() => { haptic.tap(); nav('/map'); }} className="flex w-full items-center gap-1.5 px-2.5 pb-1.5 pt-2 text-left active:bg-white/10">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10.5px] font-black uppercase tracking-[0.08em] text-white/70">{t('home_cur_city')}</span>
+                <span className="flex min-w-0 items-center gap-1 text-[19px] font-black leading-tight text-white">
+                  <Icon name="pin" size={16} className="shrink-0 text-coral" filled />
+                  <span className="min-w-0 truncate" lang="pl" style={{ fontSize: (shown?.namePl.length ?? 0) > 10 ? 15.5 : undefined }}>{shown?.namePl ?? '—'}</span>
+                </span>
+              </span>
+              <Icon name="chevron-right" size={18} className="shrink-0 text-white/70" />
             </button>
-            <button onClick={() => { haptic.tap(); nav('/profile'); }} className="glass-card flex w-full items-center gap-2 px-2 py-2 text-left">
-              <Art name="shield" size={34} label={String(me.progress.level)} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[12.5px] font-black leading-tight text-white">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rank}</span></div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={7} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
-                  <span className="shrink-0 text-[10.5px] font-black text-mist">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
-                </div>
-              </div>
+            <div className="mx-2.5 h-px bg-white/15" aria-hidden />
+            <button onClick={() => { haptic.tap(); nav('/profile'); }} className="flex w-full items-center gap-2 px-2 pb-2 pt-1.5 text-left active:bg-white/10">
+              <Art name="shield" size={30} label={String(me.progress.level)} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-black leading-tight text-white">{t('home_level_n', { n: me.progress.level })} · <span className="text-sky">{rank}</span></span>
+                <span className="mt-1 flex items-center gap-1.5">
+                  <Progress value={me.progress.levelXp} max={me.progress.levelXpNeeded} height={6} color="linear-gradient(90deg,#25D79B,#7CF0C3)" />
+                  <span className="shrink-0 text-[10.5px] font-black tabular-nums text-white/75">{me.progress.levelXp}/{me.progress.levelXpNeeded}</span>
+                </span>
+              </span>
             </button>
           </div>
           <motion.button
             whileTap={{ scale: 0.96 }}
-            whileHover={{ y: -1 }}
             onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : loadingJourney ? '/learn' : '/map'); }}
-            className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[57%] !min-h-[50px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
+            className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[52%] !min-h-[52px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
           >
             <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{next || loadingJourney ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
           </motion.button>
@@ -321,9 +414,9 @@ export function HomeScreen() {
       >
         <div className="grid grid-cols-4 gap-2">
           <SectionTile icon="review" label={t('home_practice')} badge={me.counters.mistakes + me.counters.dueReviews} onClick={() => setSheet('practice')} />
-          <SectionTile icon="city" label={t('home_tile_life')} onClick={() => nav('/life')} />
           <SectionTile icon="grammar" label={t('home_tile_grammar')} onClick={() => nav('/grammar')} />
           <SectionTile icon="dictionary" label={t('home_tile_dict')} onClick={() => nav('/dictionary')} />
+          <SectionTile icon="exam" label={t('home_tile_exams')} onClick={() => nav('/exams')} />
         </div>
       </Section>
 

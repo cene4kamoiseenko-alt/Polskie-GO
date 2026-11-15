@@ -1,11 +1,10 @@
 import { motion } from '../lib/motion';
-import { Scene } from '../components/Illustrations';
 import { Icon } from '../components/Icon';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
 import { api } from '../lib/api';
-import { questHero, questLifeThumb, questStoryArt } from '../lib/screenArt';
+import { questHero, questStoryArt } from '../lib/screenArt';
 import { useQuests, useRefreshAll } from '../lib/queries';
 import type { Quest } from '../lib/types';
 import { sfx } from '../lib/audio';
@@ -26,9 +25,9 @@ function useCountdown(to?: string) {
     const i = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(i);
   }, []);
-  if (!to) return '';
+  if (!to) return null;
   const ms = Math.max(0, new Date(to).getTime() - now);
-  return `${Math.floor(ms / 3600_000)}h ${Math.floor((ms % 3600_000) / 60_000)}m`;
+  return { h: Math.floor(ms / 3600_000), m: Math.floor((ms % 3600_000) / 60_000) };
 }
 
 /** Іконка квесту за його метрикою (закодованою в slug). */
@@ -137,7 +136,6 @@ export default function QuestsScreen() {
   const list = lists[tab];
   const finished = list.filter((x) => x.status === 'COMPLETED' || x.status === 'CLAIMED').length;
   const hero = questHero();
-  const lifeThumb = questLifeThumb();
 
   return (
     <div ref={swipe.ref} className="space-y-4 pb-4" data-tab-swipe="quests">
@@ -153,10 +151,10 @@ export default function QuestsScreen() {
         ) : (
           <Skyline className="absolute inset-x-0 bottom-0 w-full opacity-70" height={110} sky={false} />
         )}
-        <div className="absolute left-4 top-4 max-w-[58%]">
+        <div className="absolute left-4 top-4 max-w-[64%]">
           <h1 className="text-3xl font-black text-ink drop-shadow-[0_2px_0_rgba(255,255,255,0.8)]">{t('quests_title')}</h1>
-          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-black text-ink">
-            <GameIcon name="timer" size={18} /> {t('quests_resets', { t: countdown })}
+          <div className="mt-1 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white/90 py-1 pl-1.5 pr-2.5 text-xs font-black text-ink">
+            <GameIcon name="timer" size={18} /> {t('quests_resets', { t: countdown ? t('time_hm', countdown) : '' })}
           </div>
           <div className="mt-1.5 inline-block rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-black text-ink">{t('quests_done_of', { n: finished, total: list.length })}</div>
         </div>
@@ -166,20 +164,6 @@ export default function QuestsScreen() {
           </div>
         )}
       </div>
-
-      {/* Вхід до місій «Польська в житті» */}
-      <button onClick={() => { haptic.tap(); nav('/life'); }} className="card mx-4 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden p-0 text-left active:scale-[0.98]">
-        {lifeThumb ? (
-          <img src={lifeThumb} alt="" className="h-20 w-28 shrink-0 object-cover" style={{ objectPosition: '14% 50%' }} loading="lazy" decoding="async" draggable={false} data-quest-art="life" />
-        ) : (
-          <Scene name="shop-corner" className="h-20 w-28 shrink-0" />
-        )}
-        <div className="min-w-0 flex-1 py-2">
-          <div className="font-black leading-tight">{t('life_title')}</div>
-          <div className="muted line-clamp-2 text-xs font-semibold">{t('life_subtitle')}</div>
-        </div>
-        <Icon name="chevron-right" size={20} className="mr-3 shrink-0 text-pl-red" />
-      </button>
 
       {/* Вкладки */}
       <div className="grid grid-cols-3 gap-2 px-4" role="tablist">

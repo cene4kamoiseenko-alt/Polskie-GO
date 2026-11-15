@@ -6,11 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { haptic } from '../lib/telegram';
 import { useTabSwipe } from '../lib/swipe';
-import { ErrorState, ScreenHeader, ScreenSkeleton, cx } from '../components/ui';
+import { ErrorState, ScreenSkeleton, cx } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
 import { Scene } from '../components/Illustrations';
-import { PassCard } from './Home';
+import { PassCard, TopStats } from './Home';
+import { questLifeThumb } from '../lib/screenArt';
 
 const CATS: { id: string; key: TKey }[] = [
   { id: 'all', key: 'life_cat_all' },
@@ -36,10 +37,27 @@ export default function MissionsScreen() {
   const { missions, soon } = q.data!;
   const list = missions.filter((m) => cat === 'all' || m.category === cat);
   const done = missions.filter((m) => m.completions > 0).length;
+  const lifeArt = questLifeThumb();
   return (
-    <div ref={swipe.ref} className="pb-6" data-tab-swipe="life">
-      <ScreenHeader title={t('life_title')} subtitle={t('life_progress', { n: done, total: missions.length })} />
-      <p className="muted px-4 text-sm font-semibold">{t('life_subtitle')}</p>
+    <div ref={swipe.ref} className="space-y-0 pb-6" data-tab-swipe="life">
+      {/* Вкладка нижней панели (2026-11-15): без кнопки «Назад», шапка как у остальных вкладок.
+          Герой — кадр владельца «Sklep 24h» (раньше миниатюра входа в миссии на экране квестов): Бобек слева, текст — на небе справа. */}
+      <TopStats compact />
+      <div className="flex items-end justify-between gap-3 px-4 pb-2.5 pt-1">
+        <h1 className="screen-title">{t('life_title')}</h1>
+        <span className="life-progress-chip shrink-0" aria-label={t('life_progress', { n: done, total: missions.length })}>
+          <Icon name="check" size={14} strokeWidth={3} /> {done}/{missions.length}
+        </span>
+      </div>
+      {/* Кадр без текста поверх: на нём своя вывеска «SKLEP 24h», заголовок над ним (раньше ложился на вывеску). */}
+      <div className="life-hero relative mx-4 aspect-[16/8] overflow-hidden rounded-[28px]" style={{ background: 'linear-gradient(180deg,#8ED3F7,#DDF2FF)' }}>
+        {lifeArt ? (
+          <img src={lifeArt} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: '0% 70%' }} decoding="async" draggable={false} data-quest-art="life" />
+        ) : (
+          <Scene name="shop-corner" className="absolute inset-0 h-full w-full" />
+        )}
+      </div>
+      <p className="muted mx-4 mt-2.5 text-sm font-semibold leading-snug">{t('life_subtitle')}</p>
       {/* Пропуск місяця: сезонні місії — окремо від загального списку */}
       <div className="mt-3"><PassCard /></div>
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto px-4 pb-1">

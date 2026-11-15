@@ -94,10 +94,8 @@ async function main() {
       check(parts.title && parts.chips.length >= 2 && parts.chips.every(Boolean), `${tag}: заголовок и плашки внутри баннера (${parts.chips.length} плашки)`);
       check(await u.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${tag}: нет горизонтальной прокрутки`);
 
-      await u.page.locator('[data-quest-art="life"]').scrollIntoViewIfNeeded();
-      await u.page.waitForTimeout(500);
-      const life = await loaded(u.page, '[data-quest-art="life"]');
-      check(life.ok, `${tag}: миниатюра «Польский в жизни» — Sklep 24h загружена (${life.src})`);
+      // «Польский в жизни» — отдельная вкладка нижней панели (2026-11-15); кадр Sklep 24h теперь её герой, а не карточка в квестах.
+      check(await u.page.locator('[data-quest-art="life"]').count() === 0, `${tag}: в квестах нет дубля входа в миссии (это вкладка «Миссии»)`);
       // Вкладки «Ежедневные / Недельные / Особые»: значки владельца (мишень, звезда, карта) 30 px над подписью, загружены, подписи целиком в своей вкладке.
       const tabImgs = await u.page.locator('[role=tab] img').evaluateAll((els) => els.map((e) => ({ ok: (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0, w: Math.round(e.getBoundingClientRect().width), src: (e as HTMLImageElement).currentSrc.split('/').pop() })));
       check(tabImgs.length === 3 && tabImgs.every((i) => i.ok && i.w === 30), `${tag}: значки вкладок — плитки владельца 30 px (${tabImgs.map((i) => i.src).join(', ')})`);

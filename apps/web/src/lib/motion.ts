@@ -6,7 +6,7 @@
 import { useContext } from 'react';
 import { MotionConfigContext, useReducedMotion as useSystemReducedMotion } from 'framer-motion';
 
-export { m as motion, AnimatePresence, LayoutGroup, LazyMotion, MotionConfig, animate, useDragControls, useInView, useMotionValue, useTransform } from 'framer-motion';
+export { m as motion, AnimatePresence, LayoutGroup, LazyMotion, MotionConfig, animate, useAnimationControls, useDragControls, useInView, useMotionValue, useTransform } from 'framer-motion';
 
 /**
  * Менше руху: налаштування профілю «Менше анімацій» (MotionConfig reducedMotion="always", App.tsx) або системне

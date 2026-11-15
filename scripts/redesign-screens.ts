@@ -29,7 +29,7 @@ async function main() {
       await u.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A0', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
       await u.call('PATCH', '/api/me/settings', { theme });
       const id = String(++devUser);
-      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, colorScheme: theme, locale: 'ru-RU' });
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: Number(process.env.DPR ?? 1), colorScheme: theme, locale: 'ru-RU' });
       const p = await context.newPage();
       await p.addInitScript(({ token, id }) => {
         localStorage.setItem('pg_auth', JSON.stringify({ token, owner: `dev:${id}`, exp: Date.now() + 86_400_000 }));

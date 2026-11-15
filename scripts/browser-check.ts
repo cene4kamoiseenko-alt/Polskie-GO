@@ -449,6 +449,65 @@ async function main() {
     });
     await today.context.close();
 
+    // ── R5: редизайн 2026-11-15 — пять вкладок, «Учёба» = уроки + карта, «Миссии» — вкладка; герой главной без наложений; живой Бобек.
+    await soft('R5 вкладки, герой главной и Бобек по тапу', async () => {
+      const r5 = await userPage('880050');
+      const p = r5.page;
+      await p.goto(r5.url('/'), { waitUntil: 'networkidle' });
+      await p.getByText('Учиться дальше', { exact: true }).waitFor({ timeout: 20_000 });
+      await p.evaluate(() => document.fonts.ready);
+      const tabs = await p.locator('nav a[data-tab]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tab')));
+      check(tabs.join(',') === 'home,study,life,quests,profile', `R5 пять вкладок: Главная, Учёба, Миссии, Квесты, Профиль (${tabs.join(',')})`);
+      type Box = { x: number; y: number; r: number; b: number } | null;
+      const geo = await p.evaluate(() => {
+        const box = (sel: string) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, r: b.right, b: b.bottom }; };
+        return { hero: box('.home-hero'), beaver: box('.hero-beaver-hit'), info: box('.home-hero-info'), cta: box('.home-continue'), sign: document.querySelectorAll('.city-sign').length };
+      });
+      const inter = (a: Box, b: Box) => !!a && !!b && a.x < b.r - 0.5 && b.x < a.r - 0.5 && a.y < b.b - 0.5 && b.y < a.b - 0.5;
+      const inside = (a: Box, o: Box) => !!a && !!o && a.x >= o.x - 0.5 && a.r <= o.r + 0.5 && a.y >= o.y - 0.5 && a.b <= o.b + 0.5;
+      check(inside(geo.beaver, geo.hero), `R5 Бобек целиком в банере — хвост и лапы не обрезаны (${JSON.stringify(geo.beaver)} в ${JSON.stringify(geo.hero)})`);
+      check(!inter(geo.beaver, geo.info) && !inter(geo.beaver, geo.cta), 'R5 карточка «город + уровень» и кнопка «Продолжить» не накрывают Бобека');
+      check(geo.sign === 0, 'R5 на банере нет таблички с названием города (заходила в ухо Бобека)');
+      await p.locator('.hero-beaver-hit').click();
+      const bubble = p.locator('.beaver-bubble');
+      await bubble.waitFor({ timeout: 5_000 });
+      const said = (await bubble.locator('[lang="pl"]').textContent()) ?? '';
+      check(/[a-ząćęłńóśźż]{2,}/i.test(said), `R5 тап по Бобеку — облачко с польской фразой и переводом («${said}»)`);
+      const bubbleBox = await bubble.evaluate((e) => { const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, r: b.right, b: b.bottom }; });
+      check(inside(bubbleBox, geo.hero) && !inter(bubbleBox, geo.info), 'R5 облачко внутри банера и не наезжает на карточку города');
+      await p.screenshot({ path: `${SCREENS}/r5-home-bubble-390.png` });
+      // Постер Premium: целиком (16:9), кнопка в углу внутри постера, без нашего текста поверх надписей постера.
+      const poster = p.locator('[data-premium-teaser]');
+      if (await poster.locator('img').count()) {
+        await poster.scrollIntoViewIfNeeded();
+        const pg = await poster.evaluate((el) => {
+          const b = el.getBoundingClientRect();
+          const c = el.querySelector('.premium-poster-cta')!.getBoundingClientRect();
+          return { ratio: b.width / b.height, ctaIn: c.x >= b.x && c.right <= b.right && c.y >= b.y && c.bottom <= b.bottom, texts: el.querySelectorAll('span').length };
+        });
+        check(Math.abs(pg.ratio - 16 / 9) < 0.05 && pg.ctaIn && pg.texts <= 1, `R5 постер Premium целиком 16:9, кнопка внутри (${pg.ratio.toFixed(2)})`);
+      }
+      // «Учёба»: переключатель «Уроки | Карта», вкладка помнит последний вид.
+      await p.locator('nav a[data-tab="study"]').click();
+      await p.waitForURL((u) => new URL(u).pathname === '/learn', { timeout: 10_000 });
+      await p.locator('[data-study-view="map"]').click();
+      await p.waitForURL((u) => new URL(u).pathname === '/map', { timeout: 10_000 });
+      check(await p.locator('nav a[data-tab="study"][aria-current="page"]').count() === 1, 'R5 на карте подсвечена вкладка «Учёба»');
+      check((await p.locator('nav a[data-tab="study"]').getAttribute('href')) === '/map', 'R5 вкладка «Учёба» помнит последний вид (карта)');
+      await p.screenshot({ path: `${SCREENS}/r5-map-switch-390.png` });
+      await p.locator('[data-study-view="lessons"]').click();
+      await p.waitForURL((u) => new URL(u).pathname === '/learn', { timeout: 10_000 });
+      check((await p.locator('nav a[data-tab="study"]').getAttribute('href')) === '/learn', 'R5 после переключения на уроки вкладка ведёт в уроки');
+      // «Миссии» — вкладка нижней панели: шапка с кадром Sklep 24h, без кнопки «Назад».
+      await p.locator('nav a[data-tab="life"]').click();
+      await p.waitForURL((u) => new URL(u).pathname === '/life', { timeout: 10_000 });
+      await p.locator('[data-quest-art="life"]').waitFor({ timeout: 15_000 });
+      check(await p.locator('nav a[data-tab="life"][aria-current="page"]').count() === 1, 'R5 «Миссии» — вкладка нижней панели, кадр Sklep 24h в шапке');
+      check(await p.locator('button[aria-label="back"]').count() === 0, 'R5 у вкладки «Миссии» нет кнопки «Назад»');
+      await p.screenshot({ path: `${SCREENS}/r5-life-390.png` });
+      await r5.context.close();
+    });
+
     // ── A3: шторка города на карте. Прокрутка содержимого и жест закрытия разделены: тянуть можно только за ручку.
     console.log('A3: шторка города');
     const SHEETS = SCREENS;
@@ -876,10 +935,11 @@ async function main() {
       await settled(u.page);
       await u.page.screenshot({ path: `${SCREENS}/bot-screen-quests-390.png` });
       // Маршрут из бота применяется один раз: обычная навигация по приложению его не возвращает.
-      await u.page.locator('nav a[href="/map"]').click();
-      await u.page.waitForFunction(() => location.pathname === '/map', undefined, { timeout: 10_000 });
+      // Вкладка «Учёба» (уроки и карта в одном разделе, 2026-11-15): новый игрок попадает в уроки.
+      await u.page.locator('nav a[data-tab="study"]').click();
+      await u.page.waitForFunction(() => location.pathname === '/learn', undefined, { timeout: 10_000 });
       await u.page.waitForTimeout(500);
-      check((await where(u.page)).path === '/map', 'B1.1 после перехода из бота обычная навигация (на карту) не перебивается повторным bot_screen');
+      check((await where(u.page)).path === '/learn', 'B1.1 после перехода из бота обычная навигация (во вкладку «Учёба») не перебивается повторным bot_screen');
       // Повторное открытие без bot_screen (devUser нужен только стенду: в Telegram вход идёт через initData): второго перехода нет.
       await u.page.goto(`${base}/quests?devUser=880020`, { waitUntil: 'domcontentloaded' });
       await settled(u.page);
@@ -891,7 +951,7 @@ async function main() {
       const u = await userPage('880021');
       for (const bad of ['evil', '%2Fadmin', 'https%3A%2F%2Fevil.example', '..%2Fmap', 'MAP', '']) {
         await u.page.goto(`${base}/?devUser=880021&bot_screen=${bad}`, { waitUntil: 'domcontentloaded' });
-        await u.page.locator('nav a[href="/map"]').waitFor({ timeout: 20_000 });
+        await u.page.locator('nav a[href="/"]').waitFor({ timeout: 20_000 });
         check((await where(u.page)).path === '/', `B1.2 bot_screen=${bad || '(пусто)'} — остаёмся на главной`);
       }
       await u.page.goto(`${base}/?devUser=880021&startapp=screen_quests`, { waitUntil: 'domcontentloaded' });
