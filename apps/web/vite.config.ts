@@ -7,8 +7,24 @@ function apiBaseInHtml(base: string): Plugin {
   return { name: 'pg-api-base', transformIndexHtml: (html) => html.replace('__PG_API_BASE__', JSON.stringify(base.replace(/\/$/, ''))) };
 }
 
+/**
+ * В dev подменяет src/lib/assetFiles.ts на assetFiles.dev.ts: адреса картинок без eager-glob, иначе каждая картинка — отдельный
+ * модуль и Chromium после пары перезагрузок отвечает ERR_INSUFFICIENT_RESOURCES. Сборка не меняется.
+ */
+function devAssetUrls(): Plugin {
+  return {
+    name: 'pg-dev-asset-urls',
+    apply: 'serve',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (source !== './assetFiles' || !importer?.replace(/\\/g, '/').endsWith('/src/lib/assets.ts')) return null;
+      return this.resolve('./assetFiles.dev', importer, { skipSelf: true });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss(), apiBaseInHtml(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '')],
+  plugins: [devAssetUrls(), react(), tailwindcss(), apiBaseInHtml(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '')],
   server: {
     port: 5173,
     host: true,

@@ -14,7 +14,7 @@
  */
 import { CITY_ART, CITY_ART_SMALL, LOOK_CANVAS, LOOK_MANIFEST, MISSION_SCENE_ART, SCENE_ART, SCENE_ART_SMALL, type SceneArt } from '@polski-go/shared';
 
-const files = import.meta.glob('../assets/**/*.{webp,png}', { eager: true, import: 'default' }) as Record<string, string>;
+import { files } from './assetFiles';
 
 export function pick(dir: string, name: string): string | null {
   return files[`../assets/${dir}/${name}.webp`] ?? files[`../assets/${dir}/${name}.png`] ?? null;
