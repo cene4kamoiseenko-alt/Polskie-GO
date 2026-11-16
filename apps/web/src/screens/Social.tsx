@@ -31,7 +31,6 @@ type Board = {
   me?: { xpTotal: number; weekXp?: number; rank?: number; toJoin?: number; toPodium?: number; next: { league: string; at: number } | null };
   lastWeek?: { rank: number; xp: number; zlotki: number; name: string; photoUrl: string | null; isMe: boolean }[];
 };
-const LEAGUE_COLOR: Record<string, string> = { bronze: '#E39A6B', silver: '#C9D6E6', gold: '#FFC857', diamond: '#7FE3FF' };
 type Friend = { id: string; status: string; incoming: boolean; user: { id: string; name: string; photoUrl: string | null; level: number | null; xp: number | null; streak: number | null; languageLevel: string | null } };
 
 
@@ -313,7 +312,6 @@ export default function SocialScreen() {
                           {r.premium && <Icon name="crown" size={15} filled className="shrink-0 text-xp" aria-label="Premium" />}
                         </div>
                         <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[12px] font-bold text-sky">
-                          {r.league && <span className="lb-league-chip shrink-0" style={{ '--chip': LEAGUE_COLOR[r.league] ?? '#36B9FF' } as React.CSSProperties}>{t(`league_short_${r.league}` as TKey)}</span>}
                           <span className="truncate">{t('lb_level_short', { n: r.level })}</span>
                         </div>
                       </div>
