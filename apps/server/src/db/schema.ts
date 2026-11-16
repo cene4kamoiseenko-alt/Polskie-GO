@@ -99,6 +99,11 @@ export const playerProgress = sqliteTable(
     streakShieldDay: text('streak_shield_day'),
     /** Заморозки серии, купленные за Złotki (0–2, CHECK в миграции 0022): каждая закрывает один пропущенный день. */
     streakFreezes: integer('streak_freezes').notNull().default(0),
+    /** Уровень заданий (2026-11-16): A2/B1/B2 — трудные версии уроков; NULL — обычные. Ставят входной тест, сам игрок, автоподстройка. */
+    studyLevel: text('study_level', { enum: CEFR }),
+    /** Автоподстройка: лёгкие и трудные уроки своего уровня подряд (shared/levels.ts adaptLevel). */
+    levelUpRun: integer('level_up_run').notNull().default(0),
+    levelDownRun: integer('level_down_run').notNull().default(0),
     lessonsCompleted: integer('lessons_completed').notNull().default(0),
     perfectLessons: integer('perfect_lessons').notNull().default(0),
     wordsLearned: integer('words_learned').notNull().default(0),
@@ -227,6 +232,11 @@ export const exercises = sqliteTable(
     explanation: json<I18n>('explanation'),
     audioUrl: text('audio_url'),
     imageUrl: text('image_url'),
+    /**
+     * Уровень задания (2026-11-16): NULL — обычная версия урока (уровень города); A2/B1/B2 — трудная версия для игрока выше уровня урока
+     * (порядок 100+/200+/300+). Во входном тесте — блок вопроса (A0…B2). docs/superpowers/specs/2026-11-16-levels-design.md
+     */
+    level: text('level', { enum: CEFR }),
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex('exercises_lesson_order').on(t.lessonId, t.order), index('exercises_skill_idx').on(t.skill)],

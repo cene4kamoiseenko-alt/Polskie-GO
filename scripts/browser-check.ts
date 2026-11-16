@@ -561,6 +561,45 @@ async function main() {
       await r5.context.close();
     });
 
+    // ── Уровни (2026-11-16): входной тест v2 («Не знаю», остановка после блока, итог), карточка теста на главной, уровень заданий в настройках.
+    await soft('Уровни: входной тест, карточка, настройки', async () => {
+      const lv = await userPage('880080');
+      const p = lv.page;
+      // Самооценка «знаю основы» — карточка теста на главной видна.
+      await lv.call('POST', '/api/me/onboarding', { uiLanguage: 'ru', selfLevel: 'A2', learningGoal: 'life', dailyGoalMinutes: 10, reminderHour: null });
+      await p.goto(lv.url('/'), { waitUntil: 'domcontentloaded' });
+      await p.locator('[data-level-test-card]').waitFor({ timeout: 15_000 });
+      check(true, 'Уровни: на главной карточка «Знаешь польский? Пройди тест уровня»');
+      await p.locator('[data-start-level-test]').click();
+      await p.waitForURL((u) => new URL(u).pathname.startsWith('/lesson/'), { timeout: 10_000 });
+      // Тест открывается сразу с первого вопроса (без вступления урока).
+      await p.locator('[data-action="dont-know"]').waitFor({ timeout: 20_000 });
+      check((await p.locator('[data-action="start"]').count()) === 0, 'Уровни: тест начинается сразу с вопроса, у вопроса есть «Не знаю»');
+      // Три «Не знаю» в первом блоке — тест останавливается и показывает итог.
+      for (let i = 0; i < 3; i++) {
+        await p.locator('[data-action="dont-know"]').click({ timeout: 15_000 });
+        await p.locator('[data-action="next"]').waitFor({ timeout: 15_000 });
+        if (i === 0) check((await p.locator('.feedback-panel.is-skipped').count()) === 1, 'Уровни: «Не знаю» — спокойный ответ, а не «Неверно»');
+        await p.locator('[data-action="next"]').click();
+      }
+      await p.locator('[data-placement-result]').waitFor({ timeout: 20_000 });
+      check((await p.locator('[data-placement-result]').getAttribute('data-placement-result')) === 'A0', 'Уровни: три «Не знаю» в первом блоке — тест закончен, уровень A0');
+      await p.screenshot({ path: `${SCREENS}/levels-placement-result-390.png` });
+      // Настройки: уровень заданий B1 сохраняется.
+      await p.goto(lv.url('/settings'), { waitUntil: 'domcontentloaded' });
+      await p.locator('[data-study-level]').waitFor({ timeout: 15_000 });
+      await p.locator('[data-study-level] button', { hasText: 'B1' }).click();
+      await p.locator('[data-study-level="B1"]').waitFor({ timeout: 10_000 });
+      check(true, 'Уровни: в настройках выбран уровень заданий B1');
+      check((await lv.call('GET', '/api/me')).body.progress.studyLevel === 'B1', 'Уровни: уровень заданий B1 сохранён на сервере');
+      await p.screenshot({ path: `${SCREENS}/levels-settings-390.png` });
+      // С выбранным уровнем карточка теста на главной больше не показывается.
+      await p.goto(lv.url('/'), { waitUntil: 'domcontentloaded' });
+      await p.locator('[data-home-week]').waitFor({ timeout: 15_000 });
+      check((await p.locator('[data-level-test-card]').count()) === 0, 'Уровни: после выбора уровня карточки теста нет');
+      await lv.context.close();
+    });
+
     // ── A3: шторка города на карте. Прокрутка содержимого и жест закрытия разделены: тянуть можно только за ручку.
     console.log('A3: шторка города');
     const SHEETS = SCREENS;

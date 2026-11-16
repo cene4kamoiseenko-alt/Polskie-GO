@@ -2,7 +2,7 @@
 import { Hono } from 'hono';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { UI_LANGS, CEFR_LEVELS, shiftLastDayForZone } from '@polski-go/shared';
+import { UI_LANGS, CEFR_LEVELS, STUDY_LEVELS, shiftLastDayForZone } from '@polski-go/shared';
 import { config } from '../env';
 import { atomic, db } from '../db';
 import {
@@ -179,6 +179,14 @@ me.post('/me/onboarding', async (c) => {
     db.update(userProfiles).set({ selfLevel: b.selfLevel }).where(eq(userProfiles.userId, userId)),
     db.update(users).set({ onboardedAt: new Date() }).where(eq(users.id, userId)),
   ]);
+  return c.json(await getMe(userId));
+});
+
+/** Уровень заданий (2026-11-16): игрок выбирает сам — A2/B1/B2 (трудные версии уроков) или null (обычные). Счётчики автоподстройки — с нуля. */
+me.patch('/me/study-level', async (c) => {
+  const { level } = z.object({ level: z.enum(STUDY_LEVELS).nullable() }).parse(await body(c));
+  const userId = c.get('userId');
+  await db.update(playerProgress).set({ studyLevel: level, levelUpRun: 0, levelDownRun: 0 }).where(eq(playerProgress.userId, userId));
   return c.json(await getMe(userId));
 });
 

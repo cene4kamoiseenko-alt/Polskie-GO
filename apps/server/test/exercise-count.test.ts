@@ -4,10 +4,10 @@ import { disposeEnv, getEnv, login } from './helpers';
 
 afterAll(disposeEnv);
 
-/** Уроки, у яких збережена кількість вправ не збігається з реальною. */
+/** Уроки, у яких збережена кількість вправ не збігається з реальною (лише звичайна версія: порядок < 100; трудні версії A2/B1/B2 — 100+, 2026-11-16). */
 async function mismatches(d1: D1Database) {
   const r = await d1
-    .prepare('SELECT count(*) AS n FROM lessons l WHERE l.exercise_count <> (SELECT count(*) FROM exercises e WHERE e.lesson_id = l.id)')
+    .prepare('SELECT count(*) AS n FROM lessons l WHERE l.exercise_count <> (SELECT count(*) FROM exercises e WHERE e.lesson_id = l.id AND e."order" < 100)')
     .first<{ n: number }>();
   return r!.n;
 }
@@ -18,7 +18,7 @@ describe('lessons.exercise_count (замість GROUP BY у getJourney)', () =>
   it('після seed збігається з реальною кількістю вправ у кожному уроці', async () => {
     const { env } = await getEnv();
     expect(await mismatches(env.DB)).toBe(0);
-    const total = await env.DB.prepare('SELECT sum(exercise_count) AS s, (SELECT count(*) FROM exercises) AS e FROM lessons').first<{ s: number; e: number }>();
+    const total = await env.DB.prepare('SELECT sum(exercise_count) AS s, (SELECT count(*) FROM exercises WHERE "order" < 100) AS e FROM lessons').first<{ s: number; e: number }>();
     expect(total!.s).toBe(total!.e);
   });
 
@@ -28,7 +28,12 @@ describe('lessons.exercise_count (замість GROUP BY у getJourney)', () =>
     const [a, b] = (await d1.prepare("SELECT id FROM lessons WHERE kind = 'LESSON' ORDER BY id LIMIT 2").all<{ id: string }>()).results.map((r) => r.id);
     const a0 = await countOf(d1, a);
     const b0 = await countOf(d1, b);
-    await d1.prepare("INSERT INTO exercises (id, lesson_id, \"order\", type, skill, data) VALUES ('ex_count_probe', ?, 9999, 'TRANSLATE', 'vocab', '{}')").bind(a).run();
+    // Задание трудной версии (порядок 100+) не меняет «N заданий» на карточке урока.
+    await d1.prepare("INSERT INTO exercises (id, lesson_id, \"order\", type, skill, data, level) VALUES ('ex_count_variant', ?, 250, 'TRANSLATE', 'vocab', '{}', 'B1')").bind(a).run();
+    expect(await countOf(d1, a)).toBe(a0);
+    await d1.prepare("DELETE FROM exercises WHERE id = 'ex_count_variant'").run();
+    expect(await countOf(d1, a)).toBe(a0);
+    await d1.prepare("INSERT INTO exercises (id, lesson_id, \"order\", type, skill, data) VALUES ('ex_count_probe', ?, 99, 'TRANSLATE', 'vocab', '{}')").bind(a).run();
     expect(await countOf(d1, a)).toBe(a0 + 1);
     await d1.prepare("UPDATE exercises SET lesson_id = ? WHERE id = 'ex_count_probe'").bind(b).run();
     expect(await countOf(d1, a)).toBe(a0);
@@ -49,7 +54,7 @@ describe('lessons.exercise_count (замість GROUP BY у getJourney)', () =>
     const lessonsOut = (j.body.cities as { routes: { lessons: { id: string; exerciseCount: number }[] }[] }[]).flatMap((c) => c.routes.flatMap((r) => r.lessons));
     expect(lessonsOut.length).toBe(CITY_CONTENT.flatMap((c) => c.routes.flatMap((r) => r.lessons)).length);
     const real = new Map(
-      (await env.DB.prepare('SELECT lesson_id AS id, count(*) AS n FROM exercises GROUP BY lesson_id').all<{ id: string; n: number }>()).results.map((r) => [r.id, r.n]),
+      (await env.DB.prepare('SELECT lesson_id AS id, count(*) AS n FROM exercises WHERE "order" < 100 GROUP BY lesson_id').all<{ id: string; n: number }>()).results.map((r) => [r.id, r.n]),
     );
     for (const l of lessonsOut) expect(l.exerciseCount, l.id).toBe(real.get(l.id) ?? 0);
   });

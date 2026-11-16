@@ -2,7 +2,7 @@
  * Внутрішні тести: вхідний (placement) і пробний іспит A1.
  * Це тренувальні тести POLSKI GO, а не державна сертифікація.
  */
-import { t, fillGap, listen, reading, translate, grammar, dictation, wordChoice, reverseChoice, findError, build } from './builders';
+import { t, atLevel, fillGap, listen, reading, translate, grammar, dictation, wordChoice, reverseChoice, findError, build } from './builders';
 import type { LessonSeed } from './types';
 
 export const PLACEMENT: LessonSeed = {
@@ -35,6 +35,69 @@ export const PLACEMENT: LessonSeed = {
       t('Після 5–21 — родовий відмінок множини: **pięć biletów**.', 'После 5–21 — родительный падеж множественного числа: **pięć biletów**.', 'After 5–21 use the genitive plural: **pięć biletów**.')),
     fillGap('grammar.past', 'Wczoraj ___ w kinie.', ['byłem', 'jestem', 'będę'], t('Вчора я був у кіно.', 'Вчера я был в кино.', 'Yesterday I was at the cinema.')),
     fillGap('grammar.instrumental', 'Jestem ___.', ['nauczycielem', 'nauczyciel', 'nauczyciela'], t('Я вчитель.', 'Я учитель.', 'I am a teacher.')),
+  ],
+};
+
+/**
+ * Входной тест v2 (владелец 2026-11-16: «не слишком лёгкий, без метода исключения, вопросы A0…B2, определить реальный уровень»).
+ * Блоки A0 (чтение букв), A1, A2, B1, B2 по 3 вопроса; блок сдан при 2 из 3, несданный блок заканчивает тест (shared/levels.ts).
+ * Вопросы не решаются через русский или украинский: варианты — польские формы одного слова, «ложные друзья»
+ * (sklep ≠ склеп, uroda ≠ урод), ловушки русской логики (moja mieszkanie, poszła вместо poszłam, «три года» → od trzech lat).
+ * У каждого вопроса есть «Не знаю» (приложение): угадывать не нужно. Порядок вопросов — по блокам, не перемешивается.
+ */
+export const PLACEMENT_V2: LessonSeed = {
+  slug: 'placement-test-v2',
+  kind: 'PLACEMENT',
+  title: t('Вхідний тест', 'Входной тест', 'Placement test'),
+  topic: t('Визначимо твій рівень', 'Определим твой уровень', "Let's find your level"),
+  cefr: 'A1',
+  difficulty: 3,
+  explanation: t(
+    'До 15 коротких завдань: від читання літер до рівня B2. Тест зупиниться, коли стане надто складно. Не знаєш — натисни «Не знаю»: вгадувати не треба, від цього залежить, якого рівня будуть твої завдання.',
+    'До 15 коротких заданий: от чтения букв до уровня B2. Тест остановится, когда станет слишком сложно. Не знаешь — нажми «Не знаю»: угадывать не нужно, от этого зависит, какого уровня будут твои задания.',
+    "Up to 15 short tasks: from reading letters to B2. The test stops when it gets too hard. Don't know? Tap “I don't know” — no need to guess: it decides the level of your tasks.",
+  ),
+  examples: [],
+  words: [],
+  exercises: [
+    // ── A0: чтение букв ──
+    atLevel('A0', reading('alphabet.letters', 'ł — łapa, mały, było', t('Як читається польська «ł»?', 'Как читается польская «ł»?', 'How is Polish “ł” pronounced?'),
+      [t('Як англійське w (коротке «у»)', 'Как английское w (короткое «у»)', 'Like English w'), t('Як «л»', 'Как «л»', 'Like English l'), t('Як «ль»', 'Как «ль»', 'Like a soft l')],
+      t('**ł** читається як англійське **w**: łapa [уапа], było [биуо].', '**ł** читается как английское **w**: łapa [уапа], było [быуо].', '**ł** sounds like English **w**: łapa [wapa].'))),
+    atLevel('A0', reading('alphabet.letters', 'ó — mój, góra, który', t('Як читається «ó»?', 'Как читается «ó»?', 'How is “ó” pronounced?'),
+      [t('Як «у»', 'Как «у»', 'Like “u”'), t('Як «о»', 'Как «о»', 'Like “o”'), t('Як «йо»', 'Как «ё»', 'Like “yo”')],
+      t('**ó** читається так само, як **u**: mój [муй], góra [гура].', '**ó** читается так же, как **u**: mój [муй], góra [гура].', '**ó** sounds the same as **u**: mój [muy], góra [gura].'))),
+    atLevel('A0', reading('alphabet.digraphs', 'szczotka', t('Як читається це слово?', 'Как читается это слово?', 'How is this word pronounced?'),
+      [t('щотка', 'щотка', 'shchotka'), t('шотка', 'шотка', 'shotka'), t('чотка', 'чотка', 'chotka')],
+      t('**sz** — «ш», **cz** — «ч», разом **szcz** — «шч»: szczotka [шчотка].', '**sz** — «ш», **cz** — «ч», вместе **szcz** — «шч»: szczotka [шчотка].', '**sz** = sh, **cz** = ch, together **szcz** = shch.'))),
+    // ── A1 ──
+    atLevel('A1', fillGap('grammar.gender', 'To jest ___ mieszkanie.', ['moje', 'moja', 'mój'], t('Це моя квартира.', 'Это моя квартира.', 'This is my flat.'),
+      t('**mieszkanie** — середній рід (на **-e**), тому **moje**, хоча «квартира» — жіночого роду.', '**mieszkanie** — средний род (на **-e**), поэтому **moje**, хотя «квартира» — женского рода.', '**mieszkanie** is neuter (ends in **-e**): **moje**.'))),
+    atLevel('A1', wordChoice('vocab.false_friends', 'sklep', [t('магазин', 'магазин', 'shop'), t('склеп (гробниця)', 'склеп (гробница)', 'crypt'), t('погріб', 'погреб', 'cellar')],
+      t('**sklep** — магазин: sklep spożywczy — продуктовий магазин.', '**sklep** — магазин: sklep spożywczy — продуктовый магазин.', '**sklep** means shop.'))),
+    atLevel('A1', fillGap('grammar.accusative', 'Lubię ___ z mlekiem.', ['kawę', 'kawa', 'kawy'], t('Люблю каву з молоком.', 'Люблю кофе с молоком.', 'I like coffee with milk.'),
+      t('**lubić** + знахідний відмінок: kawa → **kawę**.', '**lubić** + винительный падеж: kawa → **kawę**.', '**lubić** takes the accusative: kawa → **kawę**.'))),
+    // ── A2 ──
+    atLevel('A2', fillGap('grammar.past', 'Wczoraj ___ do kina z koleżanką.', ['poszłam', 'poszła', 'poszedłem', 'pójdę'], t('Учора я (Анна) ходила в кіно з подругою.', 'Вчера я (Анна) ходила в кино с подругой.', 'Yesterday I (Anna) went to the cinema with a friend.'),
+      t('Я — жінка, минулий час: **poszłam** (-łam). **poszła** — «вона пішла».', 'Я — женщина, прошедшее время: **poszłam** (-łam). **poszła** — «она пошла».', 'Female speaker, past tense: **poszłam**; **poszła** means “she went”.'))),
+    atLevel('A2', fillGap('grammar.genitive', 'Niestety nie mam dziś ___.', ['czasu', 'czas', 'czasem', 'czasie'], t('На жаль, сьогодні в мене немає часу.', 'К сожалению, сегодня у меня нет времени.', "Unfortunately I don't have time today."),
+      t('Після **nie mam** — родовий відмінок: czas → **czasu**.', 'После **nie mam** — родительный падеж: czas → **czasu**.', 'After **nie mam** use the genitive: **czasu**.'))),
+    atLevel('A2', fillGap('grammar.comparative', 'Nasze nowe mieszkanie jest ___ niż stare.', ['większe', 'większy', 'więcej', 'największe'], t('Наша нова квартира більша, ніж стара.', 'Наша новая квартира больше, чем старая.', 'Our new flat is bigger than the old one.'),
+      t('Порівняння прикметника: duże → **większe** (середній рід, як mieszkanie; większy — чоловічий). **więcej** — «більше» про кількість.', 'Сравнение прилагательного: duże → **większe** (средний род, как mieszkanie; większy — мужской). **więcej** — «больше» о количестве.', 'Comparative adjective: **większe** (neuter like mieszkanie; większy is masculine). **więcej** means “more” (amount).'))),
+    // ── B1 ──
+    atLevel('B1', fillGap('grammar.conditional', 'Gdybym wiedział wcześniej, ___ ci o tym.', ['powiedziałbym', 'powiedziałby', 'powiedziałabym', 'powiem'], t('Якби я знав раніше, я б тобі про це сказав.', 'Если бы я знал раньше, я бы тебе об этом сказал.', 'If I had known earlier, I would have told you.'),
+      t('Умовний спосіб, «я» (чоловік, як wiedział): **powiedziałbym**. powiedziałby — «він сказав би», powiedziałabym — жінка.', 'Условное наклонение, «я» (мужчина, как wiedział): **powiedziałbym**. powiedziałby — «он сказал бы», powiedziałabym — женщина.', 'Conditional, first person masculine (like wiedział): **powiedziałbym**.'))),
+    atLevel('B1', fillGap('grammar.numerals', 'Mieszkam w Polsce od ___ lat.', ['trzech', 'trzy', 'trzema', 'trzeciego'], t('Я живу в Польщі вже три роки.', 'Я живу в Польше уже три года.', "I've been living in Poland for three years."),
+      t('**od** + родовий відмінок: od **trzech** lat — «вже три роки».', '**od** + родительный падеж: od **trzech** lat — «уже три года».', '**od** takes the genitive: od **trzech** lat.'))),
+    atLevel('B1', wordChoice('vocab.false_friends', 'uroda', [t('краса', 'красота', 'beauty'), t('потворність', 'уродство', 'ugliness'), t('урожай', 'урожай', 'harvest')],
+      t('**uroda** — краса, зовнішність: ładna uroda — гарна зовнішність.', '**uroda** — красота, внешность: ładna uroda — красивая внешность.', '**uroda** means beauty, looks.'))),
+    // ── B2 ──
+    atLevel('B2', wordChoice('vocab.idioms', 'Mieć muchy w nosie', [t('бути не в гуморі', 'быть не в духе', 'to be in a bad mood'), t('бути застудженим', 'быть простуженным', 'to have a cold'), t('пхати носа в чужі справи', 'совать нос в чужие дела', 'to poke your nose into others’ business')],
+      t('**mieć muchy w nosie** — дутися, бути не в гуморі.', '**mieć muchy w nosie** — дуться, быть не в духе.', '**mieć muchy w nosie** — to be sulky, in a bad mood.'))),
+    atLevel('B2', fillGap('grammar.cases', 'Bardzo zależy mi na ___.', ['tej pracy', 'tę pracę', 'tą pracą', 'ta praca'], t('Мені дуже важлива ця робота.', 'Мне очень важна эта работа.', 'This job really matters to me.'),
+      t('**zależy mi na** + місцевий відмінок: na **tej pracy**.', '**zależy mi na** + предложный (местный) падеж: na **tej pracy**.', '**zależy mi na** takes the locative: **tej pracy**.'))),
+    atLevel('B2', fillGap('grammar.verbal_nouns', 'Uprzejmie proszę o ___ dokumentów do piątku.', ['przesłanie', 'przesłaniu', 'przesłania', 'przesłać'], t('Прошу надіслати документи до п’ятниці.', 'Прошу прислать документы до пятницы.', 'Please send the documents by Friday.'),
+      t('**prosić o** + знахідний відмінок: o **przesłanie** (а не «o przesłaniu», як у російському «прошу о…»).', '**prosić o** + винительный падеж: o **przesłanie** (а не «o przesłaniu», как в русском «прошу о…»).', '**prosić o** takes the accusative: o **przesłanie**.'))),
   ],
 };
 

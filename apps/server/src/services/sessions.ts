@@ -8,8 +8,8 @@ import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, no
 import {
   BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO, isMissionSlug,
   checkAnswer, dayDiff, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
-  seededRandom, shuffle, spreadByType, toPublicItem,
-  type AnswerPayload, type Cefr, type CheckResult, type ExerciseItem, type ExerciseType, type I18n,
+  seededRandom, shuffle, spreadByType, toPublicItem, adaptLevel, placementProgress, studyLevelFor, variantLevel,
+  type AnswerPayload, type Cefr, type CheckResult, type ExerciseItem, type ExerciseType, type I18n, type StudyLevel,
 } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
 import {
@@ -30,7 +30,11 @@ type Mode = (typeof learningSessions.$inferSelect)['mode'];
 type SessionRow = typeof learningSessions.$inferSelect;
 
 type ItemState = { firstCorrect: boolean | null; done: boolean; mistakes: number; skipped?: boolean; fixed?: boolean; steps?: number[] };
-type SessionState = { answers: Record<string, ItemState>; run: number };
+/** variant — уровень версии урока (null — обычная), для автоподстройки уровня при завершении (2026-11-16). */
+type SessionState = { answers: Record<string, ItemState>; run: number; variant?: Cefr | null };
+
+/** Порядок заданий трудных версий урока: обычная версия — 0…99 (VARIANT_ORDER, content/seed.ts). */
+const VARIANT_BASE_ORDER = 100;
 
 /** Детермінований порядок варіантів для сесії (той самий після продовження). */
 const sessionSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 17);
@@ -53,6 +57,7 @@ function lessonToItems(rows: ExerciseRow[]): ExerciseItem[] {
       data: data as ExerciseItem['data'],
       explanation: (e.explanation ?? undefined) as I18n | undefined,
       exerciseId: e.id,
+      ...(e.level ? { level: e.level as Cefr } : {}),
     };
   });
 }
@@ -228,12 +233,13 @@ export async function startSession(userId: string, input: { lessonId?: string; m
   let realMode = mode;
   let words: unknown[] = [];
   let place: Awaited<ReturnType<typeof lessonPlace>> = null;
+  let variant: Cefr | null = null;
 
   if (input.lessonId) {
     const lessonId = input.lessonId;
     // Урок, карта (доступ і місце уроку), вправи, незавершена сесія і підписка — одним пакетом D1;
     // слова уроку (JOIN, у пакет не можна) — паралельно з ним.
-    const [[lessonRows, exRows, prevRows, subRows, ...journey], lw] = await Promise.all([
+    const [[lessonRows, exRows, prevRows, subRows, studyRows, ...journey], lw] = await Promise.all([
       db.batch([
         db.select().from(lessons).where(eq(lessons.id, lessonId)),
         db.select().from(exercises).where(eq(exercises.lessonId, lessonId)).orderBy(asc(exercises.order)),
@@ -244,6 +250,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
           .orderBy(desc(learningSessions.startedAt))
           .limit(1),
         db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId)).limit(1),
+        db.select({ studyLevel: playerProgress.studyLevel }).from(playerProgress).where(eq(playerProgress.userId, userId)),
         ...journeyReads(userId),
       ]),
       db
@@ -264,8 +271,14 @@ export async function startSession(userId: string, input: { lessonId?: string; m
     if (access === 'locked') throw forbidden('lesson_locked');
     if (access === 'not_found') throw notFound('lesson_not_found');
     const lp = placeOnMap(map, lesson.id) ?? (await lessonPlace(lesson));
-    // Черга уроку: не більше трьох однакових механік поспіль (порядок у БД не змінюється).
-    items = spreadByType(lessonToItems(exRows));
+    // Версия урока под уровень заданий игрока (2026-11-16): трудная версия A2/B1/B2, если она есть и уровень игрока выше уровня урока.
+    if (realMode === 'LESSON') {
+      const available = [...new Set(exRows.filter((e) => e.order >= VARIANT_BASE_ORDER && e.level).map((e) => e.level as Cefr))];
+      variant = variantLevel(lesson.cefr as Cefr, (studyRows[0]?.studyLevel ?? null) as StudyLevel | null, available);
+    }
+    const rows = realMode === 'PLACEMENT' ? exRows : exRows.filter((e) => (variant ? e.level === variant && e.order >= VARIANT_BASE_ORDER : e.order < VARIANT_BASE_ORDER));
+    // Черга уроку: не більше трьох однакових механік поспіль (порядок у БД не змінюється). Входной тест — строго по блокам A0…B2.
+    items = realMode === 'PLACEMENT' ? lessonToItems(rows) : spreadByType(lessonToItems(rows));
     words = lw;
     place = lp;
 
@@ -280,7 +293,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
         return {
           sessionId: prev.id,
           mode: realMode,
-          lesson: { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr },
+          lesson: { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: st?.variant ?? lesson.cefr, variant: st?.variant ?? null },
           words,
           place,
           items: prevItems.map((i) => toPublicItem(i, prnd)),
@@ -302,14 +315,14 @@ export async function startSession(userId: string, input: { lessonId?: string; m
       .update(learningSessions)
       .set({ status: 'ABANDONED' })
       .where(and(eq(learningSessions.userId, userId), eq(learningSessions.status, 'ACTIVE'), lesson ? eq(learningSessions.lessonId, lesson.id) : isNull(learningSessions.lessonId), eq(learningSessions.mode, realMode))),
-    db.insert(learningSessions).values({ id, userId, lessonId: lesson?.id ?? null, mode: realMode, items, state: { answers: {}, run: 0 } satisfies SessionState, total: items.length }),
+    db.insert(learningSessions).values({ id, userId, lessonId: lesson?.id ?? null, mode: realMode, items, state: { answers: {}, run: 0, variant } satisfies SessionState, total: items.length }),
   ]);
 
   return {
     sessionId: id,
     mode: realMode,
     lesson: lesson
-      ? { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: lesson.cefr }
+      ? { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: variant ?? lesson.cefr, variant }
       : null,
     words,
     place,
@@ -472,6 +485,14 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   }
   state.answers[key] = st;
 
+  // Входной тест по блокам (2026-11-16): несданный блок заканчивает тест — оставшиеся вопросы закрываются как пропущенные.
+  let stop = false;
+  if (s.mode === 'PLACEMENT' && !retry && st.done) {
+    const answers = items.filter((i) => state.answers[i.key]?.done && !state.answers[i.key].skipped).map((i) => ({ level: i.level ?? 'A0', correct: state.answers[i.key].firstCorrect }));
+    stop = placementProgress(answers).stop;
+    if (stop) for (const i of items) if (!state.answers[i.key]?.done) state.answers[i.key] = { firstCorrect: null, done: true, mistakes: 0, skipped: true };
+  }
+
   const firstDone = !retry && st.done;
   const stmts: Stmt[] = [saveSession(s, { state: state as unknown as Record<string, unknown> })];
 
@@ -505,7 +526,7 @@ export async function answerItem(userId: string, sessionId: string, key: string,
   // порядке или нехватке слов оно бы «объясняло» ошибку, которой нет.
   const { diagnosis, ...visible } = result;
   const note = diagnosis && diagnosis !== 'trap' ? null : (item.explanation ?? null);
-  return { ...visible, explanation: note, retry, answered: answeredCount, total: items.length };
+  return { ...visible, explanation: note, retry, answered: answeredCount, total: items.length, ...(stop ? { stop: true } : {}) };
 }
 
 type FinishResult = Awaited<ReturnType<typeof finishOnce>>;
@@ -572,7 +593,8 @@ async function finishOnce(userId: string, sessionId: string) {
 
   const answered = items.filter((i) => state.answers[i.key]?.done);
   if (!isSpeed && answered.length < items.length) throw badRequest('not_finished', 'Не всі вправи виконано');
-  if (elapsed < answered.length * MIN_MS_PER_ITEM) throw badRequest('too_fast');
+  // Входной тест наград не даёт (нечего накручивать), а три «Не знаю» подряд честно занимают пару секунд: защита «слишком быстро» — только для уроков и тренировок.
+  if (s.mode !== 'PLACEMENT' && elapsed < answered.length * MIN_MS_PER_ITEM) throw badRequest('too_fast');
 
   const counted = answered.filter((i) => !state.answers[i.key].skipped);
   const total = isSpeed ? items.length : counted.length;
@@ -590,7 +612,8 @@ async function finishOnce(userId: string, sessionId: string) {
   let newWords: { id: string; pl: string; translations: unknown }[] = [];
   let cityCompleted: null | { cityId: string; nextCity: unknown; rewards: unknown[] } = null;
   let levelConfirmed: Cefr | null = null;
-  let placement: null | { level: Cefr; unlocked: string[]; cities: string[] } = null;
+  let placement: null | { level: Cefr; studyLevel: StudyLevel | null; unlocked: string[]; cities: string[] } = null;
+  let studyLevelChange: null | { from: StudyLevel | null; to: StudyLevel | null; dir: 'up' | 'down' } = null;
 
   if (s.mode === 'LESSON' && s.lessonId) {
     const lesson = lessonRows[0];
@@ -598,6 +621,12 @@ async function finishOnce(userId: string, sessionId: string) {
     const ulp = ulpRows[0];
     const isBoss = lesson.kind === 'BOSS';
     passed = accuracy >= (isBoss || isMissionSlug(lesson.slug) ? BOSS_PASS_RATIO : LESSON_PASS_RATIO);
+    // Автоподстройка уровня заданий (2026-11-16): считаются уроки в версии уровня игрока.
+    const adapt = adaptLevel({ level: (p.studyLevel ?? null) as StudyLevel | null, up: p.levelUpRun, down: p.levelDownRun }, accuracy, state.variant ?? null);
+    if (adapt.level !== p.studyLevel || adapt.up !== p.levelUpRun || adapt.down !== p.levelDownRun) {
+      stmts.push(db.update(playerProgress).set({ studyLevel: adapt.level, levelUpRun: adapt.up, levelDownRun: adapt.down }).where(eq(playerProgress.userId, userId)));
+      if (adapt.changed) studyLevelChange = { from: (p.studyLevel ?? null) as StudyLevel | null, to: adapt.level, dir: adapt.changed };
+    }
     const firstCompletion = !ulp?.firstCompletedAt;
     // Повтори — це нагороджені проходження після першого, за останні 24 години.
     const replaysToday = firstCompletion ? 0 : rewardedRows.filter((r) => r.finishedAt && r.finishedAt > ulp!.firstCompletedAt!).length;
@@ -701,7 +730,7 @@ async function finishOnce(userId: string, sessionId: string) {
         }),
     );
   } else if (s.mode === 'PLACEMENT') {
-    const res = await applyPlacement(userId, accuracy);
+    const res = applyPlacement(userId, items, state);
     placement = res.result;
     stmts.push(...res.stmts);
   } else {
@@ -765,6 +794,7 @@ async function finishOnce(userId: string, sessionId: string) {
     cityCompleted,
     levelConfirmed,
     placement,
+    studyLevelChange,
     questsCompleted: quests.completed,
     achievements: ach.unlocked,
     durationSec: Math.round(elapsed / 1000),
@@ -835,31 +865,17 @@ async function completeCity(userId: string, cityId: string, now: Date) {
   return { result: { cityId, nextCity, rewards }, stmts, currentCityId };
 }
 
-/** Результат вхідного тесту — рекомендація стартового міста (не підтверджений рівень). */
-async function applyPlacement(userId: string, accuracy: number) {
-  const level: Cefr = accuracy >= 0.8 ? 'A1' : 'A0';
-  // Рекомендуємо лише міста, де вже є уроки (порожні зупинки маршруту не можуть бути стартом).
-  const top = await db
-    .selectDistinct({ id: cities.id, slug: cities.slug, namePl: cities.namePl, order: cities.order })
-    .from(cities)
-    .innerJoin(cityRoutes, eq(cityRoutes.cityId, cities.id))
-    .innerJoin(lessons, and(eq(lessons.routeId, cityRoutes.id), eq(lessons.status, 'PUBLISHED')))
-    .where(eq(cities.status, 'PUBLISHED'))
-    .orderBy(asc(cities.order))
-    .limit(3);
-  const openCount = accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1;
-  const stmts: Stmt[] = [db.update(userProfiles).set({ placementLevel: level }).where(eq(userProfiles.userId, userId))];
-  const unlocked: string[] = [];
-  // Названия для итогового экрана («Warszawa, Łódź»): коды городов (slug) игроку не показываем (владелец 2026-11-10).
-  const cityNames: string[] = [];
-  for (const [i, c] of top.slice(0, openCount).entries()) {
-    const ins = db.insert(userCities).values({ userId, cityId: c.id, source: i === 0 ? 'journey' : 'placement' });
-    stmts.push(i === 0 ? ins.onConflictDoNothing() : ins.onConflictDoUpdate({ target: [userCities.userId, userCities.cityId], set: { source: 'placement' } }));
-    unlocked.push(c.slug);
-    cityNames.push(c.namePl);
-  }
-  // Рекомендоване стартове місто — останнє відкрите.
-  const start = top[openCount - 1];
-  if (start) stmts.push(db.update(playerProgress).set({ currentCityId: start.id }).where(eq(playerProgress.userId, userId)));
-  return { result: { level, unlocked, cities: cityNames }, stmts };
+/**
+ * Итог входного теста v2 (2026-11-16): уровень — последний сданный блок (2 из 3), уровень заданий — A2 и выше.
+ * Города не открываются: все начинают с первого города, задания — своего уровня (docs/superpowers/specs/2026-11-16-levels-design.md).
+ */
+function applyPlacement(userId: string, items: ExerciseItem[], state: SessionState) {
+  const answers = items.filter((i) => state.answers[i.key]?.done && !state.answers[i.key].skipped).map((i) => ({ level: i.level ?? 'A0', correct: state.answers[i.key].firstCorrect }));
+  const { level } = placementProgress(answers);
+  const studyLevel = studyLevelFor(level);
+  const stmts: Stmt[] = [
+    db.update(userProfiles).set({ placementLevel: level }).where(eq(userProfiles.userId, userId)),
+    db.update(playerProgress).set({ studyLevel, levelUpRun: 0, levelDownRun: 0 }).where(eq(playerProgress.userId, userId)),
+  ];
+  return { result: { level, studyLevel, unlocked: [] as string[], cities: [] as string[] }, stmts };
 }

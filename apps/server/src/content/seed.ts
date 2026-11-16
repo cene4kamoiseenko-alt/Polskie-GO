@@ -29,7 +29,7 @@ import { LUBLIN } from './lublin';
 import { RZESZOW } from './rzeszow';
 import { KIELCE } from './kielce';
 import { ZAKOPANE } from './zakopane';
-import { PLACEMENT, EXAM_A1 } from './exams';
+import { PLACEMENT, PLACEMENT_V2, EXAM_A1 } from './exams';
 import { ACHIEVEMENTS, COSTUME_PRICES, DAILY_QUESTS, ITEMS, STORY_QUESTS, STORY_TARGET_BEFORE, WEEKLY_QUESTS } from './gamification';
 import { MISSIONS } from './missions';
 import type { CityContent, LessonSeed } from './types';
@@ -158,10 +158,40 @@ function exerciseSql(lessonSlug: string, l: LessonSeed, i: number, force: boolea
   const ex = l.exercises[i];
   return insert(
     'exercises',
-    { id: exerciseId(lessonSlug, l.exerciseIds?.[i] ?? i), lesson_id: ref('lessons', { slug: lessonSlug }), order: i, type: ex.type, skill: ex.skill, data: ex.data, explanation: ex.explanation ?? null },
+    {
+      id: exerciseId(lessonSlug, l.exerciseIds?.[i] ?? i), lesson_id: ref('lessons', { slug: lessonSlug }), order: i, type: ex.type, skill: ex.skill, data: ex.data,
+      explanation: ex.explanation ?? null, level: ex.level ?? null,
+    },
     ['lesson_id', 'order'],
     force,
   );
+}
+
+/** Порядок первого задания трудной версии урока (2026-11-16): обычная версия — 0…99, A2 — 100+, B1 — 200+, B2 — 300+. */
+export const VARIANT_ORDER = { A2: 100, B1: 200, B2: 300 } as const;
+const VARIANT_LEVELS = Object.keys(VARIANT_ORDER) as (keyof typeof VARIANT_ORDER)[];
+
+/** Задания трудных версий урока: тот же урок, уровень и порядок версии, идентификатор `e_<урок>_<порядок>`. */
+function variantSql(l: LessonSeed, force: boolean): string[] {
+  const out: string[] = [];
+  const lessonId = ref('lessons', { slug: l.slug });
+  for (const level of VARIANT_LEVELS) {
+    const list = l.levels?.[level] ?? [];
+    const base = VARIANT_ORDER[level];
+    if (list.length > 99) throw new Error(`${l.slug}: в версии ${level} больше 99 заданий`);
+    for (const [i, ex] of list.entries()) {
+      out.push(
+        insert(
+          'exercises',
+          { id: exerciseId(l.slug, base + i), lesson_id: lessonId, order: base + i, type: ex.type, skill: ex.skill, data: ex.data, explanation: ex.explanation ?? null, level },
+          ['lesson_id', 'order'],
+          force,
+        ),
+      );
+    }
+    if (force) out.push(`DELETE FROM exercises WHERE lesson_id = ${lessonId.sql} AND "order" >= ${base + list.length} AND "order" < ${base + 100};`);
+  }
+  return out;
 }
 
 /** Архівний урок для завдань, прибраних зі скорочених уроків: поза картою (без теми) і поза практикою (ARCHIVED). */
@@ -299,8 +329,10 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
     // Урок, що лишився без локації (наприклад, локацію додали пізніше), прив'язуємо до неї.
     if (routeSlug) out.push(`UPDATE lessons SET route_id = ${ref('city_routes', { slug: routeSlug }).sql} WHERE slug = ${lit(l.slug)} AND route_id IS NULL;`);
     for (const i of l.exercises.keys()) out.push(exerciseSql(l.slug, l, i, force));
+    out.push(...variantSql(l, force));
     if (force) {
-      out.push(`DELETE FROM exercises WHERE lesson_id = ${lessonId.sql} AND "order" >= ${l.exercises.length};`);
+      // Только обычная версия: трудные версии (порядок 100+) чистит variantSql.
+      out.push(`DELETE FROM exercises WHERE lesson_id = ${lessonId.sql} AND "order" >= ${l.exercises.length} AND "order" < ${VARIANT_ORDER.A2};`);
       out.push(`DELETE FROM lesson_words WHERE lesson_id = ${lessonId.sql};`);
     }
     for (const [i, w] of l.words.entries()) {
@@ -331,7 +363,10 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
     out.push(`UPDATE cities SET ticket_lessons = ${regular} WHERE slug = ${lit(content.city)}${force ? '' : ` AND ticket_lessons < ${regular}`};`);
   }
   lessonSql(PLACEMENT, 0, null);
+  lessonSql(PLACEMENT_V2, 0, null);
   lessonSql(EXAM_A1, 0, null);
+  // Входной тест v2 заменяет прежний (2026-11-16): прежний — в архив, его прошлые результаты остаются в истории.
+  out.push(`UPDATE lessons SET status = 'ARCHIVED' WHERE slug = ${lit(PLACEMENT.slug)} AND status = 'PUBLISHED';`);
   out.push(STRANDED_CURRENT_CITY_SQL);
 
   // ── Явні виправлення текстів (лише якщо в БД досі старе значення з коду) ──

@@ -1,4 +1,4 @@
-import type { Cefr, CheckResult, I18n, UiLang } from '@polski-go/shared';
+import type { Cefr, CheckResult, I18n, StudyLevel, UiLang } from '@polski-go/shared';
 
 /** `home` — обране житло домика (assetKey `housing-…`; за замовчуванням безкоштовна кімната). */
 export type Outfit = { wear: Partial<Record<string, string>>; house: string[]; home: string };
@@ -48,6 +48,8 @@ export type Me = {
     currentCity: { id: string; slug: string; namePl: string; name: I18n; emoji: string } | null;
     /** Заморозки серии за Złotki (0–2) и предложение восстановить серию (2026-11-16). Могут отсутствовать у старого сервера. */
     streakFreezes?: number;
+    /** Уровень заданий (2026-11-16): A2/B1/B2 — трудные версии уроков, null — обычные. */
+    studyLevel?: StudyLevel | null;
     streakRepair?: { streak: number; price: number } | null;
   };
   today: { xp: number; goalXp: number; lessons: number; seconds: number };
@@ -63,6 +65,8 @@ export type Me = {
   counters: { dueReviews: number; mistakes: number; unseenAchievements: number };
   /** Итоги недели лиги: непросмотренная награда (окно на главной), иначе null. */
   leagueAward?: { week: string; rank: number; xp: number; zlotki: number } | null;
+  /** Новый входной тест (2026-11-16): пройден ли он и какой уровень показал. */
+  levelTest?: { done: boolean; placementLevel: Cefr | null };
   /** configured — ШІ-співрозмовник підключений на сервері (є ключ); інакше його входи в застосунку приховано. */
   /** Може бути відсутнім, якщо сервер старіший за клієнт. */
   rewards?: { exerciseXp: number };
@@ -117,7 +121,7 @@ export type PublicItem = { key: string; type: string; skill: string; data: Recor
 export type SessionStart = {
   sessionId: string;
   mode: string;
-  lesson: null | { id: string; slug: string; kind: string; title: I18n; topic: I18n; explanation: I18n; examples: { pl: string; tr: I18n }[]; cefr: Cefr };
+  lesson: null | { id: string; slug: string; kind: string; title: I18n; topic: I18n; explanation: I18n; examples: { pl: string; tr: I18n }[]; cefr: Cefr; variant?: Cefr | null };
   words: { id: string; pl: string; translations: I18n; pronunciation: string | null; emoji: string | null; audioUrl: string | null }[];
   items: PublicItem[];
   /** Де урок на карті: місто, локація, номер уроку в локації. */
@@ -127,7 +131,8 @@ export type SessionStart = {
   resume?: { done: string[] } | null;
 };
 
-export type AnswerResult = CheckResult & { explanation: I18n | null; retry: boolean; answered: number; total: number };
+/** stop — входной тест закончен: блок не сдан, дальше слишком сложно (2026-11-16). */
+export type AnswerResult = CheckResult & { explanation: I18n | null; retry: boolean; answered: number; total: number; stop?: boolean };
 
 export type FinishResult = {
   mode: string;
@@ -145,7 +150,10 @@ export type FinishResult = {
   newWords: { id: string; pl: string; translations: I18n }[];
   cityCompleted: null | { cityId: string; nextCity: null | { id: string; slug: string; name: I18n; namePl: string; emoji: string; hasLessons: boolean }; rewards: { slug: string; name: I18n; slot: string }[] };
   levelConfirmed: Cefr | null;
-  placement: null | { level: Cefr; unlocked: string[]; cities?: string[] };
+  /** Входной тест (2026-11-16): уровень A0…B2 и уровень заданий (A2+ — трудные версии уроков). */
+  placement: null | { level: Cefr; studyLevel?: StudyLevel | null; unlocked: string[]; cities?: string[] };
+  /** Автоподстройка уровня заданий после урока. */
+  studyLevelChange?: null | { from: StudyLevel | null; to: StudyLevel | null; dir: 'up' | 'down' };
   questsCompleted: { id: string; title: I18n; icon: string }[];
   achievements: { slug: string; title: I18n; description?: I18n; icon: string; zlotki: number }[];
   durationSec: number;

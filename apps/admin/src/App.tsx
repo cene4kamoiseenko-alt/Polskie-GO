@@ -928,8 +928,9 @@ function UserDetail({ admin }: { admin: Admin }) {
   };
   const live = (u.subscriptions as any[]).find((s) => ['ACTIVE', 'CANCELLED'].includes(s.status) && new Date(s.expiresAt).getTime() > Date.now());
   const current = (u.cities as any[]).find((c) => c.cityId === u.progress?.currentCityId);
-  const placedCities = (u.cities as any[]).filter((c) => c.source === 'placement').length;
-  const placementResult = u.profile?.placementLevel ? (placedCities >= 2 ? 'Краков (80 % и выше)' : placedCities === 1 ? 'Лодзь (50–79 %)' : 'Варшава (ниже 50 %)') : null;
+  // Входной тест (2026-11-16) определяет уровень A0…B2; уровень заданий A2+ — трудные версии уроков.
+  const placementResult = u.profile?.placementLevel ? `уровень ${u.profile.placementLevel}` : null;
+  const studyLevel = (u.progress?.studyLevel as string | null | undefined) ?? null;
   const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Без имени';
   return (
     <div className="space-y-4">
@@ -971,7 +972,8 @@ function UserDetail({ admin }: { admin: Admin }) {
           <Fact label="Знакомство">{u.onboardedAt ? `пройдено ${new Date(u.onboardedAt).toLocaleDateString('ru')}` : 'не пройдено'}</Fact>
           <Fact label="Откуда пришёл">{sourceLabel(u.source ?? 'none')}</Fact>
           <Fact label="Заявленный уровень">{u.profile?.selfLevel ?? '—'}</Fact>
-          <Fact label="Входной тест">{placementResult ? `${placementResult} · ${u.profile.placementLevel}` : 'не проходил'}</Fact>
+          <Fact label="Входной тест">{placementResult ?? 'не проходил'}</Fact>
+          <Fact label="Уровень заданий">{studyLevel ? `${studyLevel} (трудные версии уроков)` : 'обычные версии'}</Fact>
           <Fact label="Текущий город">{current?.city?.namePl ?? '—'}</Fact>
           <Fact label="Пройдено уроков">{u.progress?.lessonsCompleted ?? 0} · слов {u.progress?.wordsLearned ?? 0}</Fact>
           <Fact label="Язык интерфейса">{LANG_RU[u.settings?.uiLanguage] ?? u.settings?.uiLanguage ?? '—'}</Fact>

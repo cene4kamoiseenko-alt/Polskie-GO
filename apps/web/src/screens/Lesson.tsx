@@ -31,6 +31,8 @@ import { inkOn } from '../lib/color';
 
 type Phase = 'loading' | 'intro' | 'play' | 'finishing' | 'result' | 'error';
 const NO_RETRY = new Set(['DIALOGUE', 'SITUATION', 'PRONUNCIATION']);
+/** «Не знаю» во входном тесте: вариант, которого нет среди ответов, — сервер засчитывает его как неверный (2026-11-16). */
+const DONT_KNOW = '__dont_know';
 
 /** Похвала за серию верных ответов: польское слово (учит заодно) и перевод на язык интерфейса. */
 const COMBO_PRAISE: Record<number, [string, TKey]> = {
@@ -109,6 +111,9 @@ export default function LessonScreen() {
   // Повторне коло помилок починається після початкової черги (при продовженні вона коротша).
   const isRetry = item ? pos >= (session?.items.length ?? 0) - resumed : false;
   const speed = session?.mode === 'SPEED';
+  // Входной тест (2026-11-16): «Не знаю» вместо угадывания, без повторов ошибок, остановка после несданного блока.
+  const placement = session?.mode === 'PLACEMENT';
+  const [dk, setDk] = useState(false);
 
   // Stop playback on exercise changes, result/intro screens and leaving the lesson.
   useEffect(() => () => stopSpeech(), [key, phase]);
@@ -183,6 +188,8 @@ export default function LessonScreen() {
     try {
       const r = await send(p);
       setResult(r);
+      // Блок теста не сдан — дальше слишком сложно: после «Далее» тест заканчивается.
+      if (r.stop) setQueue((q) => q.slice(0, pos + 1));
       if (r.correct) {
         sfx.correct();
         haptic.success();
@@ -193,7 +200,7 @@ export default function LessonScreen() {
         setCombo(0);
         if (!r.retry) setMistakes((n) => n + 1);
         // Помилку повторимо в кінці уроку (без впливу на оцінку).
-        if (!r.retry && !NO_RETRY.has(item.type) && !speed && !retried.has(item.key)) {
+        if (!r.retry && !NO_RETRY.has(item.type) && !speed && !placement && !retried.has(item.key)) {
           setQueue((q) => [...q, item.key]);
           setRetried((s) => new Set(s).add(item.key));
         }
@@ -211,6 +218,7 @@ export default function LessonScreen() {
   const next = () => {
     setResult(null);
     setPayload(null);
+    setDk(false);
     setDialogueDone(false);
     if (pos + 1 >= queue.length) void doFinish();
     else setPos((p) => p + 1);
@@ -350,7 +358,9 @@ export default function LessonScreen() {
   const praise = t('lesson_correct_alt').split('|');
   const caText = result ? correctAnswerText(item, result, tr) : null;
   const feedbackPl = result && !result.correct ? polishForFeedback(item, caText) : null;
-  const stageMood: StageMood = result ? (result.correct ? 'correct' : result.skipped ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
+  // «Не знаю» во входном тесте — нейтральный ответ (не «Неверно»): угадывать не нужно.
+  const neutral = !!result && (!!result.skipped || dk);
+  const stageMood: StageMood = result ? (result.correct ? 'correct' : neutral ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
 
   return (
     <div ref={swipeNext} className="min-h-app flex flex-col" data-swipe-next={result && !speed ? 'ready' : undefined}>
@@ -454,20 +464,20 @@ export default function LessonScreen() {
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
-              className={cx('feedback-panel rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : result.skipped ? 'is-skipped' : 'is-wrong')}
+              className={cx('feedback-panel rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : neutral ? 'is-skipped' : 'is-wrong')}
             >
               <div className="flex items-start gap-3">
                 <motion.span
                   initial={{ scale: 0, rotate: -30 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                  className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-[0_4px_0_rgb(0_0_0/0.25)]', result.correct ? 'bg-brand' : result.skipped ? 'bg-sky' : 'bg-coral')}
+                  className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-[0_4px_0_rgb(0_0_0/0.25)]', result.correct ? 'bg-brand' : neutral ? 'bg-sky' : 'bg-coral')}
                 >
-                  <Icon name={result.correct ? 'check' : result.skipped ? 'arrow-right' : 'x'} size={26} />
+                  <Icon name={result.correct ? 'check' : neutral ? 'arrow-right' : 'x'} size={26} />
                 </motion.span>
                 <div className="min-w-0 flex-1">
-                  <div className={cx('text-xl font-black', result.correct ? 'text-brand' : result.skipped ? 'text-sky' : 'text-coral')}>
-                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : result.skipped ? t(item.type === 'PRONUNCIATION' ? 'lesson_repeat_ok' : 'lesson_skipped_ok') : t('lesson_wrong')}
+                  <div className={cx('text-xl font-black', result.correct ? 'text-brand' : neutral ? 'text-sky' : 'text-coral')}>
+                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : dk ? t('lesson_dont_know_ok') : result.skipped ? t(item.type === 'PRONUNCIATION' ? 'lesson_repeat_ok' : 'lesson_skipped_ok') : t('lesson_wrong')}
                     {result.correct && !result.retry && session.lesson && me?.rewards && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-xp-ink">
                         +{me.rewards.exerciseXp} XP
@@ -516,9 +526,24 @@ export default function LessonScreen() {
               </button>
             )
           ) : (
-            <button className="btn btn-primary w-full text-lg" data-action="check" disabled={!payload || checking} aria-busy={checking} onClick={() => check()}>
-              {checking ? <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[3px] border-white border-t-transparent" /> : t(item.type === 'PRONUNCIATION' ? 'lesson_repeated' : 'lesson_check')}
-            </button>
+            <div className="flex gap-2">
+              {placement && (
+                <button
+                  className="btn btn-ghost shrink-0 px-4 text-lg"
+                  data-action="dont-know"
+                  disabled={checking}
+                  onClick={() => {
+                    setDk(true);
+                    void check({ optionId: DONT_KNOW });
+                  }}
+                >
+                  {t('lesson_dont_know')}
+                </button>
+              )}
+              <button className="btn btn-primary min-w-0 flex-1 text-lg" data-action="check" disabled={!payload || checking} aria-busy={checking} onClick={() => check()}>
+                {checking ? <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[3px] border-white border-t-transparent" /> : t(item.type === 'PRONUNCIATION' ? 'lesson_repeated' : 'lesson_check')}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -643,9 +668,14 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
         )}
         {r.levelConfirmed && <div className="card w-full p-4 text-lg font-black">{t('res_level_confirmed', { level: r.levelConfirmed })}</div>}
         {r.placement && (
-          <div className="card w-full p-4 text-left">
+          <div className="card w-full p-4 text-left" data-placement-result={r.placement.level}>
             <div className="text-lg font-black">{t('res_placement', { level: r.placement.level })}</div>
-            <div className="muted text-sm font-semibold">{t('res_placement_text', { cities: (r.placement.cities ?? r.placement.unlocked).join(', ') })}</div>
+            <div className="muted text-sm font-semibold">{r.placement.studyLevel ? t('res_placement_hard', { level: r.placement.studyLevel }) : t('res_placement_base')}</div>
+          </div>
+        )}
+        {r.studyLevelChange && (
+          <div className="card w-full p-4 text-left text-[15px] font-black" data-level-change={r.studyLevelChange.dir}>
+            {r.studyLevelChange.dir === 'up' ? t('res_level_change_up', { level: r.studyLevelChange.to ?? '' }) : t('res_level_change_down', { level: r.studyLevelChange.to ?? t('level_base_name') })}
           </div>
         )}
 

@@ -100,13 +100,9 @@ export async function adminInsights(now: Date, days: number) {
         COUNT(*) AS n
       FROM users u LEFT JOIN bot_contacts b ON b.telegram_id = u.telegram_id
       WHERE u.created_at >= ${since} GROUP BY 1 ORDER BY 2 DESC LIMIT ${SOURCES_SHOWN}`),
-    // Город после входного теста: города, открытые тестом (source = 'placement'), кроме первого: 0 — Варшава, 1 — Лодзь, 2 — Краков.
-    db.all<{ took: Num; opened: Num; n: Num }>(sql`
-      SELECT CASE WHEN p.placement_level IS NULL THEN 0 ELSE 1 END AS took,
-        (SELECT COUNT(*) FROM user_cities c WHERE c.user_id = u.id AND c.source = 'placement') AS opened,
-        COUNT(*) AS n
-      FROM users u LEFT JOIN user_profiles p ON p.user_id = u.id
-      WHERE u.created_at >= ${since} GROUP BY 1, 2`),
+    // Уровень по входному тесту (2026-11-16: тест определяет уровень A0…B2, города не открывает); NULL — не проходил.
+    db.all<{ k: string | null; n: Num }>(sql`
+      SELECT p.placement_level AS k, COUNT(*) AS n FROM users u LEFT JOIN user_profiles p ON p.user_id = u.id WHERE u.created_at >= ${since} GROUP BY 1`),
     db.all<{ k: string | null; n: Num }>(sql`
       SELECT p.self_level AS k, COUNT(*) AS n FROM users u LEFT JOIN user_profiles p ON p.user_id = u.id WHERE u.created_at >= ${since} GROUP BY 1`),
     db.all<{ k: string | null; n: Num }>(sql`
@@ -124,13 +120,11 @@ export async function adminInsights(now: Date, days: number) {
     return keys.map((k) => m.get(k) ?? 0);
   };
 
-  const placed = { noTest: 0, warszawa: 0, lodz: 0, krakow: 0 };
+  const placed = { noTest: 0, levels: { A0: 0, A1: 0, A2: 0, B1: 0, B2: 0 } as Record<'A0' | 'A1' | 'A2' | 'B1' | 'B2', number> };
   for (const r of placement) {
     const n = num(r.n);
-    if (!num(r.took)) placed.noTest += n;
-    else if (num(r.opened) >= 2) placed.krakow += n;
-    else if (num(r.opened) === 1) placed.lodz += n;
-    else placed.warszawa += n;
+    if (!r.k) placed.noTest += n;
+    else if (r.k in placed.levels) placed.levels[r.k as keyof typeof placed.levels] += n;
   }
 
   const reminderDays = keys.map((k) => ({ day: k, sent: 0, failed: 0, blocked: 0, skipped: 0 }));

@@ -226,15 +226,16 @@ describe('Уроки та нагороди', () => {
     expect(next.note).toBeNull();
   }, 240_000);
 
-  it('вхідний тест відкриває міста як рекомендацію, але не підтверджує рівень', async () => {
+  it('вхідний тест визначає рівень завдань, але не підтверджує рівень і не відкриває міст (2026-11-16)', async () => {
     const { call, user } = await login();
-    const s = await call('POST', '/api/sessions', { lessonId: await lessonId('placement-test') });
+    const s = await call('POST', '/api/sessions', { lessonId: await lessonId('placement-test-v2') });
     const fin = await playSession(call, s.body.sessionId);
-    expect(fin.body.placement).toMatchObject({ level: 'A1', unlocked: ['warszawa', 'lodz', 'krakow'] });
+    expect(fin.body.placement).toMatchObject({ level: 'B2', studyLevel: 'B2', unlocked: [] });
     const p = await progress(user.id);
     expect(p.languageLevel).toBe('A0');
-    // Уроки міста, відкритого тестом, доступні не по черзі.
-    expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-4-tydzien') })).status).toBe(200);
+    expect(p.studyLevel).toBe('B2');
+    // Усі починають з першого міста: уроки інших міст не відкриваються тестом.
+    expect((await call('POST', '/api/sessions', { lessonId: await lessonId('krk-4-tydzien') })).status).toBe(403);
   });
 
   it('іспит A1 підтверджує рівень польської', async () => {

@@ -16,6 +16,9 @@ import { activeSubWhere } from './premium';
 import { outfit } from './shop';
 import { unseenLeagueAward } from './league';
 
+/** Урок входного теста v2 (seed: id = `l_<slug>`). */
+export const LEVEL_TEST_LESSON_ID = 'l_placement-test-v2';
+
 export { goalXpFor as goalXp } from './goal';
 import { goalXpFor as goalXp } from './goal';
 
@@ -54,6 +57,13 @@ export async function getMe(userId: string) {
   ]);
   // Итоги недели лиги: непросмотренная награда — окно на главной. Мягко: на старой схеме (тесты миграций) профиль обязан открываться.
   const leagueAward = await unseenLeagueAward(userId, now).catch(() => null);
+  // Новый входной тест (2026-11-16): прошёл ли его игрок — карточка «Пройди тест уровня» на главной для тех, кто не проходил.
+  const levelTestRows = await db
+    .select({ id: learningSessions.id })
+    .from(learningSessions)
+    .where(and(eq(learningSessions.userId, userId), eq(learningSessions.lessonId, LEVEL_TEST_LESSON_ID), eq(learningSessions.status, 'FINISHED')))
+    .limit(1)
+    .catch(() => [] as { id: string }[]);
   const sub = subRow[0] ?? null;
   const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0], currentCity: cityRow[0] ?? null } };
   const tz = user.settings?.timezone ?? 'Europe/Warsaw';
@@ -95,6 +105,8 @@ export async function getMe(userId: string) {
       streakBest: p.streakBest,
       // Заморозки серии (купленные за Złotki) и предложение восстановить сгоревшую серию (2026-11-16).
       streakFreezes: p.streakFreezes,
+      // Уровень заданий (2026-11-16): A2/B1/B2 — трудные версии уроков, null — обычные.
+      studyLevel: p.studyLevel ?? null,
       streakRepair: streakRepairOffer(p.streakCurrent, p.lastActiveDay, today, effectiveStreak(p.streakCurrent, p.lastActiveDay, today, { premium, shieldDay: p.streakShieldDay, freezes: p.streakFreezes })),
       activeToday: p.lastActiveDay === today,
       lessonsCompleted: p.lessonsCompleted,
@@ -121,6 +133,7 @@ export async function getMe(userId: string) {
     outfit: look,
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
     leagueAward,
+    levelTest: { done: levelTestRows.length > 0, placementLevel: user.profile?.placementLevel ?? null },
     rewards: { exerciseXp: cfg.exerciseXp },
     /**
      * Озвучка — лише готові MP3 голосу бібліотеки (Kamil): клієнт рахує audio_id = sha256(audioNorm(текст)) і бере

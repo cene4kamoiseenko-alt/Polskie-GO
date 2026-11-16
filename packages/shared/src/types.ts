@@ -136,6 +136,8 @@ export type ExerciseItem = {
   explanation?: I18n;
   exerciseId?: string;
   vocabId?: string;
+  /** Уровень задания: версия урока A2/B1/B2 или блок входного теста (A0…B2); у обычной версии нет. */
+  level?: Cefr;
 };
 
 export type CheckResult = {

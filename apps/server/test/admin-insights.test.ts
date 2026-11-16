@@ -93,9 +93,9 @@ describe('аналитика «Обзора»', () => {
     expect(r.sources.find((s) => s.key === tag)?.count).toBe(1);
     expect((r.sources.find((s) => s.key === 'ref')?.count ?? 0) - (before.sources.find((s) => s.key === 'ref')?.count ?? 0)).toBe(1);
     expect((r.sources.find((s) => s.key === 'guest')?.count ?? 0) - (before.sources.find((s) => s.key === 'guest')?.count ?? 0)).toBe(1);
-    // входной тест: один игрок оказался в Лодзи
-    expect(r.placement.lodz - before.placement.lodz).toBe(1);
-    expect(r.placement.krakow - before.placement.krakow).toBe(0);
+    // входной тест (2026-11-16 — по уровням): три «не знаю» в первом блоке — уровень A0
+    expect(r.placement.levels.A0 - before.placement.levels.A0).toBe(1);
+    expect(r.placement.levels.B2 - before.placement.levels.B2).toBe(0);
     // уровень и язык
     expect(r.selfLevels.find((x) => x.key === 'A1')!.count).toBeGreaterThanOrEqual(1);
     expect(r.languages.find((x) => x.key === 'ru')!.count).toBeGreaterThanOrEqual(1);

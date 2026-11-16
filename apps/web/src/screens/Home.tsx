@@ -13,6 +13,7 @@ import { Icon } from '../components/Icon';
 import { Confetti, Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
 import { HouseCard } from '../components/HouseCard';
 import { Art, type ArtName } from '../components/GameArt';
+import { levelTestPath } from '../lib/levelTest';
 import { CityHero } from '../components/CityHero';
 import { HeroBeaver } from '../components/HeroBeaver';
 import { StreakCard, StreakIndicator } from '../components/StreakCard';
@@ -161,6 +162,51 @@ type WeekDay = { day: string; xp: number };
  * Неделя игрока под баннером: серия, цель дня и семь последних дней (занимался / нет / сегодня). Данные — та же статистика, что в профиле
  * (кеш общий). Пока данных нет, блок держит высоту и рисует пустые кружки: главная не прыгает.
  */
+const LEVEL_TEST_HIDDEN = 'pg_level_test_hidden';
+
+/**
+ * Карточка теста уровня (2026-11-16, «не потерять тех, кто знает основы»): задания уроков станут уровня игрока. Не показывается
+ * тем, кто начинает с нуля (самооценка A0), уже прошёл новый тест или сам выбрал уровень, и после «Скрыть» на этом устройстве.
+ */
+function LevelTestCard() {
+  const { t } = useT();
+  const nav = useNavigate();
+  const me = useMe().data;
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(LEVEL_TEST_HIDDEN) === '1';
+    } catch {
+      return false;
+    }
+  });
+  if (!me || hidden || me.levelTest?.done !== false || me.progress.studyLevel || me.profile.selfLevel === 'A0') return null;
+  const hide = () => {
+    setHidden(true);
+    try {
+      localStorage.setItem(LEVEL_TEST_HIDDEN, '1');
+    } catch {
+      /* без хранилища карточка просто вернётся при следующем входе */
+    }
+  };
+  return (
+    <div className="card mx-4 flex items-start gap-3 p-3.5" data-level-test-card>
+      <Art name="target" size={46} />
+      <div className="min-w-0 flex-1">
+        <div className="text-[16px] font-black">{t('home_level_test_title')}</div>
+        <div className="muted text-[13px] font-bold leading-snug">{t('home_level_test_text')}</div>
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          <button className="btn btn-primary min-h-0 px-3.5 py-2 text-[14px]" data-start-level-test onClick={() => { haptic.tap(); void levelTestPath().then((path) => path && nav(path)); }}>
+            {t('ob_placement_yes')}
+          </button>
+          <button className="btn btn-ghost min-h-0 px-3.5 py-2 text-[14px]" onClick={hide}>
+            {t('home_level_test_hide')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WeekStrip() {
   const { t, lang } = useT();
   const me = useMe().data!;
@@ -413,6 +459,9 @@ export function HomeScreen() {
 
       {/* Неделя: серия, цель дня и семь последних дней */}
       <WeekStrip />
+
+      {/* Знающим польский — тест уровня: задания станут их уровня (2026-11-16) */}
+      <LevelTestCard />
 
       {/* Сьогодні: щоденні завдання + велика нагорода */}
       <TodayTasks lessonId={next?.id} />

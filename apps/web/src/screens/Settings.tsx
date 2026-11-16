@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../components/Icon';
-import type { UiLang } from '@polski-go/shared';
+import type { StudyLevel, UiLang } from '@polski-go/shared';
 import { useNavigate } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { api, downloadExport, forgetDevice, ApiError } from '../lib/api';
@@ -10,6 +10,7 @@ import { useStandaloneCopy } from '../lib/standaloneCopy';
 import { useMe, useUpdateSettings } from '../lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Me } from '../lib/types';
+import { levelTestPath } from '../lib/levelTest';
 import { Card, Modal, ScreenHeader, Toggle, cx, useToast } from '../components/ui';
 import { speak, type SpeechOutcome } from '../lib/audio';
 import { PronHint } from '../components/PronHint';
@@ -128,6 +129,12 @@ export default function SettingsScreen() {
   const [displayName, setDisplayName] = useState(me.profile.displayName ?? '');
   const set = (patch: Partial<Me['settings']> & { dailyQuiz?: boolean }) => upd.mutate(patch);
 
+  const setStudyLevel = async (level: StudyLevel | null) => {
+    const r = await api<Me>('/me/study-level', { method: 'PATCH', body: { level } });
+    qc.setQueryData(['me'], r);
+    toast(t('toast_saved'), '✅');
+  };
+
   const saveProfile = async () => {
     const r = await api<Me>('/me/profile', { method: 'PATCH', body: { beaverName: beaverName || 'Bobek', displayName: displayName || null } });
     qc.setQueryData(['me'], r);
@@ -145,6 +152,17 @@ export default function SettingsScreen() {
         <div className="pt-2 font-black">{t('set_goal')}</div>
         <Seg value={s.dailyGoalMinutes} options={[[5, '5 min'], [10, '10 min'], [15, '15 min'], [20, '20 min']]} onChange={(v) => set({ dailyGoalMinutes: v })} />
       </Card>
+      {/* Уровень заданий (2026-11-16): та же дорога, задания своего уровня. */}
+      <div data-study-level={me.progress.studyLevel ?? 'base'}>
+      <Card className="space-y-3 p-4">
+        <div className="font-black">{t('set_study_level')}</div>
+        <Seg value={me.progress.studyLevel ?? 'base'} options={[['base', t('set_study_base')], ['A2', 'A2'], ['B1', 'B1'], ['B2', 'B2']]} onChange={(v) => void setStudyLevel(v === 'base' ? null : (v as StudyLevel))} />
+        <p className="muted text-[12.5px] font-bold leading-snug">{t('set_study_level_hint')}</p>
+        <button className="btn btn-ghost w-full" data-open-level-test onClick={() => void levelTestPath().then((path) => path && nav(path))}>
+          <Icon name="target" size={20} /> {t('set_study_test')}
+        </button>
+      </Card>
+      </div>
       <Card className="space-y-2 p-4">
         <label className="block text-sm font-black">{t('set_display_name')}</label>
         <input value={displayName} maxLength={32} onChange={(e) => setDisplayName(e.target.value)} className="w-full rounded-xl border-2 border-soft bg-[var(--bg)] px-3 py-2 font-bold outline-none" />

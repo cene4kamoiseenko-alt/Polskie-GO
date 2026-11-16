@@ -3,14 +3,19 @@
  * Кожна функція повертає вправу у форматі таблиці `exercises` (з відповіддю).
  * Ідентифікатори варіантів детерміновані, щоб повторний seed не змінював дані.
  */
-import type { DialogueStep, ExerciseType, I18n } from '@polski-go/shared';
+import type { Cefr, DialogueStep, ExerciseType, I18n } from '@polski-go/shared';
 
 export type ExerciseSeed = {
   type: ExerciseType;
   skill: string;
   data: Record<string, unknown>;
   explanation?: I18n;
+  /** Уровень вопроса входного теста (блок A0…B2). В уроках трудные версии задаются через LessonSeed.levels. */
+  level?: Cefr;
 };
+
+/** Пометить задание уровнем (блок входного теста). */
+export const atLevel = (level: Cefr, ex: ExerciseSeed): ExerciseSeed => ({ ...ex, level });
 
 /** Переклад трьома мовами: t(uk, ru, en). */
 export const t = (uk: string, ru?: string, en?: string): I18n => ({ uk, ru: ru ?? uk, en: en ?? uk });

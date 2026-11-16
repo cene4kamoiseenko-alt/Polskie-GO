@@ -18,7 +18,7 @@ type Insights = {
   totals: { signups: Pair; active: Pair; lessons: Pair; stars: Pair };
   funnel: { total: number; onboarded: number; lesson: number; returnable: number; returned: number; paid: number };
   sources: { key: string; count: number }[];
-  placement: { noTest: number; warszawa: number; lodz: number; krakow: number };
+  placement: { noTest: number; levels: Record<'A0' | 'A1' | 'A2' | 'B1' | 'B2', number> };
   selfLevels: { key: string; count: number }[];
   languages: { key: string; count: number }[];
   reminders: { days: { day: string; sent: number; failed: number; blocked: number; skipped: number }[]; enabled: number; telegramUsers: number; quizInvites: number };
@@ -139,7 +139,7 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
   const i = ins.data;
   const d = dash.data;
   const error = ins.error || dash.error;
-  const placementTotal = i ? i.placement.warszawa + i.placement.lodz + i.placement.krakow : 0;
+  const placementTotal = i ? Object.values(i.placement.levels).reduce((a, b) => a + b, 0) : 0;
   return (
     <div className="space-y-5" aria-busy={ins.loading}>
       <PageHeader
@@ -220,13 +220,9 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
-            <Card title="Входной тест" subtitle="где оказались новички после теста" data-placement-card>
+            <Card title="Входной тест" subtitle="уровень новичков по тесту; с A2 уроки идут в трудных версиях" data-placement-card>
               <Bars
-                items={[
-                  { key: 'w', label: 'Варшава (ниже 50 %)', value: i.placement.warszawa, color: '#2fd39a' },
-                  { key: 'l', label: 'Лодзь (50–79 %)', value: i.placement.lodz, color: '#38b6ff' },
-                  { key: 'k', label: 'Краков (80 % и выше)', value: i.placement.krakow, color: '#f5b83d' },
-                ]}
+                items={(['A0', 'A1', 'A2', 'B1', 'B2'] as const).map((k) => ({ key: k, label: LEVEL[k] ?? k, value: i.placement.levels[k], color: k === 'A0' || k === 'A1' ? '#38b6ff' : '#f5b83d' }))}
                 empty="Никто из новичков не проходил тест"
               />
               <p className="mt-3 text-xs text-slate-500">
