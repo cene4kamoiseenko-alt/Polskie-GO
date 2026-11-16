@@ -25,11 +25,11 @@ const fits = (phrase: string, bank: string[]) => {
   });
 };
 
-type Row = { id: string; type: ExerciseItem['type']; skill: string; data: string; explanation: string | null; slug: string };
-async function lessonOrderItems(): Promise<(ExerciseItem & { explanation: unknown; slug: string })[]> {
+type Row = { id: string; type: ExerciseItem['type']; skill: string; data: string; explanation: string | null; slug: string; ord: number };
+async function lessonOrderItems(): Promise<(ExerciseItem & { explanation: unknown; slug: string; ord: number })[]> {
   const { env } = await getEnv();
-  const rows = (await env.DB.prepare("select e.id, e.type, e.skill, e.data, e.explanation, l.slug from exercises e join lessons l on l.id = e.lesson_id where e.type in ('BUILD_SENTENCE','WORD_ORDER')").all()).results as Row[];
-  return rows.map((r) => ({ key: r.id, exerciseId: r.id, type: r.type, skill: r.skill, data: JSON.parse(r.data), explanation: r.explanation ? JSON.parse(r.explanation) : null, slug: r.slug }));
+  const rows = (await env.DB.prepare(`select e.id, e.type, e.skill, e.data, e.explanation, l.slug, e."order" as ord from exercises e join lessons l on l.id = e.lesson_id where e.type in ('BUILD_SENTENCE','WORD_ORDER')`).all()).results as Row[];
+  return rows.map((r) => ({ key: r.id, exerciseId: r.id, type: r.type, skill: r.skill, data: JSON.parse(r.data), explanation: r.explanation ? JSON.parse(r.explanation) : null, slug: r.slug, ord: r.ord }));
 }
 
 describe('миссии: шаги «build»', () => {
@@ -117,7 +117,8 @@ describe('миссии: шаги «build»', () => {
 describe('уроки: BUILD_SENTENCE и WORD_ORDER', () => {
   it('запись допустимых порядков есть почти у каждого подходящего задания; ни один ключ таблицы не повис без задания', async () => {
     const items = await lessonOrderItems();
-    expect(items.length).toBe(142);
+    // Обычные версии уроков (порядок < 100); у трудных версий A2/B1/B2 допустимые порядки записаны в самом задании (alternatives).
+    expect(items.filter((i) => i.ord < 100).length).toBe(142);
     const answers = new Set([...items.map((i) => normalize((i.data as OrderData).answer.join(' '))), ...builds.map(({ step }) => normalize(tokensOf(step.answer!).join(' ')))]);
     const orphan = orderSpecAnswers().filter((k) => !answers.has(k));
     expect(orphan, `Записи без задания:\n${orphan.join('\n')}`).toEqual([]);

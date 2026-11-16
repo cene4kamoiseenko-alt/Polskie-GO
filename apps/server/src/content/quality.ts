@@ -10,7 +10,16 @@
  *  • «одинаковое начало» — в «Вставь слово» верный вариант единственный из вариантов, начинающийся иначе, чем остальные
  *    формы одного слова (остальные — просто другая часть речи, а не соблазнительные формы).
  */
-import type { CityContent } from './types';
+import type { ExerciseSeed } from './builders';
+import type { CityContent, LessonSeed } from './types';
+
+/** Обычная версия урока и его трудные версии (`slug@B1`): правила качества одни для всех. */
+export function lessonVersions(lesson: LessonSeed): { slug: string; exercises: ExerciseSeed[] }[] {
+  return [
+    { slug: lesson.slug, exercises: lesson.exercises },
+    ...Object.entries(lesson.levels ?? {}).map(([lv, v]) => ({ slug: `${lesson.slug}@${lv}`, exercises: v.exercises })),
+  ];
+}
 
 type Opt = { text?: unknown };
 const textOf = (o: unknown): string => (typeof o === 'string' ? o : typeof (o as Opt)?.text === 'string' ? ((o as Opt).text as string) : '');
@@ -64,7 +73,7 @@ export function analyseCities(cities: readonly CityContent[]): { findings: Findi
   const totals: Record<string, CityTotals> = {};
   for (const city of cities) {
     const t = (totals[city.city] = { exercises: 0, choiceSteps: 0, twoOpt: 0, longest: 0, farListen: 0, listen: 0, gap: 0, sameStart: 0 });
-    for (const lesson of city.routes.flatMap((r) => r.lessons)) {
+    for (const lesson of city.routes.flatMap((r) => r.lessons).flatMap(lessonVersions)) {
       lesson.exercises.forEach((ex, index) => {
         t.exercises++;
         const d = ex.data as { options?: unknown[]; answer?: string; steps?: { options?: unknown[]; answer?: string }[]; audioText?: string };
@@ -119,7 +128,7 @@ export function analyseCities(cities: readonly CityContent[]): { findings: Findi
 /** Шаги диалогов города: сколько всего, сколько с менее чем тремя вариантами, у скольких неверный без пояснения, в скольких верный — самый длинный. */
 export function dialogueStats(city: CityContent) {
   const out = { steps: 0, fewOptions: [] as string[], noExplanation: [] as string[], longest: 0 };
-  for (const lesson of city.routes.flatMap((r) => r.lessons)) {
+  for (const lesson of city.routes.flatMap((r) => r.lessons).flatMap(lessonVersions)) {
     lesson.exercises.forEach((ex, i) => {
       if (ex.type !== 'DIALOGUE' && ex.type !== 'SITUATION') return;
       const data = ex.data as { steps: { options?: { id: string; text: string; tr?: unknown }[]; answer?: string }[] };

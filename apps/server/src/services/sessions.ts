@@ -4,11 +4,11 @@
  * Відповідь перевіряється одразу; нагороди рахуються тільки при завершенні.
  * Кожна зміна сесії — атомарний пакет із перевіркою версії (оптимістичне блокування).
  */
-import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, notInArray, or, sql, type AnyColumn } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, notInArray, or, sql, type AnyColumn } from 'drizzle-orm';
 import {
   BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO, isMissionSlug,
   checkAnswer, dayDiff, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
-  seededRandom, shuffle, spreadByType, toPublicItem, adaptLevel, placementProgress, studyLevelFor, variantLevel,
+  seededRandom, shuffle, spreadByType, toPublicItem, adaptLevel, placementProgress, studyLevelFor, variantLevel, STUDY_LEVELS,
   type AnswerPayload, type Cefr, type CheckResult, type ExerciseItem, type ExerciseType, type I18n, type StudyLevel,
 } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
@@ -35,6 +35,17 @@ type SessionState = { answers: Record<string, ItemState>; run: number; variant?:
 
 /** Порядок заданий трудных версий урока: обычная версия — 0…99 (VARIANT_ORDER, content/seed.ts). */
 const VARIANT_BASE_ORDER = 100;
+
+/**
+ * Практика и грамматика берут задания уроков: обычные версии и трудные версии не выше уровня заданий игрока
+ * (игрок A1 не получает задания B2 из трудной версии, игрок B1 — получает A2 и B1).
+ */
+export function practiceVersions(level: StudyLevel | null) {
+  const mine = level ? STUDY_LEVELS.slice(0, STUDY_LEVELS.indexOf(level) + 1) : [];
+  const base = lt(exercises.order, VARIANT_BASE_ORDER);
+  return mine.length ? or(base, inArray(exercises.level, mine)) : base;
+}
+const studyLevelOf = (userId: string) => db.select({ level: playerProgress.studyLevel }).from(playerProgress).where(eq(playerProgress.userId, userId));
 
 /** Детермінований порядок варіантів для сесії (той самий після продовження). */
 const sessionSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 17);
@@ -108,6 +119,7 @@ async function buildGrammarItems(userId: string, topicSlug: string | undefined, 
   const topic = GRAMMAR.find((g) => g.slug === topicSlug);
   if (!topic) throw notFound('topic_not_found');
   const myCities = db.select({ id: userCities.cityId }).from(userCities).where(eq(userCities.userId, userId));
+  const [me] = await studyLevelOf(userId);
   const rows = await db
     .select({ e: exercises })
     .from(exercises)
@@ -116,6 +128,7 @@ async function buildGrammarItems(userId: string, topicSlug: string | undefined, 
     .where(
       and(
         inArray(exercises.skill, topic.skills),
+        practiceVersions((me?.level ?? null) as StudyLevel | null),
         eq(lessons.status, 'PUBLISHED'),
         eq(lessons.isPremium, false),
         or(inArray(cityRoutes.cityId, myCities), eq(lessons.kind, 'EXAM')),
@@ -163,9 +176,10 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
   }
 
   // FIVE_MIN: до 5 слів на повторення + вправи з уже пройдених (або доступних) уроків.
-  const [due, done] = await db.batch([
+  const [due, done, [me]] = await db.batch([
     db.select({ itemId: reviewSchedule.itemId }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), lte(reviewSchedule.dueAt, now))).orderBy(asc(reviewSchedule.dueAt)).limit(5),
     db.select({ lessonId: userLessonProgress.lessonId }).from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), isNotNull(userLessonProgress.firstCompletedAt))),
+    studyLevelOf(userId),
   ]);
   const words = due.map((d) => byId(d.itemId)).filter(Boolean) as VocabRow[];
   let lessonIds = done.map((d) => d.lessonId);
@@ -174,7 +188,11 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
     lessonIds = j.cities.flatMap((c) => c.routes.flatMap((r) => r.lessons)).filter((l) => l.state === 'available').slice(0, 1).map((l) => l.id);
   }
   const exRows = lessonIds.length
-    ? await db.select().from(exercises).where(and(inArray(exercises.lessonId, lessonIds), notInArray(exercises.type, ['DIALOGUE', 'SITUATION', 'READING']))).limit(80)
+    ? await db
+        .select()
+        .from(exercises)
+        .where(and(inArray(exercises.lessonId, lessonIds), notInArray(exercises.type, ['DIALOGUE', 'SITUATION', 'READING']), practiceVersions((me?.level ?? null) as StudyLevel | null)))
+        .limit(80)
     : [];
   const exItems = shuffle(lessonToItems(exRows), rnd).slice(0, 10 - words.length);
   const items = [...words.map((w, i) => wordItem(w, pool, rnd, i)), ...exItems];
@@ -220,6 +238,19 @@ async function lessonPlace(lesson: typeof lessons.$inferSelect) {
     routeIcon: r.route.icon,
     index: siblings.findIndex((x) => x.id === lesson.id) + 1,
     count: siblings.length,
+  };
+}
+
+/**
+ * Урок для экрана: в трудной версии — уровень версии и её теория с примерами (2026-11-16), чтобы перед заданиями B1 игрок
+ * читал, что нового в теме на B1, а не теорию A0. Нет теории версии — теория урока.
+ */
+function lessonPayload(lesson: typeof lessons.$inferSelect, variant: Cefr | null) {
+  const text = variant && variant !== 'A0' && variant !== 'A1' ? lesson.levelTexts?.[variant] : undefined;
+  return {
+    id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic,
+    explanation: text?.explanation ?? lesson.explanation, examples: text?.examples ?? lesson.examples,
+    cefr: variant ?? lesson.cefr, variant,
   };
 }
 
@@ -293,8 +324,8 @@ export async function startSession(userId: string, input: { lessonId?: string; m
         return {
           sessionId: prev.id,
           mode: realMode,
-          lesson: { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: st?.variant ?? lesson.cefr, variant: st?.variant ?? null },
-          words,
+          lesson: lessonPayload(lesson, st?.variant ?? null),
+          words: st?.variant ? [] : words,
           place,
           items: prevItems.map((i) => toPublicItem(i, prnd)),
           timeLimitSec: null,
@@ -321,10 +352,9 @@ export async function startSession(userId: string, input: { lessonId?: string; m
   return {
     sessionId: id,
     mode: realMode,
-    lesson: lesson
-      ? { id: lesson.id, slug: lesson.slug, kind: lesson.kind, title: lesson.title, topic: lesson.topic, explanation: lesson.explanation, examples: lesson.examples, cefr: variant ?? lesson.cefr, variant }
-      : null,
-    words,
+    lesson: lesson ? lessonPayload(lesson, variant) : null,
+    // Новые слова урока — уровня урока (cześć, dziękuję…): игроку трудной версии их не показываем, в словарь они всё равно попадут.
+    words: variant ? [] : words,
     place,
     items: items.map((i) => toPublicItem(i, prnd)),
     timeLimitSec: realMode === 'SPEED' ? 90 : null,

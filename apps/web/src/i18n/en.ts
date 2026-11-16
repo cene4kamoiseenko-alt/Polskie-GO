@@ -571,6 +571,7 @@ export const en: Dict = {
   lesson_skipped_ok: "No problem, we'll come back to it",
   lesson_dont_know: "I don't know",
   lesson_dont_know_ok: "That's fine",
+  lesson_variant_badge: "Tasks at your level",
   res_placement_hard: "You start in Warsaw like everyone else, but lesson tasks will be at {level} level. You can change the difficulty in Settings.",
   res_placement_base: "We'll start with the basics: letters, sounds and first phrases. You can raise the difficulty in Settings.",
   res_level_change_up: "Great! Tasks will get harder: level {level}",

@@ -244,7 +244,8 @@ describe('стандарт міста: міграція наявної БД', ()
     expect(after.filter((e) => e.slug === TASK_ARCHIVE)).toHaveLength(dropped);
     expect(await all(old, 'SELECT * FROM user_lesson_progress ORDER BY user_id, lesson_id')).toEqual(before.progress);
     expect(await all(old, 'SELECT * FROM exercise_attempts ORDER BY rowid')).toEqual(before.attempts);
-    expect(await all(old, `SELECT slug FROM lessons l WHERE exercise_count <> (SELECT count(*) FROM exercises e WHERE e.lesson_id = l.id)`)).toEqual([]);
+    // Счётчик — только обычная версия урока (порядок < 100): трудные версии A2/B1/B2 его не увеличивают (миграция 0023).
+    expect(await all(old, `SELECT slug FROM lessons l WHERE exercise_count <> (SELECT count(*) FROM exercises e WHERE e.lesson_id = l.id AND e."order" < 100)`)).toEqual([]);
   });
 
   it('учень Варшави: пройдений урок зарахований, незавершений урок продовжується і завершується зі своїми 17 завданнями', async () => {

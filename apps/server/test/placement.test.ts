@@ -8,12 +8,13 @@
  * docs/superpowers/specs/2026-11-16-levels-design.md
  */
 import { afterAll, describe, expect, it } from 'vitest';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gte, lt } from 'drizzle-orm';
 import type { ExerciseItem } from '@polski-go/shared';
 import { db } from '../src/db';
 import { exercises, learningSessions, lessons, playerProgress } from '../src/db/schema';
 import { resetRateLimits } from '../src/hono';
 import { PLACEMENT_V2 } from '../src/content/exams';
+import { WARSZAWA_LEVELS } from '../src/content/levels/warszawa';
 import { similarity } from '../src/content/quality';
 import { cognateScore } from './guess';
 
@@ -119,46 +120,53 @@ describe('входной тест v2', () => {
 });
 
 describe('версии урока под уровень заданий', () => {
-  /** Добавить уроку трудную версию B1 (порядок 200+), как это делает сид для LessonSeed.levels. */
-  async function addVariant(slug: string, level: 'A2' | 'B1' | 'B2', base: number) {
-    const id = await lessonId(slug);
-    const src = await db.select().from(exercises).where(and(eq(exercises.lessonId, id))).orderBy(exercises.order).limit(3);
-    for (const [i, e] of src.entries()) {
-      await db.insert(exercises).values({ id: `t_${slug}_${level}_${i}`, lessonId: id, order: base + i, type: e.type, skill: e.skill, data: e.data, explanation: e.explanation, level }).onConflictDoNothing();
-    }
-    return id;
-  }
+  const W1 = WARSZAWA_LEVELS['waw-1-czesc'];
 
-  it('B1 получает версию B1, без уровня — обычную; счётчик заданий урока не растёт', async () => {
-    const before = (await db.query.lessons.findFirst({ where: eq(lessons.slug, 'waw-1-czesc') }))?.exerciseCount;
-    const id = await addVariant('waw-1-czesc', 'B1', 200);
-    expect((await db.query.lessons.findFirst({ where: eq(lessons.id, id) }))?.exerciseCount).toBe(before);
+  it('B1 получает версию B1 с её теорией и без слов A0; без уровня — обычную; счётчик заданий урока — только обычная версия', async () => {
+    const id = await lessonId('waw-1-czesc');
+    const lesson = (await db.query.lessons.findFirst({ where: eq(lessons.id, id) }))!;
+    const base = await db.select({ id: exercises.id }).from(exercises).where(and(eq(exercises.lessonId, id), lt(exercises.order, 100)));
+    expect(lesson.exerciseCount).toBe(base.length);
+    expect(Object.keys(lesson.levelTexts ?? {}).sort()).toEqual(['A2', 'B1', 'B2']);
 
-    const own = (await db.query.lessons.findFirst({ where: eq(lessons.id, id) }))!.cefr;
     const plain = await login();
     const a = await plain.call('POST', '/api/sessions', { lessonId: id });
     expect(a.status).toBe(200);
-    expect(a.body.lesson).toMatchObject({ cefr: own, variant: null });
+    expect(a.body.lesson).toMatchObject({ cefr: lesson.cefr, variant: null, explanation: lesson.explanation });
+    expect(a.body.words.length).toBeGreaterThan(0);
     expect((await sessionItems(a.body.sessionId)).every((i) => !i.level)).toBe(true);
 
     const strong = await login();
     expect((await strong.call('PATCH', '/api/me/study-level', { level: 'B1' })).body.progress.studyLevel).toBe('B1');
     const b = await strong.call('POST', '/api/sessions', { lessonId: id });
-    expect(b.body.lesson).toMatchObject({ cefr: 'B1', variant: 'B1' });
+    expect(b.body.lesson).toMatchObject({ cefr: 'B1', variant: 'B1', explanation: W1.B1!.explanation, examples: W1.B1!.examples });
+    expect(b.body.words).toEqual([]);
     const items = await sessionItems(b.body.sessionId);
-    expect(items).toHaveLength(3);
+    expect(items).toHaveLength(W1.B1!.exercises.length);
     expect(items.every((i) => i.level === 'B1')).toBe(true);
 
-    // B2 без версии B2 — ближайшая ниже (B1); A2 — версии A2 нет, B1 выше уровня — обычная.
-    await strong.call('PATCH', '/api/me/study-level', { level: 'B2' });
-    expect((await strong.call('POST', '/api/sessions', { lessonId: id })).body.lesson.variant).toBe('B1');
-    await strong.call('PATCH', '/api/me/study-level', { level: 'A2' });
-    expect((await strong.call('POST', '/api/sessions', { lessonId: id })).body.lesson.variant).toBeNull();
+    for (const level of ['A2', 'B2'] as const) {
+      await strong.call('PATCH', '/api/me/study-level', { level });
+      expect((await strong.call('POST', '/api/sessions', { lessonId: id })).body.lesson.variant).toBe(level);
+    }
+  });
+
+  it('версии B2 нет — игрок B2 получает ближайшую ниже (B1)', async () => {
+    const id = await lessonId('waw-1-czesc');
+    const b2 = await db.select().from(exercises).where(and(eq(exercises.lessonId, id), gte(exercises.order, 300)));
+    expect(b2.length).toBe(W1.B2!.exercises.length);
+    await db.delete(exercises).where(and(eq(exercises.lessonId, id), gte(exercises.order, 300)));
+    try {
+      const u = await login();
+      await u.call('PATCH', '/api/me/study-level', { level: 'B2' });
+      expect((await u.call('POST', '/api/sessions', { lessonId: id })).body.lesson.variant).toBe('B1');
+    } finally {
+      await db.insert(exercises).values(b2);
+    }
   });
 
   it('автоподстройка: три урока своего уровня без ошибок — уровень выше; два трудных — ниже', async () => {
-    const id = await addVariant('waw-1-czesc', 'B1', 200);
-    await addVariant('waw-1-czesc', 'B2', 300);
+    const id = await lessonId('waw-1-czesc');
     const u = await login();
     await u.call('PATCH', '/api/me/study-level', { level: 'B1' });
     const play = async (wrong: number) => {
@@ -171,8 +179,8 @@ describe('версии урока под уровень заданий', () => {
     const third = await play(0);
     expect(third.studyLevelChange).toEqual({ from: 'B1', to: 'B2', dir: 'up' });
     expect((await progress(u.user.id)).studyLevel).toBe('B2');
-    await play(3);
-    const down = await play(3);
+    await play(99);
+    const down = await play(99);
     expect(down.studyLevelChange).toEqual({ from: 'B2', to: 'B1', dir: 'down' });
     expect((await progress(u.user.id)).studyLevel).toBe('B1');
   });

@@ -33,9 +33,10 @@ import { PLACEMENT, PLACEMENT_V2, EXAM_A1 } from './exams';
 import { ACHIEVEMENTS, COSTUME_PRICES, DAILY_QUESTS, ITEMS, STORY_QUESTS, STORY_TARGET_BEFORE, WEEKLY_QUESTS } from './gamification';
 import { MISSIONS } from './missions';
 import type { CityContent, LessonSeed } from './types';
+import { withLevels } from './levels';
 
 /** Міста з уроками за стандартом (city-standard.ts): 8 уроків та іспит, по 12 завдань. */
-export const CITY_CONTENT: CityContent[] = [...STANDARD_CITIES, POZNAN, ZIELONA_GORA, GORZOW, SZCZECIN, GDANSK, GDYNIA, BYDGOSZCZ, TORUN, OLSZTYN, BIALYSTOK, LUBLIN, RZESZOW, KIELCE, ZAKOPANE];
+export const CITY_CONTENT: CityContent[] = withLevels([...STANDARD_CITIES, POZNAN, ZIELONA_GORA, GORZOW, SZCZECIN, GDANSK, GDYNIA, BYDGOSZCZ, TORUN, OLSZTYN, BIALYSTOK, LUBLIN, RZESZOW, KIELCE, ZAKOPANE]);
 /** Ті самі міста до стандарту — лише для тестів міграції (БД, засіяна до скорочення міст). */
 export const PRE_STANDARD_CONTENT: CityContent[] = CITY_PLANS.map(([full]) => full);
 
@@ -176,7 +177,7 @@ function variantSql(l: LessonSeed, force: boolean): string[] {
   const out: string[] = [];
   const lessonId = ref('lessons', { slug: l.slug });
   for (const level of VARIANT_LEVELS) {
-    const list = l.levels?.[level] ?? [];
+    const list = l.levels?.[level]?.exercises ?? [];
     const base = VARIANT_ORDER[level];
     if (list.length > 99) throw new Error(`${l.slug}: в версии ${level} больше 99 заданий`);
     for (const [i, ex] of list.entries()) {
@@ -313,6 +314,8 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
   }
 
   // ── Уроки ──
+  /** Уроки с теорией трудных версий: у остальных (версию убрали из кода) теория стирается одной командой после уроков. */
+  const withTexts: string[] = [];
   const lessonSql = (l: LessonSeed, order: number, routeSlug: string | null) => {
     out.push(
       insert(
@@ -326,6 +329,12 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
       ),
     );
     const lessonId = ref('lessons', { slug: l.slug });
+    // Теория трудных версий — всегда из кода (в т. ч. без force): у уже засеянного урока её ещё нет.
+    const texts = Object.fromEntries(Object.entries(l.levels ?? {}).map(([lv, v]) => [lv, { explanation: v.explanation, examples: v.examples }]));
+    if (Object.keys(texts).length) {
+      out.push(`UPDATE lessons SET level_texts = ${lit(texts)} WHERE slug = ${lit(l.slug)};`);
+      withTexts.push(l.slug);
+    }
     // Урок, що лишився без локації (наприклад, локацію додали пізніше), прив'язуємо до неї.
     if (routeSlug) out.push(`UPDATE lessons SET route_id = ${ref('city_routes', { slug: routeSlug }).sql} WHERE slug = ${lit(l.slug)} AND route_id IS NULL;`);
     for (const i of l.exercises.keys()) out.push(exerciseSql(l.slug, l, i, force));
@@ -365,6 +374,7 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
   lessonSql(PLACEMENT, 0, null);
   lessonSql(PLACEMENT_V2, 0, null);
   lessonSql(EXAM_A1, 0, null);
+  out.push(`UPDATE lessons SET level_texts = NULL WHERE level_texts IS NOT NULL${withTexts.length ? ` AND slug NOT IN (${withTexts.map(lit).join(', ')})` : ''};`);
   // Входной тест v2 заменяет прежний (2026-11-16): прежний — в архив, его прошлые результаты остаются в истории.
   out.push(`UPDATE lessons SET status = 'ARCHIVED' WHERE slug = ${lit(PLACEMENT.slug)} AND status = 'PUBLISHED';`);
   out.push(STRANDED_CURRENT_CITY_SQL);
@@ -508,8 +518,9 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
   }
 
   // Лічильник вправ (lessons.exercise_count) ведуть тригери міграції 0005; перерахунок у кінці seed — страховка
-  // від розбіжностей. Пише лише рядки, де число справді відрізняється.
-  const realCount = '(SELECT count(*) FROM exercises e WHERE e.lesson_id = lessons.id)';
+  // від розбіжностей. Пише лише рядки, де число справді відрізняється. Лише звичайна версія (порядок < 100, як у тригерах 0023):
+  // трудні версії A2/B1/B2 не збільшують «N завдань» на картці уроку.
+  const realCount = `(SELECT count(*) FROM exercises e WHERE e.lesson_id = lessons.id AND e."order" < ${VARIANT_ORDER.A2})`;
   out.push(`UPDATE lessons SET exercise_count = ${realCount} WHERE exercise_count <> ${realCount};`);
   return out;
 }

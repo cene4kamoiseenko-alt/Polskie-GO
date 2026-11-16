@@ -39,6 +39,7 @@ import { chromiumPath, startStand } from './lib/stand';
 import { MAP_ART, MAP_SPOTS, mapHitRect, mapStarPoint } from '../packages/shared/src/mapArt';
 import { equipmentFromWear, lookDataAttributes, resolveLook, toLookItemId, tryOn } from '../packages/shared/src/look/index';
 import { signInitData } from '../apps/server/src/lib/telegram';
+import { LESSON_LEVELS } from '../apps/server/src/content/levels';
 
 const root = process.cwd();
 const require = createRequire(root + '/package.json');
@@ -561,7 +562,8 @@ async function main() {
       await r5.context.close();
     });
 
-    // ── Уровни (2026-11-16): входной тест v2 («Не знаю», остановка после блока, итог), карточка теста на главной, уровень заданий в настройках.
+    // ── Уровни (2026-11-16): входной тест v2 («Не знаю», остановка после блока, итог), карточка теста на главной, уровень заданий в настройках,
+    //    урок в версии своего уровня (плашка и теория версии).
     await soft('Уровни: входной тест, карточка, настройки', async () => {
       const lv = await userPage('880080');
       const p = lv.page;
@@ -593,6 +595,16 @@ async function main() {
       check(true, 'Уровни: в настройках выбран уровень заданий B1');
       check((await lv.call('GET', '/api/me')).body.progress.studyLevel === 'B1', 'Уровни: уровень заданий B1 сохранён на сервере');
       await p.screenshot({ path: `${SCREENS}/levels-settings-390.png` });
+      // Урок своего уровня (этап 2): плашка «Задания твоего уровня» и теория версии B1 вместо обычной (content/levels/).
+      const next = (await lv.call('GET', '/api/journey')).body.nextLesson as { id: string; slug: string };
+      const theory = LESSON_LEVELS[next.slug]?.B1?.explanation.ru;
+      check(!!theory, `Уровни: у следующего урока ${next.slug} есть версия B1`);
+      await p.goto(lv.url('/lesson/' + next.id), { waitUntil: 'domcontentloaded' });
+      await p.locator('[data-lesson-variant]').waitFor({ timeout: 20_000 });
+      check((await p.locator('[data-lesson-variant]').getAttribute('data-lesson-variant')) === 'B1', 'Уровни: урок открывается в версии B1 с плашкой «Задания твоего уровня»');
+      const firstLine = (theory ?? '').split('\n')[0].replace(/\*\*/g, '').slice(0, 30);
+      check((await p.locator('body').innerText()).replace(/\s+/g, ' ').includes(firstLine.replace(/\s+/g, ' ')), `Уровни: теория урока — из версии B1 («${firstLine}…»)`);
+      await p.screenshot({ path: `${SCREENS}/levels-variant-lesson-390.png` });
       // С выбранным уровнем карточка теста на главной больше не показывается.
       await p.goto(lv.url('/'), { waitUntil: 'domcontentloaded' });
       await p.locator('[data-home-week]').waitFor({ timeout: 15_000 });

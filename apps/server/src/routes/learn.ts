@@ -1,6 +1,6 @@
 /** Карта, уроки, навчальні сесії, словник, граматика, іспити. */
 import { Hono } from 'hono';
-import { and, asc, count, desc, eq, exists, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, exists, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { dayKey } from '@polski-go/shared';
 import { db } from '../db';
@@ -171,7 +171,8 @@ r.get('/grammar', async (c) => {
       .select({ skill: exercises.skill, n: count() })
       .from(exercises)
       .innerJoin(lessons, eq(lessons.id, exercises.lessonId))
-      .where(and(inArray(exercises.skill, allSkills), eq(lessons.status, 'PUBLISHED')))
+      // Только обычные версии уроков (порядок < 100): трудные версии A2/B1/B2 видны не всем игрокам.
+      .where(and(inArray(exercises.skill, allSkills), eq(lessons.status, 'PUBLISHED'), lt(exercises.order, 100)))
       .groupBy(exercises.skill),
   ]);
   return c.json(

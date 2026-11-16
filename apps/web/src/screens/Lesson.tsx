@@ -281,6 +281,11 @@ export default function LessonScreen() {
           <div>
             <div className="mb-1.5 flex flex-wrap gap-1.5">
               <span className="rounded-full bg-sky px-2.5 py-0.5 text-[12px] font-black text-night">{l.cefr}</span>
+              {l.variant && (
+                <span className="rounded-full bg-xp px-2.5 py-0.5 text-[12px] font-black text-xp-ink" data-lesson-variant={l.variant}>
+                  {t('lesson_variant_badge')}
+                </span>
+              )}
               {isMissionSlug(l.slug) ? (
                 <span className="rounded-full bg-xp px-2.5 py-0.5 text-[12px] font-black text-xp-ink">{t('stage_mission')}</span>
               ) : session.place ? (

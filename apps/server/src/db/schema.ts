@@ -198,6 +198,8 @@ export const lessons = sqliteTable(
     explanation: json<I18n>('explanation').notNull(),
     /** Приклади: [{pl, tr: I18n}] */
     examples: json<{ pl: string; tr: I18n }[]>('examples').notNull().default([]),
+    /** Теория трудных версий урока (2026-11-16): {A2|B1|B2: {explanation, examples}}; источник — код (content/levels). */
+    levelTexts: json<Partial<Record<'A2' | 'B1' | 'B2', { explanation: I18n; examples: { pl: string; tr: I18n }[] }>>>('level_texts'),
     isPremium: bool('is_premium').notNull().default(false),
     status: text('status', { enum: CONTENT_STATUS }).notNull().default('DRAFT'),
     /** Кількість вправ уроку. Підтримують тригери на exercises (міграція 0005), seed перераховує;
