@@ -60,7 +60,7 @@ describe('три сценария: фото, текст и кнопка по р�
     expect(p.method).toBe('sendPhoto');
     expect(p.params.photo).toBe(versioned(ORIGIN, 'commands/reminder-lesson.jpg'));
     expect(p.params.caption).toMatch(/^🇵🇱 Cześć! Бобек уже приготовил для тебя новый урок! 🦫📚\nНайдёшь пять минут для польского\?/);
-    expect(p.params.caption).toContain('/stop — отключить напоминания');
+    expect(p.params.caption).toContain('/stop — отключить напоминания и вопрос дня');
     expect(button(p)).toEqual({ text: '📚 Продолжить урок', web_app: { url: `${ORIGIN}/?bot_screen=learn` } });
 
     const s = to(calls, streak.telegramId)[0];

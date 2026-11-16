@@ -483,6 +483,36 @@ describe('ответ на вопрос дня', () => {
     expect(last.find((c) => c.method === 'editMessageCaption')!.params.caption).toContain('2 дня подряд');
   });
 
+  it('«Не присылать вопрос дня» — прямо под вопросом: отказ без ответа, сегодняшний вопрос ещё можно решить, завтра не приходит', async () => {
+    const tg = await botOnly('ru');
+    await launch('2027-01-26');
+    const sent = fakeTelegram();
+    await runDay('2027-01-26');
+    type Kb = { inline_keyboard: { text: string; callback_data?: string }[][] };
+    const markup = toChats(sent, [tg])[0].params.reply_markup as Kb;
+    const rows = markup.inline_keyboard;
+    // Кнопка отказа — последней строкой, под вариантами ответа и кнопкой в игру.
+    expect(rows.at(-1)).toEqual([{ text: '🔕 Не присылать вопрос дня', callback_data: 'qz:daily:0' }]);
+    // Нажатие в самом вопросе: рассылка выключена, кнопка сменилась на «Присылать», варианты ответа остались.
+    const calls = fakeTelegram();
+    await hook({ update_id: ++upd, callback_query: { id: `cb${upd}`, from: { id: tg, first_name: 'Ola', language_code: 'ru' }, message: { message_id: 7, chat: { id: tg, type: 'private' }, reply_markup: markup }, data: 'qz:daily:0' } });
+    expect((await db.select().from(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg)))[0].pushEnabled).toBe(false);
+    expect(calls.find((c) => c.method === 'answerCallbackQuery')!.params.text).toMatch(/больше не пришлю/);
+    const edited = (calls.find((c) => c.method === 'editMessageReplyMarkup')!.params.reply_markup as Kb).inline_keyboard;
+    expect(edited.flat().filter((b) => b.callback_data?.startsWith('qa:'))).toHaveLength(4);
+    expect(edited.at(-1)).toEqual([{ text: '🔔 Присылать вопрос дня', callback_data: 'qz:daily:1' }]);
+    // Сегодняшний вопрос можно решить; в итоге кнопка уже «Присылать».
+    const { round, pos } = await dailyRound(tg, '2027-01-26');
+    const answered = fakeTelegram();
+    await press(tg, `qa:${round.id}:${pos(true)}`);
+    expect(JSON.stringify(answered.find((c) => c.method === 'editMessageCaption')!.params.reply_markup)).toContain('qz:daily:1');
+    // Завтра вопрос этому человеку не приходит.
+    await launch('2027-01-27');
+    const next = fakeTelegram();
+    await runDay('2027-01-27');
+    expect(toChats(next, [tg])).toEqual([]);
+  });
+
   it('«Не присылать вопрос дня» выключает рассылку человеку, кнопка меняется на «Присылать»; /stop без аккаунта — тоже', async () => {
     const tg = await botOnly('ru');
     let calls = fakeTelegram();

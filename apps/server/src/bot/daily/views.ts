@@ -1,6 +1,7 @@
 /**
  * Сообщения вопроса дня: вопрос (фото сцены + подпись + 4 кнопки) и итог в том же сообщении после ответа.
  * Времени на ответ нет (в отличие от /quiz). Строка серии и кнопка урока до ответа — если серия ≥ 2 и сегодня ещё не занимался.
+ * «🔕 Не присылать вопрос дня» — и под самим вопросом, и под итогом: отказаться можно, не отвечая (2026-11-16).
  */
 import type { UiLang } from '@polski-go/shared';
 import type { botQuizRounds } from '../../db/schema';
@@ -42,6 +43,9 @@ export function dailyQuestionView(q: QuizQuestion, order: number[], lang: UiLang
   const rows: Button[][] = short ? shown.map((_, i) => [button(i)]) : [shown.map((_, i) => button(i))];
   // Кнопка в игру — под каждым вопросом (раньше только у тех, у кого серия ≥ 2): рассылка должна приглашать в игру, а не только спрашивать.
   rows.push([extra.hasUser ? { text: copy.lesson, web_app: { url: screenUrl('learn') } } : { text: copy.startApp, web_app: { url: screenUrl('home') } }]);
+  // Отказ от рассылки — прямо под вопросом: раньше кнопка появлялась только после ответа, и тот, кто не хотел отвечать, её не видел.
+  // Вопрос получают только те, у кого рассылка включена, поэтому кнопка всегда «не присылать»; после нажатия она сменится на «присылать».
+  rows.push([dailyToggle(lang, true)]);
   return { text, keyboard: { inline_keyboard: rows } };
 }
 

@@ -12,6 +12,7 @@ import { botWriteAccess } from '../src/db/schema';
 import { upsertTelegramUser } from '../src/services/users';
 import { dailyDiag, zonedTime, type DailyState } from '../src/bot/daily/state';
 import { dailyQuestionView } from '../src/bot/daily/views';
+import { DAILY_COPY } from '../src/bot/daily/copy';
 import { QUIZ_QUESTIONS } from '../src/bot/quiz/questions';
 import { disposeEnv, getEnv, login } from './helpers';
 
@@ -57,23 +58,29 @@ describe('удаление аккаунта', () => {
 describe('вопрос дня приглашает в игру', () => {
   const q = QUIZ_QUESTIONS[0];
   const buttons = (kb: ReturnType<typeof dailyQuestionView>['keyboard']) => kb.inline_keyboard.flat();
-  it('у игрока приложения последняя кнопка — «пройти урок» (web_app на learn), без серии тоже; у человека без аккаунта — «начать учить» на главную', () => {
+  // Последняя строка — «🔕 Не присылать вопрос дня» (отказ без ответа, 2026-11-16), приглашение в игру — перед ней.
+  it('у игрока приложения после ответов — «пройти урок» (web_app на learn), без серии тоже; у человека без аккаунта — «начать учить» на главную', () => {
     for (const lang of ['ru', 'uk', 'en'] as const) {
       const mine = dailyQuestionView(q, [0, 1, 2, 3], lang, 'r1', { streak: null, returning: false, hasUser: true });
-      const last = buttons(mine.keyboard).at(-1)!;
-      expect(last).toHaveProperty('web_app');
-      expect((last as { web_app: { url: string } }).web_app.url).toContain('learn');
+      const invite = buttons(mine.keyboard).at(-2)!;
+      expect(invite).toHaveProperty('web_app');
+      expect((invite as { web_app: { url: string } }).web_app.url).toContain('learn');
+      expect(buttons(mine.keyboard).at(-1)).toEqual({ text: DAILY_COPY[lang].off, callback_data: 'qz:daily:0' });
       expect(mine.text).toContain('🎮');
       const guest = dailyQuestionView(q, [0, 1, 2, 3], lang, 'r2', { streak: null, returning: false, hasUser: false });
-      const home = (buttons(guest.keyboard).at(-1) as { web_app: { url: string } }).web_app.url;
+      const home = (buttons(guest.keyboard).at(-2) as { web_app: { url: string } }).web_app.url;
       expect(home).not.toContain('learn'); // главный экран приложения, без перехода на вкладку уроков
+      expect(buttons(guest.keyboard).at(-1)).toEqual({ text: DAILY_COPY[lang].off, callback_data: 'qz:daily:0' });
     }
   });
-  it('кнопки ответов по-прежнему идут первыми (callback), приглашение — после них', () => {
+  it('кнопки ответов по-прежнему идут первыми (callback), затем приглашение, последней — отказ от рассылки', () => {
     const v = dailyQuestionView(q, [0, 1, 2, 3], 'ru', 'r3', { streak: 5, returning: false, hasUser: true });
     const all = buttons(v.keyboard);
-    expect(all.slice(0, -1).every((b) => 'callback_data' in b)).toBe(true);
+    expect(all.slice(0, 4).every((b) => 'callback_data' in b && b.callback_data.startsWith('qa:'))).toBe(true);
     expect(all.filter((b) => 'web_app' in b)).toHaveLength(1);
+    expect('web_app' in all[4]).toBe(true);
+    expect(all[5]).toEqual({ text: '🔕 Не присылать вопрос дня', callback_data: 'qz:daily:0' });
+    expect(all).toHaveLength(6);
   });
 });
 

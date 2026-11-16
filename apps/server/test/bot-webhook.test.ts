@@ -326,7 +326,7 @@ describe('согласие на уведомления и /stop', () => {
     const { calls } = await say(from(u.telegramId, 'ru'), '/stop');
     expect(calls[0].method).toBe('sendPhoto');
     expect(calls[0].params.photo).toBe(versioned(ORIGIN, 'commands/stop.jpg'));
-    expect(calls[0].params.caption).toContain('🔕 Напоминания отключены.');
+    expect(calls[0].params.caption).toContain('🔕 Напоминания и вопрос дня отключены.');
     const settings = (await db.select().from(userSettings).where(eq(userSettings.userId, u.user.id)))[0];
     expect(settings).toMatchObject({ notificationsEnabled: false, reminderHour: 19, uiLanguage: 'ru' });
     expect(await db.select().from(playerProgress).where(eq(playerProgress.userId, u.user.id))).toEqual(progress);
@@ -339,7 +339,7 @@ describe('согласие на уведомления и /stop', () => {
   it('/stop у незнакомого пользователя отвечает и ничего не создаёт', async () => {
     const f = from(8_100_600, 'ru');
     const { calls } = await say(f, '/stop');
-    expect(calls[0].params.caption).toContain('Напоминания отключены');
+    expect(calls[0].params.caption).toContain('Напоминания и вопрос дня отключены');
     expect(await db.query.users.findFirst({ where: eq(users.telegramId, f.id) })).toBeUndefined();
   });
 });

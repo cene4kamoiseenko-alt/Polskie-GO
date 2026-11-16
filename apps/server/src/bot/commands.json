@@ -9,6 +9,6 @@
     { "command": "profile", "description": { "ru": "🏆 Мой прогресс и достижения", "uk": "🏆 Мій прогрес і досягнення", "en": "🏆 My progress and achievements" } },
     { "command": "settings", "description": { "ru": "⚙️ Настройки приложения", "uk": "⚙️ Налаштування застосунку", "en": "⚙️ App settings" } },
     { "command": "help", "description": { "ru": "❓ Помощь и возможности бота", "uk": "❓ Допомога і можливості бота", "en": "❓ Help and what the bot can do" } },
-    { "command": "stop", "description": { "ru": "🔕 Отключить напоминания", "uk": "🔕 Вимкнути нагадування", "en": "🔕 Turn off reminders" } }
+    { "command": "stop", "description": { "ru": "🔕 Отключить напоминания и вопрос дня", "uk": "🔕 Вимкнути нагадування й питання дня", "en": "🔕 Turn off reminders and the daily question" } }
   ]
 }

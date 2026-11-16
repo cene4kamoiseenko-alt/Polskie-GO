@@ -241,7 +241,7 @@ const ru: LangCopy = {
       '/quests — ежедневные задания',
       '/profile — прогресс и награды',
       '/settings — настройки',
-      '/stop — отключить напоминания',
+      '/stop — отключить напоминания и вопрос дня',
       '',
       'Нужен следующий шаг? Нажми на кнопку! 🇵🇱',
     ),
@@ -253,9 +253,9 @@ const ru: LangCopy = {
   }),
   stop: () => ({
     text: lines(
-      '🔕 Напоминания отключены.',
+      '🔕 Напоминания и вопрос дня отключены.',
       '',
-      'Бобек больше не будет присылать тебе учебные напоминания, пока ты сам не включишь их снова.',
+      'Бобек больше не будет присылать тебе учебные напоминания и вопрос дня, пока ты сам не включишь их снова в настройках приложения.',
       '',
       'Но он всё равно ждёт тебя в POLSKI GO! 🦫❤️',
       '',
@@ -285,7 +285,7 @@ const ru: LangCopy = {
       buttons: [{ label: '🚀 Вернуться в игру', screen: 'home' }],
     }),
   },
-  stopHint: '🔕 /stop — отключить напоминания',
+  stopHint: '🔕 /stop — отключить напоминания и вопрос дня',
   premium: {
     activated: '👑 Premium активирован! Dziękujemy! 🦫\nЧто входит и условия — /terms. Вопросы по оплате — /paysupport.',
     refunded: '↩️ Звёзды за Premium возвращены, Premium по этому платежу отключён.',
@@ -488,7 +488,7 @@ const uk: LangCopy = {
       '/quests — щоденні завдання',
       '/profile — прогрес і нагороди',
       '/settings — налаштування',
-      '/stop — вимкнути нагадування',
+      '/stop — вимкнути нагадування й питання дня',
       '',
       'Потрібен наступний крок? Натисни на кнопку! 🇵🇱',
     ),
@@ -500,9 +500,9 @@ const uk: LangCopy = {
   }),
   stop: () => ({
     text: lines(
-      '🔕 Нагадування вимкнено.',
+      '🔕 Нагадування й питання дня вимкнено.',
       '',
-      'Бобек більше не надсилатиме тобі навчальних нагадувань, доки ти сам їх знову не ввімкнеш.',
+      'Бобек більше не надсилатиме тобі навчальних нагадувань і питання дня, доки ти сам знову не ввімкнеш їх у налаштуваннях застосунку.',
       '',
       'Але він усе одно чекає на тебе в POLSKI GO! 🦫❤️',
       '',
@@ -532,7 +532,7 @@ const uk: LangCopy = {
       buttons: [{ label: '🚀 Повернутися до гри', screen: 'home' }],
     }),
   },
-  stopHint: '🔕 /stop — вимкнути нагадування',
+  stopHint: '🔕 /stop — вимкнути нагадування й питання дня',
   premium: {
     activated: '👑 Premium активовано! Dziękujemy! 🦫\nЩо входить і умови — /terms. Питання щодо оплати — /paysupport.',
     refunded: '↩️ Зірки за Premium повернуто, Premium за цим платежем вимкнено.',
@@ -735,7 +735,7 @@ const en: LangCopy = {
       '/quests — daily tasks',
       '/profile — progress and rewards',
       '/settings — settings',
-      '/stop — turn off reminders',
+      '/stop — turn off reminders and the daily question',
       '',
       'Need the next step? Tap a button! 🇵🇱',
     ),
@@ -747,9 +747,9 @@ const en: LangCopy = {
   }),
   stop: () => ({
     text: lines(
-      '🔕 Reminders turned off.',
+      '🔕 Reminders and the daily question are off.',
       '',
-      'Bobek won’t send you learning reminders until you turn them back on.',
+      'Bobek won’t send you learning reminders or the daily question until you turn them back on in the app settings.',
       '',
       'But he’s still waiting for you in POLSKI GO! 🦫❤️',
       '',
@@ -779,7 +779,7 @@ const en: LangCopy = {
       buttons: [{ label: '🚀 Back to the game', screen: 'home' }],
     }),
   },
-  stopHint: '🔕 /stop — turn off reminders',
+  stopHint: '🔕 /stop — turn off reminders and the daily question',
   premium: {
     activated: '👑 Premium is on! Dziękujemy! 🦫\nWhat’s included and the terms: /terms. Payment questions: /paysupport.',
     refunded: '↩️ Your Stars for Premium were refunded; Premium from that payment is off.',
