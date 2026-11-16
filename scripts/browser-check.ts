@@ -534,6 +534,9 @@ async function main() {
       await p.evaluate(() => window.scrollTo(0, 0));
       await p.locator('[data-open-streak]').click();
       check(await p.locator('[role="dialog"] [data-streak-card]').waitFor({ timeout: 5_000 }).then(() => true, () => false), 'R5 огонёк в шапке — та же панель серии');
+      // Заморозки серии за Złotki (2026-11-16): запас 0–2 и кнопка покупки на панели серии.
+      const freeze = p.locator('[role="dialog"] [data-streak-freeze]');
+      check((await freeze.count()) === 1 && ['0', '1', '2'].includes((await freeze.getAttribute('data-streak-freeze')) ?? ''), 'R5 на панели серии — запас заморозок и покупка');
       await p.keyboard.press('Escape');
       await p.locator('[role="dialog"] [data-streak-card]').waitFor({ state: 'detached', timeout: 5_000 }).catch(() => {});
       check(((await p.locator('[data-premium-pill] .premium-pill-label').textContent()) ?? '').includes('Premium'), 'R5 в шапке золотая плашка «Premium» с подписью');

@@ -17,7 +17,7 @@ import { BOT_TOKEN } from './helpers';
 const dir = new URL('../migrations/', import.meta.url);
 const files = readdirSync(dir).filter((x) => x.endsWith('.sql')).sort();
 const NEW = '0011_bot_contacts.sql';
-const ADDITIVE_LATER = ['0013_premium.sql'];
+const ADDITIVE_LATER = ['0013_premium.sql', '0022_streak_freezes.sql'];
 const statements = (f: string) => readFileSync(new URL(f, dir), 'utf8').split('--> statement-breakpoint').map((s) => s.trim()).filter(Boolean);
 
 let mf: Miniflare;

@@ -33,6 +33,14 @@ export type Outfit = {
 
 type Row = [variant: string, name: string, tier: OutfitTier, price: number];
 
+/**
+ * Скины подорожали в полтора раза (владелец 2026-11-16: «поднять экономику на скины», выбран вариант «всё +50 %»; квартиры не меняются).
+ * В таблицах ниже — прежние цены (они же — условие охраняемого UPDATE в seed: на проде меняется только там, где цена ещё прежняя,
+ * правка из админки остаётся). Цена продажи — `raiseSkinPrice(прежняя)`, округлено до 10 zł.
+ */
+export const SKIN_PRICE_RAISE = 1.5;
+export const raiseSkinPrice = (before: number) => (before > 0 ? Math.round((before * SKIN_PRICE_RAISE) / 10) * 10 : 0);
+
 /** Порядок строк = порядок в гардеробе внутри уровня. */
 const ROWS: readonly Row[] = [
   // Osiedle — простые: худи или куртка и одна-две вещи
@@ -81,7 +89,7 @@ export const STARTER_OUTFIT = 'outfit-hoodie-pack';
 
 export const OUTFITS: readonly Outfit[] = [
   { slug: STARTER_OUTFIT, variant: 'hoodie-pack', name: 'Podróżnik', tier: 'common', price: 0, items: variantItems('hoodie-pack'), hoodie: true, starter: true },
-  ...ROWS.map(([variant, name, tier, price]): Outfit => ({ slug: `outfit-${variant}`, variant, name, tier, price, items: variantItems(variant), hoodie: variant.startsWith('hoodie') })),
+  ...ROWS.map(([variant, name, tier, price]): Outfit => ({ slug: `outfit-${variant}`, variant, name, tier, price: raiseSkinPrice(price), items: variantItems(variant), hoodie: variant.startsWith('hoodie') })),
 ];
 
 export const OUTFIT_BY_SLUG: ReadonlyMap<string, Outfit> = new Map(OUTFITS.map((o) => [o.slug, o]));
@@ -96,3 +104,5 @@ export const OUTFIT_COMPONENTS: ReadonlySet<string> = new Set(OUTFITS.flatMap((o
  */
 export const RETIRED_LOOKS: ReadonlySet<string> = new Set(['costume-street-red', 'costume-puffer-stripes', 'costume-sherpa']);
 
+/** Прежние (до +50 %, 2026-11-16) цены образов на продажу: slug → цена. Для охраняемого UPDATE в seed. */
+export const OUTFIT_PRICE_BEFORE_RAISE: ReadonlyMap<string, number> = new Map(ROWS.map(([variant, , , price]) => [`outfit-${variant}`, price]));

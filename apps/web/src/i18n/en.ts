@@ -939,4 +939,13 @@ export const en: Dict = {
   invite_f_quests: "Quests in real places in Poland",
   invite_f_rewards: "Leagues, rewards and achievements",
   lb_level_short: "Lv {n}",
+  streak_freezes: "Streak freezes: {n} of 2",
+  streak_freeze_hint: "Miss a day and a freeze keeps your streak",
+  streak_freeze_full: "Stock is full",
+  streak_freeze_buy: "Buy · {price} zł",
+  streak_freeze_bought: "Freeze in stock ❄️",
+  streak_repair_title: "Your {n}-day streak broke",
+  streak_repair_text: "You can still restore it — today or tomorrow",
+  streak_repair_btn: "Restore · {price} zł",
+  streak_repaired: "Streak restored! Study today to keep it going",
 };

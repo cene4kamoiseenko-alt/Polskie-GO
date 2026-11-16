@@ -971,6 +971,15 @@ export const uk = {
   invite_f_quests: "Квести в справжніх місцях Польщі",
   invite_f_rewards: "Ліги, нагороди та досягнення",
   lb_level_short: "Рів. {n}",
+  streak_freezes: "Заморожування: {n} з 2",
+  streak_freeze_hint: "Пропустиш день — заморожування збереже серію",
+  streak_freeze_full: "Запас повний",
+  streak_freeze_buy: "Купити · {price} zł",
+  streak_freeze_bought: "Заморожування в запасі ❄️",
+  streak_repair_title: "Серія {n} дн. перервалася",
+  streak_repair_text: "Її ще можна повернути — сьогодні або завтра",
+  streak_repair_btn: "Повернути · {price} zł",
+  streak_repaired: "Серію повернуто! Позаймайся сьогодні, щоб продовжити",
 };
 
 export type Dict = Record<keyof typeof uk, string>;

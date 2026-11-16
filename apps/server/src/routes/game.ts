@@ -13,6 +13,7 @@ import { claimHouseBonus, houseState } from '../services/house';
 import { addFriendByCode, leaderboard, listFriends, respondFriend } from '../services/social';
 import { markLeagueAwardSeen } from '../services/league';
 import { inviteLink, prepareInvite } from '../services/invite';
+import { buyStreakFreeze, repairStreak } from '../services/spend';
 import { reportPlayer } from '../services/reports';
 import { cancelSubscription, createInvoice, listPlans } from '../services/payments';
 import { activeSubscription } from '../services/premium';
@@ -112,6 +113,12 @@ r.post('/leaderboard/award/seen', async (c) => {
   await markLeagueAwardSeen(c.get('userId'), week);
   return c.json({ ok: true });
 });
+// Траты Złotki (2026-11-16): заморозка и восстановление серии (services/spend.ts).
+r.post('/streak/freeze', rateLimit(20, 60_000, 'spend'), async (c) => {
+  const { key } = z.object({ key: z.string().min(6).max(64) }).parse(await body(c));
+  return c.json(await buyStreakFreeze(c.get('userId'), key));
+});
+r.post('/streak/repair', rateLimit(10, 60_000, 'spend'), async (c) => c.json(await repairStreak(c.get('userId'))));
 r.get('/friends', async (c) => {
   const me = await db.query.users.findFirst({ where: eq(users.id, c.get('userId')) });
   return c.json({

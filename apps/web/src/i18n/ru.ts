@@ -939,4 +939,13 @@ export const ru: Dict = {
   invite_f_quests: "Квесты в настоящих местах Польши",
   invite_f_rewards: "Лиги, награды и достижения",
   lb_level_short: "Ур. {n}",
+  streak_freezes: "Заморозки: {n} из 2",
+  streak_freeze_hint: "Пропустишь день — заморозка сохранит серию",
+  streak_freeze_full: "Запас полный",
+  streak_freeze_buy: "Купить · {price} zł",
+  streak_freeze_bought: "Заморозка в запасе ❄️",
+  streak_repair_title: "Серия {n} дн. прервалась",
+  streak_repair_text: "Её ещё можно вернуть — сегодня или завтра",
+  streak_repair_btn: "Вернуть · {price} zł",
+  streak_repaired: "Серия возвращена! Позанимайся сегодня, чтобы продолжить",
 };

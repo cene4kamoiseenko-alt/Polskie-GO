@@ -173,7 +173,7 @@ async function retryFailed(now: Date, budget: number, stats: { calls: number }):
       .returning({ id: notificationLog.id });
     if (!claimed.length || skip) continue;
     const kind = REMINDER_KINDS.find((k) => k === r.log.template) ?? 'lesson';
-    const streak = effectiveStreak(r.p?.streakCurrent ?? 0, r.p?.lastActiveDay ?? null, today);
+    const streak = effectiveStreak(r.p?.streakCurrent ?? 0, r.p?.lastActiveDay ?? null, today, { premium: false, shieldDay: null, freezes: r.p?.streakFreezes ?? 0 });
     if (await deliver({ logId: r.log.id, telegramId: r.telegramId, lang: r.lang, kind, streak, attempt: r.log.attempts + 1, hour: r.hour }, now, stats)) sent++;
   }
   return sent;
@@ -234,7 +234,8 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stat
     for (const u of candidates) {
       if (stats.calls >= budget) break;
       const today = due.get(u.tz)!.day;
-      const streak = effectiveStreak(u.p?.streakCurrent ?? 0, u.p?.lastActiveDay ?? null, today);
+      // Купленные заморозки держат серию после пропуска — напоминание «не потеряй серию», а не «начни заново» (2026-11-16).
+      const streak = effectiveStreak(u.p?.streakCurrent ?? 0, u.p?.lastActiveDay ?? null, today, { premium: false, shieldDay: null, freezes: u.p?.streakFreezes ?? 0 });
       const kind = pickReminderKind(streak, u.p?.lastActiveDay ?? null, today);
       // Захоплення дня: унікальний ключ (користувач, нагадування, день) — паралельний запуск не надішле вдруге.
       const claimed = await db

@@ -1,5 +1,5 @@
 /** Профіль, статистика, графіки прогресу, щоденник подорожей. */
-import { addDays, dayKey, effectiveStreak, isUiLang, lastDays, levelFromXp, shieldReady, STREAK_SHIELD_DAYS, uiLangFor, type Cefr } from '@polski-go/shared';
+import { addDays, dayKey, effectiveStreak, isUiLang, lastDays, levelFromXp, shieldReady, STREAK_SHIELD_DAYS, streakRepairOffer, uiLangFor, type Cefr } from '@polski-go/shared';
 import { config } from '../env';
 import { and, count, desc, eq, gt, inArray, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../db';
@@ -91,8 +91,11 @@ export async function getMe(userId: string) {
       levelXp: lvl.current,
       levelXpNeeded: lvl.needed,
       languageLevel: p.languageLevel as Cefr,
-      streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, today, { premium, shieldDay: p.streakShieldDay }),
+      streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, today, { premium, shieldDay: p.streakShieldDay, freezes: p.streakFreezes }),
       streakBest: p.streakBest,
+      // Заморозки серии (купленные за Złotki) и предложение восстановить сгоревшую серию (2026-11-16).
+      streakFreezes: p.streakFreezes,
+      streakRepair: streakRepairOffer(p.streakCurrent, p.lastActiveDay, today, effectiveStreak(p.streakCurrent, p.lastActiveDay, today, { premium, shieldDay: p.streakShieldDay, freezes: p.streakFreezes })),
       activeToday: p.lastActiveDay === today,
       lessonsCompleted: p.lessonsCompleted,
       perfectLessons: p.perfectLessons,

@@ -97,6 +97,8 @@ export const playerProgress = sqliteTable(
     lastActiveDay: text('last_active_day'),
     /** День, пропуск якого закрив щит серії Premium (не частіше, ніж раз на STREAK_SHIELD_DAYS днів). */
     streakShieldDay: text('streak_shield_day'),
+    /** Заморозки серии, купленные за Złotki (0–2, CHECK в миграции 0022): каждая закрывает один пропущенный день. */
+    streakFreezes: integer('streak_freezes').notNull().default(0),
     lessonsCompleted: integer('lessons_completed').notNull().default(0),
     perfectLessons: integer('perfect_lessons').notNull().default(0),
     wordsLearned: integer('words_learned').notNull().default(0),

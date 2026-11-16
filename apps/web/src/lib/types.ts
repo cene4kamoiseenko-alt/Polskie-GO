@@ -46,6 +46,9 @@ export type Me = {
     perfectLessons: number;
     wordsLearned: number;
     currentCity: { id: string; slug: string; namePl: string; name: I18n; emoji: string } | null;
+    /** Заморозки серии за Złotki (0–2) и предложение восстановить серию (2026-11-16). Могут отсутствовать у старого сервера. */
+    streakFreezes?: number;
+    streakRepair?: { streak: number; price: number } | null;
   };
   today: { xp: number; goalXp: number; lessons: number; seconds: number };
   zlotki: number;

@@ -2,7 +2,7 @@
 import type { I18n } from '@polski-go/shared';
 import { t } from './builders';
 import { STORY_EXTRA_STAGES } from './story-chapters';
-import { OUTFITS } from './outfits';
+import { OUTFITS, raiseSkinPrice } from './outfits';
 
 export type QuestSeed = {
   slug: string;
@@ -353,8 +353,10 @@ export const COSTUME_PRICES: Record<string, { price: number; rarity: 'rare' | 'e
   // Дракон — Premium; дешевле скинов, чтобы скины оставались самыми дорогими вещами магазина (look-catalog.test).
   'costume-dragon': { price: 1100, rarity: 'legendary', from: { price: 200, rarity: 'legendary' } },
 };
+/** Цена костюма в магазине: прежняя из COSTUME_PRICES +50 % (2026-11-16, `raiseSkinPrice`). */
+export const costumePrice = (slug: string) => raiseSkinPrice(COSTUME_PRICES[slug].price);
 const costume = (slug: string, name: I18n, extra: Partial<ItemSeed> = {}) =>
-  it(slug, 'COSTUME', name, COSTUME_PRICES[slug].price, { rarity: COSTUME_PRICES[slug].rarity, ...extra });
+  it(slug, 'COSTUME', name, costumePrice(slug), { rarity: COSTUME_PRICES[slug].rarity, ...extra });
 
 /** Готовые образы (content/outfits.ts) — предметы слота OUTFIT; название по-польски во всех языках. */
 const OUTFIT_ITEMS: ItemSeed[] = OUTFITS.map((o) =>

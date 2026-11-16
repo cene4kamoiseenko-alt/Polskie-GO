@@ -52,6 +52,8 @@ export function mapDbError(e: unknown): unknown {
   if (text.includes('conflict:session')) return new HttpError(409, 'conflict', 'Сесію змінено паралельним запитом');
   if (text.includes('conflict:claimed')) return badRequest('already_claimed');
   if (text.includes('game_wallets_balance_non_negative')) return badRequest('insufficient_funds', 'Недостатньо Złotki');
+  // Заморозок серии не больше двух (CHECK миграции 0022): покупка сверх запаса откатывается вместе со списанием.
+  if (/CHECK constraint failed[^|]*streak_freezes/i.test(text)) return new HttpError(409, 'freeze_limit', 'Заморозок уже две — больше в запас не помещается');
   return e;
 }
 

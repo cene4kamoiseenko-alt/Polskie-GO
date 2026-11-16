@@ -73,20 +73,39 @@ export function shieldReady(shieldDay: string | null | undefined, missedDay: str
   return !shieldDay || dayDiff(shieldDay, missedDay) >= STREAK_SHIELD_DAYS;
 }
 
+/**
+ * Заморозка серии за Złotki (владелец 2026-11-16: на что тратить Złotki). Закрывает один пропущенный день; в запасе не больше
+ * STREAK_FREEZE_MAX. Пропущенные дни закрываются сначала щитом Premium (раз в неделю, бесплатно), потом заморозками.
+ * Если пропусков больше, чем есть защиты, серия сгорает, а заморозки не тратятся.
+ */
+export const STREAK_FREEZE_MAX = 2;
+export const STREAK_FREEZE_PRICE = 75;
+/** Восстановление серии: в течение двух дней после потери, цена — 10 zł за день серии (от 100 до 500). */
+export const STREAK_REPAIR_MIN = 3;
+export const streakRepairPrice = (streak: number) => Math.min(500, Math.max(100, streak * 10));
+
+/** Чем закрыть `missed` пропущенных дней: щит Premium (1 день) и заморозки. null — не хватает, серия сгорает. */
+function cover(missed: number, shield: boolean, freezes: number): { shield: boolean; freezes: number } | null {
+  if (missed <= 0) return { shield: false, freezes: 0 };
+  const byShield = shield ? 1 : 0;
+  const need = Math.max(0, missed - byShield);
+  return need <= freezes ? { shield: byShield > 0, freezes: need } : null;
+}
+
 export function updateStreak(
-  prev: { current: number; best: number; lastDay: string | null; shieldDay?: string | null },
+  prev: { current: number; best: number; lastDay: string | null; shieldDay?: string | null; freezes?: number },
   today: string,
   opts: { shield?: boolean } = {},
-): { current: number; best: number; lastDay: string; changed: boolean; shieldUsed: string | null } {
-  if (prev.lastDay === today) return { current: prev.current, best: prev.best, lastDay: today, changed: false, shieldUsed: null };
+): { current: number; best: number; lastDay: string; changed: boolean; shieldUsed: string | null; freezesUsed: number } {
+  if (prev.lastDay === today) return { current: prev.current, best: prev.best, lastDay: today, changed: false, shieldUsed: null, freezesUsed: 0 };
   const diff = prev.lastDay ? dayDiff(prev.lastDay, today) : Infinity;
   // «Сьогодні» раніше за останній день активності: користувач змінив пояс на захід (Токіо → Нью-Йорк). Серію не скидаємо.
-  if (diff < 0) return { current: prev.current, best: prev.best, lastDay: prev.lastDay!, changed: false, shieldUsed: null };
-  // Пропущено рівно один день (учора), серія була, і є щит Premium — серія триває, день щита запам'ятовуємо.
-  const missed = addDays(today, -1);
-  const shielded = diff === 2 && !!opts.shield && prev.current > 0 && shieldReady(prev.shieldDay, missed);
-  const current = diff === 1 || shielded ? prev.current + 1 : 1;
-  return { current, best: Math.max(prev.best, current), lastDay: today, changed: true, shieldUsed: shielded ? missed : null };
+  if (diff < 0) return { current: prev.current, best: prev.best, lastDay: prev.lastDay!, changed: false, shieldUsed: null, freezesUsed: 0 };
+  // Пропущенные дни закрывают щит Premium (последний пропущенный день, раз в неделю) и купленные заморозки.
+  const missedDay = addDays(today, -1);
+  const c = Number.isFinite(diff) && diff >= 2 && prev.current > 0 ? cover(diff - 1, !!opts.shield && shieldReady(prev.shieldDay, missedDay), prev.freezes ?? 0) : null;
+  const current = diff === 1 || c ? prev.current + 1 : 1;
+  return { current, best: Math.max(prev.best, current), lastDay: today, changed: true, shieldUsed: c?.shield ? missedDay : null, freezesUsed: c?.freezes ?? 0 };
 }
 
 /**
@@ -105,11 +124,22 @@ export function shiftLastDayForZone(lastDay: string | null, now: Date, fromTz: s
  * Серія, яку бачить учень сьогодні: заняття сьогодні або вчора — серія жива. З щитом Premium (`shield`) вона жива й після
  * одного пропущеного дня — до кінця сьогоднішнього: позайматися сьогодні, і щит її збереже (updateStreak).
  */
-export function effectiveStreak(current: number, lastDay: string | null, today: string, shield?: { premium: boolean; shieldDay: string | null }): number {
+export function effectiveStreak(current: number, lastDay: string | null, today: string, shield?: { premium: boolean; shieldDay: string | null; freezes?: number }): number {
   if (!lastDay) return 0;
   const diff = dayDiff(lastDay, today);
   if (diff <= 1) return current;
-  return diff === 2 && shield?.premium && shieldReady(shield.shieldDay, addDays(today, -1)) ? current : 0;
+  // Сегодня ещё можно позаниматься: пропущенные дни (diff − 1) закрываются щитом Premium и заморозками.
+  return cover(diff - 1, !!shield?.premium && shieldReady(shield.shieldDay, addDays(today, -1)), shield?.freezes ?? 0) ? current : 0;
+}
+
+/**
+ * Можно ли восстановить серию за Złotki: серия сгорела не больше двух дней назад (пропущено 1–2 дня) и была от STREAK_REPAIR_MIN.
+ * Восстановление делает «вчера» последним днём занятий: серия снова жива, сегодняшнее занятие продолжит её.
+ */
+export function streakRepairOffer(current: number, lastDay: string | null, today: string, alive: number): { streak: number; price: number } | null {
+  if (!lastDay || alive > 0 || current < STREAK_REPAIR_MIN) return null;
+  const diff = dayDiff(lastDay, today);
+  return diff >= 2 && diff <= 3 ? { streak: current, price: streakRepairPrice(current) } : null;
 }
 
 export function cefrIndex(c: Cefr): number {

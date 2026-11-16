@@ -1,12 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useT } from '../i18n';
-import { api } from '../lib/api';
+import { ApiError, api } from '../lib/api';
 import { useMe } from '../lib/queries';
 import { Art } from './GameArt';
 import { Icon } from './Icon';
-import { Progress, Sheet } from './ui';
+import { Progress, Sheet, useToast } from './ui';
 import { haptic } from '../lib/telegram';
 
 /** The full calendar is mounted only when requested, including its stats query. */
@@ -75,11 +75,83 @@ export function StreakCard() {
 
       <div className="streak-next"><span>{t('streak_next', { n: next })}</span><b>{streak}/{next}</b></div>
       <Progress value={streak} max={next} height={5} color="linear-gradient(90deg,#ef702d,#ffd27a)" />
+      <StreakSpend />
       <div className="streak-footer">
         <span>{t('streak_no_rush')}</span>
         {!activeToday && <button type="button" onClick={() => nav('/learn')}>{t('streak_learn')}<Icon name="arrow-right" size={15} /></button>}
       </div>
       {me.premium.active && me.premium.shield && <p className="streak-shield"><Icon name="crown" size={14} />{t(me.premium.shield.ready ? 'prem_shield_ready' : 'prem_shield_used', { date: me.premium.shield.usedOn ? new Date(`${me.premium.shield.usedOn}T12:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' }) : '', ready: me.premium.shield.readyOn ? new Date(`${me.premium.shield.readyOn}T12:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' }) : '' })}</p>}
     </section>
+  );
+}
+
+const FREEZE_PRICE = 75;
+const FREEZE_MAX = 2;
+
+/**
+ * Траты Złotki на серию (2026-11-16): заморозки (до двух в запасе — закрывают пропущенный день) и восстановление серии,
+ * сгоревшей 1–2 дня назад. Сервер: POST /api/streak/freeze, /api/streak/repair (services/spend.ts).
+ */
+function StreakSpend() {
+  const { t } = useT();
+  const me = useMe().data;
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  if (!me) return null;
+  const freezes = me.progress.streakFreezes ?? 0;
+  const repair = me.progress.streakRepair ?? null;
+  const run = async (path: string, body: unknown, ok: string) => {
+    setBusy(true);
+    try {
+      await api(path, { body });
+      haptic.success();
+      toast(ok, '❄️');
+      await qc.invalidateQueries({ queryKey: ['me'] });
+    } catch (e) {
+      haptic.error();
+      toast(e instanceof ApiError && e.code === 'insufficient_funds' ? t('shop_no_money') : (e as Error).message, '⚠️');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="streak-spend" data-streak-spend>
+      {repair && (
+        <div className="streak-repair" data-streak-repair>
+          <div className="min-w-0 flex-1">
+            <b>{t('streak_repair_title', { n: repair.streak })}</b>
+            <span>{t('streak_repair_text')}</span>
+          </div>
+          <button type="button" className="btn btn-red min-h-0 shrink-0 px-3 py-1.5 text-[12.5px]" disabled={busy || me.zlotki < repair.price} onClick={() => void run('/streak/repair', {}, t('streak_repaired'))}>
+            {t('streak_repair_btn', { price: repair.price })}
+          </button>
+        </div>
+      )}
+      <div className="streak-freeze" data-streak-freeze={freezes}>
+        <span className="streak-freeze-icons" aria-hidden>
+          {Array.from({ length: FREEZE_MAX }, (_, i) => (
+            <span key={i} className={i < freezes ? 'is-on' : undefined}>❄</span>
+          ))}
+        </span>
+        <div className="min-w-0 flex-1">
+          <b>{t('streak_freezes', { n: freezes })}</b>
+          <span>{t('streak_freeze_hint')}</span>
+        </div>
+        {freezes >= FREEZE_MAX ? (
+          <span className="muted shrink-0 text-[12px] font-black">{t('streak_freeze_full')}</span>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-sky min-h-0 shrink-0 px-3 py-1.5 text-[12.5px]"
+            disabled={busy || me.zlotki < FREEZE_PRICE}
+            onClick={() => void run('/streak/freeze', { key: crypto.randomUUID() }, t('streak_freeze_bought'))}
+            data-buy-freeze
+          >
+            {t('streak_freeze_buy', { price: FREEZE_PRICE })}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

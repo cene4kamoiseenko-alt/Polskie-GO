@@ -6,7 +6,7 @@
  */
 import { DEFAULT_REWARDS, type I18n } from '@polski-go/shared';
 import { resetIds } from './builders';
-import { OUTFIT_BY_SLUG } from './outfits';
+import { OUTFIT_BY_SLUG, OUTFIT_PRICE_BEFORE_RAISE, raiseSkinPrice } from './outfits';
 import { CONTINUATION_TEXT_FIXES } from './continuation-fixes';
 import { EXERCISE_FIXES } from './exercise-fixes';
 import { LESSON_EDITS, TASK_EDITS } from './task-edits';
@@ -371,6 +371,14 @@ export function buildSeedSql(opts: { force?: boolean; preStandard?: boolean } = 
   // Костюмы стали готовыми образами по уровням (2026-11-02): новая цена и редкость — только там, где в БД всё ещё прежние значения (правку в админке не трогаем).
   for (const [slug, c] of Object.entries(COSTUME_PRICES)) {
     out.push(`UPDATE cosmetic_items SET price = ${c.price}, rarity = ${lit(c.rarity)} WHERE slug = ${lit(slug)} AND price = ${c.from.price} AND rarity = ${lit(c.from.rarity)};`);
+  }
+  // Скины +50 % (2026-11-16): костюмы и готовые образы — только там, где цена всё ещё прежняя (правку из админки не трогаем).
+  // Идёт после обновления выше: строка с ценой 2026-11-02 сначала получает её, затем — новую.
+  for (const [slug, c] of Object.entries(COSTUME_PRICES)) {
+    out.push(`UPDATE cosmetic_items SET price = ${raiseSkinPrice(c.price)} WHERE slug = ${lit(slug)} AND price = ${c.price};`);
+  }
+  for (const [slug, before] of OUTFIT_PRICE_BEFORE_RAISE) {
+    out.push(`UPDATE cosmetic_items SET price = ${raiseSkinPrice(before)} WHERE slug = ${lit(slug)} AND price = ${before};`);
   }
 
   // Ковпак гнома, краківська камізелька й обважанек стали костюмами (картинки власника 2026-11-04). На проді рядки вже є з колишнім слотом:

@@ -9,7 +9,7 @@ import { db } from '../src/db';
 import { cosmeticItems, gameWallets, userInventory, walletTransactions } from '../src/db/schema';
 import { ACHIEVEMENTS, CITY_REWARDS, COSTUME_PRICES, DAILY_QUESTS, ITEMS, STORY_QUESTS, WEEKLY_QUESTS } from '../src/content/gamification';
 import { MISSIONS } from '../src/content/missions';
-import { OUTFITS, OUTFIT_BY_SLUG, RETIRED_LOOKS, STARTER_OUTFIT } from '../src/content/outfits';
+import { OUTFITS, OUTFIT_BY_SLUG, raiseSkinPrice, RETIRED_LOOKS, STARTER_OUTFIT } from '../src/content/outfits';
 import { buildSeedSql } from '../src/content/seed';
 import { disposeEnv, login } from './helpers';
 
@@ -55,7 +55,7 @@ describe('Готові образи: каталог', () => {
     // Костюмы — тоже готовые образы по уровням.
     for (const [slug, c] of Object.entries(COSTUME_PRICES)) {
       const it = ITEMS.find((i) => i.slug === slug)!;
-      expect(it.price, slug).toBe(c.price);
+      expect(it.price, slug).toBe(raiseSkinPrice(c.price));
       expect(it.rarity, slug).toBe(c.rarity);
     }
   });
@@ -65,6 +65,16 @@ describe('Готові образи: каталог', () => {
     expect(sql).toContain("UPDATE cosmetic_items SET price = 550, rarity = 'epic' WHERE slug = 'costume-winter' AND price = 120 AND rarity = 'rare';");
     expect(sql).toContain("UPDATE cosmetic_items SET price = 1200, rarity = 'legendary' WHERE slug = 'costume-street' AND price = 400 AND rarity = 'legendary';");
     expect(sql).toMatch(/INSERT INTO "?cosmetic_items"?[^;]*'outfit-hoodie-cap'/);
+  });
+
+  it('скины +50 % (2026-11-16): на проде меняется только прежняя цена; квартиры не трогаются', () => {
+    expect(raiseSkinPrice(250)).toBe(380);
+    expect(raiseSkinPrice(1100)).toBe(1650);
+    const sql = buildSeedSql({ force: false }).join('\n');
+    expect(sql).toContain("UPDATE cosmetic_items SET price = 830 WHERE slug = 'costume-winter' AND price = 550;");
+    expect(sql).toContain("UPDATE cosmetic_items SET price = 380 WHERE slug = 'outfit-hoodie-cap' AND price = 250;");
+    expect(OUTFITS.find((o) => o.slug === 'outfit-hoodie-cap')!.price).toBe(380);
+    expect(sql).not.toMatch(/UPDATE cosmetic_items SET price = \d+ WHERE slug = 'housing-/);
   });
 
   it('прод: ковпак гнома, камізелька й обважанек стають костюмами; надіті знімаються один раз (2026-11-04)', async () => {

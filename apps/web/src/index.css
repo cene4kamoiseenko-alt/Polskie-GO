@@ -2879,3 +2879,14 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
   animation: none;
   box-shadow: 0 0 0 1px rgb(255 214 120 / 0.35), 0 4px 14px rgb(245 196 81 / 0.35);
 }
+
+/* Панель серии: заморозки и восстановление (2026-11-16). */
+.streak-spend { display: grid; gap: 8px; margin: 12px 0 4px; }
+.streak-freeze, .streak-repair { display: flex; align-items: center; gap: 10px; border-radius: 16px; padding: 10px 12px; border: 1px solid var(--border); background: rgb(255 255 255 / 0.04); }
+.streak-freeze b, .streak-repair b { display: block; font-size: 14px; font-weight: 900; line-height: 1.2; }
+.streak-freeze b { white-space: nowrap; }
+.streak-freeze span, .streak-repair span { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); line-height: 1.25; }
+.streak-freeze-icons { display: flex; gap: 2px; font-size: 22px; line-height: 1; }
+.streak-freeze-icons > span { display: inline; color: rgb(140 160 190 / 0.45); font-size: 22px; }
+.streak-freeze-icons > span.is-on { color: #7fd3ff; text-shadow: 0 0 10px rgb(127 211 255 / 0.85); }
+.streak-repair { border-color: rgb(255 82 101 / 0.45); background: linear-gradient(90deg, rgb(255 82 101 / 0.16), rgb(255 138 61 / 0.06)); }

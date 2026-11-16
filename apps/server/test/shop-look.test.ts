@@ -11,6 +11,7 @@ import { db } from '../src/db';
 import { cosmeticItems, gameWallets, userAchievements, userInventory, walletTransactions } from '../src/db/schema';
 import { disposeEnv, getEnv, login } from './helpers';
 import { OUTFITS, OUTFIT_COMPONENTS } from '../src/content/outfits';
+import { costumePrice } from '../src/content/gamification';
 
 afterAll(disposeEnv);
 afterEach(() => vi.restoreAllMocks());
@@ -123,11 +124,12 @@ describe('Покупка за ядром образу', () => {
 
   it('річ із зображенням купується: списання рівно один раз, повтор — already_owned', async () => {
     const { call, user } = await login();
-    // Костюм художника — готовий образ рівня Starówka, 650 Złotki (2026-11-02).
-    await setBalance(user.id, 670);
+    // Костюм художника — готовий образ рівня Starówka; ціна з каталогу (2026-11-16 усі скіни +50 %).
+    const price = costumePrice('costume-artist');
+    await setBalance(user.id, price + 20);
     const r = await call('POST', '/api/shop/buy', { itemId: itemId('costume-artist') });
     expect(r.status).toBe(200);
-    // 670 − 650 + 10 за досягнення «Модник».
+    // (ціна + 20) − ціна + 10 за досягнення «Модник».
     expect(r.body.balance).toBe(30);
     expect(await balance(user.id)).toBe(30);
     expect((await inventory(user.id)).find((i) => i.itemId === itemId('costume-artist'))).toMatchObject({ equipped: false, source: 'shop' });
@@ -171,7 +173,7 @@ describe('Надягання за ядром образу', () => {
     await grant(user.id, 'jacket-denim', { equipped: true });
     await grant(user.id, 'cap-red', { equipped: true });
     await grant(user.id, 'glasses-round', { equipped: true });
-    await setBalance(user.id, 700);
+    await setBalance(user.id, costumePrice('costume-artist') + 50);
     expect((await call('POST', '/api/shop/buy', { itemId: itemId('costume-artist') })).status).toBe(200);
     const inv0 = await inventory(user.id);
 

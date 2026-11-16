@@ -143,17 +143,24 @@ export function touchActivity(ctx: UserCtx, inc: ActivityInc) {
       }),
   ];
   const p = ctx.progress;
-  // Premium: щит серії закриває один пропущений день (не частіше, ніж раз на тиждень).
-  const s = updateStreak({ current: p.streakCurrent, best: p.streakBest, lastDay: p.lastActiveDay, shieldDay: p.streakShieldDay }, ctx.day, { shield: ctx.premium });
+  // Premium: щит серії закриває один пропущений день (не частіше, ніж раз на тиждень); решту пропусків — куплені заморозки (2026-11-16).
+  const s = updateStreak({ current: p.streakCurrent, best: p.streakBest, lastDay: p.lastActiveDay, shieldDay: p.streakShieldDay, freezes: p.streakFreezes ?? 0 }, ctx.day, { shield: ctx.premium });
   if (s.changed) {
     const shieldDay = s.shieldUsed ?? p.streakShieldDay;
-    stmts.push(db.update(playerProgress).set({ streakCurrent: s.current, streakBest: s.best, lastActiveDay: ctx.day, streakShieldDay: shieldDay }).where(eq(playerProgress.userId, ctx.userId)));
+    const freezes = Math.max(0, (p.streakFreezes ?? 0) - s.freezesUsed);
+    stmts.push(
+      db
+        .update(playerProgress)
+        .set({ streakCurrent: s.current, streakBest: s.best, lastActiveDay: ctx.day, streakShieldDay: shieldDay, ...(s.freezesUsed ? { streakFreezes: freezes } : {}) })
+        .where(eq(playerProgress.userId, ctx.userId)),
+    );
     p.streakCurrent = s.current;
     p.streakBest = s.best;
     p.lastActiveDay = ctx.day;
     p.streakShieldDay = shieldDay;
+    p.streakFreezes = freezes;
   }
-  return { day: ctx.day, streak: s.current, streakChanged: s.changed, shieldUsed: s.shieldUsed, stmts };
+  return { day: ctx.day, streak: s.current, streakChanged: s.changed, shieldUsed: s.shieldUsed, freezesUsed: s.freezesUsed, stmts };
 }
 
 /** Списати Złotki (покупка). CHECK balance >= 0 відкотить пакет, якщо грошей не вистачає. */

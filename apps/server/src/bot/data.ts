@@ -58,7 +58,7 @@ export async function profileOf(userId: string, timezone: string, now = new Date
     level: levelFromXp(p.xpTotal).level,
     xp: p.xpTotal,
     // Як у застосунку: щит серії Premium тримає серію після одного пропущеного дня.
-    streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, dayKey(now, timezone), { premium: sub.length > 0, shieldDay: p.streakShieldDay }),
+    streak: effectiveStreak(p.streakCurrent, p.lastActiveDay, dayKey(now, timezone), { premium: sub.length > 0, shieldDay: p.streakShieldDay, freezes: p.streakFreezes }),
     lessons: p.lessonsCompleted,
   };
 }

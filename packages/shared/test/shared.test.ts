@@ -10,6 +10,7 @@ import {
   xpForLevel,
   updateStreak,
   effectiveStreak,
+  streakRepairOffer,
   weekKey,
   dayKey,
   lessonReward,
@@ -172,6 +173,22 @@ describe('прогресія', () => {
     expect(updateStreak({ current: 0, best: 3, lastDay: '2026-03-11' }, '2026-03-13', { shield: true })).toMatchObject({ current: 1, shieldUsed: null });
     // Що бачить учень: після одного пропуску серія Premium жива до кінця дня (позайматися — і щит її збереже).
     expect(effectiveStreak(5, '2026-03-05', '2026-03-07', { premium: true, shieldDay: null })).toBe(5);
+  });
+
+  it('заморозки серии (2026-11-16): закрывают пропуски после щита Premium; не хватает — серия сгорает, заморозки целы', () => {
+    // Пропущен 1 день, щита нет, заморозка есть.
+    expect(updateStreak({ current: 5, best: 5, lastDay: '2026-03-05', freezes: 1 }, '2026-03-07')).toMatchObject({ current: 6, freezesUsed: 1, shieldUsed: null });
+    // Пропущено 2 дня: щит Premium + 1 заморозка.
+    expect(updateStreak({ current: 9, best: 9, lastDay: '2026-03-11', shieldDay: null, freezes: 2 }, '2026-03-14', { shield: true })).toMatchObject({ current: 10, freezesUsed: 1, shieldUsed: '2026-03-13' });
+    // Пропущено 3 дня, заморозок 2 и щита нет — серия сгорает, заморозки не тратятся.
+    expect(updateStreak({ current: 9, best: 9, lastDay: '2026-03-10', freezes: 2 }, '2026-03-14')).toMatchObject({ current: 1, freezesUsed: 0 });
+    expect(effectiveStreak(5, '2026-03-05', '2026-03-08', { premium: false, shieldDay: null, freezes: 2 })).toBe(5);
+    expect(effectiveStreak(5, '2026-03-05', '2026-03-09', { premium: false, shieldDay: null, freezes: 2 })).toBe(0);
+    // Восстановление: сгорела 1–2 дня назад, серия от 3 дней; цена 10 zł за день (100…500).
+    expect(streakRepairOffer(12, '2026-03-05', '2026-03-07', 0)).toEqual({ streak: 12, price: 120 });
+    expect(streakRepairOffer(12, '2026-03-05', '2026-03-09', 0)).toBeNull();
+    expect(streakRepairOffer(2, '2026-03-05', '2026-03-07', 0)).toBeNull();
+    expect(streakRepairOffer(80, '2026-03-05', '2026-03-08', 0)).toEqual({ streak: 80, price: 500 });
     expect(effectiveStreak(5, '2026-03-05', '2026-03-07', { premium: false, shieldDay: null })).toBe(0);
     expect(effectiveStreak(5, '2026-03-05', '2026-03-07', { premium: true, shieldDay: '2026-03-02' })).toBe(0);
     expect(effectiveStreak(5, '2026-03-05', '2026-03-08', { premium: true, shieldDay: null })).toBe(0);
