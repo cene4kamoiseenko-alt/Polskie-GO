@@ -29,8 +29,9 @@
 | Лодзь | 9 | 27 | 246 |
 | Краков | 9 | 27 | 246 |
 | Катовице | 9 | 21 (уроки A1 — A2, B1, B2; уроки A2 — B1, B2) | 191 |
+| Ополе | 9 | 20 (уроки A1 — A2, B1, B2; уроки A2 — B1, B2) | 182 |
 
-Дальше: Ополе, Вроцлав, Познань, затем города A2 (версии B1/B2) и B1 (версия B2).
+Дальше: Вроцлав, Познань, затем города A2 (версии B1/B2) и B1 (версия B2).
 
 ### Что получает игрок
 - Тот же урок, место и герои, но **своя теория**: объяснение и примеры версии заменяют обычные. Над теорией — плашка «Задания твоего уровня».
@@ -74,7 +75,7 @@ export const WARSZAWA_LEVELS = { 'waw-2-uprzejmosc': WAW2, ... };
 - Логика: `packages/shared/src/levels.ts` (`variantLevel`, `placementProgress`, `studyLevelFor`, `adaptLevel`), тесты `packages/shared/test/levels.test.ts`.
 - Миграция `apps/server/migrations/0023_study_levels.sql`: `exercises.level`, `player_progress.study_level`, `level_up_run`, `level_down_run`; счётчик заданий урока — только порядок < 100.
 - Миграция `0024_level_texts.sql`: `lessons.level_texts` — теория версий `{A2|B1|B2: {explanation, examples}}`.
-- Версии: `apps/server/src/content/levels/` (`warszawa.ts`, `lodz.ts`, `krakow.ts`, `katowice.ts`, реестр `index.ts`).
+- Версии: `apps/server/src/content/levels/` (`warszawa.ts`, `lodz.ts`, `krakow.ts`, `katowice.ts`, `opole.ts`, реестр `index.ts`).
 - Сервер: `services/sessions.ts` (выбор версии при старте и её теория — `lessonPayload`, остановка теста, итог, автоподстройка, `practiceVersions` для практики), `routes/learn.ts` (`/grammar` считает только обычные задания), `PATCH /api/me/study-level`, `/api/me` → `progress.studyLevel`, `levelTest`.
 - Приложение: `screens/Lesson.tsx` («Не знаю», остановка, итог, сообщение о смене сложности, плашка «Задания твоего уровня»), `screens/Settings.tsx` (уровень заданий), `screens/Home.tsx` (`LevelTestCard`).
 - Браузерная проверка: блок «Уровни» в `scripts/browser-check.ts`.
