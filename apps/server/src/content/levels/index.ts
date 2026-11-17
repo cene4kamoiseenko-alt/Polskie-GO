@@ -8,8 +8,9 @@ import type { CityContent, LessonLevels } from '../types';
 import { WARSZAWA_LEVELS } from './warszawa';
 import { LODZ_LEVELS } from './lodz';
 import { KRAKOW_LEVELS } from './krakow';
+import { KATOWICE_LEVELS } from './katowice';
 
-export const LESSON_LEVELS: Record<string, LessonLevels> = { ...WARSZAWA_LEVELS, ...LODZ_LEVELS, ...KRAKOW_LEVELS };
+export const LESSON_LEVELS: Record<string, LessonLevels> = { ...WARSZAWA_LEVELS, ...LODZ_LEVELS, ...KRAKOW_LEVELS, ...KATOWICE_LEVELS };
 
 /** Города с версиями уроков: версия из урока важнее версии из реестра; slug реестра без урока — ошибка (опечатка не пропадёт молча). */
 export function withLevels(cities: CityContent[], registry: Record<string, LessonLevels> = LESSON_LEVELS): CityContent[] {

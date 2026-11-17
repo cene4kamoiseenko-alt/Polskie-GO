@@ -3,14 +3,14 @@
  * самый длинный, далёкие варианты, одинаковое начало) проходит по версиям в test/city-quality.test.ts — тот же код, что для обычных уроков.
  */
 import { describe, expect, it } from 'vitest';
-import { checkAnswer, type ExerciseItem, type ExerciseType, type I18n } from '@polski-go/shared';
+import { CEFR_LEVELS, checkAnswer, type ExerciseItem, type ExerciseType, type I18n } from '@polski-go/shared';
 import { correctAnswers } from './helpers';
 import { CITY_CONTENT } from '../src/content/seed';
 import { LESSON_LEVELS, withLevels } from '../src/content/levels';
 import type { LessonLevel } from '../src/content/types';
 
 /** Города, где у каждого урока и босса должны быть все три версии. */
-const COVERED = ['warszawa', 'lodz', 'krakow'];
+const COVERED = ['warszawa', 'lodz', 'krakow', 'katowice'];
 const LEVELS = ['A2', 'B1', 'B2'] as const;
 const MIN_TASKS = 8;
 
@@ -27,9 +27,17 @@ function i18nOf(x: unknown, out: I18n[] = []): I18n[] {
 }
 
 describe('трудные версии уроков', () => {
-  it.each(COVERED)('%s: у каждого урока и босса есть версии A2, B1, B2', (city) => {
+  // Версия выбирается только выше уровня урока (variantLevel): уроку A1 нужны A2, B1, B2, уроку A2 — B1 и B2.
+  const above = (cefr: string) => LEVELS.filter((lv) => CEFR_LEVELS.indexOf(lv) > CEFR_LEVELS.indexOf(cefr as never));
+  it.each(COVERED)('%s: у каждого урока и босса есть все версии выше его уровня', (city) => {
     const content = CITY_CONTENT.find((c) => c.city === city)!;
-    for (const l of content.routes.flatMap((r) => r.lessons)) expect(Object.keys(l.levels ?? {}).sort(), l.slug).toEqual([...LEVELS].sort());
+    for (const l of content.routes.flatMap((r) => r.lessons)) expect(Object.keys(l.levels ?? {}).sort(), `${l.slug} (${l.cefr})`).toEqual(above(l.cefr).sort());
+  });
+
+  it('нет версий на уровне урока или ниже: такую игрок никогда не получит', () => {
+    for (const l of CITY_CONTENT.flatMap((c) => c.routes.flatMap((r) => r.lessons))) {
+      for (const lv of Object.keys(l.levels ?? {})) expect(above(l.cefr), `${l.slug} (${l.cefr}) @${lv}`).toContain(lv);
+    }
   });
 
   it('версия: не меньше 8 заданий, не меньше 4 разных механик, без аудирования и диктанта (им нужна озвучка)', () => {
