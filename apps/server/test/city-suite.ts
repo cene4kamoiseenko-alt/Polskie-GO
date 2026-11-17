@@ -42,7 +42,10 @@ export function citySuite(cfg: CityConfig) {
       expect(cfg.content.routes.map((r) => r.slug)).toEqual(cfg.routes);
       expect(regular.map((l) => l.slug)).toEqual(cfg.lessons);
       expect(cfg.content.routes.at(-1)!.lessons.map((l) => [l.slug, l.kind])).toEqual([[cfg.boss, 'BOSS']]);
-      expect(CITY_CONTENT).toContain(cfg.content);
+      // По slug, а не по ссылке: город с трудными версиями (levels/) попадает в CITY_CONTENT копией (withLevels).
+      const published = CITY_CONTENT.find((c) => c.city === cfg.content.city);
+      expect(published, 'город подключён к seed').toBeDefined();
+      expect(published!.routes.flatMap((r) => r.lessons.map((l) => l.slug))).toEqual(all.map((l) => l.slug));
       expect(CITIES.some((c) => c.slug === cfg.content.city)).toBe(true);
     });
 

@@ -31,8 +31,9 @@
 | Катовице | 9 | 21 (уроки A1 — A2, B1, B2; уроки A2 — B1, B2) | 191 |
 | Ополе | 9 | 20 (уроки A1 — A2, B1, B2; уроки A2 — B1, B2) | 182 |
 | Вроцлав | 9 | 24 (уроки A1 и босс — A2, B1, B2; уроки A2 — B1, B2) | 219 |
+| Познань | 9 | 25 (уроки A1 и босс — A2, B1, B2; уроки A2 — B1, B2) | 228 |
 
-Дальше: Познань, затем города A2 (версии B1/B2) и B1 (версия B2).
+Дальше: города A2 — Зелёна-Гура, Гожув, Щецин, Гданьск, Гдыня (версии B1/B2), затем города B1 (версия B2).
 
 ### Что получает игрок
 - Тот же урок, место и герои, но **своя теория**: объяснение и примеры версии заменяют обычные. Над теорией — плашка «Задания твоего уровня».
@@ -50,7 +51,7 @@ const WAW2: LessonLevels = {
 };
 export const WARSZAWA_LEVELS = { 'waw-2-uprzejmosc': WAW2, ... };
 ```
-- `withLevels` в `seed.ts` подставляет версии в уроки по slug. Опечатка в slug — ошибка сборки сида, а не тихо пропавшая версия.
+- `withLevels` в `seed.ts` подставляет версии в уроки по slug. Опечатка в slug — ошибка сборки сида, а не тихо пропавшая версия. Город с версиями попадает в `CITY_CONTENT` копией: в тестах искать его по slug (`city-suite.ts`), а не по ссылке на объект.
 - Те же построители заданий (`fillGap`, `reverseChoice`, `dialogue`, `build`…), тот же сюжет и место, грамматика и лексика уровня версии.
 - **Без `listen` и `dictation`**: их озвучку делают в админке, а новые фразы версий ещё не озвучены.
 - У `build` и `wordOrder` перечисляйте другие естественные порядки слов (`alternatives`): «Z powodu awarii pociąg został odwołany» — тоже верно.
@@ -76,7 +77,7 @@ export const WARSZAWA_LEVELS = { 'waw-2-uprzejmosc': WAW2, ... };
 - Логика: `packages/shared/src/levels.ts` (`variantLevel`, `placementProgress`, `studyLevelFor`, `adaptLevel`), тесты `packages/shared/test/levels.test.ts`.
 - Миграция `apps/server/migrations/0023_study_levels.sql`: `exercises.level`, `player_progress.study_level`, `level_up_run`, `level_down_run`; счётчик заданий урока — только порядок < 100.
 - Миграция `0024_level_texts.sql`: `lessons.level_texts` — теория версий `{A2|B1|B2: {explanation, examples}}`.
-- Версии: `apps/server/src/content/levels/` (`warszawa.ts`, `lodz.ts`, `krakow.ts`, `katowice.ts`, `opole.ts`, `wroclaw.ts`, реестр `index.ts`).
+- Версии: `apps/server/src/content/levels/` (`warszawa.ts`, `lodz.ts`, `krakow.ts`, `katowice.ts`, `opole.ts`, `wroclaw.ts`, `poznan.ts`, реестр `index.ts`).
 - Сервер: `services/sessions.ts` (выбор версии при старте и её теория — `lessonPayload`, остановка теста, итог, автоподстройка, `practiceVersions` для практики), `routes/learn.ts` (`/grammar` считает только обычные задания), `PATCH /api/me/study-level`, `/api/me` → `progress.studyLevel`, `levelTest`.
 - Приложение: `screens/Lesson.tsx` («Не знаю», остановка, итог, сообщение о смене сложности, плашка «Задания твоего уровня»), `screens/Settings.tsx` (уровень заданий), `screens/Home.tsx` (`LevelTestCard`).
 - Браузерная проверка: блок «Уровни» в `scripts/browser-check.ts`.
