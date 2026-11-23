@@ -41,6 +41,8 @@ export default function MissionScreen() {
   if (q.isLoading) return <ScreenSkeleton />;
   // Сцена Premium без Premium (пряме посилання): ведемо на екран Premium, а не показуємо помилку.
   if (q.error instanceof ApiError && q.error.code === 'premium_required') return <Navigate to="/premium" replace />;
+  // Миссия канала без подтверждённой подписки (прямая ссылка) — панель подписки на экране миссий.
+  if (q.error instanceof ApiError && q.error.code === 'channel_required') return <Navigate to="/life?channel=1" replace />;
   // Сезон пропуску ще не почався (пряме посилання): показуємо календар пропуску.
   if (q.error instanceof ApiError && q.error.code === 'season_not_started') return <Navigate to="/pass" replace />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;

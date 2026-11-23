@@ -2,13 +2,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from '../lib/motion';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT, type TKey } from '../i18n';
 import { haptic } from '../lib/telegram';
 import { useTabSwipe } from '../lib/swipe';
 import { ErrorState, ScreenSkeleton, cx } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { MissionCard, missionHref, missionsQuery } from '../components/MissionCard';
+import { ChannelSheet } from '../components/ChannelSheet';
 import { Scene } from '../components/Illustrations';
 import { PassCard, TopStats } from './Home';
 import { questLifeThumb } from '../lib/screenArt';
@@ -29,17 +30,22 @@ export default function MissionsScreen() {
   const { t, tr } = useT();
   const nav = useNavigate();
   const [cat, setCat] = useState('all');
+  // ?channel=1 — панель подписки на канал (карточка миссии канала с замком, карточка на главной, вход в миссию без подписки).
+  const [params, setParams] = useSearchParams();
+  const channelOpen = params.get('channel') === '1';
   const q = useQuery(missionsQuery);
   // Свайп по экрану листает категории (Все → Магазины → Еда → …), как вкладки в Квестах.
   const swipe = useTabSwipe(CAT_IDS, cat, (k) => { haptic.select(); setCat(k); });
   if (q.isLoading) return <ScreenSkeleton />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const { missions, soon } = q.data!;
-  const list = missions.filter((m) => cat === 'all' || m.category === cat);
+  // Миссия канала — первой во «Все»: это и реклама канала, и самая длинная история.
+  const list = missions.filter((m) => cat === 'all' || m.category === cat).sort((a, b) => (cat === 'all' ? Number(!!b.channel) - Number(!!a.channel) : 0));
   const done = missions.filter((m) => m.completions > 0).length;
   const lifeArt = questLifeThumb();
   return (
     <div ref={swipe.ref} className="space-y-0 pb-6" data-tab-swipe="life">
+      <ChannelSheet open={channelOpen} onClose={() => setParams({}, { replace: true })} />
       {/* Вкладка нижней панели (2026-11-15): без кнопки «Назад», шапка как у остальных вкладок.
           Герой — кадр владельца «Sklep 24h» (раньше миниатюра входа в миссии на экране квестов): Бобек слева, текст — на небе справа. */}
       <TopStats compact />

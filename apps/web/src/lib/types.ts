@@ -12,6 +12,8 @@ export type Me = {
   onboarded: boolean;
   /** Гостевой аккаунт (вход вне Telegram без кода из Telegram). Может отсутствовать, если сервер старше клиента. */
   guest?: boolean;
+  /** Подписка на канал @polskigoo подтверждена ботом: миссия канала открыта, рекламу канала не показываем. */
+  channelJoined?: boolean;
   /** Вход вне Telegram включён на сервере (код переноса можно получить). */
   standaloneAuth?: boolean;
   /** Вопрос дня в боте: присылать ли (null — гость, у него нет бота; поле может отсутствовать у старого сервера). */
@@ -238,9 +240,12 @@ export type MissionSummary = {
   premium: boolean;
   /** Сезон пропуску місяця (slug) або null. */
   season?: string | null;
+  /** Для подписчиков канала @polskigoo. */
+  channel?: boolean;
 };
 /** locked — сцена Premium без активного Premium (картка веде на екран Premium). */
-export type MissionListItem = MissionSummary & { locked: boolean; completions: number; flawless: boolean; inProgress: number | null };
+/** lock — чего не хватает: 'premium' (экран Premium) или 'channel' (панель подписки на канал). */
+export type MissionListItem = MissionSummary & { locked: boolean; lock?: 'premium' | 'channel' | null; completions: number; flawless: boolean; inProgress: number | null };
 /** Місія сезону: open — можна почати зараз; free — перша місія сезону, відкрита всім, поки сезон триває. */
 export type PassMission = MissionListItem & { open: boolean; free: boolean };
 /** Сезон пропуску місяця (GET /missions → pass). Дати — YYYY-MM-DD за поясом учня, включно. */

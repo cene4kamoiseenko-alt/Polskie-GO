@@ -53,6 +53,14 @@ describe('Миссия канала «Тайна Твардовского»', ()
     for (const w of ['górn(ej|a)', 'doln(ej|a)', 'środkow(ej|a)', 'oraz']) expect(polish, w).toMatch(word(w));
   });
 
+  it('реплики друзей и «дьявола» подписаны их именами, а не именем ведущего', () => {
+    const speaker = (id: string) => m.steps.find((s) => s.id === id)!.line!.name;
+    expect(['drawer', 'dragon', 'calm', 'cafe'].map(speaker)).toEqual(['Ola', 'Ola', 'Ola', 'Ola']);
+    expect(speaker('shelf')).toBe('Kuba');
+    expect(['devil', 'deal', 'question', 'moon'].map(speaker)).toEqual(['Diabeł', 'Diabeł', 'Diabeł', 'Diabeł']);
+    expect(m.steps.find((s) => s.id === 'booking')!.line!.name).toBeUndefined();
+  });
+
   it('новые слова — в словаре: górny, dolny, środkowy, oraz, Górny Śląsk, Dolny Śląsk', () => {
     for (const w of ['górny', 'dolny', 'środkowy', 'oraz', 'Górny Śląsk', 'Dolny Śląsk']) expect(vocab.has(w), w).toBe(true);
   });

@@ -10,6 +10,7 @@ import type { Me, PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
 import { Icon } from '../components/Icon';
+import { ChannelHomeCard } from '../components/SocialPromo';
 import { Confetti, Progress, Section, Sheet, Skeleton, cx, isOfflineError, useToast } from '../components/ui';
 import { HouseCard } from '../components/HouseCard';
 import { Art, type ArtName } from '../components/GameArt';
@@ -468,6 +469,9 @@ export function HomeScreen() {
 
       {/* Разрешение боту писать: без него не доходят вопрос дня и напоминания */}
       <WriteAccessCard />
+
+      {/* Канал @polskigoo: подписка открывает секретную миссию (2026-11-23); пока не подписан и не скрыл */}
+      <ChannelHomeCard />
 
       {/* Premium: для тех, у кого его нет — заметный баннер (раньше был только значок-корона в шапке) */}
       <PremiumTeaser />

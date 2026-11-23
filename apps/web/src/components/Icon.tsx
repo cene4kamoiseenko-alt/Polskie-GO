@@ -7,9 +7,11 @@ import { memo, type ReactNode } from 'react';
 export type LineIconName =
   | 'home' | 'map' | 'book' | 'target' | 'user' | 'flame' | 'coin' | 'star' | 'check' | 'lock' | 'play' | 'arrow-right'
   | 'refresh' | 'alert' | 'clock' | 'bolt' | 'headphones' | 'chevron-right' | 'pin' | 'gift' | 'settings' | 'crown' | 'chat'
-  | 'trophy' | 'layers' | 'x' | 'search' | 'mic' | 'wifi-off' | 'flag' | 'compass';
+  | 'trophy' | 'layers' | 'x' | 'search' | 'mic' | 'wifi-off' | 'flag' | 'compass' | 'send' | 'camera';
 
 const P: Record<LineIconName, ReactNode> = {
+  send: <><path d="M21 3.5 3.5 10.6l6.6 2.6 2.6 6.6z" /><path d="M21 3.5 10.1 13.2" /></>,
+  camera: <><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><path d="M17 7h.01" /></>,
   compass: <><circle cx="12" cy="12" r="8.5" /><path d="M15.6 8.4l-2 5.2-5.2 2 2-5.2z" /></>,
   flag: <><path d="M6 21V4.5" /><path d="M6 5h11.5l-2.2 3.8 2.2 3.7H6" /></>,
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,

@@ -990,6 +990,28 @@ export const uk = {
   streak_repair_text: "Її ще можна повернути — сьогодні або завтра",
   streak_repair_btn: "Повернути · {price} zł",
   streak_repaired: "Серію повернуто! Позаймайся сьогодні, щоб продовжити",
+  // Канал @polskigoo и соцсети (2026-11-23)
+  channel_badge: "Для підписників",
+  channel_sheet_title: "Секретна місія для підписників",
+  channel_sheet_text: "Підпишись на наш Telegram-канал Polski Go — і відкрий квест-кімнату «Таємниця Твардовського»: 20 хвилин загадок польською в Кракові.",
+  channel_step_subscribe: "Підписатися на канал",
+  channel_step_check: "Я підписався — перевірити",
+  channel_checking: "Перевіряємо…",
+  channel_not_member: "Поки не бачимо підписки. Підпишись на канал і натисни ще раз.",
+  channel_unavailable: "Перевірка тимчасово недоступна. Спробуй трохи пізніше.",
+  channel_no_telegram: "Перевірка працює лише в Telegram: відкрий Polski Go в Telegram і натисни ще раз.",
+  channel_rate_limited: "Забагато спроб. Зачекай хвилину й спробуй знову.",
+  channel_unlocked: "Місію відкрито! Удачі в квест-кімнаті",
+  channel_home_title: "Секретна місія в нашому каналі",
+  channel_home_text: "Підпишись на Telegram-канал Polski Go — і відкрий квест-кімнату «Таємниця Твардовського».",
+  channel_home_open: "Відкрити місію",
+  channel_home_hide: "Сховати",
+  social_title: "Ми в соцмережах",
+  social_telegram: "Telegram-канал Polski Go",
+  social_telegram_note: "Новини, польська щодня і секретна місія",
+  social_instagram: "Instagram @polskigoo",
+  social_instagram_note: "Польська в картинках і відео",
+  social_mission_badge: "+ місія",
 };
 
 export type Dict = Record<keyof typeof uk, string>;

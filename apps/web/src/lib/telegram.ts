@@ -139,6 +139,15 @@ export function openBotChat(bot: string, start?: string) {
   } else window.open(url, '_blank', 'noopener');
 }
 
+/**
+ * Открыть ссылку, не закрывая Mini App: t.me — внутри Telegram (канал откроется поверх, игрок вернётся и нажмёт «Проверить»),
+ * остальное — во внешнем браузере. Вне Telegram — новая вкладка.
+ */
+export function openLink(url: string) {
+  if (tg) return url.startsWith('https://t.me/') ? tg.openTelegramLink(url) : tg.openLink(url);
+  window.open(url, '_blank', 'noopener');
+}
+
 export function share(url: string, text: string) {
   const link = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
   if (tg) return tg.openTelegramLink(link);

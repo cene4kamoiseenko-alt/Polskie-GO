@@ -13,15 +13,16 @@ export type MissionsData = { missions: MissionListItem[]; soon: { slug: string; 
 
 export const missionsQuery = { queryKey: ['missions'], queryFn: () => api<MissionsData>('/missions') };
 
-/** Куди веде картка: сцена Premium без Premium — на екран Premium, решта — у місію. */
-export const missionHref = (m: MissionListItem) => (m.locked ? '/premium' : `/life/${m.slug}`);
+/** Куди веде картка: сцена Premium без Premium — на екран Premium; миссия канала без подписки — панель подписки (?channel=1); решта — у місію. */
+export const missionHref = (m: MissionListItem) =>
+  m.lock === 'channel' ? '/life?channel=1' : m.locked ? '/premium' : `/life/${m.slug}`;
 
 export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen: () => void; compact?: boolean }) {
   const { t, tr } = useT();
   const done = m.completions > 0;
   const resuming = m.inProgress !== null;
   return (
-    <motion.button whileTap={{ scale: 0.98 }} onClick={() => { haptic.tap(); onOpen(); }} className={cx('card block w-full overflow-hidden text-left', m.premium && 'premium-mission-card', m.locked && 'premium-mission-locked')}>
+    <motion.button whileTap={{ scale: 0.98 }} onClick={() => { haptic.tap(); onOpen(); }} className={cx('card block w-full overflow-hidden text-left', m.premium && 'premium-mission-card', m.locked && m.lock !== 'channel' && 'premium-mission-locked')} data-mission-card={m.slug}>
       <div className="relative">
         <MissionScene slug={m.slug} scene={m.scene} className={cx('block w-full', compact ? 'h-24' : 'h-32')} />
         {m.premium && <div className="premium-mission-image-shade" aria-hidden="true" />}
@@ -40,6 +41,11 @@ export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen
             <Icon name={m.flawless ? 'star' : 'check'} size={14} /> {t(m.flawless ? 'life_flawless' : 'life_done')}
           </span>
         )}
+        {m.channel && !done && !resuming && (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-sky-dark px-2.5 py-0.5 text-xs font-black text-white" data-channel-badge>
+            <Icon name={m.locked ? 'lock' : 'send'} size={13} /> {t('channel_badge')}
+          </span>
+        )}
         {m.premium && !done && !resuming && (
           <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-xp px-2.5 py-0.5 text-xs font-black text-xp-ink">
             <Icon name="crown" size={14} filled /> Premium
@@ -55,7 +61,7 @@ export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen
           {!compact && <div className="muted mt-0.5 line-clamp-2 text-sm font-semibold">{tr(m.goal)}</div>}
           {m.inProgress !== null && <div className="mt-1 text-xs font-black text-sky-dark">{t('life_continue', { n: m.inProgress + 1, total: m.steps })}</div>}
         </div>
-        <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full text-white', m.locked ? 'premium-mission-action-locked' : resuming ? 'bg-sky-dark' : done ? 'bg-brand' : m.premium ? 'premium-mission-action' : 'bg-pl-red')}>
+        <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full text-white', m.locked ? (m.lock === 'channel' ? 'bg-sky-dark' : 'premium-mission-action-locked') : resuming ? 'bg-sky-dark' : done ? 'bg-brand' : m.premium ? 'premium-mission-action' : 'bg-pl-red')}>
           <Icon name={m.locked ? 'lock' : resuming ? 'play' : done ? 'refresh' : 'play'} size={18} />
         </span>
       </div>

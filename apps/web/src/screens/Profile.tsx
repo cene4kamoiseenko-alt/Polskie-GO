@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, achTier } from '../components/Illustrations';
 import { Icon, type LineIconName } from '../components/Icon';
+import { SocialLinks } from '../components/SocialPromo';
 import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { useJourney, useMe, useShop } from '../lib/queries';
@@ -304,6 +305,8 @@ export default function ProfileScreen() {
           </div>
         </Section>
       )}
+      {/* Наши соцсети: Telegram-канал (пока миссия закрыта — панель подписки) и Instagram (2026-11-23) */}
+      <SocialLinks />
       {me.premium.active && me.premium.expiresAt && <p className="muted px-4 text-center text-sm font-bold">{t('profile_premium_until', { date: date(me.premium.expiresAt) })}</p>}
     </div>
   );
