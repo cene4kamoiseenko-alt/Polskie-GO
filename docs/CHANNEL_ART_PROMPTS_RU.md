@@ -74,6 +74,26 @@ Scene:
 
 30. **wigilia** — Традиции, Wigilia. `Bobek at a festive Polish Christmas Eve table with a white tablecloth, twelve dishes, pierogi and barszcz, a Christmas tree and snow outside the window, breaking a thin wafer (opłatek), cozy warm light.`
 
+## Что уже получено (2026-11-23)
+
+22 картинки, 1254×1254, сохранены в `apps/web/public/channel/` как JPG (~300–400 КБ). Кепка и шарф — вещи гардероба Бобека,
+это в каноне. Картинка `-1`/`-2` — два варианта одной сцены, чередуются, чтобы канал не повторялся.
+
+| Сцена | Файлы |
+|---|---|
+| 1 apteka | `apteka-1.jpg`, `apteka-2.jpg` |
+| 2 likar | `likar-1.jpg`, `likar-2.jpg` |
+| 3 urzad | `urzad-1.jpg`, `urzad-2.jpg` |
+| 4 praca-biuro | `praca-biuro-1.jpg`, `praca-biuro-2.jpg` |
+| 5 rozmowa | `rozmowa-1.jpg`, `rozmowa-2.jpg` |
+| 6 budowa | `budowa-1.jpg`, `budowa-2.jpg` |
+| 11 dworzec · 12 mieszkanie · 13 bank · 14 paczka · 15 sasiad | `dworzec.jpg`, `mieszkanie.jpg`, `bank.jpg`, `paczka.jpg`, `sasiad.jpg` |
+| 16 slang · 17–19 идиомы · 20 ложные друзья | `slang.jpg`, `idiom-kciuki.jpg`, `idiom-muchy.jpg`, `idiom-maliny.jpg`, `falszywi-przyjaciele.jpg` |
+
+**Ещё нет:** 7 sklep, 8 kawiarnia, 9 bar-mleczny, 10 tramwaj, 21–30 (wymowa, zasada-tablica, przypadki, pytanie, brawo,
+detektyw, finanse, it, prawo, wigilia). Важнее всего 21–26: это картинки к постам «правило», «произношение» и к тестам.
+Пока их нет, такие посты берут общие картинки, например `falszywi-przyjaciele` или сцены бота.
+
 ## Куда идут картинки
 
 Готовые файлы пришлите в чат пачкой (имя = номер и тема). Я сожму их в JPG (Telegram берёт фото до 5 МБ), положу в
