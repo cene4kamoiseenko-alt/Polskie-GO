@@ -34,13 +34,14 @@ type Doc = { title: string; updated: string; sections: { h: string; p: string[] 
 const PRIVACY: Record<Lang, (c: string) => Doc> = {
   uk: (c) => ({
     title: 'Політика конфіденційності — POLSKI GO',
-    updated: 'Оновлено 14 листопада 2026',
+    updated: 'Оновлено 23 листопада 2026',
     sections: [
       { h: 'Хто ми і про що цей документ', p: ['POLSKI GO — застосунок для вивчення польської мови: працює як Telegram Mini App і як застосунок для Android (Google Play). Цей документ пояснює, які дані ми збираємо, навіщо і як ними розпоряджатися.'] },
       { h: 'Які дані ми збираємо', p: [
         'Акаунт у Telegram: числовий ідентифікатор Telegram, ім’я, прізвище, ім’я користувача, адреса фото профілю і мова інтерфейсу — їх передає Telegram під час входу в Mini App.',
         'Акаунт «гість» (Android, веб): випадковий внутрішній номер і ключ пристрою. Ім’я, e-mail чи номер телефону не потрібні.',
         'Навчальні дані: прогрес, відповіді на завдання, словник, досягнення, віртуальна валюта й речі, серія днів, налаштування (мова, мета, час нагадування, часовий пояс). За вашим вибором: публічний профіль і рейтинг, друзі.',
+        'Звідки ви прийшли: мітка посилання, за яким ви вперше відкрили бота або застосунок (наприклад, посилання з TikTok, Instagram чи реклами), де це було (бот, застосунок, сайт) і коли. Мітка не містить особистих даних — за нею ми розуміємо, які канали працюють. Вона входить в експорт даних і видаляється разом з акаунтом.',
         'Скарги: якщо ви скаржитеся на гравця, ми зберігаємо, хто, на кого, з якої причини й коли поскаржився. Гравець, на якого скаржаться, не дізнається, хто це зробив. Скарги видаляються разом з акаунтом.',
         'Повідомлення про помилки в завданнях: якщо ви повідомляєте про помилку в завданні, ми зберігаємо, яке це завдання, причину, ваш коментар, вашу останню відповідь на нього, дату й стан розгляду. Повідомлення видаляються разом з акаунтом і входять в експорт ваших даних.',
         'Мікрофон і камеру застосунок не використовує: голос не записується й не надсилається.',
@@ -57,13 +58,14 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
   }),
   ru: (c) => ({
     title: 'Политика конфиденциальности — POLSKI GO',
-    updated: 'Обновлено 14 ноября 2026',
+    updated: 'Обновлено 23 ноября 2026',
     sections: [
       { h: 'Кто мы и о чём этот документ', p: ['POLSKI GO — приложение для изучения польского языка: работает как Telegram Mini App и как приложение для Android (Google Play). Здесь описано, какие данные мы собираем, зачем и как ими управлять.'] },
       { h: 'Какие данные мы собираем', p: [
         'Аккаунт Telegram: числовой идентификатор Telegram, имя, фамилия, имя пользователя, адрес фото профиля и язык интерфейса — их передаёт Telegram при входе в Mini App.',
         'Аккаунт «гость» (Android, веб): случайный внутренний номер и ключ устройства. Имя, e-mail и номер телефона не нужны.',
         'Учебные данные: прогресс, ответы на задания, словарь, достижения, виртуальная валюта и вещи, серия дней, настройки (язык, цель, время напоминания, часовой пояс). По вашему выбору: публичный профиль и рейтинг, друзья.',
+        'Откуда вы пришли: метка ссылки, по которой вы впервые открыли бота или приложение (например, ссылка из TikTok, Instagram или рекламы), где это было (бот, приложение, сайт) и когда. Метка не содержит личных данных — по ней мы понимаем, какие каналы работают. Она входит в экспорт данных и удаляется вместе с аккаунтом.',
         'Жалобы: если вы жалуетесь на игрока, мы храним, кто, на кого, по какой причине и когда пожаловался. Игрок, на которого жалуются, не узнает, кто это сделал. Жалобы удаляются вместе с аккаунтом.',
         'Сообщения об ошибках в заданиях: если вы сообщаете об ошибке в задании, мы храним, какое это задание, причину, ваш комментарий, ваш последний ответ на него, дату и состояние рассмотрения. Сообщения удаляются вместе с аккаунтом и входят в экспорт ваших данных.',
         'Микрофон и камеру приложение не использует: голос не записывается и не отправляется.',
@@ -80,13 +82,14 @@ const PRIVACY: Record<Lang, (c: string) => Doc> = {
   }),
   en: (c) => ({
     title: 'Privacy Policy — POLSKI GO',
-    updated: 'Updated 14 November 2026',
+    updated: 'Updated 23 November 2026',
     sections: [
       { h: 'Who we are and what this covers', p: ['POLSKI GO is a Polish-language learning app that runs as a Telegram Mini App and as an Android app (Google Play). This page explains what data we collect, why, and how you can control it.'] },
       { h: 'What we collect', p: [
         'Telegram account: your numeric Telegram ID, first and last name, username, profile photo URL and interface language, provided by Telegram when you open the Mini App.',
         'Guest account (Android, web): a random internal ID and a device key. No name, e-mail address or phone number is required.',
         'Learning data: progress, exercise answers, vocabulary, achievements, virtual currency and items, daily streak, settings (language, goal, reminder time, time zone). Optionally: public profile, leaderboard, friends.',
+        'Where you came from: the tag of the link you first used to open the bot or the app (for example a link from TikTok, Instagram or an ad), where it happened (bot, app, website) and when. The tag contains no personal data — it tells us which channels work. It is included in your data export and deleted together with the account.',
         'Reports: if you report a player, we store who reported whom, the reason and the date. The reported player is not told who reported them. Reports are deleted together with the account.',
         'Exercise reports: if you report a mistake in an exercise, we store which exercise it is, the reason, your comment, your last answer to it, the date and the review status. These reports are deleted together with the account and are included in your data export.',
         'The app does not use the microphone or the camera: your voice is not recorded or sent anywhere.',
