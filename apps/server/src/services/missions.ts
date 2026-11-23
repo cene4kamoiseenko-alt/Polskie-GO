@@ -7,7 +7,7 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { dayKey, diagnoseOrder, normalize, orderVariants, seededRandom, shuffle, type I18n } from '@polski-go/shared';
 import { atomic, chunks, db, type Stmt } from '../db';
-import { cosmeticItems, missionRuns, newId, reviewSchedule, subscriptions, userMissionSteps, userMissions, userSettings, userVocabulary, vocabularyEntries, xpEvents } from '../db/schema';
+import { cosmeticItems, missionRuns, newId, reviewSchedule, subscriptions, userMissionSteps, userMissions, userSettings, userVocabulary, users, vocabularyEntries, xpEvents } from '../db/schema';
 import { activeSubWhere, isPremium } from './premium';
 import { MISSIONS, MISSIONS_SOON, missionBySlug, type Mission, type MissionStep } from '../content/missions';
 import { SEASONS, isFreeSeasonMission, seasonBySlug, seasonState, type Season, type SeasonState } from '../content/seasons';
@@ -78,7 +78,7 @@ function publicStep(m: Mission, step: MissionStep, seed: string) {
 function summaryOf(m: Mission) {
   return {
     slug: m.slug, category: m.category, tags: m.tags, city: m.city, scene: m.scene, title: m.title, goal: m.goal,
-    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length, rewardItem: m.rewardItem ?? null, premium: !!m.premium, season: m.season ?? null,
+    minutes: m.minutes, xp: m.xp, zlotki: m.zlotki, steps: m.steps.length, rewardItem: m.rewardItem ?? null, premium: !!m.premium, season: m.season ?? null, channel: !!m.channel,
   };
 }
 
@@ -95,26 +95,32 @@ export function seasonAccess(s: Season, slug: string, day: string, premium: bool
 
 const dayNum = (day: string) => Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10)) / 86_400_000;
 
+export type MissionLock = 'premium' | 'channel' | null;
+
 export async function listMissions(userId: string, now = new Date()) {
-  const [mine, active, sub, settings] = await db.batch([
+  const [mine, active, sub, settings, me] = await db.batch([
     db.select().from(userMissions).where(eq(userMissions.userId, userId)),
     db.select({ slug: missionRuns.missionSlug, step: missionRuns.step }).from(missionRuns).where(and(eq(missionRuns.userId, userId), eq(missionRuns.status, 'ACTIVE'))),
     db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId, now)).limit(1),
     db.select({ timezone: userSettings.timezone }).from(userSettings).where(eq(userSettings.userId, userId)),
+    db.select({ channelJoinedAt: users.channelJoinedAt }).from(users).where(eq(users.id, userId)),
   ]);
   const premium = sub.length > 0;
+  const channelJoined = !!me[0]?.channelJoinedAt;
   const day = dayKey(now, settings[0]?.timezone ?? 'Europe/Warsaw');
   const item = (m: Mission) => {
     const u = mine.find((x) => x.missionSlug === m.slug);
     const a = active.find((x) => x.slug === m.slug);
-    // locked — сцена Premium без активного Premium: картка показує замок і веде на екран Premium.
-    return { ...summaryOf(m), locked: !!m.premium && !premium, completions: u?.completions ?? 0, flawless: (u?.flawless ?? 0) > 0, inProgress: a ? a.step : null };
+    // lock — чего не хватает: 'premium' (сцена Premium без Premium — картка веде на екран Premium) або 'channel'
+    // (миссия канала без подтверждённой подписки — картка открывает панель подписки). locked — есть ли замок.
+    const lock: MissionLock = m.premium && !premium ? 'premium' : m.channel && !channelJoined ? 'channel' : null;
+    return { ...summaryOf(m), locked: lock !== null, lock, completions: u?.completions ?? 0, flawless: (u?.flawless ?? 0) > 0, inProgress: a ? a.step : null };
   };
   const season = (s: Season) => {
     const state = seasonState(s, day);
     const missions = s.missions.map((slug) => {
       const access = seasonAccess(s, slug, day, premium);
-      return { ...item(missionBySlug(slug)!), locked: access.locked, open: access.open, free: isFreeSeasonMission(s, slug) };
+      return { ...item(missionBySlug(slug)!), locked: access.locked, lock: access.locked ? ('premium' as const) : null, open: access.open, free: isFreeSeasonMission(s, slug) };
     });
     const done = missions.filter((m) => m.completions > 0).length;
     const ach = ACHIEVEMENTS.find((a) => a.slug === s.achievement);
@@ -164,6 +170,10 @@ export async function startMission(userId: string, slug: string, now = new Date(
   const m = missionBySlug(slug);
   if (!m) throw notFound('mission_not_found');
   if (m.premium && !(await isPremium(userId))) throw forbidden('premium_required');
+  if (m.channel) {
+    const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { channelJoinedAt: true } });
+    if (!me?.channelJoinedAt) throw forbidden('channel_required');
+  }
   if (m.season) {
     const ctx = await loadCtx(userId, now);
     const access = seasonAccess(seasonBySlug(m.season)!, slug, ctx.day, ctx.premium);

@@ -21,6 +21,7 @@ import { claimPremiumGift, premiumBonuses, premiumGift } from '../services/premi
 import { openSupportFromApp } from '../services/support';
 import { achievementMetrics } from '../services/achievements';
 import { answerMission, listMissions, missionHint, startMission } from '../services/missions';
+import { verifyChannel } from '../services/channel';
 import { passport } from '../services/passport';
 import { SLANG, SLANG_GROUPS } from '../content/slang';
 
@@ -41,6 +42,8 @@ r.post('/story/:slug/advance', async (c) => {
 // ── Місії «Польська в житті» ──
 r.get('/missions', async (c) => c.json(await listMissions(c.get('userId'))));
 r.post('/missions/:slug/start', async (c) => c.json(await startMission(c.get('userId'), c.req.param('slug'))));
+// Подписка на канал @polskigoo открывает миссию канала (services/channel.ts). Лимит — Telegram Bot API не для частых опросов.
+r.post('/channel/verify', rateLimit(10, 60_000, 'channel'), async (c) => c.json(await verifyChannel(c.get('userId'))));
 r.post('/missions/runs/:id/answer', rateLimit(90, 60_000, 'mission'), async (c) => {
   const b = z.object({ step: z.number().int().min(0).max(30), option: z.number().int().min(0).max(10).optional(), text: z.string().max(300).optional() }).parse(await body(c));
   return c.json(await answerMission(c.get('userId'), c.req.param('id'), b.step, b));

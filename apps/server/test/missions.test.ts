@@ -200,7 +200,9 @@ describe('Місії: проходження', () => {
     expect(list.body.missions.find((m: { slug: string }) => m.slug === 'first-tram').completions).toBe(1);
     // Колишні «скоро» стали сценами Premium: без Premium вони в списку із замком.
     expect(list.body.soon).toEqual([]);
-    expect(list.body.missions.filter((m: { locked: boolean }) => m.locked).map((m: { slug: string }) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment', 'lotnisko-lot', 'zakopane-ferie', 'warszawa-dzien']);
+    expect(list.body.missions.filter((m: { lock: string | null }) => m.lock === 'premium').map((m: { slug: string }) => m.slug)).toEqual(['landlord', 'first-workday', 'doctor-appointment', 'lotnisko-lot', 'zakopane-ferie', 'warszawa-dzien']);
+    // Миссия канала (2026-11-23) — замок «channel», пока подписка не подтверждена (test/channel.test.ts).
+    expect(list.body.missions.filter((m: { lock: string | null }) => m.lock === 'channel').map((m: { slug: string }) => m.slug)).toEqual(['escape-twardowski']);
   });
   it('костюм за місію: лише за перше проходження, магазин показує умову, seed видає тим, хто пройшов раніше', async () => {
     const { call, user } = await login();

@@ -20,3 +20,4 @@ export * from './league';
 export * from './bobekPhrases';
 export * from './mapArt';
 export * from './levels';
+export * from './social';

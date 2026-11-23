@@ -176,6 +176,13 @@
       "when": 1794815478754,
       "tag": "0024_level_texts",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1795399649994,
+      "tag": "0025_channel_joined",
+      "breakpoints": true
     }
   ]
 }

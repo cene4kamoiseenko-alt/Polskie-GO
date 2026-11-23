@@ -49,6 +49,8 @@ export const users = sqliteTable(
     onboardedAt: ts('onboarded_at'),
     createdAt: createdAt(),
     lastSeenAt: createdAt('last_seen_at'),
+    /** Подписка на канал @polskigoo подтверждена ботом (services/channel.ts): открывает миссию канала навсегда. */
+    channelJoinedAt: ts('channel_joined_at'),
   },
   (t) => [index('users_created_at_idx').on(t.createdAt), index('users_last_seen_at_idx').on(t.lastSeenAt)],
 );

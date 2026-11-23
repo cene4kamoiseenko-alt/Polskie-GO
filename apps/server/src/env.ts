@@ -25,6 +25,8 @@ export type Bindings = {
   STAGING_BOT_ID?: string;
   TELEGRAM_BOT_USERNAME?: string;
   TELEGRAM_APP_SHORT_NAME?: string;
+  /** Канал, подписка на который открывает миссию канала (services/channel.ts); по умолчанию @polskigoo. Бот должен быть его админом. */
+  CHANNEL_CHAT?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
   /** Ключ ссылки самонастройки `/telegram/setup?key=…`; без него — TELEGRAM_WEBHOOK_SECRET (старый вариант). */
   BOT_SETUP_KEY?: string;
@@ -157,6 +159,12 @@ export const config = {
   },
   get appShortName() {
     return str(env.TELEGRAM_APP_SHORT_NAME) || 'app';
+  },
+  /** Канал для проверки подписки (getChatMember): @username или числовой id. */
+  get channelChat() {
+    const v = str(env.CHANNEL_CHAT).trim();
+    if (!v) return '@polskigoo';
+    return /^-?\d+$/.test(v) || v.startsWith('@') ? v : `@${v}`;
   },
   /** Секрет webhook из окружения: действует, только пока сервер не перешёл на свой секрет (см. bot/webhook-secret.ts). */
   get webhookSecret() {

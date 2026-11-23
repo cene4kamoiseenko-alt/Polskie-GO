@@ -81,6 +81,8 @@ export async function getMe(userId: string) {
     telegramId: user.telegramId.toString(),
     // Гостевой аккаунт (вход вне Telegram, services/standalone-auth.ts): id отрицательный. Напоминания и рассылки такому игроку не приходят.
     guest: user.telegramId < 0,
+    // Подписка на канал @polskigoo подтверждена (services/channel.ts): миссия канала открыта, реклама канала больше не нужна.
+    channelJoined: !!user.channelJoinedAt,
     // Вопрос дня в боте (переключатель в настройках): у гостя бота нет — null.
     dailyQuiz: user.telegramId < 0 ? null : (quizRow[0]?.pushEnabled ?? true),
     // Включён ли вход вне Telegram на сервере (STANDALONE_AUTH=on): без него карточка «Вход на другом устройстве» в настройках не показывается.
