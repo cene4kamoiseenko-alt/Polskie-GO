@@ -20,7 +20,7 @@ import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { z, type ZodTypeAny } from 'zod';
 import { CEFR_LEVELS, EXERCISE_TYPES, DEFAULT_REWARDS } from '@polski-go/shared';
 import { getBindings } from '../env';
-import { atomic, db, isUniqueViolation } from '../db';
+import { atomic, chunks, db, isUniqueViolation } from '../db';
 import * as t from '../db/schema';
 import { forgetUser, requireAdmin } from '../auth';
 import { listReports, resolveReports } from '../services/reports';
@@ -78,9 +78,20 @@ type Resource = {
   idField?: string;
 };
 
+/**
+ * D1 принимает не больше 100 параметров в запросе: «IN (…)» по странице в 500 строк падал (журнал ошибок 2026-11-22,
+ * /api/admin/resources/lessons). Длинный список id — частями по IN_PART.
+ */
+const IN_PART = 90;
+async function inParts<T>(ids: string[], run: (part: string[]) => Promise<T[]>): Promise<T[]> {
+  const out: T[] = [];
+  for (const part of chunks([...new Set(ids)], IN_PART)) out.push(...(await run(part)));
+  return out;
+}
+
 async function countBy(table: SQLiteTable, col: SQLiteColumn, ids: string[]) {
   if (!ids.length) return new Map<string, number>();
-  const rows = await db.select({ k: col, n: count() }).from(table).where(inArray(col, ids)).groupBy(col);
+  const rows = await inParts(ids, (part) => db.select({ k: col, n: count() }).from(table).where(inArray(col, part)).groupBy(col));
   return new Map(rows.map((r) => [r.k as string, r.n]));
 }
 
@@ -94,7 +105,7 @@ const RESOURCES: Record<string, Resource> = {
     table: t.cityRoutes, roles: ['EDITOR'], orderBy: ['cityId', 'order'], search: ['slug'], filters: ['cityId'],
     enrich: async (rows) => {
       const cityIds = [...new Set(rows.map((r) => r.cityId as string))];
-      const cs = cityIds.length ? await db.select({ id: t.cities.id, namePl: t.cities.namePl }).from(t.cities).where(inArray(t.cities.id, cityIds)) : [];
+      const cs = await inParts(cityIds, (part) => db.select({ id: t.cities.id, namePl: t.cities.namePl }).from(t.cities).where(inArray(t.cities.id, part)));
       const n = await countBy(t.lessons, t.lessons.routeId, rows.map((r) => r.id!));
       return rows.map((r) => ({ ...r, city: cs.find((c) => c.id === r.cityId) ?? null, _count: { lessons: n.get(r.id!) ?? 0 } }));
     },
@@ -104,7 +115,7 @@ const RESOURCES: Record<string, Resource> = {
     table: t.lessons, roles: ['EDITOR'], orderBy: ['routeId', 'order'], search: ['slug'], filters: ['routeId', 'kind', 'status'],
     enrich: async (rows) => {
       const routeIds = [...new Set(rows.map((r) => r.routeId as string).filter(Boolean))];
-      const rs = routeIds.length ? await db.select({ id: t.cityRoutes.id, slug: t.cityRoutes.slug }).from(t.cityRoutes).where(inArray(t.cityRoutes.id, routeIds)) : [];
+      const rs = await inParts(routeIds, (part) => db.select({ id: t.cityRoutes.id, slug: t.cityRoutes.slug }).from(t.cityRoutes).where(inArray(t.cityRoutes.id, part)));
       const n = await countBy(t.exercises, t.exercises.lessonId, rows.map((r) => r.id!));
       return rows.map((r) => ({ ...r, route: rs.find((x) => x.id === r.routeId) ?? null, _count: { exercises: n.get(r.id!) ?? 0 } }));
     },
