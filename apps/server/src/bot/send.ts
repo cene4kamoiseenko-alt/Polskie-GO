@@ -32,7 +32,10 @@ export type Sent = { method: 'sendPhoto' | 'sendMessage'; messageId: number | nu
 export function buildKeyboard(buttons: Button[], opts: Pick<SendOptions, 'chatType' | 'startapp'> = {}): InlineKeyboard {
   const priv = !opts.chatType || opts.chatType === 'private';
   return {
-    inline_keyboard: buttons.map((b) => [priv ? { text: b.label, web_app: { url: screenUrl(b.screen, opts.startapp) } } : { text: b.label, url: groupLink(b.screen) }]),
+    inline_keyboard: buttons.map((b) => [
+      // Прямая ссылка (наш канал) — одинаково в личке и в группе; экран Mini App — web_app в личке, ссылка t.me в группе.
+      'url' in b ? { text: b.label, url: b.url } : priv ? { text: b.label, web_app: { url: screenUrl(b.screen, opts.startapp) } } : { text: b.label, url: groupLink(b.screen) },
+    ]),
   };
 }
 

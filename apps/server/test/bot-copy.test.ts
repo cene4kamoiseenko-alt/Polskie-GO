@@ -35,10 +35,16 @@ describe('копирайт бота', () => {
         for (const b of card.buttons) {
           expect(b.label.length).toBeGreaterThan(3);
           expect(b.label.length).toBeLessThanOrEqual(40);
-          expect(Object.keys(BOT_SCREENS)).toContain(b.screen);
+          // Ссылка — только на наш канал (кнопка в /start, 2026-11-23); остальное — экраны белого списка.
+          if ('url' in b) expect(b.url, `${lang}/${command}`).toBe('https://t.me/polskigoo');
+          else expect(Object.keys(BOT_SCREENS)).toContain(b.screen);
+        }
+        // Приветствие (новичку и вернувшемуся) заканчивается кнопкой канала.
+        if (command === 'start') {
+          for (const c of [card, COPY[lang].startBack(FULL)]) expect(c.buttons.at(-1), `${lang}/${command}`).toMatchObject({ url: 'https://t.me/polskigoo' });
         }
         // Главная кнопка ведёт на экран команды (как в манифесте комплекта).
-        expect(card.buttons[0].screen, `${lang}/${command} landing`).toBe(COMMAND_LANDING[command]);
+        expect((card.buttons[0] as { screen: string }).screen, `${lang}/${command} landing`).toBe(COMMAND_LANDING[command]);
       }
     }
   });
@@ -110,8 +116,8 @@ describe('копирайт бота', () => {
     for (const lang of UI_LANGS) {
       const r = COPY[lang].reminder;
       expect(r.lesson().buttons).toEqual([{ label: expect.any(String), screen: 'learn' }]);
-      expect(r.streak(7).buttons[0].screen).toBe('learn');
-      expect(r.return().buttons[0].screen).toBe('home');
+      expect(r.streak(7).buttons[0]).toMatchObject({ screen: 'learn' });
+      expect(r.return().buttons[0]).toMatchObject({ screen: 'home' });
       expect(r.streak(7).text).toContain('7');
       expect(COPY[lang].stopHint).toContain('/stop');
     }

@@ -4,7 +4,7 @@
  * Динамические значения (имя, названия урока и города, задания) экранируются под parse_mode=HTML здесь же.
  * Цифры XP, серий, уровней, заданий и наград приходят только из базы; без данных строка просто не выводится.
  */
-import type { BotScreen, UiLang } from '@polski-go/shared';
+import { SOCIAL_LINKS, type BotScreen, type UiLang } from '@polski-go/shared';
 import { escapeHtml as h, safeName } from './html';
 
 export type LessonRef = { title: string; city: string };
@@ -21,7 +21,10 @@ export type Vars = {
   /** Реально назначенные на сегодня активные задания. */
   quests?: QuestRef[] | null;
 };
-export type Button = { label: string; screen: BotScreen };
+/** Кнопка экрана Mini App или прямая ссылка (только наш канал @polskigoo в приветствии, 2026-11-23). */
+export type Button = { label: string; screen: BotScreen } | { label: string; url: string };
+/** Последняя кнопка приветствия: наш Telegram-канал (подписка открывает секретную миссию в приложении). */
+const channel = (label: string): Button => ({ label, url: SOCIAL_LINKS.telegram });
 export type Card = { text: string; buttons: Button[] };
 export type CardKind = 'start' | 'startBack' | 'lesson' | 'map' | 'words' | 'quests' | 'profile' | 'settings' | 'help' | 'stop';
 export type ReminderKind = 'lesson' | 'streak' | 'return';
@@ -84,6 +87,7 @@ const ru: LangCopy = {
       { label: '🚀 Начать путешествие', screen: 'home' },
       { label: '📚 Мои уроки', screen: 'learn' },
       { label: '🗺 Карта Польши', screen: 'map' },
+      channel('📣 Наш канал Polski Go'),
     ],
   }),
   startBack: (v) => ({
@@ -97,6 +101,7 @@ const ru: LangCopy = {
       { label: '▶️ Продолжить обучение', screen: 'learn' },
       { label: '🗺 Карта Польши', screen: 'map' },
       { label: '🚀 Открыть POLSKI GO', screen: 'home' },
+      channel('📣 Наш канал Polski Go'),
     ],
   }),
   lesson: (v) => ({
@@ -331,6 +336,7 @@ const uk: LangCopy = {
       { label: '🚀 Розпочати подорож', screen: 'home' },
       { label: '📚 Мої уроки', screen: 'learn' },
       { label: '🗺 Карта Польщі', screen: 'map' },
+      channel('📣 Наш канал Polski Go'),
     ],
   }),
   startBack: (v) => ({
@@ -344,6 +350,7 @@ const uk: LangCopy = {
       { label: '▶️ Продовжити навчання', screen: 'learn' },
       { label: '🗺 Карта Польщі', screen: 'map' },
       { label: '🚀 Відкрити POLSKI GO', screen: 'home' },
+      channel('📣 Наш канал Polski Go'),
     ],
   }),
   lesson: (v) => ({
@@ -578,6 +585,7 @@ const en: LangCopy = {
       { label: '🚀 Start the journey', screen: 'home' },
       { label: '📚 My lessons', screen: 'learn' },
       { label: '🗺 Map of Poland', screen: 'map' },
+      channel('📣 Our Polski Go channel'),
     ],
   }),
   startBack: (v) => ({
@@ -591,6 +599,7 @@ const en: LangCopy = {
       { label: '▶️ Continue learning', screen: 'learn' },
       { label: '🗺 Map of Poland', screen: 'map' },
       { label: '🚀 Open POLSKI GO', screen: 'home' },
+      channel('📣 Our Polski Go channel'),
     ],
   }),
   lesson: (v) => ({

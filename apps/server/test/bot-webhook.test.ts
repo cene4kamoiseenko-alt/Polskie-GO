@@ -42,6 +42,7 @@ async function say(f: From, text: string, chat?: { id?: number; type?: string },
   const res = await hook(update(f, text, chat));
   return { res, calls };
 }
+const CHANNEL_URL = 'https://t.me/polskigoo';
 const buttons = (call: TgCall) => (call.params.reply_markup.inline_keyboard as { text: string; web_app?: { url: string }; url?: string }[][]).flat();
 const urls = (call: TgCall) => buttons(call).map((b) => b.web_app?.url ?? b.url);
 const screenUrl = (screen: string) => (screen === 'home' ? BASE : `${ORIGIN}/app/?v=1&bot_screen=${screen}`);
@@ -70,7 +71,9 @@ describe('девять команд: фото, подпись и настоящ�
     expect(call.params.caption.length).toBeLessThanOrEqual(1024);
     expect(call.params.chat_id).toBe(u.telegramId);
     // Первая кнопка ведёт на главный экран команды; все кнопки — web_app с HTTPS и сохранённым путём/параметрами базового адреса.
-    for (const b of buttons(call)) expect(b.web_app?.url).toMatch(/^https:\/\/polski\.example\/app\/\?v=1/);
+    // Кнопки экранов — web_app; кнопка канала @polskigoo в /start (2026-11-23) — обычная ссылка.
+    for (const b of buttons(call)) if (b.url !== CHANNEL_URL) expect(b.web_app?.url).toMatch(/^https:\/\/polski\.example\/app\/\?v=1/);
+    expect(buttons(call).some((b) => b.url === CHANNEL_URL), command).toBe(command === 'start');
     expect(urls(call)[0]).toBe(screenUrl(COMMAND_LANDING[command] === 'home' && command === 'start' ? 'learn' : COMMAND_LANDING[command]));
     for (const url of urls(call)) {
       const screen = new URL(url!).searchParams.get('bot_screen');
@@ -78,14 +81,14 @@ describe('девять команд: фото, подпись и настоящ�
     }
   });
 
-  it('тексты из ТЗ: /start новичку — приветствие с именем, три кнопки', async () => {
+  it('тексты из ТЗ: /start новичку — приветствие с именем, три кнопки и кнопка канала', async () => {
     const f = from(8_100_001, 'ru', 'Оля');
     const { calls } = await say(f, '/start');
     expect(calls.map((c) => c.method)).toEqual(['sendPhoto', 'sendMessage']);
     expect(calls[0].params.caption).toMatch(/^🇵🇱 Cześć, Оля! 👋\n\nЯ Бобек! 🦫 Твой друг и проводник по Польше\./);
     expect(calls[0].params.caption).toContain('Gotowy? No to jedziemy! 🚀');
-    expect(buttons(calls[0]).map((b) => b.text)).toEqual(['🚀 Начать путешествие', '📚 Мои уроки', '🗺 Карта Польши']);
-    expect(urls(calls[0])).toEqual([BASE, screenUrl('learn'), screenUrl('map')]);
+    expect(buttons(calls[0]).map((b) => b.text)).toEqual(['🚀 Начать путешествие', '📚 Мои уроки', '🗺 Карта Польши', '📣 Наш канал Polski Go']);
+    expect(urls(calls[0])).toEqual([BASE, screenUrl('learn'), screenUrl('map'), CHANNEL_URL]);
     // Новичок без записи в базе: бот ничего не создаёт.
     expect(await db.query.users.findFirst({ where: eq(users.telegramId, f.id) })).toBeUndefined();
   });
@@ -244,6 +247,8 @@ describe('неизвестные команды, группы, блокиров�
     expect((await say(from(8_100_410), '/lesson@another_bot', group)).calls).toHaveLength(0);
     expect((await say(from(8_100_410), 'просто текст', group)).calls).toHaveLength(0);
     expect((await say(from(8_100_410, 'ru'), '/help', group)).calls[0].params.reply_markup.inline_keyboard[0][0].url).toBe('https://t.me/Polski_Go_Bot/app');
+    // Кнопка канала в группе — та же прямая ссылка на канал.
+    expect(urls((await say(from(8_100_411, 'ru'), '/start', group)).calls[0]).at(-1)).toBe(CHANNEL_URL);
   });
 
   it('забаненному пользователю бот не отвечает', async () => {
