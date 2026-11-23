@@ -7,7 +7,7 @@ import { config } from '../env';
 import { atomic, db } from '../db';
 import {
   aiConversations, aiUsage, botQuizPlayers, botQuizRounds, dailyActivity, gameWallets, languageSkills, learningSessions, notificationLog, paymentEvents, playerProgress, subscriptions,
-  userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions, exerciseReports, botWriteAccess } from '../db/schema';
+  userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users, walletTransactions, exerciseReports, botWriteAccess, userSources } from '../db/schema';
 import { body, edgeRateLimit, query, rateLimit, type AppEnv } from '../hono';
 import { forgetUser } from '../auth';
 import { HttpError, badRequest } from '../lib/errors';
@@ -235,10 +235,12 @@ me.get('/me/export', async (c) => {
         .from(exerciseReports)
         .where(eq(exerciseReports.userId, id)),
     ]);
+  // Откуда пришёл (services/traffic.ts): первое касание и метка ссылки. Таблицы может не быть в старой копии базы — тогда пусто.
+  const source = user[0] ? ((await db.select().from(userSources).where(eq(userSources.telegramId, user[0].telegramId)).catch(() => []))[0] ?? null) : null;
   c.header('content-disposition', 'attachment; filename="polski-go-data.json"');
   return c.json({
     ...user[0], settings: settings[0], profile: profile[0], progress: progress[0], wallet: wallet[0], skills, vocabulary, achievements, inventory, quests,
-    transactions, subscriptions: subs, payments, aiConversations: ai, dailyActivity: activity, lessonProgress: lessons, cities, sessions, exerciseReports: reports,
+    transactions, subscriptions: subs, payments, aiConversations: ai, dailyActivity: activity, lessonProgress: lessons, cities, sessions, exerciseReports: reports, source,
   });
 });
 
@@ -256,6 +258,8 @@ me.delete('/me', async (c) => {
     ...(tg ? [db.delete(botQuizRounds).where(eq(botQuizRounds.telegramId, tg.telegramId)), db.delete(botQuizPlayers).where(eq(botQuizPlayers.telegramId, tg.telegramId)), db.delete(botWriteAccess).where(eq(botWriteAccess.telegramId, tg.telegramId))] : []),
     db.delete(users).where(eq(users.id, id)),
   ]);
+  // Первое касание (источник трафика) — тоже про этого человека; отдельно от atomic: в старой копии базы таблицы может не быть.
+  if (tg) await db.delete(userSources).where(eq(userSources.telegramId, tg.telegramId)).catch(() => undefined);
   forgetUser(id);
   return c.json({ deleted: true });
 });

@@ -4,6 +4,7 @@ import { api, apiBlob, hasToken, setToken } from './api';
 import { RESOURCES } from './resources';
 import { Card, PageHeader, ago, cx, useLoad } from './ui';
 import Dashboard, { sourceLabel } from './Dashboard';
+import Traffic, { ChannelChip, type ChannelKey } from './Traffic';
 import Errors from './Errors';
 import Money, { PaymentLog } from './Money';
 import Campaigns from './Campaigns';
@@ -451,12 +452,12 @@ function AudioLibrary({ admin }: { admin: Admin }) {
 
       <div className="panel space-y-3 p-4">
         <label className="block text-sm">Модели
-          <select className="input mt-1 w-full max-w-full" value={strategy} onChange={(e) => setStrategy(e.target.value as AudioStrategy)}>
+          <select className="inp mt-1 max-w-full" value={strategy} onChange={(e) => setStrategy(e.target.value as AudioStrategy)}>
             {Object.entries(AUDIO_STRATEGIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
         <label className="block text-sm">Лимит кредитов на запуск
-          <input className="input mt-1 w-full max-w-xs" type="number" min={0} value={budget} onChange={(e) => setBudget(Math.max(0, Number(e.target.value)))} />
+          <input className="inp mt-1 max-w-xs" type="number" min={0} value={budget} onChange={(e) => setBudget(Math.max(0, Number(e.target.value)))} />
         </label>
         <div className="text-sm">В лимит войдут <b>{fits.out.length}</b> из {todo.length} фраз очереди (≈ {Math.ceil(fits.sum).toLocaleString('ru')} кредитов). Следующие: {todo.slice(fits.out.length, fits.out.length + 5).map((u) => `«${u.text}»`).join(', ') || '—'}</div>
         <div className="flex flex-wrap gap-2">
@@ -474,11 +475,11 @@ function AudioLibrary({ admin }: { admin: Admin }) {
       <div className="panel space-y-3 p-4">
         <div className="font-bold">Выбрать фразы вручную</div>
         <div className="flex flex-wrap gap-2">
-          <select className="input max-w-full" value={pickGroup} onChange={(e) => setPickGroup(e.target.value)}>
+          <select className="inp w-auto max-w-full" value={pickGroup} onChange={(e) => setPickGroup(e.target.value)}>
             <option value="all">Все разделы</option>
             {Object.entries(groups).map(([g, label]) => <option key={g} value={g}>{g}. {label}</option>)}
           </select>
-          <input className="input min-w-0 flex-1" placeholder="Поиск по тексту" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input className="inp min-w-0 flex-1" placeholder="Поиск по тексту" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="text-sm">
           Без файла найдено: <b>{found.length}</b> ·{' '}
@@ -1076,7 +1077,14 @@ function UserDetail({ admin }: { admin: Admin }) {
           <Fact label="Зарегистрирован">{new Date(u.createdAt).toLocaleString('ru')}</Fact>
           <Fact label="Последний вход">{ago(new Date(u.lastSeenAt).getTime())}</Fact>
           <Fact label="Знакомство">{u.onboardedAt ? `пройдено ${new Date(u.onboardedAt).toLocaleDateString('ru')}` : 'не пройдено'}</Fact>
-          <Fact label="Откуда пришёл">{sourceLabel(u.source ?? 'none')}</Fact>
+          <Fact label="Откуда пришёл">
+            {u.traffic ? (
+              <span className="inline-flex flex-wrap items-center gap-1.5">
+                <ChannelChip k={u.traffic.channel as ChannelKey} />
+                {u.traffic.link ? <span className="text-xs text-slate-500">ссылка «{u.traffic.link.title}»</span> : u.traffic.param && u.traffic.channel !== 'invite' ? <code className="text-xs">{u.traffic.param}</code> : null}
+              </span>
+            ) : sourceLabel(u.source ?? 'none')}
+          </Fact>
           <Fact label="Заявленный уровень">{u.profile?.selfLevel ?? '—'}</Fact>
           <Fact label="Входной тест">{placementResult ?? 'не проходил'}</Fact>
           <Fact label="Уровень заданий">{studyLevel ? `${studyLevel} (трудные версии уроков)` : 'обычные версии'}</Fact>
@@ -1209,7 +1217,7 @@ type Attention = { support: number; reports: number; errors: number; exerciseRep
 /** Меню по разделам; что видно — зависит от роли (как и раньше: сервер всё равно проверяет права сам). */
 function navGroups(role: Admin['role']): [string, NavItem[]][] {
   const content = RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns').map((d): NavItem => [`/r/${d.name}`, d.title, '•']);
-  const groups: [string, NavItem[]][] = [['Главное', [['/', 'Обзор', '📊'], ...(role !== 'EDITOR' ? ([['/errors', 'Ошибки', '⚠️']] as NavItem[]) : [])]]];
+  const groups: [string, NavItem[]][] = [['Главное', [['/', 'Обзор', '📊'], ...(role !== 'EDITOR' ? ([['/traffic', 'Источники', '🧭'], ['/errors', 'Ошибки', '⚠️']] as NavItem[]) : [])]]];
   if (role !== 'EDITOR') {
     groups.push(['Игроки', [['/engagement', 'Вовлечённость', '📈'], ['/league', 'Лига', '🏆'], ['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
     groups.push(['Деньги', [['/payments', 'Платежи', '⭐'], ...(role === 'SUPERADMIN' ? ([['/r/plans', 'Тарифы', '👑']] as NavItem[]) : [])]]);
@@ -1340,6 +1348,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<Dashboard analytics={admin.role !== 'EDITOR'} />} />
             <Route path="/errors" element={<Errors />} />
+            <Route path="/traffic" element={<Traffic superadmin={admin.role === 'SUPERADMIN'} />} />
             {RESOURCES.filter((d) => d.name !== 'campaigns').map((d) => (
               <Route key={d.name} path={`/r/${d.name}`} element={<ResourceList key={d.name} def={d} />} />
             ))}

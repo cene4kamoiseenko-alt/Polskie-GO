@@ -5,6 +5,7 @@ import { atomic, db, isUniqueViolation } from '../db';
 import { cities, cosmeticItems, friendships, gameWallets, newId, playerProgress, userCities, userInventory, userProfiles, userSettings, users } from '../db/schema';
 import type { TelegramUser } from '../lib/telegram';
 import { recordWriteAccess } from './bot-audience';
+import { recordTouch } from './traffic';
 
 function newReferralCode() {
   return randomBytes(5).toString('base64url').replace(/[-_]/g, 'x').slice(0, 8);
@@ -15,6 +16,8 @@ export async function upsertTelegramUser(tg: TelegramUser, startParam?: string):
   // Бот может писать игроку (Telegram сообщает при каждом входе): вопрос дня и напоминания дойдут — см. bot/daily/audience.ts, bot/mute.ts.
   if (tg.allows_write_to_pm === true) await recordWriteAccess(tg.id).catch(() => undefined);
   const telegramId = tg.id;
+  // Откуда пришёл (services/traffic.ts): первое касание и метка startapp; гость вне Telegram — отрицательный id.
+  await recordTouch(telegramId, startParam, telegramId < 0 ? 'web' : 'app');
   const existing = await db.query.users.findFirst({ where: eq(users.telegramId, telegramId) });
   if (existing) {
     const [updated] = await db

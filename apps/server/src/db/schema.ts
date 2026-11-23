@@ -952,6 +952,43 @@ export const botContacts = sqliteTable(
 );
 
 /**
+ * Источники трафика (2026-11-23, services/traffic.ts, админка «Источники»).
+ * traffic_links — ссылки с метками, которые владелец ставит в TikTok, Instagram, рекламу, посты канала: код метки идёт в /start
+ * бота (t.me/<бот>?start=<код>) или прямо в Mini App (startapp=<код>), канал задаёт сам владелец. cost — расход на ссылку в злотых
+ * (по желанию), из него считается цена одного пришедшего.
+ */
+export const TRAFFIC_CHANNELS = ['tiktok', 'instagram', 'telegram', 'ads', 'youtube', 'invite', 'web', 'other', 'direct'] as const;
+export const trafficLinks = sqliteTable('traffic_links', {
+  id: id(),
+  code: text('code').notNull().unique(),
+  channel: text('channel', { enum: TRAFFIC_CHANNELS }).notNull(),
+  title: text('title').notNull(),
+  note: text('note'),
+  cost: real('cost'),
+  createdBy: text('created_by'),
+  createdAt: createdAt(),
+  archivedAt: ts('archived_at'),
+});
+
+/**
+ * Первое касание человека (по Telegram id; гость вне Telegram — отрицательный id): где впервые увидели и с какой меткой.
+ * Пишется при /start в боте, входе в Mini App и создании гостя; метка запоминается первая непустая (как bot_contacts.start_param),
+ * а Mini App-метка (startapp) — тоже, чего раньше не было. Отдельная таблица: копии старых баз (migration-00xx.test.ts) входят в
+ * приложение без неё — запись тогда просто пропускается.
+ */
+export const userSources = sqliteTable(
+  'user_sources',
+  {
+    telegramId: integer('telegram_id').primaryKey(),
+    param: text('param'),
+    via: text('via', { enum: ['bot', 'app', 'web'] }).notNull(),
+    firstSeenAt: ts('first_seen_at').notNull(),
+    paramAt: ts('param_at'),
+  },
+  (t) => [index('user_sources_first_seen_idx').on(t.firstSeenAt), index('user_sources_param_idx').on(t.param)],
+);
+
+/**
  * Разрешение боту писать игроку: Telegram присылает allows_write_to_pm при каждом входе в Mini App. Отдельная таблица, а не колонка users:
  * запись нужна только тем, кто разрешил, и копии данных старых миграций (migration-00xx.test.ts) входят в приложение на старой схеме.
  */

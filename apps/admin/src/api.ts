@@ -44,6 +44,11 @@ const ERRORS: Record<string, string> = {
   unknown_question: 'Такого вопроса нет в базе',
   bad_image: 'Такой картинки нет — выберите одну из 16 сцен',
   no_plan_day: 'На этот день плана нет',
+  link_code_taken: 'Такая метка уже есть — придумайте другую',
+  reserved_link_code: 'Эта метка занята приложением (ref_, screen_, lesson_…) — выберите другую',
+  bad_link_code: 'Метка: латиница, цифры, _ и -, от 2 до 40 знаков',
+  link_not_found: 'Ссылка не найдена',
+  audio_job_not_found: 'Задание озвучки не найдено',
 };
 const message = (body: any, status: string) => {
   if (body?.issues) return body.issues.map((i: any) => `${i.path?.join('.')}: ${i.message}`).join('; ');

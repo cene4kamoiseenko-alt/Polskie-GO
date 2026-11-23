@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { api } from './api';
 import { Bars, DayBars, Funnel } from './charts';
 import { Card, Empty, Kpi, PageHeader, Segmented, Skeleton, fmt, useLoad } from './ui';
+import { CHANNELS, type ChannelKey } from './Traffic';
 
 type Pair = { now: number; prev: number };
 type Insights = {
@@ -18,6 +19,8 @@ type Insights = {
   totals: { signups: Pair; active: Pair; lessons: Pair; stars: Pair };
   funnel: { total: number; onboarded: number; lesson: number; returnable: number; returned: number; paid: number };
   sources: { key: string; count: number }[];
+  /** Новички периода по каналам (services/traffic.ts → newPlayerChannels) — то же правило, что на странице «Источники». */
+  channels?: { key: ChannelKey; count: number }[];
   placement: { noTest: number; levels: Record<'A0' | 'A1' | 'A2' | 'B1' | 'B2', number> };
   selfLevels: { key: string; count: number }[];
   languages: { key: string; count: number }[];
@@ -214,8 +217,12 @@ export default function Dashboard({ analytics = true }: { analytics?: boolean })
                 <Empty>За этот период новых игроков нет</Empty>
               )}
             </Card>
-            <Card title="Откуда пришли" subtitle="первая метка /start в боте; реклама — ваши метки (например, ad_tiktok)" data-sources-card>
-              <Bars items={i.sources.map((s) => ({ key: s.key, label: sourceLabel(s.key), value: s.count }))} empty="За этот период новых игроков нет" />
+            <Card title="Откуда пришли" subtitle="новички периода по каналам: TikTok, реклама, Telegram, приглашения" actions={<Link to="/traffic" className="text-xs font-bold text-sky-700 hover:underline">Источники →</Link>} data-sources-card>
+              {i.channels ? (
+                <Bars items={i.channels.map((s) => ({ key: s.key, label: <span className="inline-flex items-center gap-2"><span aria-hidden>{CHANNELS[s.key]?.icon}</span>{CHANNELS[s.key]?.label ?? s.key}</span>, value: s.count, color: CHANNELS[s.key]?.color }))} empty="За этот период новых игроков нет" />
+              ) : (
+                <Bars items={i.sources.map((s) => ({ key: s.key, label: sourceLabel(s.key), value: s.count }))} empty="За этот период новых игроков нет" />
+              )}
             </Card>
           </div>
 

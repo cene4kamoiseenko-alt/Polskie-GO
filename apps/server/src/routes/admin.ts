@@ -41,6 +41,7 @@ import { pronunciationRisks } from '../services/tts-pronunciation';
 import { ttsSpendSummary } from '../services/quota';
 import { AUDIENCE_FILTERS, audience } from '../services/bot-audience';
 import { refundPayment } from '../services/payments';
+import { TRAFFIC_CHANNELS, createLink, linkUrls, newPlayerChannels, sourceOf, trafficReport, updateLink } from '../services/traffic';
 import { closeSupport, listSupport, replySupport } from '../services/support';
 import { benchmarkPlan } from '../services/tts-benchmark';
 import { LIBRARY_MODELS, generateBatch, libraryAccount, libraryAvailable, libraryEnabled, librarySummary, libraryVoice, readyUnits, verifyUnits } from '../services/audio-library';
@@ -279,7 +280,37 @@ a.get('/dashboard', async (c) => {
 a.get('/insights', async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');
   const q = z.object({ days: z.coerce.number().int().refine((d) => (INSIGHT_DAYS as readonly number[]).includes(d)).default(30) }).parse(query(c));
-  return c.json(await adminInsights(new Date(), q.days));
+  const now = new Date();
+  const [insights, channels] = await Promise.all([adminInsights(now, q.days), newPlayerChannels(now, q.days)]);
+  return c.json({ ...insights, channels });
+});
+
+// Источники трафика (services/traffic.ts): откуда пришли — каналы, ссылки с метками, воронка по каждому, последние пришедшие.
+// Смотрят SUPERADMIN и SUPPORT (как «Обзор»); ссылки создаёт и меняет только SUPERADMIN.
+a.get('/traffic', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const q = z.object({ days: z.coerce.number().int().refine((d) => (INSIGHT_DAYS as readonly number[]).includes(d)).default(30) }).parse(query(c));
+  return c.json(await trafficReport(new Date(), q.days));
+});
+const linkFields = {
+  title: z.string().trim().min(1).max(80),
+  channel: z.enum(TRAFFIC_CHANNELS),
+  note: z.string().max(300).nullable().optional(),
+  cost: z.number().min(0).max(10_000_000).nullable().optional(),
+};
+a.post('/traffic/links', rateLimit(30, 60_000, 'traffic-links'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const b = z.object({ ...linkFields, code: z.string().trim().min(2).max(40) }).parse(await body(c));
+  const link = await createLink({ ...b, createdBy: c.get('admin')!.id });
+  await audit(c, 'create', 'traffic_link', link.id, { code: link.code, channel: link.channel, title: link.title });
+  return c.json({ ...link, urls: linkUrls(link.code) });
+});
+a.patch('/traffic/links/:id', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const b = z.object({ title: linkFields.title.optional(), channel: linkFields.channel.optional(), note: linkFields.note, cost: linkFields.cost, archived: z.boolean().optional() }).parse(await body(c));
+  await updateLink(c.req.param('id'), b);
+  await audit(c, 'update', 'traffic_link', c.req.param('id'), b);
+  return c.json({ ok: true });
 });
 
 // Журнал ошибок за период: сутки, неделя или месяц (хранится 30 дней), с отбором по виду. Отбор и итоги — в SQL (services/error-log.ts).
@@ -500,6 +531,7 @@ a.get('/users/:id', async (c) => {
     engagement: engagement.get(id) ?? null,
     activity,
     source: sourceKey(user[0], bot[0]?.startParam),
+    traffic: await sourceOf(user[0].telegramId, !!user[0].referredById),
     settings: settings[0] ?? null,
     profile: profile[0] ?? null,
     progress: progress[0] ?? null,

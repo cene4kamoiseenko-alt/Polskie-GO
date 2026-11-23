@@ -22,6 +22,7 @@ import { runSetup, type SetupMode } from '../bot/setup';
 import { loadSecretState, safeEqual, verifyWebhookSecret } from '../bot/webhook-secret';
 import { handlePreCheckout, handleRefund, handleSuccessfulPayment, type SuccessfulPayment } from '../services/payments';
 import { recordBotBlocked, recordBotContact, type TgFrom } from '../services/bot-audience';
+import { recordTouch } from '../services/traffic';
 
 type Update = {
   update_id: number;
@@ -61,6 +62,8 @@ async function noteContact(update: Update, now = new Date()) {
     // paysupport — действие уже знакомого человека (кнопка поддержки в приложении), а не источник: в «откуда пришли» не попадает.
     const startParam = cmd?.name === 'start' && cmd.arg !== 'paysupport' && /^[A-Za-z0-9_-]{1,64}$/.test(cmd.arg) ? cmd.arg : null;
     await recordBotContact(msg.from, { command: command?.slice(0, 32) ?? null, startParam }, now);
+    // Источники трафика: /start — первое касание (с меткой ссылки, если есть). paysupport — не источник.
+    if (cmd?.name === 'start' && cmd.arg !== 'paysupport') await recordTouch(msg.from.id, startParam, 'bot', now);
   } catch (e) {
     console.warn('bot: contact not recorded', (e as Error).message);
   }
