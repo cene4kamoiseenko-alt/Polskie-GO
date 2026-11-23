@@ -11,7 +11,13 @@ import { useT } from '../i18n';
 import { useMe } from '../lib/queries';
 import { haptic, openLink } from '../lib/telegram';
 import { Icon } from './Icon';
-import { Section } from './ui';
+import tgCard from '../assets/social/tg-card.webp';
+import igCard from '../assets/social/ig-card.webp';
+import tgIcon from '../assets/social/tg-icon.webp';
+import igIcon from '../assets/social/ig-icon.webp';
+import questMap from '../assets/social/quest-map.webp';
+import polandPhotos from '../assets/social/poland-photos.webp';
+import megaphone from '../assets/social/megaphone.webp';
 
 const HIDDEN_KEY = 'pg.channelCard.closed';
 const CHANNEL_SHEET = '/life?channel=1';
@@ -57,40 +63,64 @@ export function ChannelHomeCard() {
   );
 }
 
+/**
+ * «Мы в соцсетях» по макету владельца 2026-11-23 (docs/design/socials-2026-11-23/socials-mockup.png): тёмные карточки
+ * с фоном, иконкой, разделителем, бейджем «+ миссия», декором справа и стрелкой. Фоны, иконки и декор — растр владельца
+ * (apps/web/src/assets/social), текст, бейдж и стрелка — вёрсткой (переводы uk/ru/en). Карточки тёмные в обеих темах.
+ */
 export function SocialLinks() {
   const { t } = useT();
   const nav = useNavigate();
   const me = useMe().data;
-  // Миссия ещё закрыта (и проверить её можно) — строка канала ведёт в панель подписки, где есть и ссылка, и проверка.
+  // Миссия ещё закрыта (и проверить её можно) — карточка канала ведёт в панель подписки, где есть и ссылка, и проверка.
   const missionLocked = !!me && !me.channelJoined && !me.guest;
   const rows = [
     {
-      key: 'telegram', icon: 'send' as const, bg: 'bg-sky-dark', title: t('social_telegram'), note: t('social_telegram_note'),
+      key: 'telegram', bg: tgCard, icon: tgIcon, art: questMap, title: t('social_telegram'), note: t('social_telegram_note'),
       badge: missionLocked ? t('social_mission_badge') : null,
       open: () => (missionLocked ? nav(CHANNEL_SHEET) : openLink(SOCIAL_LINKS.telegram)),
     },
     {
-      key: 'instagram', icon: 'camera' as const, bg: 'bg-[linear-gradient(135deg,#F58529,#DD2A7B_55%,#8134AF)]', title: t('social_instagram'), note: t('social_instagram_note'),
+      key: 'instagram', bg: igCard, icon: igIcon, art: polandPhotos, title: t('social_instagram'), note: t('social_instagram_note'),
       badge: null, open: () => openLink(SOCIAL_LINKS.instagram),
     },
   ];
   return (
-    <Section title={t('social_title')}>
-      <div className="grid gap-2" data-social-links>
+    <section className="px-4" data-social-links>
+      <div className="mb-3 flex items-center gap-2.5">
+        <img src={megaphone} alt="" width={34} height={25} className="shrink-0" draggable={false} />
+        <h2 className="section-title shrink-0">{t('social_title')}</h2>
+        <span aria-hidden className="h-[2px] min-w-6 flex-1 rounded-full" style={{ background: 'linear-gradient(90deg, #f5b83d, rgb(245 184 61 / 0))' }} />
+      </div>
+      <div className="grid gap-3">
         {rows.map((r) => (
-          <button key={r.key} className="card flex w-full items-center gap-3 p-3 text-left" onClick={() => { haptic.tap(); r.open(); }} data-social={r.key}>
-            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-white ${r.bg}`} aria-hidden>
-              <Icon name={r.icon} size={22} />
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => { haptic.tap(); r.open(); }}
+            data-social={r.key}
+            className="relative isolate flex min-h-[112px] w-full items-center gap-3 overflow-hidden rounded-[24px] py-3.5 pl-3.5 pr-12 text-left text-white active:scale-[0.99]"
+            style={{ backgroundImage: `url(${r.bg})`, backgroundSize: '100% 100%', boxShadow: '0 10px 24px -10px rgb(1 12 29 / 0.7)' }}
+          >
+            <img src={r.icon} alt="" width={52} height={52} className="h-[52px] w-[52px] shrink-0 drop-shadow-[0_4px_7px_rgb(0_0_0/0.35)]" draggable={false} />
+            <span aria-hidden className="h-14 w-px shrink-0 bg-white/25" />
+            <span className="relative z-[2] min-w-0 flex-1 pr-[56px] min-[390px]:pr-[66px]">
+              <span className="block text-[15.5px] font-black leading-[1.2] min-[390px]:text-[16.5px]">{r.title}</span>
+              <span className="mt-1 block text-[12.5px] font-semibold leading-snug text-[#c7d4e4]">{r.note}</span>
+              {/* Бейдж под текстом (как в HTML-образце владельца): справа сверху на 360 px он наезжал на заголовок. */}
+              {r.badge && (
+                <span className="mt-2 inline-block rounded-full border border-[#35f2a0] bg-[#07a569] px-2.5 py-0.5 text-[11.5px] font-black shadow-[0_1px_14px_rgb(20_213_141/0.35)]" data-social-badge>
+                  {r.badge}
+                </span>
+              )}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15.5px] font-black leading-tight">{r.title}</span>
-              <span className="muted block text-[12.5px] font-bold leading-snug">{r.note}</span>
+            <img src={r.art} alt="" width={80} className="pointer-events-none absolute bottom-1.5 right-11 z-[1] w-[78px] min-[390px]:w-[88px]" draggable={false} />
+            <span aria-hidden className="absolute right-3 top-1/2 z-[3] grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/15">
+              <Icon name="chevron-right" size={18} strokeWidth={2.6} />
             </span>
-            {r.badge && <span className="shrink-0 rounded-full bg-brand px-2 py-0.5 text-[12px] font-black text-white">{r.badge}</span>}
-            <Icon name="chevron-right" size={16} className="shrink-0 text-[var(--text-muted)]" />
           </button>
         ))}
       </div>
-    </Section>
+    </section>
   );
 }

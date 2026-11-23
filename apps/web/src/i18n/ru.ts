@@ -975,7 +975,7 @@ export const ru: Dict = {
   channel_home_open: "Открыть миссию",
   channel_home_hide: "Скрыть",
   social_title: "Мы в соцсетях",
-  social_telegram: "Telegram-канал Polski Go",
+  social_telegram: "Telegram‑канал Polski Go",
   social_telegram_note: "Новости, польский каждый день и секретная миссия",
   social_instagram: "Instagram @polskigoo",
   social_instagram_note: "Польский в картинках и видео",

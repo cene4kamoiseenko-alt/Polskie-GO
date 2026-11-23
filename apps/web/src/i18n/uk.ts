@@ -1007,7 +1007,7 @@ export const uk = {
   channel_home_open: "Відкрити місію",
   channel_home_hide: "Сховати",
   social_title: "Ми в соцмережах",
-  social_telegram: "Telegram-канал Polski Go",
+  social_telegram: "Telegram‑канал Polski Go",
   social_telegram_note: "Новини, польська щодня і секретна місія",
   social_instagram: "Instagram @polskigoo",
   social_instagram_note: "Польська в картинках і відео",
