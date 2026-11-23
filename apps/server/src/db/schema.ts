@@ -55,7 +55,9 @@ export const users = sqliteTable(
   (t) => [index('users_created_at_idx').on(t.createdAt), index('users_last_seen_at_idx').on(t.lastSeenAt)],
 );
 
-export const userSettings = sqliteTable('user_settings', {
+export const userSettings = sqliteTable(
+'user_settings',
+{
   userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   uiLanguage: text('ui_language').notNull().default('uk'),
   theme: text('theme').notNull().default('auto'),
@@ -71,7 +73,10 @@ export const userSettings = sqliteTable('user_settings', {
   publicProfile: bool('public_profile').notNull().default(true),
   showInLeaderboard: bool('show_in_leaderboard').notNull().default(true),
   updatedAt: updatedAt(),
-});
+},
+// Отпечаток «настройки игроков менялись?» для минутного cron — max(updated_at) по индексу, одна строка (миграция 0028, лимит чтения D1).
+(t) => [index('user_settings_updated_idx').on(t.updatedAt)],
+);
 
 export const userProfiles = sqliteTable('user_profiles', {
   userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
@@ -688,7 +693,8 @@ export const adminAuditLogs = sqliteTable(
     details: json<unknown>('details'),
     createdAt: createdAt(),
   },
-  (t) => [index('audit_created_idx').on(t.createdAt)],
+  // (entity, created_at) — очистка старых неудачных входов в cron читает только их, а не весь старый журнал (миграция 0028).
+  (t) => [index('audit_created_idx').on(t.createdAt), index('audit_entity_created_idx').on(t.entity, t.createdAt)],
 );
 
 /** Налаштування гри, що редагуються в адмінці (нагороди, ліміти). */
@@ -756,6 +762,10 @@ export const audioJobs = sqliteTable(
     rates: json<Record<string, number>>('rates'),
     allowOtherVoice: bool('allow_other_voice').notNull().default(false),
     total: integer('total').notNull(),
+    /** Счётчики фраз (миграция 0028): озвучено / не удалось и итоги по видам — без пересчёта всех фраз задания на каждом шаге (лимит чтения D1). */
+    doneCount: integer('done_count').notNull().default(0),
+    failedCount: integer('failed_count').notNull().default(0),
+    results: json<Record<string, number>>('results').notNull().default({}),
     lastError: text('last_error'),
     createdBy: text('created_by'),
     createdAt: createdAt(),
@@ -780,7 +790,8 @@ export const audioJobItems = sqliteTable(
     attempts: integer('attempts').notNull().default(0),
     claimedAt: ts('claimed_at'),
   },
-  (t) => [primaryKey({ columns: [t.jobId, t.unitId] }), index('audio_job_items_status_idx').on(t.jobId, t.status)],
+  // Очередь — по (задание, статус, фраза): «следующие 10 ожидающих» читают ровно 10 строк индекса (миграция 0028).
+  (t) => [primaryKey({ columns: [t.jobId, t.unitId] }), index('audio_job_items_queue_idx').on(t.jobId, t.status, t.unitId)],
 );
 
 export const audioAssets = sqliteTable(
@@ -888,10 +899,15 @@ export const notificationLog = sqliteTable(
 );
 
 /** Оброблені update_id вебхука Telegram: повторна доставка того самого оновлення не відповідає вдруге. Старі рядки прибирає cron. */
-export const telegramUpdates = sqliteTable('telegram_updates', {
-  updateId: integer('update_id').primaryKey(),
-  createdAt: createdAt(),
-});
+export const telegramUpdates = sqliteTable(
+  'telegram_updates',
+  {
+    updateId: integer('update_id').primaryKey(),
+    createdAt: createdAt(),
+  },
+  // Очистка старых update_id по дате — по индексу, а не перебором всей таблицы (миграция 0028, лимит чтения D1).
+  (t) => [index('telegram_updates_created_idx').on(t.createdAt)],
+);
 
 /**
  * Службовий стан сервера (ключ → JSON): секрет webhook і його покоління, версія налаштування бота в Telegram,
@@ -1102,7 +1118,8 @@ export const botQuizRounds = sqliteTable(
     sentAt: ts('sent_at').notNull(),
     answeredAt: ts('answered_at'),
   },
-  (t) => [index('bot_quiz_rounds_tg_idx').on(t.telegramId, t.sentAt)],
+  // sent_at — очистка старых раундов в cron по индексу, а не перебором (миграция 0028, лимит чтения D1).
+  (t) => [index('bot_quiz_rounds_tg_idx').on(t.telegramId, t.sentAt), index('bot_quiz_rounds_sent_idx').on(t.sentAt)],
 );
 
 // ───────────────────────── Вопрос дня (рассылка раз в день) ─────────────────────────

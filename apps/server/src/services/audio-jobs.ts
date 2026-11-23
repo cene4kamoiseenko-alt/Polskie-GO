@@ -7,7 +7,7 @@
  * Фразы задания захватываются (pending → running), поэтому cron и страница не озвучивают одно и то же; generateBatch к тому же
  * сам не синтезирует файл, который уже есть или делается (audio-library.ts). Сразу работает одно задание — самое старое.
  */
-import { and, asc, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { chunks, db } from '../db';
 import { audioJobItems, audioJobs } from '../db/schema';
 import { generateBatch, type GenerateItem, type LibraryModel } from './audio-library';
@@ -37,22 +37,18 @@ export async function createAudioJob(input: AudioJobInput): Promise<{ id: string
   return { id: job.id, total: items.length };
 }
 
+/** Задания со счётчиками из самой строки задания (миграция 0028): фразы не перебираются — лимит чтения D1 не тратится на каждый шаг. */
 export async function listAudioJobs(limit = 10): Promise<AudioJobView[]> {
   const jobs = await db.select().from(audioJobs).orderBy(desc(audioJobs.createdAt)).limit(limit);
-  if (!jobs.length) return [];
-  const ids = jobs.map((j) => j.id);
-  const [byStatus, byResult] = await db.batch([
-    db.select({ jobId: audioJobItems.jobId, status: audioJobItems.status, n: count() }).from(audioJobItems).where(inArray(audioJobItems.jobId, ids)).groupBy(audioJobItems.jobId, audioJobItems.status),
-    db.select({ jobId: audioJobItems.jobId, result: audioJobItems.result, n: count() }).from(audioJobItems).where(inArray(audioJobItems.jobId, ids)).groupBy(audioJobItems.jobId, audioJobItems.result),
-  ]);
-  return jobs.map((j) => {
-    const st = (s: string) => byStatus.find((r) => r.jobId === j.id && r.status === s)?.n ?? 0;
-    const results = Object.fromEntries(byResult.filter((r) => r.jobId === j.id && r.result).map((r) => [r.result!, r.n]));
-    return {
-      id: j.id, title: j.title, status: j.status, stopReason: j.stopReason, maxCredits: j.maxCredits, spent: Math.round(j.spent * 100) / 100, total: j.total,
-      processed: st('done') + st('failed'), pending: st('pending') + st('running'), failed: st('failed'), results, lastError: j.lastError, createdAt: j.createdAt, finishedAt: j.finishedAt,
-    };
-  });
+  return jobs.map(view);
+}
+
+function view(j: typeof audioJobs.$inferSelect): AudioJobView {
+  const processed = j.doneCount + j.failedCount;
+  return {
+    id: j.id, title: j.title, status: j.status, stopReason: j.stopReason, maxCredits: j.maxCredits, spent: Math.round(j.spent * 100) / 100, total: j.total,
+    processed, pending: Math.max(0, j.total - processed), failed: j.failedCount, results: j.results ?? {}, lastError: j.lastError, createdAt: j.createdAt, finishedAt: j.finishedAt,
+  };
 }
 
 export async function stopAudioJob(id: string, reason = 'admin') {
@@ -73,7 +69,8 @@ export async function tickAudioJob(id: string, maxItems = 10, now = new Date()):
   const job = await db.query.audioJobs.findFirst({ where: eq(audioJobs.id, id) });
   if (!job) throw notFound('audio_job_not_found');
   if (job.status === 'queued' || job.status === 'running') await runPart(job, maxItems, now);
-  return (await listAudioJobs(50)).find((j) => j.id === id) ?? null;
+  const after = await db.query.audioJobs.findFirst({ where: eq(audioJobs.id, id) });
+  return after ? view(after) : null;
 }
 
 /** cron: самое старое незавершённое задание — следующая часть. */
@@ -111,10 +108,15 @@ async function runPart(job: typeof audioJobs.$inferSelect, maxItems: number, now
   const spent = results.reduce((n, r) => n + r.credits, 0);
   const stmts = [];
   let stop: string | null = null;
+  let done = 0;
+  let failed = 0;
+  const kinds: Record<string, number> = {};
   for (const r of results) {
     const item = claimed.find((c) => c.unitId === r.id)!;
     const where = and(eq(audioJobItems.jobId, job.id), eq(audioJobItems.unitId, r.id));
     if (r.status === 'generated' || r.status === 'adopted' || r.status === 'exists') {
+      done++;
+      kinds[r.status] = (kinds[r.status] ?? 0) + 1;
       stmts.push(db.update(audioJobItems).set({ status: 'done', result: r.status, error: null }).where(where));
     } else if (r.status === 'budget') {
       stop = 'budget';
@@ -125,6 +127,10 @@ async function runPart(job: typeof audioJobs.$inferSelect, maxItems: number, now
     } else {
       if (/http_40[13]/.test(r.error ?? '')) stop = 'auth';
       const again = r.retryable && item.attempts + 1 < MAX_ATTEMPTS;
+      if (!again) {
+        failed++;
+        kinds.failed = (kinds.failed ?? 0) + 1;
+      }
       stmts.push(db.update(audioJobItems).set({ status: again ? 'pending' : 'failed', result: again ? null : 'failed', error: r.error ?? null, attempts: item.attempts + 1, claimedAt: null }).where(where));
     }
   }
@@ -132,7 +138,16 @@ async function runPart(job: typeof audioJobs.$inferSelect, maxItems: number, now
   stmts.push(
     db
       .update(audioJobs)
-      .set({ spent: sql`${audioJobs.spent} + ${spent}`, updatedAt: now, ...(lastError ? { lastError } : {}), ...(stop ? { status: 'stopped', stopReason: stop } : {}) })
+      .set({
+        spent: sql`${audioJobs.spent} + ${spent}`,
+        doneCount: sql`${audioJobs.doneCount} + ${done}`,
+        failedCount: sql`${audioJobs.failedCount} + ${failed}`,
+        // Итоги по видам — прибавкой в JSON на стороне базы: cron и страница могут закончить проход одновременно.
+        results: Object.entries(kinds).reduce((acc, [k, n]) => sql`json_set(${acc}, ${`$.${k}`}, coalesce(json_extract(${acc}, ${`$.${k}`}), 0) + ${n})`, sql`${audioJobs.results}`) as unknown as Record<string, number>,
+        updatedAt: now,
+        ...(lastError ? { lastError } : {}),
+        ...(stop ? { status: 'stopped', stopReason: stop } : {}),
+      })
       .where(eq(audioJobs.id, job.id)),
   );
   await db.batch(stmts as never);
@@ -143,8 +158,10 @@ async function release(jobId: string, unitIds: string[]) {
   await db.update(audioJobItems).set({ status: 'pending', claimedAt: null }).where(and(eq(audioJobItems.jobId, jobId), inArray(audioJobItems.unitId, unitIds)));
 }
 
-/** Нечего озвучивать и ничего не в работе — задание выполнено. */
+/** Все фразы разобраны (по счётчикам задания, одна строка) — задание выполнено. */
 async function finishIfEmpty(jobId: string, now: Date) {
-  const [left] = await db.select({ n: count() }).from(audioJobItems).where(and(eq(audioJobItems.jobId, jobId), inArray(audioJobItems.status, ['pending', 'running'])));
-  if ((left?.n ?? 0) === 0) await db.update(audioJobs).set({ status: 'done', finishedAt: now, updatedAt: now }).where(and(eq(audioJobs.id, jobId), inArray(audioJobs.status, ['queued', 'running'])));
+  await db
+    .update(audioJobs)
+    .set({ status: 'done', finishedAt: now, updatedAt: now })
+    .where(and(eq(audioJobs.id, jobId), inArray(audioJobs.status, ['queued', 'running']), sql`${audioJobs.doneCount} + ${audioJobs.failedCount} >= ${audioJobs.total}`));
 }

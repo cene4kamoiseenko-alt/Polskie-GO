@@ -23,7 +23,7 @@ import { campaignMarkup, campaignRecipients, campaignText } from './services/cam
 import { and, asc, eq, gt, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from 'drizzle-orm';
 import { dayDiff, dayKey, effectiveStreak } from '@polski-go/shared';
 import { atomic, db } from './db';
-import { botQuizRounds, notificationCampaigns, notificationLog, playerProgress, telegramUpdates, userSettings, users } from './db/schema';
+import { appState, botQuizRounds, notificationCampaigns, notificationLog, playerProgress, telegramUpdates, userSettings, users } from './db/schema';
 import { botApi, TelegramError } from './lib/telegram';
 import { config } from './env';
 import { pruneUsage } from './services/quota';
@@ -181,13 +181,21 @@ async function retryFailed(now: Date, budget: number, stats: { calls: number }):
 }
 
 /** Повертає кількість нагадувань, які Telegram прийняв. `budget` — найбільше викликів Bot API за запуск. */
-export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stats = { calls: 0 }) {
+/**
+ * stats.complete — после прохода не осталось никого, кому напоминание положено сейчас (все кандидаты разобраны, бюджет не кончился).
+ * runScheduled по нему до конца часа не перебирает пояса и кандидатов заново (лимит чтения D1, 2026-11-23); opts.scan = false —
+ * только снять зависшие захваты и повторить неудачные отправки.
+ */
+export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stats: { calls: number; complete?: boolean } = { calls: 0 }, opts: { scan?: boolean } = {}) {
+  stats.complete = false;
   if (budget <= 0) return 0;
   // Пока идёт рассылка вопроса дня, напоминание получают только те, кому вопрос не придёт (выключили его, пауза, нет чата):
   // одно сообщение в день. Таблиц вопроса дня может ещё не быть (миграция 0018) — тогда всё как раньше.
   const dailyOn = await dailyReplacesReminders(now).catch(() => false);
   await expireLeases(now);
   let sent = await retryFailed(now, budget, stats);
+  if (opts.scan === false) return sent;
+  let complete = true;
   // 1) Які пояси зараз у годині нагадування: DISTINCT (пояс, година) — кілька рядків замість тисяч користувачів.
   const pairs = await db
     .selectDistinct({ tz: userSettings.timezone, hour: userSettings.reminderHour })
@@ -232,6 +240,7 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stat
         ),
       )
       .limit(Math.max(1, budget - stats.calls));
+    if (candidates.length >= Math.max(1, budget - stats.calls)) complete = false;
     for (const u of candidates) {
       if (stats.calls >= budget) break;
       const today = due.get(u.tz)!.day;
@@ -256,6 +265,7 @@ export async function sendReminders(now = new Date(), budget = SEND_BUDGET, stat
       if (await deliver({ logId: claimed[0].id, telegramId: u.telegramId, lang: u.lang, kind, streak, attempt: 1, hour: u.hour }, now, stats)) sent++;
     }
   }
+  stats.complete = complete && stats.calls < budget;
   return sent;
 }
 
@@ -320,10 +330,44 @@ export async function runScheduled(now = new Date()) {
     left -= st.calls;
   }
   left -= await sendCampaignChunk(Math.max(0, left));
-  const stats = { calls: 0 };
-  await sendReminders(now, left, stats);
+  // Лимит чтения D1 (2026-11-23): раньше каждую минуту перебирались все настройки игроков и кандидаты на напоминание (~10 тыс. строк
+  // в минуту — 75 % суточного лимита к утру). Теперь, когда в этом часу (UTC) все кандидаты разобраны и настройки игроков с тех пор не
+  // менялись, перебор пропускается до следующего часа; повторы неудачных отправок идут каждую минуту, как раньше.
+  const hour = now.toISOString().slice(0, 13);
+  const marks = await readCronMarks();
+  const settingsAt = await settingsStamp();
+  const stats: { calls: number; complete?: boolean } = { calls: 0 };
+  const scan = !(marks.reminders?.hour === hour && marks.reminders.settingsAt === settingsAt);
+  await sendReminders(now, left, stats, { scan });
   left -= stats.calls;
-  // Приглашения к /quiz — только пока рассылка вопроса дня выключена (иначе два сообщения в день).
+  const next: CronMarks = { ...marks };
+  if (scan && stats.complete) next.reminders = { hour, settingsAt };
+  // Приглашения к /quiz — только пока рассылка вопроса дня выключена (иначе два сообщения в день); тоже раз в час, пока есть кому.
   const daily = await readDailyState().catch(() => null);
-  if (!daily?.enabled) await sendQuizInvites(now, left).catch((e) => console.warn('quiz invites failed', (e as Error).message));
+  if (!daily?.enabled && !(marks.invites?.hour === hour && marks.invites.settingsAt === settingsAt)) {
+    const out: { complete?: boolean } = {};
+    await sendQuizInvites(now, left, out).catch((e) => console.warn('quiz invites failed', (e as Error).message));
+    if (out.complete) next.invites = { hour, settingsAt };
+  }
+  if (JSON.stringify(next) !== JSON.stringify(marks)) await writeCronMarks(next);
+}
+
+/** Метки «в этом часу перебор уже сделан» (app_state): час UTC и отпечаток настроек игроков на тот момент. */
+type CronMarks = { reminders?: { hour: string; settingsAt: number }; invites?: { hour: string; settingsAt: number } };
+const CRON_MARKS = 'cron_marks';
+async function readCronMarks(): Promise<CronMarks> {
+  const row = await db.select({ value: appState.value }).from(appState).where(eq(appState.key, CRON_MARKS)).get().catch(() => undefined);
+  return (row?.value as CronMarks | undefined) ?? {};
+}
+async function writeCronMarks(m: CronMarks) {
+  await db
+    .insert(appState)
+    .values({ key: CRON_MARKS, value: m })
+    .onConflictDoUpdate({ target: appState.key, set: { value: m, updatedAt: new Date() } })
+    .catch((e) => console.warn('cron marks not saved', (e as Error).message));
+}
+/** Последнее изменение настроек игроков (новый игрок, включил напоминания, сменил час или пояс) — по индексу, одна строка. */
+async function settingsStamp(): Promise<number> {
+  const [r] = await db.select({ at: sql<number | null>`max(${userSettings.updatedAt})` }).from(userSettings).catch(() => [{ at: null }]);
+  return Number(r?.at ?? 0);
 }

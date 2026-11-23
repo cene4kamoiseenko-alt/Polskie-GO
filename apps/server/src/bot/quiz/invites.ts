@@ -35,7 +35,9 @@ export function inviteView(lang: UiLang) {
 }
 
 /** Разослать приглашения тем, у кого сейчас час приглашения. Возвращает число вызовов Bot API. */
-export async function sendQuizInvites(now: Date, budget: number): Promise<number> {
+/** out.complete — в этом часу больше некого приглашать (runScheduled тогда не перебирает игроков до следующего часа, лимит чтения D1). */
+export async function sendQuizInvites(now: Date, budget: number, out: { complete?: boolean } = {}): Promise<number> {
+  out.complete = false;
   if (budget <= 0) return 0;
   const zones = await db
     .selectDistinct({ tz: userSettings.timezone })
@@ -47,7 +49,10 @@ export async function sendQuizInvites(now: Date, budget: number): Promise<number
     const h = localHour(now, tz);
     return h === INVITE_HOURS.main || h === INVITE_HOURS.alt;
   });
-  if (!due.length) return 0;
+  if (!due.length) {
+    out.complete = true;
+    return 0;
+  }
 
   const rows = await db
     .select({ id: users.id, telegramId: users.telegramId, tz: userSettings.timezone, lang: userSettings.uiLanguage, reminderHour: userSettings.reminderHour, player: botQuizPlayers })
@@ -69,6 +74,7 @@ export async function sendQuizInvites(now: Date, budget: number): Promise<number
     .limit(budget * 3);
 
   let calls = 0;
+  const all = rows.length < budget * 3;
   for (const r of rows) {
     if (calls >= budget) break;
     if (localHour(now, r.tz) !== inviteHour(r.reminderHour)) continue;
@@ -99,5 +105,6 @@ export async function sendQuizInvites(now: Date, budget: number): Promise<number
         .catch(() => {});
     }
   }
+  out.complete = all && calls < budget;
   return calls;
 }
