@@ -457,7 +457,7 @@ const SZC4: LessonLevels = {
         t('Безособове **potrącono** + знахідний: **zaliczkę**; **z** + родовий: **z mojej pensji**.', 'Безличное **potrącono** + винительный: **zaliczkę**; **z** + родительный: **z mojej pensji**.', 'Impersonal **potrącono** + accusative: **zaliczkę**; **z** + genitive: **z mojej pensji**.')),
       reading('reading.payroll', 'Pasek wypłaty — październik\nWynagrodzenie zasadnicze: 6000,00 zł brutto\nNadgodziny (8 h, dni robocze, +50%): 450,00 zł\nDodatek za pracę w nocy: 210,00 zł\nSkładki na ubezpieczenie społeczne: −890,00 zł\nSkładka zdrowotna: −520,00 zł\nZaliczka na podatek dochodowy: −410,00 zł\nDo wypłaty: 4840,00 zł',
         t('Яка доплата за понаднормові в робочі дні?', 'Какая доплата за сверхурочные в рабочие дни?', 'What’s the overtime rate on working days?'),
-        ['+50%', '+100%', '+20%'],
+        ['dodatek 50 procent', 'dodatek 100 procent', 'dodatek 20 procent'],
         t('«Nadgodziny (8 h, dni robocze, **+50%**)». **100 %** — уночі, у неділі й свята.', '«Nadgodziny (8 h, dni robocze, **+50%**)». **100 %** — ночью, в воскресенья и праздники.', '“Nadgodziny (8 h, dni robocze, **+50%**)”. **100 %** is for nights, Sundays and holidays.')),
       dialogue('register.payroll', MAREK, [
         { npc: 'Czemu dostałem tak mało netto? Brutto było sześć tysięcy!', tr: t('Чому я отримав так мало нетто? Брутто було шість тисяч!', 'Почему я получил так мало нетто? Брутто было шесть тысяч!', 'Why is my net pay so low? The gross was six thousand!'),
