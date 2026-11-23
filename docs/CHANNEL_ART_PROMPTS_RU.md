@@ -76,7 +76,7 @@ Scene:
 
 ## Что уже получено (2026-11-23)
 
-40 картинок, 1254×1254, сохранены в `apps/web/public/channel/` как JPG (~300–400 КБ). Кепка и шарф — вещи гардероба Бобека,
+55 картинок, 1254×1254, сохранены в `apps/web/public/channel/` как JPG (~300–400 КБ). Кепка и шарф — вещи гардероба Бобека,
 это в каноне. Картинка `-1`/`-2` — два варианта одной сцены, чередуются, чтобы канал не повторялся.
 
 | Сцена | Файлы |
@@ -87,19 +87,25 @@ Scene:
 | 4 praca-biuro | `praca-biuro-1.jpg`, `praca-biuro-2.jpg` |
 | 5 rozmowa | `rozmowa-1.jpg`, `rozmowa-2.jpg` |
 | 6 budowa | `budowa-1.jpg`, `budowa-2.jpg` |
-| 11 dworzec · 12 mieszkanie · 13 bank · 14 paczka · 15 sasiad | `dworzec.jpg`, `mieszkanie.jpg`, `bank.jpg`, `paczka.jpg`, `sasiad.jpg` |
+| 11 dworzec | `dworzec-1.jpg` (перрон), `dworzec-2.jpg` (касса, билет) |
+| 12 mieszkanie · 13 bank · 14 paczka · 15 sasiad | `mieszkanie.jpg`, `bank.jpg`, `paczka.jpg`, `sasiad.jpg` |
 | 16 slang · 17–19 идиомы · 20 ложные друзья | `slang.jpg`, `idiom-kciuki.jpg`, `idiom-muchy.jpg`, `idiom-maliny.jpg`, `falszywi-przyjaciele.jpg` |
 | 21 wymowa (+ аудирование) | `wymowa-1.jpg` (зеркало), `wymowa-2.jpg` (формы рта), `wymowa-3.jpg` (микрофон и профили рта), `sluchanie.jpg` |
 | 22 правило | `zasada-1.jpg` (доска с пазлами), `zasada-2.jpg` (карточки-схемы), `zasada-3.jpg` (схема на доске) |
 | Род: on / ona / ono (сверх списка) | `rodzaj.jpg` (мужчина, женщина, росток) |
-| 23 przypadki | `przypadki-1.jpg` (слово и стрелки к формам), `przypadki-2.jpg` (7 строк «вопрос — jabłko»), `przypadki-3.jpg` (jabłko в разных ситуациях) |
-| 24 тест дня | `egzamin-1.jpg`, `egzamin-2.jpg` (с таймером) |
+| 23 przypadki | `przypadki-1.jpg` (слово и стрелки к формам), `przypadki-2.jpg` (7 строк «вопрос — jabłko»), `przypadki-3.jpg` (jabłko в разных ситуациях), `przypadki-4.jpg` (строки-ситуации с Бобеком: велосипед, рюкзак, в Краков, ложкой, в кафе, подарок) |
+| 24 тест дня | `egzamin-1.jpg`, `egzamin-2.jpg` (с таймером), `egzamin-3.jpg` (бланк с кружками) |
 | 25 brawo | `brawo-1.jpg` (медаль), `brawo-2.jpg` (кубок) |
 | 26 detektyw (B2–C1) | `detektyw-1.jpg` (улица), `detektyw-2.jpg` (доска улик) |
-| Слова по темам (сверх списка) | `slowa-tematy.jpg` (иконки тем: деньги, дом, семья, карта…) — к постам «нишевые слова» |
+| Слова по темам (сверх списка) | `slowa-tematy-1.jpg` (иконки тем: деньги, дом, семья, карта…), `slowa-tematy-2.jpg` (карта-схема вокруг книги) — к постам «нишевые слова» |
+| 28 it | `it.jpg` |
+| Город и быт (сверх списка) | `lotnisko.jpg` (досмотр в аэропорту), `biblioteka.jpg` (читательский билет), `targ.jpg` (рынок, овощи на весах), `muzeum.jpg` (экскурсовод), `kino.jpg`, `dentysta.jpg`, `fryzjer.jpg` (без кепки, с чубом), `silownia.jpg`, `pralnia.jpg`, `kemping.jpg` (палатка у озера) |
 
-**Ещё нет:** 7 sklep, 8 kawiarnia, 9 bar-mleczny, 10 tramwaj, 27 finanse, 28 it, 29 prawo, 30 wigilia. Без них можно
-начинать: посты про финансы, IT и право до появления своих картинок берут `slowa-tematy`, праздничные — `brawo`.
+**Ещё нет:** 7 sklep (пока вместо него `targ`), 8 kawiarnia, 9 bar-mleczny, 10 tramwaj, 27 finanse, 29 prawo, 30 wigilia.
+Без них можно начинать: посты про финансы и право до появления своих картинок берут `slowa-tematy-*`, праздничные — `brawo-*`.
+
+**Не взята:** автомойка (myjnia) — надпись PL на худи задвоилась («PL» над «PL»), в ленте это заметно. Если перегенерировать
+сцену с той же подсказкой, возьму.
 
 ## Куда идут картинки
 
