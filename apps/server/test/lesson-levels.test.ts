@@ -10,7 +10,7 @@ import { LESSON_LEVELS, withLevels } from '../src/content/levels';
 import type { LessonLevel } from '../src/content/types';
 
 /** Города, где у каждого урока и босса должны быть все три версии. */
-const COVERED = ['warszawa', 'lodz', 'krakow', 'katowice', 'opole', 'wroclaw', 'poznan', 'zielona-gora', 'gorzow'];
+const COVERED = ['warszawa', 'lodz', 'krakow', 'katowice', 'opole', 'wroclaw', 'poznan', 'zielona-gora', 'gorzow', 'szczecin'];
 const LEVELS = ['A2', 'B1', 'B2'] as const;
 const MIN_TASKS = 8;
 
