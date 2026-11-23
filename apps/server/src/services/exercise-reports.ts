@@ -14,7 +14,7 @@
 import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm';
 import type { ExerciseItem, I18n } from '@polski-go/shared';
 import { db } from '../db';
-import { EXERCISE_REPORT_REASONS, EXERCISE_REPORT_STATUS, exerciseAttempts, exerciseReports, learningSessions, lessons, userSettings } from '../db/schema';
+import { EXERCISE_REPORT_REASONS, EXERCISE_REPORT_STATUS, exerciseAttempts, exerciseReports, exercises, learningSessions, lessons, userSettings } from '../db/schema';
 import { MISSIONS } from '../content/missions';
 import { HttpError, notFound } from '../lib/errors';
 
@@ -47,7 +47,7 @@ const ru = (v: unknown): string => {
 };
 
 /** Поля данных задания, которые игрок видит на экране (польская фраза, перевод, вопрос, текст, озвучиваемая фраза). */
-const TEXT_FIELDS = ['pl', 'translation', 'prompt', 'question', 'text', 'passage', 'audioText', 'sentence', 'target', 'title'] as const;
+const TEXT_FIELDS = ['pl', 'source', 'translation', 'prompt', 'question', 'text', 'passage', 'audioText', 'sentence', 'target', 'title', 'base'] as const;
 
 /** Снимок задания сессии: тексты, варианты, отметка верного. Устойчив к любому типу данных (лишнее просто пропускается). */
 export function snapshotOfItem(item: ExerciseItem, where: string): ExerciseSnapshot {
@@ -68,8 +68,17 @@ export function snapshotOfItem(item: ExerciseItem, where: string): ExerciseSnaps
   if (Array.isArray(tokens)) snap.texts = [...snap.texts, `слова: ${tokens.slice(0, 20).map((x) => clip(x, 30)).join(' ')}`];
   const answer = d.answer;
   if (Array.isArray(answer)) snap.texts = [...snap.texts, `верно: ${answer.map((x) => clip(x, 30)).join(' ')}`];
+  // Перевод, диктант, грамматика: принимаемые ответы (первые три).
+  const accepted = d.accepted;
+  if (Array.isArray(accepted) && accepted.length) snap.texts = [...snap.texts, `верно: ${accepted.slice(0, 3).map((x) => clip(x, 120)).join(' / ')}`];
+  // «Соедини пары» (2026-11-23): без пар снимок был пустым — админка не видела, о каком переводе жалоба.
+  const pairs = d.pairs as { pl?: unknown; tr?: unknown }[] | undefined;
+  if (Array.isArray(pairs)) snap.options = pairs.slice(0, 10).map((p) => ({ text: `${clip(p?.pl, 80)} — ${ru(p?.tr)}` }));
   return snap;
 }
+
+/** Снимок пустой (жалоба до 2026-11-23 на «пары» и т. п.) — собрать заново из текущего задания, чтобы админка видела, о чём речь. */
+const emptySnapshot = (s: ExerciseSnapshot | null) => !s || (!s.texts?.length && !s.options?.length);
 
 /** Снимок шага миссии. */
 export function snapshotOfMission(mission: (typeof MISSIONS)[number], step: (typeof MISSIONS)[number]['steps'][number]): ExerciseSnapshot {
@@ -188,6 +197,13 @@ export async function listExerciseReports(status: ExerciseReportStatus | 'ALL' =
     .limit(600);
   const by = new Map<string, (typeof all)[number][]>();
   for (const r of all) by.set(r.target, [...(by.get(r.target) ?? []), r]);
+  const rebuild = [...new Set(rows.map((g) => by.get(g.target)?.[0]).filter((h) => h?.exerciseId && emptySnapshot(h.snapshot as ExerciseSnapshot | null)).map((h) => h!.exerciseId!))];
+  const fresh = new Map(
+    (rebuild.length ? await db.select({ id: exercises.id, type: exercises.type, skill: exercises.skill, data: exercises.data }).from(exercises).where(inArray(exercises.id, rebuild)) : []).map((e) => [
+      e.id,
+      snapshotOfItem({ key: e.id, type: e.type, skill: e.skill, data: e.data } as unknown as ExerciseItem, 'задание сейчас'),
+    ]),
+  );
   return rows.map((g) => {
     const list = by.get(g.target) ?? [];
     const head = list[0];
@@ -204,7 +220,7 @@ export async function listExerciseReports(status: ExerciseReportStatus | 'ALL' =
       reasons,
       lastAt: new Date(Number(g.last)).toISOString(),
       note: list.find((r) => r.adminNote)?.adminNote ?? null,
-      snapshot: (head.snapshot as ExerciseSnapshot | null) ?? null,
+      snapshot: emptySnapshot(head.snapshot as ExerciseSnapshot | null) && head.exerciseId && fresh.has(head.exerciseId) ? fresh.get(head.exerciseId)! : ((head.snapshot as ExerciseSnapshot | null) ?? null),
       comments: list
         .filter((r) => r.comment || r.answer)
         .slice(0, 5)

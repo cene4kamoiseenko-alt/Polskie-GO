@@ -120,6 +120,7 @@ export function ExerciseReports({ onChange }: { onChange?: () => void }) {
               </div>
               {g.snapshot && (
                 <div className="rounded-xl bg-slate-50 p-3 text-sm">
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">{g.snapshot.where === 'задание сейчас' ? 'Задание сейчас (снимок при жалобе пустой)' : 'Что видел игрок'}</div>
                   {g.snapshot.title && <div className="font-semibold text-night">{g.snapshot.title}</div>}
                   {g.snapshot.texts.map((t, i) => (
                     <div key={i} className="break-words text-slate-800">
@@ -137,6 +138,7 @@ export function ExerciseReports({ onChange }: { onChange?: () => void }) {
                   )}
                 </div>
               )}
+              {g.comments.length === 0 && <div className="text-sm text-slate-500">Комментария нет — игрок выбрал только причину.</div>}
               {g.comments.length > 0 && (
                 <ul className="space-y-1 text-sm">
                   {g.comments.map((c, i) => (

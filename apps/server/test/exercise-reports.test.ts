@@ -9,7 +9,7 @@ import type { ExerciseItem } from '@polski-go/shared';
 import { db } from '../src/db';
 import { exerciseReports } from '../src/db/schema';
 import { MISSIONS } from '../src/content/missions';
-import { EXERCISE_REPORT_COMMENT_MAX, MAX_EXERCISE_REPORTS_PER_DAY } from '../src/services/exercise-reports';
+import { EXERCISE_REPORT_COMMENT_MAX, MAX_EXERCISE_REPORTS_PER_DAY, snapshotOfItem } from '../src/services/exercise-reports';
 import { disposeEnv, getEnv, lessonId, login, request, sessionItems, wrongAnswer } from './helpers';
 
 afterAll(disposeEnv);
@@ -189,6 +189,32 @@ describe('разбор в админке', () => {
     // Действие попало в журнал действий.
     const audit = (await root('GET', '/audit?action=exercise_report_rejected')).body;
     expect(JSON.stringify(audit)).toContain(target);
+  });
+});
+
+describe('снимок задания показывает, о чём жалоба (жалоба владельцу 2026-11-23: «ошибка в переводе», а в админке пусто)', () => {
+  it('«Соедини пары» — все пары «польское — перевод»; перевод предложения — исходный текст и верный ответ; грамматика — базовая форма', () => {
+    const pairs = snapshotOfItem({ key: 'k', type: 'MATCH_PAIRS', skill: 'vocab.jobs', data: { pairs: [
+      { l: 'a', r: 'b', pl: 'lekarz', tr: { uk: 'лікар', ru: 'врач', en: 'doctor' } },
+      { l: 'c', r: 'd', pl: 'kucharz', tr: { uk: 'кухар', ru: 'повар', en: 'cook' } },
+    ] } } as unknown as ExerciseItem, 'урок');
+    expect(pairs.options?.map((o) => o.text)).toEqual(['lekarz — врач', 'kucharz — повар']);
+    const tr = snapshotOfItem({ key: 'k', type: 'SENTENCE_TRANSLATION', skill: 's', data: { source: { uk: 'Я лікар.', ru: 'Я врач.', en: 'I am a doctor.' }, accepted: ['Jestem lekarzem.', 'Jestem lekarzem'] } } as unknown as ExerciseItem, 'урок');
+    expect(tr.texts).toContain('Я врач.');
+    expect(tr.texts.join(' ')).toContain('Jestem lekarzem.');
+    const gr = snapshotOfItem({ key: 'k', type: 'GRAMMAR', skill: 's', data: { pl: 'On ___ lekarzem.', base: 'być', accepted: ['jest'] } } as unknown as ExerciseItem, 'урок');
+    expect(gr.texts.join(' ')).toContain('być');
+  });
+
+  it('старая жалоба с пустым снимком: админка собирает его из задания (пары видны)', async () => {
+    const u = await login();
+    const ex = await db.query.exercises.findFirst({ where: (t, { eq: e }) => e(t.type, 'MATCH_PAIRS') });
+    expect(ex, 'в курсе есть задание «Соедини пары»').toBeTruthy();
+    const target = `exercise:${ex!.id}`;
+    await db.insert(exerciseReports).values({ userId: u.user.id, target, source: 'lesson', exerciseId: ex!.id, lessonSlug: 'x', itemType: 'MATCH_PAIRS', reason: 'translation_error', snapshot: { type: 'MATCH_PAIRS', where: 'урок', texts: [] }, uiLang: 'ru' });
+    const g = ((await root('GET', '/exercise-reports')).body.items as { target: string; snapshot: { options?: { text: string }[] } }[]).find((x) => x.target === target)!;
+    const first = (ex!.data as { pairs: { pl: string }[] }).pairs[0].pl;
+    expect(g.snapshot.options?.some((o) => o.text.startsWith(`${first} — `))).toBe(true);
   });
 });
 
