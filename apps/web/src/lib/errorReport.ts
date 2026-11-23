@@ -3,7 +3,9 @@
  * Без персональных данных: только сообщение, место в коде и путь экрана. Не больше 10 отчётов за сеанс и без повторов;
  * сбой отправки молча игнорируется — отчёт не должен мешать игроку.
  */
+import { isChunkLoadError } from '@polski-go/shared';
 import { API_BASE } from './api';
+import { recoverFromChunkError } from './chunkReload';
 
 const sent = new Set<string>();
 let left = 10;
@@ -29,12 +31,26 @@ export function reportError(message: string, detail?: string) {
 }
 
 export function installErrorReporting() {
+  // Файл экрана не загрузился после выкладки (Vite сообщает об этом отдельным событием) — перезагрузка, а не ошибка в журнал.
+  // Ошибку не гасим (preventDefault): иначе ленивый экран получает пустой модуль и падает уже «настоящей» ошибкой React; пусть она
+  // дойдёт до ScreenBoundary, который узнает её как «файл не загрузился».
+  window.addEventListener('vite:preloadError', () => {
+    recoverFromChunkError();
+  });
   window.addEventListener('error', (e) => {
+    if (isChunkLoadError(e.error ?? e.message)) {
+      recoverFromChunkError();
+      return;
+    }
     const where = e.filename ? `${e.filename}:${e.lineno}:${e.colno}` : '';
     reportError(e.message, [where, (e.error as Error | undefined)?.stack ?? ''].filter(Boolean).join('\n'));
   });
   window.addEventListener('unhandledrejection', (e) => {
     const r = e.reason as { message?: string; stack?: string } | string | undefined;
+    if (isChunkLoadError(r)) {
+      recoverFromChunkError();
+      return;
+    }
     reportError(typeof r === 'string' ? r : (r?.message ?? String(r)), typeof r === 'object' ? r?.stack : undefined);
   });
 }

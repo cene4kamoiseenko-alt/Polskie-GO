@@ -21,3 +21,4 @@ export * from './bobekPhrases';
 export * from './mapArt';
 export * from './levels';
 export * from './social';
+export * from './chunk';

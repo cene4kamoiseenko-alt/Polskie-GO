@@ -4,15 +4,15 @@
  * Тут: недовантажений модуль → «Перезавантажити» (браузер кешує невдалий імпорт до перезавантаження);
  * інша помилка → «Спробувати ще» (скидання межі). Перехід на інший маршрут теж скидає межу.
  */
+import { isChunkLoadError } from '@polski-go/shared';
 import { reportError } from '../lib/errorReport';
+import { recoverFromChunkError } from '../lib/chunkReload';
 import { Component, type ReactNode } from 'react';
 import { useT } from '../i18n';
 import { Beaver } from './Beaver';
 
-export function isChunkError(e: unknown): boolean {
-  const msg = e instanceof Error ? `${e.name} ${e.message}` : String(e);
-  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError|Unable to preload CSS/i.test(msg);
-}
+/** Файл экрана не загрузился после выкладки — в том числе вариант Safari «'text/html' is not a valid JavaScript MIME type» (shared/chunk.ts). */
+export const isChunkError = isChunkLoadError;
 
 function ScreenError({ chunk, onRetry }: { chunk: boolean; onRetry: () => void }) {
   const { t } = useT();
@@ -44,8 +44,13 @@ export class ScreenBoundary extends Component<Props, State> {
 
   componentDidCatch(error: unknown) {
     console.error('[screen]', error);
-    // Ошибка загрузки чанка после выкладки — не ошибка кода (экран предлагает обновить); остальное — в журнал ошибок.
-    if (!isChunkError(error)) reportError(error instanceof Error ? `${error.name}: ${error.message}` : String(error), error instanceof Error ? error.stack : undefined);
+    // Ошибка загрузки чанка после выкладки — не ошибка кода: сначала одна автоматическая перезагрузка (тот же экран новой версии),
+    // если уже перезагружались — экран с кнопкой. Остальное — в журнал ошибок.
+    if (isChunkError(error)) {
+      recoverFromChunkError();
+      return;
+    }
+    reportError(error instanceof Error ? `${error.name}: ${error.message}` : String(error), error instanceof Error ? error.stack : undefined);
   }
 
   render() {
