@@ -170,13 +170,14 @@ function LineCard({ line, npcName, revealed }: { line: MissionLine; npcName: str
     );
   }
   const isBeaver = line.who === 'beaver';
+  const speaker = line.name ?? npcName;
   return (
     <div className="flex items-end gap-2.5">
       <div className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-full text-lg font-black text-white shadow', isBeaver ? 'bg-brown' : 'bg-sky-dark')} style={isBeaver ? { background: '#B87747' } : undefined} aria-hidden>
-        {isBeaver ? 'B' : npcName[0]}
+        {isBeaver ? 'B' : speaker[0]}
       </div>
       <div className="card relative min-w-0 flex-1 rounded-bl-md p-3.5">
-        <div className="muted mb-0.5 text-xs font-black">{isBeaver ? 'Bobek' : npcName}</div>
+        <div className="muted mb-0.5 text-xs font-black">{isBeaver ? 'Bobek' : speaker}</div>
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             {hidden ? (

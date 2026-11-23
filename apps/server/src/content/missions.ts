@@ -13,10 +13,12 @@ import type { I18n } from '@polski-go/shared';
 import { t } from './builders';
 import { SEASON_MISSIONS } from './seasons';
 import { PREMIUM_MISSIONS } from './missions-premium';
+import { CHANNEL_MISSIONS } from './mission-channel';
 import { withSecondScenes } from './mission-scenes';
 import { hardenTwoAnswerSteps } from './mission-hardening';
 
-export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean };
+/** name — кто говорит, если не главный собеседник миссии (друзья, второй персонаж); без него — npc.name миссии. */
+export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean; name?: string };
 export type MissionOption = { pl?: string; text?: I18n; ok: boolean; why?: I18n };
 export type MissionStep = {
   id: string;
@@ -61,6 +63,8 @@ export type Mission = {
   premium?: boolean;
   /** Сезон пропуску (slug у SEASONS): доступ — за датами сезону й Premium, див. content/seasons.ts. */
   season?: string;
+  /** Для подписчиков канала @polskigoo (content/mission-channel.ts): открывается после проверки подписки (services/channel.ts). */
+  channel?: boolean;
 };
 
 const npc = (pl: string, uk: string, ru: string, en: string, hidden = false): MissionLine => ({ who: 'npc', pl, tr: t(uk, ru, en), hidden });
@@ -1031,7 +1035,7 @@ export const MISSIONS: Mission[] = [
 export const MISSIONS_SOON: { slug: string; category: MissionCategory; scene: string; title: I18n }[] = [];
 
 /** Звичайні місії, сцени Premium (content/missions-premium.ts) і місії сезонних пропусків: досягнення, озвучка, seed і перевірки контенту бачать усі. */
-MISSIONS.push(...PREMIUM_MISSIONS, ...SEASON_MISSIONS);
+MISSIONS.push(...PREMIUM_MISSIONS, ...SEASON_MISSIONS, ...CHANNEL_MISSIONS);
 /** Вторые сцены (2026-11-02, docs/MISSIONS_LONG.md): обычные миссии и «Ноябрь в Познани» — ~10 минут; шаги в конец, массив тот же (на него ссылаются по импорту). */
 MISSIONS.splice(0, MISSIONS.length, ...withSecondScenes(MISSIONS));
 /** Шаги с двумя верными ответами (2026-11-07): к ним добавлен ещё один правдоподобный неверный вариант, подсказки не называют ответ (content/mission-hardening.ts). */

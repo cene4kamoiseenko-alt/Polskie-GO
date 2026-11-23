@@ -27,6 +27,7 @@ import { KIELCE_VOCAB } from './vocab-kielce';
 import { ZAKOPANE_VOCAB } from './vocab-zakopane';
 import { LODZ_VOCAB } from './vocab-lodz';
 import { WROCLAW_VOCAB } from './vocab-wroclaw';
+import { ESCAPE_VOCAB } from './vocab-escape';
 
 export type VocabSeed = {
   pl: string;
@@ -342,4 +343,5 @@ export const VOCAB: VocabSeed[] = [
   ...KIELCE_VOCAB,
   ...ZAKOPANE_VOCAB,
   ...WROCLAW_VOCAB,
+  ...ESCAPE_VOCAB,
 ];

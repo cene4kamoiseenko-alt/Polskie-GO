@@ -221,7 +221,8 @@ export type VocabEntry = {
 };
 
 // ── Місії «Польська в житті» ──
-export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean };
+/** name — кто говорит, если не главный собеседник миссии; без него — mission.npc.name. */
+export type MissionLine = { who: 'npc' | 'beaver' | 'narrator'; pl: string; tr: I18n; hidden?: boolean; name?: string };
 export type MissionStepPublic = {
   id: string;
   kind: 'listen' | 'choice' | 'build';

@@ -15,6 +15,7 @@ type Ex = [pl: string, uk: string, ru: string, en: string];
  * повернення й гарантія, вищий ступінь прикметників, умовний спосіб, рідкісні упаковки й смаки — A2.
  */
 const WROCLAW_CEFR: Record<string, Cefr> = {
+  'Dolny Śląsk': 'A2',
   przymierzalnia: 'A2', przymierzyć: 'A2', pasować: 'A2', większy: 'A2', mniejszy: 'A2', wygodny: 'A2',
   zwrócić: 'A2', wymienić: 'A2', reklamacja: 'A2', wyprzedaż: 'A2', zepsuty: 'A2', gwarancja: 'A2', zniżka: 'A2',
   deko: 'A2', puszka: 'A2', śmietana: 'A2', 'po ile?': 'A2', drobne: 'A2', rozmienić: 'A2',
@@ -197,4 +198,7 @@ export const WROCLAW_VOCAB: VocabSeed[] = [
     ['W tym roku modny jest kolor zielony.', 'Цього року модний зелений колір.', 'В этом году модный зелёный цвет.', 'Green is in fashion this year.'], { f: 'modna', n: 'modne' }),
   w('wybrać', 'verb', 'обрати, вибрати', 'выбрать', 'to choose', ['shopping'],
     ['Nie mogę wybrać: czerwona czy czarna?', 'Не можу обрати: червона чи чорна?', 'Не могу выбрать: красная или чёрная?', 'I can\'t choose: the red one or the black one?'], { ja: 'wybiorę' }),
+  // ── Регіон ──
+  w('Dolny Śląsk', 'noun', 'Нижня Сілезія', 'Нижняя Силезия', 'Lower Silesia', ['travel', 'city'],
+    ['Wrocław to największe miasto Dolnego Śląska.', 'Вроцлав — найбільше місто Нижньої Сілезії.', 'Вроцлав — крупнейший город Нижней Силезии.', 'Wrocław is the largest city in Lower Silesia.'], { gen: 'Dolnego Śląska', loc: 'na Dolnym Śląsku' }),
 ];

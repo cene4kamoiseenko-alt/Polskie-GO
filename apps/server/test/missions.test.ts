@@ -73,7 +73,8 @@ describe('Місії: контент', () => {
   it('обычные миссии и «Ноябрь в Познани» — ~10 минут: вторая сцена в конце, без шагов «послушай» (новые реплики не озвучены)', () => {
     const long = MISSIONS.filter((m) => MISSION_SCENES[m.slug as keyof typeof MISSION_SCENES]);
     expect(long.length).toBe(17);
-    for (const m of MISSIONS.filter((x) => !x.premium && (!x.season || x.season === 'listopad-poznan'))) expect(long.includes(m), m.slug).toBe(true);
+    // Миссия канала (content/mission-channel.ts) — своя длинная история на 20 минут, её форму держит test/channel-mission.test.ts.
+    for (const m of MISSIONS.filter((x) => !x.premium && !x.channel && (!x.season || x.season === 'listopad-poznan'))) expect(long.includes(m), m.slug).toBe(true);
     for (const m of long) {
       expect(m.steps.length, m.slug).toBeGreaterThanOrEqual(13);
       expect(m.minutes, m.slug).toBe(LONG_MISSION_MINUTES);
