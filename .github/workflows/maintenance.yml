@@ -1,0 +1,37 @@
+# Техработы вручную (docs/OPERATIONS_RU.md): секрет MAINTENANCE у Worker. on — запись в базу запрещена (приложение показывает
+# «идут технические работы», бот и cron ждут, Telegram повторит сообщения позже), чтение работает. off — всё как обычно.
+# Нужен CLOUDFLARE_API_TOKEN с правом «Workers Scripts: Edit» (environment «production-backup»).
+name: Maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'on — включить техработы, off — выключить'
+        type: choice
+        options: ['off', 'on']
+        default: 'off'
+
+permissions:
+  contents: read
+
+jobs:
+  toggle:
+    runs-on: ubuntu-latest
+    environment: production-backup
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Техработы — ${{ inputs.mode }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          if [ "${{ inputs.mode }}" = "on" ]; then
+            printf 'on' | npx --yes wrangler@4.152.0 secret put MAINTENANCE --name polskie-go
+          else
+            npx --yes wrangler@4.152.0 secret delete MAINTENANCE --name polskie-go
+          fi
+          echo "Техработы: ${{ inputs.mode }}" >> "$GITHUB_STEP_SUMMARY"

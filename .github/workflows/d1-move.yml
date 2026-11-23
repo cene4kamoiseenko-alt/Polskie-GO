@@ -1,0 +1,124 @@
+# Переезд production-базы D1 в Европу (docs/OPERATIONS_RU.md, «Переезд базы в Европу», 2026-11-23).
+# Старая база создалась сама при первой выкладке и оказалась в Океании (/api/health → edge.d1.region = OC): каждый запрос игрока
+# из Польши и Украины шёл в Австралию и обратно. Регион у существующей базы D1 поменять нельзя — копируем в новую.
+#
+# Что делает (запуск вручную: Actions → «D1 move to Europe» → Run workflow, в поле confirm — слово ПЕРЕЕЗД):
+#   1) включает техработы (секрет MAINTENANCE=on у Worker): запись в базу запрещена, чтение работает, бот и cron ждут;
+#   2) создаёт новую базу в выбранном регионе (eeur — Восточная Европа, weur — Западная);
+#   3) выгружает старую базу, переставляет выгрузку (scripts/d1-import-order.mjs: таблицы → данные по связям → индексы и триггеры)
+#      и загружает в новую;
+#   4) сверяет число строк в каждой таблице, индексы и триггеры (scripts/d1-compare.mjs);
+#   5) печатает id новой базы — его вписывают в wrangler.jsonc, выкладывают, потом снимают техработы (workflow «Maintenance»).
+# Если любой шаг упал — техработы снимаются сами, приложение работает на старой базе, как раньше.
+#
+# Секреты — те же, что у ночной копии (environment «production-backup»): CLOUDFLARE_API_TOKEN с правами «D1: Edit» и
+# «Workers Scripts: Edit», CLOUDFLARE_ACCOUNT_ID; BACKUP_PASSPHRASE — чтобы выгрузка сохранилась зашифрованной копией.
+name: D1 move to Europe
+
+on:
+  workflow_dispatch:
+    inputs:
+      location:
+        description: 'Регион новой базы: eeur — Восточная Европа (ближе к Польше и Украине), weur — Западная'
+        type: choice
+        options: [eeur, weur]
+        default: eeur
+      new_name:
+        description: 'Имя новой базы'
+        default: polski-go-eu
+      confirm:
+        description: 'Напишите ПЕРЕЕЗД — на время копирования приложение работает только на чтение (несколько минут)'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d1-move
+  cancel-in-progress: false
+
+jobs:
+  move:
+    runs-on: ubuntu-latest
+    environment: production-backup
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      OLD_DB: polski-go
+      NEW_DB: ${{ inputs.new_name }}
+      LOCATION: ${{ inputs.location }}
+      WORKER: polskie-go
+      WRANGLER: npx --yes wrangler@4.152.0
+    steps:
+      - name: Проверка
+        run: |
+          if [ "${{ inputs.confirm }}" != "ПЕРЕЕЗД" ]; then echo "::error::В поле confirm нужно слово ПЕРЕЕЗД"; exit 1; fi
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::Нет секретов CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID в environment production-backup"; exit 1; fi
+          if [ "$NEW_DB" = "$OLD_DB" ]; then echo "::error::Имя новой базы совпадает со старой"; exit 1; fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Техработы — включить
+        working-directory: ${{ runner.temp }}
+        run: |
+          printf 'on' | $WRANGLER secret put MAINTENANCE --name "$WORKER"
+          echo "maintenance=on" >> "$GITHUB_ENV"
+          # Запросы, начатые до включения, успевают закончиться.
+          sleep 30
+      - name: Новая база
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          if $WRANGLER d1 info "$NEW_DB" --json > info.json 2>/dev/null; then
+            echo "База $NEW_DB уже есть — проверяю, что она пустая"
+            TABLES=$($WRANGLER d1 execute "$NEW_DB" --remote --json --command "SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s.slice(s.indexOf('[')));console.log(j[0].results[0].n)})")
+            if [ "$TABLES" != "0" ]; then echo "::error::База $NEW_DB не пустая ($TABLES таблиц). Удалите её в Cloudflare или выберите другое имя."; exit 1; fi
+          else
+            $WRANGLER d1 create "$NEW_DB" --location "$LOCATION"
+            $WRANGLER d1 info "$NEW_DB" --json > info.json
+          fi
+          UUID=$(node -e "console.log(require('./info.json').uuid)")
+          echo "NEW_UUID=$UUID" >> "$GITHUB_ENV"
+          echo "Новая база: $NEW_DB ($UUID)"
+      - name: Выгрузка старой базы
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          $WRANGLER d1 export "$OLD_DB" --remote --output dump.sql
+          test -s dump.sql
+          node "$GITHUB_WORKSPACE/scripts/d1-import-order.mjs" dump.sql import.sql
+      - name: Загрузка в новую базу
+        working-directory: ${{ runner.temp }}
+        run: $WRANGLER d1 execute "$NEW_DB" --remote --file import.sql --yes
+      - name: Сверка
+        working-directory: ${{ runner.temp }}
+        run: node "$GITHUB_WORKSPACE/scripts/d1-compare.mjs" "$OLD_DB" "$NEW_DB"
+      - name: Копия выгрузки (зашифрованная)
+        if: success() && env.BACKUP_PASSPHRASE != ''
+        working-directory: ${{ runner.temp }}
+        run: |
+          gzip -9 dump.sql
+          gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" --output "$GITHUB_WORKSPACE/d1-before-move.sql.gz.gpg" dump.sql.gz
+      - uses: actions/upload-artifact@v4
+        if: success() && env.BACKUP_PASSPHRASE != ''
+        with:
+          name: d1-before-move
+          path: d1-before-move.sql.gz.gpg
+          retention-days: 30
+      - name: Итог
+        if: success()
+        run: |
+          {
+            echo "## База скопирована и сверена"
+            echo ""
+            echo "Новая база: \`$NEW_DB\`, регион \`$LOCATION\`, id: \`$NEW_UUID\`"
+            echo ""
+            echo "**Техработы ещё включены.** Дальше: вписать id в wrangler.jsonc (database_name и database_id), выложить,"
+            echo "проверить /api/health (edge.d1.region), затем Actions → «Maintenance» → off."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Сбой — снять техработы (приложение остаётся на старой базе)
+        if: failure() && env.maintenance == 'on'
+        working-directory: ${{ runner.temp }}
+        run: $WRANGLER secret delete MAINTENANCE --name "$WORKER" || true

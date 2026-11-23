@@ -36,6 +36,8 @@ export type Bindings = {
    * можно использовать, чтобы исчерпать лимит и остановить Telegram-версию. Владелец включает значением `on` (docs/ANDROID_RU.md, шаг 7). services/standalone-auth.ts.
    */
   STANDALONE_AUTH?: string;
+  /** on — техработы (переезд базы): запись запрещена, бот и cron ждут; чтение работает (app.ts, worker.ts). Ставится секретом Cloudflare. */
+  MAINTENANCE?: string;
   /** Сколько новых гостей в сутки принимать (по умолчанию 3000 ≈ 36 тыс. записей D1); больше — 503 guests_busy до следующих суток. */
   GUEST_DAILY_LIMIT?: string;
   /** Android-приложение (Google Play): имя пакета и отпечатки SHA-256 ключа подписи для /.well-known/assetlinks.json (через запятую; их показывает Play Console). */
@@ -181,6 +183,10 @@ export const config = {
   /** Гости и коды переноса: включаются явно (`STANDALONE_AUTH=on`). */
   get standaloneAuth() {
     return str(env.STANDALONE_AUTH) === 'on';
+  },
+  /** Техработы (2026-11-23, переезд базы в Европу): запись в базу запрещена, чтение — как обычно. */
+  get maintenance() {
+    return ['on', 'readonly', '1', 'true'].includes(str(env.MAINTENANCE).trim().toLowerCase());
   },
   get guestDailyLimit() {
     const n = Number(str(env.GUEST_DAILY_LIMIT) || 3000);

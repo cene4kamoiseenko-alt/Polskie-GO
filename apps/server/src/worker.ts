@@ -6,7 +6,7 @@
  */
 import { buildApp } from './app';
 import { bindDb } from './db';
-import { setEnv, type Bindings } from './env';
+import { config, setEnv, type Bindings } from './env';
 import { runScheduled } from './jobs';
 import { DAILY_CRON, runDailyQuizTick } from './bot/daily/send';
 import { recordDailyTick } from './bot/daily/state';
@@ -19,6 +19,8 @@ export default {
     setEnv(env);
     bindDb(env.DB);
     const at = new Date(controller.scheduledTime);
+    // Техработы (переезд базы): напоминания, вопрос дня и очистки ждут конца работ — в копию ничего не должно дописаться.
+    if (config.maintenance) return;
     ctx.waitUntil(
       controller.cron === DAILY_CRON
         ? recordDailyTick(at).catch(() => undefined).then(() => runDailyQuizTick(at)).then(() => undefined)

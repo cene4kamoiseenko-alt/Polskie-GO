@@ -30,6 +30,19 @@ export function buildApp() {
     await next();
   });
 
+  // Техработы (MAINTENANCE=on, переезд базы): ничего не пишем, чтобы копия базы была полной. Чтение работает; запись — 503 «maintenance»
+  // (приложение показывает «идут технические работы»); webhook бота — 503, и Telegram сам повторит сообщения, когда работы закончатся.
+  app.use('*', async (c, next) => {
+    if (!config.maintenance) return next();
+    const p = c.req.path;
+    const write = !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method);
+    if (p.startsWith('/telegram/') || (write && (p.startsWith('/api/') || p.startsWith('/uploads')))) {
+      c.header('retry-after', '300');
+      return c.json({ error: 'maintenance', message: 'Технические работы, несколько минут' }, 503);
+    }
+    return next();
+  });
+
   app.use('/api/*', cors({ origin: (origin) => (!config.isProdLike || config.corsOrigins.includes(origin) ? origin : null), credentials: false }));
 
   // Заголовки безопасности для всего, что отдаёт Worker: браузер не угадывает тип содержимого и не сообщает адрес страницы.

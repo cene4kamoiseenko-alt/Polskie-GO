@@ -74,6 +74,7 @@ export const en: Dict = {
   error_chunk: "The app was updated or this screen didn't finish loading. Reload to continue — your progress is saved on the server.",
   error_reload: "Reload",
   error_generic: "Something went wrong on this screen. Try again — your progress is saved.",
+  error_maintenance: "We're doing maintenance for a few minutes. Your progress is saved — try again shortly.",
   back: 'Back',
   close: 'Close',
   continue: 'Continue',
