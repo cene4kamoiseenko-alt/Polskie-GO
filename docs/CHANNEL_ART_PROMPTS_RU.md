@@ -76,7 +76,7 @@ Scene:
 
 ## Что уже получено (2026-11-23)
 
-22 картинки, 1254×1254, сохранены в `apps/web/public/channel/` как JPG (~300–400 КБ). Кепка и шарф — вещи гардероба Бобека,
+34 картинки, 1254×1254, сохранены в `apps/web/public/channel/` как JPG (~300–400 КБ). Кепка и шарф — вещи гардероба Бобека,
 это в каноне. Картинка `-1`/`-2` — два варианта одной сцены, чередуются, чтобы канал не повторялся.
 
 | Сцена | Файлы |
@@ -89,10 +89,16 @@ Scene:
 | 6 budowa | `budowa-1.jpg`, `budowa-2.jpg` |
 | 11 dworzec · 12 mieszkanie · 13 bank · 14 paczka · 15 sasiad | `dworzec.jpg`, `mieszkanie.jpg`, `bank.jpg`, `paczka.jpg`, `sasiad.jpg` |
 | 16 slang · 17–19 идиомы · 20 ложные друзья | `slang.jpg`, `idiom-kciuki.jpg`, `idiom-muchy.jpg`, `idiom-maliny.jpg`, `falszywi-przyjaciele.jpg` |
+| 21 wymowa (+ аудирование) | `wymowa.jpg`, `sluchanie.jpg` |
+| 22 правило | `zasada-1.jpg` (доска с пазлами), `zasada-2.jpg` (карточки-схемы) |
+| 23 przypadki | `przypadki.jpg` (одно слово и стрелки к формам) |
+| 24 тест дня | `egzamin-1.jpg`, `egzamin-2.jpg` (с таймером) |
+| 25 brawo | `brawo-1.jpg` (медаль), `brawo-2.jpg` (кубок) |
+| 26 detektyw (B2–C1) | `detektyw-1.jpg` (улица), `detektyw-2.jpg` (доска улик) |
+| Слова по темам (сверх списка) | `slowa-tematy.jpg` (иконки тем: деньги, дом, семья, карта…) — к постам «нишевые слова» |
 
-**Ещё нет:** 7 sklep, 8 kawiarnia, 9 bar-mleczny, 10 tramwaj, 21–30 (wymowa, zasada-tablica, przypadki, pytanie, brawo,
-detektyw, finanse, it, prawo, wigilia). Важнее всего 21–26: это картинки к постам «правило», «произношение» и к тестам.
-Пока их нет, такие посты берут общие картинки, например `falszywi-przyjaciele` или сцены бота.
+**Ещё нет:** 7 sklep, 8 kawiarnia, 9 bar-mleczny, 10 tramwaj, 27 finanse, 28 it, 29 prawo, 30 wigilia. Без них можно
+начинать: посты про финансы, IT и право до появления своих картинок берут `slowa-tematy`, праздничные — `brawo`.
 
 ## Куда идут картинки
 
