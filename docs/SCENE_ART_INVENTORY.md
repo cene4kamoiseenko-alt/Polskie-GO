@@ -89,6 +89,9 @@
 | `lotnisko-lot` | LOT | `lotnisko-lot` | 1536×768 | 1440×720 | interim | `lotnisko-lot` | `train-station` | — |
 | `recepcja-narty` | Zakopane | `recepcja-narty` | 1536×768 | 1440×720 | interim | `zakopane-ferie` | `hotel` | — |
 | `warszawa-starowka` | Warszawa | `warszawa-starowka` | 1536×768 | 1440×720 | interim | `warszawa-dzien` | `castle` | — |
+| `pracownia-twardowskiego` | Pracownia Twardowskiego | `pracownia-twardowskiego` | 1536×768 | 1440×720 | interim | `escape-twardowski` | `castle` | — |
+
+Кадр 2026-11-23 — обложка миссии для подписчиков канала «Тайна Твардовского» (`content/mission-channel.ts`): квест-комната у Рынка, Бобек с лупой и запиской, сундук с замком, песочные часы; полоса 2:1 с `top: 110`.
 
 Дефекты: в `cukiernia-rogale` Бобек в фартуке и колпаке кондитера (в миссии он покупатель); в `pierogarnia` Бобек несёт тарелку, как официант (в миссии он заказывает).
 

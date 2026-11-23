@@ -22,7 +22,9 @@ const doc = readFileSync(new URL('../../../docs/SCENE_ART_INVENTORY.md', import.
 const STORES = ['fuel-orlen', 'parcel-inpost', 'store-biedronka', 'store-rossmann', 'store-zabka'];
 const OWNER_PACK = ['bakery-pierniki', 'clinic-registration', 'flat-keys', 'milk-bar', 'office-first-day', 'station-pkp', 'store-lidl', 'street-zapiekanki', 'tram-stop'];
 const OWNER_PACK_1031 = ['cukiernia-rogale', 'lotnisko-lot', 'pierogarnia', 'recepcja-narty', 'stop-cafe', 'urzad-okienko', 'warszawa-starowka'];
-const IDS = [...STORES, ...OWNER_PACK, ...OWNER_PACK_1031].sort();
+/** Кадр владельца 2026-11-23: обложка миссии канала «Тайна Твардовского». */
+const OWNER_PACK_1123 = ['pracownia-twardowskiego'];
+const IDS = [...STORES, ...OWNER_PACK, ...OWNER_PACK_1031, ...OWNER_PACK_1123].sort();
 
 describe('Сцены миссий (магазины, InPost, ORLEN и пакет владельца)', () => {
   it('scene_id стабильны, по одному на бренд, без повторов файлов', () => {
@@ -63,13 +65,13 @@ describe('Сцены миссий (магазины, InPost, ORLEN и пакет
     expect(Object.values(SCENE_ART).every((a) => a.bakedBobek && a.status === 'interim')).toBe(true);
     // Магазины увеличены из маленьких вырезок коллажа; кадры владельца только уменьшены.
     for (const id of STORES) expect(SCENE_ART[id].native[0], id).toBeLessThan(SCENE_ART[id].width);
-    for (const id of [...OWNER_PACK, ...OWNER_PACK_1031]) expect(SCENE_ART[id].native[0], id).toBeGreaterThanOrEqual(SCENE_ART[id].width);
+    for (const id of [...OWNER_PACK, ...OWNER_PACK_1031, ...OWNER_PACK_1123]) expect(SCENE_ART[id].native[0], id).toBeGreaterThanOrEqual(SCENE_ART[id].width);
   });
 
   it('картинка привязана к существующей миссии по slug и совпадает с её SVG-сценой', () => {
     const pairs = Object.values(SCENE_ART).flatMap((a) => a.missions.map((m) => [a, m] as const));
     expect(pairs.map(([, m]) => m).sort()).toEqual([
-      'bar-mleczny', 'biedronka-breakfast', 'doctor-appointment', 'first-tram', 'first-workday', 'kazimierz-zapiekanka', 'krakow-pierogi', 'landlord',
+      'bar-mleczny', 'biedronka-breakfast', 'doctor-appointment', 'escape-twardowski', 'first-tram', 'first-workday', 'kazimierz-zapiekanka', 'krakow-pierogi', 'landlord',
       'lidl-list', 'lotnisko-lot', 'marcin-rogal', 'orlen-coffee', 'orlen-pump', 'paczkomat', 'rossmann-basics', 'torun-bakery', 'train-wroclaw', 'urzad-pesel', 'warszawa-dzien', 'zabka-first-order', 'zakopane-ferie',
     ]);
     for (const [art, slug] of pairs) {

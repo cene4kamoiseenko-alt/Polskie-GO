@@ -1,6 +1,6 @@
 /**
  * Сборка предложений в миссиях и уроках (владелец 2026-11-07, скриншот: «Poproszę wodę i hot doga» отклонено, хотя верно, а в объяснении сказано
- * про винительный падеж, хотя падеж использован правильно). Проверяется на всём содержании: миссии (107 шагов «build») и уроки (BUILD_SENTENCE,
+ * про винительный падеж, хотя падеж использован правильно). Проверяется на всём содержании: миссии (110 шагов «build») и уроки (BUILD_SENTENCE,
  * WORD_ORDER из базы).
  */
 import { afterAll, describe, expect, it } from 'vitest';
@@ -33,8 +33,9 @@ async function lessonOrderItems(): Promise<(ExerciseItem & { explanation: unknow
 }
 
 describe('миссии: шаги «build»', () => {
-  it('в миссиях 107 шагов со сборкой; у большинства есть допустимые порядки или формулировки', () => {
-    expect(builds.length).toBe(107);
+  it('в миссиях 110 шагов со сборкой; у большинства есть допустимые порядки или формулировки', () => {
+    // +3 — миссия канала «Тайна Твардовского» (2026-11-23).
+    expect(builds.length).toBe(110);
     const withMore = builds.filter(({ step }) => acceptedPhrases(step).length > 1);
     expect(withMore.length).toBeGreaterThan(75);
   });

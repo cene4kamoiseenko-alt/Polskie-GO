@@ -56,4 +56,10 @@ export const ESCAPE_VOCAB: VocabSeed[] = [
     ['Dziś w nocy księżyc jest bardzo jasny.', 'Сьогодні вночі місяць дуже яскравий.', 'Сегодня ночью луна очень яркая.', 'The moon is very bright tonight.']),
   w('opinia', 'noun', 'B1', 'відгук; думка', 'отзыв; мнение', 'review; opinion', ['restaurants', 'phrases'],
     ['Zostawiłem opinię o restauracji.', 'Я залишив відгук про ресторан.', 'Я оставил отзыв о ресторане.', 'I left a review of the restaurant.'], { acc: 'opinię' }),
+
+  // ── Регіони: Верхня й Нижня Сілезія (górny / dolny у назвах) ──
+  w('Górny Śląsk', 'noun', 'A2', 'Верхня Сілезія', 'Верхняя Силезия', 'Upper Silesia', ['travel', 'city'],
+    ['Katowice to stolica Górnego Śląska.', 'Катовіце — столиця Верхньої Сілезії.', 'Катовице — столица Верхней Силезии.', 'Katowice is the capital of Upper Silesia.'], { gen: 'Górnego Śląska', loc: 'na Górnym Śląsku' }),
+  w('Dolny Śląsk', 'noun', 'A2', 'Нижня Сілезія', 'Нижняя Силезия', 'Lower Silesia', ['travel', 'city'],
+    ['Wrocław to największe miasto Dolnego Śląska.', 'Вроцлав — найбільше місто Нижньої Сілезії.', 'Вроцлав — крупнейший город Нижней Силезии.', 'Wrocław is the largest city in Lower Silesia.'], { gen: 'Dolnego Śląska', loc: 'na Dolnym Śląsku' }),
 ];

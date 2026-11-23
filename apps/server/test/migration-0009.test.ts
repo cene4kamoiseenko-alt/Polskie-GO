@@ -20,7 +20,7 @@ const dir = new URL('../migrations/', import.meta.url);
 const files = readdirSync(dir).filter((x) => x.endsWith('.sql')).sort();
 const NEW = '0009_bot_quiz.sql';
 const NEW_TABLES = ['app_state', 'bot_quiz_players', 'bot_quiz_rounds'];
-const ADDITIVE_LATER = ['0013_premium.sql', '0022_streak_freezes.sql', '0023_study_levels.sql', '0024_level_texts.sql'];
+const ADDITIVE_LATER = ['0013_premium.sql', '0022_streak_freezes.sql', '0023_study_levels.sql', '0024_level_texts.sql', '0025_channel_joined.sql'];
 const statements = (f: string) => readFileSync(new URL(f, dir), 'utf8').split('--> statement-breakpoint').map((s) => s.trim()).filter(Boolean);
 
 let mf: Miniflare;

@@ -14,14 +14,14 @@ const botPublic = `${root}/apps/web/public/bot`;
 describe('перечень незавершённых ассетов', () => {
   const data = unfinishedAssets(root);
 
-  it('2 фона городов, 5 сцен бота, 21 кадр миссий с Бобеком, 18 + 8 слоёв Бобека', () => {
+  it('2 фона городов, 5 сцен бота, 22 кадра миссий с Бобеком, 18 + 8 слоёв Бобека', () => {
     expect(data.cities.map((c) => c.slug)).toEqual(['rzeszow', 'zakopane']);
     expect(data.botScenes.map((b) => b.scene)).toEqual(['map', 'correct_answer', 'quick_question', 'travel_passport', 'lesson_complete']);
     // 14 + 6 сцен Premium + 27 миссий пропуска месяца (ADR-011; с января по июнь 2027 добавлено 2026-11-04) + миссия канала (2026-11-23).
     expect(data.missions.map((m) => m.slug)).toHaveLength(48);
     expect(data.storeScenes.map((s) => s.id).sort()).toEqual([
       'bakery-pierniki', 'clinic-registration', 'cukiernia-rogale', 'flat-keys', 'fuel-orlen', 'lotnisko-lot', 'milk-bar', 'office-first-day', 'parcel-inpost',
-      'pierogarnia', 'recepcja-narty', 'station-pkp', 'stop-cafe', 'store-biedronka', 'store-lidl', 'store-rossmann', 'store-zabka', 'street-zapiekanki', 'tram-stop', 'urzad-okienko', 'warszawa-starowka',
+      'pierogarnia', 'pracownia-twardowskiego', 'recepcja-narty', 'station-pkp', 'stop-cafe', 'store-biedronka', 'store-lidl', 'store-rossmann', 'store-zabka', 'street-zapiekanki', 'tram-stop', 'urzad-okienko', 'warszawa-starowka',
     ]);
     expect(data.layers.map((l) => l.missing.length)).toEqual([18, 8]);
   });

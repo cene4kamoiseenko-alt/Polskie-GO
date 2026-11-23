@@ -142,7 +142,4 @@ export const KATOWICE_VOCAB: VocabSeed[] = [
     ['Chyba będzie padać.', 'Мабуть, буде дощ.', 'Кажется, будет дождь.', 'I think it\'s going to rain.']),
   w('może', 'adv', 'A1', 'може, можливо', 'может, возможно', 'maybe', ['phrases'],
     ['Może pójdziemy do Spodka?', 'Може, підемо в Сподек?', 'Может, пойдём в Сподек?', 'Maybe we could go to the Spodek?']),
-  // ── Регіон ──
-  w('Górny Śląsk', 'noun', 'A2', 'Верхня Сілезія', 'Верхняя Силезия', 'Upper Silesia', ['travel', 'city'],
-    ['Katowice to stolica Górnego Śląska.', 'Катовіце — столиця Верхньої Сілезії.', 'Катовице — столица Верхней Силезии.', 'Katowice is the capital of Upper Silesia.'], { gen: 'Górnego Śląska', loc: 'na Górnym Śląsku' }),
 ];

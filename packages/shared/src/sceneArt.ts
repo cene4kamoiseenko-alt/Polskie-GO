@@ -134,6 +134,11 @@ export const SCENE_ART: Record<string, SceneArt> = {
     ...common, id: 'warszawa-starowka', file: 'warszawa-starowka', brand: 'Warszawa', fallbackScene: 'castle',
     missions: ['warszawa-dzien'], focus: '45% 35%',
   },
+  // Кадр владельца 2026-11-23: обложка миссии канала «Тайна Твардовского» (квест-комната у Рынка в Кракове).
+  'pracownia-twardowskiego': {
+    ...common, id: 'pracownia-twardowskiego', file: 'pracownia-twardowskiego', brand: 'Pracownia Twardowskiego', fallbackScene: 'castle',
+    missions: ['escape-twardowski'], focus: '35% 35%',
+  },
 };
 
 /** slug місії → scene_id картинки. Місій без запису це не стосується: вони й далі показують SVG-сцену. */

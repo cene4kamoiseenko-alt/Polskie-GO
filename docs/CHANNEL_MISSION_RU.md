@@ -19,7 +19,7 @@
 
 - **Добавить @Polski_Go_Bot администратором канала @polskigoo.** Права можно выключить все. Без этого Telegram не говорит боту, кто подписан: игрок увидит «Проверка временно недоступна», а в админке, на странице «Ошибки», появится `channel verify: …`.
 - Сгенерировать озвучку новых фраз миссии в админке, раздел «🎧 Аудиобиблиотека».
-- Картинка фона миссии. Пока стоит рисованная сцена с вывеской «WAWEL». Описание кадра — в `MISSION_BACKGROUND_BRIEF['escape-twardowski']` (`packages/shared/src/sceneArt.ts`) и в `docs/UNFINISHED_ASSETS.md`.
+- Обложка миссии — ваш кадр 2026-11-23 (квест-комната, Бобек с лупой, сундук с замком): `apps/web/src/assets/scenes/pracownia-twardowskiego.webp`, оригинал — `docs/design/a16/missions/pracownia-twardowskiego_original.webp`. Как у остальных кадров с Бобеком внутри, статус временный; фон без Бобека описан в `MISSION_BACKGROUND_BRIEF['escape-twardowski']`.
 
 ## Ответы проверки
 
@@ -45,4 +45,4 @@
 - **Приложение:**
   - `components/ChannelSheet.tsx` — панель подписки, открывается по `/life?channel=1`;
   - `components/SocialPromo.tsx` — карточка на главной и блок в профиле.
-- **Новые слова в словаре** (`content/vocab-escape.ts`): górny, dolny, środkowy, oraz, półka, szuflada, biurko, okno, skrzynia, zagadka, podpowiedź, kłódka, kod, błąd, karczma, księżyc, opinia. Плюс Górny Śląsk (Катовице) и Dolny Śląsk (Вроцлав).
+- **Новые слова в словаре** (`content/vocab-escape.ts`): górny, dolny, środkowy, oraz, półka, szuflada, biurko, okno, skrzynia, zagadka, podpowiedź, kłódka, kod, błąd, karczma, księżyc, opinia. Плюс Górny Śląsk и Dolny Śląsk (там же: словари городов требуют, чтобы каждое слово встречалось в уроках города).

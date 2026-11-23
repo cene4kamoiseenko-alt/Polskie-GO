@@ -174,6 +174,13 @@ export const SCENE_ART_NOTES: Record<string, SceneArtNotes> = {
     telegram: null,
     defects: [],
   },
+  'pracownia-twardowskiego': {
+    native: [1536, 768],
+    source: { file: 'docs/design/a16/missions/pracownia-twardowskiego_original.webp', top: 110 },
+    shows: 'Підвал-майстерня алхіміка біля Ринку в Кракові: Бобек із лупою читає записку з шифром, скриня з навісним замком, пісочний годинник, книги й свічки, на стіні — пан Твардовський, у арці — Маріацький костел',
+    telegram: null,
+    defects: [],
+  },
 };
 
 /** SCENE_ART разом із довідкою — для тестів і документів. */

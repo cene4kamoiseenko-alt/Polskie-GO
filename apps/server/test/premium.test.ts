@@ -257,13 +257,17 @@ describe('що дає Premium', () => {
       landlord: 21, 'first-workday': 21, 'doctor-appointment': 21, 'lotnisko-lot': 20, 'zakopane-ferie': 20, 'warszawa-dzien': 19,
     });
     expect(premium.every((m: { locked: boolean }) => m.locked)).toBe(true);
-    expect(list.missions.filter((m: { locked: boolean }) => m.locked)).toHaveLength(6);
+    // Замок «channel» у миссии канала (2026-11-23) — не Premium.
+    expect(list.missions.filter((m: { lock: string | null }) => m.lock === 'premium')).toHaveLength(6);
     expect(list.soon).toEqual([]);
     expect((await free.call('POST', '/api/missions/landlord/start')).body.error).toBe('premium_required');
 
     const prem = await login();
     await pay(prem, 'MONTH_3');
-    expect((await prem.call('GET', '/api/missions')).body.missions.some((m: { locked: boolean }) => m.locked)).toBe(false);
+    const premList = (await prem.call('GET', '/api/missions')).body.missions as { slug: string; lock: string | null }[];
+    expect(premList.some((m) => m.lock === 'premium')).toBe(false);
+    // Premium не открывает миссию канала: её открывает только подписка на @polskigoo.
+    expect(premList.filter((m) => m.lock === 'channel').map((m) => m.slug)).toEqual(['escape-twardowski']);
     const run = await prem.call('POST', '/api/missions/doctor-appointment/start');
     expect(run.status).toBe(200);
     expect(run.body.mission.steps).toHaveLength(21);
