@@ -737,6 +737,52 @@ export const ttsCache = sqliteTable('tts_cache', {
  * тут — що це за текст, яким голосом і моделлю, скільки кредитів коштувало і чи файл готовий.
  * Один рядок на (текст за вимовою, голос): інший голос — інший рядок і інший файл, файли голосів не змішуються.
  */
+/**
+ * Очередь озвучки (2026-11-23, services/audio-jobs.ts): задание из админки озвучивается на сервере частями — cron каждую
+ * минуту и tick, пока страница открыта; свёрнутое окно больше не останавливает генерацию.
+ */
+export const audioJobs = sqliteTable(
+  'audio_jobs',
+  {
+    id: id(),
+    title: text('title').notNull(),
+    /** queued | running | done | stopped */
+    status: text('status').notNull().default('queued'),
+    /** admin | budget | auth — почему остановлено. */
+    stopReason: text('stop_reason'),
+    maxCredits: real('max_credits').notNull(),
+    spent: real('spent').notNull().default(0),
+    /** JSON ставок кредитов на символ по моделям (как в /audio/generate). */
+    rates: json<Record<string, number>>('rates'),
+    allowOtherVoice: bool('allow_other_voice').notNull().default(false),
+    total: integer('total').notNull(),
+    lastError: text('last_error'),
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+    updatedAt: createdAt('updated_at'),
+    finishedAt: ts('finished_at'),
+  },
+  (t) => [index('audio_jobs_status_idx').on(t.status, t.createdAt)],
+);
+
+export const audioJobItems = sqliteTable(
+  'audio_job_items',
+  {
+    jobId: text('job_id').notNull().references(() => audioJobs.id, { onDelete: 'cascade' }),
+    unitId: text('unit_id').notNull(),
+    text: text('text').notNull(),
+    model: text('model').notNull(),
+    /** pending | running | done | failed */
+    status: text('status').notNull().default('pending'),
+    /** generated | adopted | exists | failed — итог generateBatch. */
+    result: text('result'),
+    error: text('error'),
+    attempts: integer('attempts').notNull().default(0),
+    claimedAt: ts('claimed_at'),
+  },
+  (t) => [primaryKey({ columns: [t.jobId, t.unitId] }), index('audio_job_items_status_idx').on(t.jobId, t.status)],
+);
+
 export const audioAssets = sqliteTable(
   'audio_assets',
   {

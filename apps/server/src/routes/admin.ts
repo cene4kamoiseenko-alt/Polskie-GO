@@ -21,6 +21,7 @@ import { z, type ZodTypeAny } from 'zod';
 import { CEFR_LEVELS, EXERCISE_TYPES, DEFAULT_REWARDS } from '@polski-go/shared';
 import { getBindings } from '../env';
 import { atomic, chunks, db, isUniqueViolation } from '../db';
+import { createAudioJob, listAudioJobs, resumeAudioJob, stopAudioJob, tickAudioJob } from '../services/audio-jobs';
 import * as t from '../db/schema';
 import { forgetUser, requireAdmin } from '../auth';
 import { listReports, resolveReports } from '../services/reports';
@@ -912,6 +913,46 @@ a.post('/audio/generate', rateLimit(30, 60_000, 'audio-generate'), async (c) => 
   const credits = results.reduce((n, r) => n + r.credits, 0);
   await audit(c, 'generate', 'audio', null, { items: q.items.length, credits, generated: results.filter((r) => r.status === 'generated').length });
   return c.json({ results, credits });
+});
+
+// Очередь озвучки (services/audio-jobs.ts): задание озвучивается на сервере — по cron и tick страницы, окно можно свернуть.
+const audioItem = z.object({ id: z.string().regex(/^[0-9a-f]{64}$/), text: z.string().min(1).max(300), model: z.enum(LIBRARY_MODELS) });
+a.get('/audio/jobs', async (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  return c.json({ jobs: await listAudioJobs(10) });
+});
+a.post('/audio/jobs', rateLimit(20, 60_000, 'audio-jobs'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const q = z
+    .object({
+      title: z.string().min(1).max(120),
+      items: z.array(audioItem).min(1).max(20_000),
+      maxCredits: z.number().min(0).max(10_000_000),
+      rates: z.partialRecord(z.enum(LIBRARY_MODELS), z.number().min(0).max(10)).optional(),
+      allowOtherVoice: z.boolean().optional(),
+    })
+    .parse(await body(c));
+  const job = await createAudioJob({ ...q, createdBy: c.get('admin')!.id });
+  await audit(c, 'create', 'audio_job', job.id, { title: q.title, items: job.total, maxCredits: q.maxCredits });
+  return c.json(job);
+});
+/** Озвучить следующую часть сейчас (страница открыта) — до 10 фраз за запрос. */
+a.post('/audio/jobs/:id/tick', rateLimit(40, 60_000, 'audio-tick'), async (c) => {
+  needRole(c, 'SUPERADMIN');
+  return c.json({ job: await tickAudioJob(c.req.param('id'), 10) });
+});
+a.post('/audio/jobs/:id/stop', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  await stopAudioJob(c.req.param('id'));
+  await audit(c, 'stop', 'audio_job', c.req.param('id'), {});
+  return c.json({ ok: true });
+});
+a.post('/audio/jobs/:id/resume', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const { maxCredits } = z.object({ maxCredits: z.number().min(0).max(10_000_000).optional() }).parse((await body(c)) ?? {});
+  await resumeAudioJob(c.req.param('id'), maxCredits);
+  await audit(c, 'resume', 'audio_job', c.req.param('id'), { maxCredits: maxCredits ?? null });
+  return c.json({ ok: true });
 });
 
 /** Перевірка файлів у R2: відсутні, порожні, не MP3, чужий голос. */

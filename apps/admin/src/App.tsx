@@ -185,6 +185,50 @@ const audioModel = (u: AudioUnit, s: AudioStrategy) =>
   s === 'quality' || audioRisky(u.text) ? 'eleven_multilingual_v2' : s === 'economy' || !(u.kind === 'sentence' || u.kind === 'dialogue') ? 'eleven_flash_v2_5' : 'eleven_multilingual_v2';
 const AUDIO_STATUS: Record<string, string> = { generated: 'создано', adopted: 'взято из кэша', exists: 'уже было', locked: 'занято другим запуском', budget: 'не вошло в бюджет', failed: 'ошибка' };
 
+type AudioJob = { id: string; title: string; status: string; stopReason: string | null; maxCredits: number; spent: number; total: number; processed: number; pending: number; failed: number; results: Record<string, number>; lastError: string | null; createdAt: string; finishedAt: string | null };
+const JOB_STATUS: Record<string, string> = { queued: 'в очереди', running: 'идёт', done: 'готово', stopped: 'остановлено' };
+const JOB_STOP: Record<string, string> = { admin: 'вручную', budget: 'закончился лимит кредитов', auth: 'ElevenLabs отклонил ключ', error: 'ошибка настроек' };
+
+/** Задания озвучки: прогресс, кредиты, итоги; работают на сервере — окно можно свернуть или закрыть. */
+function AudioJobsPanel({ jobs, canManage, onStop, onResume }: { jobs: AudioJob[]; canManage: boolean; onStop: (id: string) => void; onResume: (j: AudioJob) => void }) {
+  if (!jobs.length) return null;
+  const running = jobs.some((j) => j.status === 'queued' || j.status === 'running');
+  return (
+    <div className="panel space-y-3 p-4" data-audio-jobs>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="font-bold">Задания озвучки</div>
+        {running && <div className="text-xs font-bold text-emerald-700">Идёт на сервере: окно можно свернуть или закрыть — озвучка продолжится (раз в минуту, а пока страница открыта — быстрее)</div>}
+      </div>
+      {jobs.map((j) => {
+        const pct = j.total ? Math.round((100 * j.processed) / j.total) : 0;
+        const live = j.status === 'queued' || j.status === 'running';
+        return (
+          <div key={j.id} className="rounded-xl border p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0 font-bold">{j.title}</div>
+              <div className="text-xs text-slate-500">{new Date(j.createdAt).toLocaleString('ru')}</div>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${live ? 'bg-sky-500' : j.status === 'done' ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} /></div>
+            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              <span><b>{JOB_STATUS[j.status] ?? j.status}</b>{j.status === 'stopped' && j.stopReason ? ` — ${JOB_STOP[j.stopReason] ?? j.stopReason}` : ''}</span>
+              <span>{j.processed} / {j.total} фраз ({pct}%)</span>
+              <span>кредиты ≈ {Math.ceil(j.spent).toLocaleString('ru')} из {j.maxCredits.toLocaleString('ru')}</span>
+              {Object.entries(j.results).map(([k, n]) => <span key={k}>{AUDIO_STATUS[k] ?? k}: {n}</span>)}
+            </div>
+            {j.lastError && <div className="mt-1 text-xs text-rose-600">Последняя ошибка: {j.lastError}</div>}
+            {canManage && (live || j.status === 'stopped') && (
+              <div className="mt-2 flex gap-2">
+                {live && <button className="btn-s" onClick={() => onStop(j.id)}>Остановить</button>}
+                {j.status === 'stopped' && j.pending > 0 && <button className="btn-p" onClick={() => onResume(j)}>Продолжить ({j.pending})</button>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AudioLibrary({ admin }: { admin: Admin }) {
   const { data: acc, error: accError, reload: reloadAcc } = useLoad<any>(() => api('/audio/account'), []);
   const { data: summary, reload: reloadSummary } = useLoad<any>(() => api('/audio/summary'), []);
@@ -199,8 +243,61 @@ function AudioLibrary({ admin }: { admin: Admin }) {
   const [pickGroup, setPickGroup] = useState('all');
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const stop = useRef(false);
   const say = (m: string) => setLog((l) => [m, ...l].slice(0, 40));
+  // Задания озвучки на сервере (services/audio-jobs.ts): идут по cron и быстрее — пока страница открыта (tick).
+  const [jobs, setJobs] = useState<AudioJob[]>([]);
+  const loadJobs = useCallback(async () => {
+    try {
+      setJobs((await api<{ jobs: AudioJob[] }>('/audio/jobs')).jobs);
+    } catch (e) {
+      say((e as Error).message);
+    }
+  }, []);
+  useEffect(() => { void loadJobs(); }, [loadJobs]);
+  const active = jobs.find((j) => j.status === 'queued' || j.status === 'running');
+  const ticking = useRef(false);
+  // Обновить баланс, сводку и «готово» — всегда свежими функциями (цикл ниже живёт дольше одного рендера).
+  const refreshAll = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!active || admin.role !== 'SUPERADMIN') return;
+    let cancelled = false;
+    // Пока вкладка видна — озвучиваем часть за частью сразу; свернули — цикл замирает, а cron на сервере продолжает раз в минуту.
+    const run = async () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      let errors = 0;
+      let passes = 0;
+      try {
+        while (!cancelled && document.visibilityState === 'visible') {
+          let r: { job: AudioJob | null };
+          try {
+            r = await api<{ job: AudioJob | null }>(`/audio/jobs/${active.id}/tick`, { body: {} });
+            errors = 0;
+          } catch (e) {
+            // Сеть или лимит запросов: пауза и ещё раз; после трёх подряд — ждём cron (он всё равно продолжит).
+            if (++errors >= 3) { say(`${(e as Error).message} — озвучка продолжится на сервере раз в минуту`); break; }
+            await new Promise((ok) => setTimeout(ok, 10_000));
+            continue;
+          }
+          if (r.job) setJobs((js) => js.map((j) => (j.id === r.job!.id ? r.job! : j)));
+          if (!r.job || (r.job.status !== 'running' && r.job.status !== 'queued')) {
+            refreshAll.current();
+            break;
+          }
+          if (++passes % 6 === 0) refreshAll.current();
+        }
+      } finally {
+        ticking.current = false;
+      }
+    };
+    void run();
+    const onVisible = () => { if (document.visibilityState === 'visible') { void loadJobs(); void run(); } };
+    document.addEventListener('visibilitychange', onVisible);
+    // Прогресс от cron (когда цикл страницы стоит) — обновляем раз в 20 секунд.
+    const poll = window.setInterval(() => { if (!ticking.current && document.visibilityState === 'visible') { void loadJobs(); void run(); } }, 20_000);
+    return () => { cancelled = true; window.clearInterval(poll); document.removeEventListener('visibilitychange', onVisible); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id]);
 
   useEffect(() => {
     fetch('/admin/audio-manifest.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error(`каталог: ${r.status}`)))).then((m) => { setUnits(m.units); setGroups(m.groups); }).catch((e) => say(e.message));
@@ -213,6 +310,7 @@ function AudioLibrary({ admin }: { admin: Admin }) {
     setReady(got);
   }, [units, acc]);
   useEffect(() => { void refreshReady(); }, [refreshReady]);
+  refreshAll.current = () => { reloadAcc(); reloadSummary(); void refreshReady(); };
 
   const rates: Record<string, number> = { eleven_multilingual_v2: 1, eleven_flash_v2_5: 0.5 };
   for (const m of acc?.models ?? []) if (m.creditsPerChar != null && m.id in rates) rates[m.id] = m.creditsPerChar;
@@ -249,32 +347,37 @@ function AudioLibrary({ admin }: { admin: Admin }) {
   ].filter(Boolean) as string[];
   const canGenerate = !!acc && !blockers.length;
 
+  /** Поставить задание озвучки: дальше оно идёт на сервере, окно можно свернуть или закрыть. */
   const generate = async (items: AudioUnit[], cap: number, title: string) => {
+    if (!items.length) return;
     if (!voiceOk && !window.confirm(acc?.voice ? `Голос «${acc.voice.name ?? '?'}» не похож на мужской голос Kamil. Всё равно генерировать?` : `ElevenLabs не показал описание голоса ${acc?.voiceId}, проверить, что это Kamil, нельзя. Начните с «Тест: 10 фраз» и послушайте. Генерировать?`)) return;
-    if (!window.confirm(`${title}\n\n${items.length} фраз, до ${Math.ceil(cap)} кредитов ElevenLabs (остаток ${acc?.credits ? left : 'неизвестен'}). Уже готовые файлы не оплачиваются. Продолжить?`)) return;
+    if (!window.confirm(`${title}\n\n${items.length} фраз, до ${Math.ceil(cap)} кредитов ElevenLabs (остаток ${acc?.credits ? left : 'неизвестен'}). Уже готовые файлы не оплачиваются. Озвучка пойдёт на сервере — окно можно свернуть. Продолжить?`)) return;
     setBusy(true);
-    stop.current = false;
-    let spent = 0;
-    const counts: Record<string, number> = {};
     try {
-      for (let i = 0; i < items.length && !stop.current; i += 10) {
-        const part = items.slice(i, i + 10);
-        // allowOtherVoice — адмін уже підтвердив голос, який ElevenLabs не описує як чоловічий Kamil (сервер інакше відмовить).
-        const r: any = await api('/audio/generate', { body: { items: part.map((u) => ({ id: u.id, text: u.text, model: audioModel(u, strategy) })), maxCredits: Math.max(0, Math.floor(cap - spent)), rates, allowOtherVoice: !voiceOk } });
-        spent += r.credits;
-        for (const x of r.results) counts[x.status] = (counts[x.status] ?? 0) + 1;
-        const failed = r.results.filter((x: any) => x.status === 'failed');
-        say(`${Math.min(i + 10, items.length)} / ${items.length}: ${Object.entries(counts).map(([k, n]) => `${AUDIO_STATUS[k] ?? k} ${n}`).join(', ')} · потрачено ≈ ${Math.ceil(spent)}${failed.length ? ` · ошибки: ${failed.map((x: any) => x.error).join(', ')}` : ''}`);
-        if (r.results.some((x: any) => x.status === 'budget') || failed.some((x: any) => /http_40[123]/.test(x.error))) break;
-      }
+      // allowOtherVoice — админ уже подтвердил голос, который ElevenLabs не описывает как мужской Kamil (сервер иначе откажет).
+      const r = await api<{ id: string; total: number }>('/audio/jobs', { body: { title, items: items.map((u) => ({ id: u.id, text: u.text, model: audioModel(u, strategy) })), maxCredits: Math.max(0, Math.floor(cap)), rates, allowOtherVoice: !voiceOk } });
+      say(`Задание поставлено: ${r.total} фраз — «${title}»`);
+      setPicked(new Set());
+      await loadJobs();
     } catch (e) {
       say((e as Error).message);
     } finally {
       setBusy(false);
-      reloadAcc();
-      reloadSummary();
-      void refreshReady();
     }
+  };
+  const stopJob = async (id: string) => {
+    await api(`/audio/jobs/${id}/stop`, { body: {} }).catch((e) => say((e as Error).message));
+    await loadJobs();
+  };
+  const resumeJob = async (j: AudioJob) => {
+    let maxCredits: number | undefined;
+    if (j.stopReason === 'budget') {
+      const v = window.prompt(`Лимит кредитов закончился (потрачено ≈ ${Math.ceil(j.spent)} из ${j.maxCredits}). Новый общий лимит для задания:`, String(Math.ceil(j.maxCredits * 2)));
+      if (v == null) return;
+      maxCredits = Math.max(0, Number(v) || 0);
+    }
+    await api(`/audio/jobs/${j.id}/resume`, { body: maxCredits != null ? { maxCredits } : {} }).catch((e) => say((e as Error).message));
+    await loadJobs();
   };
 
   const verify = async () => {
@@ -335,10 +438,11 @@ function AudioLibrary({ admin }: { admin: Admin }) {
       <div className="panel overflow-x-auto p-4">
         <div className="mb-2 font-bold">Каталог: {units ? `${units.length.toLocaleString('ru')} уникальных фраз, ${units.reduce((n, u) => n + u.chars, 0).toLocaleString('ru')} символов; готово ${ready.size}` : 'загрузка…'}</div>
         <table className="w-full min-w-[620px] text-sm">
-          <thead><tr className="whitespace-nowrap text-left text-slate-500"><th>Раздел</th><th>Фраз</th><th>Готово</th><th>Символов</th><th>Экономно</th><th>Сбаланс.</th><th>Качество</th></tr></thead>
+          <thead><tr className="whitespace-nowrap text-left text-slate-500"><th>Раздел</th><th>Фраз</th><th>Готово</th><th>Символов</th><th>Экономно</th><th>Сбаланс.</th><th>Качество</th><th /></tr></thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.g} className="border-t"><td>{r.g}. {r.label}</td><td>{r.units}</td><td>{r.ready}</td><td>{r.chars.toLocaleString('ru')}</td><td>{r.economy.toLocaleString('ru')}</td><td>{r.balanced.toLocaleString('ru')}</td><td>{r.quality.toLocaleString('ru')}</td></tr>
+              <tr key={r.g} className="border-t"><td>{r.g}. {r.label}</td><td>{r.units}</td><td>{r.ready}</td><td>{r.chars.toLocaleString('ru')}</td><td>{r.economy.toLocaleString('ru')}</td><td>{r.balanced.toLocaleString('ru')}</td><td>{r.quality.toLocaleString('ru')}</td>
+                <td className="text-right">{r.ready < r.units && <button className="whitespace-nowrap text-xs font-bold text-sky-700 disabled:text-slate-400" disabled={busy || !canGenerate || !!active} onClick={() => { const us = todo.filter((u) => String(u.group) === r.g); const need = Math.ceil(us.reduce((n, u) => n + cost(u), 0)) + 1; void generate(us, left ? Math.min(need, left) : need, `Раздел ${r.g}. ${r.label}`); }}>озвучить раздел</button>}</td></tr>
             ))}
           </tbody>
         </table>
@@ -356,14 +460,16 @@ function AudioLibrary({ admin }: { admin: Admin }) {
         </label>
         <div className="text-sm">В лимит войдут <b>{fits.out.length}</b> из {todo.length} фраз очереди (≈ {Math.ceil(fits.sum).toLocaleString('ru')} кредитов). Следующие: {todo.slice(fits.out.length, fits.out.length + 5).map((u) => `«${u.text}»`).join(', ') || '—'}</div>
         <div className="flex flex-wrap gap-2">
-          <button className="btn-s" disabled={busy || !canGenerate || !sample.length} onClick={() => generate(sample, sample.reduce((n, u) => n + cost(u), 0) + 1, 'Тест: 10 коротких фраз (числа, диакритика). Послушайте их в приложении или в «Сравнении голосов».')}>Тест: 10 фраз</button>
-          <button className="btn-p" disabled={busy || !canGenerate || !fits.out.length} onClick={() => generate(fits.out, Math.min(budget, left || budget), 'Пакетная озвучка по приоритету')}>{busy ? 'Идёт генерация…' : 'Озвучить в пределах лимита'}</button>
-          {busy && <button className="btn-s" onClick={() => { stop.current = true; }}>Остановить после партии</button>}
+          <button className="btn-s" disabled={busy || !canGenerate || !sample.length || !!active} onClick={() => generate(sample, sample.reduce((n, u) => n + cost(u), 0) + 1, 'Тест: 10 коротких фраз (числа, диакритика). Послушайте их в приложении или в «Сравнении голосов».')}>Тест: 10 фраз</button>
+          <button className="btn-p" disabled={busy || !canGenerate || !fits.out.length || !!active} onClick={() => generate(fits.out, Math.min(budget, left || budget), 'Очередь по приоритету в пределах лимита')}>Озвучить в пределах лимита: {fits.out.length}</button>
           <button className="btn-s" disabled={busy || !ready.size} onClick={verify}>Проверить файлы</button>
         </div>
         {blockers.length > 0 && <div className="text-sm text-rose-600">Кнопки недоступны: {blockers.join('; ')}.</div>}
+        {active && <div className="text-sm text-slate-600">Пока идёт задание, новое поставить нельзя — остановите текущее или дождитесь конца.</div>}
         {log.length > 0 && <div className="max-h-48 overflow-auto rounded bg-slate-50 p-2 font-mono text-xs">{log.map((l, i) => <div key={i}>{l}</div>)}</div>}
       </div>
+
+      <AudioJobsPanel jobs={jobs} canManage={admin.role === 'SUPERADMIN'} onStop={stopJob} onResume={resumeJob} />
 
       <div className="panel space-y-3 p-4">
         <div className="font-bold">Выбрать фразы вручную</div>
@@ -376,20 +482,20 @@ function AudioLibrary({ admin }: { admin: Admin }) {
         </div>
         <div className="text-sm">
           Без файла найдено: <b>{found.length}</b> ·{' '}
-          <button className="font-bold text-sky-700" disabled={!found.length} onClick={() => setPicked((p) => new Set([...p, ...found.slice(0, 200).map((u) => u.id)]))}>отметить первые {Math.min(200, found.length)}</button> ·{' '}
+          <button className="font-bold text-sky-700" disabled={!found.length} onClick={() => setPicked((p) => new Set([...p, ...found.map((u) => u.id)]))}>отметить все найденные ({found.length})</button> ·{' '}
           <button className="font-bold text-sky-700" disabled={!picked.size} onClick={() => setPicked(new Set())}>снять отметки</button>
         </div>
         <div className="max-h-64 overflow-auto rounded border">
-          {found.slice(0, 100).map((u) => (
+          {found.slice(0, 300).map((u) => (
             <label key={u.id} className="flex items-center gap-2 border-b px-2 py-1 text-sm last:border-0">
               <input type="checkbox" checked={picked.has(u.id)} onChange={() => togglePick(u.id)} />
               <span className="min-w-0 flex-1 truncate">{u.text}</span>
               <span className="whitespace-nowrap text-xs text-slate-500">{u.group} · ≈ {Math.ceil(cost(u))} кр.</span>
             </label>
           ))}
-          {found.length > 100 && <div className="px-2 py-1 text-xs text-slate-500">…и ещё {found.length - 100}: уточните поиск</div>}
+          {found.length > 300 && <div className="px-2 py-1 text-xs text-slate-500">…и ещё {found.length - 300} — они тоже отмечаются кнопкой «отметить все найденные»</div>}
         </div>
-        <button className="btn-p" disabled={busy || !canGenerate || !pickedUnits.length} onClick={() => generate(pickedUnits, pickedCost + 1, 'Озвучка выбранных фраз')}>
+        <button className="btn-p" disabled={busy || !canGenerate || !pickedUnits.length || !!active} onClick={() => generate(pickedUnits, pickedCost + 1, `Выбранные фразы (${pickedUnits.length})`)}>
           Озвучить выбранные: {pickedUnits.length} (≈ {Math.ceil(pickedCost).toLocaleString('ru')} кредитов)
         </button>
       </div>

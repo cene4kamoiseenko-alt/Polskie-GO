@@ -183,6 +183,13 @@
       "when": 1795399649994,
       "tag": "0025_channel_joined",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1795404416632,
+      "tag": "0026_audio_jobs",
+      "breakpoints": true
     }
   ]
 }

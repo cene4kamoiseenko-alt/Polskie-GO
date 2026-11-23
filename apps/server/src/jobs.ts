@@ -15,6 +15,7 @@
  *  3. Невідомий результат (тайм-аут, обрив мережі, воркер упав після відправки, lease прострочено) — UNKNOWN: Telegram не має
  *     ключа ідемпотентності, тому таке нагадування не повторюється автоматично (краще пропустити день, ніж надіслати двічі).
  */
+import { processAudioJobs } from './services/audio-jobs';
 import { purgeErrors } from './services/error-log';
 import { sendLeagueAwardMessages, settleDueLeagueWeek } from './services/league';
 import { purgeLinkCodes } from './services/standalone-auth';
@@ -307,6 +308,8 @@ export async function runScheduled(now = new Date()) {
   await ensurePlan(warsawDay(now)).catch((e) => console.warn('daily quiz plan failed', (e as Error).message));
   // Итоги недельной лиги: в понедельник ночью (по Варшаве) прошедшая неделя подводится один раз — призы в кошельки (сервисы/league.ts).
   await settleDueLeagueWeek(now).catch((e) => console.warn('league settle failed', (e as Error).message));
+  // Очередь озвучки админки: следующая часть самого старого задания — даже когда админка закрыта (services/audio-jobs.ts).
+  await processAudioJobs(now).catch((e) => console.warn('audio jobs failed', (e as Error).message));
   if (!config.botToken) return;
   // Бюджет — виклики Bot API за запуск: самоперевірка бота, розсилка, нагадування, запрошення до питань.
   let left = SEND_BUDGET - (await maintainBot(now).catch(() => 0));
