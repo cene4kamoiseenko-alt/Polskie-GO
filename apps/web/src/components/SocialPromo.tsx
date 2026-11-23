@@ -4,7 +4,7 @@
  *   (на этом устройстве). Гостю вне Telegram не показываем: проверить подписку он не сможет.
  * - SocialLinks — блок «Мы в соцсетях» в профиле: Telegram-канал (пока миссия закрыта — ведёт в панель подписки) и Instagram.
  */
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SOCIAL_LINKS } from '@polski-go/shared';
 import { useT } from '../i18n';
@@ -88,9 +88,8 @@ export function SocialLinks() {
       <div className="relative mb-2 aspect-[328/96] w-full">
         <img src={plaque} alt="" className="absolute left-[3%] top-[6%] w-[79%]" draggable={false} />
         <img src={megaphone} alt="" className="absolute left-0 top-0 w-[21%] -rotate-6" draggable={false} />
-        <h2 className="absolute left-[20.5%] top-[37%] whitespace-nowrap text-[clamp(17px,5.2vw,23px)] font-black leading-none text-[#fff4dc] [text-shadow:0_2px_0_#16233f,0_0_8px_rgb(0_0_0/0.45)]">
-          {t('social_title')}
-        </h2>
+        {/* Текст держится внутри плашки на любом языке: «Ми в соцмережах» длиннее «Мы в соцсетях» (владелец 2026-11-23: «слетел текст»). */}
+        <FitTitle text={t('social_title')} />
         <img src={pinnedPhotos} alt="" className="absolute right-[1%] top-0 w-[22%] rotate-[5deg]" draggable={false} />
         <img src={flag} alt="" className="absolute bottom-0 right-0 w-[22%]" draggable={false} />
       </div>
@@ -132,6 +131,41 @@ export function SocialLinks() {
         </button>
       </div>
     </section>
+  );
+}
+
+/**
+ * Заголовок на золотой плашке: ширина — внутренняя часть плашки (от рупора до правого края), шрифт уменьшается, пока строка не
+ * поместится (после загрузки шрифтов и при смене ширины экрана).
+ */
+function FitTitle({ text }: { text: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.fontSize = '';
+      const need = el.scrollWidth;
+      const avail = el.clientWidth;
+      if (need > avail && avail > 0) {
+        const cur = parseFloat(getComputedStyle(el).fontSize);
+        el.style.fontSize = `${Math.max(12, Math.floor(((cur * avail) / need) * 10) / 10)}px`;
+      }
+    };
+    fit();
+    void document.fonts?.ready.then(fit);
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+    ro?.observe(el.parentElement ?? el);
+    return () => ro?.disconnect();
+  }, [text]);
+  return (
+    <h2
+      ref={ref}
+      className="absolute left-[20.5%] right-[35%] top-[37%] whitespace-nowrap text-center text-[clamp(17px,5.2vw,23px)] font-black leading-none text-[#fff4dc] [text-shadow:0_2px_0_#16233f,0_0_8px_rgb(0_0_0/0.45)]"
+      data-social-title
+    >
+      {text}
+    </h2>
   );
 }
 

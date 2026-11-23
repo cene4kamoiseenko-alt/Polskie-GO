@@ -11,7 +11,7 @@ import { useT } from '../i18n';
 import { api, ApiError } from '../lib/api';
 import { useMe } from '../lib/queries';
 import { haptic, openLink } from '../lib/telegram';
-import { Beaver } from './Beaver';
+import waveBobek from '../assets/beaver/wave.webp';
 import { Icon } from './Icon';
 import { Sheet, cx, useToast } from './ui';
 
@@ -73,8 +73,12 @@ export function ChannelSheet({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <Sheet open={open} onClose={onClose} label={t('channel_sheet_title')}>
       <div className="flex flex-col items-center pb-2 text-center" data-channel-sheet>
-        <Beaver mood="happy" size={84} />
-        <h2 className="mt-2 text-[21px] font-black leading-tight">{t('channel_sheet_title')}</h2>
+        {/* Крупный классический Бобек (красное худи PL, машет) — владелец 2026-11-23: «другую модель побольше»; не зависит от наряда игрока. */}
+        <div className="relative -mt-2 grid h-[150px] w-[150px] place-items-center" aria-hidden>
+          <span className="absolute inset-4 rounded-full bg-[radial-gradient(circle,rgb(255_196_80/0.35)_0%,transparent_70%)] blur-md" />
+          <img src={waveBobek} alt="" width={150} height={150} className="relative h-[150px] w-[150px] object-contain drop-shadow-[0_8px_16px_rgb(0_0_0/0.35)]" draggable={false} data-channel-bobek />
+        </div>
+        <h2 className="mt-1 text-[21px] font-black leading-tight">{t('channel_sheet_title')}</h2>
         <p className="muted mt-1.5 text-[14.5px] font-bold leading-snug">{t('channel_sheet_text')}</p>
       </div>
       <ol className="mt-3 grid gap-2.5">
