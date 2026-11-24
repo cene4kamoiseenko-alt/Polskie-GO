@@ -3,7 +3,7 @@
  * с подарком (50 злотков, сервер решает, положен ли он: `me.comeback`) и сразу короткое повторение, чтобы вернуться без порога.
  * Закрыл — до следующего запуска приложения.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -28,7 +28,8 @@ const rememberClosed = () => {
   }
 };
 
-export function ComebackSheet() {
+/** `onOpenChange` — главная прячет тур по вкладкам, пока открыта шторка (тур не должен лечь поверх неё). */
+export function ComebackSheet({ onOpenChange }: { onOpenChange?: (open: boolean) => void } = {}) {
   const { t } = useT();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -39,6 +40,7 @@ export function ComebackSheet() {
   const [busy, setBusy] = useState(false);
   const offer = me?.comeback ?? null;
   const open = !closed && (granted !== null || !!offer);
+  useEffect(() => onOpenChange?.(open), [open, onOpenChange]);
   const close = () => {
     rememberClosed();
     setClosed(true);

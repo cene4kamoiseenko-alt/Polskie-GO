@@ -159,7 +159,6 @@ async function main() {
       await answerViaApi(u, s.body.sessionId, 0, 99);
       await new Promise((r) => setTimeout(r, s.body.items.length * 1000 + 500));
       await u.call('POST', `/api/sessions/${s.body.sessionId}/finish`);
-      await u.call('POST', '/api/flags/tour');
       await stand.env.DB.prepare(`UPDATE player_progress SET last_active_day = date('now', '-8 day') WHERE user_id = ?`).bind(u.user.id).run();
       const before = (await u.call('GET', '/api/me')).body.zlotki as number;
       const p = await open(u, '/');
@@ -173,6 +172,7 @@ async function main() {
       const after = (await u.call('GET', '/api/me')).body.zlotki as number;
       check(after === before + 50, `B2 «Забрать» начислил 50 злотков (${before} → ${after})`);
       check(/повторени|разминк/i.test(await sheet.innerText()), 'B2 после подарка — предложение короткого повторения');
+      check((await p.page.locator('[data-tour]').count()) === 0, 'B2 тур по вкладкам не всплывает поверх шторки «С возвращением»');
       await p.page.screenshot({ path: `${OUT}/comeback-claimed.png` });
       await p.go('/');
       await settle(p.page, 1500);

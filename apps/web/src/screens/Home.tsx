@@ -389,11 +389,12 @@ function LeagueAwardModal() {
 }
 
 /** Тур по вкладкам (2026-11-24): после первого пройденного урока, один раз; не поверх «С возвращением». */
-function HomeTour() {
+function HomeTour({ blocked }: { blocked: boolean }) {
   const qc = useQueryClient();
   const me = useMe().data;
   const [hidden, setHidden] = useState(false);
-  if (!me || hidden || me.tourDone !== false || (me.progress.lessonsCompleted ?? 0) < 1 || me.comeback) return null;
+  // Не поверх шторки «С возвращением» (и после «Забрать», пока она открыта) и не поверх окна награды лиги.
+  if (!me || hidden || blocked || me.tourDone !== false || (me.progress.lessonsCompleted ?? 0) < 1 || me.comeback || me.leagueAward) return null;
   return (
     <TabTour
       onClose={() => {
@@ -412,6 +413,7 @@ export function HomeScreen() {
   const me = useMe().data!;
   const journey = useJourney();
   const [sheet, setSheet] = useState<null | 'practice' | 'sections'>(null);
+  const [comebackOpen, setComebackOpen] = useState(false);
 
   const current = journey.data?.cities.find((c) => c.id === journey.data?.currentCityId);
   const next = journey.data?.nextLesson;
@@ -432,8 +434,8 @@ export function HomeScreen() {
     <div className="space-y-5 pb-2">
       <TopStats />
       <LeagueAwardModal />
-      <ComebackSheet />
-      <HomeTour />
+      <ComebackSheet onOpenChange={setComebackOpen} />
+      <HomeTour blocked={comebackOpen} />
 
       {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія.
           Композиція (2026-11-15): Бобек цілком у кадрі (хвіст і лапи не обрізані), праворуч одна скляна картка
