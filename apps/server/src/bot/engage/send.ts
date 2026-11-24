@@ -15,7 +15,7 @@ import { personLang, type DailyPerson } from '../daily/audience';
 import { failStatus, noteDeliveryFailure } from '../daily/delivery';
 import type { Outcome } from '../daily/send';
 import { warsawDay } from '../daily/state';
-import { needsMissionFacts, pickDailyMessage, type CardHistory, type DailyMessage, type MissionFacts, type PickInput } from './pick';
+import { needsMissionFacts, pickDailyMessage, pickFreeMission, type CardHistory, type DailyMessage, type MissionFacts, type PickInput } from './pick';
 import { cardSeed, cardView, type CardData } from './views';
 
 const LEASE_MS = 5 * 60_000;
@@ -28,12 +28,12 @@ export async function loadCardHistory(telegramIds: number[], since: string): Pro
   for (let i = 0; i < telegramIds.length; i += IN_CHUNK) {
     const chunk = telegramIds.slice(i, i + IN_CHUNK);
     const rows = await db
-      .select({ telegramId: engageSends.telegramId, kind: engageSends.kind, day: engageSends.day, openedAt: engageSends.openedAt })
+      .select({ telegramId: engageSends.telegramId, kind: engageSends.kind, day: engageSends.day, openedAt: engageSends.openedAt, variant: engageSends.variant })
       .from(engageSends)
       .where(and(inArray(engageSends.telegramId, chunk), gte(engageSends.day, since), eq(engageSends.status, 'SENT')));
     for (const r of rows) {
       const list = out.get(r.telegramId) ?? [];
-      list.push({ kind: r.kind, day: r.day, opened: !!r.openedAt });
+      list.push({ kind: r.kind, day: r.day, opened: !!r.openedAt, variant: r.variant });
       out.set(r.telegramId, list);
     }
   }
@@ -64,22 +64,25 @@ export function pickInputFor(p: DailyPerson, now: Date, enabled: boolean, histor
 }
 
 /** Бесплатная непройденная миссия (по порядку списка) и сколько дней назад игрок последний раз начинал миссию. */
-export async function loadMissionFacts(userId: string, lang: UiLang, now: Date): Promise<MissionFacts> {
+/** `history` — карточки человека (для «Миссии недели»: какие миссии уже предлагали). */
+export async function loadMissionFacts(userId: string, lang: UiLang, now: Date, history: CardHistory[] = []): Promise<MissionFacts> {
   const [list, last] = await Promise.all([
     listMissions(userId, now),
     db.select({ startedAt: missionRuns.startedAt }).from(missionRuns).where(eq(missionRuns.userId, userId)).orderBy(desc(missionRuns.startedAt)).limit(1).get(),
   ]);
-  const m = list.missions.find((x) => !x.locked && x.completions === 0);
+  const candidates = list.missions
+    .filter((x) => !x.locked && x.completions === 0)
+    .map((m) => ({ slug: m.slug, title: m.title[lang] || m.title.ru || m.slug, minutes: m.minutes, category: m.category }));
   return {
     daysSinceMissionStart: last ? dayDiff(dayKey(last.startedAt, 'Europe/Warsaw'), warsawDay(now)) : null,
-    freeMission: m ? { slug: m.slug, title: m.title[lang] || m.title.ru || m.slug, minutes: m.minutes, category: m.category } : null,
+    freeMission: pickFreeMission(candidates, history),
   };
 }
 
 /** Что прислать человеку сегодня (рассылка уже решила, что ему положен вопрос дня, и карточки включены). */
 export async function messageFor(p: DailyPerson, now: Date, history: CardHistory[]): Promise<DailyMessage> {
   const base = pickInputFor(p, now, true, history, null);
-  const mission = p.userId && needsMissionFacts(base) ? await loadMissionFacts(p.userId, personLang(p), now) : null;
+  const mission = p.userId && needsMissionFacts(base) ? await loadMissionFacts(p.userId, personLang(p), now, history) : null;
   return pickDailyMessage({ ...base, mission });
 }
 

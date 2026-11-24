@@ -79,6 +79,11 @@ describe('карточки бота в админке', () => {
       expect(new Set(pv.variants.map((v: { text: string }) => v.text)).size, kind).toBeGreaterThanOrEqual(3);
       expect(new Set(pv.variants.map((v: { imageUrl: string }) => v.imageUrl)).size, kind).toBeGreaterThanOrEqual(3);
     }
+    // Образцы — не одна и та же миссия и не одни и те же цифры (владелец 2026-11-24: «у всех один и тот же текст?»).
+    const missionTitles = new Set(r.body.previews.ru.mission.variants.map((v: { text: string }) => /«([^»]+)»/.exec(v.text)?.[1]));
+    expect(missionTitles.size).toBeGreaterThanOrEqual(3);
+    const streaks = new Set(r.body.previews.ru.comeback.variants.map((v: { text: string }) => /серия — (\d+)/.exec(v.text)?.[1]));
+    expect(streaks.size).toBeGreaterThanOrEqual(3);
   });
 
   it('первый урок закончен со второго захода — засчитан как законченный (находка проверки)', async () => {

@@ -214,4 +214,22 @@ describe('карточки в рассылке вопроса дня', () => {
     expect(mine[0].params.photo).toMatch(/\/channel\/[a-z0-9-]+\.jpg\?v=/);
     expect(await sendRow('2026-12-12', u.telegramId)).toMatchObject({ kind: 'mission' });
   });
+
+  it('«Миссия недели» в следующую субботу — другая миссия, а не та же Żabka (владелец 2026-11-24)', async () => {
+    // 2027-01-09 и 2027-01-16 — субботы; игрок занимается, миссий не открывает.
+    const u = await player('2027-01-07');
+    await launch('2027-01-09');
+    fakeTelegram();
+    await runDailyQuizTick(at('2027-01-09'));
+    const first = await sendRow('2027-01-09', u.telegramId);
+    expect(first).toMatchObject({ kind: 'mission' });
+    await db.update(playerProgress).set({ lastActiveDay: '2027-01-14' }).where(eq(playerProgress.userId, u.user.id));
+    await launch('2027-01-16');
+    const calls = fakeTelegram();
+    await runDailyQuizTick(at('2027-01-16'));
+    const second = await sendRow('2027-01-16', u.telegramId);
+    expect(second).toMatchObject({ kind: 'mission' });
+    expect(second!.variant).not.toBe(first!.variant);
+    expect(toChat(calls, u.telegramId)[0].params.caption).toMatch(/Миссия недели|Місія тижня|Mission of the week/);
+  });
 });

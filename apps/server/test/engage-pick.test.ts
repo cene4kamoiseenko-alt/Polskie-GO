@@ -4,7 +4,7 @@
  * и пока владелец не включил их в админке.
  */
 import { describe, expect, it } from 'vitest';
-import { kindPaused, needsMissionFacts, pickDailyMessage, type CardHistory, type MissionFacts, type PickInput } from '../src/bot/engage/pick';
+import { kindPaused, needsMissionFacts, pickDailyMessage, pickFreeMission, type CardHistory, type MissionFacts, type PickInput } from '../src/bot/engage/pick';
 
 const free = { slug: 'zabka-first-order', title: 'Первый заказ в Żabce', minutes: 10, category: 'shop' };
 const mission = (over: Partial<MissionFacts> = {}): MissionFacts => ({ daysSinceMissionStart: null, freeMission: free, ...over });
@@ -94,5 +94,25 @@ describe('одно сообщение бота в день', () => {
     expect(needsMissionFacts({ ...rest, seenToday: true })).toBe(false);
     expect(needsMissionFacts({ ...rest, lessonsCompleted: 0 })).toBe(false);
     expect(needsMissionFacts({ ...rest, enabled: false })).toBe(false);
+  });
+});
+
+describe('какую миссию предложить в «Миссии недели» (владелец 2026-11-24: «постоянно только за миссию в Жабке»)', () => {
+  const m = (slug: string) => ({ slug, title: slug, minutes: 10, category: 'shop' });
+  const list = [m('zabka'), m('biedronka'), m('lidl')];
+  const sent = (slug: string, day: string): CardHistory => ({ kind: 'mission', day, opened: false, variant: slug });
+  it('первая — первая непройденная по списку', () => {
+    expect(pickFreeMission(list, [])?.slug).toBe('zabka');
+  });
+  it('уже присылали — следующая, которую ещё не присылали', () => {
+    expect(pickFreeMission(list, [sent('zabka', '2026-12-05')])?.slug).toBe('biedronka');
+    expect(pickFreeMission(list, [sent('zabka', '2026-12-05'), sent('biedronka', '2026-12-12')])?.slug).toBe('lidl');
+  });
+  it('все уже присылали — та, что приходила давнее всех; другие виды карточек не мешают', () => {
+    const h = [sent('lidl', '2026-12-05'), sent('zabka', '2026-12-12'), sent('biedronka', '2026-12-19'), { kind: 'comeback' as const, day: '2026-12-20', opened: false, variant: 'gift' }];
+    expect(pickFreeMission(list, h)?.slug).toBe('lidl');
+  });
+  it('нет непройденных — нет миссии', () => {
+    expect(pickFreeMission([], [])).toBeNull();
   });
 });

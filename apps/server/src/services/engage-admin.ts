@@ -132,9 +132,10 @@ function previews() {
       lang,
       Object.fromEntries(
         ENGAGE_KINDS.map((kind) => {
-          const card = sampleCard(kind, lang);
-          const variants = Array.from({ length: cardPicks(card) }, (_, i) => cardView(card, lang, i)).map((v) => ({ text: plain(v.text), imageUrl: botImageUrl(v.image) }));
-          const first = cardView(card, lang, 0);
+          // Каждый вариант — свой образец: другая миссия, другие цифры (у людей они свои — это видно и по образцам).
+          const n = cardPicks(sampleCard(kind, lang));
+          const variants = Array.from({ length: n }, (_, i) => cardView(sampleCard(kind, lang, i), lang, i)).map((v) => ({ text: plain(v.text), imageUrl: botImageUrl(v.image) }));
+          const first = cardView(sampleCard(kind, lang), lang, 0);
           return [kind, { ...variants[0], buttons: first.keyboard.inline_keyboard.flat().map((b) => b.text), variants }];
         }),
       ),
@@ -142,17 +143,26 @@ function previews() {
   ) as Record<UiLang, Record<EngageKind, CardPreview>>;
 }
 
-/** Образец карточки для «как увидит игрок» и «прислать себе». */
-export function sampleCard(kind: EngageKind, lang: UiLang): CardData {
+/** Примерные цифры образцов «возвращения»: у каждого варианта свои (у людей — их собственные). */
+const SAMPLE_COMEBACK = [
+  { streakBest: 12, words: 48, city: 'Kraków' },
+  { streakBest: 5, words: 120, city: 'Wrocław' },
+  { streakBest: 30, words: 15, city: 'Gdańsk' },
+  { streakBest: 8, words: 260, city: 'Poznań' },
+];
+const SAMPLE_MISSIONS = MISSIONS.filter((x) => !x.premium && !x.season && !x.channel);
+
+/** Образец карточки для «как увидит игрок» и «прислать себе»; `i` — номер варианта: другая миссия, другие цифры. */
+export function sampleCard(kind: EngageKind, lang: UiLang, i = 0): CardData {
   if (kind === 'newcomer') return { kind, left: null };
-  if (kind === 'comeback') return { kind, streakBest: 12, words: 48, city: 'Kraków', gift: COMEBACK_GIFT };
-  const m = MISSIONS.find((x) => !x.premium && !x.season && !x.channel) ?? MISSIONS[0];
+  if (kind === 'comeback') return { kind, ...SAMPLE_COMEBACK[i % SAMPLE_COMEBACK.length], gift: COMEBACK_GIFT };
+  const m = SAMPLE_MISSIONS[i % SAMPLE_MISSIONS.length] ?? MISSIONS[0];
   return { kind, slug: m.slug, title: m.title[lang] || m.title.ru || m.slug, minutes: m.minutes, category: m.category };
 }
 
 /** «Прислать себе»: карточка с пометкой пробной отправки (вариант — тот, что открыт в админке), без записи в engage_sends. */
 export async function sendEngageTest(telegramId: number, kind: EngageKind, lang: UiLang, variant = 0): Promise<void> {
-  const view = cardView(sampleCard(kind, lang), lang, variant);
+  const view = cardView(sampleCard(kind, lang, variant), lang, variant);
   try {
     await sendWithPhoto(telegramId, `${DAILY_COPY[lang].testNote}\n\n${view.text}`, view.keyboard, view.image);
   } catch (e) {

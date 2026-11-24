@@ -8,7 +8,8 @@
 import { dayDiff } from '@polski-go/shared';
 import type { EngageKind } from '../../db/schema';
 
-export type CardHistory = { kind: EngageKind; day: string; opened: boolean };
+/** `variant` — для «Миссии недели» это slug миссии (чтобы следующая карточка предложила другую). */
+export type CardHistory = { kind: EngageKind; day: string; opened: boolean; variant?: string | null };
 export type FreeMission = { slug: string; title: string; minutes: number; category: string };
 export type MissionFacts = { daysSinceMissionStart: number | null; freeMission: FreeMission | null };
 export type PickInput = {
@@ -80,4 +81,17 @@ export function pickDailyMessage(i: PickInput): DailyMessage {
     return { kind: 'mission', mission: m.freeMission };
   }
   return QUIZ;
+}
+
+/**
+ * Какую миссию предложить в «Миссии недели» (владелец 2026-11-24: «постоянно только за миссию в Жабке»): первую по списку непройденных,
+ * которую человеку ещё не присылали; если присылали все — ту, что приходила давнее всех. Так каждая суббота — другая миссия.
+ */
+export function pickFreeMission(candidates: FreeMission[], history: CardHistory[]): FreeMission | null {
+  if (!candidates.length) return null;
+  const lastSent = new Map<string, string>();
+  for (const h of history) if (h.kind === 'mission' && h.variant && (lastSent.get(h.variant) ?? '') < h.day) lastSent.set(h.variant, h.day);
+  const fresh = candidates.find((m) => !lastSent.has(m.slug));
+  if (fresh) return fresh;
+  return [...candidates].sort((a, b) => (lastSent.get(a.slug)! < lastSent.get(b.slug)! ? -1 : 1))[0];
 }
