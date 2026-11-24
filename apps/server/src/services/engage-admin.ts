@@ -87,24 +87,31 @@ async function bridgeStats(since: string, sinceAt: Date) {
   return { answered: answered?.n ?? 0, warmupStarted: started?.n ?? 0, warmupFinished: finished?.n ?? 0 };
 }
 
-/** Первый урок новичков периода: первый сеанс урока каждого зарегистрированного за период. */
+/**
+ * Первый урок новичков периода: урок первого сеанса каждого зарегистрированного за период и все его сеансы этого урока
+ * (брошенный и продолженный со второго захода — один урок): законченный, если закончен любой сеанс; ответы — по самому дальнему.
+ */
 async function firstLessonRows(sinceAt: Date): Promise<FirstLessonRow[]> {
   const rows = await db.all<{ user_id: string; status: FirstLessonRow['status']; items: string; state: string }>(sql`
+    WITH firsts AS (
+      SELECT s.user_id AS user_id, (SELECT s2.lesson_id FROM learning_sessions s2 WHERE s2.user_id = s.user_id AND s2.mode = 'LESSON' ORDER BY s2.started_at LIMIT 1) AS lesson_id
+      FROM learning_sessions s JOIN users u ON u.id = s.user_id
+      WHERE u.created_at >= ${sinceAt.getTime()} AND s.mode = 'LESSON'
+      GROUP BY s.user_id
+    )
     SELECT s.user_id AS user_id, s.status AS status, s.items AS items, s.state AS state
-    FROM learning_sessions s JOIN users u ON u.id = s.user_id
-    WHERE u.created_at >= ${sinceAt.getTime()} AND s.mode = 'LESSON'
-    ORDER BY s.started_at`);
-  const seen = new Set<string>();
-  const out: FirstLessonRow[] = [];
+    FROM learning_sessions s JOIN firsts f ON f.user_id = s.user_id AND s.lesson_id = f.lesson_id
+    WHERE s.mode = 'LESSON'`);
+  const byUser = new Map<string, FirstLessonRow>();
   for (const r of rows) {
-    if (seen.has(r.user_id)) continue;
-    seen.add(r.user_id);
     const items = JSON.parse(r.items || '[]') as { key: string; type: string }[];
-    const state = JSON.parse(r.state || '{}');
-    const answered = doneCount(items, state);
-    out.push({ status: r.status, total: items.length, answered, lastType: items[answered]?.type ?? null });
+    const answered = doneCount(items, JSON.parse(r.state || '{}'));
+    const row: FirstLessonRow = { status: r.status, total: items.length, answered, lastType: items[answered]?.type ?? null };
+    const prev = byUser.get(r.user_id);
+    if (!prev) byUser.set(r.user_id, row);
+    else if (row.status === 'FINISHED' || (prev.status !== 'FINISHED' && row.answered > prev.answered)) byUser.set(r.user_id, row.status === 'FINISHED' ? row : { ...row, status: prev.status === 'ACTIVE' || row.status === 'ACTIVE' ? 'ACTIVE' : row.status });
   }
-  return out;
+  return [...byUser.values()];
 }
 
 export async function engageOverview(days: number, now = new Date()) {

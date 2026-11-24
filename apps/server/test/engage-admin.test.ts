@@ -6,9 +6,9 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { adminAuditLogs, botContacts, dailyActivity, engageSends } from '../src/db/schema';
+import { adminAuditLogs, botContacts, dailyActivity, engageSends, learningSessions } from '../src/db/schema';
 import { firstLessonFunnel } from '../src/services/engage-admin';
-import { disposeEnv, getEnv, login, request } from './helpers';
+import { disposeEnv, getEnv, lessonId, login, request } from './helpers';
 import { fakeTelegram } from './tg-fake';
 
 afterAll(disposeEnv);
@@ -72,6 +72,20 @@ describe('карточки бота в админке', () => {
     expect(r.body.previews.uk.mission.text).toContain('Місія тижня');
     expect(r.body.previews.ru.newcomer.buttons).toEqual(['🚀 Начать урок', '🔕 Не присылать такие сообщения']);
     expect(r.body.previews.en.comeback.imageUrl).toMatch(/\/bot\/cards\/comeback-1\.jpg/);
+  });
+
+  it('первый урок закончен со второго захода — засчитан как законченный (находка проверки)', async () => {
+    const u = await login();
+    const lid = await lessonId('waw-1-czesc');
+    const items = [{ key: 'a', type: 'WORD_TRANSLATION' }, { key: 'b', type: 'LISTENING' }];
+    await db.insert(learningSessions).values([
+      { userId: u.user.id, lessonId: lid, mode: 'LESSON', status: 'ABANDONED', items, state: { answers: {} }, total: 2, startedAt: new Date(Date.now() - 2 * 86_400_000) },
+      { userId: u.user.id, lessonId: lid, mode: 'LESSON', status: 'FINISHED', items, state: { answers: { a: { done: true }, b: { done: true } } }, total: 2, startedAt: new Date(Date.now() - 86_400_000) },
+    ]);
+    const before = (await (await makeAdmin('SUPPORT'))('GET', '/engage?days=7')).body.firstLesson;
+    // Этот новичок: открыл, ответил, дошёл до конца — во всех ступенях, без «бросил на 1-м задании».
+    expect(before.finished).toBeGreaterThanOrEqual(1);
+    expect(before.dropAt.find((d: { index: number; type: string }) => d.index === 0 && d.type === 'WORD_TRANSLATION')).toBeUndefined();
   });
 
   it('включить может только главный админ; включение — в журнале', async () => {
