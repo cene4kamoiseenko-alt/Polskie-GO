@@ -37,6 +37,22 @@ describe('разминка после вопроса дня', () => {
     expect(fin.body.streak).toBeGreaterThanOrEqual(1);
   });
 
+  it('разминка — в общем дневном лимите XP тренировок: повторами нельзя набрать больше (находка проверки 2026-11-24)', async () => {
+    const u = await login();
+    const start = await u.call('POST', '/api/sessions', { lessonId: await lessonId('waw-1-czesc') });
+    await playSession(u.call, start.body.sessionId);
+    const today = dayKey(new Date(), 'Europe/Warsaw');
+    // До лимита (300 XP) осталось 10: прошлые тренировки за сегодня уже дали 290.
+    await db.update(dailyActivity).set({ practiceXp: 290 }).where(and(eq(dailyActivity.userId, u.user.id), eq(dailyActivity.day, today)));
+    const xps: number[] = [];
+    for (let i = 0; i < 2; i++) {
+      const w = await u.call('POST', '/api/sessions', { mode: 'WARMUP' });
+      xps.push((await playSession(u.call, w.body.sessionId)).body.xp);
+    }
+    expect(xps[0]).toBeLessThanOrEqual(10);
+    expect(xps[1]).toBe(0);
+  });
+
   it('у новичка без пройденных уроков разминка берёт доступный урок', async () => {
     const u = await login();
     const w = await u.call('POST', '/api/sessions', { mode: 'WARMUP' });

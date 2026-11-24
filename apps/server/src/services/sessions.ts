@@ -790,7 +790,8 @@ async function finishOnce(userId: string, sessionId: string) {
     // Premium — удвічі вищий денний ліміт XP за тренування.
     const left = Math.max(0, cfg.practiceXpDailyCap * (ctx.premium ? 2 : 1) - (act?.practiceXp ?? 0));
     xp = Math.min(left, correct * cfg.exerciseXp + (s.mode === 'FIVE_MIN' && total ? 5 : 0));
-    if (s.mode === 'REVIEW' || s.mode === 'MISTAKES' || s.mode === 'FIVE_MIN') events.REVIEWS = counted.filter((i) => i.vocabId || s.mode !== 'FIVE_MIN').length;
+    // Разминка после вопроса дня (WARMUP) — как «5 минут»: в общем лимите XP тренировок и в заданиях «повтори» (находка проверки 2026-11-24).
+    if (s.mode === 'REVIEW' || s.mode === 'MISTAKES' || s.mode === 'FIVE_MIN' || s.mode === 'WARMUP') events.REVIEWS = counted.filter((i) => i.vocabId || (s.mode !== 'FIVE_MIN' && s.mode !== 'WARMUP')).length;
   }
 
   const dialogues = answered.filter((i) => (i.type === 'DIALOGUE' || i.type === 'SITUATION') && state.answers[i.key].done).length;
@@ -807,7 +808,7 @@ async function finishOnce(userId: string, sessionId: string) {
     newWords: newWords.length,
     reviews: events.REVIEWS ?? 0,
     seconds: Math.min(Math.round(elapsed / 1000), 3600),
-    practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR'].includes(s.mode) ? xpRes.granted : 0,
+    practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR', 'WARMUP'].includes(s.mode) ? xpRes.granted : 0,
   });
 
   const quests = await applyQuestEvents(ctx, events, { mine, all });
