@@ -11,6 +11,7 @@ import { claimQuiz, runDailyQuizTick } from '../src/bot/daily/send';
 import { claimCard } from '../src/bot/engage/send';
 import { writeDailyState } from '../src/bot/daily/state';
 import { writeEngageState } from '../src/bot/engage/state';
+import * as missions from '../src/services/missions';
 import { disposeEnv, getEnv, login } from './helpers';
 import { fakeTelegram, tgError, type TgCall } from './tg-fake';
 
@@ -179,6 +180,22 @@ describe('карточки в рассылке вопроса дня', () => {
     await runDailyQuizTick(at('2026-12-09', '11:40'));
     expect(toChat(again, u.telegramId)).toEqual([]);
     expect(await quizRow('2026-12-09', u.telegramId)).toBeUndefined();
+  });
+
+  it('сбой выбора карточки — человеку уходит вопрос, рассылка идёт дальше (находка проверки)', async () => {
+    // 2026-12-26 — суббота: для активных игроков правило читает миссии, и это чтение падает.
+    const a = await player('2026-12-24');
+    const b = await player('2026-12-24');
+    await launch('2026-12-26');
+    const spy = vi.spyOn(missions, 'listMissions').mockRejectedValue(new Error('broken mission content'));
+    const calls = fakeTelegram();
+    try {
+      await runDailyQuizTick(at('2026-12-26'));
+    } finally {
+      spy.mockRestore();
+    }
+    expect(toChat(calls, a.telegramId)[0]?.params.caption).toContain('Pytanie dnia');
+    expect(toChat(calls, b.telegramId)[0]?.params.caption).toContain('Pytanie dnia');
   });
 
   it('суббота: активному игроку без миссий — «Миссия недели»', async () => {

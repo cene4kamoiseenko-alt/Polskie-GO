@@ -152,7 +152,13 @@ export async function runDailyQuizTick(now = new Date(), budget = DAILY_PER_RUN)
     if (dailyEligibility(p) === 'ok') {
       let outcome: Outcome;
       try {
-        const msg = engage.enabled ? await messageFor(p, now, history.get(p.telegramId) ?? []) : QUIZ;
+        // Сбой выбора карточки (например, чтение миссий) не останавливает рассылку: человеку уходит вопрос, как без карточек.
+        const msg = engage.enabled
+          ? await messageFor(p, now, history.get(p.telegramId) ?? []).catch((e) => {
+              console.warn('engage: card pick failed, sending quiz', p.telegramId, (e as Error).message);
+              return QUIZ;
+            })
+          : QUIZ;
         outcome = msg.kind === 'quiz' ? await sendTo(p, plan[personLevel(p) as DailyLevel]!, today, now, stats) : await sendCard(p, msg, today, now, stats);
       } catch (e) {
         // Сбой базы или лимит запросов Worker на самом захвате: человека не пропускаем, курсор остаётся перед ним.
