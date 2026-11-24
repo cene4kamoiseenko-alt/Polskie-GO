@@ -100,7 +100,7 @@
 | transport, train-ticket, tram | tramwaj-1/2, dworzec-1/2, lotnisko |
 | house | mieszkanie, kuchnia, pralnia, sasiad |
 | cafe, food, dishes | kawiarnia, pierogi, restauracja, kuchnia, targ |
-| dialog, speech | rozmowa-1/2, sasiad, kawiarnia, lekcja |
+| dialog, speech | sasiad, kawiarnia, lekcja (rozmowa-1/2 — это собеседование, только в «работе») |
 | headphones | sluchanie, nauka |
 | pronunciation | wymowa-1/2/3 |
 | writing, book-clock, lessons | nauka, lekcja, zasada-1/2/3, uniwersytet-1/2, biblioteka |
