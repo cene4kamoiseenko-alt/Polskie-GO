@@ -19,7 +19,7 @@ const json = <T>(name: string) => text(name, { mode: 'json' }).$type<T>();
 export const CEFR = ['A0', 'A1', 'A2', 'B1', 'B2'] as const;
 export const CONTENT_STATUS = ['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED'] as const;
 export const LESSON_KIND = ['LESSON', 'BOSS', 'EXAM', 'PLACEMENT'] as const;
-export const SESSION_MODE = ['LESSON', 'REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'EXAM', 'PLACEMENT', 'GRAMMAR'] as const;
+export const SESSION_MODE = ['LESSON', 'REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'EXAM', 'PLACEMENT', 'GRAMMAR', 'WARMUP'] as const;
 export const SESSION_STATUS = ['ACTIVE', 'FINISHED', 'ABANDONED'] as const;
 export const VOCAB_STATUS = ['NEW', 'LEARNING', 'LEARNED'] as const;
 export const QUEST_KIND = ['DAILY', 'WEEKLY', 'STORY', 'EVENT'] as const;
@@ -1195,6 +1195,55 @@ export const dailyQuizPeople = sqliteTable('daily_quiz_people', {
   streakDay: text('streak_day'),
   updatedAt: updatedAt(),
 });
+
+// ───────────────────────── Вовлечённость: карточки бота (2026-11-24) ─────────────────────────
+// docs/superpowers/specs/2026-11-24-engagement-design.md: карточка (новичок, возвращение, миссия недели) приходит в слот вопроса дня
+// вместо него — одно сообщение в день.
+
+export const ENGAGE_KINDS = ['newcomer', 'comeback', 'mission'] as const;
+export type EngageKind = (typeof ENGAGE_KINDS)[number];
+
+/** Отправка карточки: одна на человека в день (захват строки, как у вопроса дня); opened_at — нажали кнопку карточки. */
+export const engageSends = sqliteTable(
+  'engage_sends',
+  {
+    day: text('day').notNull(),
+    telegramId: integer('telegram_id').notNull(),
+    userId: text('user_id'),
+    kind: text('kind', { enum: ENGAGE_KINDS }).notNull(),
+    variant: text('variant'),
+    lang: text('lang').notNull(),
+    status: text('status', { enum: DAILY_STATUS }).notNull().default('PENDING'),
+    leaseUntil: ts('lease_until'),
+    sentAt: ts('sent_at'),
+    openedAt: ts('opened_at'),
+    error: text('error'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.telegramId] }),
+    index('engage_sends_tg_idx').on(t.telegramId, t.day),
+    index('engage_sends_kind_day_idx').on(t.kind, t.day),
+  ],
+);
+
+/** «🔕 Не присылать такие сообщения» под карточкой (по Telegram ID): opted_out_at — выключил, null — включил обратно. */
+export const engagePeople = sqliteTable('engage_people', {
+  telegramId: integer('telegram_id').primaryKey(),
+  optedOutAt: ts('opted_out_at'),
+  updatedAt: updatedAt(),
+});
+
+/** Разовые отметки игрока на сервере (например, «тур по вкладкам пройден»): одна строка на ключ. */
+export const userFlags = sqliteTable(
+  'user_flags',
+  {
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    at: createdAt('at'),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.key] })],
+);
 
 // ───────────────────────── Місії «Польська в житті» ─────────────────────────
 
