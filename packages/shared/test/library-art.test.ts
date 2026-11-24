@@ -58,3 +58,20 @@ describe('библиотека картинок', () => {
     for (const category of ['season', 'xyz']) expect(libraryPool('general'), category).toContain(missionLibraryArt(category, 's'));
   });
 });
+
+describe('WebP-копии библиотеки для приложения (scripts/build-library-art.ts)', () => {
+  const LIB = resolve(__dirname, '../../../apps/web/src/assets/library');
+  it('у каждой записи есть <файл>.webp (≤ 1080 px, ≤ 200 КБ) и <файл>@640.webp', async () => {
+    const sharp = (await import('sharp')).default;
+    const { statSync } = await import('node:fs');
+    for (const file of Object.keys(LIBRARY_ART)) {
+      const main = resolve(LIB, `${file}.webp`);
+      const small = resolve(LIB, `${file}@640.webp`);
+      expect(existsSync(main), main).toBe(true);
+      expect(existsSync(small), small).toBe(true);
+      expect((await sharp(main).metadata()).width, file).toBeLessThanOrEqual(1080);
+      expect((await sharp(small).metadata()).width, file).toBe(640);
+      expect(statSync(main).size, file).toBeLessThanOrEqual(200 * 1024);
+    }
+  });
+});
