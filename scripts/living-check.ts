@@ -109,9 +109,15 @@ async function main() {
         check(Math.abs(ex.h - wantL) <= 1.5, `${tag} урок, задание: высота сцены ${Math.round(ex.h)} px (нужно ${Math.round(wantL)})`);
         check(ex.drift, `${tag} урок, задание: картинка медленно приближается`);
         if (width === 390) await p.screenshot({ path: `${OUT}/lesson-${theme}.png` });
+        // Картинка задания не пересоздаётся, пока меняется настроение сцены (выбрал вариант, проверил): иначе приближение начинается заново.
+        await p.evaluate(() => ((document.querySelector('[data-stage-mood] img') as unknown as { __pgKeep?: number }).__pgKeep = 1));
         await p.locator('button.option').first().click();
+        await p.waitForTimeout(300);
+        const keptOnSelect = await p.evaluate(() => (document.querySelector('[data-stage-mood] img') as unknown as { __pgKeep?: number } | null)?.__pgKeep === 1);
         await p.getByRole('button', { name: /^Проверить/ }).first().click();
         await p.waitForTimeout(500);
+        const keptOnCheck = await p.evaluate(() => (document.querySelector('[data-stage-mood] img') as unknown as { __pgKeep?: number } | null)?.__pgKeep === 1);
+        check(keptOnSelect && keptOnCheck, `${tag} урок, задание: картинка та же при выборе и проверке ответа (не пересоздаётся)`);
         const after = await stageInfo('[data-stage-mood]');
         check(after.mood === 'correct' || after.mood === 'wrong', `${tag} урок, задание: сцена реагирует на ответ (${after.mood})`);
         await p.addScriptTag({ content: AXE });

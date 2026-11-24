@@ -3,7 +3,7 @@
  * предмети у вітрині змінюються від завдання до завдання, бобер-супутник реагує на відповіді,
  * а в бульбашці — інструкція до завдання. Для діалогів праворуч з'являється співрозмовник.
  */
-import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
+import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from '../lib/motion';
 import { memo, useEffect } from 'react';
 import { NpcFace } from './pictograms/Pictogram';
 import { Beaver, type BeaverMood } from './Beaver';
@@ -214,17 +214,19 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
   useEffect(() => {
     if (photo) warmHomeShots(STAGE_SIZES);
   }, [photo]);
+  // Реакция кадра на ответ — командой, без перемонтирования: картинка и её медленное приближение не начинаются заново
+  // при выборе варианта и проверке (раньше кадр перемонтировался по ключу настроения).
+  const frame = useAnimationControls();
+  useEffect(() => {
+    if (reduce || !framed) return;
+    if (mood === 'correct') void frame.start({ scale: [1, 1.05, 1], filter: ['brightness(1)', 'brightness(1.2)', 'brightness(1)'], transition: { duration: 0.55 } });
+    else if (mood === 'wrong') void frame.start({ x: [0, -7, 7, -3, 0], transition: { duration: 0.4 } });
+  }, [mood, reduce, framed?.src, frame]);
 
   return (
     <div className="lesson-stage mission-stage-bg relative overflow-hidden rounded-[26px]" style={{ height: STAGE_HEIGHT }} data-stage-photo={photo?.kind} data-stage-art={art} data-stage-mood={mood}>
       {framed ? (
-        <motion.div
-          key={`${mood}-${index}`}
-          className="absolute inset-0"
-          initial={false}
-          animate={reduce ? undefined : mood === 'correct' ? { scale: [1, 1.05, 1], filter: ['brightness(1)', 'brightness(1.2)', 'brightness(1)'] } : mood === 'wrong' ? { x: [0, -7, 7, -3, 0] } : { scale: 1, x: 0 }}
-          transition={{ duration: mood === 'correct' ? 0.55 : 0.4 }}
-        >
+        <motion.div className="absolute inset-0" animate={frame}>
           <div className={reduce ? 'absolute inset-0' : 'stage-drift absolute inset-0'}>
             <img
               src={framed.src}
