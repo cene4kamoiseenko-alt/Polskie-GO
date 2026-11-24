@@ -1,51 +1,66 @@
 /**
- * Сцена місії: растрова картинка з src/assets/scenes (реєстр SCENE_ART), якщо вона є для цієї місії, інакше SVG-сцена.
- * Тимчасові кадри мають Бобека в самій картинці — екрани, що малюють власного Бобека поверх сцени, питають `hasBakedBobek`.
+ * Сцена місії: растрова картинка — своя сцена з src/assets/scenes (реєстр SCENE_ART), кадр пропуску, обкладинка сезону
+ * або картинка бібліотеки Бобека за темою місії (LIBRARY_ART, вариант А «живі місії», 2026-11-24). SVG-сцена — лише якщо
+ * файлів немає. У растрових кадрах Бобек намальований — екрани, що малюють власного Бобека поверх сцени, питають `hasBakedBobek`.
  */
 import { memo } from 'react';
-import { missionSceneArt, passSeasonCover } from '../lib/assets';
+import { missionLibraryArt } from '@polski-go/shared';
+import { libraryImage, missionSceneArt, passSeasonCover } from '../lib/assets';
 import { passMissionScene } from '../lib/screenArt';
 import { Scene } from './Illustrations';
 
-export const hasBakedBobek = (missionSlug: string) => !!missionSceneArt(missionSlug)?.art.bakedBobek || !!passMissionScene(missionSlug);
+export type MissionArtSource = 'own' | 'pass' | 'season' | 'library';
+type Art = { src: string; srcSet: string | undefined; pos: string; source: MissionArtSource; id: string; status?: string; baked: boolean };
 
-type Props = { slug: string; scene: string; className?: string; /** Картка під екраном: ліниве завантаження. Герой місії вантажиться одразу. */ lazy?: boolean };
+/**
+ * Картинка місії: своя сцена → кадр пропуску → обкладинка сезону → бібліотека за категорією. `season` і `category` передає екран
+ * місії; без них (картки списку) — як раніше: своя сцена або кадр пропуску, інакше SVG.
+ */
+export function missionArt(slug: string, season?: string | null, category?: string): Art | null {
+  const own = missionSceneArt(slug);
+  if (own) return { src: own.src, srcSet: own.srcSet, pos: own.art.focus, source: 'own', id: own.art.id, status: own.art.status, baked: !!own.art.bakedBobek };
+  const pass = passMissionScene(slug);
+  if (pass) return { src: pass.src, srcSet: pass.srcSet, pos: '50% 40%', source: 'pass', id: `pass-${slug}`, baked: true };
+  if (category === undefined) return null;
+  const cover = season ? passSeasonCover(season) : null;
+  if (cover) return { src: cover.src, srcSet: cover.srcSet, pos: '50% 45%', source: 'season', id: `season-${season}`, baked: true };
+  const file = missionLibraryArt(category, slug);
+  const lib = libraryImage(file);
+  return lib ? { src: lib.src, srcSet: lib.srcSet, pos: lib.focus, source: 'library', id: `library-${file}`, baked: true } : null;
+}
 
-export const MissionScene = memo(function MissionScene({ slug, scene, className, lazy = true }: Props) {
-  const img = missionSceneArt(slug);
-  if (!img) {
-    // Миссия пропуска со своим кадром владельца (Stary Rynek для «11 ноября»): тот же файл, что на карточке пропуска.
-    const own = passMissionScene(slug);
-    if (!own) return <Scene name={scene} className={className} />;
-    return (
-      <img
-        src={own.src}
-        srcSet={own.srcSet}
-        sizes="(min-width: 576px) 576px, 100vw"
-        alt=""
-        className={`${className ?? ''} object-cover`}
-        style={{ objectPosition: '50% 40%' }}
-        loading={lazy ? 'lazy' : 'eager'}
-        decoding="async"
-        draggable={false}
-        data-scene-art={`pass-${slug}`}
-      />
-    );
-  }
+export const hasBakedBobek = (missionSlug: string, season?: string | null, category?: string) => !!missionArt(missionSlug, season, category)?.baked;
+
+type Props = {
+  slug: string;
+  scene: string;
+  className?: string;
+  /** Картка під екраном: ліниве завантаження. Герой місії вантажиться одразу. */
+  lazy?: boolean;
+  /** Сезон і категорія — для запасної картинки (обкладинка сезону, бібліотека); передає екран місії. */
+  season?: string | null;
+  category?: string;
+};
+
+export const MissionScene = memo(function MissionScene({ slug, scene, className, lazy = true, season, category }: Props) {
+  const art = missionArt(slug, season, category);
+  if (!art) return <Scene name={scene} className={className} />;
   return (
     <img
-      src={img.src}
-      srcSet={img.srcSet}
+      src={art.src}
+      srcSet={art.srcSet}
       // Екран не ширший за max-w-xl (576 px): ширше основний файл не потрібен.
       sizes="(min-width: 576px) 576px, 100vw"
       alt=""
       className={`${className ?? ''} object-cover`}
-      style={{ objectPosition: img.art.focus }}
+      style={{ objectPosition: art.pos }}
       loading={lazy ? 'lazy' : 'eager'}
       decoding="async"
       draggable={false}
-      data-scene-art={img.art.id}
-      data-scene-status={img.art.status}
+      // data-scene-art — як раніше (лише власні кадри місій і пропуску: на них рахує scripts/mission-screens.ts).
+      data-scene-art={art.source === 'own' || art.source === 'pass' ? art.id : undefined}
+      data-scene-status={art.status}
+      data-scene-source={art.source}
     />
   );
 });

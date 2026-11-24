@@ -105,17 +105,17 @@ function Intro({ run, onStart, onClose }: { run: MissionRun; onStart: () => void
   const { t, tr } = useT();
   const m = run.mission;
   const resume = run.step > 0;
-  const baked = hasBakedBobek(m.slug);
+  const baked = hasBakedBobek(m.slug, m.season ?? null, m.category);
   return (
     <div className="flex min-h-screen flex-col pb-32">
       <div className="relative">
-        <MissionScene slug={m.slug} scene={m.scene} lazy={false} className="block h-52 w-full" />
+        <MissionScene slug={m.slug} scene={m.scene} season={m.season ?? null} category={m.category} lazy={false} className="block h-52 w-full" />
         <button onClick={onClose} className="absolute left-4 top-3 grid h-10 w-10 place-items-center rounded-full bg-elev shadow" aria-label="close">
           <Icon name="x" size={20} />
         </button>
         {/* Тимчасові кадри вже мають Бобека в картинці: другого поверх не малюємо. */}
         {!baked && (
-          <motion.div className="absolute -bottom-6 right-3" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
+          <motion.div className="absolute -bottom-6 right-3" data-intro-beaver initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
             <Beaver mood={introMood(m.slug)} size={104} />
           </motion.div>
         )}
