@@ -297,8 +297,18 @@ export default function LessonScreen() {
               ) : null}
               <span className="rounded-full bg-elev px-2.5 py-0.5 text-[12px] font-black">{t('stage_tasks_n', { n: session.items.length })}</span>
             </div>
-            <h1 className="text-[26px] font-black leading-tight">{tr(l.title)}</h1>
-            <p className="muted font-bold">{tr(l.topic)}</p>
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-[26px] font-black leading-tight">{tr(l.title)}</h1>
+                <p className="muted font-bold">{tr(l.topic)}</p>
+              </div>
+              {/* Картинка библиотеки: Бобек нарисован в кадре — Бобек игрока (его образ, ADR-005 §10) встречает рядом с названием, не поверх картинки. */}
+              {introLib && (
+                <div className="-mt-1 shrink-0" data-intro-player>
+                  <Beaver mood="wave" size={84} />
+                </div>
+              )}
+            </div>
           </div>
           <div className="card p-4 text-[16px] font-semibold leading-relaxed">
             <RichText text={tr(l.explanation)} />
@@ -370,6 +380,8 @@ export default function LessonScreen() {
   // «Не знаю» во входном тесте — нейтральный ответ (не «Неверно»): угадывать не нужно.
   const neutral = !!result && (!!result.skipped || dk);
   const stageMood: StageMood = result ? (result.correct ? 'correct' : neutral ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
+  // Над заданиями картинка библиотеки (Бобек в кадре) — Бобек игрока в его образе реагирует в панели ответа, как в миссиях.
+  const libraryStage = !!lessonArt(session.place?.citySlug, session.place?.routeSlug, session.place?.routeIcon, session.place?.index);
 
   return (
     <div ref={swipeNext} className="min-h-app flex flex-col" data-swipe-next={result && !speed ? 'ready' : undefined}>
@@ -475,8 +487,20 @@ export default function LessonScreen() {
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
-              className={cx('feedback-panel rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : neutral ? 'is-skipped' : 'is-wrong')}
+              className={cx('feedback-panel relative rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : neutral ? 'is-skipped' : 'is-wrong', libraryStage && 'pr-24')}
             >
+              {libraryStage && (
+                <motion.div
+                  data-feedback-beaver
+                  className="pointer-events-none absolute -top-14 right-2"
+                  initial={{ y: 36, scale: 0.6, opacity: 0 }}
+                  animate={{ y: 0, scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 16, delay: 0.1 }}
+                  aria-hidden
+                >
+                  <Beaver mood={result.correct ? 'cheer' : neutral ? 'happy' : 'think'} size={88} />
+                </motion.div>
+              )}
               <div className="flex items-start gap-3">
                 <motion.span
                   initial={{ scale: 0, rotate: -30 }}

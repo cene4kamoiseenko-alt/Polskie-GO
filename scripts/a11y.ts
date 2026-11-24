@@ -11,6 +11,17 @@ import { resolve } from 'node:path';
 import { chromiumPath, startStand } from './lib/stand';
 
 const root = process.cwd();
+
+/**
+ * Новичку первый урок короткий (без «Повтори вслух», docs/superpowers/specs/2026-11-24-engagement-design.md, раздел 3):
+ * проверка шага «Повтори вслух» играет за игрока, уже прошедшего один урок, — ему урок выдаётся полностью.
+ */
+async function asVeteran(userId: string) {
+  const { db } = await import(root + '/apps/server/src/db/index.ts');
+  const { playerProgress } = await import(root + '/apps/server/src/db/schema.ts');
+  const { eq } = await import('drizzle-orm');
+  await db.update(playerProgress).set({ lessonsCompleted: 1 }).where(eq(playerProgress.userId, userId));
+}
 const require = createRequire(root + '/package.json');
 const AXE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const ROUTES = ['/', '/learn', '/map', '/quests', '/profile', '/shop', '/achievements', '/dictionary', '/settings', '/life', '/passport', '/premium', '/pass', '/house'];
@@ -67,6 +78,7 @@ async function main() {
         await audit(u.p, route, theme);
       }
       // Крок «Повтори вслух» (екран D).
+      await asVeteran(u.user.id);
       const lessonId = (await u.call('GET', '/api/journey')).body.nextLesson.id as string;
       const started = (await u.call('POST', '/api/sessions', { lessonId })).body;
       for (const item of await stand.sessionItems(started.sessionId)) {

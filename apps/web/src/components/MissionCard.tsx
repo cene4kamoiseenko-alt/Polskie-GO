@@ -42,7 +42,7 @@ export function MissionCard({ m, onOpen, compact }: { m: MissionListItem; onOpen
           </span>
         )}
         {m.channel && !done && !resuming && (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-sky-dark px-2.5 py-0.5 text-xs font-black text-white" data-channel-badge>
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#1576b8] px-2.5 py-0.5 text-xs font-black text-white" data-channel-badge>
             <Icon name={m.locked ? 'lock' : 'send'} size={13} /> {t('channel_badge')}
           </span>
         )}

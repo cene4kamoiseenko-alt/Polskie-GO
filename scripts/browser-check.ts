@@ -42,6 +42,17 @@ import { signInitData } from '../apps/server/src/lib/telegram';
 import { LESSON_LEVELS } from '../apps/server/src/content/levels';
 
 const root = process.cwd();
+
+/**
+ * Новичку первый урок короткий (без «Повтори вслух», docs/superpowers/specs/2026-11-24-engagement-design.md, раздел 3):
+ * проверка шага «Повтори вслух» играет за игрока, уже прошедшего один урок, — ему урок выдаётся полностью.
+ */
+async function asVeteran(userId: string) {
+  const { db } = await import(root + '/apps/server/src/db/index.ts');
+  const { playerProgress } = await import(root + '/apps/server/src/db/schema.ts');
+  const { eq } = await import('drizzle-orm');
+  await db.update(playerProgress).set({ lessonsCompleted: 1 }).where(eq(playerProgress.userId, userId));
+}
 const require = createRequire(root + '/package.json');
 const OUT = resolve(root, 'test-results');
 const SCREENS = resolve(OUT, 'screens');
@@ -102,6 +113,7 @@ async function main() {
 
   /** Відкрити урок на першому кроці «Повтори вслух» (попередні завдання зараховано через API). */
   async function openPronunciation(u: Awaited<ReturnType<typeof userPage>>) {
+    await asVeteran(u.user.id);
     const lessonId = (await u.call('GET', '/api/journey')).body.nextLesson.id as string;
     const started = (await u.call('POST', '/api/sessions', { lessonId })).body;
     const items = await sessionItems(started.sessionId);
