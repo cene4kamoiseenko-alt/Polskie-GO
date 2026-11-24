@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { brandAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import { ComebackSheet } from '../components/ComebackSheet';
+import { TabTour } from '../components/TabTour';
 import type { Me, PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
@@ -387,6 +388,24 @@ function LeagueAwardModal() {
   );
 }
 
+/** Тур по вкладкам (2026-11-24): после первого пройденного урока, один раз; не поверх «С возвращением». */
+function HomeTour() {
+  const qc = useQueryClient();
+  const me = useMe().data;
+  const [hidden, setHidden] = useState(false);
+  if (!me || hidden || me.tourDone !== false || (me.progress.lessonsCompleted ?? 0) < 1 || me.comeback) return null;
+  return (
+    <TabTour
+      onClose={() => {
+        setHidden(true);
+        void api('/flags/tour', { body: {} })
+          .then(() => qc.setQueryData<Me>(['me'], (m) => (m ? { ...m, tourDone: true } : m)))
+          .catch(() => {});
+      }}
+    />
+  );
+}
+
 export function HomeScreen() {
   const { t } = useT();
   const nav = useNavigate();
@@ -414,6 +433,7 @@ export function HomeScreen() {
       <TopStats />
       <LeagueAwardModal />
       <ComebackSheet />
+      <HomeTour />
 
       {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія.
           Композиція (2026-11-15): Бобек цілком у кадрі (хвіст і лапи не обрізані), праворуч одна скляна картка

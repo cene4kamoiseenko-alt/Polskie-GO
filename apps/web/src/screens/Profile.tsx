@@ -23,6 +23,7 @@ import { XpChart } from '../components/XpChart';
 import { EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
 import { rankFor, TopStats } from './Home';
 import { inkOn } from '../lib/color';
+import { TabTour } from '../components/TabTour';
 
 type Stats = {
   days: { day: string; xp: number; lessons: number; minutes: number; correct: number; exercises: number }[];
@@ -58,6 +59,7 @@ export default function ProfileScreen() {
   const nav = useNavigate();
   const me = useMe().data!;
   const [range, setRange] = useState<7 | 30 | 90>(7);
+  const [tour, setTour] = useState(false);
   const stats = useQuery({ queryKey: ['stats', range], queryFn: () => api<Stats>(`/me/stats?days=${range}`) });
   const ach = useQuery({ queryKey: ['achievements'], queryFn: () => api<Ach[]>('/achievements') });
   const name = me.profile.displayName || me.firstName;
@@ -187,6 +189,12 @@ export default function ProfileScreen() {
               <Icon name="chevron-right" size={16} className="shrink-0 text-[var(--text-muted)]" />
             </button>
           ))}
+          <button type="button" data-tour-replay onClick={() => { haptic.tap(); setTour(true); }} className="stat-card !min-h-[47px] !gap-2 !px-2 !py-1.5">
+            <Art name="explore" size={30} />
+            <span className="min-w-0 flex-1 text-left text-[13px] font-black leading-tight">{t('tour_replay')}</span>
+            <Icon name="chevron-right" size={16} className="shrink-0 text-[var(--text-muted)]" />
+          </button>
+          {tour && <TabTour onClose={() => setTour(false)} />}
         </div>
       </div>
 
