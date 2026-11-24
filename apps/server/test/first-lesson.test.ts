@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import type { ExerciseItem } from '@polski-go/shared';
 import { db } from '../src/db';
-import { exercises, learningSessions, playerProgress } from '../src/db/schema';
+import { dailyActivity, exercises, learningSessions, playerProgress } from '../src/db/schema';
 import { FIRST_LESSON_SIZE, FIRST_LESSON_TYPES, firstLessonItems } from '../src/services/first-lesson';
 import { correctAnswers, disposeEnv, getEnv, lessonId, login, playSession, sessionItems } from './helpers';
 
@@ -58,6 +58,20 @@ describe('короткий первый урок', () => {
     expect(s2.body.sessionId).toBe(s1.body.sessionId);
     expect(s2.body.items).toHaveLength(short);
     expect(s2.body.resume.done).toHaveLength(3);
+  });
+
+  it('урок, продолженный на следующий день: время — по ответам, а не «час» (находка проверки)', async () => {
+    const u = await login();
+    const id = await lessonId('waw-1-czesc');
+    const s1 = await u.call('POST', '/api/sessions', { lessonId: id });
+    const items = await sessionItems(s1.body.sessionId);
+    for (const it of items) for (const a of correctAnswers(it)) await u.call('POST', `/api/sessions/${s1.body.sessionId}/answer`, { key: it.key, answer: a });
+    await db.update(learningSessions).set({ startedAt: new Date(Date.now() - 26 * 3600_000) }).where(eq(learningSessions.id, s1.body.sessionId));
+    const fin = await u.call('POST', `/api/sessions/${s1.body.sessionId}/finish`);
+    expect(fin.status, JSON.stringify(fin.body)).toBe(200);
+    expect(fin.body.durationSec).toBeLessThanOrEqual(items.length * 90);
+    const act = await db.select().from(dailyActivity).where(eq(dailyActivity.userId, u.user.id)).get();
+    expect(act!.seconds).toBeLessThanOrEqual(items.length * 90);
   });
 
   it('первое прохождение — «первая победа»; повтор и следующий урок — полные', async () => {

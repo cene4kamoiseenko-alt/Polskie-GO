@@ -55,6 +55,8 @@ const sessionSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) +
 const SESSION_TTL_MS = 3 * 60 * 60 * 1000;
 /** Мінімальний час на одну вправу — захист від автоматичного проходження. */
 const MIN_MS_PER_ITEM = 1000;
+/** Больше этого на одно задание в учёт времени не идёт (урок, брошенный и продолженный через день). */
+const MAX_SEC_PER_ITEM = 90;
 
 type ExerciseRow = typeof exercises.$inferSelect;
 
@@ -643,6 +645,8 @@ async function finishOnce(userId: string, sessionId: string) {
   if (!isSpeed && answered.length < items.length) throw badRequest('not_finished', 'Не всі вправи виконано');
   // Входной тест наград не даёт (нечего накручивать), а три «Не знаю» подряд честно занимают пару секунд: защита «слишком быстро» — только для уроков и тренировок.
   if (s.mode !== 'PLACEMENT' && elapsed < answered.length * MIN_MS_PER_ITEM) throw badRequest('too_fast');
+  // Время занятия: урок можно продолжить через дни (2026-11-24), поэтому не больше 90 с на ответ — иначе «час» за 3-минутный урок.
+  const spentSec = Math.min(Math.round(elapsed / 1000), answered.length * MAX_SEC_PER_ITEM, 3600);
 
   const counted = answered.filter((i) => !state.answers[i.key].skipped);
   const total = isSpeed ? items.length : counted.length;
@@ -807,7 +811,7 @@ async function finishOnce(userId: string, sessionId: string) {
     correct,
     newWords: newWords.length,
     reviews: events.REVIEWS ?? 0,
-    seconds: Math.min(Math.round(elapsed / 1000), 3600),
+    seconds: spentSec,
     practiceXp: ['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR', 'WARMUP'].includes(s.mode) ? xpRes.granted : 0,
   });
 
@@ -850,8 +854,7 @@ async function finishOnce(userId: string, sessionId: string) {
     questsCompleted: quests.completed,
     achievements: ach.unlocked,
     firstWin,
-    // Урок можно продолжить через дни: время — как в дневной активности, не больше часа.
-    durationSec: Math.min(Math.round(elapsed / 1000), 3600),
+    durationSec: spentSec,
   };
   // Нагороди досягнень і підсумок у сесії (для повторного запиту завершення; версія: +1 до вже закритої сесії) — одним пакетом.
   await atomic([
