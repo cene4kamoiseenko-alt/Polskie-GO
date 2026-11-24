@@ -5,7 +5,7 @@ import { and, count, desc, eq, gt, inArray, isNotNull, lte, or, sql } from 'driz
 import { db } from '../db';
 import {
   botQuizPlayers, cities, cityRoutes, cosmeticItems, dailyActivity, gameWallets, languageSkills, learningSessions, lessons, playerProgress,
-  quests, reviewSchedule, subscriptions, walletTransactions, userAchievements, userCities, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
+  quests, reviewSchedule, subscriptions, walletTransactions, userAchievements, userCities, userFlags, userInventory, userLessonProgress, userProfiles, userQuests, userSettings, userVocabulary, users,
 } from '../db/schema';
 import { getRewards } from './gameConfig';
 import { dayCandidates } from './rewards';
@@ -16,6 +16,7 @@ import { activeSubWhere } from './premium';
 import { outfit } from './shop';
 import { unseenLeagueAward } from './league';
 import { activeLessonProgress } from './active-lesson';
+import { comebackOffer } from './comeback';
 
 /** Урок входного теста v2 (seed: id = `l_<slug>`). */
 export const LEVEL_TEST_LESSON_ID = 'l_placement-test-v2';
@@ -60,6 +61,17 @@ export async function getMe(userId: string) {
   const leagueAward = await unseenLeagueAward(userId, now).catch(() => null);
   // Брошенный урок, который можно продолжить (2026-11-24): «Продолжить · осталось N» на главной. Мягко, как лига.
   const activeLesson = await activeLessonProgress(userId, now).catch(() => null);
+  // Подарок за возвращение и отметка тура (2026-11-24). Мягко: на старой схеме профиль обязан открываться.
+  const lastActive = progressRow[0]?.lastActiveDay ?? null;
+  const tzMe = settingsRow[0]?.timezone ?? 'Europe/Warsaw';
+  const comeback = await comebackOffer(userId, lastActive, dayKey(now, tzMe), now).catch(() => null);
+  const tourDone = await db
+    .select({ key: userFlags.key })
+    .from(userFlags)
+    .where(and(eq(userFlags.userId, userId), eq(userFlags.key, 'tour')))
+    .get()
+    .then((r) => !!r)
+    .catch(() => false);
   // Новый входной тест (2026-11-16): прошёл ли его игрок — карточка «Пройди тест уровня» на главной для тех, кто не проходил.
   const levelTestRows = await db
     .select({ id: learningSessions.id })
@@ -139,6 +151,8 @@ export async function getMe(userId: string) {
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
     leagueAward,
     activeLesson,
+    comeback,
+    tourDone,
     levelTest: { done: levelTestRows.length > 0, placementLevel: user.profile?.placementLevel ?? null },
     rewards: { exerciseXp: cfg.exerciseXp },
     /**

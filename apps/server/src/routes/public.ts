@@ -16,6 +16,9 @@ import { signToken } from '../lib/token';
 import { upsertTelegramUser } from '../services/users';
 import { PLATFORMS, createGuest, createLinkCode, issueDeviceKey, loginWithDevice, redeemLinkCode } from '../services/standalone-auth';
 import { getDiary, getMe, getStats } from '../services/profile';
+import { claimComeback, markTourDone } from '../services/comeback';
+import { markCardOpened } from '../bot/engage/opened';
+import type { EngageKind } from '../db/schema';
 import { setQuizPush } from '../bot/daily/answer';
 
 const TOKEN_TTL = 7 * 24 * 3600;
@@ -85,6 +88,18 @@ export const meRoutes = new Hono<AppEnv>();
 const me = meRoutes;
 
 me.get('/me', async (c) => c.json(await getMe(c.get('userId'))));
+
+// Вовлечённость (2026-11-24): подарок за возвращение, отметка тура, «открыл карточку бота» (для отчёта в админке).
+me.post('/comeback/claim', rateLimit(10, 60_000, 'comeback'), async (c) => c.json(await claimComeback(c.get('userId'))));
+me.post('/flags/tour', async (c) => {
+  await markTourDone(c.get('userId'));
+  return c.json({ ok: true });
+});
+me.post('/engage/opened', rateLimit(20, 60_000, 'engage-opened'), async (c) => {
+  const { src } = z.object({ src: z.enum(['card_newcomer', 'card_comeback', 'card_mission']) }).parse(await body(c));
+  await markCardOpened(c.get('userId'), src.slice(5) as EngageKind);
+  return c.json({ ok: true });
+});
 
 /** Код переноса: ввести на другом устройстве (Android-приложение, веб), чтобы войти в этот же аккаунт. Действует 10 минут, один раз. */
 me.post('/me/link-code', rateLimit(10, 60_000, 'link-code'), async (c) => {
