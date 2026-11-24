@@ -57,32 +57,37 @@ export async function getMe(userId: string) {
       .where(eq(botQuizPlayers.telegramId, sql`(SELECT telegram_id FROM users WHERE id = ${userId})`))
       .catch(() => [] as { pushEnabled: boolean }[]),
   ]);
-  // Итоги недели лиги: непросмотренная награда — окно на главной. Мягко: на старой схеме (тесты миграций) профиль обязан открываться.
-  // «Последний вход» (2026-11-24): приложение открывается с сохранённым токеном без нового входа, поэтому отмечаем и здесь —
-  // не чаще раза в час. По нему карточки бота не приходят тому, кто сегодня уже открывал приложение.
-  if (!userRow[0]?.lastSeenAt || now.getTime() - userRow[0].lastSeenAt.getTime() > 3600_000)
-    await db.update(users).set({ lastSeenAt: now }).where(eq(users.id, userId)).catch(() => undefined);
-  const leagueAward = await unseenLeagueAward(userId, now).catch(() => null);
-  // Брошенный урок, который можно продолжить (2026-11-24): «Продолжить · осталось N» на главной. Мягко, как лига.
-  const activeLesson = await activeLessonProgress(userId, now).catch(() => null);
-  // Подарок за возвращение и отметка тура (2026-11-24). Мягко: на старой схеме профиль обязан открываться.
   const lastActive = progressRow[0]?.lastActiveDay ?? null;
   const tzMe = settingsRow[0]?.timezone ?? 'Europe/Warsaw';
-  const comeback = await comebackOffer(userId, lastActive, dayKey(now, tzMe), now).catch(() => null);
-  const tourDone = await db
-    .select({ key: userFlags.key })
-    .from(userFlags)
-    .where(and(eq(userFlags.userId, userId), eq(userFlags.key, 'tour')))
-    .get()
-    .then((r) => !!r)
-    .catch(() => false);
-  // Новый входной тест (2026-11-16): прошёл ли его игрок — карточка «Пройди тест уровня» на главной для тех, кто не проходил.
-  const levelTestRows = await db
-    .select({ id: learningSessions.id })
-    .from(learningSessions)
-    .where(and(eq(learningSessions.userId, userId), eq(learningSessions.lessonId, LEVEL_TEST_LESSON_ID), eq(learningSessions.status, 'FINISHED')))
-    .limit(1)
-    .catch(() => [] as { id: string }[]);
+  // Дополнительные чтения главной — параллельно, одним заходом (D1 далеко: каждый последовательный запрос — сотни мс к запуску).
+  // Все мягкие: на старой схеме (тесты миграций) профиль обязан открываться.
+  const [leagueAward, activeLesson, comeback, tourDone, levelTestRows] = await Promise.all([
+    // Итоги недели лиги: непросмотренная награда — окно на главной.
+    unseenLeagueAward(userId, now).catch(() => null),
+    // Брошенный урок, который можно продолжить (2026-11-24): «Продолжить · осталось N» на главной.
+    activeLessonProgress(userId, now).catch(() => null),
+    // Подарок за возвращение и отметка тура (2026-11-24).
+    comebackOffer(userId, lastActive, dayKey(now, tzMe), now).catch(() => null),
+    db
+      .select({ key: userFlags.key })
+      .from(userFlags)
+      .where(and(eq(userFlags.userId, userId), eq(userFlags.key, 'tour')))
+      .get()
+      .then((r) => !!r)
+      .catch(() => false),
+    // Новый входной тест (2026-11-16): прошёл ли его игрок — карточка «Пройди тест уровня» на главной для тех, кто не проходил.
+    db
+      .select({ id: learningSessions.id })
+      .from(learningSessions)
+      .where(and(eq(learningSessions.userId, userId), eq(learningSessions.lessonId, LEVEL_TEST_LESSON_ID), eq(learningSessions.status, 'FINISHED')))
+      .limit(1)
+      .catch(() => [] as { id: string }[]),
+    // «Последний вход» (2026-11-24): приложение открывается с сохранённым токеном без нового входа, поэтому отмечаем и здесь —
+    // не чаще раза в час. По нему карточки бота не приходят тому, кто сегодня уже открывал приложение.
+    !userRow[0]?.lastSeenAt || now.getTime() - userRow[0].lastSeenAt.getTime() > 3600_000
+      ? db.update(users).set({ lastSeenAt: now }).where(eq(users.id, userId)).catch(() => undefined)
+      : undefined,
+  ]);
   const sub = subRow[0] ?? null;
   const user = { ...userRow[0], settings: settingsRow[0] ?? null, profile: profileRow[0] ?? null, wallet: walletRow[0] ?? null, progress: { ...progressRow[0], currentCity: cityRow[0] ?? null } };
   const tz = user.settings?.timezone ?? 'Europe/Warsaw';
