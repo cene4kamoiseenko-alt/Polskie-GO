@@ -4,7 +4,7 @@ import { db } from '../src/db';
 import { cities, gameConfig, playerProgress, reviewSchedule, userAchievements, achievements } from '../src/db/schema';
 import { validateInitData, signInitData } from '../src/lib/telegram';
 import { resetRateLimits } from '../src/hono';
-import { correctAnswers, disposeEnv, isGradable, lessonId, login, playSession, request, sessionItems } from './helpers';
+import { correctAnswers, disposeEnv, isGradable, lessonId, login, playSession, request, sessionItems, veteran } from './helpers';
 
 afterAll(disposeEnv);
 
@@ -47,7 +47,7 @@ describe('Telegram авторизація', () => {
 
 describe('Уроки та нагороди', () => {
   it('урок не розкриває відповідей клієнту', async () => {
-    const { call } = await login();
+    const { call } = await veteran();
     const res = await call('POST', '/api/sessions', { lessonId: await lessonId('waw-1-czesc') });
     expect(res.status).toBe(200);
     const raw = JSON.stringify(res.body.items);
@@ -85,7 +85,7 @@ describe('Уроки та нагороди', () => {
   });
 
   it('повний урок: XP і Złotki на сервері, слова, наступний урок відкрито', async () => {
-    const { call, user } = await login();
+    const { call, user } = await veteran();
     const lid = await lessonId('waw-1-czesc');
     const start = await call('POST', '/api/sessions', { lessonId: lid });
     // «Скажи вслух» не проверяется: шаг идёт без зачёта, без XP и не входит ни в «верно», ни в «всего».
@@ -101,7 +101,8 @@ describe('Уроки та нагороди', () => {
     expect(fin.body.achievements.map((a: { slug: string }) => a.slug)).toEqual(expect.arrayContaining(['first-lesson', 'perfect-1']));
 
     const p = await progress(user.id);
-    expect(p).toMatchObject({ xpTotal: fin.body.xp, lessonsCompleted: 1, wordsLearned: 6, streakCurrent: 1 });
+    // lessonsCompleted: 1 заранее (игрок не новичок) + 1 за этот урок.
+    expect(p).toMatchObject({ xpTotal: fin.body.xp, lessonsCompleted: 2, wordsLearned: 6, streakCurrent: 1 });
     expect(await reviews(user.id, 'WORD')).toBe(6);
 
     const j = await call('GET', '/api/journey');
@@ -113,7 +114,7 @@ describe('Уроки та нагороди', () => {
   });
 
   it('повторне проходження не дає нескінченних нагород', async () => {
-    const { call, user } = await login();
+    const { call, user } = await veteran();
     const lid = await lessonId('waw-1-czesc');
     const xps: number[] = [];
     for (let i = 0; i < 4; i++) {
@@ -123,7 +124,8 @@ describe('Уроки та нагороди', () => {
     const first = xps[0];
     expect(xps).toEqual([first, Math.round(first * 0.25), Math.round(first * 0.25), 0]);
     const p = await progress(user.id);
-    expect(p.lessonsCompleted).toBe(1);
+    // 1 — заранее (игрок не новичок, полный урок) + 1 за этот урок; повторы не считаются.
+    expect(p.lessonsCompleted).toBe(2);
   });
 
   it('повторне завершення повертає той самий підсумок без нагород; недовиконану чи надто швидку сесію не завершити', async () => {
@@ -154,7 +156,7 @@ describe('Уроки та нагороди', () => {
   });
 
   it('аудіювання й диктант без звуку можна пропустити без помилки й без XP', async () => {
-    const { call } = await login();
+    const { call } = await veteran();
     const s = await call('POST', '/api/sessions', { lessonId: await lessonId('waw-1-czesc') });
     const items = await sessionItems(s.body.sessionId);
     for (const type of ['LISTENING', 'DICTATION']) {

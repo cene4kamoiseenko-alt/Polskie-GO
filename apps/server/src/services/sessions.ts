@@ -25,6 +25,8 @@ import { applyQuestEvents, questReads, type QuestEvents } from './quests';
 import { ctxFrom, ctxReads, dayCandidates, grantItem, grantXp, grantZlotki, touchActivity } from './rewards';
 import { CITY_REWARDS } from '../content/gamification';
 import { GRAMMAR } from '../content/grammar';
+import { LESSON_RESUME_MS } from './active-lesson';
+import { firstLessonItems } from './first-lesson';
 
 type Mode = (typeof learningSessions.$inferSelect)['mode'];
 type SessionRow = typeof learningSessions.$inferSelect;
@@ -294,7 +296,7 @@ export async function startSession(userId: string, input: { lessonId?: string; m
           .orderBy(desc(learningSessions.startedAt))
           .limit(1),
         db.select({ id: subscriptions.id }).from(subscriptions).where(activeSubWhere(userId)).limit(1),
-        db.select({ studyLevel: playerProgress.studyLevel }).from(playerProgress).where(eq(playerProgress.userId, userId)),
+        db.select({ studyLevel: playerProgress.studyLevel, lessonsCompleted: playerProgress.lessonsCompleted }).from(playerProgress).where(eq(playerProgress.userId, userId)),
         ...journeyReads(userId),
       ]),
       db
@@ -323,6 +325,8 @@ export async function startSession(userId: string, input: { lessonId?: string; m
     const rows = realMode === 'PLACEMENT' ? exRows : exRows.filter((e) => (variant ? e.level === variant && e.order >= VARIANT_BASE_ORDER : e.order < VARIANT_BASE_ORDER));
     // Черга уроку: не більше трьох однакових механік поспіль (порядок у БД не змінюється). Входной тест — строго по блокам A0…B2.
     items = realMode === 'PLACEMENT' ? lessonToItems(rows) : spreadByType(lessonToItems(rows));
+    // Новичок без пройденных уроков (2026-11-24): первое занятие — короткая версия урока (8 простых заданий).
+    if (realMode === 'LESSON' && lesson.kind === 'LESSON' && variant === null && (studyRows[0]?.lessonsCompleted ?? 0) === 0) items = firstLessonItems(items);
     words = lw;
     place = lp;
 
@@ -332,7 +336,8 @@ export async function startSession(userId: string, input: { lessonId?: string; m
       const st = prev?.state as unknown as SessionState | undefined;
       const prevItems = prev?.items as ExerciseItem[] | undefined;
       const done = prevItems?.filter((i) => st?.answers[i.key]?.done).map((i) => i.key) ?? [];
-      if (prev && prevItems && Date.now() - prev.startedAt.getTime() < SESSION_TTL_MS && done.length > 0 && done.length < prevItems.length) {
+      // Урок продолжается с места до 7 дней (2026-11-24; раньше — 3 часа, и на следующий день урок начинался заново).
+      if (prev && prevItems && Date.now() - prev.startedAt.getTime() < LESSON_RESUME_MS && done.length > 0 && done.length < prevItems.length) {
         const prnd = seededRandom(sessionSeed(prev.id));
         return {
           sessionId: prev.id,
@@ -383,7 +388,7 @@ async function loadSession(userId: string, sessionId: string): Promise<SessionRo
 function activeSession(userId: string, s: SessionRow | undefined): SessionRow {
   if (!s || s.userId !== userId) throw notFound('session_not_found');
   if (s.status !== 'ACTIVE') throw badRequest('session_closed');
-  if (Date.now() - s.startedAt.getTime() > SESSION_TTL_MS) throw new HttpError(410, 'session_expired');
+  if (Date.now() - s.startedAt.getTime() > (s.mode === 'LESSON' ? LESSON_RESUME_MS : SESSION_TTL_MS)) throw new HttpError(410, 'session_expired');
   return s;
 }
 
@@ -657,6 +662,7 @@ async function finishOnce(userId: string, sessionId: string) {
   let levelConfirmed: Cefr | null = null;
   let placement: null | { level: Cefr; studyLevel: StudyLevel | null; unlocked: string[]; cities: string[] } = null;
   let studyLevelChange: null | { from: StudyLevel | null; to: StudyLevel | null; dir: 'up' | 'down' } = null;
+  let firstWin = false;
 
   if (s.mode === 'LESSON' && s.lessonId) {
     const lesson = lessonRows[0];
@@ -709,6 +715,8 @@ async function finishOnce(userId: string, sessionId: string) {
           })
           .where(eq(playerProgress.userId, userId)),
       );
+      // «Первая победа» (2026-11-24): первый в жизни пройденный урок (не повтор, не босс).
+      firstWin = firstCompletion && !isBoss && p.lessonsCompleted === 0;
       p.lessonsCompleted += firstCompletion ? 1 : 0;
       p.perfectLessons += newPerfect ? 1 : 0;
       p.exercisesCorrect += correct;
@@ -840,7 +848,9 @@ async function finishOnce(userId: string, sessionId: string) {
     studyLevelChange,
     questsCompleted: quests.completed,
     achievements: ach.unlocked,
-    durationSec: Math.round(elapsed / 1000),
+    firstWin,
+    // Урок можно продолжить через дни: время — как в дневной активности, не больше часа.
+    durationSec: Math.min(Math.round(elapsed / 1000), 3600),
   };
   // Нагороди досягнень і підсумок у сесії (для повторного запиту завершення; версія: +1 до вже закритої сесії) — одним пакетом.
   await atomic([

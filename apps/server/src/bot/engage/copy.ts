@@ -24,7 +24,7 @@ const ruForm = (n: number, one: string, few: string, many: string) =>
   n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
 
 const RU: EngageCopy = {
-  newcomerStart: '🦫 Первый урок — 3 минуты. Бобек ждёт тебя в Варшаве: 8 коротких заданий, и первая победа твоя.',
+  newcomerStart: '🦫 Первый урок — 3 минуты. Бобек уже ждёт: несколько коротких заданий, и первая победа твоя.',
   newcomerLeft: (n) => `🦫 Ты уже начал первый урок — осталось ${n} ${ruForm(n, 'задание', 'задания', 'заданий')}. Закончишь за пару минут.`,
   newcomerStartBtn: '🚀 Начать урок',
   newcomerLeftBtn: '▶️ Продолжить урок',
@@ -54,7 +54,7 @@ const RU: EngageCopy = {
 };
 
 const UK: EngageCopy = {
-  newcomerStart: '🦫 Перший урок — 3 хвилини. Бобек чекає на тебе у Варшаві: 8 коротких завдань, і перша перемога твоя.',
+  newcomerStart: '🦫 Перший урок — 3 хвилини. Бобек уже чекає: кілька коротких завдань, і перша перемога твоя.',
   newcomerLeft: (n) => `🦫 Ти вже почав перший урок — лишилося ${n} ${ruForm(n, 'завдання', 'завдання', 'завдань')}. Закінчиш за пару хвилин.`,
   newcomerStartBtn: '🚀 Почати урок',
   newcomerLeftBtn: '▶️ Продовжити урок',
@@ -84,7 +84,7 @@ const UK: EngageCopy = {
 };
 
 const EN: EngageCopy = {
-  newcomerStart: '🦫 Your first lesson takes 3 minutes. Bobek is waiting for you in Warsaw: 8 short tasks and your first win.',
+  newcomerStart: '🦫 Your first lesson takes 3 minutes. Bobek is waiting: a few short tasks and your first win.',
   newcomerLeft: (n) => `🦫 You've started your first lesson — ${n} ${n === 1 ? 'task' : 'tasks'} left. You'll finish in a couple of minutes.`,
   newcomerStartBtn: '🚀 Start the lesson',
   newcomerLeftBtn: '▶️ Continue the lesson',

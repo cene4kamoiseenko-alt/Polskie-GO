@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 import type { ExerciseItem, ChoiceData, TextData, OrderData, MatchData, PronunciationData, DialogueData } from '@polski-go/shared';
 import { buildApp } from '../src/app';
 import { bindDb, db } from '../src/db';
-import { learningSessions, lessons, users } from '../src/db/schema';
+import { learningSessions, lessons, playerProgress, users } from '../src/db/schema';
 import { setEnv, type Bindings } from '../src/env';
 import { buildSeedSql } from '../src/content/seed';
 import { signInitData } from '../src/lib/telegram';
@@ -173,6 +173,16 @@ export async function playSession(call: Awaited<ReturnType<typeof login>>['call'
   }
   await db.update(learningSessions).set({ startedAt: new Date(Date.now() - 10 * 60_000) }).where(eq(learningSessions.id, sessionId));
   return call('POST', `/api/sessions/${sessionId}/finish`);
+}
+
+/**
+ * Игрок, который уже проходил уроки: первое занятие урока у него полное. Короткий первый урок (8 простых заданий) — только у новичка
+ * (2026-11-24, services/first-lesson.ts); тесты механики полного урока берут такого игрока.
+ */
+export async function veteran(extra: Record<string, string> = {}) {
+  const u = await login(extra);
+  await db.update(playerProgress).set({ lessonsCompleted: 1 }).where(eq(playerProgress.userId, u.user.id));
+  return u;
 }
 
 export async function lessonId(slug: string) {

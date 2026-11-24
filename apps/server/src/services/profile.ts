@@ -15,6 +15,7 @@ import { audioGenerationMode } from './audio-policy';
 import { activeSubWhere } from './premium';
 import { outfit } from './shop';
 import { unseenLeagueAward } from './league';
+import { activeLessonProgress } from './active-lesson';
 
 /** Урок входного теста v2 (seed: id = `l_<slug>`). */
 export const LEVEL_TEST_LESSON_ID = 'l_placement-test-v2';
@@ -57,6 +58,8 @@ export async function getMe(userId: string) {
   ]);
   // Итоги недели лиги: непросмотренная награда — окно на главной. Мягко: на старой схеме (тесты миграций) профиль обязан открываться.
   const leagueAward = await unseenLeagueAward(userId, now).catch(() => null);
+  // Брошенный урок, который можно продолжить (2026-11-24): «Продолжить · осталось N» на главной. Мягко, как лига.
+  const activeLesson = await activeLessonProgress(userId, now).catch(() => null);
   // Новый входной тест (2026-11-16): прошёл ли его игрок — карточка «Пройди тест уровня» на главной для тех, кто не проходил.
   const levelTestRows = await db
     .select({ id: learningSessions.id })
@@ -135,6 +138,7 @@ export async function getMe(userId: string) {
     outfit: look,
     counters: { dueReviews, mistakes, unseenAchievements: unseenAch },
     leagueAward,
+    activeLesson,
     levelTest: { done: levelTestRows.length > 0, placementLevel: user.profile?.placementLevel ?? null },
     rewards: { exerciseXp: cfg.exerciseXp },
     /**
