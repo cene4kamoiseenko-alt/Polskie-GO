@@ -981,6 +981,7 @@ export const uk = {
   combo_great: 'Чудово!',
   combo_amazing: 'Неймовірно!',
   combo_master: 'Майстер!',
+  combo_in_row: '{n} правильних поспіль',
   time_hm: '{h} год {m} хв',
   lb_week_title: "Рейтинг тижня",
   lb_ends_in: "До кінця тижня: {t}",

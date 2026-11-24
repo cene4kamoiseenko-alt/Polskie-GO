@@ -949,6 +949,7 @@ export const en: Dict = {
   combo_great: 'Great!',
   combo_amazing: 'Amazing!',
   combo_master: 'Master!',
+  combo_in_row: '{n} in a row',
   time_hm: '{h}h {m}m',
   lb_week_title: "Weekly leaderboard",
   lb_ends_in: "Week ends in {t}",

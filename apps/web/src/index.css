@@ -2579,6 +2579,8 @@ html.reduced-motion .map-here-ring { animation: none; }
   0%, 100% { box-shadow: 0 0 0 0 rgb(255 200 87 / 0.45); }
   50% { box-shadow: 0 0 0 5px rgb(255 200 87 / 0); }
 }
+/* Урок: верные ответы подряд. На 3/5/10/15 подряд (is-milestone) — чуть ярче: в скоростном режиме панели ответа нет. */
+.combo-chip.is-milestone { box-shadow: 0 0 0 2px #fff3c4, 0 6px 16px -4px rgb(255 160 40 / 0.95); }
 /* Урок: верные ответы подряд. */
 .combo-chip {
   display: inline-flex;
@@ -2749,25 +2751,6 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
   color: var(--text);
 }
 /* Урок: вспышка похвалы за серию (польское слово + перевод) */
-.combo-burst {
-  position: fixed;
-  z-index: 45;
-  left: 50%;
-  /* В шапке урока (над полосой прогресса), а не на картинке: раньше в 72 px от верха закрывала Бобека на сцене (владелец 2026-11-24). */
-  top: calc(var(--safe-t, 0px) + 6px);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: -90px;
-  width: 180px;
-  justify-content: center;
-  padding: 8px 14px;
-  border-radius: 999px;
-  color: #4a2a00;
-  background: linear-gradient(180deg, #ffe08a, #ffb13d);
-  box-shadow: 0 4px 0 #c9822a, 0 14px 30px -10px rgb(255 159 41 / 0.8);
-  pointer-events: none;
-}
 
 /* Нижняя панель: растровые значки владельца (2026-11-15). Неактивные — приглушены, активный — в цвете. */
 .nav-art {
@@ -2969,3 +2952,47 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
     animation: none;
   }
 }
+
+/* ── Похвала за серию (вариант Б владельца, 2026-11-24): золотая панель ответа на 3/5/10/15 верных подряд ──
+   Блик проходит по панели один раз (событие редкое; без бесконечных пульсаций). «Меньше анимаций» — без блика. */
+.feedback-panel.is-combo {
+  background: linear-gradient(180deg, #3d2c0b 0%, #2c2009 100%);
+  box-shadow: inset 0 2px 0 rgb(255 200 87 / 0.75);
+}
+.light .feedback-panel.is-combo {
+  background: linear-gradient(180deg, #fff4d2 0%, #ffe7a6 100%);
+  box-shadow: inset 0 2px 0 #ffd36b;
+}
+.combo-sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.combo-sheen::after {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 45%;
+  background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 0.55) 45%, rgb(255 255 255 / 0) 80%);
+  transform: translateX(-120%) skewX(-12deg);
+  animation: combo-sheen 1.1s cubic-bezier(0.22, 0.8, 0.2, 1) 0.25s 1 both;
+}
+.light .combo-sheen::after { background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 0.85) 45%, rgb(255 255 255 / 0) 80%); }
+@keyframes combo-sheen {
+  to { transform: translateX(260%) skewX(-12deg); }
+}
+.combo-badge {
+  background: radial-gradient(circle at 50% 35%, #ffe9a3 0%, #ffbf3f 60%, #f08a12 100%);
+  box-shadow: 0 4px 0 #c46d0a, 0 8px 18px -6px rgb(240 138 18 / 0.9);
+}
+.combo-ember { background: radial-gradient(circle, #fff6c8 0%, #ffb52e 70%); box-shadow: 0 0 6px 1px rgb(255 190 60 / 0.8); }
+.combo-head { color: #ffd36b; }
+.light .combo-head { color: #9a4a00; }
+.combo-sub { color: #f5d9a0; }
+.light .combo-sub { color: #7a4a06; }
+@media (prefers-reduced-motion: reduce) {
+  .combo-sheen::after { animation: none; display: none; }
+}
+html.reduced-motion .combo-sheen::after { animation: none; display: none; }

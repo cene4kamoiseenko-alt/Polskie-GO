@@ -16,6 +16,7 @@ import { useSwipe } from '../lib/swipe';
 import { Beaver } from '../components/Beaver';
 import { Icon, type LineIconName } from '../components/Icon';
 import { Art } from '../components/GameArt';
+import { ComboBadge, ComboTitle } from '../components/ComboPraise';
 import { Badge, Stamp } from '../components/Illustrations';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkeleton, SpeakButton, cx, useBackButton, useToast } from '../components/ui';
@@ -73,14 +74,6 @@ export default function LessonScreen() {
   const [mistakes, setMistakes] = useState(0);
   // Верные ответы подряд — только на экране (на XP и награды не влияет): с трёх показывается «огонёк ×N».
   const [combo, setCombo] = useState(0);
-  // Вспышка на 3/5/10/15 верных подряд: польская похвала с переводом (держится ~1,6 с).
-  const [burst, setBurst] = useState<number | null>(null);
-  useEffect(() => {
-    if (!COMBO_PRAISE[combo]) return;
-    setBurst(combo);
-    const tm = setTimeout(() => setBurst(null), 1600);
-    return () => clearTimeout(tm);
-  }, [combo]);
   const started = useRef(false);
 
   useEffect(() => {
@@ -378,6 +371,8 @@ export default function LessonScreen() {
   if (!item) return null;
   const isDialogue = item.type === 'DIALOGUE' || item.type === 'SITUATION';
   const praise = t('lesson_correct_alt').split('|');
+  // Серия 3/5/10/15 верных подряд (не повтор ошибки): панель ответа золотая — польская похвала, огонёк и ×N (вариант Б владельца, 2026-11-24).
+  const milestone = result?.correct && !result.retry && !result.almost && COMBO_PRAISE[combo] ? combo : null;
   const caText = result ? correctAnswerText(item, result, tr) : null;
   const feedbackPl = result && !result.correct ? polishForFeedback(item, caText) : null;
   // «Не знаю» во входном тесте — нейтральный ответ (не «Неверно»): угадывать не нужно.
@@ -403,7 +398,7 @@ export default function LessonScreen() {
             ) : (
               <span className="flex shrink-0 items-center gap-2">
                 {combo >= 3 && (
-                  <motion.span key={combo} initial={{ scale: 1.5, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} className="combo-chip" aria-label={t('lesson_combo', { n: combo })} data-combo={combo}>
+                  <motion.span key={combo} initial={{ scale: 1.5, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} className={cx('combo-chip', COMBO_PRAISE[combo] && 'is-milestone')} aria-label={t('lesson_combo', { n: combo })} data-combo={combo}>
                     <Art name="flame" size={16} /> ×{combo}
                   </motion.span>
                 )}
@@ -420,26 +415,6 @@ export default function LessonScreen() {
         <ReportExercise target={{ sessionId: session.sessionId, key: item.key }} />
       </div>
 
-      <AnimatePresence>
-        {burst !== null && COMBO_PRAISE[burst] && (
-          <motion.div
-            key={burst}
-            className="combo-burst"
-            role="status"
-            initial={{ opacity: 0, y: -12, scale: 0.7 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 460, damping: 20 }}
-            data-combo-burst={burst}
-          >
-            <Art name="flame" size={22} />
-            <span className="leading-tight">
-              <span className="block text-[15px] font-black" lang="pl">{COMBO_PRAISE[burst][0]} ×{burst}</span>
-              <span className="block text-[11.5px] font-bold opacity-80">{t(COMBO_PRAISE[burst][1])}</span>
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
       <div className="flex-1 overflow-y-auto px-4 pb-48 pt-4">
         {resumed > 0 && pos === 0 && !result && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-2 flex items-center justify-center gap-1.5 rounded-2xl bg-sky/15 px-3 py-1.5 text-sm font-black text-sky-dark">
@@ -511,9 +486,13 @@ export default function LessonScreen() {
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
-              className={cx('feedback-panel rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : neutral ? 'is-skipped' : 'is-wrong')}
+              className={cx('feedback-panel relative rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : neutral ? 'is-skipped' : 'is-wrong', milestone ? 'is-combo' : null)}
             >
-              <div className="flex items-start gap-3">
+              {milestone && <span className="combo-sheen" aria-hidden />}
+              <div className="relative flex items-start gap-3">
+                {milestone ? (
+                  <ComboBadge />
+                ) : (
                 <motion.span
                   initial={{ scale: 0, rotate: -30 }}
                   animate={{ scale: 1, rotate: 0 }}
@@ -522,15 +501,21 @@ export default function LessonScreen() {
                 >
                   <Icon name={result.correct ? 'check' : neutral ? 'arrow-right' : 'x'} size={26} />
                 </motion.span>
+                )}
                 <div className="min-w-0 flex-1">
-                  <div className={cx('text-xl font-black', result.correct ? 'text-brand' : neutral ? 'text-sky' : 'text-coral')}>
-                    {result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : dk ? t('lesson_dont_know_ok') : result.skipped ? t(item.type === 'PRONUNCIATION' ? 'lesson_repeat_ok' : 'lesson_skipped_ok') : t('lesson_wrong')}
+                  <div className={cx('text-xl font-black', milestone ? 'combo-head' : result.correct ? 'text-brand' : neutral ? 'text-sky' : 'text-coral')}>
+                    {milestone ? <ComboTitle word={COMBO_PRAISE[milestone][0]} n={milestone} /> : result.correct ? (result.almost ? t('lesson_almost') : praise[firstDone % praise.length]) : dk ? t('lesson_dont_know_ok') : result.skipped ? t(item.type === 'PRONUNCIATION' ? 'lesson_repeat_ok' : 'lesson_skipped_ok') : t('lesson_wrong')}
                     {result.correct && !result.retry && session.lesson && me?.rewards && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 inline-block rounded-full bg-xp px-2 py-0.5 align-middle text-sm text-xp-ink">
                         +{me.rewards.exerciseXp} XP
                       </motion.span>
                     )}
                   </div>
+                  {milestone && (
+                    <div className="combo-sub text-[14px] font-extrabold" data-combo-sub>
+                      {t(COMBO_PRAISE[milestone][1])} {t('combo_in_row', { n: milestone })}
+                    </div>
+                  )}
                   {caText && (
                     <div className="font-bold">
                       <span className="muted">{t('lesson_correct_answer')}</span> {caText}
@@ -561,7 +546,7 @@ export default function LessonScreen() {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className={cx('px-4 pb-3 pt-3', result && !speed ? cx('feedback-panel', result.correct ? 'is-correct' : result.skipped ? 'is-skipped' : 'is-wrong') : 'bg-[var(--bg)]')}>
+        <div className={cx('px-4 pb-3 pt-3', result && !speed ? cx('feedback-panel', result.correct ? 'is-correct' : result.skipped ? 'is-skipped' : 'is-wrong', milestone ? 'is-combo' : null) : 'bg-[var(--bg)]')}>
           {isDialogue ? (
             <button className="btn btn-primary w-full text-lg" data-action="next" disabled={!dialogueDone} onClick={next}>
               {t('next')}

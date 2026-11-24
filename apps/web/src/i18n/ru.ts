@@ -949,6 +949,7 @@ export const ru: Dict = {
   combo_great: 'Отлично!',
   combo_amazing: 'Потрясающе!',
   combo_master: 'Мастер!',
+  combo_in_row: '{n} верных подряд',
   time_hm: '{h} ч {m} мин',
   lb_week_title: "Рейтинг недели",
   lb_ends_in: "До конца недели: {t}",

@@ -118,18 +118,7 @@ async function main() {
         });
         check(pl.look && pl.w >= 110 && pl.below, `${tag} урок, задание: Бобек игрока в его образе крупно под картинкой (${Math.round(pl.w)} px)`);
         check(ex.drift, `${tag} урок, задание: картинка медленно приближается`);
-        // Похвала за серию верных ответов («Świetnie! ×5», .combo-burst) — не поверх картинки с Бобеком (владелец 2026-11-24).
-        const burstClear = await p.evaluate(() => {
-          const b = document.createElement('div');
-          b.className = 'combo-burst';
-          b.textContent = 'Świetnie! ×5';
-          document.body.appendChild(b);
-          const r = b.getBoundingClientRect();
-          const st = (document.querySelector('[data-stage-mood]') as HTMLElement).getBoundingClientRect();
-          b.remove();
-          return r.bottom <= st.top + 1;
-        });
-        check(burstClear, `${tag} урок: похвала за серию не закрывает картинку`);
+        // Похвала за серию — золотая панель ответа внизу (scripts/combo-check.ts), поверх картинки ничего не всплывает.
         if (width === 390) await p.screenshot({ path: `${OUT}/lesson-${theme}.png` });
         // Картинка задания не пересоздаётся, пока меняется настроение сцены (выбрал вариант, проверил): иначе приближение начинается заново.
         await p.evaluate(() => ((document.querySelector('[data-stage-mood] img') as unknown as { __pgKeep?: number }).__pgKeep = 1));
