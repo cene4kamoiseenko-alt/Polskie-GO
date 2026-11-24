@@ -17,8 +17,8 @@ export type CardData =
   | { kind: 'mission'; slug: string; title: string; minutes: number; category: string };
 
 const ch = (...names: string[]) => names.map((n) => `channel/${n}.jpg`);
-/** Новичку — Бобек-учитель: учёба, правила, экзамен, слова, произношение. */
-const NEWCOMER_IMAGES = ch('nauka', 'zasada-1', 'egzamin-1', 'slowa-tematy-1', 'zasada-2', 'rodzaj', 'egzamin-2', 'wymowa-1', 'zasada-3');
+/** Новичку — Бобек-учитель, весёлый: учёба, правила, слова, слушание. Без «экзаменов» (egzamin-*): там Бобек волнуется, новичка это пугает. */
+const NEWCOMER_IMAGES = ch('nauka', 'zasada-1', 'sluchanie', 'slowa-tematy-1', 'zasada-2', 'rodzaj', 'slowa-tematy-2', 'wymowa-1', 'zasada-3');
 /** Вернувшемуся — Бобек радуется и живёт польской жизнью: горы, кафе, кино, друзья. */
 const COMEBACK_IMAGES = ch('brawo-1', 'narty', 'kawiarnia', 'termy', 'brawo-2', 'gry', 'kemping', 'kino', 'sasiad', 'silownia', 'slang');
 /** Миссии — по теме; тема без своего набора — общий набор «жизнь в Польше». */
