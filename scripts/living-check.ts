@@ -2,13 +2,24 @@
  * «Живые» миссии и уроки (docs/superpowers/specs/2026-11-24-living-missions-design.md, вариант А) в браузере: настоящий сервер стенда,
  * Chromium на 320 / 390 / 430 px, светлая и тёмная тема.
  *  · Вступление миссии: картинка места всегда растровая (своя сцена, кадр пропуска, обложка сезона, библиотека), поверх нет второго Бобека.
+ *  · Шаг миссии: картинка места сверху на каждом шаге (та же), облачко реплики на её нижнем крае, скрытая реплика не видна до ответа,
+ *    Бобек — в панели ответа (верно и ошибка), на 320×568 варианты и «Проверить» без прокрутки, «меньше анимаций» — без приближения
+ *    картинки и конфетти, картинка не загрузилась — шаг проходим, доступность (axe) без нарушений.
  *
  * Запуск: node --import tsx scripts/living-check.ts   → test-results/living/<экран>-<ширина>.png
  */
 import { createRequire } from 'node:module';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromiumPath, startStand } from './lib/stand';
+import { MISSIONS } from '../apps/server/src/content/missions';
+
+const AXE = readFileSync(createRequire(process.cwd() + '/package.json').resolve('axe-core/axe.min.js'), 'utf8');
+const ZABKA = MISSIONS.find((m) => m.slug === 'zabka-first-order')!;
+type Opt = { pl?: string; text?: { ru: string }; ok?: boolean };
+const optText = (o: Opt) => o.pl ?? o.text!.ru;
+const okOpt = (i: number) => optText((ZABKA.steps[i].options as Opt[]).find((o) => o.ok)!);
+const badOpt = (i: number) => optText((ZABKA.steps[i].options as Opt[]).find((o) => !o.ok)!);
 
 const root = process.cwd();
 const require = createRequire(root + '/package.json');
@@ -64,6 +75,105 @@ async function main() {
           });
           check(hero?.ok && hero.source === source && !hero.beaver, `${tag} ${slug}: вступление — растровая картинка (${hero?.source ?? 'нет'}), без второго Бобека`);
           if (width === 390) await p.screenshot({ path: `${OUT}/intro-${slug}-${theme}.png` });
+        }
+
+        // ---------- Шаг миссии (вариант А) ----------
+        const stageSrc = () => p.evaluate(() => (document.querySelector('[data-mission-stage] img') as HTMLImageElement | null)?.getAttribute('src') ?? null);
+        const option = (text: string) => p.locator('button.option', { hasText: text }).first();
+        const startMission = async () => {
+          await p.goto(`${stand.base}/life/zabka-first-order?devUser=${id}`);
+          await p.locator('[data-mission-start]').click({ timeout: 20_000 });
+          await p.locator('[data-mission-stage]').waitFor({ timeout: 15_000 });
+          await settle();
+        };
+        await startMission();
+        const st = await p.evaluate(() => {
+          const stage = document.querySelector('[data-mission-stage]') as HTMLElement | null;
+          const img = stage?.querySelector('img') as HTMLImageElement | null;
+          const bubble = document.querySelector('[data-line-bubble]') as HTMLElement | null;
+          const s = stage?.getBoundingClientRect();
+          const b = bubble?.getBoundingClientRect();
+          const drift = document.getAnimations().some((a) => (a as CSSAnimation).animationName === 'stage-drift');
+          return {
+            img: !!img && img.complete && img.naturalWidth > 0,
+            h: s?.height ?? 0,
+            overlap: !!s && !!b && b.top < s.bottom && b.bottom > s.bottom,
+            stepBeaver: !!document.querySelector('[data-step-beaver]'),
+            hiddenShown: document.body.innerText.includes('W czym mogę pomóc'),
+            drift,
+          };
+        });
+        // Высота картинки: clamp(190px, 34vh, 300px); на низком экране (≤ 700 px) — clamp(140px, 25vh, 180px).
+        const wantH = height <= 700 ? Math.min(180, Math.max(140, height * 0.25)) : Math.min(300, Math.max(190, height * 0.34));
+        check(st.img && Math.abs(st.h - wantH) <= 1.5, `${tag} шаг 1: картинка места над шагом (${Math.round(st.h)} px, нужно ${Math.round(wantH)})`);
+        check(st.overlap, `${tag} шаг 1: облачко реплики на нижнем крае картинки`);
+        check(!st.stepBeaver, `${tag} шаг 1: нет второго Бобека в заголовке шага`);
+        check(!st.hiddenShown, `${tag} шаг 1: скрытая реплика не показана до ответа`);
+        check(st.drift, `${tag} шаг 1: картинка медленно приближается`);
+        const src1 = await stageSrc();
+        if (width === 390) await p.screenshot({ path: `${OUT}/step1-${theme}.png` });
+        // Ошибка → Бобек в панели, «попробовать ещё»; верно → Бобек в панели, реплика открыта.
+        await option(badOpt(0)).click();
+        await p.locator('[data-mission-check]').click();
+        await p.locator('[data-feedback-beaver]').waitFor({ timeout: 10_000 });
+        check(await p.locator('[data-feedback-beaver]').isVisible(), `${tag} шаг 1: ошибка — Бобек в панели ответа`);
+        if (width === 390) await p.screenshot({ path: `${OUT}/step1-wrong-${theme}.png` });
+        await p.locator('[data-mission-retry]').click();
+        await option(okOpt(0)).click();
+        await p.locator('[data-mission-check]').click();
+        await p.locator('[data-mission-next]').waitFor({ timeout: 10_000 });
+        await p.waitForTimeout(1300);
+        check(await p.locator('[data-feedback-beaver]').isVisible(), `${tag} шаг 1: верно — Бобек в панели ответа`);
+        check(await p.evaluate(() => document.body.innerText.includes('W czym mogę pomóc')), `${tag} шаг 1: после ответа реплика открыта`);
+        if (width === 390) await p.screenshot({ path: `${OUT}/step1-correct-${theme}.png` });
+        await p.locator('[data-mission-next]').click();
+        await p.waitForTimeout(600);
+        check((await stageSrc()) === src1, `${tag} шаг 2: та же картинка места`);
+        // Шаг 2 (собери фразу) — ответ через API, затем продолжение с шага 3: 4 длинных варианта.
+        const run = (await u.call('POST', '/api/missions/zabka-first-order/start', {})).body as { runId: string };
+        await u.call('POST', `/api/missions/runs/${run.runId}/answer`, { step: 1, text: ZABKA.steps[1].answer });
+        await startMission();
+        const fit = await p.evaluate(() => {
+          // Кнопка «Проверить» прибита к низу экрана: варианты должны кончаться выше её панели, а она сама — целиком в окне.
+          const opts = [...document.querySelectorAll('button.option')] as HTMLElement[];
+          const btn = document.querySelector('[data-mission-check]') as HTMLElement | null;
+          const panelTop = btn ? btn.getBoundingClientRect().top : 0;
+          const ok = !!btn && window.scrollY === 0 && btn.getBoundingClientRect().bottom <= window.innerHeight + 0.5 && opts.every((e) => e.getBoundingClientRect().bottom <= panelTop + 0.5);
+          return { n: opts.length + 1, ok, last: Math.round(opts.at(-1)?.getBoundingClientRect().bottom ?? 0), panelTop: Math.round(panelTop) };
+        });
+        check(fit.n >= 4 && fit.ok, `${tag} шаг 3: ${fit.n - 1} варианта и «Проверить» видны без прокрутки (низ вариантов ${fit.last}, кнопка с ${fit.panelTop})`);
+        check((await stageSrc()) === src1, `${tag} шаг 3: та же картинка места`);
+        if (width === 390) await p.screenshot({ path: `${OUT}/step3-${theme}.png` });
+        await p.addScriptTag({ content: AXE });
+        const ax = (await p.evaluate(async () => {
+          const r = await (window as unknown as { axe: { run: (c: unknown, o: unknown) => Promise<{ violations: { id: string; nodes: unknown[] }[] }> } }).axe.run(
+            { include: [['[data-mission-stage]'], ['[data-mission-answers]']] },
+            { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } },
+          );
+          return r.violations.map((v) => `${v.id}×${v.nodes.length}`);
+        })) as string[];
+        check(ax.length === 0, `${tag} шаг 3: доступность без нарушений${ax.length ? ` — ${ax.join(', ')}` : ''}`);
+
+        if (width === 390) {
+          // Картинка не загрузилась: сцена остаётся, «битой» картинки нет, ответить можно.
+          await p.route('**/assets/{library,scenes}/**', (r) => r.abort());
+          await startMission();
+          const broken = await p.evaluate(() => {
+            const img = document.querySelector('[data-mission-stage] img') as HTMLImageElement | null;
+            const visibleBroken = !!img && img.naturalWidth === 0 && getComputedStyle(img).display !== 'none' && getComputedStyle(img).visibility !== 'hidden';
+            return { stage: !!document.querySelector('[data-mission-stage]'), visibleBroken, options: document.querySelectorAll('button.option:not([disabled])').length };
+          });
+          check(broken.stage && !broken.visibleBroken && broken.options > 0, `${tag} картинка не загрузилась: сцена без «битой» картинки, шаг проходим`);
+          await p.unroute('**/assets/{library,scenes}/**');
+          // «Меньше анимаций»: без приближения картинки и без конфетти.
+          await u.call('PATCH', '/api/me/settings', { reducedMotion: true });
+          await startMission();
+          await p.waitForTimeout(1500);
+          check(!(await p.evaluate(() => document.getAnimations().some((a) => (a as CSSAnimation).animationName === 'stage-drift'))), `${tag} меньше анимаций: картинка не приближается`);
+          await option(okOpt(2)).click();
+          await p.locator('[data-mission-check]').click();
+          await p.locator('[data-mission-next]').waitFor({ timeout: 10_000 });
+          check((await p.locator('[data-confetti]').count()) === 0, `${tag} меньше анимаций: без конфетти`);
         }
         await ctx.close();
       }

@@ -2878,3 +2878,42 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
 .streak-freeze-icons > span { display: inline; color: rgb(140 160 190 / 0.45); font-size: 22px; }
 .streak-freeze-icons > span.is-on { color: #7fd3ff; text-shadow: 0 0 10px rgb(127 211 255 / 0.85); }
 .streak-repair { border-color: rgb(255 82 101 / 0.45); background: linear-gradient(90deg, rgb(255 82 101 / 0.16), rgb(255 138 61 / 0.06)); }
+
+/* Живые миссии (2026-11-24, вариант А): картинка места над шагами медленно приближается один раз за миссию; фон — пока картинка
+   грузится или если она не загрузилась. «Меньше анимаций» в приложении — класс не ставится (MissionStage), системная — здесь. */
+.mission-stage {
+  height: clamp(190px, 34vh, 300px);
+  background: linear-gradient(160deg, #2b5f8c 0%, #173451 100%);
+}
+/* Низкий экран (iPhone SE, Telegram с клавиатурой-панелью): картинка ниже, варианты плотнее — 4 варианта и «Проверить» без прокрутки. */
+@media (max-height: 700px) {
+  .mission-stage {
+    height: clamp(140px, 25vh, 180px);
+  }
+  [data-mission-answers] .option {
+    min-height: 46px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    font-size: 16px;
+  }
+  [data-mission-answers] > .grid {
+    gap: 0.5rem;
+  }
+}
+@keyframes stage-drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07) translate(-0.8%, 0.6%);
+  }
+}
+.stage-drift {
+  animation: stage-drift 11s ease-in-out forwards;
+  transform-origin: 55% 40%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-drift {
+    animation: none;
+  }
+}

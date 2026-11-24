@@ -19,7 +19,11 @@ import { Beaver, type BeaverMood } from '../components/Beaver';
 import { Icon } from '../components/Icon';
 import { ReportExercise, type ExerciseReportRef } from '../components/ReportExercise';
 import { MissionScene, hasBakedBobek } from '../components/MissionScene';
+import { MissionStage, type StageReaction } from '../components/MissionStage';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
+
+/** Похвала над картинкой после верного ответа — по-польски (учит заодно); XP за миссию начисляется в конце, число здесь не показывается. */
+const PRAISE = ['Dobrze!', 'Świetnie!', 'Brawo!', 'Super!'];
 
 type Feedback = { ok: true; explain: I18n; line: MissionLine | null; finished?: MissionFinish } | { ok: false; why: I18n };
 
@@ -76,12 +80,13 @@ export default function MissionScreen() {
 }
 
 function TopBar({ onClose, value, max, report }: { onClose: () => void; value: number; max: number; report?: ExerciseReportRef }) {
+  const { t } = useT();
   return (
     <div className="flex items-center gap-3 px-4 pb-2 pt-3">
-      <button onClick={onClose} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elev shadow" aria-label="close">
+      <button onClick={onClose} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elev shadow" aria-label="close" data-mission-close>
         <Icon name="x" size={20} />
       </button>
-      <div className="flex flex-1 gap-1" role="progressbar" aria-valuenow={value} aria-valuemax={max}>
+      <div className="flex flex-1 gap-1" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} aria-label={t('pass_progress', { n: value, total: max })}>
         {Array.from({ length: max }).map((_, i) => (
           <div key={i} className="h-3 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--track)' }}>
             <motion.div className="h-full rounded-full bg-brand" initial={false} animate={{ width: i < value ? '100%' : '0%' }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
@@ -163,7 +168,7 @@ function LineCard({ line, npcName, revealed }: { line: MissionLine; npcName: str
       <div className="card border-2 !border-[var(--color-navy)] bg-paper p-4 dark:bg-elev">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            {hidden ? <HiddenText /> : <div className="text-[19px] font-black leading-snug">{line.pl}</div>}
+            {hidden ? <HiddenText /> : <div className="text-[19px] font-black leading-snug" lang="pl"><TypeText text={line.pl} /></div>}
             {revealed && <div className="muted mt-1 text-sm font-semibold">{tr(line.tr)}</div>}
           </div>
           <SpeakButton text={line.pl} size={hidden ? 'lg' : 'md'} />
@@ -188,7 +193,7 @@ function LineCard({ line, npcName, revealed }: { line: MissionLine; npcName: str
                 <div className="muted mt-1 text-xs font-bold">{t('life_hidden')}</div>
               </>
             ) : (
-              <div className="text-[18px] font-extrabold leading-snug">{line.pl}</div>
+              <div className="text-[18px] font-extrabold leading-snug" lang="pl"><TypeText text={line.pl} /></div>
             )}
             {revealed && <div className="muted mt-1 text-sm font-semibold">{tr(line.tr)}</div>}
           </div>
@@ -199,6 +204,35 @@ function LineCard({ line, npcName, revealed }: { line: MissionLine; npcName: str
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Реплика печатается по буквам (≈ 50 мс на шаг, не дольше 1,2 с); недопечатанный хвост невидим, но занимает место — облачко не прыгает.
+ * Экранный диктор сразу получает весь текст. «Меньше анимаций» — сразу весь текст.
+ */
+function TypeText({ text }: { text: string }) {
+  const reduce = useReducedMotion();
+  const [n, setN] = useState(reduce ? text.length : 0);
+  useEffect(() => {
+    if (reduce) return setN(text.length);
+    setN(0);
+    const step = Math.max(1, Math.ceil(text.length / 24));
+    const iv = setInterval(() => setN((k) => {
+      const v = Math.min(text.length, k + step);
+      if (v >= text.length) clearInterval(iv);
+      return v;
+    }), 50);
+    return () => clearInterval(iv);
+  }, [text, reduce]);
+  return (
+    <>
+      <span className="sr-only">{text}</span>
+      <span aria-hidden>
+        {text.slice(0, n)}
+        <span className="invisible">{text.slice(n)}</span>
+      </span>
+    </>
   );
 }
 
@@ -220,7 +254,8 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [wrongId, setWrongId] = useState<number | null>(null);
   const [hint, setHint] = useState<I18n | null>(null);
-  const [mood, setMood] = useState<BeaverMood>('think');
+  const [reaction, setReaction] = useState<StageReaction>(null);
+  const reduce = useReducedMotion();
   const step = steps[idx];
 
   // Аудіо поточної і наступної репліки — заздалегідь (відтворення лише за дотиком: вимога iOS).
@@ -234,7 +269,6 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
     setFeedback(null);
     setWrongId(null);
     setHint(null);
-    setMood('think');
   };
 
   const canCheck = step.kind === 'build' ? chosen.length > 0 : selected !== null;
@@ -248,12 +282,12 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
       if (r.correct) {
         haptic.success();
         sfx.correct();
-        setMood('cheer');
+        setReaction((r) => ({ kind: 'correct', n: (r?.n ?? 0) + 1 }));
         setFeedback({ ok: true, explain: r.explain, line: r.line, finished: r.finished });
       } else {
         haptic.error();
         sfx.wrong();
-        setMood('sad');
+        setReaction((r) => ({ kind: 'wrong', n: (r?.n ?? 0) + 1 }));
         setWrongId(selected);
         setFeedback({ ok: false, why: r.why });
       }
@@ -279,7 +313,6 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
     setFeedback(null);
     setWrongId(null);
     setSelected(null);
-    setMood('think');
   };
 
   const askHint = async () => {
@@ -291,17 +324,39 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
 
   const revealed = !!feedback?.ok;
   return (
-    <div ref={swipeNext} className="flex min-h-screen flex-col pb-56" data-swipe-next={revealed ? 'ready' : undefined}>
-      <TopBar onClose={onClose} value={idx + (feedback?.ok ? 1 : 0)} max={steps.length} report={{ mission: run.mission.slug, step: step.id }} />
+    <div ref={swipeNext} className="flex min-h-screen flex-col pb-40" data-swipe-next={revealed ? 'ready' : undefined}>
+      {/* Вариант А: картинка места — над всеми шагами (не перезагружается), реплика — облачко на её нижнем крае. */}
+      <MissionStage
+        slug={run.mission.slug}
+        scene={run.mission.scene}
+        season={run.mission.season ?? null}
+        category={run.mission.category}
+        reaction={reaction}
+        praise={feedback?.ok ? PRAISE[(reaction?.n ?? 0) % PRAISE.length] : null}
+        top={<TopBar onClose={onClose} value={idx + (feedback?.ok ? 1 : 0)} max={steps.length} report={{ mission: run.mission.slug, step: step.id }} />}
+      />
+      {feedback?.ok && !reduce && (
+        <div data-confetti>
+          <Confetti run />
+        </div>
+      )}
       <AnimatePresence mode="popLayout" initial={false}>
-        <motion.div key={step.id} className="flex flex-1 flex-col gap-4 px-4 pt-2" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.2 }}>
-          <div className="flex items-start gap-2">
-            <h2 className="flex-1 text-[20px] font-black leading-snug">{tr(step.task)}</h2>
-            <motion.div key={mood} initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="-mt-2 shrink-0">
-              <Beaver mood={mood} size={72} />
+        <motion.div key={step.id} className="flex flex-1 flex-col gap-3 px-4" initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.2 }}>
+          {step.line ? (
+            <motion.div
+              data-line-bubble
+              className="relative z-10 -mt-12"
+              initial={reduce ? false : { opacity: 0, y: 18, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+            >
+              <LineCard line={feedback?.ok ? (feedback.line ?? step.line) : step.line} npcName={run.mission.npc.name} revealed={revealed} />
             </motion.div>
-          </div>
-          {step.line && <LineCard line={feedback?.ok ? (feedback.line ?? step.line) : step.line} npcName={run.mission.npc.name} revealed={revealed} />}
+          ) : (
+            <div className="h-1" />
+          )}
+          <h2 className="text-[19px] font-black leading-snug">{tr(step.task)}</h2>
+          <div data-mission-answers>
           {step.kind === 'build' ? (
             <BuildArea step={step} chosen={chosen} setChosen={setChosen} locked={!!feedback} state={feedback ? (feedback.ok ? 'correct' : 'wrong') : null} />
           ) : (
@@ -329,6 +384,7 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
               })}
             </div>
           )}
+          </div>
           {!feedback && (
             <div>
               {hint ? (
@@ -356,27 +412,39 @@ function Player({ run, onClose, onFinish }: { run: MissionRun; onClose: () => vo
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 32 }}
               role="status"
+              style={{ position: 'relative' }}
             >
-              <div className={cx('flex items-center gap-2 text-lg font-black', feedback.ok ? 'text-brand-dark' : 'text-coral-dark')}>
+              {/* Бобек реагирует в панели ответа (на картинке он нарисован — второго поверх нет). */}
+              <motion.div
+                data-feedback-beaver
+                className="pointer-events-none absolute -top-14 right-2"
+                initial={reduce ? false : { y: 36, scale: 0.6, opacity: 0 }}
+                animate={{ y: 0, scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 16, delay: 0.1 }}
+                aria-hidden
+              >
+                <Beaver mood={feedback.ok ? 'cheer' : 'think'} size={88} />
+              </motion.div>
+              <div className={cx('flex items-center gap-2 pr-24 text-lg font-black', feedback.ok ? 'text-brand-dark' : 'text-coral-dark')}>
                 <Icon name={feedback.ok ? 'check' : 'refresh'} size={22} strokeWidth={3} /> {t(feedback.ok ? 'life_correct' : 'life_wrong')}
               </div>
-              <p className="mt-1 text-[15px] font-semibold leading-snug">{tr(feedback.ok ? feedback.explain : feedback.why)}</p>
+              <p className="mt-1 pr-24 text-[15px] font-semibold leading-snug">{tr(feedback.ok ? feedback.explain : feedback.why)}</p>
             </motion.div>
           )}
         </AnimatePresence>
         <div className={cx('px-4 pb-2 pt-3', feedback ? (feedback.ok ? 'bg-[color-mix(in_srgb,var(--color-brand)_20%,var(--bg-elev))]' : 'bg-[color-mix(in_srgb,var(--color-coral)_16%,var(--bg-elev))]') : 'bg-gradient-to-t from-[var(--bg)] via-[var(--bg)] to-transparent')}>
           {!feedback && (
-            <button className="btn btn-primary w-full text-lg" disabled={!canCheck || busy} aria-busy={busy} onClick={check}>
+            <button className="btn btn-primary w-full text-lg" disabled={!canCheck || busy} aria-busy={busy} onClick={check} data-mission-check>
               {busy ? <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-white/40 border-t-white" /> : t('life_check')}
             </button>
           )}
           {feedback?.ok && (
-            <button className="btn btn-primary w-full text-lg" onClick={next}>
+            <button className="btn btn-primary w-full text-lg" onClick={next} data-mission-next>
               {feedback.finished ? t('life_finish') : t('life_next')}
             </button>
           )}
           {feedback && !feedback.ok && (
-            <button className="btn btn-red w-full text-lg" onClick={retry}>
+            <button className="btn btn-red w-full text-lg" onClick={retry} data-mission-retry>
               {t('life_retry')}
             </button>
           )}

@@ -61,6 +61,10 @@ export const MissionScene = memo(function MissionScene({ slug, scene, className,
       data-scene-art={art.source === 'own' || art.source === 'pass' ? art.id : undefined}
       data-scene-status={art.status}
       data-scene-source={art.source}
+      // Картинка не загрузилась (сеть): прячем «битую» картинку — остаётся фон сцены, шаг проходим.
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+      }}
     />
   );
 });

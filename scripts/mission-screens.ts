@@ -20,8 +20,11 @@ const require = createRequire(root + '/package.json');
 const OUT = resolve(root, 'test-results/mission-screens');
 const WIDTHS = [320, 360, 390, 430];
 const HEIGHT: Record<number, number> = { 320: 700, 360: 780, 390: 844, 430: 932 };
-// Миссии пропуска месяца живут на /pass и открываются только в свой сезон — здесь только обычные миссии.
+// Миссии пропуска месяца живут на /pass и открываются только в свой сезон; миссия канала (escape-twardowski) открывается только
+// подтверждённым подписчикам канала, иначе — панель подписки на /life. Здесь только обычные миссии.
 const WITH_ART = Object.keys(MISSION_SCENE_ART).filter((slug) => !MISSIONS.find((m) => m.slug === slug)?.season);
+/** Вступления, которые открываются без подписки на канал. */
+const INTRO_ART = WITH_ART.filter((slug) => !MISSIONS.find((m) => m.slug === slug)?.channel);
 
 const failures: string[] = [];
 const check = (ok: unknown, what: string) => {
@@ -91,7 +94,7 @@ async function main() {
       await noHScroll('/life');
 
       // Экран входа в каждую миссию с картинкой .
-      for (const slug of WITH_ART) {
+      for (const slug of INTRO_ART) {
         await p.goto(`${base}/life/${slug}?devUser=${id}`);
         await p.locator('h1').first().waitFor({ timeout: 20_000 });
         await settle();
