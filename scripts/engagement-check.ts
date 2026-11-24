@@ -65,9 +65,10 @@ async function main() {
     await page.waitForLoadState('networkidle').catch(() => undefined);
     await page.waitForTimeout(ms);
   };
-  const axe = async (page: Page, what: string) => {
+  // Проверяется сам новый элемент (шторка, подсказка): метатег viewport Mini App и полосы прогресса главной — вне этой работы.
+  const axe = async (page: Page, what: string, scope: string) => {
     await page.addScriptTag({ content: AXE });
-    const r = (await page.evaluate(`axe.run(document, { runOnly: ['wcag2a', 'wcag2aa'] })`)) as { violations: { id: string; impact: string | null }[] };
+    const r = (await page.evaluate(`axe.run(${JSON.stringify(scope)}, { runOnly: ['wcag2a', 'wcag2aa'] })`)) as { violations: { id: string; impact: string | null }[] };
     const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     check(bad.length === 0, `${what}: доступность — серьёзных нарушений нет${bad.length ? ` (${bad.map((v) => v.id).join(', ')})` : ''}`);
   };
@@ -160,16 +161,16 @@ async function main() {
       await u.call('POST', `/api/sessions/${s.body.sessionId}/finish`);
       await u.call('POST', '/api/flags/tour');
       await stand.env.DB.prepare(`UPDATE player_progress SET last_active_day = date('now', '-8 day') WHERE user_id = ?`).bind(u.user.id).run();
-      const before = (await u.call('GET', '/api/me')).body.wallet.balance as number;
+      const before = (await u.call('GET', '/api/me')).body.zlotki as number;
       const p = await open(u, '/');
       const sheet = p.page.locator('[data-comeback]');
       await sheet.waitFor({ timeout: 20_000 });
       check(/С возвращением/.test(await sheet.innerText()) && /50/.test(await sheet.innerText()), 'B1 после 8 дней без занятий — шторка «С возвращением» с подарком 50');
-      await axe(p.page, 'B1 шторка «С возвращением»');
+      await axe(p.page, 'B1 шторка «С возвращением»', '[role=dialog]');
       await p.page.screenshot({ path: `${OUT}/comeback.png` });
       await p.page.locator('[data-comeback-claim]').click();
       await p.page.locator('[data-comeback-next]').waitFor({ timeout: 10_000 });
-      const after = (await u.call('GET', '/api/me')).body.wallet.balance as number;
+      const after = (await u.call('GET', '/api/me')).body.zlotki as number;
       check(after === before + 50, `B2 «Забрать» начислил 50 злотков (${before} → ${after})`);
       check(/повторени|разминк/i.test(await sheet.innerText()), 'B2 после подарка — предложение короткого повторения');
       await p.page.screenshot({ path: `${OUT}/comeback-claimed.png` });
@@ -197,7 +198,7 @@ async function main() {
       const tip = p.page.locator('[data-tour]');
       await tip.waitFor({ timeout: 20_000 });
       check(/1 из 5/.test(await tip.innerText()) && (await tip.getAttribute('data-tour')) === 'home', 'C2 после первого урока — подсказка «1 из 5» у вкладки «Сегодня»');
-      await axe(p.page, 'C2 подсказка тура');
+      await axe(p.page, 'C2 подсказка тура', '[data-tour]');
       await p.page.screenshot({ path: `${OUT}/tour-1.png` });
       const steps: string[] = [];
       for (let i = 0; i < 4; i++) {

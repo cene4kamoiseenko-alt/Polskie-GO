@@ -6,6 +6,7 @@ import { useT, type TKey } from '../i18n';
 import { api } from '../lib/api';
 import { brandAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
+import { ComebackSheet } from '../components/ComebackSheet';
 import type { Me, PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
@@ -412,6 +413,7 @@ export function HomeScreen() {
     <div className="space-y-5 pb-2">
       <TopStats />
       <LeagueAwardModal />
+      <ComebackSheet />
 
       {/* Герой: ілюстроване поточне місто, бобер-мандрівник, місто, рівень і головна дія.
           Композиція (2026-11-15): Бобек цілком у кадрі (хвіст і лапи не обрізані), праворуч одна скляна картка
