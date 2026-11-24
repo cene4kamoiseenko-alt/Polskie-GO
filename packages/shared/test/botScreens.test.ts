@@ -3,7 +3,11 @@ import { BOT_SCREENS, botScreenRoute, isBotScreen, resolveLaunchRoute, withBotSc
 
 describe('переходы из Telegram-бота (bot_screen)', () => {
   it('белый список: девять экранов + главная, всё остальное отвергается', () => {
-    expect(Object.values(BOT_SCREENS).sort()).toEqual(['/', '/achievements', '/dictionary', '/grammar', '/learn', '/map', '/profile', '/quests', '/settings', '/slang', '/social']);
+    expect(Object.values(BOT_SCREENS).sort()).toEqual(['/', '/achievements', '/continue', '/dictionary', '/grammar', '/learn', '/life', '/map', '/practice/WARMUP', '/profile', '/quests', '/settings', '/slang', '/social']);
+    // Карточки бота и мост вопроса дня (2026-11-24): продолжить урок, разминка, миссии.
+    expect(botScreenRoute('continue')).toBe('/continue');
+    expect(botScreenRoute('warmup')).toBe('/practice/WARMUP');
+    expect(botScreenRoute('life')).toBe('/life');
     for (const bad of ['premium', 'admin', '../map', '/map', 'constructor', '__proto__', 'toString', '', 'MAP']) {
       expect(isBotScreen(bad), bad).toBe(false);
       expect(botScreenRoute(bad), bad).toBeNull();

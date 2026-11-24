@@ -44,6 +44,11 @@ export function screenUrl(screen: BotScreen, startapp?: string): string {
   return withBotScreen(config.webAppUrl, screen, screen === 'home' && startapp ? { startapp } : {});
 }
 
+/** Адрес экрана Mini App с дополнительными параметрами (например, `src` — какая карточка бота привела игрока). */
+export function screenUrlWith(screen: BotScreen, params: Record<string, string>): string {
+  return withBotScreen(config.webAppUrl, screen, params);
+}
+
 /** Прямая ссылка на Mini App для чатов без `web_app`-кнопок. */
 export function groupLink(screen: BotScreen): string {
   const base = `https://t.me/${config.botUsername}/${config.appShortName}`;

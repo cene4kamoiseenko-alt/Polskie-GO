@@ -16,6 +16,7 @@ import { commandForLabel, sendPanel } from './panel';
 import { sendCard, type Sent } from './send';
 import { QUIZ_COPY } from './quiz/copy';
 import { handleQuizCallback, sendQuizBlocked, startQuiz, type CallbackQuery } from './quiz/engine';
+import { handleEngageCallback } from './engage/callbacks';
 import { setQuizPush } from './daily/answer';
 
 export type BotMessage = {
@@ -203,6 +204,9 @@ export async function handleBotCallback(cb: CallbackQuery, now = new Date()): Pr
     return 'banned';
   }
   const lang = pickLang(user?.lang, cb.from.language_code);
+  // Карточки бота (2026-11-24): «🔕 Не присылать такие сообщения» / «🔔 Присылать снова».
+  const engage = await handleEngageCallback(cb, lang, now);
+  if (engage) return engage;
   return handleQuizCallback(cb, failed ? null : user, lang, now);
 }
 

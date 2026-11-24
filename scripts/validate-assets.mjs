@@ -43,8 +43,10 @@ for (const file of files) {
   const isSmall = rel.endsWith('@640.jpg');
   // Постеры призёрам недельной лиги (scripts/build-league-art.mjs) — вертикальные, ширина 1080; картинки приглашения друга
   // (invite/<язык>.jpg, исходники docs/design/invite) — 1024×1536, как прислал владелец. Правило 16:9 к ним не относится.
+  // Карточки бота (cards/, 2026-11-24) — квадрат 1024×1024: картинки Бобека владельца из канала, обрезка до 16:9 срезала бы персонажа.
   const poster = rel.startsWith('league/') || rel.startsWith('invite/');
-  const [w, h] = isSmall ? [640, 360] : [1280, 720];
+  const square = rel.startsWith('cards/');
+  const [w, h] = isSmall ? [640, 360] : square ? [1024, 1024] : [1280, 720];
   const [pw, phMin, phMax] = rel.startsWith('invite/') ? [1024, 1536, 1536] : [1080, 1000, 1600];
   if (meta.format !== 'jpeg') errors.push(`${rel}: не JPEG`);
   if (poster ? meta.width !== pw || meta.height < phMin || meta.height > phMax : meta.width !== w || meta.height !== h) {

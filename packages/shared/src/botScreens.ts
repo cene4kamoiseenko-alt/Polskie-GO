@@ -17,6 +17,10 @@ export const BOT_SCREENS = {
   grammar: '/grammar',
   // Рейтинг недели (поздравление призёров в боте, 2026-11-15).
   league: '/social',
+  // Карточки бота и мост вопроса дня (2026-11-24): продолжить урок (активный или следующий), разминка, миссии.
+  continue: '/continue',
+  warmup: '/practice/WARMUP',
+  life: '/life',
 } as const;
 
 export type BotScreen = keyof typeof BOT_SCREENS;
