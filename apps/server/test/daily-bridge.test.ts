@@ -4,9 +4,9 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
-import { dayKey } from '@polski-go/shared';
+import { addDays, dayKey } from '@polski-go/shared';
 import { db } from '../src/db';
-import { botQuizRounds, dailyActivity, dailyQuizSends, newId } from '../src/db/schema';
+import { botQuizRounds, dailyActivity, dailyQuizPeople, dailyQuizSends, engageSends, newId } from '../src/db/schema';
 import { DAILY_TRY_XP, recordDailyAnswer } from '../src/bot/daily/answer';
 import { dailyResultView } from '../src/bot/daily/views';
 import { QUIZ_QUESTIONS } from '../src/bot/quiz/questions';
@@ -85,6 +85,23 @@ describe('ответ на вопрос дня', () => {
     const b = await login();
     const rb = await dailyRound(b.telegramId, b.user.id);
     expect(await recordDailyAnswer(rb, QUIZ_QUESTIONS[0].answer, true, botUser(b.user.id), new Date())).toBe(10);
+  });
+
+  it('день, когда вместо вопроса пришла карточка бота, не обрывает серию ответов (находка проверки)', async () => {
+    const u = await login();
+    const today = dayKey(new Date(), 'Europe/Warsaw');
+    const yesterday = addDays(today, -1);
+    // Позавчера ответил (серия 5), вчера вместо вопроса была карточка, сегодня снова ответил.
+    await db.insert(dailyQuizPeople).values({ telegramId: u.telegramId, streak: 5, streakDay: addDays(today, -2) });
+    await db.insert(engageSends).values({ day: yesterday, telegramId: u.telegramId, userId: u.user.id, kind: 'mission', lang: 'ru', status: 'SENT', sentAt: new Date() });
+    const r = await dailyRound(u.telegramId, u.user.id);
+    await recordDailyAnswer(r, QUIZ_QUESTIONS[0].answer, true, botUser(u.user.id), new Date());
+    expect((await db.select().from(dailyQuizPeople).where(eq(dailyQuizPeople.telegramId, u.telegramId)).get())!.streak).toBe(6);
+    // Без карточки пропуск дня обрывает серию, как раньше.
+    const v = await login();
+    await db.insert(dailyQuizPeople).values({ telegramId: v.telegramId, streak: 5, streakDay: addDays(today, -2) });
+    await recordDailyAnswer(await dailyRound(v.telegramId, v.user.id), QUIZ_QUESTIONS[0].answer, true, botUser(v.user.id), new Date());
+    expect((await db.select().from(dailyQuizPeople).where(eq(dailyQuizPeople.telegramId, v.telegramId)).get())!.streak).toBe(1);
   });
 
   it('первая кнопка итога — разминка; без аккаунта — первый урок', async () => {

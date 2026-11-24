@@ -2,9 +2,9 @@
  * Ответ на вопрос дня: XP (+10, только с аккаунтом, вне дневного лимита наград /quiz), запись ответа для отчёта в админке,
  * счётчики человека (пропуски обнуляются, серия дней с ответом растёт) и данные для итога (процент верных по уровню за день).
  */
-import { and, count, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { db } from '../../db';
-import { botQuizPlayers, dailyQuizPeople, dailyQuizSends, type botQuizRounds } from '../../db/schema';
+import { botQuizPlayers, dailyQuizPeople, dailyQuizSends, engageSends, type botQuizRounds } from '../../db/schema';
 import type { BotUser } from '../data';
 import { awardXp } from '../quiz/engine';
 import { addDays, warsawDay } from './state';
@@ -25,6 +25,8 @@ export async function setQuizPush(telegramId: number, enabled: boolean, now = ne
 
 /** XP за неверный ответ на вопрос дня — «за попытку» (2026-11-24): попытка тоже засчитывается активным днём. Верный — QUIZ_XP (10). */
 export const DAILY_TRY_XP = 3;
+/** Сколько подряд дней с карточкой вместо вопроса можно «перешагнуть» в серии ответов (карточки — не чаще 2 подряд). */
+const GAP_MAX = 2;
 
 /** Записать ответ на вопрос дня. Возвращает начисленные XP (0 без аккаунта или если XP уже были; неверный ответ — DAILY_TRY_XP). */
 export async function recordDailyAnswer(round: Round, chosen: number, correct: boolean, user: BotUser | null, now: Date): Promise<number> {
@@ -39,7 +41,20 @@ export async function recordDailyAnswer(round: Round, chosen: number, correct: b
   }
   const day = send?.day ?? warsawDay(now);
   const prev = await db.select().from(dailyQuizPeople).where(eq(dailyQuizPeople.telegramId, round.telegramId)).get();
-  const streak = prev?.streakDay === day ? prev.streak : prev?.streakDay === addDays(day, -1) ? prev.streak + 1 : 1;
+  // Дни, когда вместо вопроса пришла карточка бота (2026-11-24), серию ответов не обрывают: человек не мог ответить.
+  let streak = 1;
+  if (prev?.streakDay === day) streak = prev.streak;
+  else if (prev?.streakDay && prev.streakDay < day && prev.streakDay >= addDays(day, -GAP_MAX - 1)) {
+    const gap: string[] = [];
+    for (let d = addDays(prev.streakDay, 1); d < day; d = addDays(d, 1)) gap.push(d);
+    const cardDays = gap.length
+      ? await db
+          .select({ day: engageSends.day })
+          .from(engageSends)
+          .where(and(eq(engageSends.telegramId, round.telegramId), inArray(engageSends.day, gap), eq(engageSends.status, 'SENT')))
+      : [];
+    if (cardDays.length === gap.length) streak = prev.streak + 1;
+  }
   await db.batch([
     db
       .insert(dailyQuizPeople)
