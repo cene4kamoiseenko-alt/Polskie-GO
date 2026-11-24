@@ -11,12 +11,15 @@
  *     и запуск заканчивается (повтор в следующую минуту), неизвестный результат сети — UNKNOWN (не повторяем), прочее — FAILED.
  */
 import { and, eq, lt } from 'drizzle-orm';
-import { dayDiff, dayKey, effectiveStreak, shuffle, type UiLang } from '@polski-go/shared';
+import { addDays, dayDiff, dayKey, effectiveStreak, shuffle, type UiLang } from '@polski-go/shared';
 import { db } from '../../db';
-import { botQuizRounds, dailyQuizPeople, dailyQuizSends, newId } from '../../db/schema';
+import { botQuizRounds, dailyQuizPeople, dailyQuizSends, engageSends, newId } from '../../db/schema';
 import { badRequest } from '../../lib/errors';
 import { TelegramError } from '../../lib/telegram';
-import { recordBotBlocked } from '../../services/bot-audience';
+import { loadCardHistory, messageFor, sendCard } from '../engage/send';
+import type { CardHistory } from '../engage/pick';
+import { readEngageState } from '../engage/state';
+import { failStatus, noteDeliveryFailure } from './delivery';
 import { sendWithPhoto } from '../quiz/engine';
 import { QUESTION_BY_ID } from '../quiz/questions';
 import { isQuizScene, quizSceneFile, type QuizScene } from '../quiz/scenes';
@@ -53,13 +56,18 @@ function extraFor(p: DailyPerson, now: Date): DailyExtra {
   return { streak: streak >= 2 ? streak : null, returning, hasUser: true };
 }
 
-type Outcome = 'sent' | 'dup' | 'failed' | 'rate_limited';
+export type Outcome = 'sent' | 'dup' | 'failed' | 'rate_limited';
+const QUIZ = { kind: 'quiz' } as const;
+/** Сколько дней истории карточек нужно правилу (две последние карточки вида за 30 дней, новичку — за всё время в пределах 60). */
+const HISTORY_DAYS = 60;
 
 async function sendTo(p: DailyPerson, row: PlanRow, day: string, now: Date, stats: { calls: number }): Promise<Outcome> {
   const q = QUESTION_BY_ID.get(row.questionId);
   if (!q) return 'failed';
   const level = personLevel(p);
   const lang = personLang(p);
+  // Сегодня уже ушла карточка бота (другой запуск) — второго сообщения нет.
+  if (await db.select({ day: engageSends.day }).from(engageSends).where(and(eq(engageSends.day, day), eq(engageSends.telegramId, p.telegramId))).get()) return 'dup';
   const claimed = await db
     .insert(dailyQuizSends)
     .values({ day, telegramId: p.telegramId, userId: p.userId, level, lang, questionId: q.id, status: 'PENDING', leaseUntil: new Date(now.getTime() + LEASE_MS), createdAt: now })
@@ -88,31 +96,14 @@ async function sendTo(p: DailyPerson, row: PlanRow, day: string, now: Date, stat
     return 'sent';
   } catch (e) {
     await db.delete(botQuizRounds).where(eq(botQuizRounds.id, roundId)).catch(() => {});
-    const tg = e instanceof TelegramError ? e : null;
-    if (tg?.code === 429) {
+    const status = failStatus(e);
+    if (status === 'RATE_LIMITED') {
       await db.delete(dailyQuizSends).where(where).catch(() => {});
       return 'rate_limited';
     }
-    const desc = tg?.description ?? '';
-    const status =
-      tg && tg.code === 403 && /initiate/i.test(desc)
-        ? 'NO_CHAT'
-        : tg && tg.code === 400 && /chat not found/i.test(desc)
-          ? 'NO_CHAT'
-          : tg?.code === 403
-            ? 'BLOCKED'
-            : tg?.ambiguous
-              ? 'UNKNOWN'
-              : 'FAILED';
     console.warn('daily quiz: not delivered', p.telegramId, status, (e as Error).message);
     await db.update(dailyQuizSends).set({ status, error: String((e as Error).message ?? e).slice(0, 200), leaseUntil: null }).where(where).catch(() => {});
-    if (status === 'BLOCKED') await recordBotBlocked({ id: p.telegramId, first_name: p.firstName }, true, now).catch(() => {});
-    if (status === 'NO_CHAT')
-      await db
-        .insert(dailyQuizPeople)
-        .values({ telegramId: p.telegramId, noChatAt: now })
-        .onConflictDoUpdate({ target: dailyQuizPeople.telegramId, set: { noChatAt: now, updatedAt: now } })
-        .catch(() => {});
+    await noteDeliveryFailure(p, status, now);
     return 'failed';
   }
 }
@@ -144,6 +135,9 @@ export async function runDailyQuizTick(now = new Date(), budget = DAILY_PER_RUN)
 
   const stats = { calls: 0 };
   const people = await scanPeople(run.cursor, SCAN);
+  // Карточки бота (2026-11-24): одна выборка истории карточек на пачку, а не на человека.
+  const engage = await readEngageState();
+  const history = engage.enabled ? await loadCardHistory(people.filter((x) => x.userId).map((x) => x.telegramId), addDays(today, -HISTORY_DAYS)) : new Map<number, CardHistory[]>();
   let processed = 0;
   let stopped = false;
   for (const p of people) {
@@ -151,7 +145,8 @@ export async function runDailyQuizTick(now = new Date(), budget = DAILY_PER_RUN)
     if (dailyEligibility(p) === 'ok') {
       let outcome: Outcome;
       try {
-        outcome = await sendTo(p, plan[personLevel(p) as DailyLevel]!, today, now, stats);
+        const msg = engage.enabled ? await messageFor(p, now, history.get(p.telegramId) ?? []) : QUIZ;
+        outcome = msg.kind === 'quiz' ? await sendTo(p, plan[personLevel(p) as DailyLevel]!, today, now, stats) : await sendCard(p, msg, today, now, stats);
       } catch (e) {
         // Сбой базы или лимит запросов Worker на самом захвате: человека не пропускаем, курсор остаётся перед ним.
         console.error('daily quiz: tick stopped', p.telegramId, (e as Error).message);

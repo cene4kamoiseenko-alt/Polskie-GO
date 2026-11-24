@@ -40,6 +40,10 @@ export type DailyPerson = {
   timezone: string | null;
   firstName: string;
   username: string | null;
+  /** Карточки бота (2026-11-24): регистрация в приложении, пройдено уроков, выключил ли карточки. */
+  createdAt: Date | null;
+  lessonsCompleted: number;
+  cardOptedOutAt: Date | null;
 };
 
 export type Eligibility = 'ok' | 'banned' | 'opted_out' | 'blocked' | 'paused' | 'no_chat';
@@ -92,6 +96,9 @@ const toPerson = (r: Raw): DailyPerson => ({
   timezone: (r.timezone as string | null) ?? null,
   firstName: String(r.u_first || r.c_first || ''),
   username: ((r.u_username || r.c_username) as string | null) ?? null,
+  createdAt: date(r.created_at),
+  lessonsCompleted: Number(r.lessons_completed ?? 0),
+  cardOptedOutAt: date(r.card_opted_out_at),
 });
 
 /**
@@ -111,7 +118,8 @@ function selectPeople(after: number, limit: number) {
       c.language_code AS contact_lang, c.blocked_at AS blocked_at, c.last_seen_at AS contact_seen_at, c.first_name AS c_first, c.username AS c_username,
       q.push_enabled AS push_enabled, d.ignored AS ignored, d.last_sent_at AS last_sent_at, d.no_chat_at AS no_chat_at,
       p.language_level AS language_level, p.streak_current AS streak_current, p.last_active_day AS last_active_day,
-      pr.placement_level AS placement_level, pr.self_level AS self_level
+      pr.placement_level AS placement_level, pr.self_level AS self_level,
+      u.created_at AS created_at, p.lessons_completed AS lessons_completed, e.opted_out_at AS card_opted_out_at
     FROM ids
     LEFT JOIN users u ON u.telegram_id = ids.telegram_id
     LEFT JOIN user_settings s ON s.user_id = u.id
@@ -121,6 +129,7 @@ function selectPeople(after: number, limit: number) {
     LEFT JOIN daily_quiz_people d ON d.telegram_id = ids.telegram_id
     LEFT JOIN player_progress p ON p.user_id = u.id
     LEFT JOIN user_profiles pr ON pr.user_id = u.id
+    LEFT JOIN engage_people e ON e.telegram_id = ids.telegram_id
     ORDER BY ids.telegram_id`;
 }
 

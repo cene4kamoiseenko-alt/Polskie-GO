@@ -157,7 +157,7 @@ async function appPlayer(placement: 'A1' | 'A2' | 'B1' | null = null) {
 const person = (p: Partial<DailyPerson>): DailyPerson => ({
   telegramId: 1, userId: null, banned: false, uiLanguage: null, contactLang: 'uk', blockedAt: null, contactSeenAt: longAgo, appSeenAt: null, writeAllowedAt: null,
   pushEnabled: null, ignored: 0, lastSentAt: null, noChatAt: null, languageLevel: null, placementLevel: null, selfLevel: null,
-  streakCurrent: null, lastActiveDay: null, timezone: null, firstName: '', username: null, ...p,
+  streakCurrent: null, lastActiveDay: null, timezone: null, firstName: '', username: null, createdAt: null, lessonsCompleted: 0, cardOptedOutAt: null, ...p,
 });
 
 describe('кто получает', () => {

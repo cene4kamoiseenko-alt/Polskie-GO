@@ -12,6 +12,10 @@ import { runScheduled } from '../src/jobs';
 import { audioId } from '../src/services/audio-catalog';
 import { createAudioJob, tickAudioJob } from '../src/services/audio-jobs';
 import { disposeEnv, getEnv } from './helpers';
+import { fakeTelegram } from './tg-fake';
+import { runDailyQuizTick } from '../src/bot/daily/send';
+import { writeDailyState } from '../src/bot/daily/state';
+import { writeEngageState } from '../src/bot/engage/state';
 
 afterAll(disposeEnv);
 
@@ -102,5 +106,25 @@ describe('очередь озвучки читает только свою по�
     // Без ключа ElevenLabs шаг останавливает задание с причиной — но сначала берёт порцию; важно, сколько он прочитал.
     const r = await measure(() => tickAudioJob(id, 10));
     expect(r.total, JSON.stringify(r.top)).toBeLessThan(120);
+  });
+
+  // Карточки добавляют ~3 строки на человека пачки (история карточек по индексу, проверка «карточка уже ушла», данные карточки):
+  // при 100 людях за запуск — сотни строк, при лимите D1 в 5 млн в сутки это незаметно. Граница — 4 строки на человека.
+  it('рассылка вопроса дня с карточками бота читает не больше, чем без них, + 4 строки на человека', async () => {
+    // 10 игроков «вернулись бы» 2026-12-05 (7 дней без занятий): для них правило выбирает карточку, остальным — вопрос.
+    await d1.prepare(`UPDATE player_progress SET last_active_day = '2026-11-28' WHERE user_id IN (${Array.from({ length: 10 }, (_, i) => `'d1u${i}'`).join(',')})`).run();
+    await writeDailyState({ enabled: true, sendAt: '12:00', startDay: '2026-12-04' });
+    fakeTelegram();
+    try {
+      await writeEngageState({ enabled: false });
+      const off = await measure(() => runDailyQuizTick(new Date('2026-12-04T11:01:00Z')));
+      await writeEngageState({ enabled: true });
+      const on = await measure(() => runDailyQuizTick(new Date('2026-12-05T11:01:00Z')));
+      expect(on.total, JSON.stringify(on.top)).toBeLessThan(off.total + 4 * 100);
+    } finally {
+      vi.unstubAllGlobals();
+      await writeDailyState({ enabled: false });
+      await writeEngageState({ enabled: false });
+    }
   });
 });
