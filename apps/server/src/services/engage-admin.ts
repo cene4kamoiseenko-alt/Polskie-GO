@@ -13,7 +13,7 @@ import { badRequest } from '../lib/errors';
 import { DAILY_COPY } from '../bot/daily/copy';
 import { warsawDay } from '../bot/daily/state';
 import { readEngageState } from '../bot/engage/state';
-import { cardView, type CardData } from '../bot/engage/views';
+import { cardPicks, cardView, type CardData } from '../bot/engage/views';
 import { sendWithPhoto } from '../bot/quiz/engine';
 import { botImageUrl } from '../bot/catalog';
 import { doneCount } from './active-lesson';
@@ -122,7 +122,9 @@ export async function engageOverview(days: number, now = new Date()) {
 }
 
 const LANGS: UiLang[] = ['ru', 'uk', 'en'];
-/** «Как увидит игрок»: образец каждой карточки на каждом языке (текст без разметки, подписи кнопок, адрес картинки). */
+export type CardPreview = { text: string; buttons: string[]; imageUrl: string; /** Все варианты: человек и день выбирают один из них. */ variants: { text: string; imageUrl: string }[] };
+
+/** «Как увидит игрок»: образец каждой карточки на каждом языке (текст без разметки, подписи кнопок, адрес картинки) и все её варианты. */
 function previews() {
   const plain = (html: string) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
   return Object.fromEntries(
@@ -130,12 +132,14 @@ function previews() {
       lang,
       Object.fromEntries(
         ENGAGE_KINDS.map((kind) => {
-          const v = cardView(sampleCard(kind, lang), lang);
-          return [kind, { text: plain(v.text), buttons: v.keyboard.inline_keyboard.flat().map((b) => b.text), imageUrl: botImageUrl(v.image) }];
+          const card = sampleCard(kind, lang);
+          const variants = Array.from({ length: cardPicks(card) }, (_, i) => cardView(card, lang, i)).map((v) => ({ text: plain(v.text), imageUrl: botImageUrl(v.image) }));
+          const first = cardView(card, lang, 0);
+          return [kind, { ...variants[0], buttons: first.keyboard.inline_keyboard.flat().map((b) => b.text), variants }];
         }),
       ),
     ]),
-  ) as Record<UiLang, Record<EngageKind, { text: string; buttons: string[]; imageUrl: string }>>;
+  ) as Record<UiLang, Record<EngageKind, CardPreview>>;
 }
 
 /** Образец карточки для «как увидит игрок» и «прислать себе». */
@@ -146,9 +150,9 @@ export function sampleCard(kind: EngageKind, lang: UiLang): CardData {
   return { kind, slug: m.slug, title: m.title[lang] || m.title.ru || m.slug, minutes: m.minutes, category: m.category };
 }
 
-/** «Прислать себе»: карточка с пометкой пробной отправки, без записи в engage_sends. */
-export async function sendEngageTest(telegramId: number, kind: EngageKind, lang: UiLang): Promise<void> {
-  const view = cardView(sampleCard(kind, lang), lang);
+/** «Прислать себе»: карточка с пометкой пробной отправки (вариант — тот, что открыт в админке), без записи в engage_sends. */
+export async function sendEngageTest(telegramId: number, kind: EngageKind, lang: UiLang, variant = 0): Promise<void> {
+  const view = cardView(sampleCard(kind, lang), lang, variant);
   try {
     await sendWithPhoto(telegramId, `${DAILY_COPY[lang].testNote}\n\n${view.text}`, view.keyboard, view.image);
   } catch (e) {

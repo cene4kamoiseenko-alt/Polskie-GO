@@ -202,7 +202,8 @@
 ## Как сделано (2026-11-24)
 
 - Бот: `apps/server/src/bot/engage/` (правило `pick.ts`, тексты `copy.ts`, вид `views.ts`, отправка `send.ts`, выключатель
-  `callbacks.ts`, отметка открытия `opened.ts`, включение `state.ts`); встроено в `bot/daily/send.ts`. Картинки — `public/bot/cards/`.
+  `callbacks.ts`, отметка открытия `opened.ts`, включение `state.ts`); встроено в `bot/daily/send.ts`. Картинки — из запаса канала `public/channel/` (с 2026-11-24 вечером: три варианта текста
+  и набор картинок на каждую карточку, вариант — по человеку и дню; копии `public/bot/cards/` убраны).
 - Приложение: короткий первый урок `services/first-lesson.ts`; продолжение урока до 7 дней `services/active-lesson.ts`; подарок и тур
   `services/comeback.ts`; разминка — режим `WARMUP`; экраны `Continue.tsx`, `ComebackSheet.tsx`, `TabTour.tsx`.
 - Админка: «💌 Карточки бота» (`apps/admin/src/EngageCards.tsx`, `services/engage-admin.ts`), инструкция — `docs/ADMIN_RU.md`.

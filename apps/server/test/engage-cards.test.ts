@@ -7,7 +7,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { eq } from 'drizzle-orm';
 import { db } from '../src/db';
 import { engagePeople } from '../src/db/schema';
-import { cardView, type CardData } from '../src/bot/engage/views';
+import { cardSeed, cardVariants, cardView, type CardData } from '../src/bot/engage/views';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const CHANNEL = resolve(__dirname, '../../web/public/channel');
 import { handleEngageCallback } from '../src/bot/engage/callbacks';
 import { CAPTION_LIMIT } from '../src/bot/send';
 import { disposeEnv, getEnv } from './helpers';
@@ -34,14 +38,15 @@ type Btn = { text: string; web_app?: { url: string }; callback_data?: string };
 const buttons = (d: CardData, lang: (typeof LANGS)[number] = 'ru') => cardView(d, lang).keyboard.inline_keyboard.flat() as Btn[];
 
 describe('карточки бота', () => {
-  it('подпись влезает в лимит Telegram и в украинском нет русских букв', () => {
+  it('подпись влезает в лимит Telegram и в украинском нет русских букв — во всех вариантах', () => {
     for (const d of samples)
-      for (const lang of LANGS) {
-        const { text } = cardView(d, lang);
-        expect(text.length, `${d.kind} ${lang}`).toBeLessThanOrEqual(CAPTION_LIMIT);
-        expect(text.length, `${d.kind} ${lang}`).toBeGreaterThan(40);
-        if (lang === 'uk') expect(text, d.kind).not.toMatch(/[ыэъё]/i);
-      }
+      for (const lang of LANGS)
+        for (let v = 0; v < cardVariants(d.kind); v++) {
+          const { text } = cardView(d, lang, v);
+          expect(text.length, `${d.kind} ${lang} v${v}`).toBeLessThanOrEqual(CAPTION_LIMIT);
+          expect(text.length, `${d.kind} ${lang} v${v}`).toBeGreaterThan(40);
+          if (lang === 'uk') expect(text, `${d.kind} v${v}`).not.toMatch(/[ыэъё]/i);
+        }
   });
 
   it('тексты называют главное: остаток урока, подарок, миссию', () => {
@@ -52,6 +57,14 @@ describe('карточки бота', () => {
     expect(back).toContain('50');
     expect(back).toContain('Kraków');
     expect(cardView({ kind: 'mission', slug: 's', title: 'В аптеке', minutes: 10, category: 'shop' }, 'ru').text).toContain('«В аптеке»');
+    // В любом варианте: остаток урока, подарок и город, название миссии — на месте.
+    for (let v = 0; v < 3; v++) {
+      expect(cardView({ kind: 'newcomer', left: 5 }, 'ru', v).text).toContain('5 заданий');
+      const b = cardView({ kind: 'comeback', streakBest: 12, words: 40, city: 'Kraków', gift: 50 }, 'uk', v).text;
+      expect(b).toContain('50 злотих');
+      expect(b).toContain('Kraków');
+      expect(cardView({ kind: 'mission', slug: 's', title: 'Na poczcie', minutes: 12, category: 'home' }, 'en', v).text).toContain('Mission of the week: “Na poczcie”');
+    }
   });
 
   it('кнопка ведёт в нужный экран и несёт метку', () => {
@@ -68,17 +81,37 @@ describe('карточки бота', () => {
     for (const d of samples) expect(buttons(d).at(-1)!.callback_data).toBe('eg:off');
   });
 
-  it('картинка: миссия — по категории, остальные — свои', () => {
-    const img = (category: string) => cardView({ kind: 'mission', slug: 's', title: 't', minutes: 10, category }, 'ru').image;
-    expect(img('shop')).toBe('cards/mission-shop.jpg');
-    expect(img('road')).toBe('cards/mission-road.jpg');
-    expect(img('transport')).toBe('cards/mission-road.jpg');
-    expect(img('home')).toBe('cards/mission-home.jpg');
-    expect(img('work')).toBe('cards/mission-work.jpg');
-    expect(img('food')).toBe('cards/mission.jpg');
-    expect(cardView(samples[0], 'ru', 0).image).toBe('cards/newcomer-1.jpg');
-    expect(cardView(samples[0], 'ru', 1).image).toBe('cards/newcomer-2.jpg');
-    expect(cardView(samples[2], 'ru', 3).image).toBe('cards/comeback-2.jpg');
+  it('картинки — из запаса канала (public/channel), миссия — по теме, и все файлы есть', () => {
+    const all = new Set<string>();
+    for (const d of samples) for (let v = 0; v < 12; v++) all.add(cardView(d, 'ru', v).image);
+    for (const cat of ['shop', 'food', 'road', 'transport', 'home', 'work', 'other']) for (let v = 0; v < 12; v++) all.add(cardView({ kind: 'mission', slug: 's', title: 't', minutes: 10, category: cat }, 'ru', v).image);
+    for (const img of all) {
+      expect(img, img).toMatch(/^channel\/[a-z0-9-]+\.jpg$/);
+      expect(existsSync(resolve(CHANNEL, img.slice('channel/'.length))), img).toBe(true);
+    }
+    const shop = new Set(Array.from({ length: 12 }, (_, v) => cardView({ kind: 'mission', slug: 's', title: 't', minutes: 10, category: 'shop' }, 'ru', v).image));
+    expect([...shop].some((x) => /apteka|targ|paczka|bank/.test(x))).toBe(true);
+    const work = new Set(Array.from({ length: 12 }, (_, v) => cardView({ kind: 'mission', slug: 's', title: 't', minutes: 10, category: 'work' }, 'ru', v).image));
+    expect([...work].every((x) => /praca|rozmowa|budowa|urzad/.test(x))).toBe(true);
+  });
+
+  it('у каждой карточки несколько вариантов текста и картинки (владелец 2026-11-24: «картинки всегда одинаковые»)', () => {
+    for (const d of samples) {
+      const texts = new Set(Array.from({ length: 12 }, (_, v) => cardView(d, 'ru', v).text));
+      const images = new Set(Array.from({ length: 12 }, (_, v) => cardView(d, 'ru', v).image));
+      expect(texts.size, `${d.kind} тексты`).toBeGreaterThanOrEqual(3);
+      expect(images.size, `${d.kind} картинки`).toBeGreaterThanOrEqual(3);
+      expect(cardVariants(d.kind)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('вариант зависит от человека и дня: в один день у разных людей разные, у одного человека меняются по дням', () => {
+    const day = '2026-12-05';
+    const people = new Set(Array.from({ length: 10 }, (_, i) => cardSeed(9_000_000 + i, day) % 3));
+    expect(people.size).toBeGreaterThan(1);
+    const days = new Set(['2026-12-05', '2026-12-06', '2026-12-07'].map((d) => cardSeed(9_000_001, d) % 3));
+    expect(days.size).toBeGreaterThan(1);
+    expect(cardSeed(9_000_001, day)).toBe(cardSeed(9_000_001, day));
   });
 
   it('«Не присылать такие сообщения» выключает карточки, «Присылать снова» — включает', async () => {

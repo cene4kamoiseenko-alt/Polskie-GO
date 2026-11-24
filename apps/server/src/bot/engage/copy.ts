@@ -1,19 +1,26 @@
 /**
  * Тексты карточек бота (docs/superpowers/specs/2026-11-24-engagement-design.md, разделы 3–5) на трёх языках интерфейса.
  * Тон — как у вопроса дня: коротко, по-дружески, без давления; цифры — личные (остаток урока, лучшая серия, слова).
+ * У каждой карточки по три варианта текста: человек и день выбирают вариант (views.ts, `cardSeed`), чтобы карточки не повторялись.
  */
 import type { UiLang } from '@polski-go/shared';
 
+export type ComebackData = { streakBest: number; words: number; city: string | null; gift: number | null };
+
+/** Сколько вариантов текста у каждой карточки (владелец 2026-11-24: «одни и те же карточки»). */
+export const COPY_VARIANTS = 3;
+
 export type EngageCopy = {
-  newcomerStart: string;
-  newcomerLeft: (left: number) => string;
+  /** Варианты: `v` — номер варианта (берётся по модулю). */
+  newcomerStart: (v: number) => string;
+  newcomerLeft: (left: number, v: number) => string;
   newcomerStartBtn: string;
   newcomerLeftBtn: string;
-  comeback: (d: { streakBest: number; words: number; city: string | null; gift: number | null }) => string;
+  comeback: (d: ComebackData, v: number) => string;
   comebackBtn: string;
   /** Кнопка карточки возвращения без подарка (подарок уже брал в последние 30 дней). */
   comebackBtnPlain: string;
-  mission: (title: string, minutes: number) => string;
+  mission: (title: string, minutes: number, v: number) => string;
   missionBtn: string;
   off: string;
   on: string;
@@ -23,31 +30,79 @@ export type EngageCopy = {
 
 const ruForm = (n: number, one: string, few: string, many: string) =>
   n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
+const enForm = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+/** Вариант из списка: номер по модулю, без отрицательных и дробных. */
+export function variantOf<T>(list: readonly T[], v: number): T {
+  return list[Math.abs(Math.trunc(v)) % list.length];
+}
+
+/**
+ * Карточка возвращения: приветствие, личные цифры (лучшая серия, слова, город) и концовка — с подарком или без.
+ * Приветствие и концовка — по варианту; строка с цифрами одна и та же.
+ */
+function comebackFrom(c: {
+  hello: readonly string[];
+  facts: (d: ComebackData) => (string | null)[];
+  gift: readonly ((gift: number) => string)[];
+  plain: readonly string[];
+}): EngageCopy['comeback'] {
+  return (d, v) => {
+    const facts = c.facts(d).filter(Boolean).join(', ').replace(/^./, (ch) => ch.toUpperCase());
+    return [variantOf(c.hello, v), facts ? `${facts}.` : '', d.gift ? variantOf(c.gift, v)(d.gift) : variantOf(c.plain, v)].filter((l) => l.length > 0).join('\n');
+  };
+}
 
 const RU: EngageCopy = {
-  newcomerStart: '🦫 Первый урок — 3 минуты. Бобек уже ждёт: несколько коротких заданий, и первая победа твоя.',
-  newcomerLeft: (n) => `🦫 Ты уже начал первый урок — осталось ${n} ${ruForm(n, 'задание', 'задания', 'заданий')}. Закончишь за пару минут.`,
+  newcomerStart: (v) =>
+    variantOf(
+      [
+        '🦫 Первый урок — 3 минуты. Бобек уже ждёт: несколько коротких заданий, и первая победа твоя.',
+        '🦫 Cześć! Первое польское слово — уже сегодня. Короткий урок на 3 минуты, Бобек поможет.',
+        '🦫 Польский начинается с одного урока. 3 минуты, простые задания — попробуешь?',
+      ],
+      v,
+    ),
+  newcomerLeft: (n, v) => {
+    const tasks = `${n} ${ruForm(n, 'задание', 'задания', 'заданий')}`;
+    return variantOf(
+      [
+        `🦫 Ты уже начал первый урок — осталось ${tasks}. Закончишь за пару минут.`,
+        `🦫 Бобек сохранил твой урок: осталось ${tasks}. Продолжим с того же места?`,
+        `🦫 До первой победы — ${tasks}. Пара минут, и урок пройден.`,
+      ],
+      v,
+    );
+  },
   newcomerStartBtn: '🚀 Начать урок',
   newcomerLeftBtn: '▶️ Продолжить урок',
-  comeback: ({ streakBest, words, city, gift }) =>
-    [
-      'Давно не виделись! 🦫',
-      [
-        streakBest > 0 ? `Твоя лучшая серия — ${streakBest} ${ruForm(streakBest, 'день', 'дня', 'дней')}` : null,
-        words > 0 ? `выучено слов — ${words}` : null,
-        city ? `ты в городе ${city}` : null,
-      ]
-        .filter(Boolean)
-        .join(', ')
-        .replace(/^./, (c) => c.toUpperCase()),
-      gift ? `🎁 За возвращение — ${gift} злотков, ждут в игре.` : 'Заглянь на пару минут — продолжим с того места, где остановились.',
-    ]
-      .filter((l) => l.length > 0)
-      .map((l, i) => (i === 1 && !l.endsWith('.') ? `${l}.` : l))
-      .join('\n'),
+  comeback: comebackFrom({
+    hello: ['Давно не виделись! 🦫', 'Бобек скучал! 🦫', 'Cześć! Бобек на связи 🦫'],
+    facts: ({ streakBest, words, city }) => [
+      streakBest > 0 ? `твоя лучшая серия — ${streakBest} ${ruForm(streakBest, 'день', 'дня', 'дней')}` : null,
+      words > 0 ? `выучено слов — ${words}` : null,
+      city ? `ты в городе ${city}` : null,
+    ],
+    gift: [
+      (g) => `🎁 За возвращение — ${g} злотков, ждут в игре.`,
+      (g) => `🎁 Тебя ждёт подарок — ${g} злотков за возвращение.`,
+      (g) => `🎁 ${g} злотков за возвращение — забери в игре.`,
+    ],
+    plain: ['Заглянь на пару минут — продолжим с того места, где остановились.', 'Пять минут сегодня — и польский снова в форме.', 'Один короткий урок — и ты снова в ритме.'],
+  }),
   comebackBtn: '🎁 Забрать и продолжить',
   comebackBtnPlain: '▶️ Продолжить',
-  mission: (title, minutes) => `🎭 Миссия недели: «${title}». Живой диалог в Польше, ~${minutes} минут — можно проходить частями.`,
+  mission: (title, minutes, v) => {
+    const time = `~${minutes} ${ruForm(minutes, 'минута', 'минуты', 'минут')}`;
+    return variantOf(
+      [
+        `🎭 Миссия недели: «${title}». Живой диалог в Польше, ${time} — можно проходить частями.`,
+        `🎭 Миссия недели: «${title}». Как в жизни: ты отвечаешь по-польски, собеседник реагирует. ${time}.`,
+        `🎭 Миссия недели: «${title}». Бобек уже на месте и ждёт тебя — ${time}, можно с перерывами.`,
+      ],
+      v,
+    );
+  },
   missionBtn: '🎭 Сыграть миссию',
   off: '🔕 Не присылать такие сообщения',
   on: '🔔 Присылать снова',
@@ -56,29 +111,55 @@ const RU: EngageCopy = {
 };
 
 const UK: EngageCopy = {
-  newcomerStart: '🦫 Перший урок — 3 хвилини. Бобек уже чекає: кілька коротких завдань, і перша перемога твоя.',
-  newcomerLeft: (n) => `🦫 Ти вже почав перший урок — лишилося ${n} ${ruForm(n, 'завдання', 'завдання', 'завдань')}. Закінчиш за пару хвилин.`,
+  newcomerStart: (v) =>
+    variantOf(
+      [
+        '🦫 Перший урок — 3 хвилини. Бобек уже чекає: кілька коротких завдань, і перша перемога твоя.',
+        '🦫 Cześć! Перше польське слово — вже сьогодні. Короткий урок на 3 хвилини, Бобек допоможе.',
+        '🦫 Польська починається з одного уроку. 3 хвилини, прості завдання — спробуєш?',
+      ],
+      v,
+    ),
+  newcomerLeft: (n, v) => {
+    const tasks = `${n} ${ruForm(n, 'завдання', 'завдання', 'завдань')}`;
+    return variantOf(
+      [
+        `🦫 Ти вже почав перший урок — лишилося ${tasks}. Закінчиш за пару хвилин.`,
+        `🦫 Бобек зберіг твій урок: лишилося ${tasks}. Продовжимо з того самого місця?`,
+        `🦫 До першої перемоги — ${tasks}. Пара хвилин, і урок пройдено.`,
+      ],
+      v,
+    );
+  },
   newcomerStartBtn: '🚀 Почати урок',
   newcomerLeftBtn: '▶️ Продовжити урок',
-  comeback: ({ streakBest, words, city, gift }) =>
-    [
-      'Давно не бачилися! 🦫',
-      [
-        streakBest > 0 ? `Твоя найкраща серія — ${streakBest} ${ruForm(streakBest, 'день', 'дні', 'днів')}` : null,
-        words > 0 ? `вивчено слів — ${words}` : null,
-        city ? `ти в місті ${city}` : null,
-      ]
-        .filter(Boolean)
-        .join(', ')
-        .replace(/^./, (c) => c.toUpperCase()),
-      gift ? `🎁 За повернення — ${gift} злотих, чекають у грі.` : 'Зазирни на пару хвилин — продовжимо з того місця, де зупинилися.',
-    ]
-      .filter((l) => l.length > 0)
-      .map((l, i) => (i === 1 && !l.endsWith('.') ? `${l}.` : l))
-      .join('\n'),
+  comeback: comebackFrom({
+    hello: ['Давно не бачилися! 🦫', 'Бобек сумував! 🦫', "Cześć! Бобек на зв'язку 🦫"],
+    facts: ({ streakBest, words, city }) => [
+      streakBest > 0 ? `твоя найкраща серія — ${streakBest} ${ruForm(streakBest, 'день', 'дні', 'днів')}` : null,
+      words > 0 ? `вивчено слів — ${words}` : null,
+      city ? `ти в місті ${city}` : null,
+    ],
+    gift: [
+      (g) => `🎁 За повернення — ${g} злотих, чекають у грі.`,
+      (g) => `🎁 На тебе чекає подарунок — ${g} злотих за повернення.`,
+      (g) => `🎁 ${g} злотих за повернення — забери у грі.`,
+    ],
+    plain: ['Зазирни на пару хвилин — продовжимо з того місця, де зупинилися.', "П'ять хвилин сьогодні — і польська знову у формі.", 'Один короткий урок — і ти знову в ритмі.'],
+  }),
   comebackBtn: '🎁 Забрати й продовжити',
   comebackBtnPlain: '▶️ Продовжити',
-  mission: (title, minutes) => `🎭 Місія тижня: «${title}». Живий діалог у Польщі, ~${minutes} хвилин — можна проходити частинами.`,
+  mission: (title, minutes, v) => {
+    const time = `~${minutes} ${ruForm(minutes, 'хвилина', 'хвилини', 'хвилин')}`;
+    return variantOf(
+      [
+        `🎭 Місія тижня: «${title}». Живий діалог у Польщі, ${time} — можна проходити частинами.`,
+        `🎭 Місія тижня: «${title}». Як у житті: ти відповідаєш польською, співрозмовник реагує. ${time}.`,
+        `🎭 Місія тижня: «${title}». Бобек уже на місці й чекає на тебе — ${time}, можна з перервами.`,
+      ],
+      v,
+    );
+  },
   missionBtn: '🎭 Зіграти місію',
   off: '🔕 Не надсилати такі повідомлення',
   on: '🔔 Надсилати знову',
@@ -87,29 +168,55 @@ const UK: EngageCopy = {
 };
 
 const EN: EngageCopy = {
-  newcomerStart: '🦫 Your first lesson takes 3 minutes. Bobek is waiting: a few short tasks and your first win.',
-  newcomerLeft: (n) => `🦫 You've started your first lesson — ${n} ${n === 1 ? 'task' : 'tasks'} left. You'll finish in a couple of minutes.`,
+  newcomerStart: (v) =>
+    variantOf(
+      [
+        '🦫 Your first lesson takes 3 minutes. Bobek is waiting: a few short tasks and your first win.',
+        '🦫 Cześć! Your first Polish word — today. A short 3-minute lesson, and Bobek will help.',
+        '🦫 Polish starts with one lesson. 3 minutes, easy tasks — want to try?',
+      ],
+      v,
+    ),
+  newcomerLeft: (n, v) => {
+    const tasks = `${n} ${enForm(n, 'task', 'tasks')}`;
+    return variantOf(
+      [
+        `🦫 You've started your first lesson — ${tasks} left. You'll finish in a couple of minutes.`,
+        `🦫 Bobek saved your lesson: ${tasks} left. Pick up right where you stopped?`,
+        `🦫 ${tasks} to your first win. A couple of minutes and the lesson is done.`,
+      ],
+      v,
+    );
+  },
   newcomerStartBtn: '🚀 Start the lesson',
   newcomerLeftBtn: '▶️ Continue the lesson',
-  comeback: ({ streakBest, words, city, gift }) =>
-    [
-      'Long time no see! 🦫',
-      [
-        streakBest > 0 ? `Your best streak is ${streakBest} ${streakBest === 1 ? 'day' : 'days'}` : null,
-        words > 0 ? `${words} words learned` : null,
-        city ? `you're in ${city}` : null,
-      ]
-        .filter(Boolean)
-        .join(', ')
-        .replace(/^./, (c) => c.toUpperCase()),
-      gift ? `🎁 Welcome-back gift: ${gift} złotki waiting in the game.` : "Drop by for a couple of minutes — we'll pick up where you left off.",
-    ]
-      .filter((l) => l.length > 0)
-      .map((l, i) => (i === 1 && !l.endsWith('.') ? `${l}.` : l))
-      .join('\n'),
+  comeback: comebackFrom({
+    hello: ['Long time no see! 🦫', 'Bobek missed you! 🦫', 'Cześć! Bobek here 🦫'],
+    facts: ({ streakBest, words, city }) => [
+      streakBest > 0 ? `your best streak is ${streakBest} ${enForm(streakBest, 'day', 'days')}` : null,
+      words > 0 ? `${words} words learned` : null,
+      city ? `you're in ${city}` : null,
+    ],
+    gift: [
+      (g) => `🎁 Welcome-back gift: ${g} złotki waiting in the game.`,
+      (g) => `🎁 A gift is waiting: ${g} złotki for coming back.`,
+      (g) => `🎁 ${g} złotki for coming back — claim them in the game.`,
+    ],
+    plain: ["Drop by for a couple of minutes — we'll pick up where you left off.", 'Five minutes today and your Polish is back in shape.', "One short lesson and you're back in the rhythm."],
+  }),
   comebackBtn: '🎁 Claim and continue',
   comebackBtnPlain: '▶️ Continue',
-  mission: (title, minutes) => `🎭 Mission of the week: “${title}”. A real conversation in Poland, ~${minutes} minutes — you can play it in parts.`,
+  mission: (title, minutes, v) => {
+    const time = `~${minutes} ${enForm(minutes, 'minute', 'minutes')}`;
+    return variantOf(
+      [
+        `🎭 Mission of the week: “${title}”. A real conversation in Poland, ${time} — you can play it in parts.`,
+        `🎭 Mission of the week: “${title}”. Just like real life: you answer in Polish, they react. ${time}.`,
+        `🎭 Mission of the week: “${title}”. Bobek is already there and waiting — ${time}, breaks allowed.`,
+      ],
+      v,
+    );
+  },
   missionBtn: '🎭 Play the mission',
   off: "🔕 Don't send messages like this",
   on: '🔔 Send them again',

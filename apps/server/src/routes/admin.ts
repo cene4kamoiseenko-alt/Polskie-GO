@@ -1146,10 +1146,12 @@ a.patch('/engage/state', async (c) => {
 });
 a.post('/engage/test', rateLimit(20, 10 * 60_000, 'admin-engage-test'), async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');
-  const b = z.object({ who: z.string().min(1).max(64), kind: z.enum(t.ENGAGE_KINDS), lang: z.enum(['uk', 'ru', 'en']).optional() }).parse(await body(c));
+  const b = z
+    .object({ who: z.string().min(1).max(64), kind: z.enum(t.ENGAGE_KINDS), lang: z.enum(['uk', 'ru', 'en']).optional(), variant: z.number().int().min(0).max(99).optional() })
+    .parse(await body(c));
   if (!getBindings().TELEGRAM_BOT_TOKEN) throw badRequest('bot_not_configured');
   const player = await findTelegramPlayer(b.who);
-  await sendEngageTest(player.telegramId, b.kind, (b.lang ?? player.lang ?? 'ru') as 'uk' | 'ru' | 'en');
+  await sendEngageTest(player.telegramId, b.kind, (b.lang ?? player.lang ?? 'ru') as 'uk' | 'ru' | 'en', b.variant ?? 0);
   return c.json({ ok: true, sentTo: player.telegramId });
 });
 

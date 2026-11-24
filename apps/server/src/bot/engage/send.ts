@@ -16,7 +16,7 @@ import { failStatus, noteDeliveryFailure } from '../daily/delivery';
 import type { Outcome } from '../daily/send';
 import { warsawDay } from '../daily/state';
 import { needsMissionFacts, pickDailyMessage, type CardHistory, type DailyMessage, type MissionFacts, type PickInput } from './pick';
-import { cardView, type CardData } from './views';
+import { cardSeed, cardView, type CardData } from './views';
 
 const LEASE_MS = 5 * 60_000;
 /** Список в IN (…) — не больше 90 значений (лимит D1 — 100 параметров на запрос). */
@@ -123,7 +123,7 @@ export async function sendCard(p: DailyPerson, msg: Exclude<DailyMessage, { kind
   const { data, variant } = await cardData(p, msg, now);
   if (!(await claimCard(day, p, msg.kind, variant, lang, now))) return 'dup';
   const where = and(eq(engageSends.day, day), eq(engageSends.telegramId, p.telegramId));
-  const view = cardView(data, lang, Number(day.slice(8, 10)));
+  const view = cardView(data, lang, cardSeed(p.telegramId, day));
   try {
     await sendWithPhoto(p.telegramId, view.text, view.keyboard, view.image, stats);
     await db.update(engageSends).set({ status: 'SENT', sentAt: now, leaseUntil: null }).where(where);

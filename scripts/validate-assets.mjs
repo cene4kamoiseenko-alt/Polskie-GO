@@ -1,5 +1,5 @@
 /**
- * Проверка картинок бота (apps/web/public/bot/**) по самим файлам: размер, формат, дубли, мыльные боковые полосы,
+ * Проверка картинок бота (apps/web/public/bot/**, плюс apps/web/public/channel — их шлют карточки бота) по самим файлам: размер, формат, дубли, мыльные боковые полосы,
  * увеличение маленького кадра (scripts/lib/image-quality.mjs), версии адресов для Telegram.
  *
  *   node scripts/validate-assets.mjs                    # проверка, выход 1 при ошибке
@@ -43,10 +43,8 @@ for (const file of files) {
   const isSmall = rel.endsWith('@640.jpg');
   // Постеры призёрам недельной лиги (scripts/build-league-art.mjs) — вертикальные, ширина 1080; картинки приглашения друга
   // (invite/<язык>.jpg, исходники docs/design/invite) — 1024×1536, как прислал владелец. Правило 16:9 к ним не относится.
-  // Карточки бота (cards/, 2026-11-24) — квадрат 1024×1024: картинки Бобека владельца из канала, обрезка до 16:9 срезала бы персонажа.
   const poster = rel.startsWith('league/') || rel.startsWith('invite/');
-  const square = rel.startsWith('cards/');
-  const [w, h] = isSmall ? [640, 360] : square ? [1024, 1024] : [1280, 720];
+  const [w, h] = isSmall ? [640, 360] : [1280, 720];
   const [pw, phMin, phMax] = rel.startsWith('invite/') ? [1024, 1536, 1536] : [1080, 1000, 1600];
   if (meta.format !== 'jpeg') errors.push(`${rel}: не JPEG`);
   if (poster ? meta.width !== pw || meta.height < phMin || meta.height > phMax : meta.width !== w || meta.height !== h) {
@@ -78,6 +76,20 @@ for (const file of files) {
 
 for (const s of manifest.soft_fallback ?? []) if (!versions[s.file]) errors.push(`soft_fallback: ${s.file} нет в public/bot`);
 
+// Картинки канала (public/channel) — бот шлёт их в карточках (bot/engage/views.ts) как `/channel/<файл>?v=<хэш>`:
+// формат и вес под Telegram, версия — как у картинок бота. Размер и композицию не проверяем: это кадры владельца как есть.
+const CHANNEL = new URL('../apps/web/public/channel/', import.meta.url).pathname;
+const channelFiles = readdirSync(CHANNEL).filter((f) => f.endsWith('.jpg')).sort();
+for (const name of channelFiles) {
+  const bytes = readFileSync(join(CHANNEL, name));
+  const meta = await sharp(bytes).metadata();
+  const rel = `channel/${name}`;
+  if (meta.format !== 'jpeg') errors.push(`${rel}: не JPEG`);
+  if (meta.hasAlpha) errors.push(`${rel}: есть альфа-канал`);
+  if (bytes.length > 5 * 1024 * 1024) errors.push(`${rel}: больше 5 МБ (лимит Telegram для фото по адресу)`);
+  versions[rel] = contentVersion(bytes);
+}
+
 const wanted = `${JSON.stringify(versions, null, 2)}\n`;
 if (process.argv.includes('--write-versions')) {
   writeFileSync(VERSIONS, wanted);
@@ -90,7 +102,7 @@ if (process.argv.includes('--write-versions')) {
   if (current !== wanted) errors.push('apps/server/src/bot/image-versions.json устарел: node scripts/validate-assets.mjs --write-versions');
 }
 
-console.log(`\nпроверено: ${files.length} файлов`);
+console.log(`\nпроверено: ${files.length} файлов бота и ${channelFiles.length} картинок канала`);
 if (warnings.length) console.warn(`\nПРЕДУПРЕЖДЕНИЯ (${warnings.length}):\n- ${warnings.join('\n- ')}`);
 if (errors.length) {
   console.error(`\nОШИБКИ (${errors.length}):\n- ${errors.join('\n- ')}`);

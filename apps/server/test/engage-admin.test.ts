@@ -71,7 +71,14 @@ describe('карточки бота в админке', () => {
     expect(r.body.previews.ru.comeback.text).toContain('Давно не виделись');
     expect(r.body.previews.uk.mission.text).toContain('Місія тижня');
     expect(r.body.previews.ru.newcomer.buttons).toEqual(['🚀 Начать урок', '🔕 Не присылать такие сообщения']);
-    expect(r.body.previews.en.comeback.imageUrl).toMatch(/\/bot\/cards\/comeback-1\.jpg/);
+    expect(r.body.previews.en.comeback.imageUrl).toMatch(/\/channel\/[a-z0-9-]+\.jpg\?v=/);
+    // Все варианты: можно пролистать, каждый текст и каждая картинка хотя бы раз; первый — тот же, что образец.
+    for (const kind of ['newcomer', 'comeback', 'mission'] as const) {
+      const pv = r.body.previews.ru[kind];
+      expect(pv.variants[0]).toEqual({ text: pv.text, imageUrl: pv.imageUrl });
+      expect(new Set(pv.variants.map((v: { text: string }) => v.text)).size, kind).toBeGreaterThanOrEqual(3);
+      expect(new Set(pv.variants.map((v: { imageUrl: string }) => v.imageUrl)).size, kind).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it('первый урок закончен со второго захода — засчитан как законченный (находка проверки)', async () => {
@@ -110,5 +117,17 @@ describe('карточки бота в админке', () => {
     expect(photo).toHaveLength(1);
     expect(photo[0].params.caption).toContain('Миссия недели');
     expect(await db.select().from(engageSends).where(and(eq(engageSends.telegramId, me.telegramId)))).toHaveLength(0);
+  });
+
+  it('«прислать себе» шлёт тот вариант, что открыт в админке', async () => {
+    const me = await login();
+    const boss = await makeAdmin('SUPERADMIN');
+    const pv = (await boss('GET', '/engage?days=7')).body.previews.ru.comeback;
+    const calls = fakeTelegram();
+    expect((await boss('POST', '/engage/test', { who: String(me.telegramId), kind: 'comeback', lang: 'ru', variant: 2 })).status).toBe(200);
+    const photo = calls.find((c) => c.method === 'sendPhoto' && c.params.chat_id === me.telegramId)!;
+    expect(photo.params.caption).toContain(pv.variants[2].text.split('\n')[0]);
+    expect(photo.params.photo).toBe(pv.variants[2].imageUrl);
+    expect((await boss('POST', '/engage/test', { who: String(me.telegramId), kind: 'comeback', lang: 'ru', variant: -1 })).status).toBe(400);
   });
 });

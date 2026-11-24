@@ -96,7 +96,8 @@ const VERSIONS: Record<string, string> = imageVersions;
  * Telegram кэширует картинку по адресу, и новый кадр под старым именем без версии мог бы прийти старым.
  */
 export function botImageUrl(file: string): string {
-  const url = new URL(`/bot/${file}`, new URL(config.webAppUrl).origin);
+  // Картинки канала (`channel/…`, карточки бота) лежат рядом с /bot — в public/channel.
+  const url = new URL(file.startsWith('channel/') ? `/${file}` : `/bot/${file}`, new URL(config.webAppUrl).origin);
   const version = VERSIONS[file];
   if (version) url.searchParams.set('v', version);
   return url.toString();

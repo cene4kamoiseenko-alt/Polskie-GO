@@ -12,7 +12,7 @@ import { Badge, Card, DataTable, Empty, LoadError, PageHeader, Segmented, Skelet
 type Kind = 'newcomer' | 'comeback' | 'mission';
 type Lang = 'ru' | 'uk' | 'en';
 type KindStats = { sent: number; delivered: number; opened: number; studiedSameDay: number; optedOut48h: number; blocked48h: number };
-type Preview = { text: string; buttons: string[]; imageUrl: string };
+type Preview = { text: string; buttons: string[]; imageUrl: string; variants: { text: string; imageUrl: string }[] };
 type Overview = {
   state: { enabled: boolean };
   days: number;
@@ -56,6 +56,9 @@ type Row = KindStats & { kind: Kind; title: string };
 export function EngageCards({ superadmin }: { superadmin: boolean }) {
   const [days, setDays] = useState(30);
   const [lang, setLang] = useState<Lang>('ru');
+  /** Какой вариант карточки открыт (листается ‹ ›; «Прислать себе» шлёт его же). */
+  const [pick, setPick] = useState<Record<Kind, number>>({ newcomer: 0, comeback: 0, mission: 0 });
+  const flip = (kind: Kind, n: number, step: number) => setPick((p) => ({ ...p, [kind]: (p[kind] + step + n) % n }));
   const { data: o, error, loading, reload } = useLoad(() => api<Overview>(`/engage?days=${days}`), [days]);
   const { confirm, run, ask, toast } = useFeedback();
 
@@ -67,7 +70,7 @@ export function EngageCards({ superadmin }: { superadmin: boolean }) {
     );
     if (ok && (await run(() => api('/engage/state', { method: 'PATCH', body: { enabled } }), enabled ? 'Карточки включены' : 'Карточки выключены'))) reload();
   };
-  const sendMe = async (kind: Kind) => {
+  const sendMe = async (kind: Kind, variant: number) => {
     let who = readTest();
     if (!who) {
       const v = await ask({ title: 'Прислать себе', label: 'Ваш Telegram ID или @username', confirm: 'Отправить', placeholder: '@username' });
@@ -75,7 +78,7 @@ export function EngageCards({ superadmin }: { superadmin: boolean }) {
       who = v;
     }
     try {
-      await api('/engage/test', { body: { who, kind, lang } });
+      await api('/engage/test', { body: { who, kind, lang, variant } });
       saveTest(who);
       toast('Карточка отправлена');
     } catch (e) {
@@ -122,19 +125,37 @@ export function EngageCards({ superadmin }: { superadmin: boolean }) {
         )}
       </Card>
 
-      <Card title="Как увидит игрок" subtitle="Образцы с примерными цифрами" actions={<Segmented label="Язык" value={lang} onChange={setLang} options={[['ru', 'RU'], ['uk', 'UK'], ['en', 'EN']]} />}>
+      <Card title="Как увидит игрок" subtitle="Образцы с примерными цифрами. У каждой карточки несколько вариантов текста и картинки: человек и день выбирают один" actions={<Segmented label="Язык" value={lang} onChange={setLang} options={[['ru', 'RU'], ['uk', 'UK'], ['en', 'EN']]} />}>
         {!o ? (
           <Skeleton className="h-64" />
         ) : (
           <div className="grid gap-4 md:grid-cols-3">
             {KINDS.map((k) => {
               const pv = o.previews[lang][k.kind];
+              const n = Math.max(1, pv.variants?.length ?? 1);
+              const i = pick[k.kind] % n;
+              const cur = pv.variants?.[i] ?? pv;
               return (
                 <figure key={k.kind} className="overflow-hidden rounded-2xl border border-white/10 bg-white/5" data-engage-preview={k.kind}>
-                  <img src={pv.imageUrl} alt="" className="aspect-square w-full object-cover" loading="lazy" />
+                  <img src={cur.imageUrl} alt="" className="aspect-square w-full object-cover" loading="lazy" />
                   <figcaption className="space-y-2 p-3">
-                    <div className="text-xs font-bold uppercase tracking-wide text-slate-400">{k.title}</div>
-                    <p className="whitespace-pre-line text-sm leading-snug">{pv.text}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">{k.title}</div>
+                      {n > 1 && (
+                        <div className="flex items-center gap-1" data-engage-flip={k.kind}>
+                          <button type="button" className="btn-s min-h-8 min-w-8 px-2" aria-label={`${k.title}: предыдущий вариант`} onClick={() => flip(k.kind, n, -1)}>
+                            ‹
+                          </button>
+                          <span className="min-w-14 text-center text-xs tabular-nums text-slate-300" aria-live="polite" data-engage-variant>
+                            {i + 1} из {n}
+                          </span>
+                          <button type="button" className="btn-s min-h-8 min-w-8 px-2" aria-label={`${k.title}: следующий вариант`} onClick={() => flip(k.kind, n, 1)}>
+                            ›
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="whitespace-pre-line text-sm leading-snug">{cur.text}</p>
                     <div className="space-y-1.5">
                       {pv.buttons.map((b) => (
                         <div key={b} className="rounded-lg bg-sky-500/15 px-2 py-1.5 text-center text-xs font-bold text-sky-200">
@@ -143,8 +164,8 @@ export function EngageCards({ superadmin }: { superadmin: boolean }) {
                       ))}
                     </div>
                     <p className="text-xs text-slate-400">Когда: {k.when}</p>
-                    <button className="btn-s w-full" onClick={() => void sendMe(k.kind)}>
-                      Прислать себе
+                    <button className="btn-s w-full" onClick={() => void sendMe(k.kind, i)}>
+                      {n > 1 ? `Прислать себе вариант ${i + 1}` : 'Прислать себе'}
                     </button>
                   </figcaption>
                 </figure>

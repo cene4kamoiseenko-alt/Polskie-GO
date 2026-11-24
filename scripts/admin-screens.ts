@@ -219,6 +219,17 @@ async function main() {
       const cards = await p.locator('main').innerText();
       const missing = [/Карточки бота: выключены/i, /Как увидит игрок/i, /Давно не виделись/i, /Миссия недели/i, /Заблокировали за 48/i, /Первый урок/i, /разминк/i].filter((r) => !r.test(cards));
       check(missing.length === 0, `${width}px «Карточки бота»: состояние, образцы карточек, отчёт по видам, мост и первый урок${missing.length ? ` — нет ${missing.join(', ')}` : ''}`);
+      // Варианты (владелец 2026-11-24: «одни и те же карточки»): ‹ › листают текст и картинку, «Прислать себе» — открытый вариант.
+      const back = p.locator('[data-engage-preview=comeback]');
+      const before = { text: await back.locator('p').first().innerText(), img: await back.locator('img').getAttribute('src') };
+      await back.getByRole('button', { name: /следующий вариант/ }).click();
+      const after = { text: await back.locator('p').first().innerText(), img: await back.locator('img').getAttribute('src') };
+      const counter = await back.locator('[data-engage-variant]').innerText();
+      check(
+        /^2 из \d+$/.test(counter) && after.text !== before.text && after.img !== before.img && /\/channel\//.test(after.img ?? '') && (await back.getByRole('button', { name: 'Прислать себе вариант 2' }).count()) === 1,
+        `${width}px «Карточки бота»: ‹ › листают варианты (${counter}), другой текст и картинка из канала, «Прислать себе вариант 2»`,
+      );
+      await back.getByRole('button', { name: /предыдущий вариант/ }).click();
       await noHScroll('карточки бота');
       await axe('«Карточки бота»');
       await p.screenshot({ path: `${OUT}/engage-${width}.png`, fullPage: true });

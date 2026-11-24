@@ -9,6 +9,7 @@ import { db } from '../src/db';
 import { botContacts, dailyQuizSends, engageSends, learningSessions, playerProgress, userSettings, users, walletTransactions } from '../src/db/schema';
 import { claimQuiz, runDailyQuizTick } from '../src/bot/daily/send';
 import { claimCard } from '../src/bot/engage/send';
+import { cardSeed, cardView } from '../src/bot/engage/views';
 import { writeDailyState } from '../src/bot/daily/state';
 import { writeEngageState } from '../src/bot/engage/state';
 import * as missions from '../src/services/missions';
@@ -65,8 +66,11 @@ describe('карточки в рассылке вопроса дня', () => {
     const mine = toChat(calls, u.telegramId);
     expect(mine).toHaveLength(1);
     expect(mine[0].method).toBe('sendPhoto');
-    expect(mine[0].params.photo).toMatch(/\/bot\/cards\/comeback-[12]\.jpg\?v=/);
-    expect(mine[0].params.caption).toMatch(/Давно не|Long time|Давно не бачилися/);
+    // Картинка — из запаса канала, вариант по человеку и дню (у соседа в тот же день — другая).
+    const img = cardView({ kind: 'comeback', streakBest: 0, words: 0, city: null, gift: null }, 'ru', cardSeed(u.telegramId, '2026-12-03')).image;
+    expect(mine[0].params.photo).toMatch(/\/channel\/[a-z0-9-]+\.jpg\?v=/);
+    expect(new URL(mine[0].params.photo as string).pathname).toBe(`/${img}`);
+    expect(mine[0].params.caption).toMatch(/Давно не|Бобек скучал|Бобек на связи|Long time|Bobek missed|Bobek here|Бобек сумував|Бобек на зв/);
     expect(await sendRow('2026-12-03', u.telegramId)).toMatchObject({ kind: 'comeback', status: 'SENT', userId: u.user.id });
     expect(await quizRow('2026-12-03', u.telegramId)).toBeUndefined();
     // Повторный запуск в тот же день ничего не шлёт.
@@ -82,7 +86,7 @@ describe('карточки в рассылке вопроса дня', () => {
     const calls = fakeTelegram();
     await runDailyQuizTick(at('2026-12-11'));
     const caption = toChat(calls, u.telegramId)[0].params.caption as string;
-    expect(caption).toMatch(/Давно не|Long time|Давно не бачилися/);
+    expect(caption).toMatch(/Давно не|Бобек скучал|Бобек на связи|Long time|Bobek missed|Bobek here|Бобек сумував|Бобек на зв/);
     expect(caption).not.toMatch(/50/);
     expect(await sendRow('2026-12-11', u.telegramId)).toMatchObject({ kind: 'comeback', variant: 'no_gift' });
   });
@@ -100,7 +104,7 @@ describe('карточки в рассылке вопроса дня', () => {
     await runDailyQuizTick(at('2026-12-04'));
     const mine = toChat(calls, u.telegramId);
     expect(mine).toHaveLength(1);
-    expect(mine[0].params.photo).toMatch(/\/bot\/cards\/newcomer-[12]\.jpg/);
+    expect(new URL(mine[0].params.photo as string).pathname).toBe(`/${cardView({ kind: 'newcomer', left: 5 }, 'ru', cardSeed(u.telegramId, '2026-12-04')).image}`);
     expect(mine[0].params.caption).toMatch(/5/);
     expect(await sendRow('2026-12-04', u.telegramId)).toMatchObject({ kind: 'newcomer', variant: 'left' });
   });
@@ -207,7 +211,7 @@ describe('карточки в рассылке вопроса дня', () => {
     const mine = toChat(calls, u.telegramId);
     expect(mine).toHaveLength(1);
     expect(mine[0].params.caption).toMatch(/Миссия недели|Місія тижня|Mission of the week/);
-    expect(mine[0].params.photo).toMatch(/\/bot\/cards\/mission/);
+    expect(mine[0].params.photo).toMatch(/\/channel\/[a-z0-9-]+\.jpg\?v=/);
     expect(await sendRow('2026-12-12', u.telegramId)).toMatchObject({ kind: 'mission' });
   });
 });
