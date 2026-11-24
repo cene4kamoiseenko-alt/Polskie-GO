@@ -20,7 +20,7 @@ export function TabTour({ onClose }: { onClose: (finished: boolean) => void }) {
   const { t } = useT();
   const reduce = useReducedMotion();
   const [i, setI] = useState(0);
-  const [pos, setPos] = useState<{ bottom: number; left: number; arrow: number } | null>(null);
+  const [pos, setPos] = useState<{ bottom: number; left: number; arrow: number; spot: { left: number; top: number; width: number; height: number } } | null>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
   const step = STEPS[i];
 
@@ -33,7 +33,8 @@ export function TabTour({ onClose }: { onClose: (finished: boolean) => void }) {
       const width = Math.min(W, vw - 24);
       const center = r.left + r.width / 2;
       const left = Math.max(12, Math.min(vw - width - 12, center - width / 2));
-      setPos({ bottom: window.innerHeight - r.top + 12, left, arrow: center - left });
+      // Над вкладкой — место для стрелки (≈ 40 px), над стрелкой — подсказка.
+      setPos({ bottom: window.innerHeight - r.top + 44, left, arrow: center, spot: { left: r.left - 6, top: r.top - 6, width: r.width + 12, height: r.height + 12 } });
     };
     place();
     window.addEventListener('resize', place);
@@ -52,8 +53,18 @@ export function TabTour({ onClose }: { onClose: (finished: boolean) => void }) {
   const last = i === STEPS.length - 1;
   const width = typeof window === 'undefined' ? W : Math.min(W, window.innerWidth - 24);
   return (
-    <div className="fixed inset-0 z-50" aria-hidden={false}>
-      <div className="absolute inset-0 bg-black/35" onClick={() => onClose(false)} />
+    <div className={reduce ? 'tour-static fixed inset-0 z-50' : 'fixed inset-0 z-50'} aria-hidden={false}>
+      {/* Нажатие мимо подсказки закрывает тур; затемнение даёт тень вокруг подсвеченной вкладки. */}
+      <div className="absolute inset-0" onClick={() => onClose(false)} />
+      {!pos && <div className="pointer-events-none absolute inset-0 bg-black/35" />}
+      {pos && (
+        <>
+          <div key={`spot-${step.tab}`} className="tour-spot" style={pos.spot} data-tour-spot aria-hidden />
+          <svg key={`arrow-${step.tab}`} className="tour-arrow" style={{ left: pos.arrow - 15, top: pos.spot.top - 36 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" data-tour-arrow aria-hidden>
+            <path d="M12 3v15M5 12l7 7 7-7" />
+          </svg>
+        </>
+      )}
       {pos && (
         <motion.div
           key={step.tab}
@@ -61,13 +72,12 @@ export function TabTour({ onClose }: { onClose: (finished: boolean) => void }) {
           aria-modal="true"
           aria-labelledby="tour-title"
           data-tour={step.tab}
-          className="card absolute p-4 shadow-[var(--shadow-card)]"
+          className="card absolute z-[3] p-4 shadow-[var(--shadow-card)]"
           style={{ bottom: pos.bottom, left: pos.left, width }}
           initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
         >
-          <span className="absolute -bottom-2 h-4 w-4 rotate-45 bg-[var(--bg-elev)]" style={{ left: pos.arrow - 8 }} aria-hidden />
           <h2 id="tour-title" className="text-base font-black">
             🦫 {t(step.title)}
           </h2>

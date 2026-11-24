@@ -2753,7 +2753,8 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
   position: fixed;
   z-index: 45;
   left: 50%;
-  top: calc(var(--safe-t, 0px) + 72px);
+  /* В шапке урока (над полосой прогресса), а не на картинке: раньше в 72 px от верха закрывала Бобека на сцене (владелец 2026-11-24). */
+  top: calc(var(--safe-t, 0px) + 6px);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -2920,4 +2921,51 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
 /* Фон сцены урока (пока картинка грузится или если не загрузилась). */
 .mission-stage-bg {
   background: linear-gradient(160deg, #2b5f8c 0%, #173451 100%);
+}
+
+/* Тур по вкладкам (2026-11-24, владелец: «красиво обводить или стрелочки»): вокруг вкладки — светящаяся обводка, остальное затемнено;
+   стрелка между подсказкой и вкладкой покачивается. «Меньше анимаций» — без движения (.tour-static и системная настройка). */
+.tour-spot {
+  position: fixed;
+  z-index: 1;
+  border-radius: 20px;
+  box-shadow: 0 0 0 9999px rgb(3 10 22 / 0.62);
+  pointer-events: none;
+}
+.tour-spot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 23px;
+  border: 3px solid var(--color-brand);
+  box-shadow: 0 0 18px 3px color-mix(in srgb, var(--color-brand) 55%, transparent);
+  animation: tour-ring 1.6s ease-in-out infinite;
+}
+.tour-arrow {
+  position: fixed;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  color: var(--color-brand);
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.45));
+  pointer-events: none;
+  animation: tour-bob 1s ease-in-out infinite;
+}
+@keyframes tour-ring {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.75; }
+}
+@keyframes tour-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+.tour-static .tour-spot::after,
+.tour-static .tour-arrow {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot::after,
+  .tour-arrow {
+    animation: none;
+  }
 }

@@ -200,6 +200,20 @@ async function main() {
       check(/1 из 5/.test(await tip.innerText()) && (await tip.getAttribute('data-tour')) === 'home', 'C2 после первого урока — подсказка «1 из 5» у вкладки «Сегодня»');
       await axe(p.page, 'C2 подсказка тура', '[data-tour]');
       await p.page.screenshot({ path: `${OUT}/tour-1.png` });
+      // Владелец 2026-11-24: «красиво обводить или стрелочки сделать, где что находится» — вкладка подсвечена (обводка вокруг неё,
+      // остальное затемнено), стрелка между подсказкой и вкладкой показывает на неё.
+      const spot = await p.page.evaluate(() => {
+        const tab = document.querySelector('[data-tab="home"]')?.getBoundingClientRect();
+        const ring = document.querySelector('[data-tour-spot]')?.getBoundingClientRect();
+        const arrow = document.querySelector('[data-tour-arrow]')?.getBoundingClientRect();
+        const card = document.querySelector('[data-tour]')?.getBoundingClientRect();
+        if (!tab || !ring || !arrow || !card) return { ok: false, why: `tab ${!!tab} ring ${!!ring} arrow ${!!arrow}` };
+        const covers = ring.left <= tab.left + 1 && ring.right >= tab.right - 1 && ring.top <= tab.top + 1 && ring.bottom >= tab.bottom - 1 && ring.width <= tab.width + 30;
+        const cx = arrow.left + arrow.width / 2;
+        const pointsAt = cx >= tab.left && cx <= tab.right && arrow.top >= card.bottom - 4 && arrow.bottom <= tab.top + 4;
+        return { ok: covers && pointsAt, why: `covers ${covers} pointsAt ${pointsAt}` };
+      });
+      check(spot.ok, `C2 вкладка «Сегодня» обведена, стрелка показывает на неё (${spot.why})`);
       const steps: string[] = [];
       for (let i = 0; i < 4; i++) {
         await p.page.locator('[data-tour-next]').click();
