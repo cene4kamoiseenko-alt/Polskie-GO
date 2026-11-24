@@ -197,34 +197,57 @@ async function main() {
       const p = await open(u, '/');
       const tip = p.page.locator('[data-tour]');
       await tip.waitFor({ timeout: 20_000 });
+      // Тост «цель дня выполнена» — на языке игрока, а не запасным украинским, пока грузится словарь (найдено 2026-11-24).
+      const goalToast = p.page.locator('[data-toast]', { hasText: /Цель дня выполнена|Мету дня виконано/ });
+      await goalToast.first().waitFor({ timeout: 10_000 }).catch(() => {});
+      check(/Цель дня выполнена/.test((await goalToast.allInnerTexts()).join(' ')), `C2 тост цели дня по-русски (${(await goalToast.allInnerTexts()).join(' | ') || 'нет тоста'})`);
       check(/1 из 5/.test(await tip.innerText()) && (await tip.getAttribute('data-tour')) === 'home', 'C2 после первого урока — подсказка «1 из 5» у вкладки «Сегодня»');
       await axe(p.page, 'C2 подсказка тура', '[data-tour]');
       await p.page.screenshot({ path: `${OUT}/tour-1.png` });
-      // Владелец 2026-11-24: «красиво обводить или стрелочки сделать, где что находится» — вкладка подсвечена (обводка вокруг неё,
-      // остальное затемнено), стрелка между подсказкой и вкладкой показывает на неё.
-      const spot = await p.page.evaluate(() => {
-        const tab = document.querySelector('[data-tab="home"]')?.getBoundingClientRect();
-        const ring = document.querySelector('[data-tour-spot]')?.getBoundingClientRect();
-        const arrow = document.querySelector('[data-tour-arrow]')?.getBoundingClientRect();
-        const card = document.querySelector('[data-tour]')?.getBoundingClientRect();
-        if (!tab || !ring || !arrow || !card) return { ok: false, why: `tab ${!!tab} ring ${!!ring} arrow ${!!arrow}` };
-        const covers = ring.left <= tab.left + 1 && ring.right >= tab.right - 1 && ring.top <= tab.top + 1 && ring.bottom >= tab.bottom - 1 && ring.width <= tab.width + 30;
-        const cx = arrow.left + arrow.width / 2;
-        const pointsAt = cx >= tab.left && cx <= tab.right && arrow.top >= card.bottom - 4 && arrow.bottom <= tab.top + 4;
-        return { ok: covers && pointsAt, why: `covers ${covers} pointsAt ${pointsAt}` };
-      });
-      check(spot.ok, `C2 вкладка «Сегодня» обведена, стрелка показывает на неё (${spot.why})`);
+      // Владелец 2026-11-24: Бобек-гид вместо стрелок. Вкладка в световом окне (остальное затемнено); Бобек игрока в его образе стоит
+      // на панели вкладок прямо над нужной вкладкой; облачко с подсказкой — над Бобеком, его хвостик смотрит на Бобека.
+      const guideAt = (tabId: string) =>
+        p.page.evaluate((tabId) => {
+          const tab = document.querySelector(`[data-tab="${tabId}"]`)?.getBoundingClientRect();
+          const dock = document.querySelector('.app-nav-dock')?.getBoundingClientRect();
+          const ring = document.querySelector('[data-tour-spot]')?.getBoundingClientRect();
+          const guideEl = document.querySelector('[data-tour-guide]');
+          const guide = guideEl?.getBoundingClientRect();
+          const card = document.querySelector('[data-tour]')?.getBoundingClientRect();
+          const tail = document.querySelector('[data-tour-tail]')?.getBoundingClientRect();
+          if (!tab || !dock || !ring || !guide || !card || !tail) return { ok: false, why: `tab ${!!tab} ring ${!!ring} guide ${!!guide} card ${!!card} tail ${!!tail}` };
+          const covers = ring.left <= tab.left + 1 && ring.right >= tab.right - 1 && ring.top <= tab.top + 1 && ring.bottom >= tab.bottom - 1 && ring.width <= tab.width + 30;
+          const gx = guide.left + guide.width / 2;
+          const above = gx >= tab.left - 6 && gx <= tab.right + 6 && Math.abs(guide.bottom - dock.top) <= 26;
+          const look = !!guideEl?.querySelector('[data-look]');
+          const tx = tail.left + tail.width / 2;
+          const bubble = card.bottom <= guide.top + 40 && Math.abs(tx - gx) <= 24;
+          const noArrow = !document.querySelector('[data-tour-arrow]');
+          return { ok: covers && above && look && bubble && noArrow, why: `covers ${covers} above ${above} look ${look} bubble ${bubble} noArrow ${noArrow} [card.bottom ${Math.round(card.bottom)} guide.top ${Math.round(guide.top)} tx ${Math.round(tx)} gx ${Math.round(gx)}]` };
+        }, tabId);
+      await p.page.waitForTimeout(900);
+      const spot = await guideAt('home');
+      check(spot.ok, `C2 вкладка «Сегодня» в световом окне, над ней Бобек-гид в образе игрока, облачко над Бобеком (${spot.why})`);
       const steps: string[] = [];
       for (let i = 0; i < 4; i++) {
         await p.page.locator('[data-tour-next]').click();
         await p.page.waitForTimeout(250);
         steps.push((await tip.getAttribute('data-tour')) ?? '');
-        if (i === 1) await p.page.screenshot({ path: `${OUT}/tour-life.png` });
+        if (i === 0) {
+          await p.page.waitForTimeout(900);
+          const moved = await guideAt('study');
+          check(moved.ok, `C3 Бобек перепрыгнул к вкладке «Учёба», окно и облачко — за ним (${moved.why})`);
+        }
+        if (i === 1) {
+          await p.page.waitForTimeout(900);
+          await p.page.screenshot({ path: `${OUT}/tour-life.png` });
+        }
       }
       check(JSON.stringify(steps) === JSON.stringify(['study', 'life', 'quests', 'profile']), `C3 «Дальше» ведёт по вкладкам (${steps.join(' → ')})`);
       check(/гардероб/i.test(await tip.innerText()), 'C3 подсказка профиля называет гардероб');
       await p.page.locator('[data-tour-next]').click();
-      await p.page.waitForTimeout(400);
+      // Финал: Бобек радуется (конфетти), затем тур закрывается сам.
+      await p.page.locator('[data-tour-root]').waitFor({ state: 'detached', timeout: 4000 }).catch(() => {});
       check((await tip.count()) === 0, 'C4 после последнего шага тур закрыт');
       check((await u.call('GET', '/api/me')).body.tourDone === true, 'C4 отметка «тур пройден» на сервере');
       await p.go('/');

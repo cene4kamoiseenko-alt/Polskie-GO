@@ -27,7 +27,11 @@ export function preloadLang(lang: UiLang): Promise<void> {
 const LOCALES: Record<UiLang, string> = { uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' };
 
 export type TKey = keyof Dict;
-type Ctx = { lang: UiLang; t: (k: TKey, vars?: Record<string, string | number>) => string; tr: (v: I18n | string | null | undefined) => string; date: (d: string | Date) => string };
+type Ctx = {
+  lang: UiLang;
+  /** Словарь выбранного языка уже загружен (до этого t() отдаёт запасной украинский): разовые тексты — тосты — ждут его. */
+  ready: boolean;
+  t: (k: TKey, vars?: Record<string, string | number>) => string; tr: (v: I18n | string | null | undefined) => string; date: (d: string | Date) => string };
 
 const I18nCtx = createContext<Ctx | null>(null);
 
@@ -58,6 +62,7 @@ export function I18nProvider({ lang, children }: { lang: UiLang; children: React
     const dict = DICTS[lang] ?? uk;
     return {
       lang,
+      ready: !!DICTS[lang],
       t: (k, vars) => {
         let s = dict[k] ?? uk[k] ?? k;
         if (vars) for (const [name, val] of Object.entries(vars)) s = s.replaceAll(`{${name}}`, String(val));

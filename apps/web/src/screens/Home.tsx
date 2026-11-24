@@ -211,7 +211,7 @@ function LevelTestCard() {
 }
 
 function WeekStrip() {
-  const { t, lang } = useT();
+  const { t, lang, ready } = useT();
   const me = useMe().data!;
   const reduce = useReducedMotion();
   const stats = useQuery({ queryKey: ['stats', 7], queryFn: () => api<{ days: WeekDay[] }>('/me/stats?days=7') });
@@ -228,7 +228,8 @@ function WeekStrip() {
   // Пик дня: цель выполнена — один раз за день конфетти и вибрация, когда игрок видит главную (обычно сразу после урока).
   const [party, setParty] = useState(false);
   useEffect(() => {
-    if (!goalDone) return;
+    // Тост — один раз за день: ждём словарь языка игрока, иначе он навсегда остался бы запасным украинским («Мету дня виконано!»).
+    if (!goalDone || !ready) return;
     const today = new Date().toISOString().slice(0, 10);
     if (store.get(GOAL_PARTY_KEY) === today) return;
     store.set(GOAL_PARTY_KEY, today);
@@ -238,7 +239,7 @@ function WeekStrip() {
     setParty(true);
     const tm = setTimeout(() => setParty(false), 3200);
     return () => clearTimeout(tm);
-  }, [goalDone, reduce]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [goalDone, reduce, ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const caption = (() => {
     if (picked === null) return null;
