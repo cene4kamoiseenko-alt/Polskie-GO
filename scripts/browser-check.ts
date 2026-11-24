@@ -602,7 +602,9 @@ async function main() {
       // Настройки: уровень заданий B1 сохраняется.
       await p.goto(lv.url('/settings'), { waitUntil: 'domcontentloaded' });
       await p.locator('[data-study-level]').waitFor({ timeout: 15_000 });
-      await p.locator('[data-study-level] button', { hasText: 'B1' }).click();
+      // Настройки 2026-11-24: плитка «Уровень» открывает шторку выбора.
+      await p.locator('[data-setting-tile="level"]').click();
+      await p.locator('[data-level-option="B1"]').click();
       await p.locator('[data-study-level="B1"]').waitFor({ timeout: 10_000 });
       check(true, 'Уровни: в настройках выбран уровень заданий B1');
       check((await lv.call('GET', '/api/me')).body.progress.studyLevel === 'B1', 'Уровни: уровень заданий B1 сохранён на сервере');

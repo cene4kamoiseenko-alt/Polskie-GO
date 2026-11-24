@@ -3010,3 +3010,218 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
   .combo-sheen::after { animation: none; display: none; }
 }
 html.reduced-motion .combo-sheen::after { animation: none; display: none; }
+
+/* ── Настройки: вариант В с выбором из Б (владелец 2026-11-24) ──
+   Шапка с Бобеком, плитки 2×2, сгруппированные строки с цветными значками, шторки выбора. Тени вместо рамок (design-motion-principles,
+   «Jakub»), нажатие — лёгкое сжатие, без бесконечных анимаций. */
+.set-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 128px;
+  padding: 0 14px 0 6px;
+  border-radius: 28px;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 0% 100%, rgb(255 255 255 / 0.16), transparent 60%),
+    radial-gradient(80% 80% at 100% 0%, rgb(69 196 134 / 0.45), transparent 65%),
+    linear-gradient(135deg, #0f3f6c 0%, #155e98 55%, #13706b 100%);
+  box-shadow: 0 18px 36px -20px rgb(10 50 90 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+.set-hero-beaver { position: relative; flex: none; margin-bottom: -6px; filter: drop-shadow(0 8px 12px rgb(0 0 0 / 0.35)); }
+.set-hero-chip {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  background: rgb(0 0 0 / 0.26);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.set-hero-edit {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(255 255 255 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 140ms;
+}
+.set-hero-edit:active { transform: scale(0.92); background: rgb(255 255 255 / 0.26); }
+
+.set-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 118px;
+  padding: 13px 13px 12px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--surface-ring);
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.set-tile:active { transform: scale(0.97); }
+.set-chip { box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 3px 8px -3px rgb(0 0 0 / 0.35); }
+.tone-sky { background: linear-gradient(180deg, #3ab0ef, #1a86c8); }
+.tone-blue { background: linear-gradient(180deg, #5b8cff, #3463e0); }
+.tone-violet { background: linear-gradient(180deg, #a07bff, #7a4fe6); }
+.tone-orange { background: linear-gradient(180deg, #ffa548, #f07a12); }
+.tone-green { background: linear-gradient(180deg, #45cf8c, #1fa463); }
+.tone-red { background: linear-gradient(180deg, #ff6b6b, #e5484d); }
+.tone-pink { background: linear-gradient(180deg, #ff7eb3, #e94b8a); }
+.tone-teal { background: linear-gradient(180deg, #35cbc1, #13a096); }
+.tone-amber { background: linear-gradient(180deg, #ffcd4d, #f0a81a); }
+.tone-slate { background: linear-gradient(180deg, #8a9bb3, #64748b); }
+
+.set-group {
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--surface-ring);
+}
+.set-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 11px 14px;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 140ms;
+}
+.set-group > * + *, .set-group > div > .set-row { border-top: 1px solid var(--border); }
+.set-group > div:first-child > .set-row { border-top: 0; }
+button.set-row:active { background: color-mix(in srgb, var(--text-muted) 10%, transparent); }
+.set-switch {
+  position: relative;
+  flex: none;
+  width: 50px;
+  height: 30px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--track);
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.set-switch.is-on { background: var(--color-brand); }
+.set-switch-knob {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 0.3);
+}
+
+.set-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.set-seg-item {
+  position: relative;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: color 160ms;
+}
+.set-seg-item.is-on { color: #06281b; }
+.set-seg-pill { position: absolute; inset: 0; border-radius: inherit; background: var(--color-brand); box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--color-brand) 80%, transparent); }
+
+.set-option {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.set-option:active { transform: scale(0.98); }
+.set-option-ring, .set-theme-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2.5px var(--color-brand), 0 6px 18px -8px color-mix(in srgb, var(--color-brand) 85%, transparent);
+  background: color-mix(in srgb, var(--color-brand) 9%, transparent);
+  pointer-events: none;
+}
+.set-theme-ring { background: none; border-radius: 16px; inset: -4px; box-shadow: 0 0 0 2.5px var(--color-brand); }
+.set-radio {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px var(--border);
+  color: #06281b;
+  transition: background-color 160ms;
+}
+.set-radio.is-on { background: var(--color-brand); box-shadow: none; }
+.set-meter { width: 18px; height: 6px; border-radius: 3px; background: var(--track); }
+.set-meter.is-on { background: linear-gradient(90deg, #ffb13d, #f07a12); }
+.set-theme-card { display: block; padding: 4px; -webkit-tap-highlight-color: transparent; transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.set-theme-card:active { transform: scale(0.96); }
+.set-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 800;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px var(--border);
+  outline: none;
+  transition: box-shadow 140ms;
+}
+.set-input:focus { box-shadow: inset 0 0 0 2px var(--color-brand); }
+
+/* Картинка экрана в шторке темы. */
+.theme-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  height: 116px;
+  padding: 9px 8px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff7ec;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08), 0 6px 14px -8px rgb(0 0 0 / 0.45);
+}
+.theme-preview .tp-bar { height: 8px; width: 55%; border-radius: 4px; background: #e2d6c4; }
+.theme-preview .tp-card { display: flex; align-items: center; gap: 5px; padding: 6px; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
+.theme-preview .tp-dot { width: 12px; height: 12px; border-radius: 4px; background: #e5484d; flex: none; }
+.theme-preview .tp-dot.is-green { background: #1fa463; }
+.theme-preview .tp-line { height: 6px; flex: 1; border-radius: 3px; background: #e9e1d4; }
+.theme-preview .tp-nav { margin-top: auto; height: 14px; border-radius: 7px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
+.theme-preview.is-dark { background: #07182c; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 6px 14px -8px rgb(0 0 0 / 0.6); }
+.theme-preview.is-dark .tp-bar { background: #1d3552; }
+.theme-preview.is-dark .tp-card, .theme-preview.is-dark .tp-nav { background: #12294a; box-shadow: none; }
+.theme-preview.is-dark .tp-line { background: #23405f; }
+.theme-preview.is-auto { background: linear-gradient(90deg, #fff7ec 0 50%, #07182c 50% 100%); }
+.theme-preview.is-auto .tp-card, .theme-preview.is-auto .tp-nav { background: linear-gradient(90deg, #fff 0 50%, #12294a 50% 100%); box-shadow: none; }
+.theme-preview.is-auto .tp-dot { margin-left: 2px; }
+.theme-preview.is-auto .tp-bar { background: linear-gradient(90deg, #e2d6c4 0 50%, #1d3552 50% 100%); }
+.theme-preview.is-auto .tp-line { background: linear-gradient(90deg, #e9e1d4 0 50%, #23405f 50% 100%); }
+
+/* Смена темы: круговое раскрытие нового вида (Settings.tsx, applyTheme). Только на время перехода темы. */
+html.theme-vt::view-transition-old(root),
+html.theme-vt::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}

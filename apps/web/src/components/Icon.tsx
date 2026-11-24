@@ -7,9 +7,21 @@ import { memo, type ReactNode } from 'react';
 export type LineIconName =
   | 'home' | 'map' | 'book' | 'target' | 'user' | 'flame' | 'coin' | 'star' | 'check' | 'lock' | 'play' | 'arrow-right'
   | 'refresh' | 'alert' | 'clock' | 'bolt' | 'headphones' | 'chevron-right' | 'pin' | 'gift' | 'settings' | 'crown' | 'chat'
-  | 'trophy' | 'layers' | 'x' | 'search' | 'mic' | 'wifi-off' | 'flag' | 'compass' | 'send' | 'camera';
+  | 'trophy' | 'layers' | 'x' | 'search' | 'mic' | 'wifi-off' | 'flag' | 'compass' | 'send' | 'camera'
+  | 'globe' | 'palette' | 'pencil' | 'shield' | 'download' | 'trash' | 'bell' | 'volume' | 'eye' | 'sparkles';
 
 const P: Record<LineIconName, ReactNode> = {
+  // Настройки (2026-11-24): язык, тема, профиль, приватность, данные, напоминания, звук, анимации.
+  globe: <><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5z" /></>,
+  palette: <><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.1-1.6-1.1-2.7 0-1 .8-1.6 1.8-1.6h2.1a3.9 3.9 0 003.9-3.9c0-4-3.8-7.1-8.5-7.1z" /><circle cx="7.8" cy="11" r="1.1" /><circle cx="10.5" cy="7.6" r="1.1" /><circle cx="15" cy="8.2" r="1.1" /></>,
+  pencil: <><path d="M4.5 19.5l1-4L16 5a2.1 2.1 0 013 3L8.5 18.5z" /><path d="M14 7l3 3" /></>,
+  shield: <><path d="M12 3.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6.3z" /><path d="M9 12l2.2 2.2L15.5 10" /></>,
+  download: <><path d="M12 4v11" /><path d="M7.5 10.5L12 15l4.5-4.5" /><path d="M5 19.5h14" /></>,
+  trash: <><path d="M4.5 7h15" /><path d="M9.5 7V5h5v2" /><path d="M6.5 7l1 12.5h9l1-12.5" /></>,
+  bell: <><path d="M6 16.5V11a6 6 0 0112 0v5.5l1.5 1.5h-15z" /><path d="M10 20.5a2 2 0 004 0" /></>,
+  volume: <><path d="M4.5 9.5h3.5L12.5 6v12L8 14.5H4.5z" /><path d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11" /></>,
+  eye: <><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" /><circle cx="12" cy="12" r="2.8" /></>,
+  sparkles: <><path d="M12 4l1.8 4.7 4.7 1.8-4.7 1.8L12 17l-1.8-4.7-4.7-1.8 4.7-1.8z" /><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" /></>,
   send: <><path d="M21 3.5 3.5 10.6l6.6 2.6 2.6 6.6z" /><path d="M21 3.5 10.1 13.2" /></>,
   camera: <><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><path d="M17 7h.01" /></>,
   compass: <><circle cx="12" cy="12" r="8.5" /><path d="M15.6 8.4l-2 5.2-5.2 2 2-5.2z" /></>,
