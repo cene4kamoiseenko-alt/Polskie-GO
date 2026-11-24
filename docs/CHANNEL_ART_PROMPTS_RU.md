@@ -76,7 +76,7 @@ Scene:
 
 ## Что уже получено (2026-11-23)
 
-71 картинка, 1254×1254, сохранены в `apps/web/public/channel/` как JPG (~300–400 КБ). Кепка и шарф — вещи гардероба Бобека,
+75 картинок, почти все 1254×1254 (akwarium и restauracja — вертикальные 1086×1448, straz-pozarna — горизонтальная 1536×1024, сохранены как прислали), сохранены в `apps/web/public/channel/` как JPG (~300–400 КБ). Кепка и шарф — вещи гардероба Бобека,
 это в каноне. Картинка `-1`/`-2` — два варианта одной сцены, чередуются, чтобы канал не повторялся.
 
 | Сцена | Файлы |
@@ -101,7 +101,8 @@ Scene:
 | 28 it | `it.jpg` |
 | 7 sklep · 8 kawiarnia · 10 tramwaj · 27 finanse (2026-11-24) | `sklep.jpg` (Żabka, корзинка), `kawiarnia.jpg` (какао и сырник), `tramwaj-1.jpg` (Варшава, Дворец культуры за окном), `tramwaj-2.jpg` (Краков, Мариацкий костёл, билет в лапе), `finanse.jpg` (банк, банкомат, копилка) |
 | Отдых и дом (2026-11-24, сверх списка) | `kuchnia.jpg` (готовит), `nauka.jpg` (учится: тетрадь, карточки, наушники), `narty.jpg` (лыжи в горах), `termy.jpg` (термальный бассейн зимой), `gry-1.jpg` (приставка), `gry-2.jpg` (компьютер), `gry-3.jpg` (победа в игре) |
-| Учёба, работа, кухня (2026-11-24, сверх списка) | `lekcja.jpg` (урок польского, тянет лапу), `uniwersytet.jpg` (лекция, Uniwersytet Wrocławski; на полке «Prawo» — подходит к 29 prawo), `praca-biuro-3.jpg` (офис, «Polski w pracy», план дня), `pierogi.jpg` (лепит вареники) |
+| Учёба, работа, кухня (2026-11-24, сверх списка) | `lekcja.jpg` (урок польского, тянет лапу), `uniwersytet-1.jpg` (лекция, Uniwersytet Wrocławski; на полке «Prawo» — подходит к 29 prawo), `uniwersytet-2.jpg` (лекция «Polska i Europa»), `praca-biuro-3.jpg` (офис, «Polski w pracy», план дня), `pierogi.jpg` (лепит вареники) |
+| Город (2026-11-24, сверх списка) | `akwarium.jpg` (ныряет в аквариуме), `straz-pozarna.jpg` (пожарный, Straż pożarna), `restauracja.jpg` (повар, меню «Zupa dnia, Pierogi, Kotlet schabowy») |
 | Город и быт (сверх списка) | `lotnisko.jpg` (досмотр в аэропорту), `biblioteka.jpg` (читательский билет), `targ.jpg` (рынок, овощи на весах), `muzeum.jpg` (экскурсовод), `kino.jpg`, `dentysta.jpg`, `fryzjer.jpg` (без кепки, с чубом), `silownia.jpg`, `pralnia.jpg`, `kemping.jpg` (палатка у озера) |
 
 **Ещё нет:** 9 bar-mleczny, 29 prawo, 30 wigilia.

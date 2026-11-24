@@ -20,17 +20,17 @@ const ch = (...names: string[]) => names.map((n) => `channel/${n}.jpg`);
 /** Новичку — Бобек-учитель, весёлый: учёба, правила, слова, слушание. Без «экзаменов» (egzamin-*): там Бобек волнуется, новичка это пугает. */
 const NEWCOMER_IMAGES = ch('lekcja', 'nauka', 'zasada-1', 'sluchanie', 'slowa-tematy-1', 'zasada-2', 'rodzaj', 'slowa-tematy-2', 'wymowa-1', 'zasada-3');
 /** Вернувшемуся — Бобек радуется и живёт польской жизнью: горы, кафе, кино, друзья. */
-const COMEBACK_IMAGES = ch('brawo-1', 'narty', 'kawiarnia', 'gry-3', 'termy', 'brawo-2', 'gry-1', 'kemping', 'pierogi', 'kino', 'gry-2', 'sasiad', 'silownia', 'slang');
+const COMEBACK_IMAGES = ch('brawo-1', 'narty', 'kawiarnia', 'gry-3', 'termy', 'brawo-2', 'gry-1', 'kemping', 'pierogi', 'akwarium', 'kino', 'gry-2', 'sasiad', 'silownia', 'slang');
 /** Миссии — по теме; тема без своего набора — общий набор «жизнь в Польше». */
 const MISSION_IMAGES: Record<string, string[]> = {
   shop: ch('sklep', 'targ', 'apteka-1', 'paczka', 'apteka-2'),
-  food: ch('pierogi', 'kawiarnia', 'kuchnia', 'targ'),
+  food: ch('pierogi', 'restauracja', 'kawiarnia', 'kuchnia', 'targ'),
   road: ch('dworzec-1', 'lotnisko', 'dworzec-2'),
   transport: ch('tramwaj-1', 'dworzec-1', 'tramwaj-2', 'dworzec-2', 'lotnisko'),
   home: ch('mieszkanie', 'kuchnia', 'paczka', 'pralnia', 'sasiad'),
   work: ch('praca-biuro-3', 'praca-biuro-1', 'rozmowa-1', 'budowa-1', 'urzad-1', 'praca-biuro-2', 'rozmowa-2', 'budowa-2', 'urzad-2'),
 };
-const MISSION_DEFAULT = ch('lotnisko', 'muzeum', 'finanse', 'uniwersytet', 'biblioteka', 'kino', 'fryzjer', 'dentysta', 'likar-1', 'likar-2');
+const MISSION_DEFAULT = ch('lotnisko', 'muzeum', 'finanse', 'uniwersytet-1', 'straz-pozarna', 'akwarium', 'uniwersytet-2', 'biblioteka', 'kino', 'fryzjer', 'dentysta', 'likar-1', 'likar-2');
 
 /** Все картинки карточек (проверка, что файлы на месте). */
 export const CARD_IMAGES = [...new Set([...NEWCOMER_IMAGES, ...COMEBACK_IMAGES, ...Object.values(MISSION_IMAGES).flat(), ...MISSION_DEFAULT])];
