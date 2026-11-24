@@ -67,6 +67,11 @@ describe('карточки бота в админке', () => {
     expect(r.body.kinds.newcomer).toMatchObject({ sent: 0 });
     expect(r.body.bridge).toMatchObject({ answered: expect.any(Number), warmupStarted: expect.any(Number), warmupFinished: expect.any(Number) });
     expect(r.body.firstLesson).toMatchObject({ opened: expect.any(Number) });
+    // «Как увидит игрок»: образец каждой карточки на каждом языке — текст, кнопки, картинка.
+    expect(r.body.previews.ru.comeback.text).toContain('Давно не виделись');
+    expect(r.body.previews.uk.mission.text).toContain('Місія тижня');
+    expect(r.body.previews.ru.newcomer.buttons).toEqual(['🚀 Начать урок', '🔕 Не присылать такие сообщения']);
+    expect(r.body.previews.en.comeback.imageUrl).toMatch(/\/bot\/cards\/comeback-1\.jpg/);
   });
 
   it('включить может только главный админ; включение — в журнале', async () => {

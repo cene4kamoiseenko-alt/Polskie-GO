@@ -9,6 +9,7 @@ import Errors from './Errors';
 import Money, { PaymentLog } from './Money';
 import Campaigns from './Campaigns';
 import { DailyQuiz } from './DailyQuiz';
+import { EngageCards } from './EngageCards';
 import { Engagement, ScoreBadge, SEG_META, SEG_ORDER } from './Engagement';
 import { League } from './League';
 import { ResourceEdit, ResourceList } from './Content';
@@ -1224,10 +1225,10 @@ function navGroups(role: Admin['role']): [string, NavItem[]][] {
   }
   if (role !== 'SUPPORT') groups.push(['Контент', [['/exercise-reports', 'Ошибки в заданиях', '🛠'], ...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
   if (role === 'SUPERADMIN') {
-    groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠'], ['/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
+    groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠'], ['/engage', 'Карточки бота', '💌'], ['/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
     groups.push(['Система', [['/audit', 'Журнал действий', '📜'], ['/admins', 'Администраторы', '🔐']]]);
   } else if (role === 'SUPPORT') {
-    groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠']]]);
+    groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠'], ['/engage', 'Карточки бота', '💌']]]);
   }
   return groups;
 }
@@ -1368,6 +1369,7 @@ export function App() {
             <Route path="/bot" element={<Bot />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/daily-quiz" element={<DailyQuiz superadmin={admin.role === 'SUPERADMIN'} />} />
+            <Route path="/engage" element={<EngageCards superadmin={admin.role === 'SUPERADMIN'} />} />
             <Route path="/r/campaigns" element={<Navigate to="/campaigns" replace />} />
             <Route path="/audio" element={<AudioLibrary admin={admin} />} />
             <Route path="/audit" element={<Audit />} />

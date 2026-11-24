@@ -147,7 +147,7 @@ async function main() {
       check(/Новые игроки/i.test(kpi) && /Активные игроки/i.test(kpi) && /Пройдено уроков/i.test(kpi) && /Доход/i.test(kpi), `${width}px «Обзор»: четыре главных показателя`);
       check((await p.locator('svg[role=img]').count()) >= 5, `${width}px «Обзор»: графики по дням (${await p.locator('svg[role=img]').count()})`);
       check((await p.locator('[data-funnel-card]').innerText()).includes('Зарегистрировались'), `${width}px «Обзор»: воронка новичков`);
-      check((await p.locator('[data-sources-card]').innerText()).includes('без метки'), `${width}px «Обзор»: откуда пришли (без метки — открыли сами)`);
+      check(/без метки/i.test(await p.locator('[data-sources-card]').innerText()), `${width}px «Обзор»: откуда пришли (без метки — открыли сами)`);
       // в этом наборе никто не проходил входной тест — карточка говорит об этом, а не рисует пустые полосы
       check(/не проходил тест/.test(await p.locator('[data-placement-card]').innerText()), `${width}px «Обзор»: входной тест (никто из новичков не проходил)`);
       check((await p.locator('[data-reminders-card]').innerText()).includes('включены у'), `${width}px «Обзор»: напоминания бота`);
@@ -213,6 +213,15 @@ async function main() {
       await noHScroll('вовлечённость');
       await axe('«Вовлечённость»');
       await p.screenshot({ path: `${OUT}/engagement-${width}.png`, fullPage: true });
+      // «Карточки бота» (2026-11-24): включение, «как увидит игрок», отчёт по видам со сторожем «отпугиваем?», мост, первый урок.
+      await go('Карточки бота', 'Карточки бота');
+      await p.locator('[data-engage-preview=comeback]').waitFor({ timeout: 10_000 });
+      const cards = await p.locator('main').innerText();
+      const missing = [/Карточки бота: выключены/i, /Как увидит игрок/i, /Давно не виделись/i, /Миссия недели/i, /Заблокировали за 48/i, /Первый урок/i, /разминк/i].filter((r) => !r.test(cards));
+      check(missing.length === 0, `${width}px «Карточки бота»: состояние, образцы карточек, отчёт по видам, мост и первый урок${missing.length ? ` — нет ${missing.join(', ')}` : ''}`);
+      await noHScroll('карточки бота');
+      await axe('«Карточки бота»');
+      await p.screenshot({ path: `${OUT}/engage-${width}.png`, fullPage: true });
       // «Лига» (2026-11-16): итоги недель, приз зачислен ли в кошелёк, текущая таблица.
       await go('Лига', 'Лига');
       await p.locator('[data-league-current]').waitFor({ timeout: 10_000 });

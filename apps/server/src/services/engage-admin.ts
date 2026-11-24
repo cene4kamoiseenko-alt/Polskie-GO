@@ -15,6 +15,7 @@ import { warsawDay } from '../bot/daily/state';
 import { readEngageState } from '../bot/engage/state';
 import { cardView, type CardData } from '../bot/engage/views';
 import { sendWithPhoto } from '../bot/quiz/engine';
+import { botImageUrl } from '../bot/catalog';
 import { doneCount } from './active-lesson';
 
 export type KindStats = { sent: number; delivered: number; opened: number; studiedSameDay: number; optedOut48h: number; blocked48h: number };
@@ -109,7 +110,24 @@ export async function engageOverview(days: number, now = new Date()) {
   const since = addDays(warsawDay(now), -days);
   const sinceAt = new Date(now.getTime() - days * 86_400_000);
   const [state, kinds, bridge, first] = await Promise.all([readEngageState(), kindStats(since), bridgeStats(since, sinceAt), firstLessonRows(sinceAt)]);
-  return { state, days, kinds, bridge, firstLesson: firstLessonFunnel(first) };
+  return { state, days, kinds, bridge, firstLesson: firstLessonFunnel(first), previews: previews() };
+}
+
+const LANGS: UiLang[] = ['ru', 'uk', 'en'];
+/** «Как увидит игрок»: образец каждой карточки на каждом языке (текст без разметки, подписи кнопок, адрес картинки). */
+function previews() {
+  const plain = (html: string) => html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+  return Object.fromEntries(
+    LANGS.map((lang) => [
+      lang,
+      Object.fromEntries(
+        ENGAGE_KINDS.map((kind) => {
+          const v = cardView(sampleCard(kind, lang), lang);
+          return [kind, { text: plain(v.text), buttons: v.keyboard.inline_keyboard.flat().map((b) => b.text), imageUrl: botImageUrl(v.image) }];
+        }),
+      ),
+    ]),
+  ) as Record<UiLang, Record<EngageKind, { text: string; buttons: string[]; imageUrl: string }>>;
 }
 
 /** Образец карточки для «как увидит игрок» и «прислать себе». */
