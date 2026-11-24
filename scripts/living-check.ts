@@ -100,6 +100,8 @@ async function main() {
         await settle();
         const li = await stageInfo('[data-intro-stage]');
         check(li.art === 'library' && li.ok && li.src.includes('/library/') && !li.beaver, `${tag} урок, вступление: картинка библиотеки по теме маршрута (${li.art}), без накладного Бобека`);
+        const ip = await p.evaluate(() => (document.querySelector('[data-intro-player]') as HTMLElement | null)?.getBoundingClientRect().width ?? 0);
+        check(ip >= 110, `${tag} урок, вступление: Бобек игрока крупно рядом с картинкой (${Math.round(ip)} px)`);
         await p.getByRole('button', { name: /^Начать/ }).first().click();
         await p.locator('[data-stage-mood]').waitFor({ timeout: 15_000 });
         await settle();
@@ -107,6 +109,14 @@ async function main() {
         const wantL = Math.min(240, Math.max(176, height * 0.28));
         check(ex.art === 'library' && ex.ok && ex.src === li.src && !ex.beaver, `${tag} урок, задание: та же картинка, без накладного Бобека`);
         check(Math.abs(ex.h - wantL) <= 1.5, `${tag} урок, задание: высота сцены ${Math.round(ex.h)} px (нужно ${Math.round(wantL)})`);
+        // Вариант 2 владельца (2026-11-24): Бобек игрока в его образе — крупно (≥ 110 px), под картинкой, не поверх неё.
+        const pl = await p.evaluate(() => {
+          const el = document.querySelector('[data-stage-player]') as HTMLElement | null;
+          const st = (document.querySelector('[data-stage-mood]') as HTMLElement).getBoundingClientRect();
+          const r = el?.getBoundingClientRect();
+          return { look: !!el?.querySelector('[data-look]'), w: r?.width ?? 0, below: !!r && r.top >= st.bottom - 1 };
+        });
+        check(pl.look && pl.w >= 110 && pl.below, `${tag} урок, задание: Бобек игрока в его образе крупно под картинкой (${Math.round(pl.w)} px)`);
         check(ex.drift, `${tag} урок, задание: картинка медленно приближается`);
         if (width === 390) await p.screenshot({ path: `${OUT}/lesson-${theme}.png` });
         // Картинка задания не пересоздаётся, пока меняется настроение сцены (выбрал вариант, проверил): иначе приближение начинается заново.

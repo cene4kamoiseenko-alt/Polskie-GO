@@ -22,6 +22,9 @@ import { Confetti, EmptyState, ErrorState, Modal, Progress, RichText, ScreenSkel
 import { PronHint } from '../components/PronHint';
 import { ExerciseView, correctAnswerText, instructionKey, polishForFeedback, type Payload } from '../exercises/Exercises';
 
+/** Настроение Бобека игрока под картинкой урока по состоянию задания. */
+const PLAYER_MOOD = { idle: 'happy', think: 'think', correct: 'cheer', wrong: 'sad' } as const;
+
 /** Підзаголовок завдання (де інструкція потребує уточнення). */
 const SUBTITLE: Partial<Record<string, TKey>> = { LISTENING: 'ex_sub_LISTENING', DICTATION: 'ex_sub_DICTATION', PRONUNCIATION: 'ex_sub_PRONUNCIATION' };
 import { LessonStage, lessonArt, sceneForRoute, stageBadge, type StageMood } from '../components/LessonStage';
@@ -304,8 +307,8 @@ export default function LessonScreen() {
               </div>
               {/* Картинка библиотеки: Бобек нарисован в кадре — Бобек игрока (его образ, ADR-005 §10) встречает рядом с названием, не поверх картинки. */}
               {introLib && (
-                <div className="-mt-1 shrink-0" data-intro-player>
-                  <Beaver mood="wave" size={84} />
+                <div className="-mb-4 -mt-3 shrink-0" data-intro-player>
+                  <Beaver mood="wave" size={120} />
                 </div>
               )}
             </div>
@@ -380,7 +383,7 @@ export default function LessonScreen() {
   // «Не знаю» во входном тесте — нейтральный ответ (не «Неверно»): угадывать не нужно.
   const neutral = !!result && (!!result.skipped || dk);
   const stageMood: StageMood = result ? (result.correct ? 'correct' : neutral ? 'idle' : 'wrong') : payload ? 'think' : 'idle';
-  // Над заданиями картинка библиотеки (Бобек в кадре) — Бобек игрока в его образе реагирует в панели ответа, как в миссиях.
+  // Над заданиями картинка библиотеки (Бобек в кадре) — Бобек игрока в его образе крупно под картинкой и реагирует на ответ.
   const libraryStage = !!lessonArt(session.place?.citySlug, session.place?.routeSlug, session.place?.routeIcon, session.place?.index);
 
   return (
@@ -458,11 +461,32 @@ export default function LessonScreen() {
               routeIcon={session.place?.routeIcon}
               lessonIndex={session.place?.index}
             />
-            {/* Заголовок завдання мовою інтерфейсу (на сцені Бобек говорить польською) */}
-            <div className="mb-4 mt-4 text-center">
-              <h2 className="text-[22px] font-black leading-tight">{t(instructionKey(item))}</h2>
-              {SUBTITLE[item.type] && <p className="muted mt-1 text-[15px] font-bold leading-snug">{t(SUBTITLE[item.type]!)}</p>}
-            </div>
+            {/* Заголовок завдання мовою інтерфейсу (на сцені Бобек говорить польською). Над картинкою бібліотеки (Бобек у кадрі) —
+                Бобек гравця в його образі крупно під картинкою, поруч з інструкцією, і реагує на відповідь (варіант 2 власника, 2026-11-24). */}
+            {libraryStage ? (
+              <div className="mb-3 mt-2 flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-[22px] font-black leading-tight">{t(instructionKey(item))}</h2>
+                  {SUBTITLE[item.type] && <p className="muted mt-1 text-[15px] font-bold leading-snug">{t(SUBTITLE[item.type]!)}</p>}
+                </div>
+                <motion.div
+                  key={stageMood}
+                  data-stage-player
+                  className="-my-2 shrink-0"
+                  initial={false}
+                  animate={stageMood === 'correct' ? { y: [0, -14, 0, -5, 0] } : stageMood === 'wrong' ? { x: [0, -6, 6, -3, 0] } : { y: 0, x: 0 }}
+                  transition={{ duration: stageMood === 'correct' ? 0.6 : 0.4 }}
+                  aria-hidden
+                >
+                  <Beaver mood={PLAYER_MOOD[stageMood]} size={116} />
+                </motion.div>
+              </div>
+            ) : (
+              <div className="mb-4 mt-4 text-center">
+                <h2 className="text-[22px] font-black leading-tight">{t(instructionKey(item))}</h2>
+                {SUBTITLE[item.type] && <p className="muted mt-1 text-[15px] font-bold leading-snug">{t(SUBTITLE[item.type]!)}</p>}
+              </div>
+            )}
             <ExerciseView
               item={item}
               result={result}
@@ -487,20 +511,8 @@ export default function LessonScreen() {
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
-              className={cx('feedback-panel relative rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : neutral ? 'is-skipped' : 'is-wrong', libraryStage && 'pr-24')}
+              className={cx('feedback-panel rounded-t-3xl px-5 pb-2 pt-4', result.correct ? 'is-correct' : neutral ? 'is-skipped' : 'is-wrong')}
             >
-              {libraryStage && (
-                <motion.div
-                  data-feedback-beaver
-                  className="pointer-events-none absolute -top-14 right-2"
-                  initial={{ y: 36, scale: 0.6, opacity: 0 }}
-                  animate={{ y: 0, scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 16, delay: 0.1 }}
-                  aria-hidden
-                >
-                  <Beaver mood={result.correct ? 'cheer' : neutral ? 'happy' : 'think'} size={88} />
-                </motion.div>
-              )}
               <div className="flex items-start gap-3">
                 <motion.span
                   initial={{ scale: 0, rotate: -30 }}
