@@ -52,7 +52,8 @@ export function pickInputFor(p: DailyPerson, now: Date, enabled: boolean, histor
     enabled,
     hasUser: !!p.userId,
     optedOut: !!p.cardOptedOutAt,
-    seenToday: !!p.appSeenAt && dayKey(p.appSeenAt, tz) === dayKey(now, tz),
+    // «Сегодня был в игре»: вход сегодня или занятие сегодня (вход обновляется не при каждом открытии — приложение держит токен днями).
+    seenToday: (!!p.appSeenAt && dayKey(p.appSeenAt, tz) === dayKey(now, tz)) || p.lastActiveDay === dayKey(now, tz),
     registeredDay: p.createdAt ? dayKey(p.createdAt, 'Europe/Warsaw') : null,
     lessonsCompleted: p.lessonsCompleted,
     lastActiveDay: p.lastActiveDay,

@@ -101,6 +101,24 @@ describe('карточки в рассылке вопроса дня', () => {
     expect(await sendRow('2026-12-06', u.telegramId)).toBeUndefined();
   });
 
+  it('занимался сегодня, но давно не входил заново (старый токен) — вопрос, а не карточка (находка проверки)', async () => {
+    // Суббота: активный игрок уже занимался сегодня утром, last_seen_at — неделю назад (приложение держит токен до 6,5 дня).
+    const u = await player('2026-12-19', { seen: new Date('2026-12-12T07:00:00Z') });
+    await launch('2026-12-19');
+    const calls = fakeTelegram();
+    await runDailyQuizTick(at('2026-12-19'));
+    expect(toChat(calls, u.telegramId)[0].params.caption).toContain('Pytanie dnia');
+    expect(await sendRow('2026-12-19', u.telegramId)).toBeUndefined();
+  });
+
+  it('/api/me обновляет «последний вход» (не чаще раза в час)', async () => {
+    const u = await login();
+    await db.update(users).set({ lastSeenAt: longAgo }).where(eq(users.id, u.user.id));
+    await u.call('GET', '/api/me');
+    const seen = (await db.select({ at: users.lastSeenAt }).from(users).where(eq(users.id, u.user.id)).get())!.at!;
+    expect(Date.now() - seen.getTime()).toBeLessThan(60_000);
+  });
+
   it('«сегодня» — по поясу игрока: в Нью-Йорке ещё вчера, карточка уходит', async () => {
     const u = await player('2026-11-30', { seen: new Date('2026-12-07T03:00:00Z'), tz: 'America/New_York' });
     await launch('2026-12-07');

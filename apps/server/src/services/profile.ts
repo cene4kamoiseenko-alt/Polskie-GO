@@ -58,6 +58,10 @@ export async function getMe(userId: string) {
       .catch(() => [] as { pushEnabled: boolean }[]),
   ]);
   // Итоги недели лиги: непросмотренная награда — окно на главной. Мягко: на старой схеме (тесты миграций) профиль обязан открываться.
+  // «Последний вход» (2026-11-24): приложение открывается с сохранённым токеном без нового входа, поэтому отмечаем и здесь —
+  // не чаще раза в час. По нему карточки бота не приходят тому, кто сегодня уже открывал приложение.
+  if (!userRow[0]?.lastSeenAt || now.getTime() - userRow[0].lastSeenAt.getTime() > 3600_000)
+    await db.update(users).set({ lastSeenAt: now }).where(eq(users.id, userId)).catch(() => undefined);
   const leagueAward = await unseenLeagueAward(userId, now).catch(() => null);
   // Брошенный урок, который можно продолжить (2026-11-24): «Продолжить · осталось N» на главной. Мягко, как лига.
   const activeLesson = await activeLessonProgress(userId, now).catch(() => null);
