@@ -24,7 +24,7 @@ import { ExerciseView, correctAnswerText, instructionKey, polishForFeedback, typ
 
 /** Підзаголовок завдання (де інструкція потребує уточнення). */
 const SUBTITLE: Partial<Record<string, TKey>> = { LISTENING: 'ex_sub_LISTENING', DICTATION: 'ex_sub_DICTATION', PRONUNCIATION: 'ex_sub_PRONUNCIATION' };
-import { LessonStage, sceneForRoute, stageBadge, type StageMood } from '../components/LessonStage';
+import { LessonStage, lessonArt, sceneForRoute, stageBadge, type StageMood } from '../components/LessonStage';
 import { Scene } from '../components/Illustrations';
 import { isMissionSlug } from '@polski-go/shared';
 import { inkOn } from '../lib/color';
@@ -254,16 +254,20 @@ export default function LessonScreen() {
     const l = session.lesson;
     // Своей сцены у маршрута нет (или это «квартира»): в городе — панорама города и Бобек игрока поверх (его образ виден и в уроке);
     // без города — фото «Бобек дома» за учёбой. Векторная MIESZKANIE больше не показывается (владелец 2026-11-02).
-    const routeScene = sceneForRoute(session.place?.routeSlug);
-    const introScene = routeScene && routeScene !== 'flat' ? routeScene : null;
-    const introCity = !introScene ? session.place?.citySlug ?? null : null;
-    const introPhoto = !introScene && !introCity ? homeShot('study') : null;
+    // Картинка урока города — та же, что над заданиями (тема маршрута из библиотеки, иначе панорама города); вектор — только без города.
+    const introLib = lessonArt(session.place?.citySlug, session.place?.routeSlug, session.place?.routeIcon, session.place?.index);
+    const routeScene = !session.place?.citySlug ? sceneForRoute(session.place?.routeSlug) : null;
+    const introScene = !introLib && routeScene && routeScene !== 'flat' ? routeScene : null;
+    const introCity = !introLib && !introScene ? session.place?.citySlug ?? null : null;
+    const introPhoto = !introLib && !introScene && !introCity ? homeShot('study') : null;
     return (
       <div className="min-h-app flex flex-col px-4 pb-6 pt-3">
         <TopClose onClose={onQuit} />
         <div className="flex-1 space-y-4 overflow-y-auto">
-          <div className="lesson-stage relative h-[180px] overflow-hidden rounded-[26px]">
-            {introPhoto ? (
+          <div className="lesson-stage mission-stage-bg relative overflow-hidden rounded-[26px]" style={{ height: 'clamp(176px, 28vh, 240px)' }} data-intro-stage data-stage-art={introLib ? 'library' : introPhoto ? 'home' : introCity ? 'city' : 'scene'}>
+            {introLib ? (
+              <img src={introLib.src} srcSet={introLib.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: introLib.focus }} decoding="async" draggable={false} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            ) : introPhoto ? (
               <img src={introPhoto.src} srcSet={introPhoto.srcSet} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: introPhoto.pos }} decoding="async" draggable={false} data-intro-photo />
             ) : introCity ? (
               <CityBanner slug={introCity} color={session.place?.color ?? '#36B9FF'} height={180} className="absolute inset-0" shade={false} sizes="(min-width: 576px) 544px, calc(100vw - 32px)" />
@@ -276,7 +280,7 @@ export default function LessonScreen() {
                 {session.place.cityName} · {tr(session.place.routeTitle)}
               </div>
             )}
-            {!introPhoto && <div className="absolute bottom-0 left-1 -mb-3"><Beaver mood="explain" size={124} /></div>}
+            {!introPhoto && !introLib && <div className="absolute bottom-0 left-1 -mb-3" data-stage-beaver><Beaver mood="explain" size={124} /></div>}
           </div>
           <div>
             <div className="mb-1.5 flex flex-wrap gap-1.5">
@@ -439,6 +443,8 @@ export default function LessonScreen() {
               evening={session.lesson?.kind === 'BOSS' || isMissionSlug(session.lesson?.slug)}
               mood={stageMood}
               place={session.place?.cityName}
+              routeIcon={session.place?.routeIcon}
+              lessonIndex={session.place?.index}
             />
             {/* Заголовок завдання мовою інтерфейсу (на сцені Бобек говорить польською) */}
             <div className="mb-4 mt-4 text-center">

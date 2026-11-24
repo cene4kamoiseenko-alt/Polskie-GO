@@ -12,6 +12,8 @@ import { Item, SCENE_ITEM_POOLS, Scene, type ItemName, type SceneName } from './
 import { CityBanner } from './Scenery';
 import { useT, type TKey } from '../i18n';
 import { homeShotFor, warmHomeShots } from '../lib/homeArt';
+import { libraryImage } from '../lib/assets';
+import { lessonLibraryArt } from '@polski-go/shared';
 import type { PublicItem } from '../lib/types';
 
 /** Локація (маршрут міста) → сцена. Невідомі маршрути показують панораму міста. */
@@ -169,14 +171,31 @@ type Props = {
   mood: StageMood;
   /** Назва міста для мітки сцени; без неї (тренування) показується механіка. */
   place?: string | null;
+  /** Иконка маршрута (тема урока) и номер урока в маршруте — картинка библиотеки по теме (вариант А, 2026-11-24). */
+  routeIcon?: string | null;
+  lessonIndex?: number;
 };
 
-export const LessonStage = memo(function LessonStage({ item, index, routeSlug, citySlug, color = '#36B9FF', evening, mood, place }: Props) {
+/**
+ * Картинка урока города: по теме маршрута — из библиотеки Бобека (Бобек нарисован в кадре), иначе — панорама города. Вступление и
+ * все задания урока показывают одну и ту же картинку; у соседних уроков маршрута — разные (lessonLibraryArt).
+ */
+export function lessonArt(citySlug?: string | null, routeSlug?: string | null, routeIcon?: string | null, lessonIndex?: number) {
+  if (!citySlug || !routeSlug) return null;
+  const file = lessonLibraryArt(routeIcon, routeSlug, lessonIndex ?? 1);
+  return file ? libraryImage(file) : null;
+}
+
+/** Высота сцены урока: на всю колонку, `clamp(176px, 28vh, 240px)`. */
+const STAGE_HEIGHT = 'clamp(176px, 28vh, 240px)';
+
+export const LessonStage = memo(function LessonStage({ item, index, routeSlug, citySlug, color = '#36B9FF', evening, mood, place, routeIcon, lessonIndex }: Props) {
   const { t } = useT();
   const reduce = useReducedMotion();
-  // Маршрут «квартира» у місті: замість векторної MIESZKANIE — панорама міста (Бобек гравця поверх, у його образі).
-  const routeScene = sceneForRoute(routeSlug);
-  const scene = routeScene === 'flat' && citySlug ? null : routeScene;
+  // Урок города: картинка библиотеки по теме маршрута, иначе панорама города (Бобек игрока поверх, в его образе). Векторные сцены
+  // в уроках города больше не показываются (владелец отменил их в v16-3); вектор остаётся только у тренировок без фото.
+  const lib = lessonArt(citySlug, routeSlug, routeIcon, lessonIndex);
+  const scene = citySlug ? null : sceneForRoute(routeSlug);
   const pool = scene ? (POOLS[scene] ?? SCENE_ITEM_POOLS[scene]) : [];
   // Кожне завдання зсуває вітрину на один предмет: сусідні завдання виглядають по-різному.
   const items = pool.length ? [0, 1, 2].map((k) => pool[(index + k) % pool.length]) : undefined;
@@ -188,27 +207,46 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
   const npc = (item.type === 'DIALOGUE' || item.type === 'SITUATION') ? (item.data as unknown as { npc?: { emoji: string; name: string } }).npc : undefined;
   // Без своей локации (экзамен, входной тест, тренировка) — фото «Бобек дома» вместо векторной MIESZKANIE (владелец 2026-11-02).
   // Бобёр нарисован в кадре: второго поверх нет, реакция на ответ — движение всего кадра. В уроках города остаётся Бобек игрока (его образ).
-  const photo = !scene && !citySlug ? homeShotFor(item.type) : null;
+  const photo = !lib && !scene && !citySlug ? homeShotFor(item.type) : null;
+  // Кадр с нарисованным Бобеком (библиотека, фото «Бобек дома»): реакция — движение всего кадра, второго Бобека поверх нет.
+  const framed = lib ?? photo;
+  const art = lib ? 'library' : photo ? 'home' : scene ? 'scene' : citySlug ? 'city' : 'scene';
   useEffect(() => {
     if (photo) warmHomeShots(STAGE_SIZES);
   }, [photo]);
 
   return (
-    <div className="lesson-stage relative h-[176px] overflow-hidden rounded-[26px]" data-stage-photo={photo?.kind}>
-      {photo ? (
+    <div className="lesson-stage mission-stage-bg relative overflow-hidden rounded-[26px]" style={{ height: STAGE_HEIGHT }} data-stage-photo={photo?.kind} data-stage-art={art} data-stage-mood={mood}>
+      {framed ? (
         <motion.div
           key={`${mood}-${index}`}
           className="absolute inset-0"
           initial={false}
-          animate={reduce ? undefined : mood === 'correct' ? { scale: [1, 1.05, 1] } : mood === 'wrong' ? { x: [0, -7, 7, -3, 0] } : { scale: 1, x: 0 }}
+          animate={reduce ? undefined : mood === 'correct' ? { scale: [1, 1.05, 1], filter: ['brightness(1)', 'brightness(1.2)', 'brightness(1)'] } : mood === 'wrong' ? { x: [0, -7, 7, -3, 0] } : { scale: 1, x: 0 }}
           transition={{ duration: mood === 'correct' ? 0.55 : 0.4 }}
         >
-          <img src={photo.src} srcSet={photo.srcSet} sizes={STAGE_SIZES} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: photo.pos }} decoding="async" draggable={false} />
+          <div className={reduce ? 'absolute inset-0' : 'stage-drift absolute inset-0'}>
+            <img
+              src={framed.src}
+              srcSet={framed.srcSet}
+              sizes={STAGE_SIZES}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: lib ? lib.focus : photo!.pos }}
+              decoding="async"
+              draggable={false}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
         </motion.div>
       ) : scene ? (
         <Scene name={scene} items={items} evening={evening} className="absolute inset-0 h-full w-full" />
       ) : citySlug ? (
-        <CityBanner slug={citySlug} color={color} height={176} className="absolute inset-0" shade={false} />
+        <div className={reduce ? 'absolute inset-0' : 'stage-drift absolute inset-0'}>
+          <CityBanner slug={citySlug} color={color} height={240} className="absolute inset-0" shade={false} />
+        </div>
       ) : (
         <Scene name="flat" items={items} evening={evening} className="absolute inset-0 h-full w-full" />
       )}
@@ -226,7 +264,7 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
 
       {!npc && (
         <div className="absolute right-3 top-3">
-          <StageProp type={item.type} item={pool.length && !photo ? pool[(index * 3 + 1) % pool.length] : undefined} />
+          <StageProp type={item.type} item={pool.length && !framed ? pool[(index * 3 + 1) % pool.length] : undefined} />
         </div>
       )}
 
@@ -241,10 +279,11 @@ export const LessonStage = memo(function LessonStage({ item, index, routeSlug, c
         </motion.div>
       )}
 
-      <div className={`absolute inset-x-0 bottom-0 flex items-end gap-1 pr-3 ${photo ? 'pl-[42%]' : 'pl-1'}`}>
-        {!photo && (
+      <div className={`absolute inset-x-0 bottom-0 flex items-end gap-1 pr-3 ${framed ? 'pl-[42%]' : 'pl-1'}`}>
+        {!framed && (
         <motion.div
           key={`${mood}-${index}`}
+          data-stage-beaver
           className="-mb-3 shrink-0"
           initial={false}
           animate={

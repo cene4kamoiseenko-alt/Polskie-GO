@@ -5,6 +5,8 @@
  *  · Шаг миссии: картинка места сверху на каждом шаге (та же), облачко реплики на её нижнем крае, скрытая реплика не видна до ответа,
  *    Бобек — в панели ответа (верно и ошибка), на 320×568 варианты и «Проверить» без прокрутки, «меньше анимаций» — без приближения
  *    картинки и конфетти, картинка не загрузилась — шаг проходим, доступность (axe) без нарушений.
+ *  · Урок города: картинка по теме маршрута из библиотеки (первый урок Варшавы — «разговор»), без накладного Бобека, одна на весь урок,
+ *    высота clamp(176px, 28vh, 240px), медленно приближается, реагирует на ответ, «меньше анимаций» — без приближения, axe без нарушений.
  *
  * Запуск: node --import tsx scripts/living-check.ts   → test-results/living/<экран>-<ширина>.png
  */
@@ -76,6 +78,51 @@ async function main() {
           check(hero?.ok && hero.source === source && !hero.beaver, `${tag} ${slug}: вступление — растровая картинка (${hero?.source ?? 'нет'}), без второго Бобека`);
           if (width === 390) await p.screenshot({ path: `${OUT}/intro-${slug}-${theme}.png` });
         }
+
+        // ---------- Урок: картинка по теме маршрута ----------
+        const lessonId = (await u.call('GET', '/api/journey')).body.nextLesson.id as string;
+        const stageInfo = (sel: string) =>
+          p.evaluate((sel) => {
+            const el = document.querySelector(sel) as HTMLElement | null;
+            const img = el?.querySelector('img') as HTMLImageElement | null;
+            return {
+              art: el?.dataset.stageArt ?? null,
+              src: img?.getAttribute('src') ?? '',
+              ok: !!img && img.complete && img.naturalWidth > 0,
+              beaver: !!el?.querySelector('[data-stage-beaver]'),
+              h: el?.getBoundingClientRect().height ?? 0,
+              drift: document.getAnimations().some((a) => (a as CSSAnimation).animationName === 'stage-drift'),
+              mood: el?.dataset.stageMood ?? null,
+            };
+          }, sel);
+        await p.goto(`${stand.base}/lesson/${lessonId}?devUser=${id}`);
+        await p.locator('[data-intro-stage]').waitFor({ timeout: 20_000 });
+        await settle();
+        const li = await stageInfo('[data-intro-stage]');
+        check(li.art === 'library' && li.ok && li.src.includes('/library/') && !li.beaver, `${tag} урок, вступление: картинка библиотеки по теме маршрута (${li.art}), без накладного Бобека`);
+        await p.getByRole('button', { name: /^Начать/ }).first().click();
+        await p.locator('[data-stage-mood]').waitFor({ timeout: 15_000 });
+        await settle();
+        const ex = await stageInfo('[data-stage-mood]');
+        const wantL = Math.min(240, Math.max(176, height * 0.28));
+        check(ex.art === 'library' && ex.ok && ex.src === li.src && !ex.beaver, `${tag} урок, задание: та же картинка, без накладного Бобека`);
+        check(Math.abs(ex.h - wantL) <= 1.5, `${tag} урок, задание: высота сцены ${Math.round(ex.h)} px (нужно ${Math.round(wantL)})`);
+        check(ex.drift, `${tag} урок, задание: картинка медленно приближается`);
+        if (width === 390) await p.screenshot({ path: `${OUT}/lesson-${theme}.png` });
+        await p.locator('button.option').first().click();
+        await p.getByRole('button', { name: /^Проверить/ }).first().click();
+        await p.waitForTimeout(500);
+        const after = await stageInfo('[data-stage-mood]');
+        check(after.mood === 'correct' || after.mood === 'wrong', `${tag} урок, задание: сцена реагирует на ответ (${after.mood})`);
+        await p.addScriptTag({ content: AXE });
+        const lax = (await p.evaluate(async () => {
+          const r = await (window as unknown as { axe: { run: (c: unknown, o: unknown) => Promise<{ violations: { id: string; nodes: unknown[] }[] }> } }).axe.run(
+            { include: [['[data-stage-mood]']] },
+            { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } },
+          );
+          return r.violations.map((v) => `${v.id}×${v.nodes.length}`);
+        })) as string[];
+        check(lax.length === 0, `${tag} урок: доступность сцены без нарушений${lax.length ? ` — ${lax.join(', ')}` : ''}`);
 
         // ---------- Шаг миссии (вариант А) ----------
         const stageSrc = () => p.evaluate(() => (document.querySelector('[data-mission-stage] img') as HTMLImageElement | null)?.getAttribute('src') ?? null);
@@ -174,6 +221,14 @@ async function main() {
           await p.locator('[data-mission-check]').click();
           await p.locator('[data-mission-next]').waitFor({ timeout: 10_000 });
           check((await p.locator('[data-confetti]').count()) === 0, `${tag} меньше анимаций: без конфетти`);
+          // Урок уже начат выше: на вступлении «Продолжить» (или задания сразу, если вступления нет).
+          await p.goto(`${stand.base}/lesson/${lessonId}?devUser=${id}`);
+          await p.locator('[data-stage-mood], [data-intro-stage]').first().waitFor({ timeout: 20_000 });
+          const go = p.getByRole('button', { name: /^(Начать|Продолжить)/ }).first();
+          if (await go.count()) await go.click();
+          await p.locator('[data-stage-mood]').waitFor({ timeout: 15_000 });
+          await p.waitForTimeout(1500);
+          check(!(await stageInfo('[data-stage-mood]')).drift, `${tag} меньше анимаций: картинка урока не приближается`);
         }
         await ctx.close();
       }

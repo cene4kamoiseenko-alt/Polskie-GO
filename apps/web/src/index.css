@@ -2917,3 +2917,7 @@ html.reduced-motion .week-dot.is-today:not(.is-on) { animation: none; }
     animation: none;
   }
 }
+/* Фон сцены урока (пока картинка грузится или если не загрузилась). */
+.mission-stage-bg {
+  background: linear-gradient(160deg, #2b5f8c 0%, #173451 100%);
+}
