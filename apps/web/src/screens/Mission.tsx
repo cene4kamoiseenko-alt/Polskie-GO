@@ -20,6 +20,7 @@ import { Icon } from '../components/Icon';
 import { ReportExercise, type ExerciseReportRef } from '../components/ReportExercise';
 import { MissionScene, hasBakedBobek } from '../components/MissionScene';
 import { MissionStage, type StageReaction } from '../components/MissionStage';
+import { missionLibraryImage } from '../lib/libraryArt';
 import { AchievementQueue, CountUp, Pulse, XpBurst } from '../components/fx';
 
 /** Похвала над картинкой после верного ответа — по-польски (учит заодно); XP за миссию начисляется в конце, число здесь не показывается. */
@@ -110,11 +111,12 @@ function Intro({ run, onStart, onClose }: { run: MissionRun; onStart: () => void
   const { t, tr } = useT();
   const m = run.mission;
   const resume = run.step > 0;
-  const baked = hasBakedBobek(m.slug, m.season ?? null, m.category);
+  const library = missionLibraryImage(m.category, m.slug);
+  const baked = hasBakedBobek(m.slug, m.season ?? null, m.category, library);
   return (
     <div className="flex min-h-screen flex-col pb-32">
       <div className="relative">
-        <MissionScene slug={m.slug} scene={m.scene} season={m.season ?? null} category={m.category} lazy={false} className="block h-52 w-full" />
+        <MissionScene slug={m.slug} scene={m.scene} season={m.season ?? null} category={m.category} library={library} lazy={false} className="block h-52 w-full" />
         <button onClick={onClose} className="absolute left-4 top-3 grid h-10 w-10 place-items-center rounded-full bg-elev shadow" aria-label="close">
           <Icon name="x" size={20} />
         </button>

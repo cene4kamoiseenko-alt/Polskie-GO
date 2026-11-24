@@ -7,6 +7,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from '../lib/motion';
 import { MissionScene } from './MissionScene';
+import { missionLibraryImage } from '../lib/libraryArt';
 
 export type StageReaction = { kind: 'correct' | 'wrong'; n: number } | null;
 
@@ -36,7 +37,7 @@ export function MissionStage({ slug, scene, season, category, top, reaction, pra
     <div className="mission-stage relative overflow-hidden rounded-b-[30px]" data-mission-stage>
       <motion.div className="absolute inset-0" animate={controls}>
         <div className={reduce ? 'absolute inset-0' : 'stage-drift absolute inset-0'}>
-          <MissionScene slug={slug} scene={scene} season={season} category={category} lazy={false} className="block h-full w-full" />
+          <MissionScene slug={slug} scene={scene} season={season} category={category} library={missionLibraryImage(category, slug)} lazy={false} className="block h-full w-full" />
         </div>
       </motion.div>
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgb(7_24_44/0.5)_0%,rgb(7_24_44/0)_26%,rgb(7_24_44/0)_72%,rgb(7_24_44/0.3)_100%)]" />

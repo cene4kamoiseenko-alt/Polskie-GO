@@ -4,8 +4,8 @@
  * файлів немає. У растрових кадрах Бобек намальований — екрани, що малюють власного Бобека поверх сцени, питають `hasBakedBobek`.
  */
 import { memo } from 'react';
-import { missionLibraryArt } from '@polski-go/shared';
-import { libraryImage, missionSceneArt, passSeasonCover } from '../lib/assets';
+import { missionSceneArt, passSeasonCover } from '../lib/assets';
+import type { LibraryImage } from '../lib/libraryArt';
 import { passMissionScene } from '../lib/screenArt';
 import { Scene } from './Illustrations';
 
@@ -13,10 +13,11 @@ export type MissionArtSource = 'own' | 'pass' | 'season' | 'library';
 type Art = { src: string; srcSet: string | undefined; pos: string; source: MissionArtSource; id: string; status?: string; baked: boolean };
 
 /**
- * Картинка місії: своя сцена → кадр пропуску → обкладинка сезону → бібліотека за категорією. `season` і `category` передає екран
- * місії; без них (картки списку) — як раніше: своя сцена або кадр пропуску, інакше SVG.
+ * Картинка місії: своя сцена → кадр пропуску → обкладинка сезону → бібліотека за категорією. `season`, `category` і `library`
+ * (missionLibraryImage з lib/libraryArt — лише на екрані місії, щоб бібліотека не потрапляла в стартовий код) передає екран місії;
+ * без них (картки списку) — як раніше: своя сцена або кадр пропуску, інакше SVG.
  */
-export function missionArt(slug: string, season?: string | null, category?: string): Art | null {
+export function missionArt(slug: string, season?: string | null, category?: string, library?: LibraryImage | null): Art | null {
   const own = missionSceneArt(slug);
   if (own) return { src: own.src, srcSet: own.srcSet, pos: own.art.focus, source: 'own', id: own.art.id, status: own.art.status, baked: !!own.art.bakedBobek };
   const pass = passMissionScene(slug);
@@ -24,12 +25,11 @@ export function missionArt(slug: string, season?: string | null, category?: stri
   if (category === undefined) return null;
   const cover = season ? passSeasonCover(season) : null;
   if (cover) return { src: cover.src, srcSet: cover.srcSet, pos: '50% 45%', source: 'season', id: `season-${season}`, baked: true };
-  const file = missionLibraryArt(category, slug);
-  const lib = libraryImage(file);
-  return lib ? { src: lib.src, srcSet: lib.srcSet, pos: lib.focus, source: 'library', id: `library-${file}`, baked: true } : null;
+  return library ? { src: library.src, srcSet: library.srcSet, pos: library.focus, source: 'library', id: 'library', baked: true } : null;
 }
 
-export const hasBakedBobek = (missionSlug: string, season?: string | null, category?: string) => !!missionArt(missionSlug, season, category)?.baked;
+export const hasBakedBobek = (missionSlug: string, season?: string | null, category?: string, library?: LibraryImage | null) =>
+  !!missionArt(missionSlug, season, category, library)?.baked;
 
 type Props = {
   slug: string;
@@ -37,13 +37,14 @@ type Props = {
   className?: string;
   /** Картка під екраном: ліниве завантаження. Герой місії вантажиться одразу. */
   lazy?: boolean;
-  /** Сезон і категорія — для запасної картинки (обкладинка сезону, бібліотека); передає екран місії. */
+  /** Сезон, категорія й картинка бібліотеки — для запасної картинки (обкладинка сезону, бібліотека); передає екран місії. */
   season?: string | null;
   category?: string;
+  library?: LibraryImage | null;
 };
 
-export const MissionScene = memo(function MissionScene({ slug, scene, className, lazy = true, season, category }: Props) {
-  const art = missionArt(slug, season, category);
+export const MissionScene = memo(function MissionScene({ slug, scene, className, lazy = true, season, category, library }: Props) {
+  const art = missionArt(slug, season, category, library);
   if (!art) return <Scene name={scene} className={className} />;
   return (
     <img

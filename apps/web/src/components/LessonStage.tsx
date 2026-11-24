@@ -12,7 +12,7 @@ import { Item, SCENE_ITEM_POOLS, Scene, type ItemName, type SceneName } from './
 import { CityBanner } from './Scenery';
 import { useT, type TKey } from '../i18n';
 import { homeShotFor, warmHomeShots } from '../lib/homeArt';
-import { libraryImage } from '../lib/assets';
+import { libraryImage } from '../lib/libraryArt';
 import { lessonLibraryArt } from '@polski-go/shared';
 import type { PublicItem } from '../lib/types';
 

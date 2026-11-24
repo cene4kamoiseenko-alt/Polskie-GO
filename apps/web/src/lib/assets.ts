@@ -12,7 +12,7 @@
  * Варіант ширини доставки — файл `<ключ>@<ширина>.webp` (256, 512, 1024) поруч з основним; якщо його немає,
  * береться основний файл. Який Бобек малювати, вирішує не цей файл, а resolveLook (@polski-go/shared, lib/look.ts).
  */
-import { CITY_ART, CITY_ART_SMALL, LIBRARY_ART, LOOK_CANVAS, LOOK_MANIFEST, MISSION_SCENE_ART, SCENE_ART, SCENE_ART_SMALL, type SceneArt } from '@polski-go/shared';
+import { CITY_ART, CITY_ART_SMALL, LOOK_CANVAS, LOOK_MANIFEST, MISSION_SCENE_ART, SCENE_ART, SCENE_ART_SMALL, type SceneArt } from '@polski-go/shared';
 
 import { files } from './assetFiles';
 
@@ -150,14 +150,3 @@ export function locationThumb(scene: string | null, citySlug: string, index: num
   return city ? { src: city.small, pos: THUMB_SPOTS[index % THUMB_SPOTS.length] } : null;
 }
 
-/**
- * Картинка библиотеки Бобека (src/assets/library, scripts/build-library-art.ts; реестр и темы — LIBRARY_ART в @polski-go/shared):
- * основная ширина 1080 и @640 для srcset; `focus` — точка кадра для object-position. Нет файла — null.
- */
-export function libraryImage(file: string): { src: string; srcSet: string; focus: string } | null {
-  const art = LIBRARY_ART[file];
-  const src = art ? pick('library', file) : null;
-  if (!art || !src) return null;
-  const small = pick('library', `${file}@640`);
-  return { src, srcSet: small ? `${small} 640w, ${src} 1080w` : src, focus: art.focus };
-}

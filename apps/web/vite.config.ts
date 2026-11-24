@@ -17,8 +17,11 @@ function devAssetUrls(): Plugin {
     apply: 'serve',
     enforce: 'pre',
     resolveId(source, importer) {
-      if (source !== './assetFiles' || !importer?.replace(/\\/g, '/').endsWith('/src/lib/assets.ts')) return null;
-      return this.resolve('./assetFiles.dev', importer, { skipSelf: true });
+      const from = importer?.replace(/\\/g, '/') ?? '';
+      // Общая карта картинок (lib/assets.ts) и библиотека Бобека (lib/libraryArt.ts) — в dev только список путей.
+      if (source === './assetFiles' && from.endsWith('/src/lib/assets.ts')) return this.resolve('./assetFiles.dev', importer, { skipSelf: true });
+      if (source === './libraryFiles' && from.endsWith('/src/lib/libraryArt.ts')) return this.resolve('./libraryFiles.dev', importer, { skipSelf: true });
+      return null;
     },
   };
 }
