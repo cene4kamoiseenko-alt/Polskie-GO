@@ -9,7 +9,7 @@ import { escapeHtml as h } from '../html';
 import { QUIZ_COPY } from '../quiz/copy';
 import { BUTTON_TEXT_MAX, LETTERS } from '../quiz/layout';
 import { CATEGORY_NAMES, optionsOf, type QuizQuestion } from '../quiz/questions';
-import { screenUrl } from '../send';
+import { screenUrl, screenUrlWith } from '../send';
 import { DAILY_COPY } from './copy';
 
 type Button = { text: string; callback_data: string } | { text: string; web_app: { url: string } };
@@ -67,12 +67,18 @@ export function dailyResultView(round: Round, q: QuizQuestion, r: DailyResult): 
     h(q.explain[lang]),
     '',
     ...(r.percent !== null ? [h(copy.percentLine(r.percent, q.cefr))] : []),
-    ...(r.xp > 0 ? [h(copy.xp(r.xp))] : !r.hasUser ? [h(copy.noAccount)] : []),
+    ...(r.xp > 0 ? [h(round.correct ? copy.xp(r.xp) : copy.tryXp(r.xp))] : !r.hasUser ? [h(copy.noAccount)] : []),
     ...(r.dailyStreak >= 2 ? [h(copy.dailyStreak(r.dailyStreak))] : []),
   ].join('\n');
+  // Мост в игру (2026-11-24): первой — разминка на 5 заданий (обычное занятие: серия и XP), затем урок; без аккаунта — первый урок.
   const keyboard: DailyKeyboard = {
     inline_keyboard: [
-      [r.hasUser ? { text: copy.lesson, web_app: { url: screenUrl('learn') } } : { text: copy.startApp, web_app: { url: screenUrl('home') } }],
+      ...(r.hasUser
+        ? [
+            [{ text: copy.warmup, web_app: { url: screenUrlWith('warmup', { src: 'quiz_warmup' }) } }],
+            [{ text: copy.lesson, web_app: { url: screenUrl('learn') } }],
+          ]
+        : [[{ text: copy.firstLesson, web_app: { url: screenUrlWith('continue', { src: 'quiz_first' }) } }]]),
       [{ text: copy.more, callback_data: 'qz:next' }],
       [dailyToggle(lang, r.pushEnabled)],
     ],

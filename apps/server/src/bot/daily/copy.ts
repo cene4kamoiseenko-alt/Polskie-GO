@@ -13,6 +13,12 @@ export type DailyCopy = {
   returnLine: string;
   percentLine: (pct: number, level: string) => string;
   xp: (n: number) => string;
+  /** XP за неверный ответ (2026-11-24). */
+  tryXp: (n: number) => string;
+  /** Первая кнопка итога: разминка в приложении (2026-11-24). */
+  warmup: string;
+  /** Без аккаунта: первый урок (2026-11-24). */
+  firstLesson: string;
   noAccount: string;
   dailyStreak: (days: number) => string;
   lesson: string;
@@ -36,6 +42,9 @@ const ru: DailyCopy = {
   returnLine: '👋 Давно не виделись — вот вопрос на разминку.',
   percentLine: (p, l) => `📊 Сегодня верно ответили ${p} % игроков уровня ${l}.`,
   xp: (n) => `🎁 +${n} XP`,
+  tryXp: (n) => `🎁 +${n} XP за попытку`,
+  warmup: '🔥 Закрепить · 2 минуты',
+  firstLesson: '🚀 Первый урок — 3 минуты',
   noAccount: '🦫 XP начисляются после первого входа в POLSKI GO.',
   dailyStreak: (n) => `🧠 Вопрос дня: ${n} ${ruDays(n)} подряд!`,
   lesson: '📚 Пройти урок · 5 минут',
@@ -56,6 +65,9 @@ const uk: DailyCopy = {
   returnLine: '👋 Давно не бачилися — ось питання на розминку.',
   percentLine: (p, l) => `📊 Сьогодні правильно відповіли ${p} % гравців рівня ${l}.`,
   xp: (n) => `🎁 +${n} XP`,
+  tryXp: (n) => `🎁 +${n} XP за спробу`,
+  warmup: '🔥 Закріпити · 2 хвилини',
+  firstLesson: '🚀 Перший урок — 3 хвилини',
   noAccount: '🦫 XP нараховуються після першого входу в POLSKI GO.',
   dailyStreak: (n) => `🧠 Питання дня: ${n} ${ukDays(n)} поспіль!`,
   lesson: '📚 Пройти урок · 5 хвилин',
@@ -76,6 +88,9 @@ const en: DailyCopy = {
   returnLine: "👋 Long time no see — here's a warm-up question.",
   percentLine: (p, l) => `📊 ${p}% of ${l} players got it right today.`,
   xp: (n) => `🎁 +${n} XP`,
+  tryXp: (n) => `🎁 +${n} XP for trying`,
+  warmup: '🔥 Practise · 2 minutes',
+  firstLesson: '🚀 First lesson — 3 minutes',
   noAccount: '🦫 XP starts after your first visit to POLSKI GO.',
   dailyStreak: (n) => `🧠 Question of the day: ${n} ${n === 1 ? 'day' : 'days'} in a row!`,
   lesson: '📚 Take a lesson · 5 min',

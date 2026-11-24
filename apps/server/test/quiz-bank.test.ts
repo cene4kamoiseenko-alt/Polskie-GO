@@ -243,7 +243,10 @@ describe('вопрос дня: вид сообщения', () => {
     expect(withUser.text).toMatch(/80 %/);
     expect(withUser.text).toContain('+10 XP');
     const flat = withUser.keyboard.inline_keyboard.flat();
-    expect(flat.map((b) => ('callback_data' in b ? b.callback_data : 'web_app'))).toEqual(['web_app', 'qz:next', 'qz:daily:0']);
+    // Мост в игру (2026-11-24): разминка, урок, ещё вопрос, выключатель.
+    expect(flat.map((b) => ('callback_data' in b ? b.callback_data : 'web_app'))).toEqual(['web_app', 'web_app', 'qz:next', 'qz:daily:0']);
+    expect(JSON.stringify(flat[0])).toContain('bot_screen=warmup');
+    expect(JSON.stringify(flat[1])).toContain('bot_screen=learn');
     const guest = dailyResultView({ ...r, xp: 0 }, q, { hasUser: false, xp: 0, percent: null, dailyStreak: 1, pushEnabled: false });
     expect(guest.text).not.toMatch(/%/);
     expect(guest.text).toContain('POLSKI GO');

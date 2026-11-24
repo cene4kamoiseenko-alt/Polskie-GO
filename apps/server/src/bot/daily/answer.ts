@@ -23,13 +23,16 @@ export async function setQuizPush(telegramId: number, enabled: boolean, now = ne
     .onConflictDoUpdate({ target: botQuizPlayers.telegramId, set: { pushEnabled: enabled, ignoredPushes: 0, updatedAt: now } });
 }
 
-/** Записать ответ на вопрос дня. Возвращает начисленные XP (0 без аккаунта, при неверном ответе или если XP уже были). */
+/** XP за неверный ответ на вопрос дня — «за попытку» (2026-11-24): попытка тоже засчитывается активным днём. Верный — QUIZ_XP (10). */
+export const DAILY_TRY_XP = 3;
+
+/** Записать ответ на вопрос дня. Возвращает начисленные XP (0 без аккаунта или если XP уже были; неверный ответ — DAILY_TRY_XP). */
 export async function recordDailyAnswer(round: Round, chosen: number, correct: boolean, user: BotUser | null, now: Date): Promise<number> {
   const send = await db.select({ day: dailyQuizSends.day }).from(dailyQuizSends).where(eq(dailyQuizSends.roundId, round.id)).get();
   let xp = 0;
-  if (correct && user) {
+  if (user) {
     try {
-      xp = await awardXp(user.id, round.id, now);
+      xp = await awardXp(user.id, round.id, now, correct ? undefined : DAILY_TRY_XP);
     } catch (e) {
       console.warn('daily quiz: xp not granted', (e as Error).message);
     }

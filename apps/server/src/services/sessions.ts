@@ -175,9 +175,22 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
     return shuffle(items, rnd).slice(0, 12);
   }
 
-  // FIVE_MIN: до 5 слів на повторення + вправи з уже пройдених (або доступних) уроків.
+  return buildQuickItems(userId, pool, rnd, mode === 'WARMUP' ? WARMUP_SIZE : FIVE_MIN_SIZE);
+}
+
+/** «5 минут»: до 10 заданий; разминка после вопроса дня (2026-11-24) — 5. */
+const FIVE_MIN_SIZE = 10;
+export const WARMUP_SIZE = 5;
+
+/**
+ * Короткое занятие: до половины — слова на повторение, остальное — задания уже пройденных (или первого доступного) уроков.
+ * FIVE_MIN и разминка WARMUP после вопроса дня — одна логика, разный размер.
+ */
+async function buildQuickItems(userId: string, pool: VocabRow[], rnd: () => number, size: number): Promise<ExerciseItem[]> {
+  const now = new Date();
+  const byId = (id: string) => pool.find((p) => p.id === id);
   const [due, done, [me]] = await db.batch([
-    db.select({ itemId: reviewSchedule.itemId }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), lte(reviewSchedule.dueAt, now))).orderBy(asc(reviewSchedule.dueAt)).limit(5),
+    db.select({ itemId: reviewSchedule.itemId }).from(reviewSchedule).where(and(eq(reviewSchedule.userId, userId), eq(reviewSchedule.itemType, 'WORD'), lte(reviewSchedule.dueAt, now))).orderBy(asc(reviewSchedule.dueAt)).limit(Math.ceil(size / 2)),
     db.select({ lessonId: userLessonProgress.lessonId }).from(userLessonProgress).where(and(eq(userLessonProgress.userId, userId), isNotNull(userLessonProgress.firstCompletedAt))),
     studyLevelOf(userId),
   ]);
@@ -194,7 +207,7 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
         .where(and(inArray(exercises.lessonId, lessonIds), notInArray(exercises.type, ['DIALOGUE', 'SITUATION', 'READING']), practiceVersions((me?.level ?? null) as StudyLevel | null)))
         .limit(80)
     : [];
-  const exItems = shuffle(lessonToItems(exRows), rnd).slice(0, 10 - words.length);
+  const exItems = shuffle(lessonToItems(exRows), rnd).slice(0, size - words.length);
   const items = [...words.map((w, i) => wordItem(w, pool, rnd, i)), ...exItems];
   if (!items.length) throw badRequest('nothing_to_practice');
   return shuffle(items, rnd);

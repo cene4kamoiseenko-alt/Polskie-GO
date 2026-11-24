@@ -22,7 +22,7 @@ r.get('/journey', async (c) => c.json(await getJourney(c.get('userId'))));
 
 r.post('/sessions', rateLimit(60, 60_000, 'sessions'), async (c) => {
   const b = z
-    .object({ lessonId: z.string().optional(), mode: z.enum(['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR']).optional(), topic: z.string().max(40).optional() })
+    .object({ lessonId: z.string().optional(), mode: z.enum(['REVIEW', 'MISTAKES', 'FIVE_MIN', 'SPEED', 'GRAMMAR', 'WARMUP']).optional(), topic: z.string().max(40).optional() })
     .refine((x) => x.lessonId || x.mode, 'lessonId or mode required')
     .parse(await body(c));
   return c.json(await startSession(c.get('userId'), b));

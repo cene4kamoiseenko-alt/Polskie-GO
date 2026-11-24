@@ -316,7 +316,7 @@ async function releaseRewardSlot(telegramId: number, day: string) {
 }
 
 /** XP за верный ответ вовремя: журнал, день, лига, задания «Получи N XP», достижения. Возвращает начисленное (0 — без прогресса). */
-export async function awardXp(userId: string, roundId: string, now: Date): Promise<number> {
+export async function awardXp(userId: string, roundId: string, now: Date, amount = QUIZ_XP): Promise<number> {
   let ctx;
   try {
     ctx = await loadCtx(userId, now);
@@ -324,7 +324,7 @@ export async function awardXp(userId: string, roundId: string, now: Date): Promi
     return 0;
   }
   // Ключ на раунд: повторная попытка (сбой после записи) не начислит второй раз.
-  const xp = grantXp(ctx, QUIZ_XP, 'quiz', `quiz:${roundId}`);
+  const xp = grantXp(ctx, amount, 'quiz', `quiz:${roundId}`);
   if (!xp.granted) return 0;
   const quests = await applyQuestEvents(ctx, { XP: xp.granted });
   await atomic([...xp.stmts, ...quests.stmts]);
