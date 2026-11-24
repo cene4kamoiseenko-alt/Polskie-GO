@@ -11,6 +11,8 @@ import { engagementFor, engagementReport, segmentWhere, SEGMENTS, type Segment }
 import { DAY_FILTERS, dailyOverview, dailyQuestions, dayReport, explainPerson, userDailyQuiz } from '../services/daily-quiz-admin';
 import { replacePlanItem, setDaySkipped, setQuestionDisabled } from '../bot/daily/plan';
 import { sendDailyTest } from '../bot/daily/send';
+import { readEngageState, writeEngageState } from '../bot/engage/state';
+import { engageOverview, sendEngageTest } from '../services/engage-admin';
 import { addDays, DAILY_LEVELS, isDayEditable, readDailyRun, readDailyState, SEND_AT_RE, warsawDay, writeDailyState } from '../bot/daily/state';
 import type { QuizScene } from '../bot/quiz/scenes';
 import { timingSafeEqual } from 'node:crypto';
@@ -1126,6 +1128,29 @@ a.post('/daily-quiz/test', rateLimit(20, 10 * 60_000, 'admin-daily-test'), async
   const player = await findTelegramPlayer(b.who);
   await sendDailyTest(player.telegramId, (b.lang ?? player.lang ?? 'ru') as 'uk' | 'ru' | 'en', b.day, b.level);
   return c.json({ ok: true, sentTo: player.telegramId, to: { id: player.id, firstName: player.firstName, username: player.username } });
+});
+
+// ───────── Карточки бота (вовлечённость, 2026-11-24) ─────────
+a.get('/engage', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const { days } = z.object({ days: z.coerce.number().int().refine((d) => [7, 30, 90].includes(d)).catch(30) }).parse(query(c));
+  return c.json(await engageOverview(days));
+});
+a.patch('/engage/state', async (c) => {
+  needRole(c, 'SUPERADMIN');
+  const { enabled } = z.object({ enabled: z.boolean() }).parse(await body(c));
+  const before = await readEngageState();
+  const state = await writeEngageState({ enabled });
+  await audit(c, enabled && !before.enabled ? 'engage_start' : !enabled && before.enabled ? 'engage_stop' : 'engage_settings', 'engage', null, { before, after: state });
+  return c.json({ state });
+});
+a.post('/engage/test', rateLimit(20, 10 * 60_000, 'admin-engage-test'), async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const b = z.object({ who: z.string().min(1).max(64), kind: z.enum(t.ENGAGE_KINDS), lang: z.enum(['uk', 'ru', 'en']).optional() }).parse(await body(c));
+  if (!getBindings().TELEGRAM_BOT_TOKEN) throw badRequest('bot_not_configured');
+  const player = await findTelegramPlayer(b.who);
+  await sendEngageTest(player.telegramId, b.kind, (b.lang ?? player.lang ?? 'ru') as 'uk' | 'ru' | 'en');
+  return c.json({ ok: true, sentTo: player.telegramId });
 });
 
 adminRoutes.route('/', a);
