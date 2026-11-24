@@ -8,6 +8,7 @@ import { dayDiff, dayKey, type UiLang } from '@polski-go/shared';
 import { db } from '../../db';
 import { cities, engageSends, missionRuns, playerProgress, userVocabulary, type EngageKind } from '../../db/schema';
 import { activeLessonProgress } from '../../services/active-lesson';
+import { comebackOffer } from '../../services/comeback';
 import { listMissions } from '../../services/missions';
 import { sendWithPhoto } from '../quiz/engine';
 import { personLang, type DailyPerson } from '../daily/audience';
@@ -95,7 +96,12 @@ async function cardData(p: DailyPerson, msg: Exclude<DailyMessage, { kind: 'quiz
     db.select({ streakBest: playerProgress.streakBest, city: cities.namePl }).from(playerProgress).leftJoin(cities, eq(cities.id, playerProgress.currentCityId)).where(eq(playerProgress.userId, p.userId!)).get(),
     db.select({ n: count() }).from(userVocabulary).where(eq(userVocabulary.userId, p.userId!)).get(),
   ]);
-  return { data: { kind: 'comeback', streakBest: progress?.streakBest ?? 0, words: words?.n ?? 0, city: progress?.city ?? null }, variant: null };
+  // Подарок обещаем, только если приложение его действительно даст (не брал в последние 30 дней).
+  const offer = await comebackOffer(p.userId!, p.lastActiveDay, dayKey(now, p.timezone ?? 'Europe/Warsaw'), now);
+  return {
+    data: { kind: 'comeback', streakBest: progress?.streakBest ?? 0, words: words?.n ?? 0, city: progress?.city ?? null, gift: offer?.gift ?? null },
+    variant: offer ? 'gift' : 'no_gift',
+  };
 }
 
 /**

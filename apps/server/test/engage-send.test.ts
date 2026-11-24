@@ -6,7 +6,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../src/db';
-import { botContacts, dailyQuizSends, engageSends, learningSessions, playerProgress, userSettings, users } from '../src/db/schema';
+import { botContacts, dailyQuizSends, engageSends, learningSessions, playerProgress, userSettings, users, walletTransactions } from '../src/db/schema';
 import { claimQuiz, runDailyQuizTick } from '../src/bot/daily/send';
 import { claimCard } from '../src/bot/engage/send';
 import { writeDailyState } from '../src/bot/daily/state';
@@ -72,6 +72,18 @@ describe('карточки в рассылке вопроса дня', () => {
     const again = fakeTelegram();
     await runDailyQuizTick(at('2026-12-03', '11:30'));
     expect(toChat(again, u.telegramId)).toEqual([]);
+  });
+
+  it('подарок уже брал в последние 30 дней — карточка возвращения без обещания подарка (находка проверки)', async () => {
+    const u = await player('2026-12-04');
+    await db.insert(walletTransactions).values({ id: `cb-${u.user.id}`, userId: u.user.id, amount: 50, reason: 'comeback', idempotencyKey: `comeback:${u.user.id}:x`, createdAt: new Date('2026-12-01T10:00:00Z') });
+    await launch('2026-12-11');
+    const calls = fakeTelegram();
+    await runDailyQuizTick(at('2026-12-11'));
+    const caption = toChat(calls, u.telegramId)[0].params.caption as string;
+    expect(caption).toMatch(/Давно не|Long time|Давно не бачилися/);
+    expect(caption).not.toMatch(/50/);
+    expect(await sendRow('2026-12-11', u.telegramId)).toMatchObject({ kind: 'comeback', variant: 'no_gift' });
   });
 
   it('новичку на 1-й день — карточка с остатком урока', async () => {

@@ -10,7 +10,7 @@ import { ENGAGE_COPY } from './copy';
 
 export type CardData =
   | { kind: 'newcomer'; left: number | null }
-  | { kind: 'comeback'; streakBest: number; words: number; city: string | null }
+  | { kind: 'comeback'; streakBest: number; words: number; city: string | null; /** Подарок за возвращение, если положен; null — без обещания подарка. */ gift: number | null }
   | { kind: 'mission'; slug: string; title: string; minutes: number; category: string };
 
 const NEWCOMER_IMAGES = ['cards/newcomer-1.jpg', 'cards/newcomer-2.jpg'];
@@ -51,7 +51,7 @@ export function cardView(d: CardData, lang: UiLang, pick = 0): { text: string; k
       text: h(copy.comeback(d)),
       image: of(COMEBACK_IMAGES, pick),
       keyboard: {
-        inline_keyboard: [[{ text: copy.comebackBtn, web_app: { url: screenUrlWith('home', { src: 'card_comeback' }) } }], [cardToggle(lang, true)]],
+        inline_keyboard: [[{ text: d.gift ? copy.comebackBtn : copy.comebackBtnPlain, web_app: { url: screenUrlWith('home', { src: 'card_comeback' }) } }], [cardToggle(lang, true)]],
       },
     };
   }

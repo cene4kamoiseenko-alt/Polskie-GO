@@ -3,15 +3,16 @@
  * Тон — как у вопроса дня: коротко, по-дружески, без давления; цифры — личные (остаток урока, лучшая серия, слова).
  */
 import type { UiLang } from '@polski-go/shared';
-import { COMEBACK_GIFT } from '../../services/comeback';
 
 export type EngageCopy = {
   newcomerStart: string;
   newcomerLeft: (left: number) => string;
   newcomerStartBtn: string;
   newcomerLeftBtn: string;
-  comeback: (d: { streakBest: number; words: number; city: string | null }) => string;
+  comeback: (d: { streakBest: number; words: number; city: string | null; gift: number | null }) => string;
   comebackBtn: string;
+  /** Кнопка карточки возвращения без подарка (подарок уже брал в последние 30 дней). */
+  comebackBtnPlain: string;
   mission: (title: string, minutes: number) => string;
   missionBtn: string;
   off: string;
@@ -28,7 +29,7 @@ const RU: EngageCopy = {
   newcomerLeft: (n) => `🦫 Ты уже начал первый урок — осталось ${n} ${ruForm(n, 'задание', 'задания', 'заданий')}. Закончишь за пару минут.`,
   newcomerStartBtn: '🚀 Начать урок',
   newcomerLeftBtn: '▶️ Продолжить урок',
-  comeback: ({ streakBest, words, city }) =>
+  comeback: ({ streakBest, words, city, gift }) =>
     [
       'Давно не виделись! 🦫',
       [
@@ -39,12 +40,13 @@ const RU: EngageCopy = {
         .filter(Boolean)
         .join(', ')
         .replace(/^./, (c) => c.toUpperCase()),
-      `🎁 За возвращение — ${COMEBACK_GIFT} злотков, ждут в игре.`,
+      gift ? `🎁 За возвращение — ${gift} злотков, ждут в игре.` : 'Заглянь на пару минут — продолжим с того места, где остановились.',
     ]
       .filter((l) => l.length > 0)
       .map((l, i) => (i === 1 && !l.endsWith('.') ? `${l}.` : l))
       .join('\n'),
   comebackBtn: '🎁 Забрать и продолжить',
+  comebackBtnPlain: '▶️ Продолжить',
   mission: (title, minutes) => `🎭 Миссия недели: «${title}». Живой диалог в Польше, ~${minutes} минут — можно проходить частями.`,
   missionBtn: '🎭 Сыграть миссию',
   off: '🔕 Не присылать такие сообщения',
@@ -58,7 +60,7 @@ const UK: EngageCopy = {
   newcomerLeft: (n) => `🦫 Ти вже почав перший урок — лишилося ${n} ${ruForm(n, 'завдання', 'завдання', 'завдань')}. Закінчиш за пару хвилин.`,
   newcomerStartBtn: '🚀 Почати урок',
   newcomerLeftBtn: '▶️ Продовжити урок',
-  comeback: ({ streakBest, words, city }) =>
+  comeback: ({ streakBest, words, city, gift }) =>
     [
       'Давно не бачилися! 🦫',
       [
@@ -69,12 +71,13 @@ const UK: EngageCopy = {
         .filter(Boolean)
         .join(', ')
         .replace(/^./, (c) => c.toUpperCase()),
-      `🎁 За повернення — ${COMEBACK_GIFT} злотих, чекають у грі.`,
+      gift ? `🎁 За повернення — ${gift} злотих, чекають у грі.` : 'Зазирни на пару хвилин — продовжимо з того місця, де зупинилися.',
     ]
       .filter((l) => l.length > 0)
       .map((l, i) => (i === 1 && !l.endsWith('.') ? `${l}.` : l))
       .join('\n'),
   comebackBtn: '🎁 Забрати й продовжити',
+  comebackBtnPlain: '▶️ Продовжити',
   mission: (title, minutes) => `🎭 Місія тижня: «${title}». Живий діалог у Польщі, ~${minutes} хвилин — можна проходити частинами.`,
   missionBtn: '🎭 Зіграти місію',
   off: '🔕 Не надсилати такі повідомлення',
@@ -88,7 +91,7 @@ const EN: EngageCopy = {
   newcomerLeft: (n) => `🦫 You've started your first lesson — ${n} ${n === 1 ? 'task' : 'tasks'} left. You'll finish in a couple of minutes.`,
   newcomerStartBtn: '🚀 Start the lesson',
   newcomerLeftBtn: '▶️ Continue the lesson',
-  comeback: ({ streakBest, words, city }) =>
+  comeback: ({ streakBest, words, city, gift }) =>
     [
       'Long time no see! 🦫',
       [
@@ -99,12 +102,13 @@ const EN: EngageCopy = {
         .filter(Boolean)
         .join(', ')
         .replace(/^./, (c) => c.toUpperCase()),
-      `🎁 Welcome-back gift: ${COMEBACK_GIFT} złotki waiting in the game.`,
+      gift ? `🎁 Welcome-back gift: ${gift} złotki waiting in the game.` : "Drop by for a couple of minutes — we'll pick up where you left off.",
     ]
       .filter((l) => l.length > 0)
       .map((l, i) => (i === 1 && !l.endsWith('.') ? `${l}.` : l))
       .join('\n'),
   comebackBtn: '🎁 Claim and continue',
+  comebackBtnPlain: '▶️ Continue',
   mission: (title, minutes) => `🎭 Mission of the week: “${title}”. A real conversation in Poland, ~${minutes} minutes — you can play it in parts.`,
   missionBtn: '🎭 Play the mission',
   off: "🔕 Don't send messages like this",

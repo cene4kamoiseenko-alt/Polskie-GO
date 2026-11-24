@@ -17,6 +17,7 @@ import { cardView, type CardData } from '../bot/engage/views';
 import { sendWithPhoto } from '../bot/quiz/engine';
 import { botImageUrl } from '../bot/catalog';
 import { doneCount } from './active-lesson';
+import { COMEBACK_GIFT } from './comeback';
 
 export type KindStats = { sent: number; delivered: number; opened: number; studiedSameDay: number; optedOut48h: number; blocked48h: number };
 export type FirstLessonRow = { status: 'ACTIVE' | 'FINISHED' | 'ABANDONED'; total: number; answered: number; lastType: string | null };
@@ -133,7 +134,7 @@ function previews() {
 /** Образец карточки для «как увидит игрок» и «прислать себе». */
 export function sampleCard(kind: EngageKind, lang: UiLang): CardData {
   if (kind === 'newcomer') return { kind, left: null };
-  if (kind === 'comeback') return { kind, streakBest: 12, words: 48, city: 'Kraków' };
+  if (kind === 'comeback') return { kind, streakBest: 12, words: 48, city: 'Kraków', gift: COMEBACK_GIFT };
   const m = MISSIONS.find((x) => !x.premium && !x.season && !x.channel) ?? MISSIONS[0];
   return { kind, slug: m.slug, title: m.title[lang] || m.title.ru || m.slug, minutes: m.minutes, category: m.category };
 }

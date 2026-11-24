@@ -26,8 +26,8 @@ const long = 'Ż'.repeat(60);
 const samples: CardData[] = [
   { kind: 'newcomer', left: null },
   { kind: 'newcomer', left: 5 },
-  { kind: 'comeback', streakBest: 128, words: 1234, city: 'Gorzów Wielkopolski' },
-  { kind: 'comeback', streakBest: 0, words: 0, city: null },
+  { kind: 'comeback', streakBest: 128, words: 1234, city: 'Gorzów Wielkopolski', gift: 50 },
+  { kind: 'comeback', streakBest: 0, words: 0, city: null, gift: null },
   { kind: 'mission', slug: 'zabka-first-order', title: long, minutes: 12, category: 'shop' },
 ];
 type Btn = { text: string; web_app?: { url: string }; callback_data?: string };
@@ -47,7 +47,7 @@ describe('карточки бота', () => {
   it('тексты называют главное: остаток урока, подарок, миссию', () => {
     expect(cardView({ kind: 'newcomer', left: 5 }, 'ru').text).toContain('осталось 5');
     expect(cardView({ kind: 'newcomer', left: null }, 'ru').text).toContain('3 минуты');
-    const back = cardView({ kind: 'comeback', streakBest: 12, words: 40, city: 'Kraków' }, 'ru').text;
+    const back = cardView({ kind: 'comeback', streakBest: 12, words: 40, city: 'Kraków', gift: 50 }, 'ru').text;
     expect(back).toContain('Давно не виделись');
     expect(back).toContain('50');
     expect(back).toContain('Kraków');
