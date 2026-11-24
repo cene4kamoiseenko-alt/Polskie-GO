@@ -606,7 +606,8 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
   const [levelModal, setLevelModal] = useState(!!r.levelUp);
   const boss = session.lesson?.kind === 'BOSS';
   const passRatio = boss || r.mode === 'EXAM' || isMissionSlug(session.lesson?.slug) ? 70 : 50;
-  const title = !r.passed ? t('res_title_fail') : r.perfect ? t('res_title_perfect') : t('res_title_pass');
+  // Первый в жизни пройденный урок (2026-11-24) — «Первая победа!» вместо обычного заголовка.
+  const title = !r.passed ? t('res_title_fail') : r.firstWin ? t('res_title_first_win') : r.perfect ? t('res_title_perfect') : t('res_title_pass');
   const mins = Math.floor(r.durationSec / 60);
   const secs = String(r.durationSec % 60).padStart(2, '0');
   const nextLesson = journey.data?.nextLesson;
@@ -634,6 +635,7 @@ function ResultView({ r, session }: { r: FinishResult; session: SessionStart }) 
         </div>
         <h1 className={cx('text-3xl font-black', r.passed ? 'text-brand-dark' : 'text-coral-dark')}>{title}</h1>
         {!r.passed && <p className="muted font-semibold">{t('res_fail_text', { n: passRatio })}</p>}
+        {r.firstWin && <p className="muted font-semibold" data-first-win>{t('res_first_win_text')}</p>}
 
         <div className="grid w-full grid-cols-3 gap-2">
           <div ref={xpRef}>

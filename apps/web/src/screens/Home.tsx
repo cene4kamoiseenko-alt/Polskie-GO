@@ -450,10 +450,10 @@ export function HomeScreen() {
           </div>
           <motion.button
             whileTap={{ scale: 0.96 }}
-            onClick={() => { haptic.tap(); nav(next ? `/lesson/${next.id}` : loadingJourney ? '/learn' : '/map'); }}
+            onClick={() => { haptic.tap(); nav(me.activeLesson ? `/lesson/${me.activeLesson.lessonId}` : next ? `/lesson/${next.id}` : loadingJourney ? '/learn' : '/map'); }}
             className="home-continue btn btn-red btn-glow absolute bottom-3 right-2.5 w-[50%] !min-h-[52px] !gap-1 !px-2 text-[clamp(13px,3.75vw,15px)] leading-tight"
           >
-            <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{next || loadingJourney ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
+            <Icon name="play" size={16} filled className="shrink-0" /> <span className="min-w-0 text-center">{me.activeLesson ? t('home_continue_left', { n: me.activeLesson.total - me.activeLesson.done }) : next || loadingJourney ? t('home_continue_lesson') : t('home_city_done')}</span> <Icon name="chevron-right" size={16} className="shrink-0" />
           </motion.button>
         </CityHero>
       </div>

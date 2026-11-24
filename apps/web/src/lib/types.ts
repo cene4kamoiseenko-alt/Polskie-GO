@@ -67,6 +67,12 @@ export type Me = {
   counters: { dueReviews: number; mistakes: number; unseenAchievements: number };
   /** Итоги недели лиги: непросмотренная награда (окно на главной), иначе null. */
   leagueAward?: { week: string; rank: number; xp: number; zlotki: number } | null;
+  /** Брошенный урок, который можно продолжить (2026-11-24): «Продолжить · осталось N». */
+  activeLesson?: { lessonId: string; done: number; total: number } | null;
+  /** Подарок за возвращение после 7+ дней без занятий (2026-11-24). */
+  comeback?: { gift: number } | null;
+  /** Тур по вкладкам пройден (2026-11-24). */
+  tourDone?: boolean;
   /** Новый входной тест (2026-11-16): пройден ли он и какой уровень показал. */
   levelTest?: { done: boolean; placementLevel: Cefr | null };
   /** configured — ШІ-співрозмовник підключений на сервері (є ключ); інакше його входи в застосунку приховано. */
@@ -149,6 +155,8 @@ export type FinishResult = {
   levelUp: number | null;
   streak: number;
   streakIncreased: boolean;
+  /** Первый в жизни пройденный урок (2026-11-24): итог «Первая победа!». */
+  firstWin?: boolean;
   newWords: { id: string; pl: string; translations: I18n }[];
   cityCompleted: null | { cityId: string; nextCity: null | { id: string; slug: string; name: I18n; namePl: string; emoji: string; hasLessons: boolean }; rewards: { slug: string; name: I18n; slot: string }[] };
   levelConfirmed: Cefr | null;

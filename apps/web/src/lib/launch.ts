@@ -23,3 +23,18 @@ export function takeLaunchRoute(): string | null {
 export function resetLaunchRoute() {
   pending = undefined;
 }
+
+let source: string | null | undefined;
+
+/**
+ * Метка `?src=` в адресе Mini App (2026-11-24): какая кнопка бота привела игрока (card_newcomer, card_comeback, card_mission,
+ * quiz_warmup…). Читается один раз: отметка «открыл карточку» уходит на сервер ровно один раз за запуск.
+ */
+export function takeLaunchSource(): string | null {
+  if (source === undefined) {
+    const v = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('src');
+    source = v && /^[a-z_]{3,32}$/.test(v) ? v : null;
+    return source;
+  }
+  return null;
+}

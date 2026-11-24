@@ -5,10 +5,10 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { LazyMotion, MotionConfig, loadMotionFeatures, motion } from './lib/motion';
 import { I18nProvider, profileLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
-import { peekLaunchRoute, takeLaunchRoute } from './lib/launch';
+import { peekLaunchRoute, takeLaunchRoute, takeLaunchSource } from './lib/launch';
 import { useMe } from './lib/queries';
 import { configureAudio, setSoundEnabled, stopSpeech } from './lib/audio';
-import { ApiError } from './lib/api';
+import { ApiError, api } from './lib/api';
 import { SPLASH_MIN_MS, bootFinish, bootMark } from './lib/boot';
 import { BottomNav, EdgeSwipeBack, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
@@ -21,6 +21,7 @@ const Welcome = lazy(() => import('./screens/Welcome'));
 const MapScreen = lazy(() => import('./screens/Map'));
 const LearnScreen = lazy(() => import('./screens/Learn'));
 const LessonScreen = lazy(() => import('./screens/Lesson'));
+const ContinueScreen = lazy(() => import('./screens/Continue'));
 const QuestsScreen = lazy(() => import('./screens/Quests'));
 const StoryScreen = lazy(() => import('./screens/Story'));
 const ProfileScreen = lazy(() => import('./screens/Profile'));
@@ -127,6 +128,13 @@ export function App() {
 
   // Кнопки Telegram-бота: ?bot_screen=<екран> (або startapp=screen_<екран> у чатах без web_app-кнопок).
   // Лише білий список маршрутів, один перехід після входу; новичок спершу проходить знайомство (його завершення бере маршрут сам).
+  // Карточка бота (2026-11-24): «открыл карточку» — один раз за запуск, после входа (для отчёта в админке и паузы неоткрытых карточек).
+  useEffect(() => {
+    if (!me.data) return;
+    const src = takeLaunchSource();
+    if (src?.startsWith('card_')) void api('/engage/opened', { body: { src } }).catch(() => undefined);
+  }, [me.data]);
+
   const launching = !!peekLaunchRoute() && !!me.data?.onboarded;
   useEffect(() => {
     if (!me.data?.onboarded) return;
@@ -238,6 +246,7 @@ export function App() {
                 <Route path="/learn" element={<LearnScreen />} />
                 <Route path="/lesson/:lessonId" element={<LessonScreen />} />
                 <Route path="/practice/:mode" element={<LessonScreen />} />
+                <Route path="/continue" element={<ContinueScreen />} />
                 <Route path="/quests" element={<QuestsScreen />} />
                 <Route path="/story/:slug" element={<StoryScreen />} />
                 <Route path="/profile" element={<ProfileScreen />} />

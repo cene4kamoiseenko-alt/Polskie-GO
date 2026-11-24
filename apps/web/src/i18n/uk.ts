@@ -336,6 +336,8 @@ export const uk = {
 
   // Результати
   res_title_pass: 'Урок пройдено!',
+  res_title_first_win: 'Перша перемога!',
+  res_first_win_text: 'Завтра — наступний урок. Бобек чекатиме.',
   res_title_perfect: 'Ідеально! Без жодної помилки!',
   res_title_fail: 'Майже вийшло!',
   res_fail_text: 'Потрібно щонайменше {n}% правильних відповідей. Помилки вже в розділі «Мої помилки».',
@@ -560,6 +562,7 @@ export const uk = {
   home_tile_exams_d: "Перевір себе",
   map_poland_progress: "Польща: {n}/{total} міст",
   home_continue_lesson: "Продовжити урок",
+  home_continue_left: "Продовжити · лишилося {n}",
   home_today_tasks: "Сьогоднішні завдання",
   home_goal_short: "Мета: {n}/{total} XP",
   home_cur_city: "Поточне місто",
