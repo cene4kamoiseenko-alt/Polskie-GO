@@ -10,10 +10,10 @@
  *     403 «blocked» — BLOCKED (и bot_contacts.blocked_at), 403 «can't initiate» / 400 «chat not found» — NO_CHAT, 429 — захват снимается
  *     и запуск заканчивается (повтор в следующую минуту), неизвестный результат сети — UNKNOWN (не повторяем), прочее — FAILED.
  */
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq, lt, sql } from 'drizzle-orm';
 import { addDays, dayDiff, dayKey, effectiveStreak, shuffle, type UiLang } from '@polski-go/shared';
 import { db } from '../../db';
-import { botQuizRounds, dailyQuizPeople, dailyQuizSends, engageSends, newId } from '../../db/schema';
+import { botQuizRounds, dailyQuizPeople, dailyQuizSends, newId } from '../../db/schema';
 import { badRequest } from '../../lib/errors';
 import { TelegramError } from '../../lib/telegram';
 import { loadCardHistory, messageFor, sendCard } from '../engage/send';
@@ -61,19 +61,26 @@ const QUIZ = { kind: 'quiz' } as const;
 /** Сколько дней истории карточек нужно правилу (две последние карточки вида за 30 дней, новичку — за всё время в пределах 60). */
 const HISTORY_DAYS = 60;
 
+/**
+ * Захват вопроса дня на (день, человек) — одной командой вместе с проверкой, что карточка бота ему сегодня не захвачена
+ * (пара к claimCard в engage/send.ts: из двух пересёкшихся запусков второй видит строку первого — одно сообщение в день).
+ */
+export async function claimQuiz(day: string, p: { telegramId: number; userId: string | null }, level: string, lang: string, questionId: string, now: Date): Promise<boolean> {
+  const rows = await db.all<{ day: string }>(sql`
+    INSERT INTO daily_quiz_sends (day, telegram_id, user_id, level, lang, question_id, status, lease_until, created_at)
+    SELECT ${day}, ${p.telegramId}, ${p.userId}, ${level}, ${lang}, ${questionId}, 'PENDING', ${now.getTime() + LEASE_MS}, ${now.getTime()}
+    WHERE NOT EXISTS (SELECT 1 FROM engage_sends WHERE day = ${day} AND telegram_id = ${p.telegramId})
+    ON CONFLICT DO NOTHING
+    RETURNING day`);
+  return rows.length > 0;
+}
+
 async function sendTo(p: DailyPerson, row: PlanRow, day: string, now: Date, stats: { calls: number }): Promise<Outcome> {
   const q = QUESTION_BY_ID.get(row.questionId);
   if (!q) return 'failed';
   const level = personLevel(p);
   const lang = personLang(p);
-  // Сегодня уже ушла карточка бота (другой запуск) — второго сообщения нет.
-  if (await db.select({ day: engageSends.day }).from(engageSends).where(and(eq(engageSends.day, day), eq(engageSends.telegramId, p.telegramId))).get()) return 'dup';
-  const claimed = await db
-    .insert(dailyQuizSends)
-    .values({ day, telegramId: p.telegramId, userId: p.userId, level, lang, questionId: q.id, status: 'PENDING', leaseUntil: new Date(now.getTime() + LEASE_MS), createdAt: now })
-    .onConflictDoNothing()
-    .returning({ day: dailyQuizSends.day });
-  if (!claimed.length) return 'dup';
+  if (!(await claimQuiz(day, p, level, lang, q.id, now))) return 'dup';
   const roundId = newId();
   const order = shuffle([0, 1, 2, 3]);
   const image = isQuizScene(row.image) ? row.image : q.image;

@@ -3,10 +3,10 @@
  * рассылки (bot/daily/send.ts) для человека, которому сегодня полагается вопрос: правило (pick.ts) выбирает карточку или вопрос.
  * Одно сообщение в день: захват строки engage_sends (день, человек) и проверка, что вопрос дня ему сегодня ещё не ушёл.
  */
-import { and, count, desc, eq, gte, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { dayDiff, dayKey, type UiLang } from '@polski-go/shared';
 import { db } from '../../db';
-import { cities, dailyQuizSends, engageSends, missionRuns, playerProgress, userVocabulary } from '../../db/schema';
+import { cities, engageSends, missionRuns, playerProgress, userVocabulary, type EngageKind } from '../../db/schema';
 import { activeLessonProgress } from '../../services/active-lesson';
 import { listMissions } from '../../services/missions';
 import { sendWithPhoto } from '../quiz/engine';
@@ -97,17 +97,24 @@ async function cardData(p: DailyPerson, msg: Exclude<DailyMessage, { kind: 'quiz
   return { data: { kind: 'comeback', streakBest: progress?.streakBest ?? 0, words: words?.n ?? 0, city: progress?.city ?? null }, variant: null };
 }
 
+/**
+ * Захват карточки на (день, человек) — одной командой вместе с проверкой, что вопрос дня ему сегодня не захвачен. Запись в D1 идёт
+ * по одной, поэтому из двух пересёкшихся запусков (один выбрал карточку, другой — вопрос) второй увидит строку первого.
+ */
+export async function claimCard(day: string, p: { telegramId: number; userId: string | null }, kind: EngageKind, variant: string | null, lang: string, now: Date): Promise<boolean> {
+  const rows = await db.all<{ day: string }>(sql`
+    INSERT INTO engage_sends (day, telegram_id, user_id, kind, variant, lang, status, lease_until, created_at)
+    SELECT ${day}, ${p.telegramId}, ${p.userId}, ${kind}, ${variant}, ${lang}, 'PENDING', ${now.getTime() + LEASE_MS}, ${now.getTime()}
+    WHERE NOT EXISTS (SELECT 1 FROM daily_quiz_sends WHERE day = ${day} AND telegram_id = ${p.telegramId})
+    ON CONFLICT DO NOTHING
+    RETURNING day`);
+  return rows.length > 0;
+}
+
 export async function sendCard(p: DailyPerson, msg: Exclude<DailyMessage, { kind: 'quiz' }>, day: string, now: Date, stats: { calls: number }): Promise<Outcome> {
-  // Вопрос дня ему сегодня уже ушёл (другой запуск) — второго сообщения нет.
-  if (await db.select({ day: dailyQuizSends.day }).from(dailyQuizSends).where(and(eq(dailyQuizSends.day, day), eq(dailyQuizSends.telegramId, p.telegramId))).get()) return 'dup';
   const lang = personLang(p);
   const { data, variant } = await cardData(p, msg, now);
-  const claimed = await db
-    .insert(engageSends)
-    .values({ day, telegramId: p.telegramId, userId: p.userId, kind: msg.kind, variant, lang, status: 'PENDING', leaseUntil: new Date(now.getTime() + LEASE_MS), createdAt: now })
-    .onConflictDoNothing()
-    .returning({ day: engageSends.day });
-  if (!claimed.length) return 'dup';
+  if (!(await claimCard(day, p, msg.kind, variant, lang, now))) return 'dup';
   const where = and(eq(engageSends.day, day), eq(engageSends.telegramId, p.telegramId));
   const view = cardView(data, lang, Number(day.slice(8, 10)));
   try {

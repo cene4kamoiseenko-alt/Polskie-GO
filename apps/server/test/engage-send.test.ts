@@ -7,7 +7,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { and, eq } from 'drizzle-orm';
 import { db } from '../src/db';
 import { botContacts, dailyQuizSends, engageSends, learningSessions, playerProgress, userSettings, users } from '../src/db/schema';
-import { runDailyQuizTick } from '../src/bot/daily/send';
+import { claimQuiz, runDailyQuizTick } from '../src/bot/daily/send';
+import { claimCard } from '../src/bot/engage/send';
 import { writeDailyState } from '../src/bot/daily/state';
 import { writeEngageState } from '../src/bot/engage/state';
 import { disposeEnv, getEnv, login } from './helpers';
@@ -121,6 +122,19 @@ describe('карточки в рассылке вопроса дня', () => {
     await runDailyQuizTick(at('2026-12-08'));
     expect(toChat(calls, a.telegramId)).toEqual([]);
     expect(toChat(calls, b.telegramId)).toEqual([]);
+  });
+
+  it('захват атомарен с другой таблицей: карточку не захватить, если вопрос уже захвачен, и наоборот (находка проверки)', async () => {
+    const day = '2026-12-10';
+    const now = new Date('2026-12-10T11:00:00Z');
+    await db.insert(dailyQuizSends).values({ day, telegramId: 9_300_001, level: 'A1', lang: 'ru', questionId: 'x', status: 'PENDING' });
+    expect(await claimCard(day, { telegramId: 9_300_001, userId: null }, 'comeback', null, 'ru', now)).toBe(false);
+    await db.insert(engageSends).values({ day, telegramId: 9_300_002, kind: 'mission', lang: 'ru', status: 'PENDING' });
+    expect(await claimQuiz(day, { telegramId: 9_300_002, userId: null }, 'A1', 'ru', 'x', now)).toBe(false);
+    expect(await claimCard(day, { telegramId: 9_300_003, userId: null }, 'comeback', null, 'ru', now)).toBe(true);
+    expect(await claimQuiz(day, { telegramId: 9_300_003, userId: null }, 'A1', 'ru', 'x', now)).toBe(false);
+    expect(await claimQuiz(day, { telegramId: 9_300_004, userId: null }, 'A1', 'ru', 'x', now)).toBe(true);
+    expect(await claimCard(day, { telegramId: 9_300_004, userId: null }, 'comeback', null, 'ru', now)).toBe(false);
   });
 
   it('403 на карточку: BLOCKED, отметка в контактах, вопрос в тот же день не уходит', async () => {
