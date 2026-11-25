@@ -27,7 +27,7 @@ export function resetLaunchRoute() {
 let source: string | null | undefined;
 
 /**
- * Метка `?src=` в адресе Mini App (2026-11-24): какая кнопка бота привела игрока (card_newcomer, card_comeback, card_mission,
+ * Метка `?src=` в адресе Mini App (2026-11-24): какая кнопка бота привела игрока (card_start, card_newcomer, card_comeback, card_mission,
  * quiz_warmup…). Читается один раз: отметка «открыл карточку» уходит на сервер ровно один раз за запуск.
  */
 export function takeLaunchSource(): string | null {

@@ -59,7 +59,8 @@ function extraFor(p: DailyPerson, now: Date): DailyExtra {
 export type Outcome = 'sent' | 'dup' | 'failed' | 'rate_limited';
 const QUIZ = { kind: 'quiz' } as const;
 /** Сколько дней истории карточек нужно правилу (две последние карточки вида за 30 дней, новичку — за всё время в пределах 60). */
-const HISTORY_DAYS = 60;
+// История карточек для правила: «не больше трёх» карточек «Старт» и новичка и пауза — за полгода (2026-11-25).
+const HISTORY_DAYS = 180;
 
 /**
  * Захват вопроса дня на (день, человек) — одной командой вместе с проверкой, что карточка бота ему сегодня не захвачена
@@ -144,7 +145,7 @@ export async function runDailyQuizTick(now = new Date(), budget = DAILY_PER_RUN)
   const people = await scanPeople(run.cursor, SCAN);
   // Карточки бота (2026-11-24): одна выборка истории карточек на пачку, а не на человека.
   const engage = await readEngageState();
-  const history = engage.enabled ? await loadCardHistory(people.filter((x) => x.userId).map((x) => x.telegramId), addDays(today, -HISTORY_DAYS)) : new Map<number, CardHistory[]>();
+  const history = engage.enabled ? await loadCardHistory(people.map((x) => x.telegramId), addDays(today, -HISTORY_DAYS)) : new Map<number, CardHistory[]>();
   let processed = 0;
   let stopped = false;
   for (const p of people) {

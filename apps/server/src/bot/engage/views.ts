@@ -12,6 +12,7 @@ import type { EngageKind } from '../../db/schema';
 import { COPY_VARIANTS, ENGAGE_COPY, variantOf } from './copy';
 
 export type CardData =
+  | { kind: 'start' }
   | { kind: 'newcomer'; left: number | null }
   | { kind: 'comeback'; streakBest: number; words: number; city: string | null; /** Подарок за возвращение, если положен; null — без обещания подарка. */ gift: number | null }
   | { kind: 'mission'; slug: string; title: string; minutes: number; category: string };
@@ -19,6 +20,8 @@ export type CardData =
 const ch = (...names: string[]) => names.map((n) => `channel/${n}.jpg`);
 /** Новичку — Бобек-учитель, весёлый: учёба, правила, слова, слушание. Без «экзаменов» (egzamin-*): там Бобек волнуется, новичка это пугает. */
 const NEWCOMER_IMAGES = ch('lekcja', 'nauka', 'zasada-1', 'sluchanie', 'slowa-tematy-1', 'zasada-2', 'rodzaj', 'slowa-tematy-2', 'wymowa-1', 'zasada-3');
+/** Нажал «Старт», в игру не заходил — Бобек зовёт в живую Польшу: город, кафе, трамвай, урок. */
+const START_IMAGES = ch('lekcja', 'kawiarnia', 'tramwaj-1', 'brawo-1', 'pierogi', 'nauka', 'tramwaj-2', 'gry-1');
 /** Вернувшемуся — Бобек радуется и живёт польской жизнью: горы, кафе, кино, друзья. */
 const COMEBACK_IMAGES = ch('brawo-1', 'narty', 'kawiarnia', 'gry-3', 'termy', 'brawo-2', 'gry-1', 'kemping', 'pierogi', 'akwarium', 'kino', 'gry-2', 'sasiad', 'silownia', 'slang');
 /** Миссии — по теме; тема без своего набора — общий набор «жизнь в Польше». */
@@ -33,7 +36,7 @@ const MISSION_IMAGES: Record<string, string[]> = {
 const MISSION_DEFAULT = ch('lotnisko', 'muzeum', 'finanse', 'uniwersytet-1', 'straz-pozarna', 'akwarium', 'uniwersytet-2', 'biblioteka', 'kino', 'fryzjer', 'dentysta', 'likar-1', 'likar-2');
 
 /** Все картинки карточек (проверка, что файлы на месте). */
-export const CARD_IMAGES = [...new Set([...NEWCOMER_IMAGES, ...COMEBACK_IMAGES, ...Object.values(MISSION_IMAGES).flat(), ...MISSION_DEFAULT])];
+export const CARD_IMAGES = [...new Set([...START_IMAGES, ...NEWCOMER_IMAGES, ...COMEBACK_IMAGES, ...Object.values(MISSION_IMAGES).flat(), ...MISSION_DEFAULT])];
 
 /** Сколько вариантов текста у карточки этого вида. */
 export function cardVariants(_kind: EngageKind): number {
@@ -42,6 +45,7 @@ export function cardVariants(_kind: EngageKind): number {
 
 /** Набор картинок карточки (для миссии — по её теме). */
 function imagesOf(d: CardData): string[] {
+  if (d.kind === 'start') return START_IMAGES;
   if (d.kind === 'newcomer') return NEWCOMER_IMAGES;
   if (d.kind === 'comeback') return COMEBACK_IMAGES;
   return MISSION_IMAGES[d.category] ?? MISSION_DEFAULT;
@@ -69,6 +73,14 @@ export function cardToggle(lang: UiLang, enabled: boolean): { text: string; call
 /** `pick` — номер варианта (отправка передаёт `cardSeed`): текст — по модулю числа вариантов, картинка — по модулю набора. */
 export function cardView(d: CardData, lang: UiLang, pick = 0): { text: string; keyboard: InlineKeyboard; image: string } {
   const copy = ENGAGE_COPY[lang];
+  if (d.kind === 'start') {
+    // Первый вход в игру: приложение само создаст аккаунт и начнёт знакомство.
+    return {
+      text: h(copy.start(pick)),
+      image: variantOf(imagesOf(d), pick),
+      keyboard: { inline_keyboard: [[{ text: copy.startBtn, web_app: { url: screenUrlWith('home', { src: 'card_start' }) } }], [cardToggle(lang, true)]] },
+    };
+  }
   if (d.kind === 'newcomer') {
     return {
       text: h(d.left ? copy.newcomerLeft(d.left, pick) : copy.newcomerStart(pick)),

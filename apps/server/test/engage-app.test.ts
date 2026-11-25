@@ -75,4 +75,13 @@ describe('открытие карточки бота', () => {
     // Карточки нет — ничего не ломается.
     expect((await u.call('POST', '/api/engage/opened', { src: 'card_mission' })).status).toBe(200);
   });
+
+  it('карточка «Старт»: нажал в боте и впервые открыл игру — отметка у карточки (по Telegram ID)', async () => {
+    const u = await login();
+    const day = addDays(today(), -1);
+    await db.insert(engageSends).values({ day, telegramId: u.telegramId, userId: null, kind: 'start', lang: 'ru', status: 'SENT', sentAt: new Date() });
+    expect((await u.call('POST', '/api/engage/opened', { src: 'card_start' })).status).toBe(200);
+    const row = await db.select().from(engageSends).where(and(eq(engageSends.day, day), eq(engageSends.telegramId, u.telegramId))).get();
+    expect(row!.openedAt).toBeInstanceOf(Date);
+  });
 });

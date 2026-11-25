@@ -9,7 +9,7 @@ import { Funnel } from './charts';
 import { useFeedback } from './feedback';
 import { Badge, Card, DataTable, Empty, LoadError, PageHeader, Segmented, Skeleton, fmt, useLoad, type Col } from './ui';
 
-type Kind = 'newcomer' | 'comeback' | 'mission';
+type Kind = 'start' | 'newcomer' | 'comeback' | 'mission';
 type Lang = 'ru' | 'uk' | 'en';
 type KindStats = { sent: number; delivered: number; opened: number; studiedSameDay: number; optedOut48h: number; blocked48h: number };
 type Preview = { text: string; buttons: string[]; imageUrl: string; variants: { text: string; imageUrl: string }[] };
@@ -22,9 +22,11 @@ type Overview = {
   previews: Record<Lang, Record<Kind, Preview>>;
 };
 
+// Правила 2026-11-25 (владелец: «чтобы люди, которые не заходят в игру или нажали только «Старт», зашли в игру»).
 const KINDS: { kind: Kind; title: string; when: string }[] = [
-  { kind: 'comeback', title: 'Возвращение', when: 'на 7-й и 14-й день без занятий, подарок 50 злотков' },
-  { kind: 'newcomer', title: 'Новичок', when: 'на 1-й и 3-й день, пока первый урок не пройден (не больше 2)' },
+  { kind: 'start', title: 'Нажал «Старт», в игру не заходил', when: 'на 1-й, 3-й и 7-й день после «Старта», потом раз в неделю — всего не больше 3' },
+  { kind: 'comeback', title: 'Возвращение', when: 'на 3-й, 7-й, 14-й и 30-й день без занятий, дальше раз в месяц; с 7-го дня — подарок 50 злотков' },
+  { kind: 'newcomer', title: 'Новичок', when: 'зашёл в игру, урок не прошёл: на 1-й, 3-й и 7-й день, потом раз в неделю — всего не больше 3' },
   { kind: 'mission', title: 'Миссия недели', when: 'по субботам — активным игрокам, которые 14 дней не открывали миссий' },
 ];
 const TYPE_NAMES: Record<string, string> = {
@@ -57,7 +59,7 @@ export function EngageCards({ superadmin }: { superadmin: boolean }) {
   const [days, setDays] = useState(30);
   const [lang, setLang] = useState<Lang>('ru');
   /** Какой вариант карточки открыт (листается ‹ ›; «Прислать себе» шлёт его же). */
-  const [pick, setPick] = useState<Record<Kind, number>>({ newcomer: 0, comeback: 0, mission: 0 });
+  const [pick, setPick] = useState<Record<Kind, number>>({ start: 0, newcomer: 0, comeback: 0, mission: 0 });
   const flip = (kind: Kind, n: number, step: number) => setPick((p) => ({ ...p, [kind]: (p[kind] + step + n) % n }));
   const { data: o, error, loading, reload } = useLoad(() => api<Overview>(`/engage?days=${days}`), [days]);
   const { confirm, run, ask, toast } = useFeedback();
@@ -102,7 +104,7 @@ export function EngageCards({ superadmin }: { superadmin: boolean }) {
     <div className="space-y-5">
       <PageHeader
         title="Карточки бота"
-        subtitle="Одно сообщение в день: возвращение, новичок или миссия недели приходят вместо вопроса дня"
+        subtitle="Одно сообщение в день: «Старт», возвращение, новичок или миссия недели приходят вместо вопроса дня — чтобы люди зашли в игру"
         actions={<Segmented label="Период" value={days} onChange={setDays} options={[[7, '7 дней'], [30, '30 дней'], [90, '90 дней']]} />}
       />
 

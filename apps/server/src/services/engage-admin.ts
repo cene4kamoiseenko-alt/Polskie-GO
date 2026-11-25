@@ -154,6 +154,7 @@ const SAMPLE_MISSIONS = MISSIONS.filter((x) => !x.premium && !x.season && !x.cha
 
 /** Образец карточки для «как увидит игрок» и «прислать себе»; `i` — номер варианта: другая миссия, другие цифры. */
 export function sampleCard(kind: EngageKind, lang: UiLang, i = 0): CardData {
+  if (kind === 'start') return { kind };
   if (kind === 'newcomer') return { kind, left: null };
   if (kind === 'comeback') return { kind, ...SAMPLE_COMEBACK[i % SAMPLE_COMEBACK.length], gift: COMEBACK_GIFT };
   const m = SAMPLE_MISSIONS[i % SAMPLE_MISSIONS.length] ?? MISSIONS[0];

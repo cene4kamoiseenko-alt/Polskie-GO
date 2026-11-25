@@ -1200,7 +1200,8 @@ export const dailyQuizPeople = sqliteTable('daily_quiz_people', {
 // docs/superpowers/specs/2026-11-24-engagement-design.md: карточка (новичок, возвращение, миссия недели) приходит в слот вопроса дня
 // вместо него — одно сообщение в день.
 
-export const ENGAGE_KINDS = ['newcomer', 'comeback', 'mission'] as const;
+// 'start' (2026-11-25) — нажал «Старт» в боте, в игру не заходил. Колонка kind — текст без ограничения в базе: миграция не нужна.
+export const ENGAGE_KINDS = ['newcomer', 'comeback', 'mission', 'start'] as const;
 export type EngageKind = (typeof ENGAGE_KINDS)[number];
 
 /** Отправка карточки: одна на человека в день (захват строки, как у вопроса дня); opened_at — нажали кнопку карточки. */

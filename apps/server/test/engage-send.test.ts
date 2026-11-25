@@ -109,6 +109,28 @@ describe('карточки в рассылке вопроса дня', () => {
     expect(await sendRow('2026-12-04', u.telegramId)).toMatchObject({ kind: 'newcomer', variant: 'left' });
   });
 
+  // Владелец 2026-11-25: «люди, которые вообще не заходили, а нажали просто «Старт», должны зайти в игру».
+  it('нажал «Старт» в боте, в игру не заходил: на следующий день — карточка «Открой игру» вместо вопроса', async () => {
+    const tg = 777_123_001;
+    const started = new Date('2026-12-27T10:00:00Z');
+    await db.insert(botContacts).values({ telegramId: tg, firstName: 'Bot', languageCode: 'ru', firstSeenAt: started, lastSeenAt: started });
+    await launch('2026-12-28');
+    const calls = fakeTelegram();
+    await runDailyQuizTick(at('2026-12-28'));
+    const mine = toChat(calls, tg);
+    expect(mine).toHaveLength(1);
+    expect(mine[0].method).toBe('sendPhoto');
+    const open = (mine[0].params.reply_markup.inline_keyboard as { text: string; web_app?: { url: string } }[][]).flat()[0];
+    expect(open.web_app?.url).toContain('src=card_start');
+    expect(await sendRow('2026-12-28', tg)).toMatchObject({ kind: 'start', status: 'SENT', userId: null });
+    expect(await quizRow('2026-12-28', tg)).toBeUndefined();
+    // На второй день после «Старта» — обычный вопрос дня.
+    const next = fakeTelegram();
+    await launch('2026-12-29');
+    await runDailyQuizTick(at('2026-12-29'));
+    expect(toChat(next, tg)[0]?.params.caption).toContain('Pytanie dnia');
+  });
+
   it('сегодня был в приложении — вопрос, а не карточка', async () => {
     const u = await player('2026-11-29', { seen: new Date('2026-12-06T07:00:00Z') });
     await launch('2026-12-06');

@@ -33,6 +33,7 @@ const samples: CardData[] = [
   { kind: 'comeback', streakBest: 128, words: 1234, city: 'Gorzów Wielkopolski', gift: 50 },
   { kind: 'comeback', streakBest: 0, words: 0, city: null, gift: null },
   { kind: 'mission', slug: 'zabka-first-order', title: long, minutes: 12, category: 'shop' },
+  { kind: 'start' },
 ];
 type Btn = { text: string; web_app?: { url: string }; callback_data?: string };
 const buttons = (d: CardData, lang: (typeof LANGS)[number] = 'ru') => cardView(d, lang).keyboard.inline_keyboard.flat() as Btn[];
@@ -78,7 +79,19 @@ describe('карточки бота', () => {
     const ms = urlOf(samples[4]);
     expect(ms.searchParams.get('bot_screen')).toBe('life');
     expect(ms.searchParams.get('src')).toBe('card_mission');
+    // Нажал «Старт», в игру не заходил (владелец 2026-11-25): кнопка открывает игру с меткой card_start.
+    const st = urlOf(samples[5]);
+    expect(st.searchParams.get('src')).toBe('card_start');
     for (const d of samples) expect(buttons(d).at(-1)!.callback_data).toBe('eg:off');
+  });
+
+  it('карточка «Старт» зовёт в игру: первый урок, бесплатно, кнопка «Открыть игру» — во всех языках и вариантах', () => {
+    for (let v = 0; v < 3; v++) {
+      expect(cardView({ kind: 'start' }, 'ru', v).text, `ru v${v}`).toMatch(/урок/);
+      expect(cardView({ kind: 'start' }, 'uk', v).text, `uk v${v}`).toMatch(/урок/);
+      expect(cardView({ kind: 'start' }, 'en', v).text, `en v${v}`).toMatch(/lesson/i);
+    }
+    expect(buttons({ kind: 'start' }, 'ru')[0].text).toMatch(/Открыть игру/);
   });
 
   it('картинки — из запаса канала (public/channel), миссия — по теме, и все файлы есть', () => {

@@ -1,9 +1,15 @@
 /**
  * Какое сообщение бот присылает человеку сегодня (docs/superpowers/specs/2026-11-24-engagement-design.md, раздел 1).
- * Одно в день, по старшинству: возвращение (7-й и 14-й день без занятий) → новичок (1-й и 3-й день после регистрации, урок не пройден,
- * не больше двух) → миссия недели (суббота, активный игрок, миссий не открывал 14 дней) → вопрос дня. Карточки не приходят, пока
- * владелец не включил их в админке, без аккаунта, тому, кто их выключил, и тому, кто сегодня уже был в приложении. Две карточки
- * одного вида подряд без нажатия — этот вид молчит 30 дней. Чистая функция: данные собирает отправка (engage/send.ts).
+ * Цель (владелец 2026-11-25): «чтобы люди, которые не заходят в игру или вообще не заходили, а нажали просто «Старт», зашли в игру».
+ * Одно в день, по старшинству:
+ *  · «Старт» — нажал «Старт» в боте, в игру не заходил (нет аккаунта): 1-й, 3-й, 7-й день после «Старта», потом раз в неделю, всего 3;
+ *  · возвращение — занимался и пропал: 3-й, 7-й, 14-й, 30-й день без занятий, дальше раз в месяц;
+ *  · новичок — зашёл в игру, урок не прошёл: 1-й, 3-й, 7-й день после регистрации, потом раз в неделю, всего 3;
+ *  · миссия недели — суббота, активный игрок, миссий не открывал 14 дней;
+ *  · иначе вопрос дня.
+ * Карточки не приходят, пока владелец не включил их в админке, тому, кто их выключил, и тому, кто сегодня уже был в приложении.
+ * Три карточки «вернуть в игру» одного вида подряд без нажатия (миссия — две) — этот вид молчит 30 дней.
+ * Чистая функция: данные собирает отправка (engage/send.ts).
  */
 import { dayDiff } from '@polski-go/shared';
 import type { EngageKind } from '../../db/schema';
@@ -23,28 +29,59 @@ export type PickInput = {
   /** Открывал приложение в свой местный день. */
   seenToday: boolean;
   registeredDay: string | null;
+  /** Первый «Старт» в боте (день по Варшаве): для тех, кто в игру не заходил. */
+  contactDay: string | null;
   lessonsCompleted: number;
   lastActiveDay: string | null;
   history: CardHistory[];
   mission: MissionFacts | null;
 };
-export type DailyMessage = { kind: 'quiz' } | { kind: 'newcomer' } | { kind: 'comeback' } | { kind: 'mission'; mission: FreeMission };
+export type DailyMessage = { kind: 'quiz' } | { kind: 'start' } | { kind: 'newcomer' } | { kind: 'comeback' } | { kind: 'mission'; mission: FreeMission };
 
-export const COMEBACK_DAYS = [7, 14];
-export const NEWCOMER_DAYS = [1, 3];
-export const NEWCOMER_MAX = 2;
+export const COMEBACK_DAYS = [3, 7, 14, 30];
+/** Пропал больше 30 дней назад: карточка возвращения раз в столько дней. */
+export const COMEBACK_EVERY = 30;
+export const NEWCOMER_DAYS = [1, 3, 7];
+export const NEWCOMER_MAX = 3;
+export const START_DAYS = [1, 3, 7];
+export const START_MAX = 3;
+/** После первой недели — карточка «Старт» и новичка не чаще раза в столько дней. */
+export const WEEKLY = 7;
 export const MISSION_WEEKDAY = 6;
 export const MISSION_QUIET_DAYS = 14;
 /** «Активный на этой неделе» для миссии недели: занимался в последние 7 дней (сегодня и 6 дней до). */
 const ACTIVE_WINDOW_DAYS = 6;
 export const KIND_PAUSE_DAYS = 30;
+/** Сколько неоткрытых карточек вида подряд включают паузу: «вернуть в игру» — три, миссия недели — две. */
+const PAUSE_AFTER: Record<EngageKind, number> = { start: 3, newcomer: 3, comeback: 3, mission: 2 };
 
 const QUIZ: DailyMessage = { kind: 'quiz' };
 
-/** Две последние карточки вида не открыты, и последняя была меньше 30 дней назад. */
+/** Карточки вида, новые первыми. */
+const ofKind = (history: CardHistory[], kind: EngageKind) => history.filter((h) => h.kind === kind).sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+/** Сколько дней назад была последняя карточка вида (null — не было). */
+const daysSinceLast = (history: CardHistory[], kind: EngageKind, today: string) => {
+  const last = ofKind(history, kind)[0];
+  return last ? dayDiff(last.day, today) : null;
+};
+
+/**
+ * Карточка «по расписанию первой недели, потом раз в неделю, всего max»: `since` — дней с начала (регистрация или «Старт»).
+ * В первую неделю — в дни `days`; позже — если прошлой карточки этого вида не было или она была 7+ дней назад.
+ */
+function dueWeekly(history: CardHistory[], kind: EngageKind, today: string, since: number | null, days: number[], max: number): boolean {
+  if (since === null || since < 1) return false;
+  if (ofKind(history, kind).length >= max || kindPaused(history, kind, today)) return false;
+  if (since <= WEEKLY) return days.includes(since);
+  const last = daysSinceLast(history, kind, today);
+  return last === null || last >= WEEKLY;
+}
+
+/** Последние карточки вида (3, у миссии — 2) не открыты, и последняя была меньше 30 дней назад. */
 export function kindPaused(history: CardHistory[], kind: EngageKind, today: string): boolean {
-  const last = history.filter((h) => h.kind === kind).sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0)).slice(0, 2);
-  if (last.length < 2 || last.some((h) => h.opened)) return false;
+  const n = PAUSE_AFTER[kind];
+  const last = ofKind(history, kind).slice(0, n);
+  if (last.length < n || last.some((h) => h.opened)) return false;
   return dayDiff(last[0].day, today) < KIND_PAUSE_DAYS;
 }
 
@@ -61,15 +98,21 @@ export function needsMissionFacts(i: Omit<PickInput, 'history' | 'mission'>): bo
 }
 
 export function pickDailyMessage(i: PickInput): DailyMessage {
+  if (!i.enabled || i.optedOut || i.seenToday) return QUIZ;
+  // Нажал «Старт», в игру не заходил (аккаунта нет): позвать в игру.
+  if (!i.hasUser) {
+    const sinceStart = i.contactDay ? dayDiff(i.contactDay, i.today) : null;
+    return dueWeekly(i.history, 'start', i.today, sinceStart, START_DAYS, START_MAX) ? { kind: 'start' } : QUIZ;
+  }
   if (!cardsAllowed(i)) return QUIZ;
   const away = i.lastActiveDay ? dayDiff(i.lastActiveDay, i.today) : null;
-  if (away !== null && COMEBACK_DAYS.includes(away) && !kindPaused(i.history, 'comeback', i.today)) return { kind: 'comeback' };
+  if (away !== null && !kindPaused(i.history, 'comeback', i.today)) {
+    const last = daysSinceLast(i.history, 'comeback', i.today);
+    if (COMEBACK_DAYS.includes(away) || (away > COMEBACK_DAYS[COMEBACK_DAYS.length - 1] && (last === null || last >= COMEBACK_EVERY))) return { kind: 'comeback' };
+  }
 
   const sinceSignup = i.registeredDay ? dayDiff(i.registeredDay, i.today) : null;
-  const newcomerSent = i.history.filter((h) => h.kind === 'newcomer').length;
-  if (i.lessonsCompleted === 0 && sinceSignup !== null && NEWCOMER_DAYS.includes(sinceSignup) && newcomerSent < NEWCOMER_MAX && !kindPaused(i.history, 'newcomer', i.today)) {
-    return { kind: 'newcomer' };
-  }
+  if (i.lessonsCompleted === 0 && dueWeekly(i.history, 'newcomer', i.today, sinceSignup, NEWCOMER_DAYS, NEWCOMER_MAX)) return { kind: 'newcomer' };
 
   const m = i.mission;
   if (

@@ -15,6 +15,9 @@ export type EngageCopy = {
   newcomerStart: (v: number) => string;
   newcomerLeft: (left: number, v: number) => string;
   newcomerStartBtn: string;
+  /** Нажал «Старт» в боте, в игру не заходил (2026-11-25): позвать открыть игру. */
+  start: (v: number) => string;
+  startBtn: string;
   newcomerLeftBtn: string;
   comeback: (d: ComebackData, v: number) => string;
   comebackBtn: string;
@@ -75,6 +78,16 @@ const RU: EngageCopy = {
     );
   },
   newcomerStartBtn: '🚀 Начать урок',
+  start: (v) =>
+    variantOf(
+      [
+        '🦫 Cześć! Я Бобек — твой гид по Польше. Ты заглянул в бот, а в игру ещё не заходил. Первый урок — 3 минуты и бесплатно: научишься здороваться и заказывать кофе по-польски.',
+        '🦫 Польский по 5 минут в день — это реально. Открой игру: Варшава, первый урок и твой Бобек уже ждут. Бесплатно.',
+        '🦫 Ты нажал «Старт», но до игры не дошёл. Давай начнём с одного короткого урока: 3 минуты, простые задания, первые польские слова.',
+      ],
+      v,
+    ),
+  startBtn: '🎮 Открыть игру',
   newcomerLeftBtn: '▶️ Продолжить урок',
   comeback: comebackFrom({
     hello: ['Давно не виделись! 🦫', 'Бобек скучал! 🦫', 'Cześć! Бобек на связи 🦫'],
@@ -132,6 +145,16 @@ const UK: EngageCopy = {
     );
   },
   newcomerStartBtn: '🚀 Почати урок',
+  start: (v) =>
+    variantOf(
+      [
+        '🦫 Cześć! Я Бобек — твій гід Польщею. Ти зазирнув у бот, а в гру ще не заходив. Перший урок — 3 хвилини й безкоштовно: навчишся вітатися й замовляти каву польською.',
+        '🦫 Польська по 5 хвилин на день — це реально. Відкрий гру: Варшава, перший урок і твій Бобек уже чекають. Безкоштовно.',
+        '🦫 Ти натиснув «Старт», але до гри не дійшов. Почнімо з одного короткого уроку: 3 хвилини, прості завдання, перші польські слова.',
+      ],
+      v,
+    ),
+  startBtn: '🎮 Відкрити гру',
   newcomerLeftBtn: '▶️ Продовжити урок',
   comeback: comebackFrom({
     hello: ['Давно не бачилися! 🦫', 'Бобек сумував! 🦫', "Cześć! Бобек на зв'язку 🦫"],
@@ -189,6 +212,16 @@ const EN: EngageCopy = {
     );
   },
   newcomerStartBtn: '🚀 Start the lesson',
+  start: (v) =>
+    variantOf(
+      [
+        "🦫 Cześć! I'm Bobek, your guide to Poland. You looked into the bot but haven't opened the game yet. The first lesson takes 3 minutes and is free: learn to say hello and order coffee in Polish.",
+        '🦫 Polish in 5 minutes a day is doable. Open the game: Warsaw, your first lesson and Bobek are waiting. Free.',
+        "🦫 You pressed Start but never reached the game. Let's begin with one short lesson: 3 minutes, simple tasks, your first Polish words.",
+      ],
+      v,
+    ),
+  startBtn: '🎮 Open the game',
   newcomerLeftBtn: '▶️ Continue the lesson',
   comeback: comebackFrom({
     hello: ['Long time no see! 🦫', 'Bobek missed you! 🦫', 'Cześć! Bobek here 🦫'],

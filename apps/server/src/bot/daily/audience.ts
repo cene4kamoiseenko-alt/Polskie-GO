@@ -26,6 +26,8 @@ export type DailyPerson = {
   contactLang: string | null;
   blockedAt: Date | null;
   contactSeenAt: Date | null;
+  /** Первый «Старт» в боте (bot_contacts.first_seen_at): карточка «Старт» тем, кто в игру не заходил (2026-11-25). */
+  contactFirstSeenAt: Date | null;
   appSeenAt: Date | null;
   writeAllowedAt: Date | null;
   pushEnabled: boolean | null;
@@ -87,6 +89,7 @@ const toPerson = (r: Raw): DailyPerson => ({
   contactLang: (r.contact_lang as string | null) ?? null,
   blockedAt: date(r.blocked_at),
   contactSeenAt: date(r.contact_seen_at),
+  contactFirstSeenAt: date(r.contact_first_seen_at),
   appSeenAt: date(r.app_seen_at),
   writeAllowedAt: date(r.write_allowed_at),
   pushEnabled: r.push_enabled === null || r.push_enabled === undefined ? null : Number(r.push_enabled) === 1,
@@ -121,7 +124,7 @@ function selectPeople(after: number, limit: number) {
     )
     SELECT ids.telegram_id AS telegram_id, u.id AS user_id, u.is_banned AS banned, u.last_seen_at AS app_seen_at, w.allowed_at AS write_allowed_at, u.first_name AS u_first, u.username AS u_username,
       s.ui_language AS ui_language, s.timezone AS timezone,
-      c.language_code AS contact_lang, c.blocked_at AS blocked_at, c.last_seen_at AS contact_seen_at, c.first_name AS c_first, c.username AS c_username,
+      c.language_code AS contact_lang, c.blocked_at AS blocked_at, c.last_seen_at AS contact_seen_at, c.first_seen_at AS contact_first_seen_at, c.first_name AS c_first, c.username AS c_username,
       q.push_enabled AS push_enabled, d.ignored AS ignored, d.last_sent_at AS last_sent_at, d.no_chat_at AS no_chat_at,
       p.language_level AS language_level, p.study_level AS study_level, p.streak_current AS streak_current, p.last_active_day AS last_active_day,
       pr.placement_level AS placement_level, pr.self_level AS self_level,

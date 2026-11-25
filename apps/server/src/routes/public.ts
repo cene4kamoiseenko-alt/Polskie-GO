@@ -96,7 +96,7 @@ me.post('/flags/tour', async (c) => {
   return c.json({ ok: true });
 });
 me.post('/engage/opened', rateLimit(20, 60_000, 'engage-opened'), async (c) => {
-  const { src } = z.object({ src: z.enum(['card_newcomer', 'card_comeback', 'card_mission']) }).parse(await body(c));
+  const { src } = z.object({ src: z.enum(['card_newcomer', 'card_comeback', 'card_mission', 'card_start']) }).parse(await body(c));
   await markCardOpened(c.get('userId'), src.slice(5) as EngageKind);
   return c.json({ ok: true });
 });

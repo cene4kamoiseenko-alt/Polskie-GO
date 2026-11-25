@@ -56,6 +56,7 @@ export function pickInputFor(p: DailyPerson, now: Date, enabled: boolean, histor
     // «Сегодня был в игре»: вход сегодня или занятие сегодня (вход обновляется не при каждом открытии — приложение держит токен днями).
     seenToday: (!!p.appSeenAt && dayKey(p.appSeenAt, tz) === dayKey(now, tz)) || p.lastActiveDay === dayKey(now, tz),
     registeredDay: p.createdAt ? dayKey(p.createdAt, 'Europe/Warsaw') : null,
+    contactDay: p.contactFirstSeenAt ? dayKey(p.contactFirstSeenAt, 'Europe/Warsaw') : null,
     lessonsCompleted: p.lessonsCompleted,
     lastActiveDay: p.lastActiveDay,
     history,
@@ -87,6 +88,7 @@ export async function messageFor(p: DailyPerson, now: Date, history: CardHistory
 }
 
 async function cardData(p: DailyPerson, msg: Exclude<DailyMessage, { kind: 'quiz' }>, now: Date): Promise<{ data: CardData; variant: string | null }> {
+  if (msg.kind === 'start') return { data: { kind: 'start' }, variant: null };
   if (msg.kind === 'mission') {
     const m = msg.mission;
     return { data: { kind: 'mission', slug: m.slug, title: m.title, minutes: m.minutes, category: m.category }, variant: m.slug };

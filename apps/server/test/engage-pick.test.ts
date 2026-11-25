@@ -18,6 +18,7 @@ const base: PickInput = {
   optedOut: false,
   seenToday: false,
   registeredDay: '2026-10-01',
+  contactDay: '2026-10-01',
   lessonsCompleted: 5,
   lastActiveDay: '2026-12-04',
   history: [],
@@ -26,11 +27,12 @@ const base: PickInput = {
 const pick = (over: Partial<PickInput>) => pickDailyMessage({ ...base, ...over });
 
 describe('одно сообщение бота в день', () => {
-  it('выключено / нет аккаунта / выключил карточки / сегодня был в игре → вопрос', () => {
+  it('выключено / выключил карточки / сегодня был в игре → вопрос', () => {
     const away = { lastActiveDay: '2026-11-28' };
     expect(pick({ ...away })).toEqual({ kind: 'comeback' });
     expect(pick({ ...away, enabled: false })).toEqual({ kind: 'quiz' });
-    expect(pick({ ...away, hasUser: false })).toEqual({ kind: 'quiz' });
+    // Без аккаунта — своя карточка «Старт» (ниже); без даты «Старта» — вопрос.
+    expect(pick({ ...away, hasUser: false, contactDay: null })).toEqual({ kind: 'quiz' });
     expect(pick({ ...away, optedOut: true })).toEqual({ kind: 'quiz' });
     expect(pick({ ...away, seenToday: true })).toEqual({ kind: 'quiz' });
   });
@@ -42,17 +44,55 @@ describe('одно сообщение бота в день', () => {
     expect(pick({ lastActiveDay: '2026-11-29' })).toEqual({ kind: 'quiz' });
   });
 
-  it('новичок на 1-й и 3-й день, не больше двух карточек', () => {
+  // Владелец 2026-11-25: «нужно, чтобы люди, которые не заходят в игру, зашли» — новичку 1-й, 3-й, 7-й день, дальше раз в неделю, всего 3.
+  it('новичок (урок не пройден): 1-й, 3-й, 7-й день, потом раз в неделю; не больше трёх карточек', () => {
     const fresh = { lessonsCompleted: 0, lastActiveDay: null };
     expect(pick({ ...fresh, registeredDay: '2026-12-04' })).toEqual({ kind: 'newcomer' });
     expect(pick({ ...fresh, registeredDay: '2026-12-02' })).toEqual({ kind: 'newcomer' });
+    expect(pick({ ...fresh, registeredDay: '2026-11-28' })).toEqual({ kind: 'newcomer' });
     expect(pick({ ...fresh, registeredDay: '2026-12-03' })).toEqual({ kind: 'quiz' });
     expect(pick({ ...fresh, registeredDay: '2026-12-05' })).toEqual({ kind: 'quiz' });
-    const two: CardHistory[] = [
-      { kind: 'newcomer', day: '2026-12-03', opened: true },
-      { kind: 'newcomer', day: '2026-11-30', opened: true },
+    // Зарегистрировался давно и карточек не было — карточка; последняя была 3 дня назад — нет; 7 дней назад — да.
+    expect(pick({ ...fresh, registeredDay: '2026-11-01' })).toEqual({ kind: 'newcomer' });
+    expect(pick({ ...fresh, registeredDay: '2026-11-01', history: [{ kind: 'newcomer', day: '2026-12-02', opened: true }] })).toEqual({ kind: 'quiz' });
+    expect(pick({ ...fresh, registeredDay: '2026-11-01', history: [{ kind: 'newcomer', day: '2026-11-28', opened: true }] })).toEqual({ kind: 'newcomer' });
+    const three: CardHistory[] = [
+      { kind: 'newcomer', day: '2026-11-21', opened: true },
+      { kind: 'newcomer', day: '2026-11-14', opened: true },
+      { kind: 'newcomer', day: '2026-11-07', opened: true },
     ];
-    expect(pick({ ...fresh, registeredDay: '2026-12-04', history: two })).toEqual({ kind: 'quiz' });
+    expect(pick({ ...fresh, registeredDay: '2026-11-01', history: three })).toEqual({ kind: 'quiz' });
+  });
+
+  it('нажал «Старт» в боте, в игру не заходил: 1-й, 3-й, 7-й день после «Старта», потом раз в неделю; не больше трёх', () => {
+    const botOnly = { hasUser: false, lessonsCompleted: 0, lastActiveDay: null, registeredDay: null };
+    expect(pick({ ...botOnly, contactDay: '2026-12-04' })).toEqual({ kind: 'start' });
+    expect(pick({ ...botOnly, contactDay: '2026-12-02' })).toEqual({ kind: 'start' });
+    expect(pick({ ...botOnly, contactDay: '2026-11-28' })).toEqual({ kind: 'start' });
+    expect(pick({ ...botOnly, contactDay: '2026-12-03' })).toEqual({ kind: 'quiz' });
+    expect(pick({ ...botOnly, contactDay: '2026-12-05' })).toEqual({ kind: 'quiz' });
+    // Нажал давно: карточка раз в неделю, всего три.
+    expect(pick({ ...botOnly, contactDay: '2026-10-01' })).toEqual({ kind: 'start' });
+    expect(pick({ ...botOnly, contactDay: '2026-10-01', history: [{ kind: 'start', day: '2026-12-01', opened: false }] })).toEqual({ kind: 'quiz' });
+    expect(pick({ ...botOnly, contactDay: '2026-10-01', history: [{ kind: 'start', day: '2026-11-28', opened: false }] })).toEqual({ kind: 'start' });
+    const three: CardHistory[] = [
+      { kind: 'start', day: '2026-11-28', opened: true },
+      { kind: 'start', day: '2026-11-21', opened: true },
+      { kind: 'start', day: '2026-11-14', opened: true },
+    ];
+    expect(pick({ ...botOnly, contactDay: '2026-10-01', history: three })).toEqual({ kind: 'quiz' });
+    // Выключил карточки или всё выключено — вопрос дня, как раньше; без даты «Старта» — тоже вопрос.
+    expect(pick({ ...botOnly, contactDay: '2026-12-04', optedOut: true })).toEqual({ kind: 'quiz' });
+    expect(pick({ ...botOnly, contactDay: '2026-12-04', enabled: false })).toEqual({ kind: 'quiz' });
+    expect(pick({ ...botOnly, contactDay: null })).toEqual({ kind: 'quiz' });
+  });
+
+  it('пропал после уроков: 3-й, 7-й, 14-й, 30-й день, дальше раз в месяц', () => {
+    for (const d of ['2026-12-02', '2026-11-28', '2026-11-21', '2026-11-05']) expect(pick({ lastActiveDay: d }), d).toEqual({ kind: 'comeback' });
+    for (const d of ['2026-12-03', '2026-11-30', '2026-11-20']) expect(pick({ lastActiveDay: d }), d).toEqual({ kind: 'quiz' });
+    // Пропал давно: раз в месяц (последняя карточка возвращения — 31 день назад — да, 10 дней назад — нет).
+    expect(pick({ lastActiveDay: '2026-09-01', history: [{ kind: 'comeback', day: '2026-11-04', opened: false }] })).toEqual({ kind: 'comeback' });
+    expect(pick({ lastActiveDay: '2026-09-01', history: [{ kind: 'comeback', day: '2026-11-25', opened: false }] })).toEqual({ kind: 'quiz' });
   });
 
   it('старшинство: возвращение раньше новичка и миссии', () => {
@@ -71,7 +111,17 @@ describe('одно сообщение бота в день', () => {
     expect(pick({ lastActiveDay: '2026-11-27', lessonsCompleted: 3, mission: mission() })).toEqual({ kind: 'quiz' });
   });
 
-  it('две неоткрытые карточки вида подряд → этот вид молчит 30 дней', () => {
+  it('карточки «вернуть в игру» (старт, новичок, возвращение) молчат 30 дней после трёх неоткрытых подряд, а не двух', () => {
+    const two: CardHistory[] = [
+      { kind: 'comeback', day: '2026-11-28', opened: false },
+      { kind: 'comeback', day: '2026-11-21', opened: false },
+    ];
+    expect(kindPaused(two, 'comeback', '2026-12-05')).toBe(false);
+    expect(kindPaused([...two, { kind: 'comeback', day: '2026-11-05', opened: false }], 'comeback', '2026-12-05')).toBe(true);
+    expect(kindPaused([...two, { kind: 'comeback', day: '2026-11-05', opened: true }], 'comeback', '2026-12-05')).toBe(false);
+  });
+
+  it('две неоткрытые карточки миссии подряд → миссия молчит 30 дней', () => {
     const ignored: CardHistory[] = [
       { kind: 'mission', day: '2026-11-28', opened: false },
       { kind: 'mission', day: '2026-11-21', opened: false },
