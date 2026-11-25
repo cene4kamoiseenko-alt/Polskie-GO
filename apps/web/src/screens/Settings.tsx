@@ -28,6 +28,7 @@ import { speak, type SpeechOutcome } from '../lib/audio';
 import { PronHint } from '../components/PronHint';
 import { CopyCode } from '../components/CopyCode';
 import { Beaver } from '../components/Beaver';
+import { Art } from '../components/GameArt';
 
 /**
  * Значки только этого экрана — здесь, а не в общем Icon: экран грузится отдельным чанком, общий набор — в JS холодного старта
@@ -90,6 +91,19 @@ function SwapText({ value, className }: { value: string; className?: string }) {
         </motion.span>
       </AnimatePresence>
     </span>
+  );
+}
+
+/** Показатель в шапке: значок игры (растр), число, подпись. */
+function HeroStat({ k, art, value, label }: { k: string; art: 'flame' | 'coin' | 'star'; value: string; label: string }) {
+  return (
+    <div className="set-hero-stat" data-hero-stat={k}>
+      <Art name={art} size={24} />
+      <span className="min-w-0">
+        <span className="block truncate text-[15px] font-black leading-tight tabular-nums">{value}</span>
+        <span className="block truncate text-[11px] font-bold leading-tight opacity-80">{label}</span>
+      </span>
+    </div>
   );
 }
 
@@ -332,14 +346,22 @@ export default function SettingsScreen() {
     <div className="space-y-5 px-4 pb-10">
       <ScreenHeader title={t('set_title')} />
 
-      {/* Шапка: Бобек игрока, имена; карандаш — шторка профиля. */}
+      {/* Шапка: Бобек игрока, имена; карандаш — шторка профиля. Внизу — серия, злотки и опыт во всю ширину (владелец 2026-11-25:
+          справа было много пустого места). Бобек «стоит» на полосе показателей. */}
       <section className="set-hero" data-settings-hero aria-label={t('set_profile_title')}>
-        <div className="set-hero-beaver">
-          <Beaver mood="happy" size={104} />
+        <div className="relative flex items-end gap-1 pr-14">
+          <div className="set-hero-beaver">
+            <Beaver mood="happy" size={96} />
+          </div>
+          <div className="min-w-0 flex-1 pb-3 pt-5">
+            <div className="truncate text-[23px] font-black leading-tight">{me.profile.displayName || t('set_player')}</div>
+            <div className="set-hero-chip mt-1.5">{t('set_hero_bobek', { name: me.profile.beaverName })}</div>
+          </div>
         </div>
-        <div className="relative min-w-0 flex-1 py-4 pr-2">
-          <div className="truncate text-[23px] font-black leading-tight">{me.profile.displayName || t('set_player')}</div>
-          <div className="set-hero-chip mt-1.5">{t('set_hero_bobek', { name: me.profile.beaverName })}</div>
+        <div className="set-hero-stats">
+          <HeroStat k="streak" art="flame" value={t('set_stat_days', { n: me.progress.streak })} label={t('set_stat_streak')} />
+          <HeroStat k="zlotki" art="coin" value={me.zlotki.toLocaleString(lang)} label={t('set_stat_zlotki')} />
+          <HeroStat k="xp" art="star" value={me.progress.xpTotal.toLocaleString(lang)} label={t('set_stat_xp')} />
         </div>
         <button type="button" className="set-hero-edit" data-edit-profile aria-label={t('set_profile_edit')} onClick={() => { haptic.tap(); setSheet('profile'); }}>
           <SetIcon name="pencil" size={19} strokeWidth={2.4} />

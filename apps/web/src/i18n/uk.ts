@@ -880,6 +880,10 @@ export const uk = {
   set_group_notify: 'Сповіщення і звук',
   set_group_account: 'Акаунт',
   set_theme_hint: 'Тема змінюється одразу — дивись на екран.',
+  set_stat_streak: 'Серія',
+  set_stat_days: '{n} дн.',
+  set_stat_zlotki: 'Злотки',
+  set_stat_xp: 'Досвід',
 
   empty_generic: 'Тут поки порожньо',
   toast_saved: 'Збережено',

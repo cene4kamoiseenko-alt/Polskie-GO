@@ -71,6 +71,14 @@ async function main() {
       check((await hero.count()) === 1 && (await hero.locator('[data-look]').count()) > 0, `${tag}: шапка с Бобеком в образе игрока`);
       const heroText = (await hero.innerText().catch(() => '')).replace(/\s+/g, ' ');
       check(/Ania/.test(heroText) && /Bobek/.test(heroText), `${tag}: в шапке имя игрока и имя Бобека (${heroText.slice(0, 60)})`);
+      // Владелец 2026-11-25: «много свободного места» — в шапке три показателя игрока: серия, злотки, опыт; без пустой правой половины.
+      const stats = await p.evaluate(() => {
+        const hero = document.querySelector('[data-settings-hero]')?.getBoundingClientRect();
+        const cells = [...document.querySelectorAll('[data-hero-stat]')].map((el) => ({ k: (el as HTMLElement).dataset.heroStat, text: (el as HTMLElement).innerText.replace(/\s+/g, ' '), r: el.getBoundingClientRect() }));
+        const right = cells.length ? Math.max(...cells.map((c) => c.r.right)) : 0;
+        return { keys: cells.map((c) => c.k).join(','), texts: cells.map((c) => c.text).join(' | '), filled: !!hero && right >= hero.right - 24 };
+      });
+      check(stats.keys === 'streak,zlotki,xp' && stats.filled, `${tag}: в шапке серия, злотки и опыт во всю ширину (${stats.keys}; ${stats.texts})`);
 
       // Плитки
       const tile = (k: string) => p.locator(`[data-setting-tile="${k}"]`);

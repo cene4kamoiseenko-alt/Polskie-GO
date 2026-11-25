@@ -3017,10 +3017,7 @@ html.reduced-motion .combo-sheen::after { animation: none; display: none; }
 .set-hero {
   position: relative;
   display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  min-height: 128px;
-  padding: 0 14px 0 6px;
+  flex-direction: column;
   border-radius: 28px;
   overflow: hidden;
   color: #fff;
@@ -3030,7 +3027,29 @@ html.reduced-motion .combo-sheen::after { animation: none; display: none; }
     linear-gradient(135deg, #0f3f6c 0%, #155e98 55%, #13706b 100%);
   box-shadow: 0 18px 36px -20px rgb(10 50 90 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.18);
 }
-.set-hero-beaver { position: relative; flex: none; margin-bottom: -6px; filter: drop-shadow(0 8px 12px rgb(0 0 0 / 0.35)); }
+.set-hero-beaver { position: relative; flex: none; margin: 0 0 -2px 8px; filter: drop-shadow(0 8px 12px rgb(0 0 0 / 0.35)); }
+/* Полоса показателей: серия, злотки, опыт — стекло на градиенте шапки, на ней «стоит» Бобек. */
+.set-hero-stats {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+  background: rgb(4 20 40 / 0.32);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.set-hero-stat {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
 .set-hero-chip {
   display: inline-flex;
   max-width: 100%;
