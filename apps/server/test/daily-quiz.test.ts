@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../src/db';
 import { botContacts, botQuizPlayers, dailyQuizPeople, dailyQuizPlan, dailyQuizQuestions, dailyQuizSends, playerProgress, userProfiles, userSettings, users } from '../src/db/schema';
-import { allPeople, dailyAudience, dailyEligibility, quizLevel, type DailyPerson } from '../src/bot/daily/audience';
+import { allPeople, dailyAudience, dailyEligibility, personByTelegramId, personLevel, quizLevel, type DailyPerson } from '../src/bot/daily/audience';
 import { DAILY_CRON, runDailyQuizTick } from '../src/bot/daily/send';
 import worker from '../src/worker';
 import { readDailyRun } from '../src/bot/daily/state';
@@ -156,7 +156,7 @@ async function appPlayer(placement: 'A1' | 'A2' | 'B1' | null = null) {
 
 const person = (p: Partial<DailyPerson>): DailyPerson => ({
   telegramId: 1, userId: null, banned: false, uiLanguage: null, contactLang: 'uk', blockedAt: null, contactSeenAt: longAgo, appSeenAt: null, writeAllowedAt: null,
-  pushEnabled: null, ignored: 0, lastSentAt: null, noChatAt: null, languageLevel: null, placementLevel: null, selfLevel: null,
+  pushEnabled: null, ignored: 0, lastSentAt: null, noChatAt: null, languageLevel: null, placementLevel: null, selfLevel: null, studyLevel: null,
   streakCurrent: null, lastActiveDay: null, timezone: null, firstName: '', username: null, createdAt: null, lessonsCompleted: 0, cardOptedOutAt: null, ...p,
 });
 
@@ -183,6 +183,23 @@ describe('кто получает', () => {
     expect(quizLevel('A0', 'A2', null)).toBe('A2');
     expect(quizLevel('B1', 'A1', null)).toBe('B1');
     expect(quizLevel('A0', null, 'B2')).toBe('B1');
+  });
+
+  // Владелец 2026-11-25: «если выбрать в настройках уровень B1, вопросы в боте будут B1?» — да: выбор в настройках важнее всего.
+  it('уровень из настроек («Уровень заданий») важнее экзамена, теста и самооценки; B2 — вопросы B1', () => {
+    expect(quizLevel('A1', 'A1', 'A1', 'B1')).toBe('B1');
+    expect(quizLevel('B1', 'B1', null, 'A2')).toBe('A2');
+    expect(quizLevel(null, null, null, 'B2')).toBe('B1');
+    expect(quizLevel('A2', null, null, null)).toBe('A2');
+    expect(personLevel(person({ placementLevel: 'A1', studyLevel: 'B1' }))).toBe('B1');
+  });
+
+  it('из базы: уровень заданий игрока попадает в рассылку вопроса дня', async () => {
+    const u = await appPlayer('A1');
+    await db.update(playerProgress).set({ studyLevel: 'B1' }).where(eq(playerProgress.userId, u.user.id));
+    const p = await personByTelegramId(u.telegramId);
+    expect(p?.studyLevel).toBe('B1');
+    expect(personLevel(p!)).toBe('B1');
   });
 
   it('из базы: только писал боту, игрок с выключенными напоминаниями — получают; гость, бан, блок, «не присылать», «нет чата» — нет', async () => {

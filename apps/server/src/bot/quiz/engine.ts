@@ -90,9 +90,17 @@ const LEVEL_WEIGHTS: Record<'low' | 'mid' | 'high', Record<QuizQuestion['cefr'],
   high: { A1: 1, A2: 4, B1: 5 },
 };
 const band = (level: string | null) => (level === 'B1' || level === 'B2' ? 'high' : level === 'A2' ? 'mid' : 'low');
+/**
+ * Уровень, выбранный в настройках («Уровень заданий», владелец 2026-11-25): почти только вопросы этого уровня.
+ * B1/B2 — около 3/4 вопросов B1 и 1/4 A2, без A1 (вопросов B2 в банке нет); A2 — в основном A2.
+ */
+const CHOSEN_WEIGHTS: Record<'mid' | 'high', Record<QuizQuestion['cefr'], number>> = {
+  mid: { A1: 1, A2: 4, B1: 1 },
+  high: { A1: 0, A2: 1, B1: 3 },
+};
 
 /** Вопрос под уровень: без недавних и, если можно, не из темы прошлого вопроса. */
-export function pickQuestion(recent: string[], level: string | null, rnd: () => number = Math.random, exclude: Set<string> = new Set()): QuizQuestion {
+export function pickQuestion(recent: string[], level: string | null, rnd: () => number = Math.random, exclude: Set<string> = new Set(), chosen = false): QuizQuestion {
   const seen = new Set(recent);
   const lastCategory = recent.length ? QUESTION_BY_ID.get(recent[recent.length - 1])?.category : undefined;
   // Выключенные в админке вопросы не задаются (если выключено всё — банк целиком, чтобы /quiz не сломался).
@@ -102,8 +110,11 @@ export function pickQuestion(recent: string[], level: string | null, rnd: () => 
   if (!pool.length) pool = all.filter((x) => x.id !== recent[recent.length - 1]);
   const otherTopic = pool.filter((x) => x.category !== lastCategory);
   if (otherTopic.length) pool = otherTopic;
-  const weights = LEVEL_WEIGHTS[band(level)];
+  const b = band(level);
+  const weights = chosen && b !== 'low' ? CHOSEN_WEIGHTS[b] : LEVEL_WEIGHTS[b];
   const total = pool.reduce((s, x) => s + weights[x.cefr], 0);
+  // Все подходящие по уровню уже были недавно — любой из оставшихся, лишь бы не повторяться.
+  if (total <= 0) return pool[Math.floor(rnd() * pool.length)];
   let r = rnd() * total;
   for (const x of pool) {
     r -= weights[x.cefr];
@@ -112,14 +123,18 @@ export function pickQuestion(recent: string[], level: string | null, rnd: () => 
   return pool[pool.length - 1];
 }
 
-/** Уровень ученика: подтверждённый экзаменом, иначе результат вступительного теста или самооценка. */
-async function levelOf(userId: string): Promise<string | null> {
+/**
+ * Уровень ученика для /quiz: «Уровень заданий» из настроек (chosen — выбран самим игроком, владелец 2026-11-25),
+ * иначе подтверждённый экзаменом, иначе результат вступительного теста или самооценка.
+ */
+export async function quizLevelOf(userId: string): Promise<{ level: string | null; chosen: boolean }> {
   const [p, prof] = await Promise.all([
-    db.select({ level: playerProgress.languageLevel }).from(playerProgress).where(eq(playerProgress.userId, userId)).get(),
+    db.select({ level: playerProgress.languageLevel, study: playerProgress.studyLevel }).from(playerProgress).where(eq(playerProgress.userId, userId)).get(),
     db.select({ placement: userProfiles.placementLevel, self: userProfiles.selfLevel }).from(userProfiles).where(eq(userProfiles.userId, userId)).get(),
   ]);
-  if (p?.level && p.level !== 'A0') return p.level;
-  return prof?.placement ?? prof?.self ?? null;
+  if (p?.study) return { level: p.study, chosen: true };
+  if (p?.level && p.level !== 'A0') return { level: p.level, chosen: false };
+  return { level: prof?.placement ?? prof?.self ?? null, chosen: false };
 }
 
 export type QuizTarget = { telegramId: number; chatId: number; lang: UiLang; user: BotUser | null; source: 'command' | 'push' | 'next' };
@@ -140,7 +155,8 @@ export async function startQuiz(t: QuizTarget, now = new Date()): Promise<StartR
   const recent = player?.recent ?? [];
   // Таблица выключателей — из миграции 0018: до её применения /quiz работает со всем банком.
   const disabled = await disabledQuestionIds().catch(() => new Set<string>());
-  const question = pickQuestion(recent, t.user ? await levelOf(t.user.id).catch(() => null) : null, Math.random, disabled);
+  const lv = t.user ? await quizLevelOf(t.user.id).catch(() => null) : null;
+  const question = pickQuestion(recent, lv?.level ?? null, Math.random, disabled, lv?.chosen ?? false);
   const order = shuffle([...optionsOf(question, t.lang).keys()]);
   const nextRecent = [...recent.filter((id) => id !== question.id), question.id].slice(-RECENT_KEEP);
   const nowMs = now.getTime();

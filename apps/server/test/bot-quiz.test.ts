@@ -12,7 +12,7 @@ import imageVersions from '../src/bot/image-versions.json';
 import { botContacts, botQuizPlayers, botQuizRounds, dailyActivity, notificationLog, playerProgress, quests, userQuests, userSettings, xpEvents } from '../src/db/schema';
 import { QUIZ_COPY } from '../src/bot/quiz/copy';
 import { inviteHour, sendQuizInvites } from '../src/bot/quiz/invites';
-import { inviteAllowed, LETTERS, pickQuestion, questionView, quizGate, QUIZ_DAILY_CAP, QUIZ_MIN_GAP_MS, QUIZ_PUSH_GAP_MS, QUIZ_REWARDED_MAX, QUIZ_XP, resultView, rewardsLeft } from '../src/bot/quiz/engine';
+import { inviteAllowed, LETTERS, pickQuestion, questionView, quizGate, quizLevelOf, QUIZ_DAILY_CAP, QUIZ_MIN_GAP_MS, QUIZ_PUSH_GAP_MS, QUIZ_REWARDED_MAX, QUIZ_XP, resultView, rewardsLeft } from '../src/bot/quiz/engine';
 import { CATEGORY_NAMES, QUESTION_BY_ID, QUIZ_QUESTIONS, optionsOf } from '../src/bot/quiz/questions';
 import { disposeEnv, getEnv, login, request } from './helpers';
 import { fakeTelegram, tgError, type TgCall } from './tg-fake';
@@ -110,6 +110,26 @@ describe('банк вопросов', () => {
     for (let i = 0; i < 50; i++) expect(pickQuestion([last.id], null).category).not.toBe(lastCat[0].category);
     const share = (level: string) => Array.from({ length: 400 }, () => pickQuestion([], level)).filter((q) => q.cefr === 'B1').length;
     expect(share('B1')).toBeGreaterThan(share('A1'));
+  });
+
+  // Владелец 2026-11-25: уровень, выбранный в настройках, — почти только вопросы этого уровня.
+  it('уровень из настроек: B1 — около 3/4 вопросов B1, остальное A2, без A1; A2 — в основном A2', () => {
+    const picks = (level: string) => Array.from({ length: 600 }, () => pickQuestion([], level, Math.random, new Set(), true));
+    const b1 = picks('B1');
+    expect(b1.filter((q) => q.cefr === 'A1')).toHaveLength(0);
+    expect(b1.filter((q) => q.cefr === 'B1').length / b1.length).toBeGreaterThan(0.62);
+    const b2 = picks('B2');
+    expect(b2.filter((q) => q.cefr === 'A1')).toHaveLength(0);
+    const a2 = picks('A2');
+    expect(a2.filter((q) => q.cefr === 'A2').length / a2.length).toBeGreaterThan(0.5);
+  });
+
+  it('уровень игрока для /quiz: уровень заданий из настроек важнее экзамена и теста', async () => {
+    const u = await login();
+    await db.update(playerProgress).set({ languageLevel: 'A1', studyLevel: 'B1' }).where(eq(playerProgress.userId, u.user.id));
+    expect(await quizLevelOf(u.user.id)).toEqual({ level: 'B1', chosen: true });
+    await db.update(playerProgress).set({ studyLevel: null }).where(eq(playerProgress.userId, u.user.id));
+    expect(await quizLevelOf(u.user.id)).toEqual({ level: 'A1', chosen: false });
   });
 });
 

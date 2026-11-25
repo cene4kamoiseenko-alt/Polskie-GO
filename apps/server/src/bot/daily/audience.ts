@@ -35,6 +35,8 @@ export type DailyPerson = {
   languageLevel: string | null;
   placementLevel: string | null;
   selfLevel: string | null;
+  /** «Уровень заданий» из настроек (A2/B1/B2, 2026-11-16): выбор игрока важнее всего остального (владелец 2026-11-25). */
+  studyLevel: string | null;
   streakCurrent: number | null;
   lastActiveDay: string | null;
   timezone: string | null;
@@ -61,15 +63,18 @@ export function dailyEligibility(p: DailyPerson): Eligibility {
   return 'ok';
 }
 
-/** Уровень вопроса: подтверждённый экзаменом (кроме A0), иначе вступительный тест или самооценка; без уровня — A1. */
-export function quizLevel(languageLevel: string | null, placement: string | null, self: string | null): DailyLevel {
-  const level = languageLevel && languageLevel !== 'A0' ? languageLevel : (placement ?? self);
+/**
+ * Уровень вопроса: «Уровень заданий» из настроек, иначе подтверждённый экзаменом (кроме A0), иначе вступительный тест
+ * или самооценка; без уровня — A1. Вопросов B2 нет — B2 и выше получают B1.
+ */
+export function quizLevel(languageLevel: string | null, placement: string | null, self: string | null, study: string | null = null): DailyLevel {
+  const level = study ?? (languageLevel && languageLevel !== 'A0' ? languageLevel : (placement ?? self));
   if (level === 'A2') return 'A2';
   if (level && ['B1', 'B2', 'C1', 'C2'].includes(level)) return 'B1';
   return 'A1';
 }
 
-export const personLevel = (p: DailyPerson) => quizLevel(p.languageLevel, p.placementLevel, p.selfLevel);
+export const personLevel = (p: DailyPerson) => quizLevel(p.languageLevel, p.placementLevel, p.selfLevel, p.studyLevel);
 export const personLang = (p: DailyPerson): UiLang => pickLang(p.uiLanguage, p.contactLang);
 
 type Raw = Record<string, number | string | null>;
@@ -91,6 +96,7 @@ const toPerson = (r: Raw): DailyPerson => ({
   languageLevel: (r.language_level as string | null) ?? null,
   placementLevel: (r.placement_level as string | null) ?? null,
   selfLevel: (r.self_level as string | null) ?? null,
+  studyLevel: (r.study_level as string | null) ?? null,
   streakCurrent: r.streak_current === null || r.streak_current === undefined ? null : Number(r.streak_current),
   lastActiveDay: (r.last_active_day as string | null) ?? null,
   timezone: (r.timezone as string | null) ?? null,
@@ -117,7 +123,7 @@ function selectPeople(after: number, limit: number) {
       s.ui_language AS ui_language, s.timezone AS timezone,
       c.language_code AS contact_lang, c.blocked_at AS blocked_at, c.last_seen_at AS contact_seen_at, c.first_name AS c_first, c.username AS c_username,
       q.push_enabled AS push_enabled, d.ignored AS ignored, d.last_sent_at AS last_sent_at, d.no_chat_at AS no_chat_at,
-      p.language_level AS language_level, p.streak_current AS streak_current, p.last_active_day AS last_active_day,
+      p.language_level AS language_level, p.study_level AS study_level, p.streak_current AS streak_current, p.last_active_day AS last_active_day,
       pr.placement_level AS placement_level, pr.self_level AS self_level,
       u.created_at AS created_at, p.lessons_completed AS lessons_completed, e.opted_out_at AS card_opted_out_at
     FROM ids
