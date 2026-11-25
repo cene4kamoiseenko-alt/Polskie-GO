@@ -3014,70 +3014,43 @@ html.reduced-motion .combo-sheen::after { animation: none; display: none; }
 /* ── Настройки: вариант В с выбором из Б (владелец 2026-11-24) ──
    Шапка с Бобеком, плитки 2×2, сгруппированные строки с цветными значками, шторки выбора. Тени вместо рамок (design-motion-principles,
    «Jakub»), нажатие — лёгкое сжатие, без бесконечных анимаций. */
-.set-hero {
-  position: relative;
+.set-account {
   display: flex;
-  flex-direction: column;
-  border-radius: 28px;
-  overflow: hidden;
-  color: #fff;
-  background:
-    radial-gradient(120% 90% at 0% 100%, rgb(255 255 255 / 0.16), transparent 60%),
-    radial-gradient(80% 80% at 100% 0%, rgb(69 196 134 / 0.45), transparent 65%),
-    linear-gradient(135deg, #0f3f6c 0%, #155e98 55%, #13706b 100%);
-  box-shadow: 0 18px 36px -20px rgb(10 50 90 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.18);
-}
-.set-hero-beaver { position: relative; flex: none; margin: 0 0 -2px 8px; filter: drop-shadow(0 8px 12px rgb(0 0 0 / 0.35)); }
-/* Полоса показателей: серия, злотки, опыт — стекло на градиенте шапки, на ней «стоит» Бобек. */
-.set-hero-stats {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  padding: 8px;
-  background: rgb(4 20 40 / 0.32);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-.set-hero-stat {
-  display: flex;
-  min-width: 0;
+  width: 100%;
   align-items: center;
-  gap: 7px;
-  padding: 7px 8px;
-  border-radius: 14px;
-  background: rgb(255 255 255 / 0.1);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  gap: 14px;
+  padding: 12px 14px 12px 12px;
+  border-radius: 24px;
+  text-align: left;
+  background: linear-gradient(180deg, var(--bg-elev-2), var(--bg-elev));
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--surface-ring);
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
 }
-.set-hero-chip {
-  display: inline-flex;
-  max-width: 100%;
-  padding: 4px 11px;
+.set-account:active { transform: scale(0.98); }
+/* Бобек в круге: голова и плечи в костюме игрока. */
+.set-account-avatar {
+  position: relative;
+  flex: none;
+  width: 64px;
+  height: 64px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 800;
-  background: rgb(0 0 0 / 0.26);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  background: radial-gradient(circle at 50% 30%, #2f8fd6 0%, #155e98 60%, #0f3f6c 100%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 70%, transparent), 0 6px 14px -6px rgb(0 0 0 / 0.5);
 }
-.set-hero-edit {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+.set-account-beaver { position: absolute; left: 50%; top: 5px; transform: translateX(-50%); }
+.set-account-edit {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
-  color: #fff;
-  background: rgb(255 255 255 / 0.16);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
-  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 140ms;
+  color: var(--text-muted);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
-.set-hero-edit:active { transform: scale(0.92); background: rgb(255 255 255 / 0.26); }
 
 .set-tile {
   display: flex;

@@ -71,14 +71,14 @@ async function main() {
       check((await hero.count()) === 1 && (await hero.locator('[data-look]').count()) > 0, `${tag}: шапка с Бобеком в образе игрока`);
       const heroText = (await hero.innerText().catch(() => '')).replace(/\s+/g, ' ');
       check(/Ania/.test(heroText) && /Bobek/.test(heroText), `${tag}: в шапке имя игрока и имя Бобека (${heroText.slice(0, 60)})`);
-      // Владелец 2026-11-25: «много свободного места» — в шапке три показателя игрока: серия, злотки, опыт; без пустой правой половины.
-      const stats = await p.evaluate(() => {
-        const hero = document.querySelector('[data-settings-hero]')?.getBoundingClientRect();
-        const cells = [...document.querySelectorAll('[data-hero-stat]')].map((el) => ({ k: (el as HTMLElement).dataset.heroStat, text: (el as HTMLElement).innerText.replace(/\s+/g, ' '), r: el.getBoundingClientRect() }));
-        const right = cells.length ? Math.max(...cells.map((c) => c.r.right)) : 0;
-        return { keys: cells.map((c) => c.k).join(','), texts: cells.map((c) => c.text).join(' | '), filled: !!hero && right >= hero.right - 24 };
+      // Владелец 2026-11-25: шапка с показателями «выглядит как в профиле» — в настройках компактная строка аккаунта, как в настройках
+      // телефона: Бобек в круге, имя, имя Бобека; вся строка открывает профиль; без серии, злотков и опыта.
+      const acc = await p.evaluate(() => {
+        const el = document.querySelector('[data-settings-hero]') as HTMLElement | null;
+        const r = el?.getBoundingClientRect();
+        return { tag: el?.tagName ?? '', edit: el?.hasAttribute('data-edit-profile') ?? false, h: r?.height ?? 0, stats: document.querySelectorAll('[data-hero-stat]').length, avatar: !!el?.querySelector('[data-hero-avatar] [data-look]') };
       });
-      check(stats.keys === 'streak,zlotki,xp' && stats.filled, `${tag}: в шапке серия, злотки и опыт во всю ширину (${stats.keys}; ${stats.texts})`);
+      check(acc.tag === 'BUTTON' && acc.edit && acc.avatar && acc.stats === 0 && acc.h > 0 && acc.h <= 96, `${tag}: шапка — компактная строка аккаунта (Бобек в круге, вся строка открывает профиль, без показателей; ${Math.round(acc.h)} px)`);
 
       // Плитки
       const tile = (k: string) => p.locator(`[data-setting-tile="${k}"]`);
