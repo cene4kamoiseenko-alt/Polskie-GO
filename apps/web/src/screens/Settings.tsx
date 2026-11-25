@@ -29,6 +29,32 @@ import { PronHint } from '../components/PronHint';
 import { CopyCode } from '../components/CopyCode';
 import { Beaver } from '../components/Beaver';
 
+/**
+ * Значки только этого экрана — здесь, а не в общем Icon: экран грузится отдельным чанком, общий набор — в JS холодного старта
+ * (бюджет scripts/perf.ts). Рисуются так же, как Icon: контур 24×24, currentColor.
+ */
+const GLYPHS = {
+  globe: <><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5z" /></>,
+  palette: <><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.1-1.6-1.1-2.7 0-1 .8-1.6 1.8-1.6h2.1a3.9 3.9 0 003.9-3.9c0-4-3.8-7.1-8.5-7.1z" /><circle cx="7.8" cy="11" r="1.1" /><circle cx="10.5" cy="7.6" r="1.1" /><circle cx="15" cy="8.2" r="1.1" /></>,
+  pencil: <><path d="M4.5 19.5l1-4L16 5a2.1 2.1 0 013 3L8.5 18.5z" /><path d="M14 7l3 3" /></>,
+  download: <><path d="M12 4v11" /><path d="M7.5 10.5L12 15l4.5-4.5" /><path d="M5 19.5h14" /></>,
+  trash: <><path d="M4.5 7h15" /><path d="M9.5 7V5h5v2" /><path d="M6.5 7l1 12.5h9l1-12.5" /></>,
+  bell: <><path d="M6 16.5V11a6 6 0 0112 0v5.5l1.5 1.5h-15z" /><path d="M10 20.5a2 2 0 004 0" /></>,
+  volume: <><path d="M4.5 9.5h3.5L12.5 6v12L8 14.5H4.5z" /><path d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11" /></>,
+  eye: <><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" /><circle cx="12" cy="12" r="2.8" /></>,
+  sparkles: <><path d="M12 4l1.8 4.7 4.7 1.8-4.7 1.8L12 17l-1.8-4.7-4.7-1.8 4.7-1.8z" /><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" /></>,
+} satisfies Record<string, ReactNode>;
+type Glyph = LineIconName | keyof typeof GLYPHS;
+
+function SetIcon({ name, size, strokeWidth = 2 }: { name: Glyph; size: number; strokeWidth?: number }) {
+  if (!(name in GLYPHS)) return <Icon name={name as LineIconName} size={size} strokeWidth={strokeWidth} />;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {GLYPHS[name as keyof typeof GLYPHS]}
+    </svg>
+  );
+}
+
 type Tone = 'sky' | 'violet' | 'orange' | 'green' | 'red' | 'pink' | 'teal' | 'amber' | 'slate' | 'blue';
 type Patch = Partial<Me['settings']> & { dailyQuiz?: boolean };
 
@@ -38,10 +64,10 @@ const GOALS: [number, TKey][] = [[5, 'set_goal_easy'], [10, 'set_goal_normal'], 
 const LEVELS: ['base' | StudyLevel, string][] = [['base', ''], ['A2', 'A2'], ['B1', 'B1'], ['B2', 'B2']];
 const SPRING = { type: 'spring', duration: 0.42, bounce: 0.12 } as const;
 
-function IconChip({ icon, tone, size = 34 }: { icon: LineIconName; tone: Tone; size?: number }) {
+function IconChip({ icon, tone, size = 34 }: { icon: Glyph; tone: Tone; size?: number }) {
   return (
     <span className={cx('set-chip grid shrink-0 place-items-center rounded-[11px] text-white', `tone-${tone}`)} style={{ width: size, height: size }} aria-hidden>
-      <Icon name={icon} size={Math.round(size * 0.56)} strokeWidth={2.3} />
+      <SetIcon name={icon} size={Math.round(size * 0.56)} strokeWidth={2.3} />
     </span>
   );
 }
@@ -67,7 +93,7 @@ function SwapText({ value, className }: { value: string; className?: string }) {
   );
 }
 
-function Tile({ k, icon, tone, label, value, sub, onOpen, extra }: { k: string; icon: LineIconName; tone: Tone; label: string; value: string; sub?: string; onOpen: () => void; extra?: Record<string, string> }) {
+function Tile({ k, icon, tone, label, value, sub, onOpen, extra }: { k: string; icon: Glyph; tone: Tone; label: string; value: string; sub?: string; onOpen: () => void; extra?: Record<string, string> }) {
   return (
     <button type="button" className="set-tile text-left" data-setting-tile={k} onClick={() => { haptic.tap(); onOpen(); }} aria-haspopup="dialog" {...extra}>
       <span className="flex items-start justify-between">
@@ -99,7 +125,7 @@ function Switch({ checked }: { checked: boolean }) {
   );
 }
 
-function SwitchRow({ id, icon, tone, label, desc, checked, onChange }: { id: string; icon: LineIconName; tone: Tone; label: string; desc?: string; checked: boolean; onChange: (v: boolean) => void }) {
+function SwitchRow({ id, icon, tone, label, desc, checked, onChange }: { id: string; icon: Glyph; tone: Tone; label: string; desc?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button type="button" role="switch" aria-checked={checked} data-switch={id} className="set-row" onClick={() => { haptic.select(); onChange(!checked); }}>
       <IconChip icon={icon} tone={tone} size={30} />
@@ -112,7 +138,7 @@ function SwitchRow({ id, icon, tone, label, desc, checked, onChange }: { id: str
   );
 }
 
-function LinkRow({ icon, tone, label, onClick, danger, data }: { icon: LineIconName; tone: Tone; label: string; onClick: () => void; danger?: boolean; data?: Record<string, string> }) {
+function LinkRow({ icon, tone, label, onClick, danger, data }: { icon: Glyph; tone: Tone; label: string; onClick: () => void; danger?: boolean; data?: Record<string, string> }) {
   return (
     <button type="button" className={cx('set-row', danger && 'text-coral')} onClick={onClick} {...data}>
       <IconChip icon={icon} tone={tone} size={30} />
@@ -316,7 +342,7 @@ export default function SettingsScreen() {
           <div className="set-hero-chip mt-1.5">{t('set_hero_bobek', { name: me.profile.beaverName })}</div>
         </div>
         <button type="button" className="set-hero-edit" data-edit-profile aria-label={t('set_profile_edit')} onClick={() => { haptic.tap(); setSheet('profile'); }}>
-          <Icon name="pencil" size={19} strokeWidth={2.4} />
+          <SetIcon name="pencil" size={19} strokeWidth={2.4} />
         </button>
       </section>
 

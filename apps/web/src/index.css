@@ -3102,8 +3102,7 @@ html.reduced-motion .combo-sheen::after { animation: none; display: none; }
   -webkit-tap-highlight-color: transparent;
   transition: background-color 140ms;
 }
-.set-group > * + *, .set-group > div > .set-row { border-top: 1px solid var(--border); }
-.set-group > div:first-child > .set-row { border-top: 0; }
+.set-group > * + * { border-top: 1px solid var(--border); }
 button.set-row:active { background: color-mix(in srgb, var(--text-muted) 10%, transparent); }
 .set-switch {
   position: relative;

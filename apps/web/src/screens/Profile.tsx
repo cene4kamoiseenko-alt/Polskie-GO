@@ -3,7 +3,7 @@
  * (лише через іспити), лічильники, гардероб, швидкі розділи, медалі за рівнями,
  * статистика 7/30/90 днів за реальними даними, шість навичок та історія занять.
  */
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { motion } from '../lib/motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -23,7 +23,7 @@ import { XpChart } from '../components/XpChart';
 import { EmptyState, Progress, Section, Skeleton, cx } from '../components/ui';
 import { rankFor, TopStats } from './Home';
 import { inkOn } from '../lib/color';
-import { TabTour } from '../components/TabTour';
+const TabTour = lazy(() => import('../components/TabTour').then((m) => ({ default: m.TabTour })));
 
 type Stats = {
   days: { day: string; xp: number; lessons: number; minutes: number; correct: number; exercises: number }[];
@@ -194,7 +194,11 @@ export default function ProfileScreen() {
             <span className="min-w-0 flex-1 text-left text-[13px] font-black leading-tight">{t('tour_replay')}</span>
             <Icon name="chevron-right" size={16} className="shrink-0 text-[var(--text-muted)]" />
           </button>
-          {tour && <TabTour onClose={() => setTour(false)} />}
+          {tour && (
+            <Suspense fallback={null}>
+              <TabTour onClose={() => setTour(false)} />
+            </Suspense>
+          )}
         </div>
       </div>
 

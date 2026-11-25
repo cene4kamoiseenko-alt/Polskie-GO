@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from '../lib/motion';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
@@ -7,7 +7,8 @@ import { api } from '../lib/api';
 import { brandAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import { ComebackSheet } from '../components/ComebackSheet';
-import { TabTour } from '../components/TabTour';
+// Тур по вкладкам показывается один раз после первого урока — отдельный чанк, не в JS холодного старта (бюджет scripts/perf.ts).
+const TabTour = lazy(() => import('../components/TabTour').then((m) => ({ default: m.TabTour })));
 import type { Me, PassSeason } from '../lib/types';
 import { Beaver, type BeaverMood } from '../components/Beaver';
 import { GameIcon, type IconName } from '../components/GameIcon';
@@ -397,14 +398,16 @@ function HomeTour({ blocked }: { blocked: boolean }) {
   // Не поверх шторки «С возвращением» (и после «Забрать», пока она открыта) и не поверх окна награды лиги.
   if (!me || hidden || blocked || me.tourDone !== false || (me.progress.lessonsCompleted ?? 0) < 1 || me.comeback || me.leagueAward) return null;
   return (
-    <TabTour
-      onClose={() => {
-        setHidden(true);
-        void api('/flags/tour', { body: {} })
-          .then(() => qc.setQueryData<Me>(['me'], (m) => (m ? { ...m, tourDone: true } : m)))
-          .catch(() => {});
-      }}
-    />
+    <Suspense fallback={null}>
+      <TabTour
+        onClose={() => {
+          setHidden(true);
+          void api('/flags/tour', { body: {} })
+            .then(() => qc.setQueryData<Me>(['me'], (m) => (m ? { ...m, tourDone: true } : m)))
+            .catch(() => {});
+        }}
+      />
+    </Suspense>
   );
 }
 

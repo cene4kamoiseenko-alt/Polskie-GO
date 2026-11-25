@@ -396,7 +396,10 @@ async function main() {
       await swipe(6, 300, 16, 560);
       await swipe(6, 300, 50, 304);
       check((await path()) === '/settings', 'G2 вертикальный жест у края и короткий свайп — не «Назад»');
-      await gp.getByRole('button', { name: 'Сохранить', exact: true }).click();
+      // Настройки 2026-11-24: имена — в шторке профиля (карандаш в шапке), «Сохранить» закрывает шторку и показывает тост.
+      await gp.locator('[data-edit-profile]').click();
+      await gp.locator('[data-profile-save]').click();
+      await gp.locator('[data-sheet]').waitFor({ state: 'detached', timeout: 10_000 });
       const toast = gp.locator('[data-toast]');
       await toast.waitFor({ timeout: 10_000 });
       const tb = (await toast.boundingBox())!;

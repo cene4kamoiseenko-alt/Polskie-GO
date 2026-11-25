@@ -57,6 +57,10 @@ export function TabTour({ onClose }: { onClose: (finished: boolean) => void }) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<HTMLDivElement>(null);
   const first = useRef(true);
+  // Таймеры финала и ухода: снимаются, если тур закрыли раньше (переход на другой экран).
+  const timers = useRef<number[]>([]);
+  const later = (fn: () => void, ms: number) => timers.current.push(window.setTimeout(fn, ms));
+  useEffect(() => () => timers.current.forEach((id) => window.clearTimeout(id)), []);
   const step = STEPS[i];
   const last = i === STEPS.length - 1;
 
@@ -119,7 +123,7 @@ export function TabTour({ onClose }: { onClose: (finished: boolean) => void }) {
     (finished: boolean) => {
       if (reduce) return onClose(finished);
       setPhase('leave');
-      window.setTimeout(() => onClose(finished), 200);
+      later(() => onClose(finished), 200);
     },
     [onClose, reduce],
   );
@@ -134,7 +138,7 @@ export function TabTour({ onClose }: { onClose: (finished: boolean) => void }) {
         setPhase('finish');
         const body = bodyRef.current;
         if (body) void animate(body, { y: [0, 6, -38, 0], scaleX: [1, 1.1, 0.94, 1], scaleY: [1, 0.88, 1.08, 1] }, { duration: 0.6, times: [0, 0.18, 0.55, 1] });
-        window.setTimeout(() => leave(true), 1300);
+        later(() => leave(true), 1300);
         return;
       }
       haptic.select();
