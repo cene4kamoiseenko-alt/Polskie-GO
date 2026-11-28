@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { initTelegram, tg } from './lib/telegram';
-import { guessLang, preloadLang } from './i18n';
+import { guessLang, lastLang, preloadLang } from './i18n';
 import { installErrorReporting } from './lib/errorReport';
 import { isStandalone } from './lib/platform';
 import { preloadLastCity } from './lib/lastCity';
@@ -16,8 +16,8 @@ initTelegram();
 if (isStandalone && import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined));
 }
-// Словник мови користувача вантажиться одразу, паралельно з авторизацією.
-void preloadLang(guessLang(tg?.initDataUnsafe.user?.language_code));
+// Словник мови користувача вантажиться одразу, паралельно з авторизацією: мова з минулого запуску, інакше — здогадка з Telegram.
+void preloadLang(lastLang() ?? guessLang(tg?.initDataUnsafe.user?.language_code));
 // Картинка последнего города грузится во время заставки: главная не показывает её «по кусочкам».
 preloadLastCity();
 

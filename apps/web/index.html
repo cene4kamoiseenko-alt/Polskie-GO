@@ -13,7 +13,7 @@
     <link rel="preload" as="image" href="/src/assets/splash/royal/orn.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="/src/assets/splash/royal/bg.webp" imagesrcset="/src/assets/splash/royal/bg@640.webp 640w, /src/assets/splash/royal/bg.webp 941w" imagesizes="(max-aspect-ratio: 941/1672) calc(100vh * 0.5628), 100vw" fetchpriority="low" />
     <script>
-      // Профіль запитуємо одразу, паралельно із завантаженням JS: збереженим токеном і лише для того ж
+      // Профіль (і дані головної) запитуємо одразу, паралельно із завантаженням JS: збереженим токеном і лише для того ж
       // власника, що й api.ts (authOwner). Без токена чи для іншого користувача — нічого не робимо.
       (function () {
         try {
@@ -26,12 +26,16 @@
           // Как authOwner() в lib/api.ts: игрок Telegram, тестовый пользователь (localhost) или устройство (Android-приложение, веб).
           var owner = m ? (user ? String(JSON.parse(user).id) : '') : local ? 'dev:' + (q.get('devUser') || 100001) : 'device';
           if (owner !== saved.owner) return;
-          window.__pgEarlyMe = {
-            token: saved.token,
-            data: fetch(__PG_API_BASE__ + '/api/me', { headers: { authorization: 'Bearer ' + saved.token } })
+          var get = function (path) {
+            return fetch(__PG_API_BASE__ + '/api' + path, { headers: { authorization: 'Bearer ' + saved.token } })
               .then(function (r) { return r.ok ? r.json() : null; })
-              .catch(function () { return null; }),
+              .catch(function () { return null; });
           };
+          var data = { '/me': get('/me') };
+          // Главная (1.0, этап 1.2): её данные — тоже сразу, а не после загрузки JS и профиля. Только при открытии главной;
+          // каждый ответ забирается один раз (api.ts → takeEarly), это не кеш. Список — как запросы главной (Home.tsx, StreakCard, MissionCard, house.ts).
+          if (location.pathname === '/') ['/quests', '/missions', '/house', '/me/stats?days=7'].forEach(function (p) { data[p] = get(p); });
+          window.__pgEarly = { token: saved.token, data: data };
         } catch (e) {}
       })();
     </script>

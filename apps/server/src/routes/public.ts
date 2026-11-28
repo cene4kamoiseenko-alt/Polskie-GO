@@ -17,6 +17,7 @@ import { upsertTelegramUser } from '../services/users';
 import { PLATFORMS, createGuest, createLinkCode, issueDeviceKey, loginWithDevice, redeemLinkCode } from '../services/standalone-auth';
 import { getDiary, getMe, getStats } from '../services/profile';
 import { claimComeback, markTourDone } from '../services/comeback';
+import { recordClientSample } from '../services/perf';
 import { markCardOpened } from '../bot/engage/opened';
 import type { EngageKind } from '../db/schema';
 import { setQuizPush } from '../bot/daily/answer';
@@ -88,6 +89,14 @@ export const meRoutes = new Hono<AppEnv>();
 const me = meRoutes;
 
 me.get('/me', async (c) => c.json(await getMe(c.get('userId'))));
+
+// Замеры приложения (1.0, этап 1.2; services/perf.ts): запуск до первого экрана и открытие урока. Выборку делает само приложение;
+// без персональных данных; не чаще 30 в минуту с одного игрока.
+me.post('/metrics', rateLimit(30, 60_000, 'metrics'), async (c) => {
+  const m = z.object({ kind: z.enum(['start', 'lesson']), ms: z.number().int().min(0).max(120_000), warm: z.boolean().optional() }).parse(await body(c));
+  await recordClientSample(m.kind, m.ms, m.warm);
+  return c.body(null, 204);
+});
 
 // Вовлечённость (2026-11-24): подарок за возвращение, отметка тура, «открыл карточку бота» (для отчёта в админке).
 me.post('/comeback/claim', rateLimit(10, 60_000, 'comeback'), async (c) => c.json(await claimComeback(c.get('userId'))));

@@ -9,6 +9,7 @@ import { createServer as netServer, type AddressInfo } from 'node:net';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
+import { delayedD1 } from './d1-delay';
 
 const root = process.cwd();
 
@@ -46,9 +47,11 @@ function headerRules(dist: string): { prefix: string; headers: Record<string, st
 
 export type Stand = Awaited<ReturnType<typeof startStand>>;
 
-export async function startStand(opts: { ui: 'dev' | 'dist'; dist?: string; app?: 'web' | 'admin' }) {
+export async function startStand(opts: { ui: 'dev' | 'dist'; dist?: string; app?: 'web' | 'admin'; d1DelayMs?: number }) {
   const { getEnv, login, sessionItems, correctAnswers, disposeEnv } = await import(root + '/apps/server/test/helpers.ts');
-  const { app, env } = await getEnv();
+  const { app, env: baseEnv } = await getEnv();
+  // Задержка обращений к D1 (замеры perf: D1_MS=220 — база в Океании, ~25 — в Европе); подготовка данных (login и т. п.) идёт без неё.
+  const env = opts.d1DelayMs ? { ...baseEnv, DB: delayedD1(baseEnv.DB, opts.d1DelayMs) } : baseEnv;
   const apiRequest = async (req: IncomingMessage, res: ServerResponse) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);

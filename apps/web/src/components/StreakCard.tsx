@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useT } from '../i18n';
-import { ApiError, api } from '../lib/api';
+import { ApiError, api, apiEarly } from '../lib/api';
 import { useMe } from '../lib/queries';
 import { Art } from './GameArt';
 import { Icon } from './Icon';
@@ -33,7 +33,7 @@ export function StreakCard() {
   const nav = useNavigate();
   const activity = useQuery({
     queryKey: ['stats', 7],
-    queryFn: () => api<Activity>('/me/stats?days=7'),
+    queryFn: () => apiEarly<Activity>('/me/stats?days=7'),
     staleTime: 30_000,
   });
   if (!me) return null;

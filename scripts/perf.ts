@@ -16,6 +16,8 @@ const require = createRequire(root + '/package.json');
 const OUT = resolve(root, 'test-results/perf');
 const RTT = Number(process.env.RTT ?? 80);
 const CPU = Number(process.env.CPU ?? 4);
+// Задержка каждого обращения к D1, мс (1.0, этап 1.2): 0 — локальная база; 220 — как production-база в Океании; ~25 — в Европе.
+const D1_MS = Number(process.env.D1_MS ?? 0);
 
 type Page = import('playwright').Page;
 
@@ -70,10 +72,10 @@ async function main() {
   mkdirSync(OUT, { recursive: true });
   const { chromium } = require('playwright') as typeof import('playwright');
   // PERF_DIST — інша збірка для порівняння «до/після» (наприклад, зібрана зі старого коміту).
-  const stand = await startStand({ ui: 'dist', dist: process.env.PERF_DIST });
+  const stand = await startStand({ ui: 'dist', dist: process.env.PERF_DIST, d1DelayMs: D1_MS });
   const executablePath = chromiumPath(chromium);
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}), args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  const out: Record<string, unknown> = { conditions: { rttMs: RTT, downMbps: 9, upMbps: 1.5, cpuSlowdown: CPU, viewport: '390x844', build: 'apps/web/dist (vite build)' } };
+  const out: Record<string, unknown> = { conditions: { rttMs: RTT, downMbps: 9, upMbps: 1.5, cpuSlowdown: CPU, d1DelayMs: D1_MS, viewport: '390x844', build: 'apps/web/dist (vite build)' } };
 
   try {
     const u = await stand.login();

@@ -840,7 +840,7 @@ export const errorLog = sqliteTable(
   {
     id: text('id').primaryKey(),
     day: text('day').notNull(),
-    kind: text('kind', { enum: ['server', 'client', 'csp'] }).notNull(),
+    kind: text('kind', { enum: ['server', 'client', 'csp', 'job'] }).notNull(),
     message: text('message').notNull(),
     detail: text('detail'),
     path: text('path'),
@@ -850,6 +850,26 @@ export const errorLog = sqliteTable(
     lastAt: integer('last_at').notNull(),
   },
   (t) => [index('error_log_day_idx').on(t.day, t.lastAt)],
+);
+
+/**
+ * Мониторинг скорости (1.0, этап 1.2; services/perf.ts): выборка запросов API и замеры приложения у игроков.
+ * kind: api — запрос к Worker (route — метод и путь без id), client_start — запуск приложения (route: cold/warm), client_lesson — открытие урока.
+ * Без персональных данных: ни id игрока, ни тел запросов. Хранится 14 дней.
+ */
+export const perfSamples = sqliteTable(
+  'perf_samples',
+  {
+    id: integer('id').primaryKey(),
+    at: integer('at').notNull(),
+    kind: text('kind', { enum: ['api', 'client_start', 'client_lesson'] }).notNull(),
+    route: text('route').notNull(),
+    status: integer('status'),
+    ms: integer('ms').notNull(),
+    d1Ms: integer('d1_ms'),
+    d1Calls: integer('d1_calls'),
+  },
+  (t) => [index('perf_samples_at_idx').on(t.at)],
 );
 
 export const audioMisses = sqliteTable('audio_misses', {

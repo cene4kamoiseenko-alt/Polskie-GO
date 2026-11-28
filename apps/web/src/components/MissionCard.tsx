@@ -2,7 +2,7 @@
 import { motion } from '../lib/motion';
 import type { I18n } from '@polski-go/shared';
 import { useT } from '../i18n';
-import { api } from '../lib/api';
+import { api, apiEarly } from '../lib/api';
 import { haptic } from '../lib/telegram';
 import type { MissionListItem, PassData } from '../lib/types';
 import { cx } from './ui';
@@ -11,7 +11,7 @@ import { MissionScene } from './MissionScene';
 
 export type MissionsData = { missions: MissionListItem[]; soon: { slug: string; category: string; scene: string; title: I18n }[]; pass: PassData };
 
-export const missionsQuery = { queryKey: ['missions'], queryFn: () => api<MissionsData>('/missions') };
+export const missionsQuery = { queryKey: ['missions'], queryFn: () => apiEarly<MissionsData>('/missions') };
 
 /** Куди веде картка: сцена Premium без Premium — на екран Premium; миссия канала без подписки — панель подписки (?channel=1); решта — у місію. */
 export const missionHref = (m: MissionListItem) =>

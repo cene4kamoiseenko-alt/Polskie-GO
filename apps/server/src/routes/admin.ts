@@ -3,6 +3,7 @@
  * Кожна зміна записується в admin_audit_logs.
  */
 import { emptyIfNoTable, recentErrors } from '../services/error-log';
+import { perfSummary } from '../services/perf';
 import { INSIGHT_DAYS, adminInsights, retentionReport, sourceKey } from '../services/admin-insights';
 import { attention, auditLog, paymentsSummary } from '../services/admin-ops';
 import { campaignAudience, campaignText, findTelegramPlayer, sendBotText } from '../services/campaigns';
@@ -319,9 +320,16 @@ a.patch('/traffic/links/:id', async (c) => {
 a.get('/errors', async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');
   const q = z
-    .object({ hours: z.coerce.number().int().refine((h) => [24, 168, 720].includes(h)).default(24), kind: z.enum(['all', 'server', 'client', 'csp']).default('all') })
+    .object({ hours: z.coerce.number().int().refine((h) => [24, 168, 720].includes(h)).default(24), kind: z.enum(['all', 'server', 'client', 'csp', 'job']).default('all') })
     .parse(query(c));
   return c.json(await recentErrors(new Date(), q.hours, { kind: q.kind, limit: 200 }).catch(emptyIfNoTable(q.hours)));
+});
+
+// Скорость (1.0, этап 1.2; services/perf.ts): p50/p95/p99 по маршрутам API, запуск приложения и открытие урока, ошибки по видам.
+a.get('/perf', async (c) => {
+  needRole(c, 'SUPERADMIN', 'SUPPORT');
+  const q = z.object({ hours: z.coerce.number().int().refine((h) => [1, 24, 168].includes(h)).default(24) }).parse(query(c));
+  return c.json(await perfSummary(q.hours));
 });
 
 // Числа на пунктах меню: открытые обращения, игроки с жалобами, ошибки за сутки (services/admin-ops.ts).

@@ -6,6 +6,7 @@ import { Card, PageHeader, ago, cx, useLoad } from './ui';
 import Dashboard, { sourceLabel } from './Dashboard';
 import Traffic, { ChannelChip, type ChannelKey } from './Traffic';
 import Errors from './Errors';
+import Speed from './Speed';
 import Money, { PaymentLog } from './Money';
 import Campaigns from './Campaigns';
 import { DailyQuiz } from './DailyQuiz';
@@ -1218,7 +1219,7 @@ type Attention = { support: number; reports: number; errors: number; exerciseRep
 /** Меню по разделам; что видно — зависит от роли (как и раньше: сервер всё равно проверяет права сам). */
 function navGroups(role: Admin['role']): [string, NavItem[]][] {
   const content = RESOURCES.filter((x) => x.name !== 'plans' && x.name !== 'campaigns').map((d): NavItem => [`/r/${d.name}`, d.title, '•']);
-  const groups: [string, NavItem[]][] = [['Главное', [['/', 'Обзор', '📊'], ...(role !== 'EDITOR' ? ([['/traffic', 'Источники', '🧭'], ['/errors', 'Ошибки', '⚠️']] as NavItem[]) : [])]]];
+  const groups: [string, NavItem[]][] = [['Главное', [['/', 'Обзор', '📊'], ...(role !== 'EDITOR' ? ([['/traffic', 'Источники', '🧭'], ['/errors', 'Ошибки', '⚠️'], ['/speed', 'Скорость', '⚡']] as NavItem[]) : [])]]];
   if (role !== 'EDITOR') {
     groups.push(['Игроки', [['/engagement', 'Вовлечённость', '📈'], ['/league', 'Лига', '🏆'], ['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
     groups.push(['Деньги', [['/payments', 'Платежи', '⭐'], ...(role === 'SUPERADMIN' ? ([['/r/plans', 'Тарифы', '👑']] as NavItem[]) : [])]]);
@@ -1349,6 +1350,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<Dashboard analytics={admin.role !== 'EDITOR'} />} />
             <Route path="/errors" element={<Errors />} />
+            <Route path="/speed" element={<Speed />} />
             <Route path="/traffic" element={<Traffic superadmin={admin.role === 'SUPERADMIN'} />} />
             {RESOURCES.filter((d) => d.name !== 'campaigns').map((d) => (
               <Route key={d.name} path={`/r/${d.name}`} element={<ResourceList key={d.name} def={d} />} />

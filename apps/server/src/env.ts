@@ -38,6 +38,8 @@ export type Bindings = {
   STANDALONE_AUTH?: string;
   /** on — техработы (переезд базы): запись запрещена, бот и cron ждут; чтение работает (app.ts, worker.ts). Ставится секретом Cloudflare. */
   MAINTENANCE?: string;
+  /** Доля запросов API в выборке мониторинга скорости, 0…1 (services/perf.ts). По умолчанию 0.05. */
+  PERF_SAMPLE?: string;
   /** Сколько новых гостей в сутки принимать (по умолчанию 3000 ≈ 36 тыс. записей D1); больше — 503 guests_busy до следующих суток. */
   GUEST_DAILY_LIMIT?: string;
   /** Android-приложение (Google Play): имя пакета и отпечатки SHA-256 ключа подписи для /.well-known/assetlinks.json (через запятую; их показывает Play Console). */
@@ -187,6 +189,12 @@ export const config = {
   /** Техработы (2026-11-23, переезд базы в Европу): запись в базу запрещена, чтение — как обычно. */
   get maintenance() {
     return ['on', 'readonly', '1', 'true'].includes(str(env.MAINTENANCE).trim().toLowerCase());
+  },
+  /** Доля запросов API в выборке мониторинга скорости (1.0, этап 1.2): медленные и 5xx пишутся всегда. */
+  get perfSample() {
+    const v = str(env.PERF_SAMPLE).trim();
+    const n = v === '' ? 0.05 : Number(v);
+    return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.05;
   },
   get guestDailyLimit() {
     const n = Number(str(env.GUEST_DAILY_LIMIT) || 3000);

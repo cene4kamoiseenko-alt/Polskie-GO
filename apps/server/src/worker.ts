@@ -6,6 +6,7 @@
  */
 import { buildApp } from './app';
 import { bindDb } from './db';
+import { jobError } from './services/perf';
 import { config, setEnv, type Bindings } from './env';
 import { runScheduled } from './jobs';
 import { DAILY_CRON, runDailyQuizTick } from './bot/daily/send';
@@ -21,10 +22,11 @@ export default {
     const at = new Date(controller.scheduledTime);
     // Техработы (переезд базы): напоминания, вопрос дня и очистки ждут конца работ — в копию ничего не должно дописаться.
     if (config.maintenance) return;
+    // Сбой задачи целиком — в журнал ошибок видом job (services/perf.ts → jobError): админка «Скорость» и «Ошибки» его покажут.
     ctx.waitUntil(
       controller.cron === DAILY_CRON
-        ? recordDailyTick(at).catch(() => undefined).then(() => runDailyQuizTick(at)).then(() => undefined)
-        : runScheduled(at),
+        ? recordDailyTick(at).catch(() => undefined).then(() => runDailyQuizTick(at)).then(() => undefined).catch(jobError('daily quiz tick'))
+        : runScheduled(at).catch(jobError('scheduled')),
     );
   },
 } satisfies ExportedHandler<Bindings>;

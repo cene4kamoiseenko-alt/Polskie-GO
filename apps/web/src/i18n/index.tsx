@@ -81,6 +81,27 @@ export function useT() {
   return c;
 }
 
+/**
+ * Мова з минулого запуску (1.0, етап 1.2): словник вибраної в налаштуваннях мови вантажиться одразу, а не після профілю
+ * (раніше гравець з англійським Telegram і російським інтерфейсом спершу чекав англійський словник, потім російський).
+ */
+const LANG_KEY = 'pg_lang';
+export function rememberLang(lang: UiLang) {
+  try {
+    if (localStorage.getItem(LANG_KEY) !== lang) localStorage.setItem(LANG_KEY, lang);
+  } catch {
+    /* сховище недоступне */
+  }
+}
+export function lastLang(): UiLang | null {
+  try {
+    const v = localStorage.getItem(LANG_KEY);
+    return isUiLang(v ?? undefined) ? (v as UiLang) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Мова за замовчуванням до завантаження профілю — з Telegram або браузера (правило uiLangFor). */
 export function guessLang(code?: string): UiLang {
   return uiLangFor(code ?? navigator.language);

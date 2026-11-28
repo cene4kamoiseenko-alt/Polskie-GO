@@ -49,6 +49,14 @@ async function main() {
   await say({ id: 8_200_002, first_name: 'Тарас', username: 'taras_go', language_code: 'uk' }, '/start ref_FRIEND1');
   const app1 = await login();
   const app2 = await login();
+  // «Скорость» (1.0, этап 1.2): замеры приложения и выборка запросов API (доля 100 % на время подготовки).
+  await app1.call('POST', '/api/metrics', { kind: 'start', ms: 1240, warm: true });
+  await app1.call('POST', '/api/metrics', { kind: 'start', ms: 2950, warm: false });
+  await app1.call('POST', '/api/metrics', { kind: 'lesson', ms: 610 });
+  (env as { PERF_SAMPLE?: string }).PERF_SAMPLE = '1';
+  for (const path of ['/api/me', '/api/journey', '/api/quests', '/api/me']) await app1.call('GET', path);
+  delete (env as { PERF_SAMPLE?: string }).PERF_SAMPLE;
+  await new Promise((r) => setTimeout(r, 100));
   // Журнал ошибок: запись Mini App и нарушение CSP — для страницы «Ошибки» (обновление админки 2026-11-12).
   await request('POST', '/api/client-errors', { message: 'wrong_step', path: '/lesson/l_krk-2-mam', detail: 'Ae@index.js:10:141047' });
   await request('POST', '/api/csp-report', { 'csp-report': { 'effective-directive': 'img-src', 'blocked-uri': 'https://t.me/i/userpic/320/x.jpg', 'document-uri': 'https://app.example/profile' } });
@@ -288,6 +296,17 @@ async function main() {
       await noHScroll('ошибки');
       await axe('«Ошибки»');
       await p.screenshot({ path: `${OUT}/errors-${width}.png`, fullPage: true });
+
+      // ── 1.0, этап 1.2: «Скорость» — запуск и урок у игроков, запросы к серверу, ошибки по видам ──
+      await go('Скорость', 'Скорость');
+      await p.locator('[data-speed-kpis]').waitFor({ timeout: 10_000 });
+      const kpis = await p.locator('[data-speed-kpis]').innerText();
+      check(/Повторный запуск/i.test(kpis) && /Открытие урока/i.test(kpis) && /Ответ сервера/i.test(kpis), `${width}px «Скорость»: запуск, урок, ответ сервера`);
+      check(/фоновые задачи/.test(await p.locator('[data-speed-errors]').innerText()), `${width}px «Скорость»: ошибки по видам (сервер, бот, приложение, фоновые задачи)`);
+      await p.locator('[data-speed-page] tbody tr:not([data-loading])').first().waitFor({ timeout: 10_000 });
+      await noHScroll('скорость');
+      await axe('«Скорость»');
+      await p.screenshot({ path: `${OUT}/speed-${width}.png`, fullPage: true });
 
       // ── Обновление админки 2026-11-13 ──
       // «Платежи»: выручка, журнал понятными словами, возврат звёзд через окно подтверждения.

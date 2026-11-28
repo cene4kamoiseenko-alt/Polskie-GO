@@ -3,7 +3,7 @@
  * Сцена отражает день игрока: ночью Бобек спит, цель дня выполнена — пьёт чай, иначе ждёт урок за работой (если сцены «работает» нет — читает).
  */
 import type { TKey } from '../i18n';
-import { api } from './api';
+import { api, apiEarly } from './api';
 import { artImage } from './assets';
 
 export type HouseScene = 'read' | 'sleep' | 'work' | 'tea';
@@ -26,7 +26,7 @@ export type HouseState = {
   next: { slug: string; price: number; bonus: number } | null;
   bonuses: Record<string, number>;
 };
-export const houseQuery = { queryKey: ['house'], queryFn: () => api<HouseState>('/house'), staleTime: 30_000 };
+export const houseQuery = { queryKey: ['house'], queryFn: () => apiEarly<HouseState>('/house'), staleTime: 30_000 };
 
 /** Картинка сцены квартиры или null, если файла нет (`housing-opole` + `read` → `housing-opole-read`). */
 export const houseRoom = (slug: string, scene: HouseScene) => artImage('housing', HOMES[slug] ? { file: `${slug}-${scene}`, width: 1200 } : undefined);

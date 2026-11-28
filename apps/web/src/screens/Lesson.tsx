@@ -5,6 +5,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useGoBack } from '../lib/back';
 import { useT, type TKey } from '../i18n';
 import { api, ApiError } from '../lib/api';
+import { reportLessonOpen } from '../lib/metrics';
 import { homeShot } from '../lib/homeArt';
 import { CityBanner } from '../components/Scenery';
 import { useJourney, useMe, useRefreshAll } from '../lib/queries';
@@ -79,8 +80,11 @@ export default function LessonScreen() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
+    const t0 = performance.now();
     api<SessionStart>('/sessions', { body: lessonId ? { lessonId } : { mode, topic } })
       .then((s) => {
+        // Замер открытия урока (lib/metrics.ts): от экрана урока до готовых заданий.
+        reportLessonOpen(performance.now() - t0);
         setSession(s);
         if (s.resume?.done.length) {
           // Продовжуємо з першого невиконаного завдання, без повторного вступу.

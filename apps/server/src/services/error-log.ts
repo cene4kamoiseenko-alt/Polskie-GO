@@ -10,7 +10,7 @@ import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { errorLog } from '../db/schema';
 
-export type ErrorKind = 'server' | 'client' | 'csp';
+export type ErrorKind = 'server' | 'client' | 'csp' | 'job';
 export const ERROR_KEEP_DAYS = 30;
 
 const clip = (s: string | null | undefined, n: number) => (s ? (s.length > n ? s.slice(0, n) : s) : null);
@@ -80,7 +80,7 @@ export async function recentErrors(now = new Date(), hours = 24, opts: { kind?: 
       .orderBy(desc(lastAt))
       .limit(limit),
   ]);
-  const total = { server: 0, client: 0, csp: 0 } as Record<ErrorKind, number>;
+  const total = { server: 0, client: 0, csp: 0, job: 0 } as Record<ErrorKind, number>;
   for (const r of sums) total[r.kind] = Number(r.n) || 0;
   return {
     hours,
@@ -92,7 +92,7 @@ export async function recentErrors(now = new Date(), hours = 24, opts: { kind?: 
 /** Пустой отчёт — только если таблицы журнала ещё нет (база до миграции 0015). Остальные сбои базы не прячем: админка покажет ошибку. */
 export function emptyIfNoTable(hours: number) {
   return (e: unknown) => {
-    if (/no such table/i.test(String((e as Error)?.message ?? e))) return { hours, total: { server: 0, client: 0, csp: 0 } as Record<ErrorKind, number>, items: [] };
+    if (/no such table/i.test(String((e as Error)?.message ?? e))) return { hours, total: { server: 0, client: 0, csp: 0, job: 0 } as Record<ErrorKind, number>, items: [] };
     throw e;
   };
 }

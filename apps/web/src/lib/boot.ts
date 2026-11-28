@@ -9,6 +9,7 @@
  * Якщо завантаження саме тривало довше мінімуму, нічого не додається.
  */
 import { useEffect, useState } from 'react';
+import { splashMinMs } from '@polski-go/shared';
 
 export type BootStage = 'start' | 'auth' | 'profile' | 'screen';
 
@@ -17,6 +18,27 @@ const ORDER: BootStage[] = ['start', 'auth', 'profile', 'screen'];
 
 /** Мінімум показу заставки від початку завантаження сторінки, мс (знімається однією константою). 1700 → 2400: власник попросив ще трохи довше (2026-11-01). */
 export const SPLASH_MIN_MS = 2400;
+
+/**
+ * Мінімум для цього запуску (1.0, етап 1.2; правило — splashMinMs у @polski-go/shared): перший запуск за день — SPLASH_MIN_MS,
+ * повторні того ж дня — без штучної паузи (ціль ТЗ 1.0: повторний запуск ≤ 1,5 с). Рахується один раз на завантаження сторінки.
+ */
+const SPLASH_DAY_KEY = 'pg_splash_day';
+let splashMinCached: number | null = null;
+export function splashMin(): number {
+  if (splashMinCached !== null) return splashMinCached;
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let last: string | null = null;
+  try {
+    last = localStorage.getItem(SPLASH_DAY_KEY);
+    localStorage.setItem(SPLASH_DAY_KEY, today);
+  } catch {
+    /* сховище недоступне — як перший запуск */
+  }
+  splashMinCached = splashMinMs(last, today, SPLASH_MIN_MS);
+  return splashMinCached;
+}
 
 let stage: BootStage = 'start';
 let stageAt = performance.now();

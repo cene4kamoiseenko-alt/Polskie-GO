@@ -3,13 +3,14 @@ import { useIsFetching } from '@tanstack/react-query';
 import { SplashScene } from './components/Splash';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LazyMotion, MotionConfig, loadMotionFeatures, motion } from './lib/motion';
-import { I18nProvider, profileLang } from './i18n';
+import { I18nProvider, profileLang, rememberLang } from './i18n';
 import { tg, setTelegramColors, startParam } from './lib/telegram';
 import { peekLaunchRoute, takeLaunchRoute, takeLaunchSource } from './lib/launch';
 import { useMe } from './lib/queries';
 import { configureAudio, setSoundEnabled, stopSpeech } from './lib/audio';
 import { ApiError, api } from './lib/api';
-import { SPLASH_MIN_MS, bootFinish, bootMark } from './lib/boot';
+import { bootFinish, bootMark, splashMin } from './lib/boot';
+import { reportStart } from './lib/metrics';
 import { BottomNav, EdgeSwipeBack, ErrorState, ScreenSkeleton, ToastProvider } from './components/ui';
 import { Beaver } from './components/Beaver';
 import { ScreenBoundary } from './components/ScreenBoundary';
@@ -112,6 +113,9 @@ export function App() {
   const nav = useNavigate();
   useEffect(() => () => stopSpeech(), [loc.pathname]);
   const lang = profileLang(me.data?.settings.uiLanguage, tg?.initDataUnsafe.user?.language_code);
+  useEffect(() => {
+    if (me.data) rememberLang(lang);
+  }, [me.data, lang]);
   useTheme(me.data?.settings.theme);
   useEffect(() => {
     setSoundEnabled(me.data?.settings.soundEnabled ?? true);
@@ -172,12 +176,12 @@ export function App() {
     if (me.data) bootMark('profile');
   }, [me.data]);
 
-  // Минимальное время показа заставки (SPLASH_MIN_MS от начала загрузки страницы): на быстром соединении её не успевали увидеть. Пауза нужна только если всё
+  // Минимальное время показа заставки (splashMin(): SPLASH_MIN_MS при первом запуске за день, повторные — без паузы) от начала загрузки страницы: на быстром соединении её не успевали увидеть. Пауза нужна только если всё
   // уже загружено раньше минимума: смуга за остаток времени доходит до 100 %. Ошибка заставку не удерживает.
-  const [minShown, setMinShown] = useState(() => minSplashDone || performance.now() >= SPLASH_MIN_MS);
+  const [minShown, setMinShown] = useState(() => minSplashDone || performance.now() >= splashMin());
   useEffect(() => {
     if (minShown || !me.data) return;
-    const left = SPLASH_MIN_MS - performance.now();
+    const left = splashMin() - performance.now();
     if (left <= 0) {
       minSplashDone = true;
       setMinShown(true);
@@ -277,6 +281,12 @@ export function App() {
       </>
     );
   }
+
+  // Замер запуска (lib/metrics.ts): первый экран без заставки — один раз за загрузку страницы.
+  const ready = !!me.data && minShown;
+  useEffect(() => {
+    if (ready) reportStart();
+  }, [ready]);
 
   // Пауза минимального показа: заставка сверху, а первый экран уже грузится под ней (скрыт и недоступен), чтобы к концу паузы быть готовым, а не начинать загрузку после неё.
   const holding = !!me.data && !minShown;

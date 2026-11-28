@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useT, type TKey } from '../i18n';
-import { api } from '../lib/api';
+import { api, apiEarly } from '../lib/api';
 import { brandAsset } from '../lib/assets';
 import { useJourney, useMe, useQuests, useRefreshAll } from '../lib/queries';
 import { ComebackSheet } from '../components/ComebackSheet';
@@ -215,7 +215,7 @@ function WeekStrip() {
   const { t, lang, ready } = useT();
   const me = useMe().data!;
   const reduce = useReducedMotion();
-  const stats = useQuery({ queryKey: ['stats', 7], queryFn: () => api<{ days: WeekDay[] }>('/me/stats?days=7') });
+  const stats = useQuery({ queryKey: ['stats', 7], queryFn: () => apiEarly<{ days: WeekDay[] }>('/me/stats?days=7') });
   const days: (WeekDay | null)[] = stats.data?.days.slice(-7) ?? Array.from({ length: 7 }, () => null);
   const goalDone = me.today.xp >= me.today.goalXp;
   const streak = me.progress.streak;

@@ -6,10 +6,10 @@ import { useState } from 'react';
 import { api } from './api';
 import { Card, Empty, PageHeader, Segmented, cx, fmt, useLoad } from './ui';
 
-type Item = { kind: 'server' | 'client' | 'csp'; message: string; path: string | null; count: number; lastAt: string; detail: string | null };
+type Item = { kind: 'server' | 'client' | 'csp' | 'job'; message: string; path: string | null; count: number; lastAt: string; detail: string | null };
 type Data = { hours: number; total: Record<string, number>; items: Item[] };
 
-const KIND: Record<string, [string, string]> = { server: ['Сервер', 'badge-red'], client: ['Приложение', 'badge-gold'], csp: ['Безопасность (CSP)', 'badge-sky'] };
+const KIND: Record<string, [string, string]> = { server: ['Сервер', 'badge-red'], client: ['Приложение', 'badge-gold'], csp: ['Безопасность (CSP)', 'badge-sky'], job: ['Фоновая задача', 'badge-gray'] };
 
 /**
  * Пояснения к записям, которые уже разобраны. Неизвестная запись — без пояснения: её стоит переслать разработчику.
@@ -65,18 +65,18 @@ function CopyButton({ e }: { e: Item }) {
 
 export default function Errors() {
   const [hours, setHours] = useState(24);
-  const [kind, setKind] = useState<'all' | 'server' | 'client' | 'csp'>('all');
+  const [kind, setKind] = useState<'all' | 'server' | 'client' | 'csp' | 'job'>('all');
   const { data, error, loading } = useLoad<Data>(() => api(`/errors?hours=${hours}&kind=${kind}`), [hours, kind]);
-  const sum = data ? data.total.server + data.total.client + data.total.csp : 0;
+  const sum = data ? data.total.server + data.total.client + data.total.csp + (data.total.job ?? 0) : 0;
   return (
     <div className="space-y-5">
       <PageHeader
         title="Ошибки"
-        subtitle="Сбои сервера, ошибки приложения у игроков и нарушения политики безопасности. Повторы склеиваются, записи хранятся 30 дней."
+        subtitle="Сбои сервера, ошибки приложения у игроков, нарушения политики безопасности и сбои фоновых задач (cron). Повторы склеиваются, записи хранятся 30 дней."
         actions={
           <>
             <Segmented label="Период" value={hours} onChange={setHours} options={[[24, 'Сутки'], [168, 'Неделя'], [720, 'Месяц']]} />
-            <Segmented label="Вид" value={kind} onChange={setKind} options={[['all', 'Все'], ['server', 'Сервер'], ['client', 'Приложение'], ['csp', 'Безопасность']]} />
+            <Segmented label="Вид" value={kind} onChange={setKind} options={[['all', 'Все'], ['server', 'Сервер'], ['client', 'Приложение'], ['csp', 'Безопасность'], ['job', 'Задачи']]} />
           </>
         }
       />
@@ -86,6 +86,7 @@ export default function Errors() {
           <span className="badge badge-red">сервер {fmt(data.total.server)}</span>
           <span className="badge badge-gold">приложение {fmt(data.total.client)}</span>
           <span className="badge badge-sky">безопасность {fmt(data.total.csp)}</span>
+          <span className="badge badge-gray">фоновые задачи {fmt(data.total.job ?? 0)}</span>
           {!sum && <span className="badge badge-green">за этот период ошибок нет</span>}
         </div>
       )}

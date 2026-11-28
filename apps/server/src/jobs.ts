@@ -39,6 +39,7 @@ import { ensurePlan } from './bot/daily/plan';
 import { readDailyState, warsawDay } from './bot/daily/state';
 import { dailyEligibility, personByTelegramId } from './bot/daily/audience';
 import { dailyReplacesReminders } from './bot/daily/send';
+import { jobError, purgePerf } from './services/perf';
 
 /** Безкоштовний Worker має ліміт 50 підзапитів за виклик: бюджет рахується у викликах Bot API (фото + запасний текст — два). */
 const SEND_BUDGET = 35;
@@ -306,27 +307,29 @@ export async function sendCampaignChunk(budget = SEND_BUDGET) {
 export async function runScheduled(now = new Date()) {
   await pruneUsage(now);
   await pruneLoginFailures(now);
-  await purgeErrors(now).catch((e) => console.warn('error log cleanup failed', (e as Error).message));
-  await purgeLinkCodes(now).catch((e) => console.warn('link code cleanup failed', (e as Error).message));
+  await purgeErrors(now).catch(jobError('error log cleanup'));
+  // Выборка мониторинга скорости — 14 дней (services/perf.ts).
+  await purgePerf(now).catch(jobError('perf samples cleanup'));
+  await purgeLinkCodes(now).catch(jobError('link code cleanup'));
   await db.delete(telegramUpdates).where(lt(telegramUpdates.createdAt, new Date(now.getTime() - UPDATES_KEEP_MS)));
   // Таблиці з міграції 0009: до її застосування запит упаде — це не повинно зупиняти нагадування.
   await db
     .delete(botQuizRounds)
     .where(lt(botQuizRounds.sentAt, new Date(now.getTime() - QUIZ_ROUNDS_KEEP_MS)))
-    .catch((e) => console.warn('quiz rounds cleanup failed', (e as Error).message));
+    .catch(jobError('quiz rounds cleanup'));
   // План вопроса дня на 30 днів уперед: дописується сам, навіть поки розсилка вимкнена (адмінка показує його до запуску).
-  await ensurePlan(warsawDay(now)).catch((e) => console.warn('daily quiz plan failed', (e as Error).message));
+  await ensurePlan(warsawDay(now)).catch(jobError('daily quiz plan'));
   // Итоги недельной лиги: в понедельник ночью (по Варшаве) прошедшая неделя подводится один раз — призы в кошельки (сервисы/league.ts).
-  await settleDueLeagueWeek(now).catch((e) => console.warn('league settle failed', (e as Error).message));
+  await settleDueLeagueWeek(now).catch(jobError('league settle'));
   // Очередь озвучки админки: следующая часть самого старого задания — даже когда админка закрыта (services/audio-jobs.ts).
-  await processAudioJobs(now).catch((e) => console.warn('audio jobs failed', (e as Error).message));
+  await processAudioJobs(now).catch(jobError('audio jobs'));
   if (!config.botToken) return;
   // Бюджет — виклики Bot API за запуск: самоперевірка бота, розсилка, нагадування, запрошення до питань.
   let left = SEND_BUDGET - (await maintainBot(now).catch(() => 0));
   // Поздравления призёров недели — до напоминаний: их немного (до десяти в неделю), и они важнее.
   {
     const st = { calls: 0 };
-    await sendLeagueAwardMessages(now, Math.max(0, Math.min(left, 20)), st).catch((e) => console.warn('league messages failed', (e as Error).message));
+    await sendLeagueAwardMessages(now, Math.max(0, Math.min(left, 20)), st).catch(jobError('league messages'));
     left -= st.calls;
   }
   left -= await sendCampaignChunk(Math.max(0, left));
@@ -346,7 +349,7 @@ export async function runScheduled(now = new Date()) {
   const daily = await readDailyState().catch(() => null);
   if (!daily?.enabled && !(marks.invites?.hour === hour && marks.invites.settingsAt === settingsAt)) {
     const out: { complete?: boolean } = {};
-    await sendQuizInvites(now, left, out).catch((e) => console.warn('quiz invites failed', (e as Error).message));
+    await sendQuizInvites(now, left, out).catch(jobError('quiz invites'));
     if (out.complete) next.invites = { hour, settingsAt };
   }
   if (JSON.stringify(next) !== JSON.stringify(marks)) await writeCronMarks(next);

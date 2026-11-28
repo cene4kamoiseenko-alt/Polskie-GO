@@ -5,6 +5,8 @@ import { ZodError } from 'zod';
 import { eq } from 'drizzle-orm';
 import { bindDb, db, mapDbError } from './db';
 import { readOnlyD1 } from './db/read-only';
+import { instrumentD1, withD1Stats, type D1Stats } from './db/metrics';
+import { recordApiSample, shouldSample } from './services/perf';
 import { uploads } from './db/schema';
 import { config, setEnv } from './env';
 import { requireUser } from './auth';
@@ -28,8 +30,30 @@ export function buildApp() {
   app.use(async (c, next) => {
     setEnv(c.env);
     // Техработы: база только на чтение — GET, который пишет сам, получит 503, а не допишет в старую базу после выгрузки.
-    bindDb(config.maintenance ? readOnlyD1(c.env.DB) : c.env.DB);
-    await next();
+    // Счётчик обращений к D1 (db/metrics.ts) — для server-timing и мониторинга скорости.
+    bindDb(instrumentD1(config.maintenance ? readOnlyD1(c.env.DB) : c.env.DB));
+    const stats: D1Stats = { calls: 0, statements: 0, ms: 0 };
+    const t0 = performance.now();
+    await withD1Stats(stats, next);
+    const ms = performance.now() - t0;
+    const timing = `app;dur=${Math.round(ms)}, d1;dur=${Math.round(stats.ms)};desc="${stats.calls}"`;
+    // Мониторинг скорости (services/perf.ts): доля запросов API, медленные и 5xx — всегда; запись фоном, ответ не ждёт.
+    const sample = { method: c.req.method, path: c.req.path, status: c.res.status, ms, d1Ms: stats.ms, d1Calls: stats.calls };
+    if (shouldSample(sample)) {
+      const write = recordApiSample(sample);
+      try {
+        c.executionCtx.waitUntil(write);
+      } catch {
+        // В тестах ExecutionContext нет — запись просто идёт без waitUntil.
+      }
+    }
+    try {
+      c.res.headers.set('server-timing', timing);
+    } catch {
+      // Ответ из fetch() (статика) неизменяем — копия с заголовком.
+      c.res = new Response(c.res.body, c.res);
+      c.res.headers.set('server-timing', timing);
+    }
   });
 
   // Техработы (MAINTENANCE=on, переезд базы): ничего не пишем, чтобы копия базы была полной. Чтение работает; запись — 503 «maintenance»

@@ -100,14 +100,22 @@ if (token) {
 }
 
 /**
- * Профіль, запитаний із index.html ще до завантаження JS (той самий збережений токен).
- * Віддається один раз; будь-яка невдача (мережа, 401) — null, і застосунок іде звичайним шляхом.
+ * Відповіді, запитані з index.html ще до завантаження JS (той самий збережений токен): профіль і дані головної.
+ * Кожна віддається один раз (це не кеш); будь-яка невдача (мережа, 401) — null, і застосунок іде звичайним шляхом.
  */
-export function takeEarlyMe<T>(): Promise<T | null> | null {
-  const w = window as Window & { __pgEarlyMe?: { token: string; data: Promise<T | null> } };
-  const early = w.__pgEarlyMe;
-  delete w.__pgEarlyMe;
-  return early && early.token === token ? early.data : null;
+export function takeEarly<T>(path: string): Promise<T | null> | null {
+  const w = window as Window & { __pgEarly?: { token: string; data: Record<string, Promise<T | null> | undefined> } };
+  const early = w.__pgEarly;
+  if (!early || early.token !== token) return null;
+  const p = early.data[path];
+  delete early.data[path];
+  return p ?? null;
+}
+export const takeEarlyMe = <T,>(): Promise<T | null> | null => takeEarly<T>('/me');
+
+/** Запит, перша відповідь якого могла прийти раніше з index.html (takeEarly). */
+export async function apiEarly<T>(path: string): Promise<T> {
+  return (await takeEarly<T>(path)) ?? api<T>(path);
 }
 
 const json = { 'content-type': 'application/json' };
