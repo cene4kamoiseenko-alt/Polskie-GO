@@ -14,7 +14,7 @@ const LEVELS = ['A2', 'B1', 'B2'] as const;
  * Города, где версии ещё пишутся (1.0, этап 2; docs/ROADMAP_1_0.md). Список может только сокращаться: город, у которого все версии
  * уже есть, тест требует убрать отсюда, а новый город из CITY_CONTENT проверяется сразу — вручную добавлять его никуда не нужно.
  */
-const PENDING = ['bialystok', 'lublin'];
+const PENDING: string[] = [];
 const COVERED = CITY_CONTENT.map((c) => c.city).filter((city) => !PENDING.includes(city));
 const MIN_TASKS = 8;
 
