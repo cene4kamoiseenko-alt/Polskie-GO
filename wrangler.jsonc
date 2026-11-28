@@ -26,7 +26,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "polski-go",
+      "database_name": "polski-go-eu",
+      "database_id": "c73e447e-a34f-49be-a58a-a150e83adb90",
       "migrations_dir": "apps/server/migrations"
     }
   ],

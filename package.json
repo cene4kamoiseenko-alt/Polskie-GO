@@ -12,7 +12,7 @@
     "build": "npm run build -w @polski-go/web && npm run build -w @polski-go/admin && node scripts/build-cf.mjs && npm run seed:sql -w @polski-go/server",
     "build:web": "npm run build -w @polski-go/web",
     "build:cf": "npm run build",
-    "deploy:cf": "(wrangler d1 time-travel info polski-go --json || true) && wrangler d1 migrations apply polski-go --remote && wrangler deploy && wrangler d1 execute polski-go --remote --file apps/server/seed.sql --yes",
+    "deploy:cf": "(wrangler d1 time-travel info polski-go-eu --json || true) && wrangler d1 migrations apply polski-go-eu --remote && wrangler deploy && wrangler d1 execute polski-go-eu --remote --file apps/server/seed.sql --yes",
     "staging:check": "node scripts/staging-guard.mjs",
     "deploy:staging": "node scripts/staging-guard.mjs && npm run build && wrangler d1 migrations apply polski-go-staging --remote -c wrangler.staging.jsonc && wrangler deploy -c wrangler.staging.jsonc && wrangler d1 execute polski-go-staging --remote -c wrangler.staging.jsonc --file apps/server/seed.sql --yes",
     "staging:local": "node scripts/staging-guard.mjs && npm run build && wrangler d1 migrations apply polski-go-staging --local -c wrangler.staging.jsonc --persist-to .wrangler/staging && wrangler d1 execute polski-go-staging --local -c wrangler.staging.jsonc --persist-to .wrangler/staging --file apps/server/seed.sql --yes && wrangler dev -c wrangler.staging.jsonc --local --persist-to .wrangler/staging --port 8788",
@@ -24,7 +24,7 @@
     "a11y": "node --import tsx scripts/a11y.ts",
     "screens": "node --import tsx scripts/screens.ts",
     "assets": "node scripts/validate-assets.mjs",
-    "backup:d1": "mkdir -p backups && wrangler d1 export polski-go --remote --output backups/polski-go-$(date -u +%Y-%m-%dT%H%MZ).sql",
+    "backup:d1": "mkdir -p backups && wrangler d1 export polski-go-eu --remote --output backups/polski-go-$(date -u +%Y-%m-%dT%H%MZ).sql",
     "restore:drill": "node scripts/d1-restore-drill.mjs",
     "load:test": "node --import tsx scripts/load-test.ts"
   },

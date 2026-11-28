@@ -137,7 +137,10 @@ describe('переключение имени production-базы', () => {
     const root = copy();
     const fs = require('node:fs') as typeof import('node:fs');
     const p = join(root, '.github/workflows/d1-backup.yml');
-    fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('d1 export polski-go --remote', 'd1 export polski-go-old --remote'));
+    const current = execFileSync('node', [join(ROOT, 'scripts/d1-switch.mjs'), '--current'], { encoding: 'utf8' }).trim();
+    const text = fs.readFileSync(p, 'utf8');
+    expect(text).toContain(`d1 export ${current} --remote`);
+    fs.writeFileSync(p, text.replace(`d1 export ${current} --remote`, 'd1 export polski-go-forgotten --remote'));
     const r = run(['--root', root, '--check']);
     expect(r.code).toBe(1);
     expect(r.out).toContain('d1-backup.yml');

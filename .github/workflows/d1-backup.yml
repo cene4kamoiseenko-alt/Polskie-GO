@@ -51,7 +51,7 @@ jobs:
           set -euo pipefail
           STAMP=$(date -u +%Y-%m-%dT%H%MZ)
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
-          npx --yes wrangler@4.152.0 d1 export polski-go --remote --output "polski-go-$STAMP.sql"
+          npx --yes wrangler@4.152.0 d1 export polski-go-eu --remote --output "polski-go-$STAMP.sql"
           test -s "polski-go-$STAMP.sql"
           echo "Строк INSERT: $(grep -c '^INSERT' "polski-go-$STAMP.sql")"
           gzip -9 "polski-go-$STAMP.sql"
