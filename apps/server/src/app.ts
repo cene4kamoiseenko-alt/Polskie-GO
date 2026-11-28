@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { ZodError } from 'zod';
 import { eq } from 'drizzle-orm';
 import { bindDb, db, mapDbError } from './db';
+import { readOnlyD1 } from './db/read-only';
 import { uploads } from './db/schema';
 import { config, setEnv } from './env';
 import { requireUser } from './auth';
@@ -26,7 +27,8 @@ export function buildApp() {
 
   app.use(async (c, next) => {
     setEnv(c.env);
-    bindDb(c.env.DB);
+    // Техработы: база только на чтение — GET, который пишет сам, получит 503, а не допишет в старую базу после выгрузки.
+    bindDb(config.maintenance ? readOnlyD1(c.env.DB) : c.env.DB);
     await next();
   });
 

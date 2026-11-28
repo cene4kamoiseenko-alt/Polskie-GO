@@ -8,8 +8,12 @@
 #   3) выгружает старую базу, переставляет выгрузку (scripts/d1-import-order.mjs: таблицы → данные по связям → индексы и триггеры)
 #      и загружает в новую;
 #   4) сверяет число строк в каждой таблице, индексы и триггеры (scripts/d1-compare.mjs);
-#   5) печатает id новой базы — его вписывают в wrangler.jsonc, выкладывают, потом снимают техработы (workflow «Maintenance»).
+#   5) выгружает новую базу ещё раз и сверяет с выгрузкой старой построчно (scripts/d1-dump-diff.mjs, 1.0 этап 1.1);
+#   6) печатает id новой базы и команду переключения (scripts/d1-switch.mjs) — её коммитят, выкладывают, потом снимают техработы.
 # Если любой шаг упал — техработы снимаются сами, приложение работает на старой базе, как раньше.
+# Откат после того, как игроки уже писали в новую базу: этот же workflow с source = новая база и новым именем копии
+# (старая база в Океании не знает о новых записях, возвращаться к ней нельзя). Откат до снятия техработ — просто вернуть
+# прежнее имя и id (d1-switch.mjs) и выложить: в старую базу за время работ ничего не писалось (база только на чтение).
 #
 # Секреты — те же, что у ночной копии (environment «production-backup»): CLOUDFLARE_API_TOKEN с правами «D1: Edit» и
 # «Workers Scripts: Edit», CLOUDFLARE_ACCOUNT_ID; BACKUP_PASSPHRASE — чтобы выгрузка сохранилась зашифрованной копией.
@@ -19,10 +23,13 @@ on:
   workflow_dispatch:
     inputs:
       location:
-        description: 'Регион новой базы: eeur — Восточная Европа (ближе к Польше и Украине), weur — Западная'
+        description: 'Регион новой базы: eeur — Восточная Европа (ближе к Польше и Украине), weur — Западная; остальные — только для отката'
         type: choice
-        options: [eeur, weur]
+        options: [eeur, weur, wnam, enam, apac, oc]
         default: eeur
+      source:
+        description: 'Откуда копировать (пусто — текущая база из wrangler.jsonc; для отката — имя новой базы)'
+        default: ''
       new_name:
         description: 'Имя новой базы'
         default: polski-go-eu
@@ -45,7 +52,6 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
-      OLD_DB: polski-go
       NEW_DB: ${{ inputs.new_name }}
       LOCATION: ${{ inputs.location }}
       WORKER: polskie-go
@@ -55,11 +61,19 @@ jobs:
         run: |
           if [ "${{ inputs.confirm }}" != "ПЕРЕЕЗД" ]; then echo "::error::В поле confirm нужно слово ПЕРЕЕЗД"; exit 1; fi
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::Нет секретов CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID в environment production-backup"; exit 1; fi
-          if [ "$NEW_DB" = "$OLD_DB" ]; then echo "::error::Имя новой базы совпадает со старой"; exit 1; fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Какая база сейчас
+        run: |
+          set -euo pipefail
+          node scripts/d1-switch.mjs --check
+          OLD_DB="${{ inputs.source }}"
+          [ -n "$OLD_DB" ] || OLD_DB=$(node scripts/d1-switch.mjs --current)
+          if [ "$NEW_DB" = "$OLD_DB" ]; then echo "::error::Имя новой базы совпадает со старой"; exit 1; fi
+          echo "OLD_DB=$OLD_DB" >> "$GITHUB_ENV"
+          echo "Копирую $OLD_DB → $NEW_DB ($LOCATION)"
       - name: Техработы — включить
         working-directory: ${{ runner.temp }}
         run: |
@@ -95,6 +109,13 @@ jobs:
       - name: Сверка
         working-directory: ${{ runner.temp }}
         run: node "$GITHUB_WORKSPACE/scripts/d1-compare.mjs" "$OLD_DB" "$NEW_DB"
+      - name: Построчная сверка (выгрузка новой базы = выгрузка старой)
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          $WRANGLER d1 export "$NEW_DB" --remote --output after.sql
+          node "$GITHUB_WORKSPACE/scripts/d1-dump-diff.mjs" dump.sql after.sql
+          rm -f after.sql
       - name: Копия выгрузки (зашифрованная)
         if: success() && env.BACKUP_PASSPHRASE != ''
         working-directory: ${{ runner.temp }}
@@ -115,8 +136,11 @@ jobs:
             echo ""
             echo "Новая база: \`$NEW_DB\`, регион \`$LOCATION\`, id: \`$NEW_UUID\`"
             echo ""
-            echo "**Техработы ещё включены.** Дальше: вписать id в wrangler.jsonc (database_name и database_id), выложить,"
-            echo "проверить /api/health (edge.d1.region), затем Actions → «Maintenance» → off."
+            echo "**Техработы ещё включены.** Дальше (docs/OPERATIONS_RU.md, раздел 3а):"
+            echo ""
+            echo "1. \`node scripts/d1-switch.mjs $NEW_DB $NEW_UUID\` → \`node scripts/d1-switch.mjs --check\` → коммит и пуш (выкладка ~3 мин);"
+            echo "2. \`/api/health\`: migration прежняя, edge.d1.region европейский; \`node scripts/d1-latency.mjs\` — замер после;"
+            echo "3. Actions → «Maintenance» → off. Старую базу $OLD_DB не удалять 7 дней."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Сбой — снять техработы (приложение остаётся на старой базе)
         if: failure() && env.maintenance == 'on'

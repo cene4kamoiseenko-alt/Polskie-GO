@@ -5,7 +5,8 @@
 #   CLOUDFLARE_API_TOKEN  — токен с правом «D1: Edit» (экспорт — операция записи в API) только для этого аккаунта;
 #   CLOUDFLARE_ACCOUNT_ID — id аккаунта Cloudflare;
 #   BACKUP_PASSPHRASE     — длинный пароль шифрования (хранить вне GitHub: без него копию не открыть).
-# Пока секретов нет, задача завершается с предупреждением и ничего не делает (не падает каждую ночь).
+# Пока секретов нет, задача ПАДАЕТ (красный крест и письмо владельцу от GitHub): 2026-11-28 выяснилось, что с 07.11 она каждую
+# ночь «успешно» пропускала выгрузку — копий не было ни одной, и никто этого не видел (1.0, этап 1.1).
 # Экспорт D1 на время выгрузки блокирует запросы к базе (секунды при нынешнем объёме) — поэтому ночью по Варшаве.
 # Файл не запускался из среды разработки: проверьте его первым ручным запуском (Actions → D1 backup → Run workflow).
 name: D1 backup (nightly)
@@ -35,8 +36,8 @@ jobs:
         id: check
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "::warning::Секреты production-backup не заданы — резервная копия не сделана (docs/OPERATIONS_RU.md)."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Секреты production-backup не заданы — резервная копия НЕ сделана (docs/OPERATIONS_RU.md, раздел 3а)."
+            exit 1
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi

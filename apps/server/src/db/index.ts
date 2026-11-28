@@ -7,6 +7,7 @@
 import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
 import type { BatchItem } from 'drizzle-orm/batch';
 import { HttpError, badRequest } from '../lib/errors';
+import { READ_ONLY_ERROR } from './read-only';
 import * as schema from './schema';
 
 export type DB = DrizzleD1Database<typeof schema>;
@@ -49,6 +50,7 @@ export function isUniqueViolation(e: unknown) {
 /** Перетворює помилки охоронців БД на зрозумілі HTTP-відповіді. */
 export function mapDbError(e: unknown): unknown {
   const text = errorText(e);
+  if (text.includes(READ_ONLY_ERROR)) return new HttpError(503, 'maintenance', 'Технические работы, несколько минут');
   if (text.includes('conflict:session')) return new HttpError(409, 'conflict', 'Сесію змінено паралельним запитом');
   if (text.includes('conflict:claimed')) return badRequest('already_claimed');
   if (text.includes('game_wallets_balance_non_negative')) return badRequest('insufficient_funds', 'Недостатньо Złotki');

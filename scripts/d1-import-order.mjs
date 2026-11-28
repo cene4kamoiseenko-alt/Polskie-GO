@@ -11,44 +11,12 @@
  *   node scripts/d1-import-order.mjs dump.sql import.sql
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { splitSql } from './lib/d1-sql.mjs';
 
 const [, , src, dst] = process.argv;
 if (!src || !dst) {
   console.error('usage: node scripts/d1-import-order.mjs <export.sql> <import.sql>');
   process.exit(2);
-}
-
-/** Разбить SQL на инструкции: ; вне строк и имён; у CREATE TRIGGER — только после END. */
-export function splitSql(text) {
-  const out = [];
-  let cur = '';
-  let q = null; // ' " `
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    cur += ch;
-    if (q) {
-      if (ch === q) {
-        if (q === "'" && text[i + 1] === "'") {
-          cur += text[++i];
-          continue;
-        }
-        q = null;
-      }
-      continue;
-    }
-    if (ch === "'" || ch === '"' || ch === '`') {
-      q = ch;
-      continue;
-    }
-    if (ch === ';') {
-      const s = cur.trim();
-      if (/^CREATE\s+TRIGGER/i.test(s) && !/\bEND\s*;$/i.test(s)) continue;
-      out.push(s);
-      cur = '';
-    }
-  }
-  if (cur.trim()) out.push(cur.trim());
-  return out.filter((s) => s && s !== ';');
 }
 
 const unq = (n) => n.replace(/^[`"[]|[`"\]]$/g, '');
@@ -62,6 +30,12 @@ for (const s of stmts) {
   if (/^PRAGMA\b/i.test(s)) pragmas.push(s);
   else if ((m = s.match(/^CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([`"[]?[\w]+[`"\]]?)/i))) tables.set(unq(m[1]), s);
   else if ((m = s.match(/^INSERT\s+INTO\s+([`"[]?[\w]+[`"\]]?)/i))) {
+    const t = unq(m[1]);
+    if (!inserts.has(t)) inserts.set(t, []);
+    inserts.get(t).push(s);
+  } else if ((m = s.match(/^DELETE\s+FROM\s+([`"[]?[\w]+[`"\]]?)\s*;?$/i))) {
+    // «DELETE FROM sqlite_sequence;» выгрузка пишет перед счётчиками AUTOINCREMENT: он остаётся перед строками своей таблицы,
+    // иначе очистка после вставки обнулила бы счётчики (найдено сухим прогоном, test/d1-move.test.ts).
     const t = unq(m[1]);
     if (!inserts.has(t)) inserts.set(t, []);
     inserts.get(t).push(s);

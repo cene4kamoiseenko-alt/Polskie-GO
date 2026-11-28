@@ -130,6 +130,18 @@ if (arg === '--self-test') {
   const [srcCount, dstCount] = [exerciseCount(source), exerciseCount(join(work, 'restored'))];
   if (srcCount !== dstCount) diff.push(`lessons.exercise_count ${srcCount} → ${dstCount}`);
   console.table(TABLES.map((t) => ({ table: t, source: before[t], restored: after[t] })));
+  // Путь переезда базы (d1-move.yml): выгрузка → d1-import-order → загрузка в пустую базу → новая выгрузка → построчная сверка.
+  const moved = project('moved');
+  const importSql = join(work, 'import.sql');
+  execFileSync('node', [join(root, 'scripts/d1-import-order.mjs'), dump, importSql], { stdio: 'inherit' });
+  wrangler(['execute', 'polski-go', '--yes', '--file', importSql], moved);
+  const movedDump = join(work, 'moved-export.sql');
+  wrangler(['export', 'polski-go', '--output', movedDump], moved);
+  try {
+    execFileSync('node', [join(root, 'scripts/d1-dump-diff.mjs'), dump, movedDump], { stdio: 'inherit' });
+  } catch {
+    diff.push('переезд: построчная сверка выгрузок не совпала');
+  }
   if (diff.length || !after.users) {
     console.error(`Расхождение после восстановления: ${diff.join(', ') || 'нет игроков'}`);
     process.exit(1);
