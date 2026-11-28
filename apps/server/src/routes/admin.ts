@@ -4,6 +4,8 @@
  */
 import { emptyIfNoTable, recentErrors } from '../services/error-log';
 import { perfSummary } from '../services/perf';
+import { contentReadiness, type ContentReadiness } from '../content/readiness';
+import { CITY_CONTENT } from '../content/seed';
 import { INSIGHT_DAYS, adminInsights, retentionReport, sourceKey } from '../services/admin-insights';
 import { attention, auditLog, paymentsSummary } from '../services/admin-ops';
 import { campaignAudience, campaignText, findTelegramPlayer, sendBotText } from '../services/campaigns';
@@ -330,6 +332,15 @@ a.get('/perf', async (c) => {
   needRole(c, 'SUPERADMIN', 'SUPPORT');
   const q = z.object({ hours: z.coerce.number().int().refine((h) => [1, 24, 168].includes(h)).default(24) }).parse(query(c));
   return c.json(await perfSummary(q.hours));
+});
+
+// Готовность контента (1.0, этап 2; content/readiness.ts): версии уроков по городам, чего не хватает, замечания качества.
+// Контент вшит в сборку и не меняется до выкладки — отчёт считается один раз на процесс Worker.
+let readiness: ContentReadiness | undefined;
+a.get('/content-readiness', (c) => {
+  needRole(c, 'SUPERADMIN', 'EDITOR');
+  readiness ??= contentReadiness(CITY_CONTENT);
+  return c.json(readiness);
 });
 
 // Числа на пунктах меню: открытые обращения, игроки с жалобами, ошибки за сутки (services/admin-ops.ts).

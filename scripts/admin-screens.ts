@@ -308,6 +308,17 @@ async function main() {
       await axe('«Скорость»');
       await p.screenshot({ path: `${OUT}/speed-${width}.png`, fullPage: true });
 
+      // ── 1.0, этап 2: «Готовность» — версии уроков по городам, чего не хватает ──
+      await go('Готовность', 'Готовность контента');
+      await p.locator('[data-readiness-kpis]').waitFor({ timeout: 10_000 });
+      const ready = await p.locator('[data-readiness-kpis]').innerText();
+      check(/Города готовы/i.test(ready) && /\d+ из 20/.test(ready) && /Версии уроков/i.test(ready), `${width}px «Готовность»: города и версии из 20 городов`);
+      await p.locator('[data-readiness-page] tbody tr:not([data-loading])').first().waitFor({ timeout: 10_000 });
+      check((await p.locator('[data-readiness-page] tbody tr').count()) === 20, `${width}px «Готовность»: строка на каждый город`);
+      await noHScroll('готовность');
+      await axe('«Готовность»');
+      await p.screenshot({ path: `${OUT}/readiness-${width}.png`, fullPage: true });
+
       // ── Обновление админки 2026-11-13 ──
       // «Платежи»: выручка, журнал понятными словами, возврат звёзд через окно подтверждения.
       await go('Платежи', 'Платежи');

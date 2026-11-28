@@ -16,8 +16,12 @@ import { ZIELONA_GORA_LEVELS } from './zielona-gora';
 import { GORZOW_LEVELS } from './gorzow';
 import { SZCZECIN_LEVELS } from './szczecin';
 import { GDANSK_LEVELS } from './gdansk';
+import { GDYNIA_LEVELS } from './gdynia';
+import { BYDGOSZCZ_LEVELS } from './bydgoszcz';
+import { TORUN_LEVELS } from './torun';
+import { OLSZTYN_LEVELS } from './olsztyn';
 
-export const LESSON_LEVELS: Record<string, LessonLevels> = { ...WARSZAWA_LEVELS, ...LODZ_LEVELS, ...KRAKOW_LEVELS, ...KATOWICE_LEVELS, ...OPOLE_LEVELS, ...WROCLAW_LEVELS, ...POZNAN_LEVELS, ...ZIELONA_GORA_LEVELS, ...GORZOW_LEVELS, ...SZCZECIN_LEVELS, ...GDANSK_LEVELS };
+export const LESSON_LEVELS: Record<string, LessonLevels> = { ...WARSZAWA_LEVELS, ...LODZ_LEVELS, ...KRAKOW_LEVELS, ...KATOWICE_LEVELS, ...OPOLE_LEVELS, ...WROCLAW_LEVELS, ...POZNAN_LEVELS, ...ZIELONA_GORA_LEVELS, ...GORZOW_LEVELS, ...SZCZECIN_LEVELS, ...GDANSK_LEVELS, ...GDYNIA_LEVELS, ...BYDGOSZCZ_LEVELS, ...TORUN_LEVELS, ...OLSZTYN_LEVELS };
 
 /** Города с версиями уроков: версия из урока важнее версии из реестра; slug реестра без урока — ошибка (опечатка не пропадёт молча). */
 export function withLevels(cities: CityContent[], registry: Record<string, LessonLevels> = LESSON_LEVELS): CityContent[] {

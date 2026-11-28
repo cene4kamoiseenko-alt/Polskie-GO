@@ -9,9 +9,13 @@ import { CITY_CONTENT } from '../src/content/seed';
 import { LESSON_LEVELS, withLevels } from '../src/content/levels';
 import type { LessonLevel } from '../src/content/types';
 
-/** Города, где у каждого урока и босса должны быть все три версии. */
-const COVERED = ['warszawa', 'lodz', 'krakow', 'katowice', 'opole', 'wroclaw', 'poznan', 'zielona-gora', 'gorzow', 'szczecin', 'gdansk'];
 const LEVELS = ['A2', 'B1', 'B2'] as const;
+/**
+ * Города, где версии ещё пишутся (1.0, этап 2; docs/ROADMAP_1_0.md). Список может только сокращаться: город, у которого все версии
+ * уже есть, тест требует убрать отсюда, а новый город из CITY_CONTENT проверяется сразу — вручную добавлять его никуда не нужно.
+ */
+const PENDING = ['bialystok', 'lublin'];
+const COVERED = CITY_CONTENT.map((c) => c.city).filter((city) => !PENDING.includes(city));
 const MIN_TASKS = 8;
 
 const versions = Object.entries(LESSON_LEVELS).flatMap(([slug, lv]) => Object.entries(lv).map(([level, v]) => ({ slug, level, v: v as LessonLevel })));
@@ -32,6 +36,15 @@ describe('трудные версии уроков', () => {
   it.each(COVERED)('%s: у каждого урока и босса есть все версии выше его уровня', (city) => {
     const content = CITY_CONTENT.find((c) => c.city === city)!;
     for (const l of content.routes.flatMap((r) => r.lessons)) expect(Object.keys(l.levels ?? {}).sort(), `${l.slug} (${l.cefr})`).toEqual(above(l.cefr).sort());
+  });
+
+  it('незаконченные города (PENDING) — настоящие города, и в каждом ещё есть урок без нужной версии', () => {
+    for (const city of PENDING) {
+      const content = CITY_CONTENT.find((c) => c.city === city);
+      expect(content, city).toBeTruthy();
+      const lacking = content!.routes.flatMap((r) => r.lessons).filter((l) => above(l.cefr).some((lv) => !l.levels?.[lv]));
+      expect(lacking.length, `${city}: все версии есть — уберите город из PENDING`).toBeGreaterThan(0);
+    }
   });
 
   it('нет версий на уровне урока или ниже: такую игрок никогда не получит', () => {

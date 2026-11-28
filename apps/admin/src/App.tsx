@@ -7,6 +7,7 @@ import Dashboard, { sourceLabel } from './Dashboard';
 import Traffic, { ChannelChip, type ChannelKey } from './Traffic';
 import Errors from './Errors';
 import Speed from './Speed';
+import Readiness from './Readiness';
 import Money, { PaymentLog } from './Money';
 import Campaigns from './Campaigns';
 import { DailyQuiz } from './DailyQuiz';
@@ -1224,7 +1225,7 @@ function navGroups(role: Admin['role']): [string, NavItem[]][] {
     groups.push(['Игроки', [['/engagement', 'Вовлечённость', '📈'], ['/league', 'Лига', '🏆'], ['/users', 'Пользователи', '👥'], ['/audience', 'Аудитория бота', '🤝'], ['/support', 'Поддержка', '💬'], ['/reports', 'Жалобы', '🚩']]]);
     groups.push(['Деньги', [['/payments', 'Платежи', '⭐'], ...(role === 'SUPERADMIN' ? ([['/r/plans', 'Тарифы', '👑']] as NavItem[]) : [])]]);
   }
-  if (role !== 'SUPPORT') groups.push(['Контент', [['/exercise-reports', 'Ошибки в заданиях', '🛠'], ...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
+  if (role !== 'SUPPORT') groups.push(['Контент', [['/readiness', 'Готовность', '✅'], ['/exercise-reports', 'Ошибки в заданиях', '🛠'], ...content, ...(role === 'SUPERADMIN' ? ([['/rewards', 'Награды', '🎁']] as NavItem[]) : []), ['/audio', 'Аудиобиблиотека', '🎧']]]);
   if (role === 'SUPERADMIN') {
     groups.push(['Бот', [['/daily-quiz', 'Вопрос дня', '🧠'], ['/engage', 'Карточки бота', '💌'], ['/campaigns', 'Рассылки', '📣'], ['/bot', 'Бот', '🤖']]]);
     groups.push(['Система', [['/audit', 'Журнал действий', '📜'], ['/admins', 'Администраторы', '🔐']]]);
@@ -1351,6 +1352,7 @@ export function App() {
             <Route path="/" element={<Dashboard analytics={admin.role !== 'EDITOR'} />} />
             <Route path="/errors" element={<Errors />} />
             <Route path="/speed" element={<Speed />} />
+            <Route path="/readiness" element={<Readiness />} />
             <Route path="/traffic" element={<Traffic superadmin={admin.role === 'SUPERADMIN'} />} />
             {RESOURCES.filter((d) => d.name !== 'campaigns').map((d) => (
               <Route key={d.name} path={`/r/${d.name}`} element={<ResourceList key={d.name} def={d} />} />
