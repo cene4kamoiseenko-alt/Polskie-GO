@@ -5,6 +5,7 @@
  * Кожна зміна сесії — атомарний пакет із перевіркою версії (оптимістичне блокування).
  */
 import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, notInArray, or, sql, type AnyColumn } from 'drizzle-orm';
+import { buildWordItem, type VocabWord } from './word-review';
 import {
   BOSS_PASS_RATIO, EXAM_PASS_RATIO, LESSON_PASS_RATIO, isMissionSlug,
   checkAnswer, dayDiff, lessonReward, maxCefr, nextReview, qualityFrom, isLearned,
@@ -77,39 +78,31 @@ function lessonToItems(rows: ExerciseRow[]): ExerciseItem[] {
   });
 }
 
-type VocabRow = { id: string; pl: string; pos: string; translations: I18n; emoji: string | null; audioUrl: string | null };
+type VocabRow = VocabWord & { emoji: string | null };
 
-/** Генерує вправу на слово для повторення. */
-function wordItem(w: VocabRow, pool: VocabRow[], rnd: () => number, variant: number): ExerciseItem {
-  const others = shuffle(pool.filter((p) => p.id !== w.id), rnd);
-  const samePos = others.filter((o) => o.pos === w.pos);
-  const distract = [...samePos, ...others.filter((o) => o.pos !== w.pos)].slice(0, 2);
-  const tr = w.translations;
-  const key = `w:${w.id}:${variant}`;
-  const skill = 'review.vocab';
-  const kind = variant % 4;
-  if (kind === 0 || distract.length < 2) {
-    return {
-      key, type: 'WORD_TRANSLATION', skill, vocabId: w.id,
-      data: { pl: w.pl, audioText: w.pl, options: [{ id: 'c', text: tr }, ...distract.map((d, i) => ({ id: `d${i}`, text: d.translations }))], answer: 'c' },
-    };
-  }
-  if (kind === 1) {
-    return {
-      key, type: 'WORD_TRANSLATION', skill, vocabId: w.id,
-      data: { translation: tr, options: [{ id: 'c', text: w.pl }, ...distract.map((d, i) => ({ id: `d${i}`, text: d.pl }))], answer: 'c' },
-    };
-  }
-  if (kind === 2) {
-    return {
-      key, type: 'LISTENING', skill: 'review.listening', vocabId: w.id,
-      data: { audioText: w.pl, audioUrl: w.audioUrl ?? undefined, options: [{ id: 'c', text: w.pl }, ...distract.map((d, i) => ({ id: `d${i}`, text: d.pl }))], answer: 'c' },
-    };
-  }
-  return { key, type: 'DICTATION', skill: 'review.writing', vocabId: w.id, data: { audioText: w.pl, audioUrl: w.audioUrl ?? undefined, translation: tr, accepted: [w.pl] } };
+/**
+ * Опубликованный словарь — кандидаты в неверные варианты повторения (services/word-review.ts): у новичка своих слов мало
+ * и все из разных тем, поэтому варианты подбираются из всего словаря. Это контент, а не данные игрока: держится в памяти
+ * Worker 10 минут (одно чтение ~1,5 тыс. строк на изолят), правки словаря в админке видны не позже чем через 10 минут.
+ */
+let vocabCache: { at: number; rows: VocabWord[]; real: Set<string> } | null = null;
+const VOCAB_CACHE_MS = 10 * 60_000;
+async function allVocab(): Promise<{ rows: VocabWord[]; real: Set<string> }> {
+  if (vocabCache && Date.now() - vocabCache.at < VOCAB_CACHE_MS) return vocabCache;
+  const rows = await db
+    .select({ id: vocabularyEntries.id, pl: vocabularyEntries.pl, pos: vocabularyEntries.pos, translations: vocabularyEntries.translations, topics: vocabularyEntries.topics, audioUrl: vocabularyEntries.audioUrl })
+    .from(vocabularyEntries)
+    .where(eq(vocabularyEntries.status, 'PUBLISHED'));
+  vocabCache = { at: Date.now(), rows, real: new Set(rows.map((r) => r.pl.toLowerCase())) };
+  return vocabCache;
 }
 
-const vocabCols = { id: vocabularyEntries.id, pl: vocabularyEntries.pl, pos: vocabularyEntries.pos, translations: vocabularyEntries.translations, emoji: vocabularyEntries.emoji, audioUrl: vocabularyEntries.audioUrl };
+/** Задание на слово для повторения (правила — services/word-review.ts). */
+function wordItem(w: VocabRow, vocab: { rows: VocabWord[]; real: Set<string> }, rnd: () => number, variant: number): ExerciseItem {
+  return buildWordItem(w, vocab.rows.length ? vocab.rows : [w], rnd, variant, vocab.real);
+}
+
+const vocabCols = { id: vocabularyEntries.id, pl: vocabularyEntries.pl, pos: vocabularyEntries.pos, translations: vocabularyEntries.translations, topics: vocabularyEntries.topics, emoji: vocabularyEntries.emoji, audioUrl: vocabularyEntries.audioUrl };
 
 async function vocabPool(userId: string): Promise<VocabRow[]> {
   const rows = await db.select(vocabCols).from(userVocabulary).innerJoin(vocabularyEntries, eq(vocabularyEntries.id, userVocabulary.entryId)).where(eq(userVocabulary.userId, userId)).limit(300);
@@ -147,7 +140,7 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
   const rnd = seededRandom(seed);
   if (mode === 'GRAMMAR') return buildGrammarItems(userId, topic, rnd);
   const now = new Date();
-  const pool = await vocabPool(userId);
+  const [pool, vocab] = await Promise.all([vocabPool(userId), allVocab()]);
   const byId = (id: string) => pool.find((p) => p.id === id);
 
   if (mode === 'REVIEW' || mode === 'SPEED') {
@@ -161,7 +154,7 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
     if (mode === 'SPEED' && words.length < 8) words = shuffle(pool, rnd).slice(0, 15);
     if (!words.length) throw badRequest('nothing_due', 'Немає слів для повторення');
     // Швидкий раунд — лише вибір варіанту, без введення тексту.
-    return words.map((w, i) => wordItem(w, pool, rnd, mode === 'SPEED' ? i % 2 : Math.floor(rnd() * 4)));
+    return words.map((w, i) => wordItem(w, vocab, rnd, mode === 'SPEED' ? i % 2 : Math.floor(rnd() * 4)));
   }
 
   if (mode === 'MISTAKES') {
@@ -173,13 +166,13 @@ async function buildPracticeItems(userId: string, mode: Mode, seed: number, topi
     const wordItems = weakWords
       .map((d) => byId(d.itemId))
       .filter(Boolean)
-      .map((w, i) => wordItem(w as VocabRow, pool, rnd, i));
+      .map((w, i) => wordItem(w as VocabRow, vocab, rnd, i));
     const items = [...lessonToItems(exRows), ...wordItems];
     if (!items.length) throw badRequest('no_mistakes', 'Помилок для повторення немає');
     return shuffle(items, rnd).slice(0, 12);
   }
 
-  return buildQuickItems(userId, pool, rnd, mode === 'WARMUP' ? WARMUP_SIZE : FIVE_MIN_SIZE);
+  return buildQuickItems(userId, pool, vocab, rnd, mode === 'WARMUP' ? WARMUP_SIZE : FIVE_MIN_SIZE);
 }
 
 /** «5 минут»: до 10 заданий; разминка после вопроса дня (2026-11-24) — 5. */
@@ -190,7 +183,7 @@ export const WARMUP_SIZE = 5;
  * Короткое занятие: до половины — слова на повторение, остальное — задания уже пройденных (или первого доступного) уроков.
  * FIVE_MIN и разминка WARMUP после вопроса дня — одна логика, разный размер.
  */
-async function buildQuickItems(userId: string, pool: VocabRow[], rnd: () => number, size: number): Promise<ExerciseItem[]> {
+async function buildQuickItems(userId: string, pool: VocabRow[], vocab: { rows: VocabWord[]; real: Set<string> }, rnd: () => number, size: number): Promise<ExerciseItem[]> {
   const now = new Date();
   const byId = (id: string) => pool.find((p) => p.id === id);
   const [due, done, [me]] = await db.batch([
@@ -212,7 +205,7 @@ async function buildQuickItems(userId: string, pool: VocabRow[], rnd: () => numb
         .limit(80)
     : [];
   const exItems = shuffle(lessonToItems(exRows), rnd).slice(0, size - words.length);
-  const items = [...words.map((w, i) => wordItem(w, pool, rnd, i)), ...exItems];
+  const items = [...words.map((w, i) => wordItem(w, vocab, rnd, i)), ...exItems];
   if (!items.length) throw badRequest('nothing_to_practice');
   return shuffle(items, rnd);
 }
@@ -394,7 +387,7 @@ function activeSession(userId: string, s: SessionRow | undefined): SessionRow {
   return s;
 }
 
-const REVIEW_SKILLS = ['review.vocab', 'review.listening', 'review.writing'];
+const REVIEW_SKILLS = ['review.vocab', 'review.listening', 'review.writing', 'review.spelling'];
 
 /**
  * Рядки, які знадобляться для запису відповіді, — за ключем завдання ще до читання сесії (один пакет D1 замість трьох
