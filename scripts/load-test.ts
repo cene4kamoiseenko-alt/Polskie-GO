@@ -47,7 +47,7 @@ const THINK = (min: number, max: number) => new Promise((r) => setTimeout(r, min
 // ── База и сервер ──────────────────────────────────────────────────────────────────────────────────────────────────
 const wr = (args: string[], opts: { json?: boolean } = {}) =>
   execFileSync('npx', ['wrangler', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 512 * 1024 * 1024, env: { ...process.env, CI: '1' } }) as string;
-const sql = <T>(query: string): T[] => JSON.parse(wr(['d1', 'execute', 'polski-go', '--local', '--persist-to', dir, '--json', '--command', query]))[0].results as T[];
+const sql = <T>(query: string): T[] => JSON.parse(wr(['d1', 'execute', 'DB', '--local', '--persist-to', dir, '--json', '--command', query]))[0].results as T[];
 
 async function prepare() {
   rmSync(dir, { recursive: true, force: true });
@@ -56,9 +56,9 @@ async function prepare() {
   if (!existsSync(seed)) throw new Error('Нет apps/server/seed.sql: npm run seed:sql -w @polski-go/server');
   if (!existsSync(join(root, 'dist-cf'))) throw new Error('Нет dist-cf: npm run build');
   console.log('база: миграции…');
-  wr(['d1', 'migrations', 'apply', 'polski-go', '--local', '--persist-to', dir]);
+  wr(['d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', dir]);
   console.log('база: seed…');
-  wr(['d1', 'execute', 'polski-go', '--local', '--persist-to', dir, '--yes', '--file', seed]);
+  wr(['d1', 'execute', 'DB', '--local', '--persist-to', dir, '--yes', '--file', seed]);
 }
 
 let server: ChildProcess | null = null;

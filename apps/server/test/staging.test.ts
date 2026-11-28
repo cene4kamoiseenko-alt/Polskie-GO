@@ -44,7 +44,9 @@ describe('конфигурация staging', () => {
     expect(stg.name).toBe('polskie-go-staging');
     expect(stg.name).not.toBe(prod.name);
     expect(stg.d1_databases).toEqual([{ binding: 'DB', database_name: STAGING_DB, migrations_dir: 'apps/server/migrations' }]);
-    expect(prod.d1_databases[0].database_name).toBe('polski-go');
+    // Имя production-базы — из wrangler.jsonc (после переезда в Европу 2026-11-28 — polski-go-eu); staging его не делит.
+    expect(prod.d1_databases[0].database_name).not.toBe(STAGING_DB);
+    expect(prod.d1_databases[0].database_id).toBeTruthy();
     expect(stg.triggers).toEqual({ crons: [] });
     expect(prod.triggers.crons.length).toBeGreaterThan(0);
     expect(stg.vars.ENVIRONMENT).toBe('staging');
@@ -56,7 +58,7 @@ describe('конфигурация staging', () => {
   it.each([
     ['тот же Worker', (c: any) => (c.name = 'polskie-go'), 'совпадает с production'],
     ['имя без staging', (c: any) => (c.name = 'polskie-go-test'), 'не содержит «staging»'],
-    ['база production', (c: any) => (c.d1_databases[0].database_name = 'polski-go'), 'совпадает с базой production'],
+    ['база production', (c: any) => (c.d1_databases[0].database_name = parseJsonc(prodText).d1_databases[0].database_name), 'совпадает с базой production'],
     ['чужая база', (c: any) => (c.d1_databases[0].database_name = 'polski-go-other'), 'ожидается'],
     ['cron унаследован (не задан)', (c: any) => delete c.triggers, 'cron staging'],
     ['cron включён', (c: any) => (c.triggers.crons = ['*/15 * * * *']), 'cron staging'],
@@ -98,13 +100,17 @@ describe('конфигурация staging', () => {
 
   it('npm-команды: каждый wrangler с -c wrangler.staging.jsonc и базой staging, сторож первым; production-команда не тронута', () => {
     expect(checkStagingScripts(pkg)).toEqual([]);
-    expect(pkg.scripts['deploy:cf']).toBe('(wrangler d1 time-travel info polski-go --json || true) && wrangler d1 migrations apply polski-go --remote && wrangler deploy && wrangler d1 execute polski-go --remote --file apps/server/seed.sql --yes');
+    const prodDb = parseJsonc(prodText).d1_databases[0].database_name;
+    expect(pkg.scripts['deploy:cf']).toBe(`(wrangler d1 time-travel info ${prodDb} --json || true) && wrangler d1 migrations apply ${prodDb} --remote && wrangler deploy && wrangler d1 execute ${prodDb} --remote --file apps/server/seed.sql --yes`);
     const broken = (patch: Record<string, string>) => checkStagingScripts({ scripts: { ...pkg.scripts, ...patch } }).join('\n');
     expect(broken({ 'deploy:staging': 'node scripts/staging-guard.mjs && wrangler deploy' })).toContain('без -c wrangler.staging.jsonc');
     expect(broken({ 'deploy:staging': 'node scripts/staging-guard.mjs && wrangler d1 migrations apply polski-go --remote -c wrangler.staging.jsonc' })).toContain('не называет базу');
     expect(broken({ 'deploy:staging': 'wrangler deploy -c wrangler.staging.jsonc' })).toContain('не начинается со сторожа');
     expect(broken({ 'deploy:staging': 'wrangler deploy -c wrangler.staging.jsonc && node scripts/staging-guard.mjs' })).toContain('после wrangler');
     expect(broken({ 'deploy:cf': 'wrangler deploy --env staging' })).toContain('production');
+    // Команда staging, назвавшая текущую или прежнюю production-базу, — отказ (сторож берёт имя из wrangler.jsonc).
+    expect(checkStagingScripts({ scripts: { ...pkg.scripts, 'staging:x': `wrangler d1 execute ${prodDb} --remote -c wrangler.staging.jsonc` } }, [prodDb, 'polski-go']).join('\n')).toContain('называет базу production');
+    expect(checkStagingScripts({ scripts: { ...pkg.scripts, 'staging:x': 'wrangler d1 execute polski-go --remote -c wrangler.staging.jsonc' } }, [prodDb, 'polski-go']).join('\n')).toContain('называет базу production polski-go');
   });
 });
 

@@ -89,8 +89,15 @@ export function checkStagingConfig(stagingText, productionText) {
   return problems;
 }
 
+/**
+ * Базы production, которые staging-команды не должны называть: текущая (из wrangler.jsonc) и прежние. После переезда в Европу (2026-11-28)
+ * production — polski-go-eu; старая polski-go (Океания) оставлена как запасная — её тоже нельзя трогать из staging.
+ */
+export const LEGACY_PROD_DBS = ['polski-go'];
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /** Проблемы npm-команд: каждый wrangler в staging-командах идёт с -c wrangler.staging.jsonc и базой staging; production-команды staging не упоминают. */
-export function checkStagingScripts(pkg) {
+export function checkStagingScripts(pkg, prodDbs = LEGACY_PROD_DBS) {
   const problems = [];
   const scripts = pkg.scripts ?? {};
   const names = Object.keys(scripts).filter((k) => /^(deploy:staging|staging:)/.test(k));
@@ -100,7 +107,7 @@ export function checkStagingScripts(pkg) {
       if (!/\bwrangler\b/.test(step)) continue;
       if (!step.includes(`-c ${STAGING_CONFIG}`)) problems.push(`${name}: «${step}» без -c ${STAGING_CONFIG}`);
       if (/\bd1\b/.test(step) && !new RegExp(`\\b${STAGING_DB}\\b`).test(step)) problems.push(`${name}: «${step}» не называет базу ${STAGING_DB}`);
-      if (/\bd1\b/.test(step) && /\bpolski-go\b(?!-)/.test(step)) problems.push(`${name}: «${step}» называет базу production`);
+      for (const db of prodDbs) if (/\bd1\b/.test(step) && new RegExp(`(^|\\s)${escapeRe(db)}(\\s|$)`).test(step)) problems.push(`${name}: «${step}» называет базу production ${db}`);
     }
   }
   if (!/staging-guard/.test(scripts['deploy:staging'] ?? '')) problems.push('deploy:staging не начинается со сторожа');
@@ -112,7 +119,9 @@ export function checkStagingScripts(pkg) {
 
 export function checkRepo(root) {
   const read = (f) => readFileSync(`${root}/${f}`, 'utf8');
-  return [...checkStagingConfig(read(STAGING_CONFIG), read('wrangler.jsonc')), ...checkStagingScripts(JSON.parse(read('package.json')))];
+  const prodDb = parseJsonc(read('wrangler.jsonc')).d1_databases?.[0]?.database_name;
+  const prodDbs = [...new Set([prodDb, ...LEGACY_PROD_DBS].filter(Boolean))];
+  return [...checkStagingConfig(read(STAGING_CONFIG), read('wrangler.jsonc')), ...checkStagingScripts(JSON.parse(read('package.json')), prodDbs)];
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
