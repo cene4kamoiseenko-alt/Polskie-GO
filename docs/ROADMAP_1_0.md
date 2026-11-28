@@ -62,6 +62,9 @@ test-driven-development, systematic-debugging, verification-before-completion, r
 - **Откат с учётом новых записей** — тот же workflow с `source` (обратная копия в новую базу), регионы для отката.
 - **Ночная копия падает, если секретов нет** (раньше «успешно» не делала ничего).
 - **Сухой прогон** `restore:drill --self-test` включает путь переезда; совпадение полное.
+- **Первая настоящая копия базы** (28.11, 05:15 UTC; токен владельца, доступ к api.cloudflare.com разрешён владельцем) — файл у владельца.
+  На ней найдена и исправлена ещё одна ошибка переезда: строка `tts_cache` 172 КБ длиннее предела D1 (100 КБ) — теперь вставляется по частям.
+  Полный путь переезда на настоящих данных: 68 таблиц, 62 563 строки, 165 объектов схемы — совпадение построчно.
 - **Замер до** `scripts/d1-latency.mjs` (таблица в `docs/OPERATIONS_RU.md`, раздел 3а).
 - Тесты: `apps/server/test/maintenance.test.ts` (+1), `apps/server/test/d1-move.test.ts` (новый, 8).
 
@@ -69,6 +72,7 @@ test-driven-development, systematic-debugging, verification-before-completion, r
 
 ## 4. Действия владельца (ждут)
 
+0. **Перевыпустить токен Cloudflare** (Roll): он был вставлен в чат. Новый — только в секреты GitHub.
 1. **Секреты `production-backup`** (Cloudflare API token D1:Edit + Workers Scripts:Edit, Account ID, пароль копий) — без них нет ни ночных копий, ни переезда. Пошагово: `docs/OPERATIONS_RU.md`, раздел 3а, пункты 1–3.
 2. **Разрешение на переезд базы** («переезд разрешаю») и запуск workflow «D1 move to Europe» ночью по Варшаве.
 3. **«Пуш»** — для выкладки сделанного.

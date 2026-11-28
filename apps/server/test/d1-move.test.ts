@@ -143,3 +143,41 @@ describe('переключение имени production-базы', () => {
     expect(r.out).toContain('d1-backup.yml');
   });
 });
+
+/**
+ * Найдено настоящей копией production-базы (2026-11-28): строка tts_cache с аудио 86 КБ даёт в выгрузке инструкцию 172 КБ, а D1 (и локальная
+ * база) не принимает инструкции длиннее 100 КБ — загрузка в новую базу упала бы на ней. Перестановка разбивает такую строку:
+ * INSERT с пустым значением + UPDATE … || часть (каждая < 100 КБ), байты те же.
+ */
+describe('длинные строки при переезде', () => {
+  it('значение 250 КБ загружается в D1 по частям, байты совпадают', async () => {
+    const { Miniflare } = await import('miniflare');
+    const mf = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response(null) } }', d1Databases: { DB: `big-${Date.now()}` } });
+    try {
+      const d1 = (await mf.getD1Database('DB')) as unknown as D1Database;
+      const bytes = Buffer.alloc(250_000);
+      for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 31 + 7) % 256;
+      const hex = bytes.toString('hex').toUpperCase();
+      const text = "Zażółć gęślą jaźń; ''cytat'' ".repeat(6000);
+      const src = join(dir, 'big.sql');
+      const out = join(dir, 'big-import.sql');
+      writeFileSync(
+        src,
+        `PRAGMA defer_foreign_keys=TRUE;\nCREATE TABLE \`tts_cache\` (\n\t\`key\` text PRIMARY KEY NOT NULL,\n\t\`text\` text NOT NULL,\n\t\`data\` blob NOT NULL,\n\t\`n\` integer\n);\nINSERT INTO "tts_cache" ("key","text","data","n") VALUES('k1','${text}',X'${hex}',5);\nINSERT INTO "tts_cache" ("key","text","data","n") VALUES('k2','short',X'00FF',6);\n`,
+      );
+      execFileSync('node', [join(ROOT, 'scripts/d1-import-order.mjs'), src, out]);
+      const { splitSql } = await import(join(ROOT, 'scripts/lib/d1-sql.mjs'));
+      const stmts = splitSql(require('node:fs').readFileSync(out, 'utf8')) as string[];
+      expect(Math.max(...stmts.map((s) => s.length))).toBeLessThan(100_000);
+      for (const s of stmts) await d1.prepare(s).run();
+      const row = await d1.prepare('SELECT hex(data) AS h, typeof(data) AS t, text, n FROM tts_cache WHERE key = ?').bind('k1').first<{ h: string; t: string; text: string; n: number }>();
+      expect(row!.t).toBe('blob');
+      expect(row!.h).toBe(hex);
+      expect(row!.text).toBe(text.replaceAll("''", "'"));
+      expect(row!.n).toBe(5);
+      expect((await d1.prepare('SELECT hex(data) AS h FROM tts_cache WHERE key = ?').bind('k2').first<{ h: string }>())!.h).toBe('00FF');
+    } finally {
+      await mf.dispose();
+    }
+  }, 120_000);
+});

@@ -49,43 +49,11 @@ function counts(dir) {
   return out;
 }
 
-/**
- * `wrangler d1 export` пишет таблицы по алфавиту, и сразу после каждой — её строки: `exercises` (и её INSERT) идёт раньше `lessons`.
- * D1 проверяет внешние ключи, поэтому такая копия в ПУСТУЮ базу не заливается («no such table: main.lessons»; найдено учебным
- * восстановлением 2026-11-04). Порядок исправляется здесь: сначала все CREATE TABLE, потом строки, потом индексы и триггеры
- * (триггеры — последними, чтобы вставка строк не пересчитывала счётчики). Тот же файл годится для `wrangler d1 execute --remote --file`.
- */
-export function orderDump(sql) {
-  const statements = [];
-  let buf = '';
-  let quotes = 0;
-  for (const line of sql.split('\n')) {
-    buf += (buf ? '\n' : '') + line;
-    quotes += (line.match(/'/g) ?? []).length;
-    const trigger = /^\s*CREATE\s+TRIGGER/i.test(buf);
-    const done = quotes % 2 === 0 && (trigger ? /^\s*END;\s*$/i.test(line) : /;\s*$/.test(line));
-    if (done) {
-      statements.push(buf);
-      buf = '';
-      quotes = 0;
-    }
-  }
-  if (buf.trim()) statements.push(buf);
-  const kind = (st) => {
-    const head = st.trimStart().slice(0, 40).toUpperCase();
-    if (head.startsWith('PRAGMA')) return 0;
-    if (head.startsWith('CREATE TABLE')) return 1;
-    if (head.startsWith('INSERT') || head.startsWith('REPLACE')) return 2;
-    if (head.startsWith('CREATE TRIGGER')) return 4;
-    return 3; // индексы, представления, прочее
-  };
-  return [0, 1, 2, 3, 4].flatMap((k) => statements.filter((st) => kind(st) === k)).join('\n') + '\n';
-}
-
 function restore(sqlFile, label) {
   const dir = project(label);
   const ordered = join(work, `${label}.ordered.sql`);
-  writeFileSync(ordered, orderDump(readFileSync(sqlFile, 'utf8')));
+  // Тот же порядок, что при переезде (d1-import-order: связи, триггеры в конце, длинные строки по частям — предел D1 100 КБ).
+  execFileSync('node', [join(root, 'scripts/d1-import-order.mjs'), sqlFile, ordered], { stdio: 'inherit' });
   wrangler(['execute', 'polski-go', '--yes', '--file', ordered], dir);
   return { ...counts(dir), file: ordered };
 }
@@ -150,6 +118,10 @@ if (arg === '--self-test') {
 } else {
   const plain = readBackup(resolve(arg));
   const got = restore(plain, 'restored');
+  // Построчная сверка: восстановленная база, выгруженная заново, совпадает с копией (как проверка переезда).
+  const again = join(work, 'restored-export.sql');
+  wrangler(['export', 'polski-go', '--output', again], join(work, 'restored'));
+  execFileSync('node', [join(root, 'scripts/d1-dump-diff.mjs'), plain, again], { stdio: 'inherit' });
   console.table(TABLES.map((t) => ({ table: t, rows: got[t] })));
   if (!got.users || !got.lessons) {
     console.error('Копия не восстановилась: нет игроков или уроков');

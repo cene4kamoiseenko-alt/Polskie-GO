@@ -11,7 +11,7 @@
  *   node scripts/d1-import-order.mjs dump.sql import.sql
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { splitSql } from './lib/d1-sql.mjs';
+import { splitLongInsert, splitSql } from './lib/d1-sql.mjs';
 
 const [, , src, dst] = process.argv;
 if (!src || !dst) {
@@ -58,14 +58,20 @@ for (const t of [...tables.keys()].sort()) visit(t);
 // Служебная sqlite_sequence создаётся самой SQLite — её строки в конце данных.
 const dataTables = [...order, ...[...inserts.keys()].filter((t) => !tables.has(t))];
 
-const result = [
-  ...pragmas.length ? pragmas : ['PRAGMA defer_foreign_keys=TRUE'],
-  ...[...tables.values()],
-  ...dataTables.flatMap((t) => inserts.get(t) ?? []),
-  ...tail,
-];
-const count = (arr) => arr.length;
+// Строки длиннее предела D1 (100 КБ) — INSERT с пустым значением и UPDATE по частям (lib/d1-sql.mjs → splitLongInsert).
+let split = 0;
+const data = dataTables.flatMap((t) =>
+  (inserts.get(t) ?? []).flatMap((s) => {
+    const parts = /^INSERT/i.test(s) ? splitLongInsert(s, tables.get(t)) : [s];
+    if (parts.length > 1) split++;
+    return parts;
+  }),
+);
+const result = [...(pragmas.length ? pragmas : ['PRAGMA defer_foreign_keys=TRUE']), ...[...tables.values()], ...data, ...tail];
 const inCount = stmts.length + (pragmas.length ? 0 : 1);
+// Проверка «ничего не потерялось» — по исходным инструкциям (разбитая строка — одна инструкция в нескольких частях).
+const count = () => result.length - data.length + dataTables.reduce((n, t) => n + (inserts.get(t)?.length ?? 0), 0);
+if (split) console.log(`длинных строк разбито на части: ${split}`);
 if (count(result) !== inCount) {
   console.error(`потеряны инструкции: было ${inCount}, стало ${count(result)}`);
   process.exit(1);
