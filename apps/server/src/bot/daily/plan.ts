@@ -32,9 +32,22 @@ function hash(s: string): number {
   return h >>> 0;
 }
 
+/**
+ * Уровни, из которых можно взять вопрос: свой, затем ближайшие ниже, затем выше. Выключенный вопрос не возвращается никогда
+ * (1.0, этап 3: раньше, если у уровня выключали всё, план брал выключенные).
+ */
+function fallbackLevels(level: DailyLevel): DailyLevel[] {
+  const i = DAILY_LEVELS.indexOf(level);
+  return [level, ...DAILY_LEVELS.slice(0, i).reverse(), ...DAILY_LEVELS.slice(i + 1)];
+}
+
 export function pickDaily(level: DailyLevel, day: string, history: PlanHistory[], disabled: Set<string>): QuizQuestion {
-  const pool = QUIZ_QUESTIONS.filter((q) => q.cefr === level && !disabled.has(q.id));
-  const all = pool.length ? pool : QUIZ_QUESTIONS.filter((q) => q.cefr === level);
+  let all: QuizQuestion[] = [];
+  for (const lv of fallbackLevels(level)) {
+    all = QUIZ_QUESTIONS.filter((q) => q.cefr === lv && !disabled.has(q.id));
+    if (all.length) break;
+  }
+  if (!all.length) throw new Error('daily quiz: all questions are disabled');
   const lastUsed = new Map<string, string>();
   for (const h of history) if (h.day < day && (lastUsed.get(h.questionId) ?? '') < h.day) lastUsed.set(h.questionId, h.day);
   const yesterday = history.find((h) => h.day === addDays(day, -1));
@@ -74,9 +87,16 @@ export async function ensurePlan(from: string, days = PLAN_DAYS): Promise<void> 
     .where(and(gte(dailyQuizPlan.day, addDays(from, -HISTORY_DAYS)), lt(dailyQuizPlan.day, addDays(from, days))));
   // Банк вопросов меняется (вопросы заменяют и убирают): строка плана, где вопроса уже нет в банке или он другого уровня, пересобирается,
   // иначе рассылка в этот день не нашла бы вопрос. Только дни, которые ещё можно менять: прошедшие и уже идущие остаются как были.
+  // Вопрос уровня ниже (или выше) — законный, если у своего уровня включённых вопросов нет (pickDaily); тогда строка не «сломана».
+  // Выключенный вопрос в будущем дне тоже пересобирается.
   const today = warsawDay(new Date());
-  const run = await readDailyRun();
-  const broken = all.filter((r) => r.day >= from && isDayEditable(r.day, today, run) && QUESTION_BY_ID.get(r.questionId)?.cefr !== r.level);
+  const [run, disabled] = await Promise.all([readDailyRun(), disabledQuestionIds()]);
+  const hasOwn = new Set(QUIZ_QUESTIONS.filter((q) => !disabled.has(q.id)).map((q) => q.cefr));
+  const isBroken = (r: { level: DailyLevel; questionId: string }) => {
+    const q = QUESTION_BY_ID.get(r.questionId);
+    return !q || disabled.has(q.id) || (q.cefr !== r.level && hasOwn.has(r.level));
+  };
+  const broken = all.filter((r) => r.day >= from && isDayEditable(r.day, today, run) && isBroken(r));
   for (let i = 0; i < broken.length; i += 50) {
     const chunk = broken.slice(i, i + 50);
     await db.batch(chunk.map((r) => db.delete(dailyQuizPlan).where(and(eq(dailyQuizPlan.day, r.day), eq(dailyQuizPlan.level, r.level)))) as [never, ...never[]]);
@@ -85,7 +105,6 @@ export async function ensurePlan(from: string, days = PLAN_DAYS): Promise<void> 
   const have = new Set(rows.map((r) => `${r.day}|${r.level}`));
   const missing = (day: string) => DAILY_LEVELS.some((l) => !have.has(`${day}|${l}`));
   if (!Array.from({ length: days }, (_, i) => addDays(from, i)).some(missing)) return;
-  const disabled = await disabledQuestionIds();
   const history: Record<DailyLevel, PlanHistory[]> = { A1: [], A2: [], B1: [] };
   for (const r of rows) history[r.level].push(r);
   const add: (typeof dailyQuizPlan.$inferInsert)[] = [];

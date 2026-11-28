@@ -87,6 +87,18 @@ describe('план на 30 дней', () => {
     expect(b.image).not.toBe(a.image);
   });
 
+  it('все вопросы уровня выключены — выключенный вопрос всё равно не возвращается: берётся ближайший уровень ниже (1.0, этап 3)', () => {
+    const disabled = new Set(QUIZ_QUESTIONS.filter((q) => q.cefr === 'A2').map((q) => q.id));
+    const q = pickDaily('A2', '2027-03-01', [], disabled);
+    expect(disabled.has(q.id), q.id).toBe(false);
+    expect(q.cefr).toBe('A1');
+    // A1 ниже нет — тогда ближайший уровень выше; выключенные не приходят никогда.
+    const noA1 = new Set(QUIZ_QUESTIONS.filter((x) => x.cefr === 'A1').map((x) => x.id));
+    const up = pickDaily('A1', '2027-03-01', [], noA1);
+    expect(noA1.has(up.id)).toBe(false);
+    expect(up.cefr).toBe('A2');
+  });
+
   it('выключенный вопрос уходит из будущих дней и больше не попадает в план', async () => {
     const rows = await planRange('2026-12-01', 30);
     const victim = rows.find((r) => r.day === '2026-12-05')!;
@@ -96,6 +108,24 @@ describe('план на 30 дней', () => {
     expect(after).toHaveLength(90);
     expect((await db.select().from(dailyQuizQuestions).where(eq(dailyQuizQuestions.questionId, victim.questionId)))[0].disabled).toBe(true);
     await setQuestionDisabled(victim.questionId, false, null, '2026-12-01');
+  });
+
+  it('все вопросы A2 выключены: в плане A2 — вопрос уровня ниже, и повторный ensurePlan его не пересобирает (1.0, этап 3)', async () => {
+    const a2 = QUIZ_QUESTIONS.filter((q) => q.cefr === 'A2');
+    for (let i = 0; i < a2.length; i += 20) {
+      await db.insert(dailyQuizQuestions).values(a2.slice(i, i + 20).map((q) => ({ questionId: q.id, disabled: true }))).onConflictDoUpdate({ target: dailyQuizQuestions.questionId, set: { disabled: true } });
+    }
+    try {
+      await ensurePlan('2027-05-01', 3);
+      const first = (await planRange('2027-05-01', 3)).filter((r) => r.level === 'A2');
+      expect(first).toHaveLength(3);
+      for (const r of first) expect(QUESTION_BY_ID.get(r.questionId)?.cefr, r.day).toBe('A1');
+      await ensurePlan('2027-05-01', 3);
+      const second = (await planRange('2027-05-01', 3)).filter((r) => r.level === 'A2');
+      expect(second.map((r) => [r.questionId, r.updatedAt])).toEqual(first.map((r) => [r.questionId, r.updatedAt]));
+    } finally {
+      for (let i = 0; i < a2.length; i += 50) await db.update(dailyQuizQuestions).set({ disabled: false }).where(inArray(dailyQuizQuestions.questionId, a2.slice(i, i + 50).map((q) => q.id)));
+    }
   });
 
   it('строки плана с вопросом, которого уже нет в банке, или с вопросом другого уровня пересобираются; прошедшие дни остаются как были', async () => {
